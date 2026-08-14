@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-12T16:41:48Z",
+  "updated_at_utc": "2026-08-14T07:50:12Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -817,7 +817,7 @@
         "fp_model_runner.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 13,
+      "semantic_revision": 14,
       "files": {
         "fp_model.py": {
           "sha256": "c13812c8b2655ca38638941050f486bbf0d08391dc49f73247b40f689819a609",
@@ -830,9 +830,9 @@
           "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
         },
         "fp_model_data.py": {
-          "sha256": "0899b6442598a1a40475a3b1eadc09f5081c6e802c9de9f39b944a0cc7817910",
-          "size_bytes": 63910,
-          "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
+          "sha256": "c8f401095531732d2d66f549fabff6c81d9c3ea659143efcc377f8b81fbe7688",
+          "size_bytes": 64569,
+          "recorded_mtime_utc": "2026-08-14T07:48:49.933963Z"
         },
         "fp_model_outputs.py": {
           "sha256": "b675f1bfef1bfb41029942ece982f55c8c86e14c2894a91d842e3923c1b34f41",
@@ -845,9 +845,9 @@
           "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
         },
         "fp_model_runner.py": {
-          "sha256": "e7abf7efcb899cb42246fc5d01d9324ed4533b63f90f3e1353040624cffa8044",
-          "size_bytes": 34659,
-          "recorded_mtime_utc": "2026-08-08T07:45:43.513440Z"
+          "sha256": "6051c46e4ee103ec08fc7573605ad79d0f27c770113e7c58228768beb6b34e5e",
+          "size_bytes": 34595,
+          "recorded_mtime_utc": "2026-08-14T07:47:38.510585Z"
         },
         "fp_model_stan.py": {
           "sha256": "204a5e9a76d73a3925f4691546f75555ce87ca4be0d7534ead800ee9efc65938",
@@ -1719,9 +1719,56 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260814T075012Z-correction-fp-model-script-43e7f62c",
+          "recorded_at_utc": "2026-08-14T07:50:12Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 14,
+          "provenance_revision": 20,
+          "summary": "Resolve historical cutoff endpoints from rows eligible for the FP model so ignored TPP-only or approval-only rows cannot extend fits or disagree with preflight.",
+          "files": [
+            "fp_model_data.py",
+            "fp_model_runner.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "1996fed",
+              "1997sa",
+              "1999nsw",
+              "1999vic",
+              "2001wa",
+              "2002sa",
+              "2002vic",
+              "2004qld",
+              "2005wa",
+              "2006qld",
+              "2006sa",
+              "2007fed",
+              "2008wa",
+              "2010fed",
+              "2012qld",
+              "2013fed",
+              "2016fed",
+              "2019fed",
+              "2020qld",
+              "2021wa",
+              "2022fed",
+              "2022sa",
+              "2023nsw",
+              "2025fed"
+            ],
+            "parties": [],
+            "stages": [
+              "generate_cutoff_poll_trends"
+            ]
+          }
         }
       ],
-      "provenance_revision": 19
+      "provenance_revision": 20
     },
     "stan_cache_script": {
       "description": "Compilation and local caching of Stan model executables.",

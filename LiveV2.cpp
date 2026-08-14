@@ -124,6 +124,30 @@ float expectedVotesForAggregation(Node const& node) {
   return float(node.totalFpVotesCurrent());
 }
 
+std::map<int, float> projectedVoteShares(
+  std::map<int, float> const& projectedVotes,
+  std::string_view scope) {
+  float totalVotes = 0.0f;
+  for (auto const& [partyId, votes] : projectedVotes) {
+    if (!std::isfinite(votes) || votes < 0.0f) {
+      throw std::runtime_error(
+        std::string(scope) + " has invalid projected FP votes for party "
+        + std::to_string(partyId) + ".");
+    }
+    totalVotes += votes;
+  }
+  if (!std::isfinite(totalVotes) || totalVotes <= 0.0f) {
+    throw std::runtime_error(
+      std::string(scope) + " has no positive projected FP vote total.");
+  }
+
+  std::map<int, float> shares;
+  for (auto const& [partyId, votes] : projectedVotes) {
+    shares[partyId] = votes / totalVotes;
+  }
+  return shares;
+}
+
 }
 
 float obsWeight(float confidence, float strength = VoteObsWeightStrength) {
@@ -2027,15 +2051,13 @@ void Election::recomposeVoteCounts() {
   //    and perhaps also be compensated for by higher turnout in other booths, might need to look at both turnout and formality)
 
   if (!createRandomVariation) {
+    refreshFpProgressForDeclarationEstimates();
+
     for (int boothIndex : std::ranges::views::iota(0, int(booths.size()))) {
       recomposeBoothFpVotes(false, boothIndex);
       recomposeBoothTppVotes(false, boothIndex);
     }
 
-    for (int seatIndex : std::ranges::views::iota(0, int(seats.size()))) {
-      recomposeSeatFpVotes(seatIndex);
-      recomposeSeatTppVotes(seatIndex);
-    }
     for (int seatIndex : std::ranges::views::iota(0, int(seats.size()))) {
       recomposeSeatFpVotes(seatIndex);
       recomposeSeatTppVotes(seatIndex);
@@ -2096,18 +2118,18 @@ void Election::recomposeVoteCounts() {
   }
 }
 
-// Temporary-ish function to generate a guess for the expected number of votes in a declaration vote, used for determining variability
-// Prevents these counts from becoming prematurely too certain
-// Later on do something more sophisicated by estimating remaining votes from existing vote count,
-// modelling from estimated population growth and known counts of the declaration votes
+// Temporary declaration-size model used to prevent partial counts becoming
+// prematurely certain. These constants should eventually be calibrated from
+// historical declaration-count progression, enrolment and turnout data rather
+// than maintained as election-specific estimates.
 int Election::generateDeclarationVoteExpectedSize(int boothIndex) {
   constexpr int MinimumDeclarationVoteExpectationBase = 30;
   auto const& booth = booths.at(boothIndex);
   int expectationBase = std::max(booth.node.totalVotesPrevious(), MinimumDeclarationVoteExpectationBase);
-  // 1.046f represents typical population growth
+  // Rough allowance for population growth since the previous election.
   float baseExpectation = expectationBase * 1.05f;
   if (run.getTermCode() == "2026sa" && booth.voteType != Results2::VoteType::Postal) {
-    baseExpectation *= 0.661f; // expected decline in 
+    baseExpectation *= 0.661f; // expected decline in non-postal declaration votes
   }
   if (run.getTermCode() == "2026sa") {
     // Temporary fix for 2026sa declaration votes being way off expectations, replace with a more robust system when there's more time
@@ -2120,19 +2142,112 @@ int Election::generateDeclarationVoteExpectedSize(int boothIndex) {
     if (booth.voteType == Results2::VoteType::EVM) baseExpectation = 200.0f;
     if (booth.voteType == Results2::VoteType::TIO) baseExpectation = 30.0f;
   }
-  baseExpectation *= std::max(0.1f, variabilityNormal(1.0f, 0.12f, boothIndex, 0, uint32_t(VariabilityTag::DeclarationVoteSizeVariability)));
+  if (createRandomVariation) {
+    baseExpectation *= std::max(
+      0.1f,
+      variabilityNormal(
+        1.0f, 0.12f, boothIndex, 0,
+        uint32_t(VariabilityTag::DeclarationVoteSizeVariability)));
+  }
 
   return static_cast<int>(baseExpectation);
 }
 
+void Election::refreshFpProgressForDeclarationEstimates() {
+  // Declaration counts do not have a reliable completion marker in the feed.
+  // Replace the previous-election denominator with the current expected final
+  // size, then propagate only FP progress. Calling aggregate() here would also
+  // recompute deviations and other already-derived hierarchy state.
+  std::vector<float> boothExpectedVotes(booths.size(), 0.0f);
+  for (int boothIndex : std::ranges::views::iota(0, int(booths.size()))) {
+    auto& booth = booths[boothIndex];
+    float expectedVotes = expectedVotesForAggregation(booth.node);
+    if (booth.voteType != Results2::VoteType::Ordinary) {
+      expectedVotes = std::max(
+        float(generateDeclarationVoteExpectedSize(boothIndex)),
+        float(booth.node.totalFpVotesCurrent()));
+      if (booth.node.totalFpVotesCurrent() > 0) {
+        float const progress = std::clamp(
+          float(booth.node.totalFpVotesCurrent()) / expectedVotes,
+          0.0f, 1.0f);
+        booth.node.fpCompletion = progress;
+        booth.node.fpConfidence = progress;
+      }
+    }
+    if (expectedVotes <= 0.0f) {
+      expectedVotes = booth.boothType == Results2::Booth::Type::Hospital
+        ? HospitalBoothVotesGuess
+        : PreviousTotalVotesGuess;
+    }
+    boothExpectedVotes[boothIndex] = expectedVotes;
+  }
+
+  auto refreshParentProgress = [](
+    Node& parent,
+    auto const& childIndices,
+    auto const& children,
+    std::vector<float> const& expectedVotes) {
+    float completionSum = 0.0f;
+    float confidenceSum = 0.0f;
+    float totalExpectedVotes = 0.0f;
+    for (int childIndex : childIndices) {
+      auto const& child = children.at(childIndex).node;
+      float const childExpectedVotes = expectedVotes.at(childIndex);
+      completionSum += child.fpCompletion * childExpectedVotes;
+      if (!child.fpDeviations.empty()) {
+        confidenceSum += child.fpConfidence * childExpectedVotes
+          * child.relevanceModifier;
+      }
+      totalExpectedVotes += childExpectedVotes;
+    }
+    parent.fpCompletion = totalExpectedVotes > 0.0f
+      ? completionSum / totalExpectedVotes
+      : 0.0f;
+    parent.fpConfidence = totalExpectedVotes > 0.0f
+      ? confidenceSum / totalExpectedVotes
+      : 0.0f;
+    return totalExpectedVotes;
+  };
+
+  std::vector<float> seatExpectedVotes(seats.size(), 0.0f);
+  for (int seatIndex : std::ranges::views::iota(0, int(seats.size()))) {
+    seatExpectedVotes[seatIndex] = refreshParentProgress(
+      seats[seatIndex].node, seats[seatIndex].booths, booths,
+      boothExpectedVotes);
+  }
+
+  std::vector<float> regionExpectedVotes(largeRegions.size(), 0.0f);
+  for (int regionIndex : std::ranges::views::iota(0, int(largeRegions.size()))) {
+    regionExpectedVotes[regionIndex] = refreshParentProgress(
+      largeRegions[regionIndex].node, largeRegions[regionIndex].seats, seats,
+      seatExpectedVotes);
+  }
+
+  std::vector<int> regionIndices(largeRegions.size());
+  std::iota(regionIndices.begin(), regionIndices.end(), 0);
+  refreshParentProgress(
+    node, regionIndices, largeRegions, regionExpectedVotes);
+}
+
 void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
-  auto assignBlindOthers = [this](std::map<int, float>& votesProjected, std::set<int>& blindOthers, int projectSeatIndex, float currentVotesEstimate, float othersAccountedFor) {
+  auto assignBlindOthers = [this](
+    std::map<int, float>& votesProjected,
+    std::set<int> const& blindOthers,
+    int projectSeatIndex,
+    float currentVotesEstimate,
+    float othersAccountedFor) {
     float remainingExpectedVotes = 0.01f * blindOthers.size() * currentVotesEstimate;
     if (
       sim.getLiveBaselineReport().has_value()
-      && sim.getLiveBaselineReport().value().seatFpProbabilityBand[projectSeatIndex].contains(-1)
+      && sim.getLiveBaselineReport().value().seatFpProbabilityBand[projectSeatIndex].contains(OthersIndex)
     ) {
-      auto const& probabilityBands = sim.getLiveBaselineReport().value().seatFpProbabilityBand[projectSeatIndex].at(-1);
+      auto const& probabilityBands = sim.getLiveBaselineReport().value()
+        .seatFpProbabilityBand[projectSeatIndex].at(OthersIndex);
+      if (probabilityBands.empty()) {
+        throw std::runtime_error(
+          "Baseline Others distribution is empty for seat "
+          + project.seats().viewByIndex(projectSeatIndex).name + ".");
+      }
       float median = probabilityBands[(probabilityBands.size() - 1) / 2];
       remainingExpectedVotes = std::max(remainingExpectedVotes, median * currentVotesEstimate * 0.01f - othersAccountedFor);
     }
@@ -2152,10 +2267,13 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
       fpVotesProjected[effectivePartyId] = static_cast<float>(votes);
     }
     if (booth.voteType != Results2::VoteType::Ordinary) {
-      float expectedTotalVotes = generateDeclarationVoteExpectedSize(boothIndex);
       float currentTotalVotesProjected = std::accumulate(fpVotesProjected.begin(), fpVotesProjected.end(), 0.0f,
         [](float sum, const auto& pair) { return sum + pair.second; });
+      float expectedTotalVotes = std::max(
+        float(generateDeclarationVoteExpectedSize(boothIndex)),
+        currentTotalVotesProjected);
       float totalAdditionalVotes = std::max(0.0f, expectedTotalVotes - currentTotalVotesProjected);
+      std::map<int, float> additionalVotes;
       float totalAddedVotes = 0.0f;
       for (auto const& [partyId, votes] : fpVotesProjected) {
         float stdDev = 7.0f + 12.0f * std::exp(-static_cast<float>(booth.node.totalVotesPrevious()) * 0.0001f);
@@ -2167,15 +2285,24 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
         }
         float transformedOriginal = transformVoteShare(float(fpVotesProjected.at(partyId)) / currentTotalVotesProjected * 100.0f);
         float transformedProjection = transformedOriginal + projectionDifference;
-        float additionalPartyOneVotes = detransformVoteShare(transformedProjection) * totalAdditionalVotes * 0.01f;
-        fpVotesProjected[partyId] += additionalPartyOneVotes;
-        totalAddedVotes += additionalPartyOneVotes;
+        float additionalPartyVotes = detransformVoteShare(transformedProjection) * totalAdditionalVotes * 0.01f;
+        additionalVotes[partyId] = additionalPartyVotes;
+        totalAddedVotes += additionalPartyVotes;
       }
-      // The adjustment process above for the projection difference causes the vote total to be changed
-      // so adjust it to keep it consistent with other counts
-      float voteTotalAdjustment = expectedTotalVotes / (currentTotalVotesProjected + totalAddedVotes);
-      for (auto const& [partyId, votes] : fpVotesProjected) {
-        fpVotesProjected[partyId] *= voteTotalAdjustment;
+      // Independent transformed-share adjustments do not necessarily allocate
+      // exactly 100% of the remaining votes. Normalise only those additions so
+      // already-counted votes are never reduced or otherwise rewritten.
+      if (totalAdditionalVotes > 0.0f) {
+        if (!std::isfinite(totalAddedVotes) || totalAddedVotes <= 0.0f) {
+          throw std::runtime_error(
+            "Could not allocate remaining declaration FP votes for "
+            + booth.name + ".");
+        }
+        float const additionalVoteAdjustment =
+          totalAdditionalVotes / totalAddedVotes;
+        for (auto& [partyId, votes] : fpVotesProjected) {
+          votes += additionalVotes.at(partyId) * additionalVoteAdjustment;
+        }
       }
 
       booth.node.fpCompletion = std::clamp(currentTotalVotesProjected / expectedTotalVotes, 0.0f, 1.0f);
@@ -2190,7 +2317,9 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
   else {
     const float votesGuess = booth.boothType == Results2::Booth::Type::Hospital ? HospitalBoothVotesGuess : PreviousTotalVotesGuess;
     float previousTotalVotes = booth.node.totalVotesPrevious() ? booth.node.totalVotesPrevious() : votesGuess;
-    const float fpTotalCurrent = booth.node.totalFpVotesCurrent();
+    const float fpTotalCurrent = allowCurrentData
+      ? float(booth.node.totalFpVotesCurrent())
+      : 0.0f;
     float currentVotesEstimate = previousTotalVotes;
     if (booth.voteType != Results2::VoteType::Ordinary) {
       currentVotesEstimate = float(generateDeclarationVoteExpectedSize(boothIndex));
@@ -2227,11 +2356,11 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
         float stdDev = 6.0f + 10.0f * std::exp(-static_cast<float>(booth.node.totalVotesPrevious()) * 0.0001f);
         randomFactor = variabilityNormal(0.0f, stdDev, boothIndex, effectivePartyId, uint32_t(VariabilityTag::BoothProjectionFp));
       }
-      // Apply biases for this booth type and vote type
+      // Apply biases for this booth classification.
       if (allowCurrentData && boothTypeFpBiases.contains(effectivePartyId) && boothTypeFpBiases.at(effectivePartyId).contains(booth.boothType)) {
         deviation += boothTypeFpBiases.at(effectivePartyId).at(booth.boothType);
       }
-      // Apply biases for this booth type and vote type
+      // Apply biases for declaration/ordinary vote type.
       if (allowCurrentData && voteTypeFpBiases.contains(effectivePartyId) && voteTypeFpBiases.at(effectivePartyId).contains(booth.voteType)) {
         deviation += voteTypeFpBiases.at(effectivePartyId).at(booth.voteType);
       }
@@ -2239,6 +2368,12 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
       if (sim.getLiveBaselineReport().has_value()) {
         if (sim.getLiveBaselineReport().value().seatFpProbabilityBand[projectSeatIndex].contains(effectivePartyId)) {  
           auto const& fpProbabilityBands = sim.getLiveBaselineReport().value().seatFpProbabilityBand[projectSeatIndex].at(effectivePartyId);
+          if (fpProbabilityBands.empty()) {
+            throw std::runtime_error(
+              "Baseline FP distribution is empty for party "
+              + std::to_string(effectivePartyId) + " in seat "
+              + project.seats().viewByIndex(projectSeatIndex).name + ".");
+          }
           baselineShareUntransformed = fpProbabilityBands[(fpProbabilityBands.size() - 1) / 2];
         }
       }
@@ -2250,7 +2385,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
         float newShare = prevShare + baselineSwing + deviation + randomFactor;
         float newVotes = detransformVoteShare(newShare) * currentVoteTarget * 0.01f;
         tempFpVotesProjected[effectivePartyId] = newVotes;
-        if (effectivePartyId > 2 && effectivePartyId != natPartyIndex) {
+        if (!baselineShareUntransformed.has_value()) {
           othersAccountedFor += newVotes;
         }
       } else if (
@@ -2269,7 +2404,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
         float newShare = seatShare * weight + baselineShare * (1.0f - weight);
         float newVotes = detransformVoteShare(newShare + randomFactor) * currentVoteTarget * 0.01f;
         tempFpVotesProjected[effectivePartyId] = newVotes;
-        if (effectivePartyId > 2 && effectivePartyId != natPartyIndex) {
+        if (!baselineShareUntransformed.has_value()) {
           othersAccountedFor += newVotes;
         }
       } else if (baselineShareUntransformed.has_value()) {
@@ -2284,9 +2419,6 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
         float detransformedShare = detransformVoteShare(adjustedShare);
         float newVotes = detransformedShare * currentVoteTarget * 0.01f;
         tempFpVotesProjected[effectivePartyId] = newVotes;
-        if (effectivePartyId > 2 && effectivePartyId != natPartyIndex) {
-          othersAccountedFor += newVotes;
-        }
       } else {
         // No previous data, no current data, no baseline
         // Blind others are parties that we have no information about
@@ -2304,7 +2436,15 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
     // normalize so that the sum of the votes is the same as the previous election (or other estimate)
     float totalVotes = 0.0f;
     for (auto const& [partyId, votes] : tempFpVotesProjected) {
+      if (!std::isfinite(votes) || votes < 0.0f) {
+        throw std::runtime_error(
+          "Invalid FP projection for booth " + booth.name + ".");
+      }
       totalVotes += votes;
+    }
+    if (!std::isfinite(totalVotes) || totalVotes <= 0.0f) {
+      throw std::runtime_error(
+        "No positive FP projection was produced for booth " + booth.name + ".");
     }
     for (auto& [partyId, votes] : tempFpVotesProjected) {
       votes *= currentVoteTarget / totalVotes;
@@ -2716,8 +2856,14 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
   float currentVoteTarget = fpTotalCurrent ? fpTotalCurrent : currentVotesEstimate;
   std::map<int, float> tempTppVotesProjected;
   std::optional<float> prevAlpShare;
-  if (isTppSet(booth.node.tcpVotesPrevious, natPartyIndex)) {
-    prevAlpShare = transformVoteShare(float(booth.node.tcpVotesPrevious.at(0)) / float(previousTotalVotes) * 100.0f);
+  float const previousTcpTotal = float(booth.node.totalTcpVotesPrevious());
+  if (previousTcpTotal > 0.0f
+    && isTppSet(booth.node.tcpVotesPrevious, natPartyIndex)) {
+    // TPP is a share of the TCP count. The mapped FP total may differ when
+    // multiple historical candidates collapse to one internal party, so using
+    // it here would make recomposition inconsistent with calculateTppSwing().
+    prevAlpShare = transformVoteShare(
+      float(booth.node.tcpVotesPrevious.at(0)) / previousTcpTotal * 100.0f);
   }
   std::optional<float> seatBaselineAlpShare;
   if (seats[booth.parentSeatId].node.tppShareBaseline.has_value()) {
@@ -2749,8 +2895,10 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
     }
   }
   float existingAlpShare = baselineAlpShare.value_or(
-    isTppSet(booth.node.tcpVotesPrevious, natPartyIndex)
-      ? transformVoteShare(float(booth.node.tcpVotesPrevious.at(0)) / float(previousTotalVotes) * 100.0f)
+    previousTcpTotal > 0.0f
+      && isTppSet(booth.node.tcpVotesPrevious, natPartyIndex)
+      ? transformVoteShare(
+        float(booth.node.tcpVotesPrevious.at(0)) / previousTcpTotal * 100.0f)
       : 0.0f
     );
   if (createRandomVariation) {
@@ -2813,10 +2961,10 @@ void Election::recomposeSeatFpVotes(int seatIndex) {
     }
   }
 
-  // Make sure to move any independent votes to the correct party index if needed, so that they can be correctly aggregated in the simulation
-  // Otherwise there's sharp movements in the independent vote projected when the first independent votes come in
-  // because the only vote share that's projected will be in that seat
-  // Instead we make sure that independent votes are projected in seats that 
+  // Map the strongest candidate-specific independent to the simulation's
+  // generic independent. This avoids a sharp discontinuity when that candidate
+  // first reports; other independents remain separate and contribute through
+  // the seat's generic Others projection.
   if (!seats[seatIndex].node.fpVotesProjected.contains(run.indPartyIndex)) {
     int bestIndependentId = InvalidPartyIndex;
     for (auto const& [partyId, votes] : seats[seatIndex].node.fpVotesProjected) {
@@ -2941,20 +3089,14 @@ static float offsetWeightTpp(LiveV2::Node const& node) {
 }
 
 void Election::determineElectionFinalFpDeviations(bool allowCurrentData) {
-  // now convert to shares
-  float totalVotes = 0.0f;
-  std::map<int, float> shares;
-  for (auto const& [partyId, votes] : node.fpVotesProjected) {
-    totalVotes += votes;
-  }
-  for (auto& [partyId, votes] : node.fpVotesProjected) {
-    shares[partyId] = votes / totalVotes;
-  }
+  auto const shares = projectedVoteShares(
+    node.fpVotesProjected, "Election");
   // now convert to deviations
   for (auto const& [partyId, share] : shares) {
     // TODO: this should be sourced from the simulation report
     float finalDeviation = node.fpSharesBaseline.contains(partyId)
-      ? transformVoteShare(share * 100.0f) - node.fpSharesBaseline.at(partyId)
+      ? transformVoteShare(std::clamp(share * 100.0f, 0.1f, 99.9f))
+        - node.fpSharesBaseline.at(partyId)
       : 0.0f;
 
     if (allowCurrentData) {
@@ -3002,15 +3144,9 @@ void Election::determineElectionFinalTppDeviation(bool allowCurrentData) {
 }
 
 void Election::determineLargeRegionFinalFpDeviations(bool allowCurrentData, int largeRegionIndex) {
-  // now convert to shares
-  float totalVotes = 0.0f;
-  std::map<int, float> shares;
-  for (auto const& [partyId, votes] : largeRegions[largeRegionIndex].node.fpVotesProjected) {
-    totalVotes += votes;
-  }
-  for (auto& [partyId, votes] : largeRegions[largeRegionIndex].node.fpVotesProjected) {
-    shares[partyId] = votes / totalVotes;
-  }
+  auto const shares = projectedVoteShares(
+    largeRegions[largeRegionIndex].node.fpVotesProjected,
+    "Region " + largeRegions[largeRegionIndex].name);
   // now convert to deviations
   for (auto const& [partyId, share] : shares) {
     float inheritedDeviation = 0.0f;
@@ -3020,7 +3156,9 @@ void Election::determineLargeRegionFinalFpDeviations(bool allowCurrentData, int 
       }
     }
     float finalDeviation = largeRegions[largeRegionIndex].node.fpSharesBaseline.contains(partyId)
-      ? transformVoteShare(share * 100.0f) - largeRegions[largeRegionIndex].node.fpSharesBaseline.at(partyId) - inheritedDeviation
+      ? transformVoteShare(std::clamp(share * 100.0f, 0.1f, 99.9f))
+        - largeRegions[largeRegionIndex].node.fpSharesBaseline.at(partyId)
+        - inheritedDeviation
       : 0.0f;
     if (allowCurrentData) {
       float offset = largeRegions[largeRegionIndex].offsetSpecificFpDeviations.contains(partyId)
@@ -3071,15 +3209,9 @@ void Election::determineLargeRegionFinalTppDeviation(bool allowCurrentData, int 
 }
 
 void Election::determineSeatFinalFpDeviations(bool allowCurrentData, int seatIndex) {
-  // now convert to shares
-  float totalVotes = 0.0f;
-  std::map<int, float> shares;
-  for (auto const& [partyId, votes] : seats[seatIndex].node.fpVotesProjected) {
-    totalVotes += votes;
-  }
-  for (auto& [partyId, votes] : seats[seatIndex].node.fpVotesProjected) {
-    shares[partyId] = votes / totalVotes;
-  }
+  auto const shares = projectedVoteShares(
+    seats[seatIndex].node.fpVotesProjected,
+    "Seat " + seats[seatIndex].name);
   // now convert to deviations
   for (auto const& [partyId, share] : shares) {
     float inheritedDeviation = 0.0f;
@@ -3093,7 +3225,9 @@ void Election::determineSeatFinalFpDeviations(bool allowCurrentData, int seatInd
       }
     }
     float finalDeviation = seats[seatIndex].node.fpSharesBaseline.contains(partyId)
-      ? transformVoteShare(share * 100.0f) - seats[seatIndex].node.fpSharesBaseline.at(partyId) - inheritedDeviation
+      ? transformVoteShare(std::clamp(share * 100.0f, 0.1f, 99.9f))
+        - seats[seatIndex].node.fpSharesBaseline.at(partyId)
+        - inheritedDeviation
       : 0.0f;
     if (allowCurrentData) {
       float offset = seats[seatIndex].offsetSpecificFpDeviations.contains(partyId)

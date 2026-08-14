@@ -31,6 +31,17 @@ class ConfigError(ValueError):
     pass
 
 
+def filter_model_eligible_poll_rows(poll_data):
+    """Return polls with enough FP information to enter the model.
+
+    ``OTH FP`` is required because its presence indicates that undecided voters
+    were handled consistently. Rows without it may still contain reported TPP
+    or approval figures, but the FP model removes them before fitting.
+    """
+
+    return poll_data[poll_data['OTH FP'].notna()].copy()
+
+
 def compressed_day_number(day_number, t_factor):
     """Map a one-based calendar day number to a one-based model node."""
 
@@ -986,12 +997,18 @@ class ElectionData:
         if self.base_df.empty:
             return
 
-        # convert dates to days from start
-        # do this before removing polls with N/A values so that
-        # start times are consistent amongst series
-        # (otherwise, a poll missing some parties, or with only approval ratings,
-        # could cause inconsistent date indexing)
+        # Anchor every party to the same raw first date, even if that first row
+        # reports only approval ratings or omits a particular party.
         self.start = self.base_df['MidDate'].min()  # day zero
+
+        # Cutoff endpoints represent the latest poll actually entering the fit.
+        # Filter before resolving that endpoint so an ignored TPP-only or
+        # approval-only row cannot add an unobserved tail or disagree with
+        # cutoff preflight. Preserve established non-cutoff window behaviour.
+        if config.cutoff_mode:
+            self.base_df = filter_model_eligible_poll_rows(self.base_df)
+            if self.base_df.empty:
+                return
         self.end = self.base_df['MidDate'].max()
         # federal trend medians for selected minor parties
         self.fed_trends = {}
@@ -1066,9 +1083,8 @@ class ElectionData:
         self.n_days = self.base_df['Day'].max() + 1
         self.days_to_election = (m_data.election_cycles[tup][1] - self.end).days
 
-        # drop data without a defined OTH FP (since that would indicate
-        # that we don't know if undecided were excluded)
-        self.base_df.dropna(subset=['OTH FP'], inplace=True)
+        if not config.cutoff_mode:
+            self.base_df = filter_model_eligible_poll_rows(self.base_df)
 
         # store the election day for when the model needs it later
         self.election_day = (m_data.election_cycles[tup][1] - self.start).days

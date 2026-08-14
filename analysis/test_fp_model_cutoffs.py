@@ -5,6 +5,9 @@ from datetime import date
 from pathlib import Path
 from unittest import mock
 
+import pandas as pd
+
+import fp_model_data
 import fp_model_provenance
 import trend_adjust_cutoffs
 
@@ -34,6 +37,31 @@ class CutoffScheduleTests(unittest.TestCase):
                 schedule=[0, 1, 3, 6, 10],
             ),
             [(10, 11), (6, 6), (3, 3)],
+        )
+
+    def test_tpp_only_row_does_not_advance_model_endpoint(self):
+        polls = pd.DataFrame({
+            "MidDate": pd.to_datetime([
+                "1996-02-26",
+                "1996-02-27",
+            ]),
+            "OTH FP": [6.0, None],
+            "@TPP": [49.0, 50.5],
+        })
+
+        eligible = fp_model_data.filter_model_eligible_poll_rows(polls)
+
+        self.assertEqual(
+            eligible["MidDate"].dt.date.tolist(),
+            [date(1996, 2, 26)],
+        )
+        self.assertEqual(
+            fp_model_provenance.effective_cutoff_schedule(
+                election_day=date(1996, 3, 2),
+                poll_dates=eligible["MidDate"].dt.date.tolist(),
+                schedule=[3],
+            ),
+            [(3, 5)],
         )
 
 

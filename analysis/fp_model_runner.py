@@ -33,6 +33,7 @@ from fp_model_data import (
     calibration_checkpoint_identity,
     calibration_checkpoint_payload,
     federal_prior_needed_for_states,
+    filter_model_eligible_poll_rows,
     restore_calibration_checkpoint,
     stan_seed_mode,
 )
@@ -182,19 +183,15 @@ def cutoff_work_items(config, m_data, schedule):
                 data_source[region],
                 usecols=['MidDate', 'OTH FP'],
             )
+            poll_data = filter_model_eligible_poll_rows(poll_data)
             parsed_dates = pd.to_datetime(
                 poll_data['MidDate'],
                 errors='raise',
             )
             poll_dates_by_region[region] = [
                 poll_date.date()
-                for poll_date, others_value in zip(
-                    parsed_dates, poll_data['OTH FP']
-                )
-                if (
-                    not pd.isna(poll_date)
-                    and not pd.isna(others_value)
-                )
+                for poll_date in parsed_dates
+                if not pd.isna(poll_date)
             ]
 
         cycle_start, election_day = m_data.election_cycles[election_tuple]
