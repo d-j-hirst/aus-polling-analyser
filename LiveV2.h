@@ -58,7 +58,6 @@ public:
   std::map<int, float> tempFpVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
   std::map<int, float> tempTppVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
   std::map<int, float> tempTcpVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
-  std::map<int, float> tppVotesProjectedFinal; // takes into account offset adjustments
   std::set<int> runningParties;
 
   // Confidence = how useful the existing results are for projection remaining results.
@@ -228,7 +227,7 @@ public:
 	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run);
 
   float getTppShareBaseline() const {
-    return node.tppShareBaseline.value_or(50.0f);
+    return node.tppShareBaseline.value_or(0.0f);
   }
 
   float getTransformedBaselineFp(int partyIndex) const {
@@ -239,7 +238,7 @@ public:
   }
 
   float getRegionTppBaseline(int regionIndex) const {
-    return largeRegions[regionIndex].node.tppShareBaseline.value_or(50.0f);
+    return largeRegions[regionIndex].node.tppShareBaseline.value_or(0.0f);
   }
 
    // baseline: revert "simulated" 2PP to this as confidence increases
@@ -249,7 +248,7 @@ public:
    // Note this should be used from a randomized instance of the live results simulation
    // to reflect uncertainty in the remaining live results
   FloatBaselineInformation getFinalSpecificTppInformation() const override {
-    float baseline = node.tppShareBaseline.value_or(50.0f);
+    float baseline = node.tppShareBaseline.value_or(0.0f);
     float deviation = finalSpecificTppDeviation.value_or(0.0f);
     float confidence = node.tppConfidence;
     float completion = node.tppCompletion;
@@ -274,10 +273,10 @@ public:
       float deviation = seats[seatIndex].finalSpecificTppDeviation.value_or(0.0f);
       float confidence = seats[seatIndex].node.tppConfidence;
       float completion = seats[seatIndex].node.tppCompletion;
-      float baseline = seats[seatIndex].node.tppShareBaseline.value_or(50.0f);
+      float baseline = seats[seatIndex].node.tppShareBaseline.value_or(0.0f);
       return { baseline, completion, confidence, deviation };
 		}
-    return {50.0f, 0.0f, 0.0f, 0.0f};
+    return {0.0f, 0.0f, 0.0f, 0.0f};
   }
 
   std::map<int, FloatBaselineInformation> getSeatFpInformation(std::string const& seatName) const override {
@@ -370,7 +369,9 @@ public:
   FloatInformation getSeatLivePreferenceFlowDeviation(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
     if (seatIndex != int(seats.size())) {
-      float confidence = std::min(seats[seatIndex].node.fpConfidence, seats[seatIndex].node.tcpConfidence);
+      float confidence = std::min(
+        seats[seatIndex].node.fpConfidence,
+        seats[seatIndex].node.tppConfidence);
       return {seats[seatIndex].livePreferenceFlowDeviation, 0, confidence};
     }
     return {0.0f, 0.0f};
@@ -546,8 +547,6 @@ private:
   void determineSeatFinalTppDeviation(bool allowCurrentData, int seatIndex);
 
   void calculateTppEstimateBias();
-  void adjustSeatTppProjectionForOffset(int seatIndex);
-
   void calculateLivePreferenceFlowDeviations();
 
   void prepareVariability();
@@ -617,7 +616,8 @@ private:
 
   int natPartyIndex;
 
-  float nonClassicTppBias = 0.0f;
+  float nonClassicTppBiasPercentagePoints = 0.0f;
+  float nonClassicTppBiasConfidence = 0.0f;
 
   int variabilitySampleIndex = 0;
   std::uint64_t variabilityBaseSeed = 0x9e3779b97f4a7c15ULL;
