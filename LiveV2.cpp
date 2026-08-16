@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <exception>
+#include <mutex>
 #include <numeric>
 #include <ranges>
 #include <set>
@@ -40,6 +42,12 @@ constexpr float DifferentSeatRelevanceModifier = 0.1f;
 constexpr float NonClassicTppVariabilityStdDev = 2.5f;
 constexpr float NonClassicBiasEffectiveBoothScale = 5.0f;
 constexpr float MaxPreferenceVoteTotalDifference = 0.02f;
+constexpr int VariabilityPreparationSamples = 288;
+constexpr int VariabilityPreparationThreads = 24;
+
+// Keep LiveV2 draws independent from other deterministic RNG users whose tag
+// enums start at the same values and otherwise produce identical keys.
+constexpr std::uint64_t LiveVariabilityDomain = 0x4c69766556320001ULL;
 
 // Arbitrary offset to ensure independent candidates don't clash with real party IDs
 // Candidate IDs are 5-digit (or shorter) numbers, so this offset makes it easy to spot
@@ -174,12 +182,109 @@ std::optional<float> projectedTppAlpShare(
   return projectedVotes.at(0) / totalVotes;
 }
 
+float positiveVoteTotal(
+  std::map<int, float> const& votes,
+  std::string_view context) {
+  float total = 0.0f;
+  for (auto const& [partyId, partyVotes] : votes) {
+    if (!std::isfinite(partyVotes) || partyVotes < 0.0f) {
+      throw std::runtime_error(
+        std::string(context) + " has invalid votes for party "
+        + std::to_string(partyId) + ".");
+    }
+    total += partyVotes;
+  }
+  if (!std::isfinite(total) || total <= 0.0f) {
+    throw std::runtime_error(
+      std::string(context) + " has no positive finite vote total.");
+  }
+  return total;
+}
+
+void addProjectedVotes(
+  std::map<int, float>& totals,
+  std::map<int, float> const& votes,
+  std::string_view context) {
+  for (auto const& [partyId, partyVotes] : votes) {
+    if (!std::isfinite(partyVotes) || partyVotes < 0.0f) {
+      throw std::runtime_error(
+        std::string(context) + " has invalid votes for party "
+        + std::to_string(partyId) + ".");
+    }
+    totals[partyId] += partyVotes;
+  }
+}
+
+float transformedPartyShare(
+  std::map<int, float> const& votes,
+  int partyId,
+  float total,
+  std::string_view context) {
+  if (!votes.contains(partyId)) {
+    throw std::runtime_error(
+      std::string(context) + " is missing party "
+      + std::to_string(partyId) + ".");
+  }
+  float const share = votes.at(partyId) / total * 100.0f;
+  if (!std::isfinite(share) || share <= 0.0f || share >= 100.0f) {
+    throw std::runtime_error(
+      std::string(context) + " has an untransformable share for party "
+      + std::to_string(partyId) + ".");
+  }
+  float const transformedShare = transformVoteShare(share);
+  if (!std::isfinite(transformedShare)) {
+    throw std::runtime_error(
+      std::string(context) + " produced a non-finite transformed share for party "
+      + std::to_string(partyId) + ".");
+  }
+  return transformedShare;
+}
+
+float deterministicRootMeanSquare(
+  std::vector<float>& samples,
+  std::string_view context) {
+  if (samples.empty()) {
+    throw std::runtime_error(
+      std::string(context) + " has no variability samples.");
+  }
+  for (float sample : samples) {
+    if (!std::isfinite(sample)) {
+      throw std::runtime_error(
+        std::string(context) + " contains a non-finite variability sample.");
+    }
+  }
+  // Worker completion order is nondeterministic; sort before floating-point
+  // reduction so identical inputs produce identical prepared parameters.
+  std::sort(samples.begin(), samples.end());
+  float const squaredTotal = std::accumulate(
+    samples.begin(), samples.end(), 0.0f,
+    [](float sum, float sample) { return sum + sample * sample; });
+  return std::sqrt(squaredTotal / samples.size());
+}
+
 }
 
 float obsWeight(float confidence, float strength = VoteObsWeightStrength) {
   // TODO: Calibrate this confidence-to-weight curve against historical live
   // counts. Its shape and the level-specific strengths are currently heuristic.
-  return std::min(1.0f, 1.01f - 1.01f / (1.0f + std::pow(confidence, 1.6f) * strength));
+  if (!std::isfinite(confidence) || !std::isfinite(strength) || strength < 0.0f) {
+    throw std::runtime_error("Cannot weight invalid live-election evidence.");
+  }
+  float const boundedConfidence = std::clamp(confidence, 0.0f, 1.0f);
+  return std::min(
+    1.0f,
+    1.01f - 1.01f
+      / (1.0f + std::pow(boundedConfidence, 1.6f) * strength));
+}
+
+float variabilityProgressWeight(float completion) {
+  if (!std::isfinite(completion)) {
+    throw std::runtime_error(
+      "Cannot weight variability using non-finite completion.");
+  }
+  // This fast phase-in preserves exact zero-results behaviour. Its shape is a
+  // heuristic and should eventually be calibrated from historical snapshots.
+  return 1.0f - std::exp(-std::clamp(completion, 0.0f, 1.0f) * 50.0f);
 }
 
 enum class VariabilityTag : std::uint32_t {
@@ -3594,105 +3699,158 @@ void Election::calculateLivePreferenceFlowDeviations() {
 void Election::prepareVariability() {
   // Because simulating variation per-booth is very time-consuming, we instead
   // do a smaller sample to establish the distribution at the seat level, then
-  // use that for inter-simulation variation
+  // use that for inter-simulation variation.
 
   createRandomVariation = true;
+  for (auto& seat : seats) {
+    seat.fpAllBoothsStdDev.clear();
+    seat.tppAllBoothsStdDev = 0.0f;
+    seat.tcpAllBoothsStdDev.reset();
+  }
+
   std::map<int, std::map<int, std::vector<float>>> seatFpResults; // by seat, then by party
   std::map<int, std::vector<float>> seatTppResults;
   std::map<int, std::vector<float>> seatTcpResults;
-  // For testing purposes, keep number of iterations high (live should be more like 288 rather than 2400)
-  int IterationsTarget = 288;
-  int threadCount = 24;
-  for (int iteration = 0; iteration < IterationsTarget / threadCount; ++iteration) {
+  for (int batchStart = 0; batchStart < VariabilityPreparationSamples;
+    batchStart += VariabilityPreparationThreads) {
     std::mutex seatResultsMutex;
+    std::exception_ptr workerException;
     std::vector<std::thread> threads;
+    int const batchSize = std::min(
+      VariabilityPreparationThreads,
+      VariabilityPreparationSamples - batchStart);
+    threads.reserve(batchSize);
 
-    for (int threadIndex = 0; threadIndex < threadCount; ++threadIndex) {
-      threads.emplace_back([&, threadIndex]() {
-        auto sampleElection = *this;
-        sampleElection.variabilitySampleIndex = iteration * threadCount + threadIndex;
-        std::map<int, std::map<int, std::vector<float>>> tempSeatFpResults; // by seat, then by party
-        std::map<int, std::vector<float>> tempSeatTppResults;
-        std::map<int, std::vector<float>> tempSeatTcpResults;
-        for (int seatIndex : std::ranges::views::iota(0, int(sampleElection.seats.size()))) {
-          auto& seat = sampleElection.seats[seatIndex];
-          // TODO: Something here to deal with the fact that existing booths won't necessarily be representative of the
-          // remaining areas, so we need to implement some kind of systematic biases across the remaining booths
-          // Need to know the base votes (the "best guess" without random variation) in order to determine the variation
-          auto baseFpVoteCounts = std::map<int, float>();
-          auto variedFpVoteCounts = std::map<int, float>();
-          auto baseTppVoteCounts = std::map<int, float>();
-          auto variedTppVoteCounts = std::map<int, float>();
-          auto baseTcpVoteCounts = std::map<int, float>();
-          auto variedTcpVoteCounts = std::map<int, float>();
-          bool useTcp = seat.node.totalTcpVotesProjected() > 0.0f;
-          for (int boothIndex : seat.booths) {
-            sampleElection.recomposeBoothFpVotes(true, boothIndex);
-            sampleElection.recomposeBoothTppVotes(true, boothIndex);
-            sampleElection.recomposeBoothTcpVotes(boothIndex);
-            auto const& booth = sampleElection.booths[boothIndex];
-            for (auto const& [partyId, votes] : booth.node.fpVotesProjected) {
-              if (std::isnan(votes)) continue;
-              baseFpVoteCounts[partyId] += votes;
-            }
-            for (auto const& [partyId, votes] : booth.node.tempFpVotesProjected) {
-              if (std::isnan(votes)) continue;
-              variedFpVoteCounts[partyId] += votes;
-            }
-            for (auto const& [partyId, votes] : booth.node.tppVotesProjected) {
-              if (std::isnan(votes)) continue;
-              baseTppVoteCounts[partyId] += votes;
-            }
-            for (auto const& [partyId, votes] : booth.node.tempTppVotesProjected) {
-              if (std::isnan(votes)) continue;
-              variedTppVoteCounts[partyId] += votes;
-            }
-            if (useTcp) {
-              for (auto const& [partyId, votes] : booth.node.tcpVotesProjected) {
-                if (std::isnan(votes)) continue;
-                baseTcpVoteCounts[partyId] += votes;
+    for (int threadIndex = 0; threadIndex < batchSize; ++threadIndex) {
+      int const sampleIndex = batchStart + threadIndex;
+      threads.emplace_back([&, sampleIndex]() {
+        try {
+          auto sampleElection = *this;
+          sampleElection.variabilitySampleIndex = sampleIndex;
+          std::map<int, std::map<int, std::vector<float>>> tempSeatFpResults;
+          std::map<int, std::vector<float>> tempSeatTppResults;
+          std::map<int, std::vector<float>> tempSeatTcpResults;
+          for (int seatIndex : std::ranges::views::iota(
+            0, int(sampleElection.seats.size()))) {
+            auto& seat = sampleElection.seats[seatIndex];
+            // Existing booths may not represent the areas still outstanding.
+            // A future calibrated model should add correlated systematic bias,
+            // rather than relying only on these independent booth projections.
+            std::map<int, float> baseFpVoteCounts;
+            std::map<int, float> variedFpVoteCounts;
+            std::map<int, float> baseTppVoteCounts;
+            std::map<int, float> variedTppVoteCounts;
+            std::map<int, float> baseTcpVoteCounts;
+            std::map<int, float> variedTcpVoteCounts;
+            bool const useTcp = seat.node.totalTcpVotesProjected() > 0.0f;
+            std::string const context = "Variability sample "
+              + std::to_string(sampleIndex) + " for seat " + seat.name;
+
+            for (int boothIndex : seat.booths) {
+              sampleElection.recomposeBoothFpVotes(true, boothIndex);
+              sampleElection.recomposeBoothTppVotes(true, boothIndex);
+              sampleElection.recomposeBoothTcpVotes(boothIndex);
+              auto const& booth = sampleElection.booths[boothIndex];
+              addProjectedVotes(
+                baseFpVoteCounts, booth.node.fpVotesProjected,
+                context + " base FP projection");
+              addProjectedVotes(
+                variedFpVoteCounts, booth.node.tempFpVotesProjected,
+                context + " varied FP projection");
+              addProjectedVotes(
+                baseTppVoteCounts, booth.node.tppVotesProjected,
+                context + " base TPP projection");
+              addProjectedVotes(
+                variedTppVoteCounts, booth.node.tempTppVotesProjected,
+                context + " varied TPP projection");
+              if (useTcp) {
+                addProjectedVotes(
+                  baseTcpVoteCounts, booth.node.tcpVotesProjected,
+                  context + " base TCP projection");
+                addProjectedVotes(
+                  variedTcpVoteCounts, booth.node.tempTcpVotesProjected,
+                  context + " varied TCP projection");
               }
-              for (auto const& [partyId, votes] : booth.node.tempTcpVotesProjected) {
-                if (std::isnan(votes)) continue;
-                variedTcpVoteCounts[partyId] += votes;
+            }
+
+            float const totalBaseFpVotes = positiveVoteTotal(
+              baseFpVoteCounts, context + " base FP projection");
+            float const totalVariedFpVotes = positiveVoteTotal(
+              variedFpVoteCounts, context + " varied FP projection");
+            for (auto const& [partyId, baseVoteCount] : baseFpVoteCounts) {
+              if (!variedFpVoteCounts.contains(partyId)) {
+                throw std::runtime_error(
+                  context + " varied FP projection is missing party "
+                  + std::to_string(partyId) + ".");
               }
+              float const variedVoteCount = variedFpVoteCounts.at(partyId);
+              if (baseVoteCount == 0.0f || variedVoteCount == 0.0f) continue;
+              float const baseTransformedShare = transformedPartyShare(
+                baseFpVoteCounts, partyId, totalBaseFpVotes,
+                context + " base FP projection");
+              float const variedTransformedShare = transformedPartyShare(
+                variedFpVoteCounts, partyId, totalVariedFpVotes,
+                context + " varied FP projection");
+              tempSeatFpResults[seatIndex][partyId].push_back(
+                variedTransformedShare - baseTransformedShare);
+            }
+
+            float const totalBaseTppVotes = positiveVoteTotal(
+              baseTppVoteCounts, context + " base TPP projection");
+            float const totalVariedTppVotes = positiveVoteTotal(
+              variedTppVoteCounts, context + " varied TPP projection");
+            float const baseTppTransformedShare = transformedPartyShare(
+              baseTppVoteCounts, 0, totalBaseTppVotes,
+              context + " base TPP projection");
+            float const variedTppTransformedShare = transformedPartyShare(
+              variedTppVoteCounts, 0, totalVariedTppVotes,
+              context + " varied TPP projection");
+            tempSeatTppResults[seatIndex].push_back(
+              variedTppTransformedShare - baseTppTransformedShare);
+
+            // Realignments may produce a seat TCP without any comparable
+            // booth-level pair. In that case, omit only the TCP variance.
+            if (useTcp && baseTcpVoteCounts.size() >= 2) {
+              float const totalBaseTcpVotes = positiveVoteTotal(
+                baseTcpVoteCounts, context + " base TCP projection");
+              float const totalVariedTcpVotes = positiveVoteTotal(
+                variedTcpVoteCounts, context + " varied TCP projection");
+              int const arbitraryPartyId = baseTcpVoteCounts.begin()->first;
+              float const baseTcpTransformedShare = transformedPartyShare(
+                baseTcpVoteCounts, arbitraryPartyId, totalBaseTcpVotes,
+                context + " base TCP projection");
+              float const variedTcpTransformedShare = transformedPartyShare(
+                variedTcpVoteCounts, arbitraryPartyId, totalVariedTcpVotes,
+                context + " varied TCP projection");
+              tempSeatTcpResults[seatIndex].push_back(
+                variedTcpTransformedShare - baseTcpTransformedShare);
             }
           }
-          auto totalBaseFpVotes = std::accumulate(baseFpVoteCounts.begin(), baseFpVoteCounts.end(), 0.0f, [](float sum, const auto& partyId) { return sum + partyId.second; });
-          auto totalVariedFpVotes = std::accumulate(variedFpVoteCounts.begin(), variedFpVoteCounts.end(), 0.0f, [](float sum, const auto& partyId) { return sum + partyId.second; });
-          for (auto const& [partyId, baseVoteCount] : baseFpVoteCounts) {
-            float variedVoteCount = variedFpVoteCounts.at(partyId);
-            if (baseVoteCount == 0.0f || variedVoteCount == 0.0f) continue; // if there are no votes for this party, then we can't calculate the variation
-            float baseTransformedShare = transformVoteShare(baseVoteCount / totalBaseFpVotes * 100.0f);
-            float variedTransformedShare = transformVoteShare(variedVoteCount / totalVariedFpVotes * 100.0f);
-            tempSeatFpResults[seatIndex][partyId].push_back(variedTransformedShare - baseTransformedShare);
+
+          {
+            std::lock_guard<std::mutex> lock(seatResultsMutex);
+            for (auto const& [seatIndex, seatResults] : tempSeatFpResults) {
+              for (auto const& [partyId, results] : seatResults) {
+                seatFpResults[seatIndex][partyId].insert(
+                  seatFpResults[seatIndex][partyId].end(),
+                  results.begin(), results.end());
+              }
+            }
+            for (auto const& [seatIndex, results] : tempSeatTppResults) {
+              seatTppResults[seatIndex].insert(
+                seatTppResults[seatIndex].end(),
+                results.begin(), results.end());
+            }
+            for (auto const& [seatIndex, results] : tempSeatTcpResults) {
+              seatTcpResults[seatIndex].insert(
+                seatTcpResults[seatIndex].end(),
+                results.begin(), results.end());
+            }
           }
-          float totalBaseTppVotes = std::accumulate(baseTppVoteCounts.begin(), baseTppVoteCounts.end(), 0.0f, [](float sum, const auto& partyId) { return sum + partyId.second; });
-          float totalVariedTppVotes = std::accumulate(variedTppVoteCounts.begin(), variedTppVoteCounts.end(), 0.0f, [](float sum, const auto& partyId) { return sum + partyId.second; });
-          float baseTppTransformedShare = transformVoteShare(baseTppVoteCounts[0] / totalBaseTppVotes * 100.0f);
-          float variedTppTransformedShare = transformVoteShare(variedTppVoteCounts[0] / totalVariedTppVotes * 100.0f);
-          tempSeatTppResults[seatIndex].push_back(variedTppTransformedShare - baseTppTransformedShare);
-          if (useTcp && baseTcpVoteCounts.size() >= 2) { // realignments may cause a TCP to be projected without any booths actually recording a tcp
-            float totalBaseTcpVotes = std::accumulate(baseTcpVoteCounts.begin(), baseTcpVoteCounts.end(), 0.0f, [](float sum, const auto& partyId) { return sum + partyId.second; });
-            float totalVariedTcpVotes = std::accumulate(variedTcpVoteCounts.begin(), variedTcpVoteCounts.end(), 0.0f, [](float sum, const auto& partyId) { return sum + partyId.second; });
-            int arbitraryPartyId = baseTcpVoteCounts.begin()->first;
-            float baseTcpTransformedShare = transformVoteShare(baseTcpVoteCounts[arbitraryPartyId] / totalBaseTcpVotes * 100.0f);
-            float variedTcpTransformedShare = transformVoteShare(variedTcpVoteCounts[arbitraryPartyId] / totalVariedTcpVotes * 100.0f);
-            tempSeatTcpResults[seatIndex].push_back(variedTcpTransformedShare - baseTcpTransformedShare);
-          }
-        }
-        {
+        } catch (...) {
           std::lock_guard<std::mutex> lock(seatResultsMutex);
-          for (auto const& [seatIndex, seatResults] : tempSeatFpResults) {
-            for (auto const& [partyId, results] : seatResults) {
-              seatFpResults[seatIndex][partyId].insert(seatFpResults[seatIndex][partyId].end(), results.begin(), results.end());
-            }
-          }
-          for (auto const& [seatIndex, seatResults] : tempSeatTppResults) {
-            seatTppResults[seatIndex].insert(seatTppResults[seatIndex].end(), seatResults.begin(), seatResults.end());
-          }
-          for (auto const& [seatIndex, seatResults] : tempSeatTcpResults) {
-            seatTcpResults[seatIndex].insert(seatTcpResults[seatIndex].end(), seatResults.begin(), seatResults.end());
+          if (!workerException) {
+            workerException = std::current_exception();
           }
         }
       });
@@ -3701,29 +3859,32 @@ void Election::prepareVariability() {
     for (auto& thread : threads) {
       thread.join();
     }
+    if (workerException) {
+      createRandomVariation = false;
+      std::rethrow_exception(workerException);
+    }
   }
-  
-  for (auto const& [seatIndex, seatResults] : seatFpResults) {
-    for (auto const& [partyId, results] : seatResults) {
-      if (results.size()) {
-        // assume mean is 0, any non-zero mean is due to rng
-        float stdDev = std::sqrt(std::accumulate(
-          results.begin(), results.end(), 0.0f, [](float sum, float result) { return sum + result * result; }
-        ) / results.size());
-        seats[seatIndex].fpAllBoothsStdDev[partyId] = stdDev;
+
+  for (int seatIndex : std::ranges::views::iota(0, int(seats.size()))) {
+    if (seatFpResults.contains(seatIndex)) {
+      for (auto& [partyId, results] : seatFpResults.at(seatIndex)) {
+        // RMS intentionally preserves the current zero-mean approximation.
+        // Whether a measured non-zero mean is noise or systematic projection
+        // bias requires calibration before changing this model.
+        seats[seatIndex].fpAllBoothsStdDev[partyId] =
+          deterministicRootMeanSquare(
+            results, "FP variability for seat " + seats[seatIndex].name);
       }
     }
-    if (seatTppResults[seatIndex].size()) {
-      float tppStdDev = std::sqrt(std::accumulate(
-        seatTppResults[seatIndex].begin(), seatTppResults[seatIndex].end(), 0.0f, [](float sum, float result) { return sum + result * result; }
-      ) / seatTppResults[seatIndex].size());
-      seats[seatIndex].tppAllBoothsStdDev = tppStdDev;
+    if (seatTppResults.contains(seatIndex)) {
+      seats[seatIndex].tppAllBoothsStdDev = deterministicRootMeanSquare(
+        seatTppResults.at(seatIndex),
+        "TPP variability for seat " + seats[seatIndex].name);
     }
-    if (seatTcpResults.contains(seatIndex) && seatTcpResults[seatIndex].size()) {
-      float tcpStdDev = std::sqrt(std::accumulate(
-        seatTcpResults[seatIndex].begin(), seatTcpResults[seatIndex].end(), 0.0f, [](float sum, float result) { return sum + result * result; }
-      ) / seatTcpResults[seatIndex].size());
-      seats[seatIndex].tcpAllBoothsStdDev = tcpStdDev;
+    if (seatTcpResults.contains(seatIndex)) {
+      seats[seatIndex].tcpAllBoothsStdDev = deterministicRootMeanSquare(
+        seatTcpResults.at(seatIndex),
+        "TCP variability for seat " + seats[seatIndex].name);
     }
   }
   createRandomVariation = false;
@@ -3734,34 +3895,46 @@ void Election::generateVariability(int iterationIndex) {
   // this simulates the variability caused by random booth results without
   // requiring a full recalculation of every booth
 
+  if (iterationIndex < 0) {
+    throw std::runtime_error(
+      "Cannot generate live variability for a negative iteration index.");
+  }
   variabilitySampleIndex = iterationIndex;
+  boothTypeTppIterationVariation.clear();
+  voteTypeTppIterationVariation.clear();
+  boothTypeFpIterationVariation.clear();
+  voteTypeFpIterationVariation.clear();
 
-  for (auto [boothType, variation] : boothTypeTppBiasStdDev) {
+  for (auto const& [boothType, variation] : boothTypeTppBiasStdDev) {
     boothTypeTppIterationVariation[boothType] = variabilityNormal(
       0.0f, variation, int(boothType), 0, uint32_t(VariabilityTag::GenerateBoothTypeTppVariability)
     );
-    boothTypeTppIterationVariation[boothType] *= 1 - std::exp(-node.fpCompletion * 50.0f);
+    boothTypeTppIterationVariation[boothType] *=
+      variabilityProgressWeight(node.fpCompletion);
   }
-  for (auto [voteType, variation] : voteTypeTppBiasStdDev) {
+  for (auto const& [voteType, variation] : voteTypeTppBiasStdDev) {
     voteTypeTppIterationVariation[voteType] = variabilityNormal(
       0.0f, variation, int(voteType), 0, uint32_t(VariabilityTag::GenerateVoteTypeTppVariability)
     );
-    voteTypeTppIterationVariation[voteType] *= 1 - std::exp(-node.fpCompletion * 50.0f);
+    voteTypeTppIterationVariation[voteType] *=
+      variabilityProgressWeight(node.fpCompletion);
   }
-  for (auto [partyId, variations] : boothTypeFpBiasStdDev) {
-    for (auto [boothType, variation] : variations) {
+  for (auto const& [partyId, variations] : boothTypeFpBiasStdDev) {
+    for (auto const& [boothType, variation] : variations) {
       boothTypeFpIterationVariation[partyId][boothType] = variabilityNormal(
         0.0f, variation, int(boothType), partyId, uint32_t(VariabilityTag::GenerateBoothTypeFpVariability)
       );
-      boothTypeFpIterationVariation[partyId][boothType] *= 1 - std::exp(-node.fpCompletion * 50.0f);
+      boothTypeFpIterationVariation[partyId][boothType] *=
+        variabilityProgressWeight(node.fpCompletion);
     }
   }
-  for (auto [partyId, variations] : voteTypeFpBiasStdDev) {
-    for (auto [voteType, variation] : variations) {
+  for (auto const& [partyId, variations] : voteTypeFpBiasStdDev) {
+    for (auto const& [voteType, variation] : variations) {
       voteTypeFpIterationVariation[partyId][voteType] = variabilityNormal(
         0.0f, variation, int(voteType), partyId, uint32_t(VariabilityTag::GenerateVoteTypeFpVariability)
       );
-      voteTypeFpIterationVariation[partyId][voteType] *= 1 - std::exp(-node.fpCompletion * 50.0f);
+      voteTypeFpIterationVariation[partyId][voteType] *=
+        variabilityProgressWeight(node.fpCompletion);
     }
   }
   nonClassicTppIterationVariation = variabilityNormal(
@@ -3770,9 +3943,31 @@ void Election::generateVariability(int iterationIndex) {
 
   for (int seatIndex = 0; seatIndex < int(seats.size()); ++seatIndex) {
     auto& seat = seats[seatIndex];
-    // fp votes
-    std::map<int, float> newFpVotesProjected;
-    float totalFpProjectedVotes = std::accumulate(seat.node.fpVotesProjected.begin(), seat.node.fpVotesProjected.end(), 0.0f, [](float sum, const auto& pair) { return sum + pair.second; });
+    std::string const seatContext = "Seat " + seat.name;
+    float const totalFpProjectedVotes = positiveVoteTotal(
+      seat.node.fpVotesProjected, seatContext + " FP projection");
+    float const previousSeatVotes = float(seat.node.totalVotesPrevious());
+    auto categorySensitivity = [&seatContext, previousSeatVotes](
+      float expectedVotes, std::string_view category) {
+      if (!std::isfinite(expectedVotes) || expectedVotes < 0.0f) {
+        throw std::runtime_error(
+          seatContext + " has invalid " + std::string(category)
+          + " sensitivity votes.");
+      }
+      if (expectedVotes == 0.0f) return 0.0f;
+      if (previousSeatVotes <= 0.0f) {
+        throw std::runtime_error(
+          seatContext + " cannot scale " + std::string(category)
+          + " sensitivity without previous votes.");
+      }
+      return expectedVotes / previousSeatVotes;
+    };
+
+    // Start with every current party so parties without a prepared variance
+    // remain in the normalization rather than silently increasing the total.
+    std::map<int, float> newFpVotesProjected = seat.node.fpVotesProjected;
+    std::set<int> adjustedPartyIds;
+    bool fpProjectionChanged = false;
     for (auto const& [partyId, stdDev] : seat.fpAllBoothsStdDev) {
       float randomVariation = variabilityNormal(
         0.0f, stdDev, seatIndex, partyId, uint32_t(VariabilityTag::GenerateFpVariability)
@@ -3780,66 +3975,117 @@ void Election::generateVariability(int iterationIndex) {
       // Random variability can be not-quite-symmetric due to the complexity of the simulation,
       // so this (and similar lines elsewhere) ensures that the variation is zero when completion is zero,
       // but rapidly transitions to full variability as completion increases
-      randomVariation *= 1 - std::exp(-seat.node.fpCompletion * 50.0f);
+      randomVariation *= variabilityProgressWeight(seat.node.fpCompletion);
       // If the party isn't found in the existing projection, that means it was converted
       // to the main independent, so use the independent party index instead
-      int usePartyId = seat.node.fpVotesProjected.contains(partyId) ? partyId : run.indPartyIndex;
-      float currentFpProjection = seat.node.fpVotesProjected.at(usePartyId);
-      float transformedCurrentFpProjection = transformVoteShare(currentFpProjection / totalFpProjectedVotes * 100.0f);
+      int usePartyId = partyId;
+      if (!seat.node.fpVotesProjected.contains(partyId)) {
+        if (partyId < IndependentPartyIdOffset
+          || !seat.node.fpVotesProjected.contains(run.indPartyIndex)) {
+          throw std::runtime_error(
+            seatContext + " FP variability references missing party "
+            + std::to_string(partyId) + ".");
+        }
+        usePartyId = run.indPartyIndex;
+      }
+      if (!adjustedPartyIds.insert(usePartyId).second) {
+        throw std::runtime_error(
+          seatContext + " maps multiple FP variability sources to party "
+          + std::to_string(usePartyId) + ".");
+      }
+      float const transformedCurrentFpProjection = transformedPartyShare(
+        seat.node.fpVotesProjected, usePartyId, totalFpProjectedVotes,
+        seatContext + " FP projection");
       float transformedNewFpProjection = transformedCurrentFpProjection + randomVariation;
+      bool partyProjectionChanged = randomVariation != 0.0f;
       float withBoothTypeBias = transformedNewFpProjection;
       if (boothTypeFpIterationVariation.contains(partyId)) {
-        for (auto [boothType, variation] : boothTypeFpIterationVariation.at(partyId)) {
+        for (auto const& [boothType, variation] : boothTypeFpIterationVariation.at(partyId)) {
           if (!seat.fpBoothTypeSensitivity.contains(partyId) || !seat.fpBoothTypeSensitivity[partyId].contains(boothType)) continue;
-          float sensitivity = seat.fpBoothTypeSensitivity[partyId][boothType] / seat.node.totalVotesPrevious();
+          float sensitivity = categorySensitivity(
+            seat.fpBoothTypeSensitivity.at(partyId).at(boothType),
+            "FP booth-type");
           // See comments in the TPP section for explanation of the sensitivity scaling
           sensitivity *= obsWeight(node.fpConfidence);
-          withBoothTypeBias += variation * sensitivity;
+          float const adjustment = variation * sensitivity;
+          withBoothTypeBias += adjustment;
+          partyProjectionChanged = partyProjectionChanged || adjustment != 0.0f;
         }
       }
       float withVoteTypeBias = withBoothTypeBias;
       if (voteTypeFpIterationVariation.contains(partyId)) {
-        for (auto [voteType, variation] : voteTypeFpIterationVariation.at(partyId)) {
+        for (auto const& [voteType, variation] : voteTypeFpIterationVariation.at(partyId)) {
           if (!seat.fpVoteTypeSensitivity.contains(partyId) || !seat.fpVoteTypeSensitivity[partyId].contains(voteType)) continue;
-          float sensitivity = seat.fpVoteTypeSensitivity[partyId][voteType] / seat.node.totalVotesPrevious();
+          float sensitivity = categorySensitivity(
+            seat.fpVoteTypeSensitivity.at(partyId).at(voteType),
+            "FP vote-type");
           // See comments in the TPP section for explanation of the sensitivity scaling
           sensitivity *= obsWeight(node.fpConfidence);
-          withVoteTypeBias += variation * sensitivity;
+          float const adjustment = variation * sensitivity;
+          withVoteTypeBias += adjustment;
+          partyProjectionChanged = partyProjectionChanged || adjustment != 0.0f;
         }
       }
+      // Preserve the baseline bit-for-bit before any live evidence exists.
+      // Transforming and normalizing an unchanged share can otherwise introduce
+      // rounding effects even though every variability weight is zero.
+      if (!partyProjectionChanged) continue;
       float newFpProjection = detransformVoteShare(withVoteTypeBias) * 0.01f * totalFpProjectedVotes;
       newFpVotesProjected[usePartyId] = newFpProjection;
+      fpProjectionChanged = true;
     }
-    float totalNewFpProjectedVotes = std::accumulate(newFpVotesProjected.begin(), newFpVotesProjected.end(), 0.0f, [](float sum, const auto& pair) { return sum + pair.second; });
-    float normalisationFactor = totalFpProjectedVotes / totalNewFpProjectedVotes; 
-    for (auto const& [partyId, newFpProjection] : newFpVotesProjected) {
-      seat.node.fpVotesProjected[partyId] = newFpProjection * normalisationFactor;
+    if (fpProjectionChanged) {
+      float const totalNewFpProjectedVotes = positiveVoteTotal(
+        newFpVotesProjected, seatContext + " varied FP projection");
+      float const normalisationFactor =
+        totalFpProjectedVotes / totalNewFpProjectedVotes;
+      for (auto& [partyId, newFpProjection] : newFpVotesProjected) {
+        newFpProjection *= normalisationFactor;
+      }
+      seat.node.fpVotesProjected = std::move(newFpVotesProjected);
     }
 
-    float totalTppProjectedVotes = std::accumulate(seat.node.tppVotesProjected.begin(), seat.node.tppVotesProjected.end(), 0.0f, [](float sum, const auto& pair) { return sum + pair.second; });
+    if (seat.node.tppVotesProjected.size() != 2
+      || !seat.node.tppVotesProjected.contains(0)
+      || !seat.node.tppVotesProjected.contains(1)) {
+      throw std::runtime_error(
+        seatContext + " does not have a two-party TPP projection.");
+    }
+    float const totalTppProjectedVotes = positiveVoteTotal(
+      seat.node.tppVotesProjected, seatContext + " TPP projection");
     float randomTppVariation = variabilityNormal(
       0.0f, seat.tppAllBoothsStdDev, seatIndex, 0, uint32_t(VariabilityTag::GenerateTppVariability)
     );
-    randomTppVariation *= 1 - std::exp(-seat.node.tppCompletion * 50.0f);
-    float currentTppProjection = seat.node.tppVotesProjected.at(0);
-    float transformedCurrentTppProjection = transformVoteShare(currentTppProjection / totalTppProjectedVotes * 100.0f);
+    randomTppVariation *= variabilityProgressWeight(seat.node.tppCompletion);
+    float const transformedCurrentTppProjection = transformedPartyShare(
+      seat.node.tppVotesProjected, 0, totalTppProjectedVotes,
+      seatContext + " TPP projection");
     float transformedNewTppProjection = transformedCurrentTppProjection + randomTppVariation;
+    bool tppProjectionChanged = randomTppVariation != 0.0f;
     float withBoothTypeBias = transformedNewTppProjection;
-    for (auto [boothType, variation] : boothTypeTppIterationVariation) {
-      float sensitivity = seat.tppBoothTypeSensitivity[boothType] / seat.node.totalVotesPrevious();
+    for (auto const& [boothType, variation] : boothTypeTppIterationVariation) {
+      if (!seat.tppBoothTypeSensitivity.contains(boothType)) continue;
+      float sensitivity = categorySensitivity(
+        seat.tppBoothTypeSensitivity.at(boothType), "TPP booth-type");
       // Sensitivity is scaled by the election's confidence. We need scaling because the
       // variation is applied on top of the existing projection, so if confidence is zero/low
       // this should not change the forecast much from the baseline.
       // For now, use election-wide confidence as the booth sensitivity is an election-level measure
       // but could revisit this later
       sensitivity *= obsWeight(node.tppConfidence);
-      withBoothTypeBias += variation * sensitivity;
+      float const adjustment = variation * sensitivity;
+      withBoothTypeBias += adjustment;
+      tppProjectionChanged = tppProjectionChanged || adjustment != 0.0f;
     }
     float withVoteTypeBias = withBoothTypeBias;
-    for (auto [voteType, variation] : voteTypeTppIterationVariation) {
-      float sensitivity = seat.tppVoteTypeSensitivity[voteType] / seat.node.totalVotesPrevious();
+    for (auto const& [voteType, variation] : voteTypeTppIterationVariation) {
+      if (!seat.tppVoteTypeSensitivity.contains(voteType)) continue;
+      float sensitivity = categorySensitivity(
+        seat.tppVoteTypeSensitivity.at(voteType), "TPP vote-type");
       sensitivity *= obsWeight(node.tppConfidence);
-      withVoteTypeBias += variation * sensitivity;
+      float const adjustment = variation * sensitivity;
+      withVoteTypeBias += adjustment;
+      tppProjectionChanged = tppProjectionChanged || adjustment != 0.0f;
     }
     // This must eventually check for feed-derived TPP results for non-classic seats once those are included in the simulation
     bool const usesEstimatedClassicTpp = !isTppSet(seat.node.tcpVotesCurrent, natPartyIndex);
@@ -3849,30 +4095,47 @@ void Election::generateVariability(int iterationIndex) {
       // different evidence bases, so phase them in independently.
       float const variabilityWeight = obsWeight(node.tppConfidence);
       float const biasWeight = obsWeight(nonClassicTppBiasConfidence);
-      withNonClassicVariability += nonClassicTppIterationVariation * variabilityWeight;
+      float const variabilityAdjustment =
+        nonClassicTppIterationVariation * variabilityWeight;
+      withNonClassicVariability += variabilityAdjustment;
+      tppProjectionChanged =
+        tppProjectionChanged || variabilityAdjustment != 0.0f;
       // Ideally the bias for non-classic seats should be applied at a booth level, not here
       // but it will do as a quick stop-gap
       // The 0.8f reflects that non-classic seats may not follow the same patterns as classic seats (calibrated to 2025fed)
-      float const biasAdjustedShare = predictorCorrectorTransformedSwing(
-        detransformVoteShare(withNonClassicVariability),
-        -nonClassicTppBiasPercentagePoints * biasWeight * 0.8f);
-      withNonClassicVariability = transformVoteShare(biasAdjustedShare);
+      float const biasAdjustment =
+        -nonClassicTppBiasPercentagePoints * biasWeight * 0.8f;
+      if (biasAdjustment != 0.0f) {
+        float const biasAdjustedShare = predictorCorrectorTransformedSwing(
+          detransformVoteShare(withNonClassicVariability), biasAdjustment);
+        withNonClassicVariability = transformVoteShare(biasAdjustedShare);
+        tppProjectionChanged = true;
+      }
     }
-    float newTppProjection = detransformVoteShare(withNonClassicVariability) * 0.01f * totalTppProjectedVotes;
-    seat.node.tppVotesProjected[0] = newTppProjection;
-    for (auto const& [partyId, votes] : seat.node.tppVotesProjected) {
-      if (partyId != 0)  seat.node.tppVotesProjected[partyId] = totalTppProjectedVotes - newTppProjection;
+    if (tppProjectionChanged) {
+      float newTppProjection = detransformVoteShare(withNonClassicVariability) * 0.01f * totalTppProjectedVotes;
+      seat.node.tppVotesProjected[0] = newTppProjection;
+      for (auto const& [partyId, votes] : seat.node.tppVotesProjected) {
+        if (partyId != 0)  seat.node.tppVotesProjected[partyId] = totalTppProjectedVotes - newTppProjection;
+      }
     }
 
     if (seat.tcpAllBoothsStdDev.has_value()) {
-      float totalTcpProjectedVotes = std::accumulate(seat.node.tcpVotesProjected.begin(), seat.node.tcpVotesProjected.end(), 0.0f, [](float sum, const auto& pair) { return sum + pair.second; });
+      if (seat.node.tcpVotesProjected.size() != 2) {
+        throw std::runtime_error(
+          seatContext + " has TCP variability without a two-party projection.");
+      }
+      float const totalTcpProjectedVotes = positiveVoteTotal(
+        seat.node.tcpVotesProjected, seatContext + " TCP projection");
       float randomTcpVariation = variabilityNormal(
         0.0f, seat.tcpAllBoothsStdDev.value(), seatIndex, 0, uint32_t(VariabilityTag::GenerateTcpVariability)
       );
-      randomTcpVariation *= 1 - std::exp(-seat.node.tcpCompletion * 50.0f);
-      float arbitraryPartyId = seat.node.tcpVotesProjected.begin()->first;
-      float currentTcpProjection = seat.node.tcpVotesProjected.at(arbitraryPartyId);
-      float transformedCurrentTcpProjection = transformVoteShare(currentTcpProjection / totalTcpProjectedVotes * 100.0f);
+      randomTcpVariation *= variabilityProgressWeight(seat.node.tcpCompletion);
+      if (randomTcpVariation == 0.0f) continue;
+      int const arbitraryPartyId = seat.node.tcpVotesProjected.begin()->first;
+      float const transformedCurrentTcpProjection = transformedPartyShare(
+        seat.node.tcpVotesProjected, arbitraryPartyId,
+        totalTcpProjectedVotes, seatContext + " TCP projection");
       float transformedNewTcpProjection = transformedCurrentTcpProjection + randomTcpVariation;
       float newTcpProjection = detransformVoteShare(transformedNewTcpProjection) * 0.01f * totalTcpProjectedVotes;
       seat.node.tcpVotesProjected[arbitraryPartyId] = newTcpProjection;
@@ -4002,7 +4265,12 @@ int Election::mapPartyId(
 }
 
 float Election::variabilityNormal(float mean, float sd, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const {
+  if (!std::isfinite(mean) || !std::isfinite(sd) || sd < 0.0f) {
+    throw std::runtime_error(
+      "Cannot generate live variability from invalid normal parameters.");
+  }
   std::uint64_t key = variabilityBaseSeed;
+  key = RandomGenerator::mixKey(key, LiveVariabilityDomain);
   key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(variabilitySampleIndex));
   key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(itemIndex));
   key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(partyId));
