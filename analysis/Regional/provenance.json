@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored election-specific regional polling inputs.",
   "created_at_utc": "2026-07-23T23:21:58Z",
-  "updated_at_utc": "2026-08-04T23:54:29Z",
+  "updated_at_utc": "2026-08-16T10:40:42Z",
   "categories": {
     "regional_poll_inputs": {
       "description": "Election-specific regional poll breakdowns used by region_model.py.",
@@ -13,7 +13,7 @@
         "*-polls-ON.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 3,
+      "semantic_revision": 4,
       "files": {
         "2024qld-polls.csv": {
           "sha256": "87b685e3a3be3c726a75e09ffebcefa603b4c55ad3556e937a2db810e3f94412",
@@ -46,14 +46,14 @@
           "recorded_mtime_utc": "2026-07-29T14:17:40.248107Z"
         },
         "2028fed-polls-ON.csv": {
-          "sha256": "32cb8060784358a92908286d7abb42bc625e95834946ee601605f5f1e8261dcf",
-          "size_bytes": 1855,
-          "recorded_mtime_utc": "2026-08-04T12:04:08.552011Z"
+          "sha256": "9a5c724327fdbc2bc610c9a6237ce1043301d14213c945ad7f4f0c7c31733051",
+          "size_bytes": 1914,
+          "recorded_mtime_utc": "2026-08-16T10:39:20.738433Z"
         },
         "2028fed-polls.csv": {
-          "sha256": "c98083e83415e7fc1f91ad872c62761ca8f3bf0ebffc2ce1fad1646e33313299",
-          "size_bytes": 2929,
-          "recorded_mtime_utc": "2026-08-04T12:04:12.595929Z"
+          "sha256": "caff37374a3445a88f198b41d8f61f040a08ec722849625ee3f67f72a127e27d",
+          "size_bytes": 3020,
+          "recorded_mtime_utc": "2026-08-16T10:38:30.961594Z"
         },
         "2028qld-polls-ON.csv": {
           "sha256": "948e26ac2d7c1b3f413d64aec71a58335881f830cea6224d892162a4984ea0c2",
@@ -185,9 +185,31 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260816T104042Z-new_polling-regional-poll-inputs-58289471",
+          "recorded_at_utc": "2026-08-16T10:40:42Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "provenance_revision": 4,
+          "summary": "ResolvePM federal poll",
+          "files": [
+            "2028fed-polls-ON.csv",
+            "2028fed-polls.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 3
+      "provenance_revision": 4
     }
   }
 }

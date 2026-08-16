@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-14T07:50:12Z",
+  "updated_at_utc": "2026-08-16T10:50:19Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -4353,9 +4353,9 @@
           "recorded_mtime_utc": "2026-08-02T14:35:10.380217Z"
         },
         "pipeline.py": {
-          "sha256": "426aaa410d35e15e277de2afe249d79018e7e2fcb5eed9bb345b317751ef2d85",
-          "size_bytes": 87380,
-          "recorded_mtime_utc": "2026-08-12T16:41:05.206318Z"
+          "sha256": "8c97dda58c0312b631eb1d0c017c7ba205c1dbb9eafb55a11f5ceb44dd3d699a",
+          "size_bytes": 87475,
+          "recorded_mtime_utc": "2026-08-16T10:48:52.229262Z"
         },
         "pipeline_registry.json": {
           "sha256": "ee4b62e7eac111f9b8270d66e1492c8d2958c1f14a477364d86db34db7452055",
@@ -5944,6 +5944,25 @@
           "semantic_revision": 6,
           "provenance_revision": 45,
           "summary": "Prevent legacy synthetic-TPP cutoff dependencies from scheduling non-invalidating current-election pure trends.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260816T105019Z-correction-pipeline-orchestration-tools-5873d4d9",
+          "recorded_at_utc": "2026-08-16T10:50:19Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Include election-specific regional swing models in routine General generation plans.",
           "files": [
             "pipeline.py"
           ],

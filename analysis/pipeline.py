@@ -66,11 +66,13 @@ PROFILE_RUN_CLASSES = {
     "metadata": set(),
     "regular": {
         "pollster_analysis",
+        "regional",
         "regular",
         "regular_with_approvals",
     },
     "regular-with-approvals": {
         "pollster_analysis",
+        "regional",
         "regular",
         "regular_with_approvals",
     },
@@ -88,8 +90,12 @@ PROFILE_RUN_CLASSES = {
 }
 PROFILE_ROOT_RUN_CLASSES = {
     "metadata": set(),
-    "regular": {"regular", "regular_with_approvals"},
-    "regular-with-approvals": {"regular", "regular_with_approvals"},
+    "regular": {"regional", "regular", "regular_with_approvals"},
+    "regular-with-approvals": {
+        "regional",
+        "regular",
+        "regular_with_approvals",
+    },
     # A compact summary can be created from already-current compatibility
     # inputs. Treat it as a calibration root so a missing summary is repaired
     # without needlessly rerunning the Stan calibration stages.

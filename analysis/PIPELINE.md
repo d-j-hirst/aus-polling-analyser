@@ -207,10 +207,11 @@ python3 pipeline.py run --election 2026vic --profile cutoffs
 ```
 
 * `regular` is the normal response to updated current inputs. It regenerates
-  the selected election's pollster analysis where needed, then its pure trend
-  and final trend. The same-election pure trend is always included so the
-  final approval fit is aligned with the current poll data. It deliberately
-  leaves older approval-reference pure trends and historical cutoffs alone.
+  the selected election's pollster analysis and regional swing models where
+  needed, then its pure trend and final trend. The same-election pure trend is
+  always included so the final approval fit is aligned with the current poll
+  data. It deliberately leaves older approval-reference pure trends and
+  historical cutoffs alone.
 * `regular-with-approvals` is the more complete normal refresh. In addition to
   `regular`, it regenerates stale historical pure trends used to fit the
   approval relationship. Use it when those historical inputs have changed or

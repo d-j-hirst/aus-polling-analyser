@@ -1839,6 +1839,41 @@ class PipelineTests(unittest.TestCase):
             ],
         )
 
+    def test_regular_profile_refreshes_target_regional_models(self):
+        audit = audit_result(
+            [
+                work_unit(
+                    "regional_swing_deviations:2028fed:@TPP",
+                    "regional_swing_deviations",
+                    "generate_regional_swings",
+                    "stale",
+                    "2028fed",
+                    "@TPP",
+                ),
+                work_unit(
+                    "regional_swing_deviations:2028fed:ONP FP",
+                    "regional_swing_deviations",
+                    "generate_regional_swings",
+                    "stale",
+                    "2028fed",
+                    "ONP FP",
+                ),
+            ]
+        )
+
+        plan = pipeline.build_plan(audit, self.registry, {"regular"})
+
+        self.assertEqual(
+            [
+                (task["stage"], task["election"], task["party"])
+                for task in plan["tasks"]
+            ],
+            [
+                ("generate_regional_swings", "2028fed", "@TPP"),
+                ("generate_regional_swings", "2028fed", "ONP FP"),
+            ],
+        )
+
     def test_no_arguments_open_interactive_interface(self):
         with mock.patch.object(
             pipeline, "_interactive_select", return_value="exit"
