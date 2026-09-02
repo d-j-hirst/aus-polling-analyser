@@ -173,14 +173,28 @@ class PipelineRegistryTests(unittest.TestCase):
         stages = {
             stage["id"]: stage for stage in self.registry["stages"]
         }
-        stage = stages["generate_cutoff_poll_trends"]
+        cutoff_stage = stages["generate_cutoff_poll_trends"]
 
-        self.assertIn("fp_model_provenance_script", stage["inputs"])
-        self.assertIn("calibration_provenance_script", stage["inputs"])
-        self.assertNotIn("fp_model_checkpoint_script", stage["inputs"])
+        self.assertIn("fp_model_provenance_script", cutoff_stage["inputs"])
         self.assertNotIn(
-            "poll_trend_outputs", stage.get("feedback_inputs", [])
+            "calibration_provenance_script", cutoff_stage["inputs"]
         )
+        self.assertNotIn(
+            "fp_model_checkpoint_script", cutoff_stage["inputs"]
+        )
+        self.assertNotIn(
+            "poll_trend_outputs", cutoff_stage.get("feedback_inputs", [])
+        )
+        for stage_id in (
+            "generate_pure_poll_trends",
+            "generate_poll_trends",
+        ):
+            self.assertNotIn(
+                "fp_model_provenance_script", stages[stage_id]["inputs"]
+            )
+            self.assertNotIn(
+                "calibration_provenance_script", stages[stage_id]["inputs"]
+            )
 
     def test_state_calibration_uses_calibration_priors_not_final_trends(self):
         stages = {

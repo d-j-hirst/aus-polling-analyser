@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-16T10:50:19Z",
+  "updated_at_utc": "2026-09-01T11:07:57Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -443,9 +443,9 @@
           "recorded_mtime_utc": "2026-08-02T08:10:27.951606Z"
         },
         "election_analysis_seats.py": {
-          "sha256": "ba05a4bd811d094cb9e8147128efdc1f0378f9533a749e767df00ed8b6de1a7d",
-          "size_bytes": 32451,
-          "recorded_mtime_utc": "2026-08-02T08:10:28.567344Z"
+          "sha256": "350b0677111b98d114aa299c198bc5a47abb89ceacb527750dc450e585b64694",
+          "size_bytes": 32617,
+          "recorded_mtime_utc": "2026-08-31T10:09:30.728459Z"
         }
       },
       "events": [
@@ -626,6 +626,25 @@
             "election_analysis_common.py",
             "election_analysis_parties.py",
             "election_analysis_regions.py",
+            "election_analysis_seats.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260831T101132Z-correction-election-analysis-script-daf4810e",
+          "recorded_at_utc": "2026-08-31T10:11:32Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 5,
+          "summary": "Restore the classic major-party set omitted when seat swing analysis was extracted into its own module; numerical logic is unchanged.",
+          "files": [
             "election_analysis_seats.py"
           ],
           "scope": {
@@ -825,14 +844,14 @@
           "recorded_mtime_utc": "2026-08-06T22:50:45.405449Z"
         },
         "fp_model_constants.py": {
-          "sha256": "d2341664709948e76913dbd0e3e5482d025c278f04c8bb397f03f22a6ad41839",
-          "size_bytes": 3180,
-          "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
+          "sha256": "4da5494b32c07453c9352e8fff5072c2c399c1aa3bb96b853e4d413e94c3086a",
+          "size_bytes": 3653,
+          "recorded_mtime_utc": "2026-09-01T00:13:55.161674Z"
         },
         "fp_model_data.py": {
-          "sha256": "c8f401095531732d2d66f549fabff6c81d9c3ea659143efcc377f8b81fbe7688",
-          "size_bytes": 64569,
-          "recorded_mtime_utc": "2026-08-14T07:48:49.933963Z"
+          "sha256": "d2e84f1e596aeb68c7fe5622a306f489a1c505b1e2c22ba08857457f2792afc4",
+          "size_bytes": 64568,
+          "recorded_mtime_utc": "2026-09-01T00:13:56.281648Z"
         },
         "fp_model_outputs.py": {
           "sha256": "b675f1bfef1bfb41029942ece982f55c8c86e14c2894a91d842e3923c1b34f41",
@@ -845,9 +864,9 @@
           "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
         },
         "fp_model_runner.py": {
-          "sha256": "6051c46e4ee103ec08fc7573605ad79d0f27c770113e7c58228768beb6b34e5e",
-          "size_bytes": 34595,
-          "recorded_mtime_utc": "2026-08-14T07:47:38.510585Z"
+          "sha256": "16baf99d119098c216d0f85ced11bd9ace8008a0a462df5ff27f3f5bd6dbf19b",
+          "size_bytes": 34594,
+          "recorded_mtime_utc": "2026-09-01T00:13:56.800215Z"
         },
         "fp_model_stan.py": {
           "sha256": "204a5e9a76d73a3925f4691546f75555ce87ca4be0d7534ead800ee9efc65938",
@@ -1766,6 +1785,27 @@
               "generate_cutoff_poll_trends"
             ]
           }
+        },
+        {
+          "id": "20260901T001712Z-formatting-fp-model-script-d5452179",
+          "recorded_at_utc": "2026-09-01T00:17:12Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 14,
+          "provenance_revision": 20,
+          "summary": "Move unchanged deterministic Stan seed derivation into the shared fp_model runtime so provenance recorders are not numerical dependencies.",
+          "files": [
+            "fp_model_constants.py",
+            "fp_model_data.py",
+            "fp_model_runner.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 20
@@ -1891,9 +1931,9 @@
       "semantic_revision": 5,
       "files": {
         "calibration_provenance.py": {
-          "sha256": "7e6f533b319a2f5baeaf57dad8efa3026be55e836c58b428d5483c356b7172f2",
-          "size_bytes": 21676,
-          "recorded_mtime_utc": "2026-08-08T07:48:52.591889Z"
+          "sha256": "e6eaa2a2b53ceb6bf98f96c1342ee47fda26b8ec27eceb123695dc27e8aa5b89",
+          "size_bytes": 21307,
+          "recorded_mtime_utc": "2026-09-01T00:13:55.690869Z"
         }
       },
       "events": [
@@ -2211,6 +2251,25 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260901T001734Z-formatting-calibration-provenance-script-5ee343d9",
+          "recorded_at_utc": "2026-09-01T00:17:34Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 9,
+          "summary": "Re-export unchanged deterministic Stan seed derivation from the shared fp_model runtime; calibration values and recorded metadata are unchanged.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 9
@@ -2713,9 +2772,9 @@
       "semantic_revision": 5,
       "files": {
         "fp_model_provenance.py": {
-          "sha256": "e12fc7e7ec4fca285d6ab245779857eb989dd0d437ae3cf26d00fb62c41dc71b",
-          "size_bytes": 53198,
-          "recorded_mtime_utc": "2026-08-06T22:50:41.961482Z"
+          "sha256": "a503e3ef9ad14e33b7a08ced5e370d7ce1b68e66d01adcb6e9455f5757d1a459",
+          "size_bytes": 53352,
+          "recorded_mtime_utc": "2026-09-01T00:14:30.995932Z"
         }
       },
       "events": [
@@ -3147,6 +3206,44 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260830T235604Z-formatting-fp-model-provenance-script-10a2b37f",
+          "recorded_at_utc": "2026-08-30T23:56:04Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 6,
+          "summary": "Use the explicit open-future-term name for the existing non-invalidating cutoff dependency rule.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260901T002242Z-schema-fp-model-provenance-script-e26ad9f9",
+          "recorded_at_utc": "2026-09-01T00:22:42Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 6,
+          "summary": "Stop recording provenance-helper scripts as source dependencies of pure and final trends so helper bookkeeping cannot invalidate already-successful numerical outputs.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 6
@@ -3326,9 +3423,9 @@
       "semantic_revision": 2,
       "files": {
         "approvals_provenance.py": {
-          "sha256": "c1e5069fbd4d21391a554ddc7ec4f5629ff793388e10e8755abf053e68c1bc9a",
-          "size_bytes": 14516,
-          "recorded_mtime_utc": "2026-08-02T08:13:01.267280Z"
+          "sha256": "108cdbf48df0d88e6a72bc9b2ed437e8e588aab656121f1bb025f3c22b7f9a17",
+          "size_bytes": 14080,
+          "recorded_mtime_utc": "2026-08-30T23:58:19.965667Z"
         }
       },
       "events": [
@@ -3431,6 +3528,44 @@
           "semantic_revision": 2,
           "provenance_revision": 2,
           "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "approvals_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260830T235624Z-formatting-approvals-provenance-script-083a073f",
+          "recorded_at_utc": "2026-08-30T23:56:24Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Name the historical-cutoff exception explicitly as open future elections while preserving all configured future terms.",
+          "files": [
+            "approvals_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260830T235905Z-formatting-approvals-provenance-script-675d2ee9",
+          "recorded_at_utc": "2026-08-30T23:59:05Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Keep election catalogue imports ordered without changing open-term selection behavior.",
           "files": [
             "approvals_provenance.py"
           ],
@@ -3747,9 +3882,9 @@
       "semantic_revision": 5,
       "files": {
         "trend_adjust.py": {
-          "sha256": "beffac4ae1daf9cd26516a4f77da92d331658399551d9ae358cd27a3fb5a0d9c",
-          "size_bytes": 11913,
-          "recorded_mtime_utc": "2026-08-02T08:09:07.817365Z"
+          "sha256": "8e53ac847ba088abde76ab40529d4c1fcde28ee6e980fe81f9e3847aadf8656c",
+          "size_bytes": 12146,
+          "recorded_mtime_utc": "2026-09-01T10:46:36.967213Z"
         },
         "trend_adjust_data.py": {
           "sha256": "6d69ef13163a5289fcf120a72bda932d749c6b5c612ea3681b67949c0995450a",
@@ -3757,14 +3892,14 @@
           "recorded_mtime_utc": "2026-08-02T08:10:30.826010Z"
         },
         "trend_adjust_fundamentals.py": {
-          "sha256": "5c73d6c9743516fe5d27daf11102fdde70bdf8eabe38e61079d57a0d76ca0a0b",
-          "size_bytes": 17050,
-          "recorded_mtime_utc": "2026-08-02T08:10:31.340329Z"
+          "sha256": "1e75152972024ea405cb888a464da08d0dba1b697232f3ed121cc840b1853c07",
+          "size_bytes": 17247,
+          "recorded_mtime_utc": "2026-09-01T10:46:37.353405Z"
         },
         "trend_adjust_io.py": {
-          "sha256": "ccb3a780b7d550c6065c106961fdadf4e0be145e41a56000ab81d915f7d24d55",
-          "size_bytes": 14545,
-          "recorded_mtime_utc": "2026-08-02T08:11:10.692703Z"
+          "sha256": "74579c15d548593cfe7ff7670c9ece4e4af34de09aae2d296d46e3eac65e3c68",
+          "size_bytes": 14640,
+          "recorded_mtime_utc": "2026-09-01T10:46:37.746469Z"
         },
         "trend_adjust_mixing.py": {
           "sha256": "bf88527f6da4bbf5827a6197d37af5b2a362ef5218f0bee6ca544d735a5ae5dc",
@@ -3957,6 +4092,27 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260901T104644Z-correction-trend-adjust-script-78a7f500",
+          "recorded_at_utc": "2026-09-01T10:46:44Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 7,
+          "summary": "Isolate generic adjustment generation to 0none and allow its existing adjustment-only bundle without requiring an unused default fundamentals file.",
+          "files": [
+            "trend_adjust.py",
+            "trend_adjust_fundamentals.py",
+            "trend_adjust_io.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 7
@@ -3970,9 +4126,9 @@
       "semantic_revision": 1,
       "files": {
         "trend_adjust_provenance.py": {
-          "sha256": "f7a2eebe1b65c09df3f9a23ad098d9ce0ac8c3d0b6dc4b57d91ba395e5a271f2",
-          "size_bytes": 14952,
-          "recorded_mtime_utc": "2026-08-02T08:14:13.788248Z"
+          "sha256": "cf8d1e26f1b437e0704ead065938400aed8ea854ceaa8d9f959d3bba3877100a",
+          "size_bytes": 15340,
+          "recorded_mtime_utc": "2026-09-01T10:47:11.832956Z"
         }
       },
       "events": [
@@ -4114,6 +4270,25 @@
           "semantic_revision": 1,
           "provenance_revision": 2,
           "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "trend_adjust_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260901T104720Z-correction-trend-adjust-provenance-script-869add00",
+          "recorded_at_utc": "2026-09-01T10:47:20Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 2,
+          "summary": "Certify the generic 0none adjustment bundle without requiring or recording an unused default fundamentals output.",
           "files": [
             "trend_adjust_provenance.py"
           ],
@@ -4336,31 +4511,38 @@
         "pipeline_registry.py",
         "pipeline_registry.json",
         "analysis_provenance.py",
-        "provenance_maintenance.py"
+        "election_catalogue.py",
+        "provenance_maintenance.py",
+        "required_work.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 6,
       "provenance_revision": 45,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "3ccfe1dbc5f57c064419713a3e2fb84b4da2748f4642aa8f9e29e4e73c75180e",
-          "size_bytes": 104861,
-          "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
+          "sha256": "f63a60e5325d5be668356215d409fbc0e1e1a18f652d5723a177f230f1d25b4b",
+          "size_bytes": 125848,
+          "recorded_mtime_utc": "2026-09-01T10:30:39.242089Z"
+        },
+        "election_catalogue.py": {
+          "sha256": "3fe9b5ad68a1099399db5b608ca1852b56f4e8bd1ac100b4384bf154a5989d56",
+          "size_bytes": 5231,
+          "recorded_mtime_utc": "2026-08-30T23:48:35.807589Z"
         },
         "generated_data_archive.py": {
-          "sha256": "79e17f6b67a764e1389fdc0864929044e127a75b7349d73632e2d309d3ef8268",
-          "size_bytes": 19420,
-          "recorded_mtime_utc": "2026-08-02T14:35:10.380217Z"
+          "sha256": "5ed28d8ea10f43cc5edb6ecf856458e700300add0f3017b8aee1b18a71fdbb46",
+          "size_bytes": 24049,
+          "recorded_mtime_utc": "2026-08-30T23:58:19.600160Z"
         },
         "pipeline.py": {
-          "sha256": "8c97dda58c0312b631eb1d0c017c7ba205c1dbb9eafb55a11f5ceb44dd3d699a",
-          "size_bytes": 87475,
-          "recorded_mtime_utc": "2026-08-16T10:48:52.229262Z"
+          "sha256": "59ff47065482c068ce191e71cd2aa885a30222967219ce2fd80c8fd001e29105",
+          "size_bytes": 94447,
+          "recorded_mtime_utc": "2026-09-01T10:30:39.620165Z"
         },
         "pipeline_registry.json": {
-          "sha256": "ee4b62e7eac111f9b8270d66e1492c8d2958c1f14a477364d86db34db7452055",
-          "size_bytes": 43183,
-          "recorded_mtime_utc": "2026-08-08T07:48:07.247841Z"
+          "sha256": "0882410356a601244d1d70b0a63107302d580c2eb8c5c7406a70b026c881223d",
+          "size_bytes": 43231,
+          "recorded_mtime_utc": "2026-09-01T11:07:54.125837Z"
         },
         "pipeline_registry.py": {
           "sha256": "7384ead0eb727880bde6e048eee280344c1ad8e8abc55b2aa235609e4ef81f9b",
@@ -4371,6 +4553,11 @@
           "sha256": "4a43f688326056ad5e1a25e1c0bcd02c56b7306a1d06517ed0cfc7582aa3a533",
           "size_bytes": 11100,
           "recorded_mtime_utc": "2026-08-02T12:23:58.094664Z"
+        },
+        "required_work.py": {
+          "sha256": "8f06f07cb3cb4e8e299c39c8d6eba96e523fea87eb0a5c5adc85f532333f6f17",
+          "size_bytes": 6683,
+          "recorded_mtime_utc": "2026-09-01T10:47:44.692889Z"
         }
       },
       "events": [
@@ -5965,6 +6152,280 @@
           "summary": "Include election-specific regional swing models in routine General generation plans.",
           "files": [
             "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260830T235519Z-schema-pipeline-orchestration-tools-90fb2027",
+          "recorded_at_utc": "2026-08-30T23:55:19Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Add strict election-status loading and shared C++-root reachability for operational audit and archive selection.",
+          "files": [
+            "analysis_provenance.py",
+            "election_catalogue.py",
+            "generated_data_archive.py",
+            "pipeline.py",
+            "required_work.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260830T235905Z-formatting-pipeline-orchestration-tools-086e74cd",
+          "recorded_at_utc": "2026-08-30T23:59:05Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Keep archive module imports ordered after adding required-graph payload filtering.",
+          "files": [
+            "generated_data_archive.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260831T004254Z-formatting-pipeline-orchestration-tools-7168f169",
+          "recorded_at_utc": "2026-08-31T00:42:54Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Present audits by required executable task, compact historical and deferred backlogs, and suppress inactive-only or unreferenced retained work.",
+          "files": [
+            "analysis_provenance.py",
+            "required_work.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260831T023121Z-formatting-pipeline-orchestration-tools-ffdc7386",
+          "recorded_at_utc": "2026-08-31T02:31:21Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Keep explicit election targets separate from upstream elections added for dependency auditing.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260831T032811Z-formatting-pipeline-orchestration-tools-235090aa",
+          "recorded_at_utc": "2026-08-31T03:28:11Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Expand routine profiles to cover inexpensive C++ inputs and add required-graph repository-wide convergence execution.",
+          "files": [
+            "pipeline.py",
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260831T033048Z-formatting-pipeline-orchestration-tools-9e5f04e3",
+          "recorded_at_utc": "2026-08-31T03:30:48Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Allow repository-wide plan refreshes without election arguments.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260831T033343Z-formatting-pipeline-orchestration-tools-c2c25c32",
+          "recorded_at_utc": "2026-08-31T03:33:43Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Limit all-generation metadata maintenance to the same required historical and active graph.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260901T002242Z-formatting-pipeline-orchestration-tools-eee3b68d",
+          "recorded_at_utc": "2026-09-01T00:22:42Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Stop listing provenance-helper scripts as numerical inputs of regular trend stages, classify result acquisition separately, and keep remaining required-graph audit safeguards current.",
+          "files": [
+            "analysis_provenance.py",
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260901T101104Z-correction-pipeline-orchestration-tools-68382cb1",
+          "recorded_at_utc": "2026-09-01T10:11:04Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Regenerate trend adjustments after current cutoff files change, while deferring only when the cutoff records themselves remain stale.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260901T103057Z-correction-pipeline-orchestration-tools-27610ea0",
+          "recorded_at_utc": "2026-09-01T10:30:57Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Separate usable inherited-only staleness from actionable audit work and share that classification with pipeline planning.",
+          "files": [
+            "analysis_provenance.py",
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260901T104752Z-correction-pipeline-orchestration-tools-10981e0f",
+          "recorded_at_utc": "2026-09-01T10:47:52Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Treat 0none adjustments as scoped compatibility fallbacks rather than unconditional global C++ roots.",
+          "files": [
+            "required_work.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260901T105119Z-correction-pipeline-orchestration-tools-d1117576",
+          "recorded_at_utc": "2026-09-01T10:51:19Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Document the optional adjustment-only 0none fallback and exclude it from unconditional required work.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260901T110658Z-correction-pipeline-orchestration-tools-9e1a0c77",
+          "recorded_at_utc": "2026-09-01T11:06:58Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Declare overlapping federal cutoff outputs as cutoff-stage inputs so planned federal regeneration also schedules dependent state cutoffs.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260901T110757Z-correction-pipeline-orchestration-tools-2775cd2c",
+          "recorded_at_utc": "2026-09-01T11:07:57Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Correct the cutoff dependency declaration placement so federal cutoff changes propagate only through cutoff generation.",
+          "files": [
+            "pipeline_registry.json"
           ],
           "scope": {
             "all": true,

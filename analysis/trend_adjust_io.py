@@ -322,10 +322,6 @@ def promote_staged_outputs(
 ):
     """Replace canonical files only after every staged output is available."""
 
-    if fundamentals_output is None:
-        raise TrendAdjustmentDataError(
-            'Trend adjustment did not produce a fundamentals output'
-        )
     if set(adjustment_outputs) != set(party_groups.groups):
         missing = sorted(set(party_groups.groups) - set(adjustment_outputs))
         raise TrendAdjustmentDataError(
@@ -333,7 +329,9 @@ def promote_staged_outputs(
             + ', '.join(missing)
         )
 
-    staged_paths = [Path(fundamentals_output)] + [
+    staged_paths = (
+        [] if fundamentals_output is None else [Path(fundamentals_output)]
+    ) + [
         Path(adjustment_outputs[group]) for group in party_groups.groups
     ]
     missing_paths = [str(path) for path in staged_paths if not path.is_file()]
@@ -347,9 +345,11 @@ def promote_staged_outputs(
     adjustments_directory = Path(adjustments_directory)
     fundamentals_directory.mkdir(parents=True, exist_ok=True)
     adjustments_directory.mkdir(parents=True, exist_ok=True)
-    canonical_fundamentals = fundamentals_directory / Path(
-        fundamentals_output
-    ).name
+    canonical_fundamentals = (
+        None
+        if fundamentals_output is None
+        else fundamentals_directory / Path(fundamentals_output).name
+    )
     canonical_adjustments = {
         group: adjustments_directory / Path(path).name
         for group, path in adjustment_outputs.items()
@@ -358,10 +358,15 @@ def promote_staged_outputs(
     # os.replace is atomic for each file on the same filesystem. Staging all
     # files first keeps lengthy calculation failures away from canonical data;
     # the final promotion window consists only of these quick replacements.
-    os.replace(fundamentals_output, canonical_fundamentals)
+    if fundamentals_output is not None:
+        os.replace(fundamentals_output, canonical_fundamentals)
     for group in party_groups.groups:
         os.replace(adjustment_outputs[group], canonical_adjustments[group])
     return (
-        str(canonical_fundamentals),
+        (
+            None
+            if canonical_fundamentals is None
+            else str(canonical_fundamentals)
+        ),
         {group: str(path) for group, path in canonical_adjustments.items()},
     )

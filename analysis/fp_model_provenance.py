@@ -79,12 +79,12 @@ SOURCE_DEPENDENCIES = {
     "prior_result_inputs":
         ANALYSIS_DIRECTORY / "Data" / "provenance.json",
     "fp_model_script": ANALYSIS_DIRECTORY / "provenance.json",
-    "fp_model_provenance_script": ANALYSIS_DIRECTORY / "provenance.json",
-    "calibration_provenance_script":
-        ANALYSIS_DIRECTORY / "provenance.json",
     "stan_cache_script": ANALYSIS_DIRECTORY / "provenance.json",
     "election_code_script": ANALYSIS_DIRECTORY / "provenance.json",
     "fp_stan_model": ANALYSIS_DIRECTORY / "Models" / "provenance.json",
+}
+CUTOFF_SOURCE_DEPENDENCIES = {
+    "fp_model_provenance_script": ANALYSIS_DIRECTORY / "provenance.json",
 }
 OUTPUT_PATTERN = re.compile(
     r"^fp_(trend|polls|house_effects)_(\d{4}[a-z]+)_(.+)_pure\.csv$"
@@ -743,14 +743,17 @@ def _cutoff_record_key(election):
     return "cutoff_poll_outputs:{}".format(election)
 
 
-def _source_dependencies():
+def _source_dependencies(include_cutoff_runtime=False):
+    dependencies = dict(SOURCE_DEPENDENCIES)
+    if include_cutoff_runtime:
+        dependencies.update(CUTOFF_SOURCE_DEPENDENCIES)
     return {
         category: generated_provenance.source_manifest_dependency(
             category,
             manifest_path,
             ANALYSIS_DIRECTORY,
         )
-        for category, manifest_path in SOURCE_DEPENDENCIES.items()
+        for category, manifest_path in dependencies.items()
     }
 
 
@@ -1131,7 +1134,9 @@ class CutoffTrendRecorder(FinalTrendRecorder):
         super().__init__(command)
         # Cutoffs stage progress in CutoffOutputStore drafts, not calibration
         # checkpoints, so checkpoint helper code is not a cutoff dependency.
-        self.source_dependencies = _source_dependencies()
+        self.source_dependencies = _source_dependencies(
+            include_cutoff_runtime=True
+        )
 
     def preflight_election(self, election):
         """Reject stale local inputs before an expensive cutoff batch starts."""
@@ -1162,7 +1167,7 @@ class CutoffTrendRecorder(FinalTrendRecorder):
             dependencies.update(
                 self._approval_dependencies(
                     election,
-                    approvals_provenance.current_elections(),
+                    approvals_provenance.open_future_elections(),
                 )
             )
         federal_prior_files = sorted(set(federal_prior_files))

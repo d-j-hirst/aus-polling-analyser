@@ -13,9 +13,8 @@ manifests to detect stale work units and trace their impact to the C++ model.
 and `plan` commands consume registry command templates and structured
 provenance results rather than duplicating dependency or freshness logic.
 Running it without arguments opens an interactive interface. Its `run` command
-executes regular, approval-refresh, calibration and historical-cutoff plans
-directly through the existing generators. The broad `all` profile remains
-planning-only.
+executes regular, approval-refresh, calibration, historical-cutoff and
+repository-wide convergence plans directly through the existing generators.
 
 Provenance audits used by `status`, `plan`, `run` and post-task plan refreshes
 emit concise progress checkpoints. With `--format json`, and during
@@ -194,28 +193,32 @@ python3 pipeline.py run --election 2026sa --profile calibration
 
 ## Run Profiles
 
-Every executable profile starts from the named election code, follows only the
-dependencies relevant to that target, and records a resumable completed unit
-after each successful generator invocation. Use `plan` first when the scope is
-not obvious:
+Targeted executable profiles start from the named election code, follow only
+dependencies relevant to that target, and record a resumable completed unit
+after each successful generator invocation. The `all` profile instead selects
+required historical and active work repository-wide. Use `plan` first when the
+scope is not obvious:
 
 ```bash
 python3 pipeline.py run --election 2026vic --profile regular
 python3 pipeline.py run --election 2026vic \
   --profile regular-with-approvals
 python3 pipeline.py run --election 2026vic --profile cutoffs
+python3 pipeline.py run --profile all
 ```
 
 * `regular` is the normal response to updated current inputs. It regenerates
-  the selected election's pollster analysis and regional swing models where
-  needed, then its pure trend and final trend. The same-election pure trend is
-  always included so the final approval fit is aligned with the current poll
-  data. It deliberately leaves older approval-reference pure trends and
-  historical cutoffs alone.
-* `regular-with-approvals` is the more complete normal refresh. In addition to
-  `regular`, it regenerates stale historical pure trends used to fit the
-  approval relationship. Use it when those historical inputs have changed or
-  when a current final trend should use fully refreshed approval evidence.
+  stale checked election-result exports, global election analysis, the
+  selected election's pollster analysis, pure/final trends, trend adjustments
+  and regional swing models where needed. The same-election pure trend is
+  always included. It deliberately leaves older approval-reference pure
+  trends, calibration and historical cutoffs alone. A trend-adjustment task
+  waiting on stale cutoffs is reported as deferred rather than run from stale
+  inputs.
+* `regular-with-approvals` refreshes the same routine C++ inputs as `regular`,
+  plus stale historical pure trends used to fit the approval relationship.
+  Use it when those historical inputs have changed or when a current final
+  trend should use fully refreshed approval evidence.
 * `calibration` is the long-running historical fitting profile. It runs
   leave-one-pollster-out and bias calibration units and compacts retained
   detailed calibration inputs into summaries where necessary. It intentionally
@@ -229,9 +232,12 @@ python3 pipeline.py run --election 2026vic --profile cutoffs
 * `metadata` applies registered `provenance-only` upgrades without running
   any data generator. Work units with data-affecting staleness are excluded,
   because a subsequent regeneration replaces their metadata completely.
-* `all` is available for inspection through `plan`, but is intentionally not
-  executable. It exists to show the breadth of a complete rebuild without
-  making a single command accidentally start every expensive stage.
+* `all` is the manual final-convergence profile. It selects every required
+  historical election and active future election through the same graph used
+  by archive preflight, excluding inactive-only and unreferenced retained
+  outputs. It runs remaining numerical stages in dependency order, then
+  metadata maintenance. It does not accept `--election` and requires typing
+  `RUN ALL GENERATION` exactly before execution.
 
 `fp_model.py --cutoff` keeps the previously certified consolidated election
 file untouched while writing a `.in-progress` draft. A JSON sidecar binds that
@@ -330,6 +336,23 @@ Source change impact has separate data and provenance meanings:
   or add entirely new generated file classes, and therefore increment the data
   semantic revision. Aliases `minor`, `material` and `major` are accepted and
   stored as `data-modifying`.
+
+Historical cutoff fits can take weeks, so the registration interface treats
+their invalidation as a separate deliberate action. A data-modifying change in
+the cutoff dependency surface requires typing `CUTOFFS`; non-interactive
+registration requires `--acknowledge-cutoff-invalidation`. Scope code changes
+to their actual stage rather than using `--all-scopes`: a cutoff resume or
+certification fix is not a pure/final numerical change, and provenance recorder
+bookkeeping is not a model input. If a change cannot alter the values of an
+already-successful cutoff, classify it as `negligible`; use `provenance-only`
+only when a named metadata migration must update existing records.
+
+Legitimate cutoff invalidators remain content-sensitive. They include the
+target poll and configuration inputs, pollster parameters, model calculations,
+historical pure TPP evidence used by approval fitting, and federal cutoff rows
+actually selected as state priors. Open future pure trends are retained in
+lineage as non-invalidating dependencies because frequent current polling has
+minimal effect on the historical portion used by a completed cutoff.
 
 Durable outputs must not be deleted by a different work unit than the one that
 produced them. Ephemeral hand-offs shared across work units leave downstream

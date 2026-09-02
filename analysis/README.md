@@ -57,6 +57,8 @@ python3 pipeline.py run --election 2026vic \
   --profile regular-with-approvals
 python3 pipeline.py run --election 2026vic --profile calibration
 python3 pipeline.py run --election 2026vic --profile cutoffs
+python3 pipeline.py plan --profile all
+python3 pipeline.py run --profile all
 python3 pipeline.py plan --profile metadata
 python3 pipeline.py run --profile metadata
 ```
@@ -65,6 +67,15 @@ Each `run` writes an ignored log under `Logs/Pipeline/` while preserving live
 stdout and stderr in the terminal. The log records the profile and targets,
 task commands and boundaries, subprocess output, elapsed time, exit status,
 post-task provenance problems, and final completion status.
+
+The regular profiles also refresh stale checked election-result exports,
+global election analysis, target trend adjustments and required regional
+models. They never launch calibration or historical cutoff generation;
+adjustments waiting on stale cutoffs are listed as deferred. The `all` profile
+instead converges every required historical and active future election,
+excludes inactive-only and unreferenced retained work, then applies remaining
+metadata maintenance. It accepts no election target and requires typing
+`RUN ALL GENERATION` exactly.
 
 Status is aggregated by default. Plans are grouped by generation stage; add
 `--details` to show every command or `--format json` for the complete
@@ -85,9 +96,10 @@ second audit will detect changed calibration digests, refresh the applicable
 pollster analysis, and then schedule only the required target trends.
 
 The `run` command supports regular trends, regular trends with refreshed
-approval inputs, calibration, historical cutoffs and metadata maintenance.
-The `all` profile remains planning-only because it includes broader source
-acquisition and global analysis stages. Generation runs prevalidate the
+approval inputs, calibration, historical cutoffs, repository-wide final
+convergence and metadata maintenance. The `all` profile is deliberately
+manual and strongly confirmed because it can include expensive acquisition,
+calibration and cutoff stages. Generation runs prevalidate the
 complete plan, execute one election command at a time, stream model output to
 the terminal, and stop on the first failure. After every successful command
 the runner rebuilds the plan and requires the completed task to have cleared.
@@ -124,6 +136,23 @@ Source changes use these impact levels:
   introduces entirely new generated file classes in this change. Affected work
   is stale until regeneration. Aliases `minor`, `material` and `major` are
   still accepted and recorded as `data-modifying`.
+
+Historical cutoffs are exceptionally expensive, so registrations that can
+reach the cutoff stage receive an additional safeguard. Use `negligible` for
+logging, diagnostics, recovery from a failed run, or recorder bookkeeping that
+cannot change a successfully generated cutoff CSV. Use `provenance-only` only
+when an existing generated record needs a named metadata upgrade. Changes to
+model inputs, Stan calculations, the cutoff schedule, selected federal priors,
+or serialized cutoff values are `data-modifying` and should be scoped to the
+exact affected election, party and stage where possible. Such registrations
+require typing `CUTOFFS` interactively, or passing
+`--acknowledge-cutoff-invalidation` on the command line.
+
+Completed cutoffs remain sensitive to historical pure TPP evidence actually
+used by their approval fit, target poll/configuration data, pollster parameters,
+model code and selected federal cutoff priors. Pure trends for open future
+terms are recorded for lineage but deliberately do not repeatedly invalidate a
+completed historical cutoff when current polling changes.
 
 Every `provenance-only` registration requires a registered metadata upgrade
 ID. The metadata profile applies pending upgrades in event order while

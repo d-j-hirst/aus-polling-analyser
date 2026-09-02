@@ -96,6 +96,22 @@ class ElectionAnalysisTests(unittest.TestCase):
             self.analysis.has_material_independent_vote(7.9, 0)
         )
 
+    def test_seat_swing_analysis_retains_classic_major_party_set(self):
+        major_parties = self.analysis.analyse_seat_swings.__globals__[
+            "MAJOR_PARTIES"
+        ]
+
+        self.assertEqual(
+            major_parties,
+            {
+                "Liberal",
+                "National",
+                "Liberal National",
+                "Labor",
+                "Country Liberal",
+            },
+        )
+
     def test_only_selected_regional_mix_factor_errors_are_accumulated(self):
         region_errors = {"all": [0.25], "NSW": [0.5]}
         errors_by_factor = {

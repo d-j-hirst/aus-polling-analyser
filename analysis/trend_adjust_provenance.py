@@ -217,13 +217,15 @@ class TrendAdjustmentRecorder:
             party_group: Path(path)
             for party_group, path in adjustment_outputs.items()
         }
-        if fundamentals_output is None:
+        is_default_target = target_election == "0none"
+        if fundamentals_output is None and not is_default_target:
             raise generated_provenance.GeneratedProvenanceError(
                 "{} produced no fundamentals output".format(
                     target_election
                 )
             )
-        fundamentals_output = Path(fundamentals_output)
+        if fundamentals_output is not None:
+            fundamentals_output = Path(fundamentals_output)
         expected_groups = set(
             adjustment_groups() if expected_groups is None else expected_groups
         )
@@ -238,8 +240,14 @@ class TrendAdjustmentRecorder:
             )
         missing_outputs = [
             str(path)
-            for path in list(adjustment_outputs.values())
-            + [fundamentals_output]
+            for path in (
+                list(adjustment_outputs.values())
+                + (
+                    []
+                    if fundamentals_output is None
+                    else [fundamentals_output]
+                )
+            )
             if not path.is_file()
         ]
         if missing_outputs:
@@ -272,21 +280,22 @@ class TrendAdjustmentRecorder:
                 )
             for party_group, output in adjustment_outputs.items()
         }
-        records[fundamentals_record_key(target_election)] = (
-            generated_provenance.generation_record(
-                category="fundamentals",
-                stage="generate_trend_adjustments",
-                scope=generated_provenance.generation_scope(
-                    elections=[target_election]
-                ),
-                run=self.run_id,
-                dependencies=fundamentals_dependencies,
-                outputs=generated_provenance.output_fingerprints(
-                    [fundamentals_output], ANALYSIS_DIRECTORY
-                ),
-                random_seed=None,
+        if fundamentals_output is not None:
+            records[fundamentals_record_key(target_election)] = (
+                generated_provenance.generation_record(
+                    category="fundamentals",
+                    stage="generate_trend_adjustments",
+                    scope=generated_provenance.generation_scope(
+                        elections=[target_election]
+                    ),
+                    run=self.run_id,
+                    dependencies=fundamentals_dependencies,
+                    outputs=generated_provenance.output_fingerprints(
+                        [fundamentals_output], ANALYSIS_DIRECTORY
+                    ),
+                    random_seed=None,
+                )
             )
-        )
         generated_provenance.update_manifest(
             MANIFEST_PATH,
             records,

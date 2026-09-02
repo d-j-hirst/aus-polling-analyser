@@ -19,7 +19,7 @@ class ApprovalsProvenanceTests(unittest.TestCase):
             "1984,fed\n1987,fed\n2026,vic\n", encoding="utf-8"
         )
         (data / "future-elections.csv").write_text(
-            "2029,wa\n", encoding="utf-8"
+            "2028,qld,active\n2029,wa,inactive\n", encoding="utf-8"
         )
         (data / "election-cycles.csv").write_text(
             "1984,fed,1983-03-06,1984-12-02\n"
@@ -72,7 +72,18 @@ class ApprovalsProvenanceTests(unittest.TestCase):
             ):
                 elections = approvals_provenance.current_elections()
 
-            self.assertEqual(elections, {"2029wa"})
+            self.assertEqual(elections, {"2028qld", "2029wa"})
+
+    def test_open_future_elections_include_inactive_terms(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            base = Path(temporary_directory)
+            data, outputs, synthetic = self._write_data(base)
+            with mock.patch.object(
+                approvals_provenance, "DATA_DIRECTORY", data
+            ):
+                elections = approvals_provenance.open_future_elections()
+
+            self.assertEqual(elections, {"2028qld", "2029wa"})
 
     def test_available_records_require_both_pure_tpp_files(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

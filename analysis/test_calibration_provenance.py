@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest import mock
 
 import calibration_provenance
+import fp_model_constants
 import generated_provenance
 
 
@@ -44,6 +45,23 @@ class CalibrationProvenanceTests(unittest.TestCase):
         self.assertNotEqual(first, different)
         self.assertGreaterEqual(first, 1)
         self.assertLess(first, 2 ** 31)
+
+    def test_stan_seed_uses_shared_unchanged_implementation(self):
+        arguments = (
+            1234,
+            "2028fed",
+            "@TPP",
+            "Newspoll",
+            "pollster-calibration",
+        )
+
+        self.assertIs(
+            calibration_provenance.derive_stan_seed,
+            fp_model_constants.derive_stan_seed,
+        )
+        self.assertEqual(
+            fp_model_constants.derive_stan_seed(*arguments), 1002753321
+        )
 
     def test_baseline_groups_existing_files_without_certifying_them(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

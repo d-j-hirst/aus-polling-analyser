@@ -18,6 +18,7 @@ import statistics
 from numpy import array, transpose, dot, amax, amin
 from sklearn.linear_model import ElasticNetCV
 
+from election_code import no_target_election_marker
 from trend_adjust_data import (
     ElectionPartyCode,
     TrendAdjustmentDataError,
@@ -329,7 +330,10 @@ def run_fundamentals_regression(
         prediction_errors = []
         baseline_errors = []
         avg_len = inputs.party_groups.average_lengths[party_group_code]
-        for studied_election in inputs.past_elections + [excluded_election]:
+        studied_elections = list(inputs.past_elections)
+        if excluded_election != no_target_election_marker:
+            studied_elections.append(excluded_election)
+        for studied_election in studied_elections:
             input_array, dependent_array = build_fundamentals_training_set(
                 inputs,
                 studied_election,

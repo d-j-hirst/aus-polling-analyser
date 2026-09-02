@@ -751,7 +751,7 @@
         "arguments": [],
         "working_directory": ".",
         "task_scope": "global",
-        "run_class": "source"
+        "run_class": "acquisition"
       },
       "inputs": [
         "election_data_script",
@@ -1000,8 +1000,6 @@
         "prior_result_inputs",
         "pollster_parameters",
         "fp_model_script",
-        "fp_model_provenance_script",
-        "calibration_provenance_script",
         "stan_cache_script",
         "election_code_script",
         "fp_stan_model"
@@ -1044,7 +1042,6 @@
         "approvals_script",
         "approvals_provenance_script",
         "fp_model_script",
-        "fp_model_provenance_script",
         "stan_cache_script",
         "election_code_script",
         "fp_stan_model"
@@ -1094,11 +1091,11 @@
         "pollster_parameters",
         "approval_context",
         "pure_poll_outputs",
+        "cutoff_poll_outputs",
         "approvals_script",
         "approvals_provenance_script",
         "fp_model_script",
         "fp_model_provenance_script",
-        "calibration_provenance_script",
         "stan_cache_script",
         "election_code_script",
         "fp_stan_model"
@@ -1149,7 +1146,7 @@
       "network": false,
       "cost": "minutes",
       "supports_partial": true,
-      "notes": "Each target is recorded only after all configured party-group adjustments and its fundamentals file have been written. Fundamentals depend only on authored election/context data; adjustment records additionally depend on the consolidated cutoff work unit for every historical election used to calibrate that target. Missing interior endpoints are interpolated in triangular-root time using the actual poll endpoint, dates after the latest poll retain its value, and dates before the first poll provide no observation."
+      "notes": "Each named target is recorded only after all configured party-group adjustments and its fundamentals file have been written. The optional 0none compatibility fallback produces adjustments only, is not an unconditional required-work root, and is omitted when no in-scope election needs it. Fundamentals depend only on authored election/context data; adjustment records additionally depend on the consolidated cutoff work unit for every historical election used to calibrate that target. Missing interior endpoints are interpolated in triangular-root time using the actual poll endpoint, dates after the latest poll retain its value, and dates before the first poll provide no observation."
     },
     {
       "id": "generate_regional_swings",

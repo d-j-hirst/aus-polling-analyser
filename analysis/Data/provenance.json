@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-08-16T10:40:42Z",
+  "updated_at_utc": "2026-08-31T09:28:28Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -23,9 +23,9 @@
           "recorded_mtime_utc": "2025-07-20T10:09:04.856905Z"
         },
         "future-elections.csv": {
-          "sha256": "93a20eb73dedf2c8f8dabb7259755dabab8eaba8d348999b5ead0fb6aecb8a12",
-          "size_bytes": 43,
-          "recorded_mtime_utc": "2026-05-23T07:53:28.312018Z"
+          "sha256": "0f949345402aab3a921c97d9f78f3b2bbadcecfdf0bb7ee1ee583aa01c4c52ad",
+          "size_bytes": 83,
+          "recorded_mtime_utc": "2026-08-30T23:48:36.307664Z"
         },
         "old-elections.csv": {
           "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -59,8 +59,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260830T235519Z-schema-election-catalogue-f152a866",
+          "recorded_at_utc": "2026-08-30T23:55:19Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Classify configured future elections as active or inactive for operational audit, planning and archive selection without changing explicit generation.",
+          "files": [
+            "future-elections.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     },
     "raw_poll_data": {
       "description": "Raw voting-intention and approval observations by jurisdiction.",
@@ -68,22 +88,22 @@
         "poll-data-*.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 28,
+      "semantic_revision": 42,
       "files": {
         "poll-data-fed.csv": {
-          "sha256": "0a68ec0a1a57b0304c287a71fe45d15271568dc2837fec532336287bca40c4f0",
-          "size_bytes": 285026,
-          "recorded_mtime_utc": "2026-08-16T10:39:34.831209Z"
+          "sha256": "0ecdad7eb877a554c0165fca776e88a79fd8380ffafb47008c859f14b9f999b2",
+          "size_bytes": 285509,
+          "recorded_mtime_utc": "2026-08-31T09:23:05.069117Z"
         },
         "poll-data-nsw.csv": {
-          "sha256": "e369cee23374c45129778c67a22ac6a816a1bc2d74005ff8043d3b37841bf7ff",
-          "size_bytes": 27125,
-          "recorded_mtime_utc": "2026-08-04T12:04:01.711398Z"
+          "sha256": "238a392342ca8e56c912b2e5a18c718cacbfefe92fe3a1e7624cef4741a8ccb1",
+          "size_bytes": 27175,
+          "recorded_mtime_utc": "2026-08-31T02:34:17.382365Z"
         },
         "poll-data-qld.csv": {
-          "sha256": "26f673fd24dfda3cbf6eef2cd7f7bff7f19abeb01a565088efa6023f46eb980a",
-          "size_bytes": 23336,
-          "recorded_mtime_utc": "2026-06-16T08:38:09.808470Z"
+          "sha256": "2c3b2e87554a8e739309734493c751ceb949804a01a9344d9dbb585e38b355fa",
+          "size_bytes": 23403,
+          "recorded_mtime_utc": "2026-08-20T05:49:50.472154Z"
         },
         "poll-data-sa.csv": {
           "sha256": "75450de250d0763e5aeb629863b4fb12b25108cd88ca3eeacf0eb6175e8987e2",
@@ -91,14 +111,14 @@
           "recorded_mtime_utc": "2026-08-04T12:03:55.231029Z"
         },
         "poll-data-vic.csv": {
-          "sha256": "9d09af56c639151035b4b8b74bd216d92a916c3d374d2d15fbab70cb128fa720",
-          "size_bytes": 37757,
-          "recorded_mtime_utc": "2026-08-16T03:27:11.792155Z"
+          "sha256": "aab2fe462765223ba4ae58f790daca79d6b2ce94f02e3da37c91a027c1494079",
+          "size_bytes": 37814,
+          "recorded_mtime_utc": "2026-08-19T03:14:03.282910Z"
         },
         "poll-data-wa.csv": {
-          "sha256": "368c226facac3b2c0436710969f2f1bdf2798ab120aa2f16200d72265baf7871",
-          "size_bytes": 21465,
-          "recorded_mtime_utc": "2026-08-04T12:03:58.918864Z"
+          "sha256": "d09f6b3606e7b2cfb27c3c17ce9e44f378c9d7c94eea774af6b0b3fb35974bf5",
+          "size_bytes": 21524,
+          "recorded_mtime_utc": "2026-08-31T09:27:04.445668Z"
         }
       },
       "events": [
@@ -792,9 +812,345 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260817T100251Z-new_polling-raw-poll-data-0fbb7734",
+          "recorded_at_utc": "2026-08-17T10:02:51Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 29,
+          "provenance_revision": 29,
+          "summary": "Morgan poll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260818T220344Z-new_polling-raw-poll-data-eebe0b29",
+          "recorded_at_utc": "2026-08-18T22:03:44Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 30,
+          "provenance_revision": 30,
+          "summary": "ResolvePM QLD poll",
+          "files": [
+            "poll-data-qld.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028qld"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260819T031436Z-new_polling-raw-poll-data-11405f8e",
+          "recorded_at_utc": "2026-08-19T03:14:36Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 31,
+          "provenance_revision": 31,
+          "summary": "ResolvePM Vic poll",
+          "files": [
+            "poll-data-vic.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260820T055035Z-correction-raw-poll-data-2eb08b52",
+          "recorded_at_utc": "2026-08-20T05:50:35Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 32,
+          "provenance_revision": 32,
+          "summary": "Correction to ResolvePM data",
+          "files": [
+            "poll-data-qld.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028qld"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260824T042926Z-new_polling-raw-poll-data-9401e527",
+          "recorded_at_utc": "2026-08-24T04:29:26Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 33,
+          "provenance_revision": 33,
+          "summary": "DemosAU poll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260824T073319Z-new_polling-raw-poll-data-d5a89c38",
+          "recorded_at_utc": "2026-08-24T07:33:19Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 34,
+          "provenance_revision": 34,
+          "summary": "Morgan multi-mode",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260826T033259Z-new_polling-raw-poll-data-d406f848",
+          "recorded_at_utc": "2026-08-26T03:32:59Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 35,
+          "provenance_revision": 35,
+          "summary": "YouGov poll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260827T062415Z-new_polling-raw-poll-data-ff6c6788",
+          "recorded_at_utc": "2026-08-27T06:24:15Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 36,
+          "provenance_revision": 36,
+          "summary": "DemosAU poll",
+          "files": [
+            "poll-data-wa.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2029wa"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260830T085426Z-new_polling-raw-poll-data-e874c666",
+          "recorded_at_utc": "2026-08-30T08:54:26Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 37,
+          "provenance_revision": 37,
+          "summary": "Redbridge poll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260830T092627Z-correction-raw-poll-data-bcb6a9b1",
+          "recorded_at_utc": "2026-08-30T09:26:27Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 37,
+          "provenance_revision": 37,
+          "summary": "Confirm estimated date was correct",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260830T095223Z-correction-raw-poll-data-0ee84cdb",
+          "recorded_at_utc": "2026-08-30T09:52:23Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 37,
+          "provenance_revision": 37,
+          "summary": "correct reported Redbridge 2pp",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260830T112026Z-new_polling-raw-poll-data-6456c7e6",
+          "recorded_at_utc": "2026-08-30T11:20:26Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 38,
+          "provenance_revision": 38,
+          "summary": "Newspoll poll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260830T112958Z-correction-raw-poll-data-061133d2",
+          "recorded_at_utc": "2026-08-30T11:29:58Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 39,
+          "provenance_revision": 39,
+          "summary": "Newspoll approvals",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260831T023438Z-new_polling-raw-poll-data-acab7258",
+          "recorded_at_utc": "2026-08-31T02:34:38Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 40,
+          "provenance_revision": 40,
+          "summary": "DemosAU poll",
+          "files": [
+            "poll-data-nsw.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2027nsw"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260831T092735Z-new_polling-raw-poll-data-7a85fae2",
+          "recorded_at_utc": "2026-08-31T09:27:35Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 41,
+          "provenance_revision": 41,
+          "summary": "Morgan federal poll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260831T092828Z-correction-raw-poll-data-daaed2c6",
+          "recorded_at_utc": "2026-08-31T09:28:28Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 42,
+          "provenance_revision": 42,
+          "summary": "Correction to DemosAU along with leader approvals for 3 polls",
+          "files": [
+            "poll-data-wa.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2029wa"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 28
+      "provenance_revision": 42
     },
     "poll_model_configuration": {
       "description": "Party coverage, discontinuities and sampling settings used by fp_model.py.",

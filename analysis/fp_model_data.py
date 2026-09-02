@@ -18,6 +18,7 @@ import fp_model_constants
 from fp_model_constants import (
     STAN_SEED_NAMESPACE,
     data_source,
+    derive_stan_seed,
     fp_model_source_files,
     major_parties,
     others_parties,
@@ -137,7 +138,7 @@ def calibration_checkpoint_identity(
     election = ''.join(e_data.e_tuple)
     mode = stan_seed_mode(config, e_data)
     seeds = {
-        party: calibration_provenance.derive_stan_seed(
+        party: derive_stan_seed(
             base_seed,
             election,
             party,

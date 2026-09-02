@@ -27,6 +27,15 @@ from poll_transform import detransform_vote_share, transform_vote_share
 from sample_kurtosis import calc_rmse, one_tail_kurtosis, two_tail_kurtosis
 
 
+MAJOR_PARTIES = frozenset({
+    'Liberal',
+    'National',
+    'Liberal National',
+    'Labor',
+    'Country Liberal',
+})
+
+
 # Core seat-level historical calculations
 
 def analyse_seat_swings(elections, seat_types, seat_regions, by_elections):
@@ -75,9 +84,9 @@ def analyse_seat_swings(elections, seat_types, seat_regions, by_elections):
             # Check seat has a classic 2cp swing
             if len(this_seat_result.tcp) != 2:
                 continue
-            if this_seat_result.tcp[0].party not in majors:
+            if this_seat_result.tcp[0].party not in MAJOR_PARTIES:
                 continue
-            if this_seat_result.tcp[1].party not in majors:
+            if this_seat_result.tcp[1].party not in MAJOR_PARTIES:
                 continue
             if 'Labor' not in (this_seat_result.tcp[0].party,
                                 this_seat_result.tcp[1].party):
@@ -89,9 +98,9 @@ def analyse_seat_swings(elections, seat_types, seat_regions, by_elections):
             if previous_seat_result is not None:
                 if len(previous_seat_result.tcp) != 2:
                     previous_seat_result = None
-                elif previous_seat_result.tcp[0].party not in majors:
+                elif previous_seat_result.tcp[0].party not in MAJOR_PARTIES:
                     previous_seat_result = None
-                elif previous_seat_result.tcp[1].party not in majors:
+                elif previous_seat_result.tcp[1].party not in MAJOR_PARTIES:
                     previous_seat_result = None
                 elif 'Labor' not in (previous_seat_result.tcp[0].party,
                                     previous_seat_result.tcp[1].party):
@@ -103,9 +112,9 @@ def analyse_seat_swings(elections, seat_types, seat_regions, by_elections):
             if old_seat_result is not None:
                 if len(old_seat_result.tcp) != 2:
                     old_seat_result = None
-                elif old_seat_result.tcp[0].party not in majors:
+                elif old_seat_result.tcp[0].party not in MAJOR_PARTIES:
                     old_seat_result = None
-                elif old_seat_result.tcp[1].party not in majors:
+                elif old_seat_result.tcp[1].party not in MAJOR_PARTIES:
                     old_seat_result = None
                 elif 'Labor' not in (old_seat_result.tcp[0].party,
                                     old_seat_result.tcp[1].party):

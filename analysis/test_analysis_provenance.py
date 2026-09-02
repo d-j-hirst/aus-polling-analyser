@@ -1504,6 +1504,48 @@ class AnalysisProvenanceTests(unittest.TestCase):
                 [],
             )
 
+    def test_upstream_election_expansion_does_not_mutate_target_scope(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        upstream_output = self.output_directory / "results_1984fed.csv"
+        upstream_output.write_text("Upstream election\n", encoding="utf-8")
+        upstream = json.loads(json.dumps(
+            manifest["records"]["election_result_exports:2025fed"]
+        ))
+        upstream["scope"] = generated_provenance.generation_scope(
+            elections=["1984fed"]
+        )
+        upstream["outputs"] = generated_provenance.output_fingerprints(
+            [upstream_output], self.base
+        )
+        manifest["records"]["election_result_exports:1984fed"] = upstream
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+        requested = {"2025fed"}
+
+        with mock.patch.object(
+            analysis_provenance.calibration_provenance,
+            "required_federal_prior_elections",
+            return_value={"1984fed"},
+        ):
+            result = analysis_provenance.audit_repository(
+                source_manifest_paths=[self.source_manifest_path],
+                generated_manifest_paths=[self.generated_manifest_path],
+                target_elections=requested,
+            )
+
+        self.assertEqual(requested, {"2025fed"})
+        self.assertEqual(result["target_elections"], ["2025fed"])
+        work_units = {
+            work_unit["record_key"]: work_unit
+            for work_unit in result["work_units"]
+        }
+        self.assertFalse(
+            work_units["election_result_exports:1984fed"]["target_match"]
+        )
+
     def test_attach_federal_prior_dependencies_links_state_bias(self):
         import pandas as pd
 
@@ -1991,7 +2033,7 @@ class AnalysisProvenanceTests(unittest.TestCase):
         )
         self.assertIn(pollster_id, dependencies[trend_id])
 
-    def test_legacy_calibration_is_reported_as_calibration_path_issue(self):
+    def test_unreferenced_legacy_calibration_is_not_printed_as_work(self):
         manifest = generated_provenance.load_manifest(
             self.generated_manifest_path
         )
@@ -2043,14 +2085,11 @@ class AnalysisProvenanceTests(unittest.TestCase):
             result["calibration_root_causes"],
         )
         self.assertIn(
-            "Calibration-path-only provenance issues:",
+            "No required generated work is currently actionable.",
             output.getvalue(),
         )
         self.assertNotIn("inputs and seeds", output.getvalue())
-        self.assertIn(
-            "Missing historical seed metadata is informational only",
-            output.getvalue(),
-        )
+        self.assertNotIn("poll_calibration_traces:2025fed", output.getvalue())
 
     def test_diagnostic_trace_is_not_a_calibration_path_issue(self):
         manifest = generated_provenance.load_manifest(
@@ -2401,6 +2440,251 @@ class AnalysisProvenanceTests(unittest.TestCase):
                 message.startswith(prefix),
                 msg="{!r} does not start with {!r}".format(message, prefix),
             )
+
+    def test_task_view_defers_an_entire_adjustment_election(self):
+        registry = {
+            "categories": {
+                "cutoff_poll_outputs": {"kind": "generated"},
+                "trend_adjustments": {"kind": "generated"},
+            },
+            "stages": [
+                {
+                    "id": "generate_cutoff_poll_trends",
+                    "outputs": ["cutoff_poll_outputs"],
+                    "cost": "weeks",
+                },
+                {
+                    "id": "generate_trend_adjustments",
+                    "outputs": ["trend_adjustments"],
+                    "cost": "minutes",
+                },
+            ],
+            "consumers": [
+                {
+                    "id": "cpp_stan_model",
+                    "inputs": ["trend_adjustments"],
+                }
+            ],
+        }
+
+        def work_unit(identifier, issues, path_classes):
+            return {
+                "id": identifier,
+                "record_key": identifier,
+                "category": "trend_adjustments",
+                "stage": "generate_trend_adjustments",
+                "scope": {
+                    "all": False,
+                    "elections": ["2028fed"],
+                    "parties": [],
+                },
+                "status": "legacy",
+                "blocking": False,
+                "path_classes": path_classes,
+                "issues": issues,
+            }
+
+        fundamentals = work_unit(
+            "trend_adjustments:2028fed", [], [analysis_provenance.PATH_IMMEDIATE]
+        )
+        party = work_unit(
+            "trend_adjustments:2028fed:ALP",
+            [
+                {
+                    "code": "stale_generated_dependency",
+                    "root_category": "cutoff_poll_outputs",
+                    "message": "stale generated dependency cutoff_poll_outputs",
+                }
+            ],
+            [analysis_provenance.PATH_IMMEDIATE, analysis_provenance.PATH_CUTOFF],
+        )
+        required_ids = [fundamentals["id"], party["id"]]
+
+        view = analysis_provenance._build_task_view(
+            [fundamentals, party],
+            registry,
+            {
+                "required_work_unit_ids": required_ids,
+                "active_work_unit_ids": required_ids,
+                "inactive_only_work_unit_ids": [],
+                "unreferenced_work_unit_ids": [],
+            },
+            [],
+            [],
+            [],
+            {"2028fed"},
+        )
+
+        self.assertEqual(view["primary_tasks"], [])
+        cutoff_groups = view["deferred_tasks"][
+            analysis_provenance.PATH_CUTOFF
+        ]
+        self.assertEqual(cutoff_groups[0]["work_unit_count"], 2)
+
+    def test_text_audit_hides_unreferenced_and_lists_inactive_once(self):
+        result = {
+            "target_elections": [],
+            "task_view": {
+                "blockers": [],
+                "primary_label": "Active-election work",
+                "primary_tasks": [],
+                "upstream_tasks": [],
+                "historical_tasks": [],
+                "deferred_tasks": {},
+                "metadata_tasks": [],
+                "suppressed": {
+                    "inactive_noncurrent_count": 2,
+                    "inactive_elections": ["2028qld", "2029wa"],
+                    "unreferenced_noncurrent_count": 1,
+                    "unreferenced_noncurrent_ids": ["secret-orphan"],
+                },
+            },
+            "diagnostic_notices": {},
+            "touched": [],
+            "unknown_generated": [],
+            "issues": ["suppressed work"],
+        }
+        output = StringIO()
+
+        with redirect_stdout(output):
+            analysis_provenance._print_audit(result)
+
+        text = output.getvalue()
+        self.assertIn("inactive election(s) 2028qld, 2029wa", text)
+        self.assertNotIn("secret-orphan", text)
+        self.assertNotIn("Source and generated-data issues", text)
+
+    def test_unregistered_source_blocks_an_empty_required_graph(self):
+        view = analysis_provenance._build_task_view(
+            [],
+            {"categories": {}, "stages": [], "consumers": []},
+            {
+                "required_work_unit_ids": [],
+                "active_work_unit_ids": [],
+                "inactive_only_work_unit_ids": [],
+                "unreferenced_work_unit_ids": [],
+            },
+            [
+                {
+                    "category": "raw_poll_data",
+                    "status": "blocked",
+                    "message": "unregistered modified file poll-data-fed.csv",
+                }
+            ],
+            [],
+            [],
+            None,
+        )
+
+        self.assertEqual(view["primary_tasks"], [])
+        self.assertEqual(view["blockers"][0]["category"], "raw_poll_data")
+
+    def test_task_view_separates_usable_inherited_staleness(self):
+        registry = {
+            "categories": {
+                "poll_trend_outputs": {"kind": "generated"},
+            },
+            "stages": [
+                {
+                    "id": "generate_poll_trends",
+                    "outputs": ["poll_trend_outputs"],
+                    "cost": "days",
+                }
+            ],
+            "consumers": [
+                {
+                    "id": "cpp_stan_model",
+                    "inputs": ["poll_trend_outputs"],
+                }
+            ],
+        }
+        trend = {
+            "id": "poll_trend_outputs:2028fed:@TPP",
+            "record_key": "poll_trend_outputs:2028fed:@TPP",
+            "category": "poll_trend_outputs",
+            "stage": "generate_poll_trends",
+            "scope": {
+                "all": False,
+                "elections": ["2028fed"],
+                "parties": ["@TPP"],
+            },
+            "status": "stale",
+            "blocking": False,
+            "path_classes": [analysis_provenance.PATH_IMMEDIATE],
+            "issues": [
+                {
+                    "code": "stale_generated_dependency",
+                    "root_category": "pollster_parameters",
+                    "message": "stale generated dependency",
+                }
+            ],
+        }
+
+        view = analysis_provenance._build_task_view(
+            [trend],
+            registry,
+            {
+                "required_work_unit_ids": [trend["id"]],
+                "active_work_unit_ids": [trend["id"]],
+                "inactive_only_work_unit_ids": [],
+                "unreferenced_work_unit_ids": [],
+            },
+            [],
+            [],
+            [],
+            None,
+        )
+
+        self.assertEqual(view["primary_tasks"], [])
+        self.assertEqual(
+            view["suppressed"]["accepted_inherited_stale_count"], 1
+        )
+        self.assertEqual(
+            view["suppressed"]["accepted_inherited_stale_categories"],
+            {"poll_trend_outputs": 1},
+        )
+
+    def test_cutoff_invalidation_risk_requires_data_modifying_change(self):
+        registry = {
+            "stages": [
+                {
+                    "id": "generate_cutoff_poll_trends",
+                    "inputs": ["fp_model_provenance_script"],
+                    "outputs": ["cutoff_poll_outputs"],
+                }
+            ]
+        }
+        all_scopes = {"all": True, "stages": []}
+
+        with mock.patch.object(
+            analysis_provenance,
+            "_change_categories",
+            return_value={"fp_model_provenance_script"},
+        ):
+            risk = analysis_provenance.cutoff_invalidation_risk(
+                ["fp_model_provenance.py"],
+                "minor",
+                all_scopes,
+                registry=registry,
+            )
+            negligible_risk = analysis_provenance.cutoff_invalidation_risk(
+                ["fp_model_provenance.py"],
+                "negligible",
+                all_scopes,
+                registry=registry,
+            )
+            pure_only_risk = analysis_provenance.cutoff_invalidation_risk(
+                ["fp_model_provenance.py"],
+                "minor",
+                {"all": False, "stages": ["generate_pure_poll_trends"]},
+                registry=registry,
+            )
+
+        self.assertEqual(
+            risk["categories"], ["fp_model_provenance_script"]
+        )
+        self.assertIsNone(negligible_risk)
+        self.assertIsNone(pure_only_risk)
 
 
 if __name__ == "__main__":

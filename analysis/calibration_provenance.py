@@ -8,7 +8,8 @@ certified as reproducible generations.
 
 Main functions:
 * ``configured_parties_by_election`` validates the calibration party set.
-* ``derive_stan_seed`` provides stable per-work-unit seeds.
+* ``derive_stan_seed`` re-exports the shared fp_model seed helper for
+  compatibility with existing callers.
 * ``CalibrationRecorder`` records completed leave-one-out and bias work units.
 * ``baseline_existing_outputs`` registers older calibration traces as legacy
   compatibility inputs without asserting that they are current.
@@ -16,13 +17,13 @@ Main functions:
 
 import argparse
 import csv
-import hashlib
 import sys
 from collections import defaultdict
 from pathlib import Path
 
 import generated_provenance
 from election_code import ElectionCode
+from fp_model_constants import derive_stan_seed
 
 
 ANALYSIS_DIRECTORY = Path(__file__).resolve().parent
@@ -205,22 +206,6 @@ def _source_dependencies():
         )
         for category, manifest_path in SOURCE_DEPENDENCIES.items()
     }
-
-
-def derive_stan_seed(base_seed, election, party, excluded_pollster, mode):
-    """Derive a stable, independent Stan seed for one calibration unit."""
-
-    material = "\0".join(
-        (
-            str(base_seed),
-            election,
-            party,
-            excluded_pollster,
-            mode,
-        )
-    ).encode("utf-8")
-    digest = hashlib.sha256(material).digest()
-    return int.from_bytes(digest[:8], "big") % (2 ** 31 - 1) + 1
 
 
 # Completed-calibration recording and legacy baselining

@@ -65,16 +65,22 @@ TASK_STATUS_PRIORITY = {
 PROFILE_RUN_CLASSES = {
     "metadata": set(),
     "regular": {
+        "analysis",
         "pollster_analysis",
         "regional",
         "regular",
         "regular_with_approvals",
+        "source",
+        "adjustments",
     },
     "regular-with-approvals": {
+        "analysis",
         "pollster_analysis",
         "regional",
         "regular",
         "regular_with_approvals",
+        "source",
+        "adjustments",
     },
     "calibration": {"calibration", "calibration_summary"},
     # Cutoffs are too expensive to knowingly generate from stale inputs.
@@ -90,11 +96,21 @@ PROFILE_RUN_CLASSES = {
 }
 PROFILE_ROOT_RUN_CLASSES = {
     "metadata": set(),
-    "regular": {"regional", "regular", "regular_with_approvals"},
-    "regular-with-approvals": {
+    "regular": {
+        "adjustments",
+        "analysis",
         "regional",
         "regular",
         "regular_with_approvals",
+        "source",
+    },
+    "regular-with-approvals": {
+        "adjustments",
+        "analysis",
+        "regional",
+        "regular",
+        "regular_with_approvals",
+        "source",
     },
     # A compact summary can be created from already-current compatibility
     # inputs. Treat it as a calibration root so a missing summary is repaired
@@ -115,11 +131,20 @@ EXECUTABLE_GENERATION_PROFILES = (
     "regular-with-approvals",
     "calibration",
     "cutoffs",
+    "all",
 )
 REGIONAL_PARTY_ARGUMENTS = {
     "@TPP": "",
     "ONP FP": "ON",
 }
+GENERATION_PROFILE_CHOICES = (
+    ("Regular", "regular"),
+    ("Regular with approval refresh", "regular-with-approvals"),
+    ("Calibration only", "calibration"),
+    ("Historical cutoffs needed by target adjustments", "cutoffs"),
+    ("All required historical and active work", "all"),
+)
+ALL_GENERATION_CONFIRMATION = "RUN ALL GENERATION"
 DISPLAY_EXAMPLE_LIMIT = 10
 ANALYSIS_DIRECTORY = Path(__file__).resolve().parent
 PIPELINE_LOG_DIRECTORY = ANALYSIS_DIRECTORY / "Logs" / "Pipeline"
@@ -496,23 +521,9 @@ def _task_status(status_counts):
 
 
 def _is_inherited_only_staleness(work_unit):
-    """Whether a stale record can be consumed without regenerating data.
+    """Whether stale ancestry can be consumed without regenerating data."""
 
-    Provenance-only source revisions require metadata maintenance, not a new
-    model run.  They commonly appear beside an inherited stale calibration
-    dependency, and must not turn that otherwise tolerated lineage into a
-    data-generation task.
-    """
-
-    if work_unit["status"] != "stale" or not work_unit["issues"]:
-        return False
-    return all(
-        issue["code"] in {
-            "stale_generated_dependency",
-            "provenance_only_revision",
-        }
-        for issue in work_unit["issues"]
-    )
+    return analysis_provenance.is_inherited_only_staleness(work_unit)
 
 
 def _task_command(stage, election, party):
@@ -554,6 +565,7 @@ def _reachable_work_unit_ids(
     selected_run_classes,
     root_run_classes,
     target_only_run_classes,
+    allowed_work_unit_ids=None,
 ):
     """Select profile roots and follow only current stage dependencies."""
 
@@ -566,6 +578,11 @@ def _reachable_work_unit_ids(
 
     def select(work_unit):
         work_unit_id = work_unit.get("id", work_unit["record_key"])
+        if (
+            allowed_work_unit_ids is not None
+            and work_unit_id not in allowed_work_unit_ids
+        ):
+            return
         if work_unit_id in reachable:
             return
         reachable.add(work_unit_id)
@@ -579,7 +596,10 @@ def _reachable_work_unit_ids(
         if (
             run_class in root_run_classes
             and (
-                work_unit.get("target_match", True)
+                # Repository-wide selection is already constrained by the
+                # required historical/active graph, not an explicit target.
+                allowed_work_unit_ids is not None
+                or work_unit.get("target_match", True)
                 # Cutoff and calibration audits are already scoped to every
                 # historical work unit needed by the selected target. Those
                 # prerequisites, rather than their own election codes, are
@@ -628,7 +648,7 @@ def _reachable_work_unit_ids(
                     # deliberately non-invalidating for cutoffs.
                     current_elections = (
                         analysis_provenance.approvals_provenance
-                        .current_elections()
+                        .open_future_elections()
                     )
                     bridged_dependencies = [
                         dependency_id
@@ -750,6 +770,12 @@ def build_plan(audit, registry, profiles):
     selected_run_classes = _selected_run_classes(profiles, registry)
     root_run_classes = _root_run_classes(profiles, registry)
     target_only_run_classes = _target_only_run_classes(profiles)
+    allowed_work_unit_ids = None
+    if profiles == {"all"}:
+        required_graph = audit.get("required_graph") or {}
+        required_ids = required_graph.get("required_work_unit_ids")
+        if required_ids is not None:
+            allowed_work_unit_ids = set(required_ids)
     reachable_work_units = _reachable_work_unit_ids(
         audit["work_units"],
         registry,
@@ -758,6 +784,7 @@ def build_plan(audit, registry, profiles):
         selected_run_classes,
         root_run_classes,
         target_only_run_classes,
+        allowed_work_unit_ids,
     )
     initially_planned = {
         work_unit.get("id", work_unit["record_key"])
@@ -789,6 +816,33 @@ def build_plan(audit, registry, profiles):
     blockers = []
     warnings = []
     accepted_stale_work_units = []
+    deferred_task_keys = {}
+
+    if profiles <= {"regular", "regular-with-approvals"}:
+        for work_unit in audit["work_units"]:
+            work_unit_id = work_unit.get("id", work_unit["record_key"])
+            if work_unit_id not in reachable_work_units:
+                continue
+            stage = _work_unit_stage(
+                work_unit, registry, stage_by_id, producer_by_category
+            )
+            if stage is None or stage["id"] != "generate_trend_adjustments":
+                continue
+            prerequisites = {
+                issue.get("root_category")
+                for issue in work_unit.get("issues", [])
+                # A changed dependency means the cutoff was successfully
+                # replaced and this consumer should now be regenerated. Only
+                # defer while the cutoff record itself remains stale.
+                if issue.get("code") == "stale_generated_dependency"
+                and issue.get("root_category") == "cutoff_poll_outputs"
+            }
+            if not prerequisites:
+                continue
+            for task_key in _task_keys(work_unit, stage):
+                deferred_task_keys.setdefault(task_key, set()).update(
+                    prerequisites
+                )
 
     for issue in audit["source_issues"]:
         if issue["status"] == "blocked":
@@ -818,6 +872,11 @@ def build_plan(audit, registry, profiles):
             continue
         run_class = _run_class(stage)
         if run_class not in selected_run_classes:
+            continue
+        if stage["id"] == "generate_trend_adjustments" and any(
+            (stage["id"], election, None) in deferred_task_keys
+            for election in _scope_values(work_unit, "elections")
+        ):
             continue
         if work_unit["status"] in BLOCKING_STATUSES:
             blockers.append(
@@ -876,6 +935,8 @@ def build_plan(audit, registry, profiles):
             )
             continue
         for task_key in task_keys:
+            if task_key in deferred_task_keys:
+                continue
             task = grouped.setdefault(
                 task_key,
                 {
@@ -958,6 +1019,7 @@ def build_plan(audit, registry, profiles):
                     "issue_signatures": sorted(
                         task["issue_signatures"]
                     ),
+                    "cost": stage.get("cost"),
                     "command": command,
                     "working_directory": stage["execution"][
                         "working_directory"
@@ -973,6 +1035,22 @@ def build_plan(audit, registry, profiles):
             task["party"] or "",
         )
     )
+    deferred_tasks = [
+        {
+            "stage": task_key[0],
+            "election": task_key[1],
+            "party": task_key[2],
+            "waiting_on": sorted(prerequisites),
+        }
+        for task_key, prerequisites in sorted(
+            deferred_task_keys.items(),
+            key=lambda item: (
+                stage_positions.get(item[0][0], 10 ** 6),
+                _election_sort_key(item[0][1]),
+                item[0][2] or "",
+            ),
+        )
+    ]
     return {
         "schema_version": 1,
         "target_elections": audit["target_elections"],
@@ -984,6 +1062,7 @@ def build_plan(audit, registry, profiles):
         "blockers": blockers,
         "warnings": warnings,
         "accepted_stale_work_units": sorted(accepted_stale_work_units),
+        "deferred_tasks": deferred_tasks,
         "tasks": tasks if not blockers else [],
     }
 
@@ -1138,7 +1217,11 @@ def _metadata_task(manifest_path, manifest_label, record_key, record):
     }
 
 
-def load_metadata_plan(target_elections, progress=None):
+def load_metadata_plan(
+    target_elections,
+    progress=None,
+    required_work_unit_ids=None,
+):
     """Plan only metadata upgrades that can be applied without regeneration.
 
     Candidate discovery avoids output hashing. Candidates are then validated
@@ -1155,7 +1238,21 @@ def load_metadata_plan(target_elections, progress=None):
     if not blockers:
         manifests = {}
         source_manifest_cache = {}
-        if target_elections:
+        if required_work_unit_ids is not None:
+            for work_unit_id in required_work_unit_ids:
+                try:
+                    manifest_label, record_key = work_unit_id.split("::", 1)
+                except ValueError as error:
+                    raise PipelineError(
+                        "invalid required work-unit identifier: {}".format(
+                            work_unit_id
+                        )
+                    ) from error
+                manifest_path = (
+                    ANALYSIS_DIRECTORY / manifest_label
+                ).resolve()
+                manifests.setdefault(manifest_path, set()).add(record_key)
+        elif target_elections:
             if progress is not None:
                 progress("Selecting provenance records for {}...".format(
                     ", ".join(sorted(target_elections))
@@ -1389,9 +1486,13 @@ def _task_target(task):
 
 def print_plan(plan, include_details=False):
     scope = (
-        ", ".join(plan["target_elections"])
-        if plan["target_elections"]
-        else "all recorded work"
+        "historical and active elections"
+        if plan["profiles"] == ["all"]
+        else (
+            ", ".join(plan["target_elections"])
+            if plan["target_elections"]
+            else "all recorded work"
+        )
     )
     print(
         "Pipeline plan: {} [{}]".format(
@@ -1408,6 +1509,26 @@ def print_plan(plan, include_details=False):
                 len(plan["accepted_stale_work_units"])
             )
         )
+    deferred_tasks = plan.get("deferred_tasks", [])
+    if deferred_tasks:
+        print(
+            "Deferred {} routine task(s) until expensive prerequisites are "
+            "current:".format(len(deferred_tasks))
+        )
+        for task in deferred_tasks[:DISPLAY_EXAMPLE_LIMIT]:
+            print(
+                "  {} {}; waiting on {}".format(
+                    task["stage"],
+                    _task_target(task),
+                    ", ".join(task["waiting_on"]),
+                )
+            )
+        if len(deferred_tasks) > DISPLAY_EXAMPLE_LIMIT:
+            print(
+                "  ... and {} more".format(
+                    len(deferred_tasks) - DISPLAY_EXAMPLE_LIMIT
+                )
+            )
     if plan["blockers"]:
         print("Plan blocked by {} issue(s):".format(len(plan["blockers"])))
         for blocker in plan["blockers"][:DISPLAY_EXAMPLE_LIMIT]:
@@ -1446,8 +1567,9 @@ def print_plan(plan, include_details=False):
                     len(targets) - len(shown)
                 )
             print(
-                "  {}: {} task(s); {}; targets: {}{}".format(
+                "  {} [{}]: {} task(s); {}; targets: {}{}".format(
                     stage,
+                    tasks[0].get("cost") or "unspecified cost",
                     len(tasks),
                     ", ".join(
                         "{} {}".format(count, status)
@@ -2108,12 +2230,51 @@ def _execute_plan_with_log(
                 input_func=input_func,
                 run_log=run_log,
             )
-        return execute_generation_plan(
+        generation_result = execute_generation_plan(
             plan,
             refresh_plan,
             input_func=input_func,
             run_log=run_log,
         )
+        if profile != "all":
+            return generation_result
+
+        print(
+            "\nNumerical generation complete. Checking remaining metadata "
+            "maintenance...",
+            flush=True,
+        )
+        _, final_audit = _load_audit(None, progress=_audit_progress)
+        required_work_unit_ids = (
+            (final_audit.get("required_graph") or {})
+            .get("required_work_unit_ids")
+        )
+        if required_work_unit_ids is None:
+            raise PipelineError(
+                "could not select required metadata after all generation"
+            )
+        metadata_plan = load_metadata_plan(
+            None,
+            progress=_audit_progress,
+            required_work_unit_ids=required_work_unit_ids,
+        )
+        print_plan(metadata_plan)
+        if metadata_plan["blockers"]:
+            raise PipelineError(
+                "all-generation metadata maintenance is blocked: {}".format(
+                    metadata_plan["blockers"][0]["message"]
+                )
+            )
+        metadata_result = execute_metadata_plan(
+            metadata_plan,
+            lambda: _load_plan_fresh(None, {"metadata"}),
+            input_func=input_func,
+            run_log=run_log,
+        )
+        return {
+            "generation": generation_result,
+            "metadata": metadata_result,
+        }
     print("\nMetadata maintenance completed successfully.")
 
 
@@ -2221,7 +2382,7 @@ def _load_plan_fresh(target_elections, profiles):
         "--format",
         "json",
     ]
-    for election in sorted(target_elections):
+    for election in sorted(target_elections or []):
         command.extend(("--election", election))
     for profile in sorted(profiles):
         command.extend(("--profile", profile))
@@ -2336,9 +2497,29 @@ def run_interactive():
                     )
                 print()
                 continue
+            selected_plan_profile = None
+            generation_profile = None
+            if action == "plan":
+                selected_plan_profile = _interactive_select(
+                    "Choose a run profile",
+                    GENERATION_PROFILE_CHOICES[:-1]
+                    + (("Metadata maintenance", "metadata"),)
+                    + GENERATION_PROFILE_CHOICES[-1:],
+                )
+                if selected_plan_profile is None:
+                    return 0
+            elif action == "run-generation":
+                generation_profile = _interactive_select(
+                    "Choose a run profile", GENERATION_PROFILE_CHOICES
+                )
+                if generation_profile is None:
+                    return 0
+
+            selected_profile = selected_plan_profile or generation_profile
             elections = (
                 []
                 if action == "run-metadata"
+                or selected_profile in {"all", "metadata"}
                 else _interactive_elections(
                     required=action in {"plan", "run-generation"}
                 )
@@ -2366,27 +2547,7 @@ def run_interactive():
                 print()
                 continue
 
-            selected_plan_profile = None
             if action == "plan":
-                selected_plan_profile = _interactive_select(
-                    "Choose a run profile",
-                    (
-                        ("Regular", "regular"),
-                        (
-                            "Regular with approval refresh",
-                            "regular-with-approvals",
-                        ),
-                        ("Calibration only", "calibration"),
-                        ("Metadata maintenance", "metadata"),
-                        (
-                            "Historical cutoffs needed by target adjustments",
-                            "cutoffs",
-                        ),
-                        ("All executable stages", "all"),
-                    ),
-                )
-                if selected_plan_profile is None:
-                    return 0
                 if selected_plan_profile == "metadata":
                     print_plan(
                         load_metadata_plan(target_elections, progress=print)
@@ -2399,31 +2560,29 @@ def run_interactive():
             if action == "status":
                 print_status(build_status(audit, registry))
             elif action == "run-generation":
-                profile = _interactive_select(
-                    "Choose a run profile",
-                    (
-                        ("Regular", "regular"),
-                        (
-                            "Regular with approval refresh",
-                            "regular-with-approvals",
-                        ),
-                        ("Calibration only", "calibration"),
-                        (
-                            "Historical cutoffs needed by target adjustments",
-                            "cutoffs",
-                        ),
-                    ),
-                )
-                if profile is None:
-                    return 0
+                profile = generation_profile
                 plan = build_plan(audit, registry, {profile})
                 print_plan(plan)
+                confirmed = False
                 if (
                     not plan["blockers"]
-                    and plan["tasks"]
-                    and _interactive_confirm(
-                        "Run these {} commands now?".format(profile)
+                    and (plan["tasks"] or profile == "all")
+                ):
+                    confirmed = (
+                        _interactive_typed_confirmation(
+                            "Run every required historical and active "
+                            "generation task now?",
+                            ALL_GENERATION_CONFIRMATION,
+                        )
+                        if profile == "all"
+                        else _interactive_confirm(
+                            "Run these {} commands now?".format(profile)
+                        )
                     )
+                if (
+                    not plan["blockers"]
+                    and (plan["tasks"] or profile == "all")
+                    and confirmed
                 ):
                     _execute_plan_with_log(
                         plan,
@@ -2577,7 +2736,12 @@ def main(argv=None):
 
         if args.command == "run":
             profiles = {args.profile}
-            if not target_elections:
+            if args.profile == "all" and target_elections:
+                raise PipelineError(
+                    "the all profile is repository-wide and does not accept "
+                    "--election"
+                )
+            if args.profile != "all" and not target_elections:
                 raise PipelineError(
                     "generation profiles require at least one --election"
                 )
@@ -2585,6 +2749,13 @@ def main(argv=None):
             print_plan(plan)
             if plan["blockers"]:
                 return 2
+            if args.profile == "all" and not _interactive_typed_confirmation(
+                "Run every required historical and active generation task "
+                "now?",
+                ALL_GENERATION_CONFIRMATION,
+            ):
+                print("All-generation run cancelled.")
+                return 0
             refresh = lambda: _load_plan_fresh(
                 target_elections,
                 profiles,
@@ -2595,7 +2766,16 @@ def main(argv=None):
             return 0
 
         profiles = set(args.profile or ["regular"])
-        if profiles != {"metadata"} and not target_elections:
+        if "all" in profiles and profiles != {"all"}:
+            raise PipelineError(
+                "the all profile cannot be combined with another profile"
+            )
+        if profiles == {"all"} and target_elections:
+            raise PipelineError(
+                "the all profile is repository-wide and does not accept "
+                "--election"
+            )
+        if profiles not in ({"metadata"}, {"all"}) and not target_elections:
             raise PipelineError(
                 "generation plans require at least one --election"
             )

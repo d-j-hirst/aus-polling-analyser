@@ -224,6 +224,20 @@ class PipelineTests(unittest.TestCase):
             errors="replace",
         )
 
+    def test_fresh_all_plan_has_no_election_arguments(self):
+        expected = {"profiles": ["all"], "blockers": [], "tasks": []}
+        completed = mock.Mock(returncode=0, stdout=json.dumps(expected))
+
+        with mock.patch.object(
+            pipeline.subprocess, "run", return_value=completed
+        ) as run:
+            result = pipeline._load_plan_fresh(None, {"all"})
+
+        self.assertEqual(result, expected)
+        command = run.call_args.args[0]
+        self.assertNotIn("--election", command)
+        self.assertEqual(command[-2:], ["--profile", "all"])
+
     def test_regular_plan_groups_party_records_into_one_election(self):
         audit = audit_result(
             [
@@ -638,18 +652,67 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("PLAN COMPLETE", log_text)
         self.assertIn('"generate_poll_trends"', log_text)
 
-    def test_generation_executor_rejects_all_profile(self):
+    def test_generation_executor_accepts_all_profile(self):
         plan = {
             "profiles": ["all"],
             "blockers": [],
             "tasks": [],
         }
 
-        with self.assertRaisesRegex(
-            pipeline.PipelineError,
-            "expected one executable generation profile",
-        ):
-            pipeline.execute_generation_plan(plan, lambda: plan)
+        result = pipeline.execute_generation_plan(plan, lambda: plan)
+
+        self.assertEqual(result["completed"], 0)
+
+    def test_all_execution_checks_metadata_after_numerical_work(self):
+        generation_plan = {
+            "profiles": ["all"],
+            "blockers": [],
+            "warnings": [],
+            "accepted_stale_work_units": [],
+            "deferred_tasks": [],
+            "target_elections": [],
+            "tasks": [],
+        }
+        metadata_plan = {
+            "profiles": ["metadata"],
+            "blockers": [],
+            "warnings": [],
+            "accepted_stale_work_units": [],
+            "target_elections": [],
+            "tasks": [],
+        }
+        final_audit = {
+            "required_graph": {"required_work_unit_ids": []}
+        }
+
+        with tempfile.TemporaryDirectory() as temporary_directory, \
+                mock.patch.object(
+                    pipeline,
+                    "PIPELINE_LOG_DIRECTORY",
+                    Path(temporary_directory),
+                ), mock.patch.object(
+                    pipeline,
+                    "_load_audit",
+                    return_value=(mock.Mock(), final_audit),
+                ), mock.patch.object(
+                    pipeline,
+                    "load_metadata_plan",
+                    return_value=metadata_plan,
+                ) as load_metadata, mock.patch.object(
+                    pipeline,
+                    "execute_metadata_plan",
+                    return_value={"completed": 0, "deferred": []},
+                ) as execute_metadata:
+            result = pipeline._execute_plan_with_log(
+                generation_plan,
+                lambda: generation_plan,
+                [],
+            )
+
+        load_metadata.assert_called_once()
+        execute_metadata.assert_called_once()
+        self.assertIn("generation", result)
+        self.assertIn("metadata", result)
 
     def test_generation_executor_runs_one_automatic_follow_up(self):
         upstream = {
@@ -1143,6 +1206,53 @@ class PipelineTests(unittest.TestCase):
             ["poll_trend_outputs:2028fed:@TPP"],
         )
 
+    def test_metadata_plan_can_limit_candidates_to_required_graph(self):
+        manifest = {
+            "path_base": ".",
+            "records": {
+                "poll_trend_outputs:2028fed:@TPP": {
+                    "stage": "generate_poll_trends",
+                    "scope": generated_provenance.generation_scope(
+                        elections=["2028fed"], parties=["@TPP"]
+                    ),
+                },
+                "poll_trend_outputs:2028qld:@TPP": {
+                    "stage": "generate_poll_trends",
+                    "scope": generated_provenance.generation_scope(
+                        elections=["2028qld"], parties=["@TPP"]
+                    ),
+                },
+            },
+        }
+
+        with mock.patch.object(
+            pipeline, "_metadata_source_blockers", return_value=[]
+        ), mock.patch.object(
+            pipeline.generated_provenance,
+            "load_manifest",
+            return_value=manifest,
+        ), mock.patch.object(
+            pipeline.provenance_maintenance,
+            "pending_upgrades",
+            return_value=[{"event": {"id": "metadata-event"}}],
+        ), mock.patch.object(
+            pipeline.provenance_maintenance,
+            "can_maintain_record",
+            return_value=True,
+        ):
+            plan = pipeline.load_metadata_plan(
+                None,
+                required_work_unit_ids={
+                    "test-metadata.json::"
+                    "poll_trend_outputs:2028fed:@TPP"
+                },
+            )
+
+        self.assertEqual(
+            [task["work_units"][0] for task in plan["tasks"]],
+            ["poll_trend_outputs:2028fed:@TPP"],
+        )
+
     def test_metadata_plan_defers_candidates_needing_regeneration(self):
         manifest_path = pipeline.ANALYSIS_DIRECTORY / "test-metadata.json"
         manifest = {
@@ -1274,6 +1384,40 @@ class PipelineTests(unittest.TestCase):
 
         self.assertEqual(len(plan["tasks"]), 1)
         self.assertEqual(plan["tasks"][0]["election"], "2025wa")
+
+    def test_cutoff_plan_refreshes_states_after_federal_cutoff(self):
+        federal = work_unit(
+            "cutoff_poll_outputs:2025fed",
+            "cutoff_poll_outputs",
+            "generate_cutoff_poll_trends",
+            "stale",
+            "2025fed",
+            target_match=False,
+        )
+        state = work_unit(
+            "cutoff_poll_outputs:2026sa",
+            "cutoff_poll_outputs",
+            "generate_cutoff_poll_trends",
+            "current",
+            "2026sa",
+            target_match=False,
+            dependencies=[federal["id"]],
+        )
+
+        plan = pipeline.build_plan(
+            audit_result([state, federal]),
+            self.registry,
+            {"cutoffs"},
+        )
+
+        self.assertEqual(
+            [task["election"] for task in plan["tasks"]],
+            ["2025fed", "2026sa"],
+        )
+        self.assertEqual(
+            plan["tasks"][1]["status_counts"]["dependency-refresh"],
+            1,
+        )
 
     def test_regular_plan_accepts_inherited_only_staleness(self):
         inherited = work_unit(
@@ -1567,6 +1711,257 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(
             plan["target_only_run_classes"],
             ["regular_with_approvals"],
+        )
+
+    def test_regular_profiles_share_routine_cpp_roots(self):
+        expected = {
+            "adjustments",
+            "analysis",
+            "regional",
+            "regular",
+            "regular_with_approvals",
+            "source",
+        }
+
+        regular = pipeline._root_run_classes({"regular"}, self.registry)
+        approvals = pipeline._root_run_classes(
+            {"regular-with-approvals"}, self.registry
+        )
+
+        self.assertEqual(regular, expected)
+        self.assertEqual(approvals, expected)
+
+    def test_regular_profile_orders_routine_cpp_input_generation(self):
+        units = [
+            work_unit(
+                "election_result_exports:2026vic",
+                "election_result_exports",
+                "export_election_results",
+                "stale",
+                "2026vic",
+            ),
+            work_unit(
+                "seat_statistics:all",
+                "seat_statistics",
+                "analyse_elections",
+                "stale",
+                "0none",
+            ),
+            work_unit(
+                "pure_poll_outputs:2026vic:@TPP",
+                "pure_poll_outputs",
+                "generate_pure_poll_trends",
+                "stale",
+                "2026vic",
+                "@TPP",
+            ),
+            work_unit(
+                "poll_trend_outputs:2026vic:@TPP",
+                "poll_trend_outputs",
+                "generate_poll_trends",
+                "stale",
+                "2026vic",
+                "@TPP",
+            ),
+            work_unit(
+                "trend_adjustments:2026vic:TPP",
+                "trend_adjustments",
+                "generate_trend_adjustments",
+                "stale",
+                "2026vic",
+                "TPP",
+            ),
+            work_unit(
+                "regional_swing_deviations:2026vic:@TPP",
+                "regional_swing_deviations",
+                "generate_regional_swings",
+                "stale",
+                "2026vic",
+                "@TPP",
+            ),
+        ]
+
+        plan = pipeline.build_plan(
+            audit_result(units), self.registry, {"regular"}
+        )
+
+        self.assertEqual(
+            [task["stage"] for task in plan["tasks"]],
+            [
+                "export_election_results",
+                "analyse_elections",
+                "generate_pure_poll_trends",
+                "generate_poll_trends",
+                "generate_trend_adjustments",
+                "generate_regional_swings",
+            ],
+        )
+
+    def test_regular_profile_does_not_launch_result_acquisition(self):
+        cache = work_unit(
+            "election_result_cache:2026vic",
+            "election_result_cache",
+            "cache_election_results",
+            "stale",
+            "2026vic",
+        )
+        exported = work_unit(
+            "election_result_exports:2026vic",
+            "election_result_exports",
+            "export_election_results",
+            "stale",
+            "2026vic",
+            dependencies=[cache["id"]],
+        )
+
+        plan = pipeline.build_plan(
+            audit_result([cache, exported]), self.registry, {"regular"}
+        )
+
+        self.assertEqual(
+            [task["stage"] for task in plan["tasks"]],
+            ["export_election_results"],
+        )
+
+    def test_regular_profile_defers_whole_adjustment_on_stale_cutoff(self):
+        cutoff = work_unit(
+            "cutoff_poll_outputs:2023nsw",
+            "cutoff_poll_outputs",
+            "generate_cutoff_poll_trends",
+            "stale",
+            "2023nsw",
+            target_match=False,
+        )
+        adjustment = work_unit(
+            "trend_adjustments:2027nsw:TPP",
+            "trend_adjustments",
+            "generate_trend_adjustments",
+            "stale",
+            "2027nsw",
+            "TPP",
+            dependencies=[cutoff["id"]],
+        )
+        adjustment["issues"] = [
+            {
+                "code": "stale_generated_dependency",
+                "root_category": "cutoff_poll_outputs",
+                "message": "stale historical cutoff",
+            }
+        ]
+        fundamentals = work_unit(
+            "trend_adjustments:2027nsw:fundamentals",
+            "fundamentals",
+            "generate_trend_adjustments",
+            "stale",
+            "2027nsw",
+            "fundamentals",
+        )
+
+        plan = pipeline.build_plan(
+            audit_result([cutoff, adjustment, fundamentals]),
+            self.registry,
+            {"regular"},
+        )
+
+        self.assertEqual(plan["tasks"], [])
+        self.assertEqual(
+            plan["deferred_tasks"],
+            [
+                {
+                    "stage": "generate_trend_adjustments",
+                    "election": "2027nsw",
+                    "party": None,
+                    "waiting_on": ["cutoff_poll_outputs"],
+                }
+            ],
+        )
+
+    def test_regular_profile_runs_adjustment_after_cutoff_is_replaced(self):
+        cutoff = work_unit(
+            "cutoff_poll_outputs:2023nsw",
+            "cutoff_poll_outputs",
+            "generate_cutoff_poll_trends",
+            "current",
+            "2023nsw",
+            target_match=False,
+        )
+        adjustment = work_unit(
+            "trend_adjustments:2027nsw:TPP",
+            "trend_adjustments",
+            "generate_trend_adjustments",
+            "stale",
+            "2027nsw",
+            "TPP",
+            dependencies=[cutoff["id"]],
+        )
+        adjustment["issues"] = [
+            {
+                "code": "changed_dependency",
+                "root_category": "cutoff_poll_outputs",
+                "message": "changed historical cutoff",
+            }
+        ]
+
+        plan = pipeline.build_plan(
+            audit_result([cutoff, adjustment]), self.registry, {"regular"}
+        )
+
+        self.assertEqual(plan["deferred_tasks"], [])
+        self.assertEqual(
+            [task["stage"] for task in plan["tasks"]],
+            ["generate_trend_adjustments"],
+        )
+
+    def test_all_profile_uses_required_historical_and_active_graph(self):
+        historical = work_unit(
+            "poll_trend_outputs:2025fed:@TPP",
+            "poll_trend_outputs",
+            "generate_poll_trends",
+            "stale",
+            "2025fed",
+            "@TPP",
+            target_match=False,
+        )
+        active = work_unit(
+            "poll_trend_outputs:2028fed:@TPP",
+            "poll_trend_outputs",
+            "generate_poll_trends",
+            "stale",
+            "2028fed",
+            "@TPP",
+            target_match=False,
+        )
+        inactive = work_unit(
+            "poll_trend_outputs:2028qld:@TPP",
+            "poll_trend_outputs",
+            "generate_poll_trends",
+            "stale",
+            "2028qld",
+            "@TPP",
+            target_match=False,
+        )
+        unreferenced = work_unit(
+            "pure_poll_outputs:1992vic:DEM FP",
+            "pure_poll_outputs",
+            "generate_pure_poll_trends",
+            "legacy",
+            "1992vic",
+            "DEM FP",
+            target_match=False,
+        )
+        audit = audit_result(
+            [historical, active, inactive, unreferenced]
+        )
+        audit["target_elections"] = []
+        audit["required_graph"] = {
+            "required_work_unit_ids": [historical["id"], active["id"]]
+        }
+
+        plan = pipeline.build_plan(audit, self.registry, {"all"})
+
+        self.assertEqual(
+            [task["election"] for task in plan["tasks"]],
+            ["2025fed", "2028fed"],
         )
 
     def test_approval_refresh_tolerates_inherited_staleness_with_metadata(self):
@@ -1893,6 +2288,56 @@ class PipelineTests(unittest.TestCase):
 
         self.assertEqual(return_code, 2)
         self.assertIn("unknown election", stderr.getvalue())
+
+    def test_all_run_requires_exact_confirmation_phrase(self):
+        required = work_unit(
+            "poll_trend_outputs:2025fed:@TPP",
+            "poll_trend_outputs",
+            "generate_poll_trends",
+            "stale",
+            "2025fed",
+            "@TPP",
+            target_match=False,
+        )
+        audit = audit_result([required])
+        audit["target_elections"] = []
+        audit["required_graph"] = {
+            "required_work_unit_ids": [required["id"]]
+        }
+
+        with mock.patch.object(
+            pipeline, "_load_audit", return_value=(self.registry, audit)
+        ), mock.patch.object(
+            pipeline, "_interactive_typed_confirmation", return_value=False
+        ) as confirm, mock.patch.object(
+            pipeline, "_execute_plan_with_log"
+        ) as execute:
+            return_code = pipeline.main(["run", "--profile", "all"])
+
+        self.assertEqual(return_code, 0)
+        confirm.assert_called_once_with(
+            "Run every required historical and active generation task now?",
+            pipeline.ALL_GENERATION_CONFIRMATION,
+        )
+        execute.assert_not_called()
+
+    def test_all_profile_rejects_election_target(self):
+        audit = audit_result([])
+        stderr = StringIO()
+
+        with mock.patch.object(
+            pipeline, "_load_audit", return_value=(self.registry, audit)
+        ), redirect_stderr(stderr):
+            return_code = pipeline.main([
+                "plan",
+                "--election",
+                "2028fed",
+                "--profile",
+                "all",
+            ])
+
+        self.assertEqual(return_code, 2)
+        self.assertIn("does not accept --election", stderr.getvalue())
 
     def test_typed_archive_confirmation_requires_the_exact_phrase(self):
         with mock.patch.object(

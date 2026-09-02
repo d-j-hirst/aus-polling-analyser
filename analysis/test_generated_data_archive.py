@@ -1,4 +1,5 @@
 import json
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -37,6 +38,114 @@ class GeneratedDataArchiveTests(unittest.TestCase):
             "source_issues": [],
             "manifest_issues": [],
             "work_units": [{"status": "current"}],
+        }
+
+    def _write_scoped_generated_manifest(self):
+        outputs = self.analysis / "Outputs"
+        active_path = outputs / "active.csv"
+        inactive_path = outputs / "inactive.csv"
+        active_path.write_text("active\n", encoding="utf-8")
+        inactive_path.write_text("inactive\n", encoding="utf-8")
+
+        def fingerprint(path):
+            content = path.read_bytes()
+            return {
+                "sha256": hashlib.sha256(content).hexdigest(),
+                "size_bytes": len(content),
+                "mtime_ns": path.stat().st_mtime_ns,
+            }
+
+        def run(command):
+            return {
+                "generated_at_utc": "2026-08-31T00:00:00Z",
+                "command": [command],
+                "source_revision": {
+                    "system": "git",
+                    "revision": "test",
+                    "dirty": False,
+                },
+                "environment": {
+                    "python_version": "3",
+                    "python_implementation": "CPython",
+                    "platform": "test",
+                    "packages": {},
+                },
+            }
+
+        def record(election, run_id, output_path, path):
+            return {
+                "status": "generated",
+                "category": "poll_trend_outputs",
+                "stage": "generate_poll_trends",
+                "scope": {
+                    "all": False,
+                    "elections": [election],
+                    "parties": ["@TPP"],
+                    "qualifiers": {},
+                },
+                "run": run_id,
+                "random_seed": 1,
+                "dependencies": {},
+                "outputs": {output_path: fingerprint(path)},
+                "provenance_maintenance": [],
+            }
+
+        manifest = {
+            "$schema": "../generated_provenance.schema.json",
+            "schema_version": 1,
+            "path_base": "..",
+            "description": "Archive selection test.",
+            "updated_at_utc": "2026-08-31T00:00:00Z",
+            "runs": {
+                "active-run": run("active"),
+                "inactive-run": run("inactive"),
+            },
+            "records": {
+                "active": record(
+                    "2028fed", "active-run", "Outputs/active.csv", active_path
+                ),
+                "inactive": record(
+                    "2028qld",
+                    "inactive-run",
+                    "Outputs/inactive.csv",
+                    inactive_path,
+                ),
+            },
+        }
+        (outputs / "generated-provenance.json").write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+    def required_audit(self):
+        manifest = "Outputs/generated-provenance.json"
+        active_id = "{}::active".format(manifest)
+        inactive_id = "{}::inactive".format(manifest)
+        return {
+            "summary": {"has_blockers": True},
+            "internal_errors": [],
+            "source_issues": [],
+            "manifest_issues": [],
+            "work_units": [
+                {
+                    "id": active_id,
+                    "manifest": manifest,
+                    "record_key": "active",
+                    "status": "current",
+                    "stage": "generate_poll_trends",
+                },
+                {
+                    "id": inactive_id,
+                    "manifest": manifest,
+                    "record_key": "inactive",
+                    "status": "stale",
+                    "stage": "generate_poll_trends",
+                },
+            ],
+            "required_graph": {
+                "required_work_unit_ids": [active_id],
+                "inactive_only_work_unit_ids": [inactive_id],
+                "unreferenced_work_unit_ids": [],
+            },
         }
 
     def test_builds_validated_archive_without_temporary_diagnostics(self):
@@ -165,6 +274,25 @@ class GeneratedDataArchiveTests(unittest.TestCase):
             generated_data_archive.preflight_build(
                 self.analysis, audit_runner=self.current_audit
             )
+
+    def test_archive_ignores_inactive_staleness_and_filters_its_manifest(self):
+        self._write_scoped_generated_manifest()
+
+        result = generated_data_archive.build_archive(
+            self.analysis, audit_runner=self.required_audit
+        )
+
+        archive = result["archive_directory"]
+        self.assertTrue((archive / "Outputs" / "active.csv").is_file())
+        self.assertFalse((archive / "Outputs" / "inactive.csv").exists())
+        self.assertFalse((archive / "Outputs" / "sample.csv").exists())
+        filtered = json.loads(
+            (archive / "Outputs" / "generated-provenance.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(set(filtered["records"]), {"active"})
+        self.assertEqual(set(filtered["runs"]), {"active-run"})
 
     def test_restore_replaces_generated_data_and_preserves_authored_mixed_inputs(self):
         archive = generated_data_archive.build_archive(

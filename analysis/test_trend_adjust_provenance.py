@@ -152,6 +152,62 @@ class TrendAdjustmentProvenanceTests(unittest.TestCase):
                 "cutoff_poll_outputs", fundamentals["dependencies"]
             )
 
+    def test_default_target_records_adjustments_without_fundamentals(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            analysis_directory = Path(temporary_directory)
+            adjustments_directory = analysis_directory / "Adjustments"
+            adjustments_directory.mkdir()
+            outputs = {}
+            for group in ("ALP", "TPP"):
+                output = adjustments_directory / f"adjust_0none_{group}.csv"
+                output.write_text("output\n", encoding="utf-8")
+                outputs[group] = output
+            recorder = (
+                trend_adjust_provenance.TrendAdjustmentRecorder.__new__(
+                    trend_adjust_provenance.TrendAdjustmentRecorder
+                )
+            )
+            recorder.run_id = "test-run"
+            recorder.run = {
+                "generated_at_utc": generated_provenance.utc_now(),
+                "command": ["test"],
+                "source_revision": {
+                    "system": "git",
+                    "revision": None,
+                    "dirty": True,
+                },
+                "environment": generated_provenance.current_environment(),
+            }
+            manifest_path = adjustments_directory / "generated-provenance.json"
+
+            with mock.patch.object(
+                trend_adjust_provenance,
+                "ANALYSIS_DIRECTORY",
+                analysis_directory,
+            ), mock.patch.object(
+                trend_adjust_provenance,
+                "MANIFEST_PATH",
+                manifest_path,
+            ):
+                recorder.record(
+                    "0none",
+                    outputs,
+                    None,
+                    {},
+                    expected_groups=("ALP", "TPP"),
+                )
+
+            records = generated_provenance.load_manifest(manifest_path)[
+                "records"
+            ]
+            self.assertEqual(
+                set(records),
+                {
+                    "trend_adjustments:0none:ALP",
+                    "trend_adjustments:0none:TPP",
+                },
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

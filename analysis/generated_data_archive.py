@@ -15,6 +15,7 @@ Main functions:
   only generated directory content in the working tree.
 """
 
+import copy
 import hashlib
 import json
 import os
@@ -23,6 +24,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
+import generated_provenance
 import analysis_provenance
 
 
@@ -168,6 +170,95 @@ def _managed_relative_paths(analysis_directory):
     return sorted(paths)
 
 
+def _archive_eligible_path(relative_path):
+    """Return whether a generated record output belongs in the archive."""
+
+    path = PurePosixPath(relative_path)
+    if path.parts[0] in FULL_ROOTS:
+        return not _is_excluded_output(relative_path)
+    if path.parts[0] in PARTIAL_ROOTS:
+        return _is_partial_generated_path(relative_path)
+    return False
+
+
+def _required_archive_payload(analysis_directory, audit):
+    """Select required output files and matching filtered manifests."""
+
+    required_graph = audit.get("required_graph")
+    if not required_graph:
+        return _managed_relative_paths(analysis_directory), {}
+
+    required_ids = set(required_graph.get("required_work_unit_ids", []))
+    selected_records = {}
+    for work_unit in audit.get("work_units", []):
+        if work_unit.get("id") not in required_ids:
+            continue
+        selected_records.setdefault(work_unit["manifest"], set()).add(
+            work_unit["record_key"]
+        )
+
+    managed_files = set()
+    manifest_overrides = {}
+    analysis_directory = Path(analysis_directory).resolve()
+    for manifest_label, record_keys in selected_records.items():
+        manifest_path = analysis_directory / manifest_label
+        if not manifest_path.is_file():
+            # Missing required records are rejected as non-current before
+            # payload construction. A missing containing manifest is a
+            # structural error and should still fail explicitly here.
+            raise GeneratedDataArchiveError(
+                "required generated manifest is missing: {}".format(
+                    manifest_label
+                )
+            )
+        try:
+            manifest = generated_provenance.load_manifest(manifest_path)
+        except generated_provenance.GeneratedProvenanceError as error:
+            raise GeneratedDataArchiveError(str(error)) from error
+        missing_records = sorted(record_keys - set(manifest["records"]))
+        if missing_records:
+            raise GeneratedDataArchiveError(
+                "required generated manifest {} lacks record(s): {}".format(
+                    manifest_label, ", ".join(missing_records)
+                )
+            )
+
+        filtered = copy.deepcopy(manifest)
+        filtered["records"] = {
+            record_key: manifest["records"][record_key]
+            for record_key in sorted(record_keys)
+        }
+        run_ids = {record["run"] for record in filtered["records"].values()}
+        filtered["runs"] = {
+            run_id: manifest["runs"][run_id]
+            for run_id in sorted(run_ids)
+        }
+        manifest_overrides[manifest_label] = filtered
+        managed_files.add(manifest_label)
+
+        base_directory = (manifest_path.parent / manifest["path_base"]).resolve()
+        for record_key, record in filtered["records"].items():
+            for output_path in record["outputs"]:
+                absolute_output = (base_directory / output_path).resolve()
+                try:
+                    relative_output = absolute_output.relative_to(
+                        analysis_directory
+                    ).as_posix()
+                except ValueError as error:
+                    raise GeneratedDataArchiveError(
+                        "required output for {} is outside analysis/: {}"
+                        .format(record_key, output_path)
+                    ) from error
+                if not _archive_eligible_path(relative_output):
+                    raise GeneratedDataArchiveError(
+                        "required record {} owns non-archivable output {}"
+                        .format(record_key, relative_output)
+                    )
+                managed_files.add(relative_output)
+
+    return sorted(managed_files), manifest_overrides
+
+
 def _require_complete_roots(analysis_directory):
     missing = []
     for root in REQUIRED_FULL_ROOTS:
@@ -194,17 +285,23 @@ def _require_no_staging_files(analysis_directory):
 
 
 def preflight_build(analysis_directory, audit_runner=analysis_provenance.audit_repository):
-    """Require a fully current generated graph before publishing an archive."""
+    """Require the operationally required graph to be current."""
 
     analysis_directory = Path(analysis_directory).resolve()
     audit = audit_runner()
-    blockers = audit.get("summary", {}).get("has_blockers", False)
+    blockers = bool(audit.get("internal_errors"))
     source_issues = audit.get("source_issues", [])
     manifest_issues = audit.get("manifest_issues", [])
+    required_graph = audit.get("required_graph") or {}
+    required_ids = set(required_graph.get("required_work_unit_ids", []))
     noncurrent = [
         work_unit
         for work_unit in audit.get("work_units", [])
         if work_unit.get("status") != "current"
+        and (
+            not required_graph
+            or work_unit.get("id") in required_ids
+        )
     ]
     if blockers or source_issues or manifest_issues or noncurrent:
         examples = [
@@ -225,14 +322,20 @@ def preflight_build(analysis_directory, audit_runner=analysis_provenance.audit_r
         if examples:
             details.append("non-current work: {}".format(", ".join(examples)))
         raise GeneratedDataArchiveError(
-            "cannot build archive until the full generated graph is current; {}"
+            "cannot build archive until the required generated graph is current; {}"
             .format("; ".join(details))
         )
     _require_complete_roots(analysis_directory)
     _require_no_staging_files(analysis_directory)
+    managed_files, manifest_overrides = _required_archive_payload(
+        analysis_directory, audit
+    )
     return {
-        "managed_files": _managed_relative_paths(analysis_directory),
-        "work_units": len(audit.get("work_units", [])),
+        "managed_files": managed_files,
+        "manifest_overrides": manifest_overrides,
+        "work_units": len(required_ids) if required_graph else len(
+            audit.get("work_units", [])
+        ),
     }
 
 
@@ -416,7 +519,18 @@ def build_archive(analysis_directory, archive_directory=None, audit_runner=analy
             source = analysis_directory / relative
             destination = staging / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, destination)
+            if relative in preflight["manifest_overrides"]:
+                with destination.open(
+                    "w", encoding="utf-8", newline="\n"
+                ) as output:
+                    json.dump(
+                        preflight["manifest_overrides"][relative],
+                        output,
+                        indent=2,
+                    )
+                    output.write("\n")
+            else:
+                shutil.copy2(source, destination)
             fingerprint = _fingerprint(destination)
             files.append({"path": relative, **fingerprint})
         _write_manifest(staging, _archive_manifest(files))

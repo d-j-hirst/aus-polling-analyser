@@ -159,6 +159,45 @@ class TrendAdjustmentTests(unittest.TestCase):
             2027,
         )
 
+    def test_none_instruction_selects_only_generic_adjustment(self):
+        with mock.patch.object(
+            sys, "argv", ["trend_adjust.py", "--election", "none"]
+        ):
+            config = self.trend_adjust.Config(self.party_groups)
+
+        self.assertEqual(
+            config.elections, [self.data.no_target_election_marker]
+        )
+
+    def test_generic_fundamentals_fit_uses_history_without_predicting_marker(self):
+        historical = ElectionCode(2022, "fed")
+        inputs = types.SimpleNamespace(
+            party_groups=self.party_groups,
+            past_elections=[historical],
+        )
+        config = types.SimpleNamespace(show_fundamentals=False)
+
+        with mock.patch.object(
+            self.fundamentals,
+            "build_fundamentals_training_set",
+            return_value=([], []),
+        ) as build, mock.patch.object(
+            self.fundamentals,
+            "save_fundamentals",
+            return_value={},
+        ):
+            output = self.fundamentals.run_fundamentals_regression(
+                config,
+                inputs,
+                self.data.no_target_election_marker,
+            )
+
+        self.assertIsNone(output)
+        self.assertTrue(build.called)
+        self.assertTrue(all(
+            call.args[1] == historical for call in build.call_args_list
+        ))
+
     def test_incomplete_staged_set_does_not_replace_canonical_files(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
@@ -223,6 +262,35 @@ class TrendAdjustmentTests(unittest.TestCase):
                 self.assertEqual(
                     Path(path).read_text(encoding="utf-8"), f"new {group}\n"
                 )
+
+    def test_generic_staged_set_requires_only_adjustment_files(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            staged = root / "staged"
+            fundamentals = root / "Fundamentals"
+            adjustments = root / "Adjustments"
+            staged.mkdir()
+            staged_adjustments = {}
+            for group in self.party_groups.groups:
+                path = staged / f"adjust_0none_{group}.csv"
+                path.write_text(f"new {group}\n", encoding="utf-8")
+                staged_adjustments[group] = str(path)
+
+            promoted_fundamentals, promoted_adjustments = (
+                self.io.promote_staged_outputs(
+                    None,
+                    staged_adjustments,
+                    self.party_groups,
+                    fundamentals_directory=fundamentals,
+                    adjustments_directory=adjustments,
+                )
+            )
+
+            self.assertIsNone(promoted_fundamentals)
+            self.assertFalse((fundamentals / "fundamentals_0none.csv").exists())
+            self.assertEqual(
+                set(promoted_adjustments), set(self.party_groups.groups)
+            )
 
     def test_mix_search_finds_best_coarse_basin_then_refines_it(self):
         evaluated = []

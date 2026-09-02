@@ -25,6 +25,7 @@ from pathlib import Path
 
 import generated_provenance
 import approvals_provenance
+import required_work
 import calibration_provenance
 import calibration_summary_provenance
 import pipeline_registry
@@ -100,6 +101,7 @@ CALIBRATION_STAGES = {
     "compact_calibration_summaries",
 }
 CUTOFF_STAGES = {"generate_cutoff_poll_trends"}
+CUTOFF_INVALIDATION_CONFIRMATION = "CUTOFFS"
 SYNTHETIC_TPP_STAGES = {
     "generate_pure_poll_trends",
     # Retained for pre-registry-v2 generated manifests.
@@ -121,12 +123,376 @@ WORK_UNIT_STATUS_PRECEDENCE = {
     "altered": 5,
     "blocked": 6,
 }
+DEFERRED_PATH_ORDER = (
+    PATH_SYNTHETIC_TPP,
+    PATH_CUTOFF,
+    PATH_CALIBRATION,
+)
+DEFERRED_PATH_LABELS = {
+    PATH_SYNTHETIC_TPP: "Synthetic-TPP path",
+    PATH_CUTOFF: "Historical-cutoff path",
+    PATH_CALIBRATION: "Calibration path",
+}
 
 
 # Source and generated-record selection helpers
 
 class AnalysisProvenanceError(ValueError):
     """Raised when a repository-level provenance operation is invalid."""
+
+
+def _task_target(work_unit):
+    elections = work_unit.get("scope", {}).get("elections", [])
+    if not elections:
+        return "global"
+    if elections == ["0none"]:
+        return "default"
+    return ",".join(elections)
+
+
+def _task_issue_summary(work_units):
+    waiting_on = set()
+    source_changes = set()
+    output_states = set()
+    other_reasons = set()
+    for work_unit in work_units:
+        for issue in work_unit.get("issues", []):
+            code = issue.get("code")
+            root = issue.get("root_category")
+            if code in {
+                "stale_generated_dependency",
+                "changed_dependency",
+            }:
+                # Retained synthetic-TPP files are diagnostic snapshots. The
+                # current final model consumes their pure-trend ancestors in
+                # memory, so they are not an executable prerequisite.
+                if root and root != "synthetic_tpp_outputs":
+                    waiting_on.add(root)
+            elif code in {
+                "new_semantic_revision",
+                "unregistered_source_change",
+            }:
+                if root:
+                    source_changes.add(root)
+            elif code in {
+                "legacy",
+                "missing_record",
+                "missing_output",
+                "changed_output",
+                "altered_output",
+            }:
+                output_states.add(code.replace("_", " "))
+            elif code != "provenance_only_revision" and root:
+                other_reasons.add(root)
+    return {
+        "waiting_on": sorted(waiting_on),
+        "source_changes": sorted(source_changes),
+        "output_states": sorted(output_states),
+        "other_reasons": sorted(other_reasons),
+    }
+
+
+def _task_work_unit_example(work_unit, target):
+    value = work_unit["record_key"]
+    prefix = "{}:".format(work_unit.get("category", ""))
+    if value.startswith(prefix):
+        value = value[len(prefix):]
+    if target not in {"global", "default"}:
+        target_prefix = "{}:".format(target)
+        if value.startswith(target_prefix):
+            value = value[len(target_prefix):]
+    return value.replace(":", "/")
+
+
+def _group_task_work_units(work_units, registry):
+    stage_positions = {
+        stage["id"]: index
+        for index, stage in enumerate(registry.get("stages", []))
+    }
+    stages = {stage["id"]: stage for stage in registry.get("stages", [])}
+    grouped = defaultdict(lambda: defaultdict(list))
+    for work_unit in work_units:
+        grouped[work_unit["stage"]][_task_target(work_unit)].append(work_unit)
+
+    task_groups = []
+    for stage_id in sorted(
+        grouped,
+        key=lambda value: (stage_positions.get(value, 10 ** 6), value),
+    ):
+        targets = []
+        for target in sorted(grouped[stage_id]):
+            target_units = grouped[stage_id][target]
+            status_counts = Counter(unit["status"] for unit in target_units)
+            examples = sorted(
+                {
+                    _task_work_unit_example(unit, target)
+                    for unit in target_units
+                }
+            )
+            targets.append(
+                {
+                    "target": target,
+                    "work_unit_count": len(target_units),
+                    "status_counts": {
+                        status: status_counts[status]
+                        for status in WORK_UNIT_STATUS_PRECEDENCE
+                        if status_counts[status]
+                    },
+                    "reasons": _task_issue_summary(target_units),
+                    "work_unit_examples": examples[:WORK_UNIT_EXAMPLE_LIMIT],
+                    "omitted_work_unit_count": max(
+                        0, len(examples) - WORK_UNIT_EXAMPLE_LIMIT
+                    ),
+                }
+            )
+        stage = stages.get(stage_id, {})
+        task_groups.append(
+            {
+                "stage": stage_id,
+                "cost": stage.get("cost"),
+                "work_unit_count": sum(
+                    target["work_unit_count"] for target in targets
+                ),
+                "targets": targets,
+            }
+        )
+    return task_groups
+
+
+def _deferred_path(work_unit):
+    path_classes = set(work_unit.get("path_classes", []))
+    for path_class in DEFERRED_PATH_ORDER:
+        if path_classes == {path_class}:
+            return path_class
+    # Trend adjustments must not be regenerated from a known-stale cutoff,
+    # even when they also have a direct reason to be refreshed.
+    if work_unit.get("stage") == "generate_trend_adjustments" and any(
+        issue.get("code") == "stale_generated_dependency"
+        and issue.get("root_category") == "cutoff_poll_outputs"
+        for issue in work_unit.get("issues", [])
+    ):
+        return PATH_CUTOFF
+    return None
+
+
+def is_inherited_only_staleness(work_unit):
+    """Return whether generated values remain usable with stale ancestry."""
+
+    if work_unit["status"] != "stale" or not work_unit["issues"]:
+        return False
+    return all(
+        issue["code"] in {
+            "stale_generated_dependency",
+            "provenance_only_revision",
+        }
+        for issue in work_unit["issues"]
+    )
+
+
+def _build_task_view(
+    work_units,
+    registry,
+    required_graph,
+    source_issues,
+    manifest_issues,
+    internal_errors,
+    target_elections,
+):
+    """Build the task-first audit representation used by text and JSON."""
+
+    required_graph = required_graph or {}
+    if "required_work_unit_ids" in required_graph:
+        required_ids = set(required_graph["required_work_unit_ids"])
+    else:
+        required_ids = {work_unit["id"] for work_unit in work_units}
+    active_ids = set(required_graph.get("active_work_unit_ids", []))
+    root_categories = required_work.cpp_input_categories(registry)
+    work_by_id = {work_unit["id"]: work_unit for work_unit in work_units}
+    required_units = [
+        work_by_id[work_unit_id]
+        for work_unit_id in required_ids
+        if work_unit_id in work_by_id
+    ]
+
+    blockers = [
+        {
+            "kind": "source",
+            "category": issue.get("category"),
+            "message": issue.get("message"),
+        }
+        for issue in source_issues
+        if issue.get("status") == "blocked"
+    ]
+    blockers.extend(
+        {
+            "kind": "manifest",
+            "category": issue.get("manifest"),
+            "message": issue.get("message"),
+        }
+        for issue in manifest_issues
+        if issue.get("status") == "blocked"
+    )
+    blockers.extend(
+        {"kind": "internal", "category": None, "message": message}
+        for message in internal_errors
+    )
+    blockers.extend(
+        {
+            "kind": "generated",
+            "category": work_unit.get("category"),
+            "message": "{} is {}".format(
+                work_unit["record_key"], work_unit["status"]
+            ),
+        }
+        for work_unit in required_units
+        if work_unit.get("blocking")
+        and all(
+            issue.get("code") != "unregistered_source_change"
+            for issue in work_unit.get("issues", [])
+        )
+    )
+
+    metadata_units = [
+        work_unit
+        for work_unit in required_units
+        if work_unit["status"] == "provenance-stale"
+    ]
+    numerical_candidates = [
+        work_unit
+        for work_unit in required_units
+        if work_unit["status"] not in {"current", "provenance-stale"}
+        and not work_unit.get("blocking")
+        and registry.get("categories", {})
+        .get(work_unit["category"], {})
+        .get("kind") != "diagnostic"
+    ]
+    accepted_stale_units = [
+        work_unit
+        for work_unit in numerical_candidates
+        if is_inherited_only_staleness(work_unit)
+    ]
+    accepted_stale_ids = {
+        work_unit["id"] for work_unit in accepted_stale_units
+    }
+    numerical_units = [
+        work_unit
+        for work_unit in numerical_candidates
+        if work_unit["id"] not in accepted_stale_ids
+    ]
+
+    deferred_by_task = {
+        (work_unit["stage"], _task_target(work_unit)): path_class
+        for work_unit in numerical_units
+        for path_class in [_deferred_path(work_unit)]
+        if path_class is not None
+        and work_unit["stage"] == "generate_trend_adjustments"
+    }
+    deferred = defaultdict(list)
+    immediate_units = []
+    for work_unit in numerical_units:
+        path_class = _deferred_path(work_unit) or deferred_by_task.get(
+            (work_unit["stage"], _task_target(work_unit))
+        )
+        if path_class is None:
+            immediate_units.append(work_unit)
+        else:
+            deferred[path_class].append(work_unit)
+
+    if target_elections:
+        selected_elections = set(target_elections)
+        direct_units = [
+            work_unit
+            for work_unit in immediate_units
+            if work_unit["category"] in root_categories
+            and (
+                not work_unit.get("scope", {}).get("elections")
+                or bool(
+                    set(work_unit["scope"]["elections"])
+                    & selected_elections
+                )
+            )
+        ]
+        direct_ids = {work_unit["id"] for work_unit in direct_units}
+        upstream_units = [
+            work_unit
+            for work_unit in immediate_units
+            if work_unit["id"] not in direct_ids
+        ]
+        historical_units = []
+        primary_label = "Selected-election work"
+    else:
+        direct_units = [
+            work_unit
+            for work_unit in immediate_units
+            if work_unit["id"] in active_ids
+            and work_unit["category"] in root_categories
+        ]
+        direct_ids = {work_unit["id"] for work_unit in direct_units}
+        upstream_units = [
+            work_unit
+            for work_unit in immediate_units
+            if work_unit["id"] in active_ids
+            and work_unit["id"] not in direct_ids
+        ]
+        historical_units = [
+            work_unit
+            for work_unit in immediate_units
+            if work_unit["id"] not in active_ids
+        ]
+        primary_label = "Active-election work"
+
+    inactive_ids = set(
+        required_graph.get("inactive_only_work_unit_ids", [])
+    )
+    inactive_noncurrent = [
+        work_by_id[work_unit_id]
+        for work_unit_id in inactive_ids
+        if work_unit_id in work_by_id
+        and work_by_id[work_unit_id]["status"] != "current"
+    ]
+    inactive_elections = sorted(
+        {
+            election
+            for work_unit in inactive_noncurrent
+            for election in work_unit.get("scope", {}).get("elections", [])
+        }
+    )
+    unreferenced_ids = set(
+        required_graph.get("unreferenced_work_unit_ids", [])
+    )
+    unreferenced_noncurrent = sorted(
+        work_unit_id
+        for work_unit_id in unreferenced_ids
+        if work_unit_id in work_by_id
+        and work_by_id[work_unit_id]["status"] != "current"
+    )
+
+    return {
+        "blockers": blockers,
+        "primary_label": primary_label,
+        "primary_tasks": _group_task_work_units(direct_units, registry),
+        "upstream_tasks": _group_task_work_units(upstream_units, registry),
+        "historical_tasks": _group_task_work_units(
+            historical_units, registry
+        ),
+        "deferred_tasks": {
+            path_class: _group_task_work_units(deferred[path_class], registry)
+            for path_class in DEFERRED_PATH_ORDER
+            if deferred[path_class]
+        },
+        "metadata_tasks": _group_task_work_units(metadata_units, registry),
+        "suppressed": {
+            "accepted_inherited_stale_count": len(accepted_stale_units),
+            "accepted_inherited_stale_categories": dict(sorted(Counter(
+                work_unit["category"]
+                for work_unit in accepted_stale_units
+            ).items())),
+            "inactive_noncurrent_count": len(inactive_noncurrent),
+            "inactive_elections": inactive_elections,
+            "unreferenced_noncurrent_count": len(unreferenced_noncurrent),
+            "unreferenced_noncurrent_ids": unreferenced_noncurrent,
+        },
+    }
 
 
 def _category_for_path(path, manifest_paths=SOURCE_MANIFEST_PATHS):
@@ -800,14 +1166,16 @@ def _selected_generated_records(
             or is_superseded_detailed_bias_output(record)
         )
 
-    if target_elections is None:
+    unscoped = target_elections is None
+    if unscoped:
         # Untargeted audits still check every record, but superseded /
         # non-significant-party leftovers must not become regeneration roots.
         for manifest_path, manifest in manifests.items():
             for record_key, record in manifest["records"].items():
                 if is_nonschedulable_retained_record(record):
                     audit_only[manifest_path].add(record_key)
-        return (None, {}, audit_only)
+        if not include_dependencies:
+            return (None, {}, audit_only)
 
     def select(manifest_path, record_key, *, require_schedulable=True):
         if (
@@ -828,9 +1196,15 @@ def _selected_generated_records(
 
     for manifest_path, manifest in manifests.items():
         for record_key, record in manifest["records"].items():
-            if not _record_matches_elections(record, target_elections):
+            if (
+                target_elections is not None
+                and not _record_matches_elections(record, target_elections)
+            ):
                 continue
-            if is_completed_calibration_detail(record):
+            if (
+                target_elections is not None
+                and is_completed_calibration_detail(record)
+            ):
                 # Completed detailed traces remain available via file
                 # dependencies, but are not primary regeneration roots.
                 continue
@@ -919,13 +1293,15 @@ def _selected_generated_records(
                     select(*owner)
     if include_dependencies:
         return (
-            selected,
+            None if unscoped else selected,
             {
                 work_unit_id: sorted(dependency_ids)
                 for work_unit_id, dependency_ids in dependencies.items()
             },
             audit_only,
         )
+    if unscoped:
+        return None
     return {
         path: keys - audit_only[path]
         for path, keys in selected.items()
@@ -978,7 +1354,7 @@ def _missing_cutoff_dependencies(election, available_work_unit_ids):
     if election in approvals_provenance.approval_elections():
         for pure_election in sorted(
             approvals_provenance.synthetic_dependency_elections([election])
-            - approvals_provenance.current_elections()
+            - approvals_provenance.open_future_elections()
         ):
             dependencies.append(
                 _generated_work_unit_id(
@@ -1360,7 +1736,12 @@ def audit_repository(
     # Missing consolidated cutoff records have no stored lineage. Include
     # their prerequisites in this audit so the synthetic records below can
     # make them explicit pipeline dependencies.
-    selected_elections = target_elections
+    # Dependency expansion must not turn upstream elections into explicit
+    # user targets. Besides mislabelling audit output, doing so makes every
+    # retained record for an overlapping election a pipeline root.
+    selected_elections = (
+        None if target_elections is None else set(target_elections)
+    )
     if target_elections is not None and missing_cutoff_work_units:
         selected_elections = set(target_elections)
         cutoff_elections = {
@@ -1374,7 +1755,7 @@ def audit_repository(
                     approvals_provenance.synthetic_dependency_elections(
                         [election]
                     )
-                    - approvals_provenance.current_elections()
+                    - approvals_provenance.open_future_elections()
                 )
     # State calibrate/bias needs overlapping federal priors. Expand selection
     # so those federal records are audited even when the prior already exists.
@@ -1396,8 +1777,6 @@ def audit_repository(
                 )
             )
         if prior_elections:
-            if not isinstance(selected_elections, set):
-                selected_elections = set(target_elections)
             selected_elections.update(prior_elections)
     selected_generated_records = None
     generated_dependencies = {}
@@ -2043,6 +2422,16 @@ def audit_repository(
             {PATH_CALIBRATION},
         )
     }
+    try:
+        required_graph = required_work.classify_required_work(
+            work_units,
+            registry,
+            explicit_elections=target_elections,
+        ).as_dict()
+    except required_work.RequiredWorkError as error:
+        internal_errors.append(str(error))
+        required_graph = None
+
     issues = [
         "{}: {}".format(category_id, detail)
         for category_id in sorted(root_causes)
@@ -2073,6 +2462,15 @@ def audit_repository(
         )
         for category, records in sorted(diagnostic_work_units.items())
     }
+    task_view = _build_task_view(
+        work_units,
+        registry,
+        required_graph,
+        source_issues,
+        manifest_issues,
+        internal_errors,
+        target_elections,
+    )
     report(
         "Provenance audit complete ({:.1f}s).".format(
             time.monotonic() - started
@@ -2111,6 +2509,8 @@ def audit_repository(
         ],
         "manifest_issues": manifest_issues,
         "diagnostic_notices": diagnostic_notices,
+        "required_graph": required_graph,
+        "task_view": task_view,
         "summary": {
             "work_unit_status_counts": {
                 status: status_counts.get(status, 0)
@@ -2125,6 +2525,80 @@ def audit_repository(
 
 
 # Source-change registration and interactive interface
+
+def _cutoff_dependency_surface(registry=None):
+    """Return categories and stages capable of changing cutoff data.
+
+    This follows generated-category producers backwards from the cutoff
+    stage. It is deliberately conservative: an election-scoped source change
+    may affect only one branch, but it still deserves an explicit warning
+    before a weeks-cost output is invalidated.
+    """
+
+    registry = registry or pipeline_registry.load_registry()
+    producers = defaultdict(list)
+    for stage in registry["stages"]:
+        for category in stage.get("outputs", []):
+            producers[category].append(stage)
+
+    cutoff_stage = next(
+        stage
+        for stage in registry["stages"]
+        if stage["id"] == "generate_cutoff_poll_trends"
+    )
+    categories = set()
+    stages = {cutoff_stage["id"]}
+    pending = list(cutoff_stage.get("inputs", []))
+    while pending:
+        category = pending.pop()
+        if category in categories:
+            continue
+        categories.add(category)
+        for producer in producers.get(category, []):
+            stages.add(producer["id"])
+            for field in ("inputs", "optional_inputs", "feedback_inputs"):
+                pending.extend(producer.get(field, []))
+    return categories, stages
+
+
+def _change_categories(paths, source_manifest_paths=SOURCE_MANIFEST_PATHS):
+    categories = set()
+    for path in paths:
+        absolute_path = Path(path)
+        if not absolute_path.is_absolute():
+            absolute_path = ANALYSIS_DIRECTORY / absolute_path
+        _, category_id, _ = _category_for_path(
+            absolute_path, source_manifest_paths
+        )
+        categories.add(category_id)
+    return categories
+
+
+def cutoff_invalidation_risk(
+    paths,
+    impact,
+    scope,
+    source_manifest_paths=SOURCE_MANIFEST_PATHS,
+    registry=None,
+):
+    """Describe a data-modifying registration that can reach cutoffs."""
+
+    impact = IMPACT_ALIASES.get(impact, impact)
+    if impact != "data-modifying":
+        return None
+    categories = _change_categories(paths, source_manifest_paths)
+    cutoff_categories, cutoff_stages = _cutoff_dependency_surface(registry)
+    affected_categories = sorted(categories & cutoff_categories)
+    if not affected_categories:
+        return None
+    scoped_stages = set(scope.get("stages", []))
+    if scoped_stages and scoped_stages.isdisjoint(cutoff_stages):
+        return None
+    return {
+        "categories": affected_categories,
+        "stages": sorted(cutoff_stages),
+    }
+
 
 def register_changes(
     paths,
@@ -2343,6 +2817,120 @@ def audit_json(result):
     )
 
 
+def _status_summary(status_counts):
+    return ", ".join(
+        "{} {}".format(count, status)
+        for status, count in status_counts.items()
+    )
+
+
+def _print_reason_summary(reasons, indent):
+    if reasons["waiting_on"]:
+        print(
+            "{}waiting on: {}".format(
+                indent, ", ".join(reasons["waiting_on"])
+            )
+        )
+    if reasons["source_changes"]:
+        print(
+            "{}source/code changes: {}".format(
+                indent, ", ".join(reasons["source_changes"])
+            )
+        )
+    if reasons["output_states"]:
+        print(
+            "{}output state: {}".format(
+                indent, ", ".join(reasons["output_states"])
+            )
+        )
+    if reasons["other_reasons"]:
+        print(
+            "{}other causes: {}".format(
+                indent, ", ".join(reasons["other_reasons"])
+            )
+        )
+
+
+def _print_task_groups(label, groups, compact=False):
+    if not groups:
+        return False
+    print("{}:".format(label))
+    for group in groups:
+        cost = " [{}]".format(group["cost"]) if group.get("cost") else ""
+        print(
+            "  {}: {} work unit(s){}".format(
+                group["stage"], group["work_unit_count"], cost
+            )
+        )
+        if compact:
+            stage_statuses = Counter()
+            stage_reasons = {
+                "waiting_on": set(),
+                "source_changes": set(),
+                "output_states": set(),
+                "other_reasons": set(),
+            }
+            for target in group["targets"]:
+                stage_statuses.update(target["status_counts"])
+                for field in stage_reasons:
+                    stage_reasons[field].update(target["reasons"][field])
+            shown_targets = [
+                target["target"]
+                for target in group["targets"][:10]
+            ]
+            omitted_targets = len(group["targets"]) - len(shown_targets)
+            suffix = (
+                ", ... (+{} more)".format(omitted_targets)
+                if omitted_targets
+                else ""
+            )
+            print(
+                "    {}; targets: {}{}".format(
+                    _status_summary(
+                        {
+                            status: stage_statuses[status]
+                            for status in WORK_UNIT_STATUS_PRECEDENCE
+                            if stage_statuses[status]
+                        }
+                    ),
+                    ", ".join(shown_targets),
+                    suffix,
+                )
+            )
+            _print_reason_summary(
+                {
+                    field: sorted(values)
+                    for field, values in stage_reasons.items()
+                },
+                "    ",
+            )
+            continue
+        shown_targets = group["targets"][:WORK_UNIT_EXAMPLE_LIMIT]
+        for target in shown_targets:
+            examples = target["work_unit_examples"]
+            example_text = ""
+            if examples:
+                example_text = "; work units: {}".format(
+                    ", ".join(examples)
+                )
+                if target["omitted_work_unit_count"]:
+                    example_text += ", ... (+{} more)".format(
+                        target["omitted_work_unit_count"]
+                    )
+            print(
+                "    {}: {}{}".format(
+                    target["target"],
+                    _status_summary(target["status_counts"]),
+                    example_text,
+                )
+            )
+            _print_reason_summary(target["reasons"], "      ")
+        omitted_targets = len(group["targets"]) - len(shown_targets)
+        if omitted_targets:
+            print("    ... and {} more target(s)".format(omitted_targets))
+    return True
+
+
 def _print_audit(result):
     if result.get("target_elections"):
         print(
@@ -2350,115 +2938,104 @@ def _print_audit(result):
                 ", ".join(result["target_elections"])
             )
         )
-    if result["other_root_causes"]:
-        print("Source and generated-data issues:")
-        for category_id, details in result["other_root_causes"].items():
-            print("  {}:".format(category_id))
-            for detail in details:
-                print("    {}".format(detail))
-    if result["synthetic_tpp_root_causes"]:
-        print("Synthetic-TPP-path-only provenance issues:")
-        print(
-            "  Pure-trend and synthetic-TPP regeneration may be deferred "
-            "temporarily."
+
+    task_view = result.get("task_view") or {}
+    printed_action = False
+    blockers = task_view.get("blockers", [])
+    if blockers:
+        printed_action = True
+        print("Action required - provenance blockers:")
+        shown = blockers[:WORK_UNIT_EXAMPLE_LIMIT]
+        for blocker in shown:
+            category = (
+                "{}: ".format(blocker["category"])
+                if blocker.get("category")
+                else ""
+            )
+            print("  {}{}".format(category, blocker["message"]))
+        if len(blockers) > len(shown):
+            print("  ... and {} more blocker(s)".format(len(blockers) - len(shown)))
+
+    printed_action = _print_task_groups(
+        task_view.get("primary_label", "Selected-election work"),
+        task_view.get("primary_tasks", []),
+    ) or printed_action
+    printed_action = _print_task_groups(
+        "Required upstream work",
+        task_view.get("upstream_tasks", []),
+    ) or printed_action
+    printed_action = _print_task_groups(
+        "Historical convergence backlog",
+        task_view.get("historical_tasks", []),
+        compact=True,
+    ) or printed_action
+
+    deferred_tasks = task_view.get("deferred_tasks", {})
+    for path_class in DEFERRED_PATH_ORDER:
+        groups = deferred_tasks.get(path_class, [])
+        if not groups:
+            continue
+        printed_action = True
+        print("Deferred {} work:".format(DEFERRED_PATH_LABELS[path_class]))
+        if path_class == PATH_CALIBRATION:
+            print("  Slow calibration regeneration may be tolerated temporarily.")
+            print(
+                "  Missing historical seed metadata is informational only; "
+                "unknown input lineage determines legacy status."
+            )
+        elif path_class == PATH_CUTOFF:
+            print("  Historical cutoff regeneration is intentionally separate.")
+        else:
+            print("  Approval-path regeneration may be deferred temporarily.")
+        _print_task_groups("Tasks", groups, compact=True)
+
+    metadata_tasks = task_view.get("metadata_tasks", [])
+    if metadata_tasks:
+        printed_action = True
+        _print_task_groups(
+            "Metadata maintenance", metadata_tasks, compact=True
         )
-        for category_id, details in (
-            result["synthetic_tpp_root_causes"].items()
-        ):
-            print("  {}:".format(category_id))
-            for detail in details:
-                print("    {}".format(detail))
-    if result["cutoff_root_causes"]:
-        print("Historical-cutoff-path-only provenance issues:")
-        print(
-            "  Historical cutoff regeneration may be deferred temporarily."
+
+    suppressed = task_view.get("suppressed", {})
+    if suppressed.get("accepted_inherited_stale_count"):
+        categories = ", ".join(
+            "{} ({})".format(category, count)
+            for category, count in suppressed[
+                "accepted_inherited_stale_categories"
+            ].items()
         )
-        for category_id, details in result["cutoff_root_causes"].items():
-            print("  {}:".format(category_id))
-            for detail in details:
-                print("    {}".format(detail))
-    if result["calibration_root_causes"]:
-        print("Calibration-path-only provenance issues:")
-        print("  Slow calibration regeneration may be tolerated temporarily.")
-        for category_id, details in (
-            result["calibration_root_causes"].items()
-        ):
-            print("  {}:".format(category_id))
-            for detail in details:
-                print("    {}".format(detail))
+        print("Tolerated inherited staleness:")
         print(
-            "  Missing historical seed metadata is informational only; "
-            "unknown input lineage determines legacy status."
+            "  {} regenerated work unit(s) remain usable and are not routine "
+            "regeneration tasks: {}.".format(
+                suppressed["accepted_inherited_stale_count"], categories
+            )
         )
+        print(
+            "  Strict full-convergence plans may still require fresh "
+            "ancestry."
+        )
+    if suppressed.get("inactive_noncurrent_count"):
+        elections = ", ".join(suppressed["inactive_elections"])
+        print(
+            "Work units required only for inactive election(s) {} are not "
+            "listed.".format(elections)
+        )
+
     if result["diagnostic_notices"]:
         print("Diagnostic provenance notices:")
         for category_id, detail in result["diagnostic_notices"].items():
             print("  {}: {}".format(category_id, detail))
-    if result["provenance_maintenance"]:
-        print(
-            "Metadata maintenance required for {} generated work unit(s)."
-            .format(len(result["provenance_maintenance"]))
-        )
-        shown = result["provenance_maintenance"][
-            :WORK_UNIT_EXAMPLE_LIMIT
-        ]
-        print(
-            "  {}".format(
-                ", ".join(item["record_key"] for item in shown)
-            )
-        )
-    for issue in result["internal_errors"]:
-        print("ERROR: {}".format(issue))
-
-    immediate = result["impacts"]["immediate"]
-    synthetic_tpp = result["impacts"]["synthetic_tpp_only"]
-    calibration = result["impacts"]["calibration_only"]
-    if immediate:
-        print("C++ direct inputs requiring prompt regeneration:")
-        for consumer_id in sorted(immediate):
-            print(
-                "  {}: {}".format(
-                    consumer_id, ", ".join(sorted(immediate[consumer_id]))
-                )
-            )
-    if synthetic_tpp:
-        print(
-            "C++ direct inputs stale only through synthetic-TPP paths:"
-        )
-        print(
-            "  Refresh these before calibration-only issues where practical."
-        )
-        for consumer_id in sorted(synthetic_tpp):
-            print(
-                "  {}: {}".format(
-                    consumer_id,
-                    ", ".join(sorted(synthetic_tpp[consumer_id])),
-                )
-            )
-    if calibration:
-        print("C++ direct inputs stale only through calibration paths:")
-        print("  Slow calibration updates may be tolerated temporarily.")
-        for consumer_id in sorted(calibration):
-            print(
-                "  {}: {}".format(
-                    consumer_id,
-                    ", ".join(sorted(calibration[consumer_id])),
-                )
-            )
-    if (
-        result["root_causes"]
-        and not immediate
-        and not synthetic_tpp
-        and not calibration
-    ):
-        print("No tracked C++ direct input is downstream of these changes.")
 
     for message in result["touched"]:
         print("NOTICE: {}".format(message))
     for message in result["unknown_generated"]:
         print("UNKNOWN: {}".format(message))
-    if not result["issues"]:
-        print("Provenance audit passed: no stale or unregistered content.")
+    if not printed_action:
+        if result["issues"]:
+            print("No required generated work is currently actionable.")
+        else:
+            print("Provenance audit passed: no stale or unregistered content.")
 
 
 def _menu_select(message, choices, default=None):
@@ -2602,6 +3179,19 @@ def _confirm_all_election_scope(scope):
     )
 
 
+def _confirm_cutoff_invalidation(risk):
+    print(
+        "This data-modifying assessment can invalidate historical cutoff "
+        "files through: {}.".format(", ".join(risk["categories"]))
+    )
+    response = _menu_text(
+        "Type {} to confirm the cutoff impact".format(
+            CUTOFF_INVALIDATION_CONFIRMATION
+        )
+    )
+    return response.strip() == CUTOFF_INVALIDATION_CONFIRMATION
+
+
 def _confirm_omitted_siblings(omitted):
     """Confirm leaving unselected still-changed siblings unregistered."""
 
@@ -2683,6 +3273,12 @@ def _interactive_register():
         )
     scope = _interactive_scope()
     if not _confirm_all_election_scope(scope):
+        print("Registration cancelled.")
+        return
+    cutoff_risk = cutoff_invalidation_risk(
+        selected_files, impact, scope
+    )
+    if cutoff_risk and not _confirm_cutoff_invalidation(cutoff_risk):
         print("Registration cancelled.")
         return
     if not _menu_confirm("Register this assessment?", default=True):
@@ -2818,6 +3414,14 @@ def build_parser():
             "leaving other still-unregistered siblings for later."
         ),
     )
+    register_parser.add_argument(
+        "--acknowledge-cutoff-invalidation",
+        action="store_true",
+        help=(
+            "Confirm that a data-modifying change is intended to invalidate "
+            "historical cutoff work."
+        ),
+    )
     _add_scope_arguments(register_parser)
     return parser
 
@@ -2861,6 +3465,23 @@ def main(argv=None):
                         print("Registration cancelled.")
                         return 1
                     acknowledge_omitted = True
+            cutoff_risk = cutoff_invalidation_risk(
+                args.files, args.impact, scope
+            )
+            if (
+                cutoff_risk
+                and not args.acknowledge_cutoff_invalidation
+            ):
+                if sys.stdin.isatty():
+                    if not _confirm_cutoff_invalidation(cutoff_risk):
+                        print("Registration cancelled.")
+                        return 1
+                else:
+                    raise AnalysisProvenanceError(
+                        "this data-modifying change can invalidate historical "
+                        "cutoffs; pass --acknowledge-cutoff-invalidation "
+                        "after confirming that impact"
+                    )
             events = register_changes(
                 args.files,
                 args.summary,

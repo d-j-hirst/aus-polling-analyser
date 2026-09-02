@@ -20,6 +20,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
+import election_catalogue
 import generated_provenance
 
 
@@ -46,40 +47,31 @@ SOURCE_DEPENDENCIES = {
 # Election and approval-input selection
 
 def _configured_elections():
-    elections = set()
-    for filename in ("polled-elections.csv", "future-elections.csv"):
-        path = DATA_DIRECTORY / filename
-        with path.open(newline="", encoding="utf-8-sig") as source:
-            for line_number, row in enumerate(csv.reader(source), start=1):
-                if not row:
-                    continue
-                if len(row) < 2:
-                    raise generated_provenance.GeneratedProvenanceError(
-                        "{}:{} must contain year and region".format(
-                            path, line_number
-                        )
-                    )
-                elections.add("{}{}".format(row[0], row[1]))
-    return elections
+    try:
+        return election_catalogue.historical_elections(
+            DATA_DIRECTORY / "polled-elections.csv"
+        ) | election_catalogue.configured_future_elections(
+            DATA_DIRECTORY / "future-elections.csv"
+        )
+    except election_catalogue.ElectionCatalogueError as error:
+        raise generated_provenance.GeneratedProvenanceError(str(error)) from error
 
 
 def current_elections():
-    """Return active forecast terms whose source data can still change."""
+    """Compatibility alias for all open future terms, active or inactive."""
 
-    path = DATA_DIRECTORY / "future-elections.csv"
-    elections = set()
-    with path.open(newline="", encoding="utf-8-sig") as source:
-        for line_number, row in enumerate(csv.reader(source), start=1):
-            if not row:
-                continue
-            if len(row) < 2:
-                raise generated_provenance.GeneratedProvenanceError(
-                    "{}:{} must contain year and region".format(
-                        path, line_number
-                    )
-                )
-            elections.add("{}{}".format(row[0], row[1]))
-    return elections
+    return open_future_elections()
+
+
+def open_future_elections():
+    """Return terms whose changing pure trends do not stale old cutoffs."""
+
+    try:
+        return election_catalogue.open_future_elections(
+            DATA_DIRECTORY / "future-elections.csv"
+        )
+    except election_catalogue.ElectionCatalogueError as error:
+        raise generated_provenance.GeneratedProvenanceError(str(error)) from error
 
 
 def _election_cycles():

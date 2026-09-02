@@ -21,6 +21,7 @@ from fp_model_constants import (
     DEFAULT_BASE_SEED,
     STAN_SEED_NAMESPACE,
     data_source,
+    derive_stan_seed,
     fp_model_source_files,
 )
 from fp_model_data import (
@@ -592,7 +593,7 @@ def run_models() -> None:
                     random_seed = (
                         checkpoint_identity['party_seeds'][party]
                         if checkpoint_identity is not None
-                        else calibration_provenance.derive_stan_seed(
+                        else derive_stan_seed(
                             base_seed,
                             election_tag,
                             party,

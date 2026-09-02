@@ -132,7 +132,10 @@ class Config:
             self.elections = elections + [no_target_election_marker] + future_elections
             self.elections = [e for e in self.elections if e.year() >= 1994]
         elif self.election_instructions == 'none':
-            self.elections = [no_target_election_marker] + future_elections
+            # The pipeline treats one command as one atomic target. The old
+            # behavior also rewrote every future election while recording only
+            # the generic task as complete.
+            self.elections = [no_target_election_marker]
         else:
             parts = self.election_instructions.split('-')
             if len(parts) != 2:
@@ -174,7 +177,8 @@ def generate_staged_target_outputs(config, inputs, poll_trend, exclude):
             exclude,
             output_directory=staging_root / 'Adjustments',
         )
-        validate_generated_fundamentals(fundamentals_output)
+        if exclude != no_target_election_marker:
+            validate_generated_fundamentals(fundamentals_output)
         for filename in adjustment_outputs.values():
             validate_generated_adjustment(config, filename)
         return promote_staged_outputs(

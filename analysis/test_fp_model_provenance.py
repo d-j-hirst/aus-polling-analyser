@@ -9,6 +9,20 @@ import generated_provenance
 
 
 class PureTrendProvenanceTests(unittest.TestCase):
+    def test_common_trend_dependencies_exclude_recorder_only_helpers(self):
+        self.assertNotIn(
+            "fp_model_provenance_script",
+            fp_model_provenance.SOURCE_DEPENDENCIES,
+        )
+        self.assertNotIn(
+            "calibration_provenance_script",
+            fp_model_provenance.SOURCE_DEPENDENCIES,
+        )
+        self.assertEqual(
+            set(fp_model_provenance.CUTOFF_SOURCE_DEPENDENCIES),
+            {"fp_model_provenance_script"},
+        )
+
     def test_baseline_groups_complete_canonical_work_units(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             base = Path(temporary_directory)
@@ -634,7 +648,7 @@ class FinalTrendProvenanceTests(unittest.TestCase):
             return_value={"2025fed"},
         ), mock.patch.object(
             fp_model_provenance.approvals_provenance,
-            "current_elections",
+            "open_future_elections",
             return_value={"2026vic", "2028fed"},
         ), mock.patch.object(
             fp_model_provenance.approvals_provenance,

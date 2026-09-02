@@ -1,5 +1,6 @@
-"""Shared constants and deferred calibration notes for fp_model."""
+"""Shared constants, deterministic seeds and deferred notes for fp_model."""
 
+import hashlib
 from pathlib import Path
 
 # File paths for polling data in each jurisdiction
@@ -16,6 +17,22 @@ CAMPAIGN_WINDOW_DAYS = 42
 FINAL_WINDOW_DAYS = 14
 DEFAULT_BASE_SEED = 20260803
 STAN_SEED_NAMESPACE = 'fp-model-v1'
+
+
+def derive_stan_seed(base_seed, election, party, excluded_pollster, mode):
+    """Derive the stable Stan seed shared by every fp_model run mode."""
+
+    material = "\0".join(
+        (
+            str(base_seed),
+            election,
+            party,
+            excluded_pollster,
+            mode,
+        )
+    ).encode("utf-8")
+    digest = hashlib.sha256(material).digest()
+    return int.from_bytes(digest[:8], "big") % (2 ** 31 - 1) + 1
 
 # N.B. The "Others" (OTH) "party" values include votes for these other
 # minor parties, so these are effectively counted twice. The reason for
