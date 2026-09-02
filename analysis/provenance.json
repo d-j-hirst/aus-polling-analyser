@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-09-01T11:07:57Z",
+  "updated_at_utc": "2026-09-02T00:48:20Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -3902,9 +3902,9 @@
           "recorded_mtime_utc": "2026-09-01T10:46:37.746469Z"
         },
         "trend_adjust_mixing.py": {
-          "sha256": "bf88527f6da4bbf5827a6197d37af5b2a362ef5218f0bee6ca544d735a5ae5dc",
-          "size_bytes": 25529,
-          "recorded_mtime_utc": "2026-08-02T08:10:31.874073Z"
+          "sha256": "6bae04cc4e7e98f221a3e11c386ed07ccbc6ec0f4b278cab330c1b7d214b2712",
+          "size_bytes": 26558,
+          "recorded_mtime_utc": "2026-09-02T00:48:12.824730Z"
         }
       },
       "events": [
@@ -4106,6 +4106,25 @@
             "trend_adjust.py",
             "trend_adjust_fundamentals.py",
             "trend_adjust_io.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260902T004820Z-other-trend-adjust-script-8650a8fa",
+          "recorded_at_utc": "2026-09-02T00:48:20Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 7,
+          "summary": "Prepare leave-one-election-out evidence once per trend-adjustment optimization and reuse it across unchanged mix-factor evaluations.",
+          "files": [
+            "trend_adjust_mixing.py"
           ],
           "scope": {
             "all": true,

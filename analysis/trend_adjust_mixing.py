@@ -4,8 +4,8 @@ Parent: trend_adjust.py provides validated data and publishes this module's
 mixed forecast-error estimates through the output stage.
 
 Main functions:
-* ``get_bias_data`` and ``get_single_election_data`` assemble historical
-  point-in-time errors for an excluded election.
+* ``get_bias_data`` and ``prepare_single_election_data`` assemble historical
+  point-in-time errors for an excluded election once per optimization.
 * ``find_best_mix`` uses a coarse grid then narrowed interval search to choose
   a poll/fundamentals mix efficiently.
 * ``get_party_data`` reduces one party group's historical error distribution.
@@ -320,19 +320,27 @@ class DayData:
         self.final_mix_factor = 0
 
 
-def get_single_election_data(
+class PreparedDayData:
+    """Mix-independent observations reused by every candidate factor."""
+
+    def __init__(self):
+        self.observations = []
+        self.overall_poll_biases = []
+        self.overall_fundamentals_biases = []
+
+
+def prepare_single_election_data(
     exclude,
     inputs,
     poll_trend,
     party_group,
-    day_data,
+    prepared_data,
     day,
     studied_election,
-    mix_factors,
     target_trend,
     diagnostics=False,
 ):
-    """Add one leave-one-election-out observation to each candidate mix."""
+    """Add mix-independent leave-one-election-out observations."""
 
     bias_data = get_bias_data(
                               exclude=exclude,
@@ -375,8 +383,8 @@ def get_single_election_data(
             poll_bias=poll_bias,
         )
     if studied_election == no_target_election_marker:
-        day_data.overall_fundamentals_biases = [fundamentals_bias]
-        day_data.overall_poll_biases = [poll_bias]
+        prepared_data.overall_fundamentals_biases = [fundamentals_bias]
+        prepared_data.overall_poll_biases = [poll_bias]
         return
     if len(bias_data.studied_poll_errors) > 0:
         zipped_bias_data = zip(bias_data.studied_poll_errors,
@@ -392,19 +400,95 @@ def get_single_election_data(
             result = (max(0.5, inputs.eventual_results[party_code])
                       if party_code in inputs.eventual_results else 0.5)
             result_t = transform_vote_share(result)
-            for mix_index, mix_factor in enumerate(mix_factors):
-                mixed = (debiased_polls * mix_factor
-                         + debiased_fundamentals * (1 - mix_factor))
-                mixed_error = mixed - result_t
-                poll_distance = abs(
-                    studied_election.year() - inputs.reference_year
-                )
-                relevance = (1 if exclude.region() == "fed"
-                        and studied_election.region() == "fed" else 0)
-                weight = 10 * 2 ** -(poll_distance / 12) * (1 + 3 * relevance)
-                weight *= similarity * MIXED_SIMILARITY_SCALE
-                day_data.mixed_errors[mix_index].append(mixed_error)
-                day_data.mixed_weights[mix_index].append(weight)
+            poll_distance = abs(
+                studied_election.year() - inputs.reference_year
+            )
+            relevance = (1 if exclude.region() == "fed"
+                    and studied_election.region() == "fed" else 0)
+            weight = 10 * 2 ** -(poll_distance / 12) * (1 + 3 * relevance)
+            weight *= similarity * MIXED_SIMILARITY_SCALE
+            prepared_data.observations.append((
+                debiased_polls,
+                debiased_fundamentals,
+                result_t,
+                weight,
+            ))
+
+
+def prepare_day_data(
+    exclude,
+    inputs,
+    poll_trend,
+    party_group,
+    day,
+    target_trend,
+    diagnostics=False,
+):
+    """Build the historical evidence shared by all candidate mix factors."""
+
+    prepared_data = PreparedDayData()
+    for studied_election in inputs.studied_elections:
+        prepare_single_election_data(
+            exclude=exclude,
+            inputs=inputs,
+            poll_trend=poll_trend,
+            party_group=party_group,
+            day=day,
+            studied_election=studied_election,
+            prepared_data=prepared_data,
+            target_trend=target_trend,
+            diagnostics=(
+                diagnostics
+                and studied_election == no_target_election_marker
+            ),
+        )
+    return prepared_data
+
+
+def evaluate_prepared_mix(prepared_data, party_group, day, mix_factor):
+    """Evaluate one candidate using already-prepared historical evidence."""
+
+    day_data = DayData()
+    day_data.overall_poll_biases = prepared_data.overall_poll_biases
+    day_data.overall_fundamentals_biases = (
+        prepared_data.overall_fundamentals_biases
+    )
+    for (
+        debiased_polls,
+        debiased_fundamentals,
+        result_t,
+        weight,
+    ) in prepared_data.observations:
+        mixed = (debiased_polls * mix_factor
+                 + debiased_fundamentals * (1 - mix_factor))
+        day_data.mixed_errors[0].append(mixed - result_t)
+        day_data.mixed_weights[0].append(weight)
+
+    prior_error_single = (
+        PRIOR_ERRORS[party_group] * (1 + math.sqrt(day / 100))
+    )
+    day_data.mixed_errors[0].extend(
+        [prior_error_single, -prior_error_single]
+    )
+    day_data.mixed_weights[0].extend([150, 150])
+
+    mixed_rmse = math.sqrt(
+        mean_squared_error(
+            day_data.mixed_errors[0],
+            [0 for _ in day_data.mixed_errors[0]],
+            sample_weight=day_data.mixed_weights[0],
+        )
+    )
+    mixed_average_error = average(
+        [abs(error) for error in day_data.mixed_errors[0]],
+        weights=day_data.mixed_weights[0],
+    )
+    criterion = mixed_rmse * 0.6 + mixed_average_error * 0.4
+    # Preserve the established preference towards an endpoint: lower
+    # factors are biased moderately towards zero and higher factors
+    # slightly towards one.
+    criterion -= mix_factor * (mix_factor - 1.6)
+    return criterion, day_data
 
 
 def find_best_mix(evaluate):
@@ -475,54 +559,20 @@ def get_day_data(exclude, inputs, poll_trend, party_group, day,
                  target_trend, diagnostics=False):
     """Select the poll/fundamentals mix for one forecast horizon."""
 
-    diagnostics_pending = diagnostics
+    prepared_data = prepare_day_data(
+        exclude=exclude,
+        inputs=inputs,
+        poll_trend=poll_trend,
+        party_group=party_group,
+        day=day,
+        target_trend=target_trend,
+        diagnostics=diagnostics,
+    )
 
     def evaluate(mix_factor):
-        nonlocal diagnostics_pending
-        day_data = DayData()
-        for studied_election in inputs.studied_elections:
-            get_single_election_data(
-                exclude=exclude,
-                inputs=inputs,
-                poll_trend=poll_trend,
-                party_group=party_group,
-                day=day,
-                studied_election=studied_election,
-                day_data=day_data,
-                mix_factors=(mix_factor,),
-                target_trend=target_trend,
-                diagnostics=(
-                    diagnostics_pending
-                    and studied_election == no_target_election_marker
-                ),
-            )
-        diagnostics_pending = False
-
-        prior_error_single = (
-            PRIOR_ERRORS[party_group] * (1 + math.sqrt(day / 100))
+        return evaluate_prepared_mix(
+            prepared_data, party_group, day, mix_factor
         )
-        day_data.mixed_errors[0].extend(
-            [prior_error_single, -prior_error_single]
-        )
-        day_data.mixed_weights[0].extend([150, 150])
-
-        mixed_rmse = math.sqrt(
-            mean_squared_error(
-                day_data.mixed_errors[0],
-                [0 for _ in day_data.mixed_errors[0]],
-                sample_weight=day_data.mixed_weights[0],
-            )
-        )
-        mixed_average_error = average(
-            [abs(error) for error in day_data.mixed_errors[0]],
-            weights=day_data.mixed_weights[0],
-        )
-        criterion = mixed_rmse * 0.6 + mixed_average_error * 0.4
-        # Preserve the established preference towards an endpoint: lower
-        # factors are biased moderately towards zero and higher factors
-        # slightly towards one.
-        criterion -= mix_factor * (mix_factor - 1.6)
-        return criterion, day_data
 
     best_factor, day_data = find_best_mix(evaluate)
     day_data.final_mix_factor = best_factor

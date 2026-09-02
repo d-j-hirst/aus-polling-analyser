@@ -330,6 +330,77 @@ class TrendAdjustmentTests(unittest.TestCase):
         # the narrower 0.83 basin as the true minimum.
         self.assertAlmostEqual(factor, 0.83, delta=0.0001)
 
+    def test_prepared_mix_preserves_existing_blend_arithmetic(self):
+        prepared = self.mixing.PreparedDayData()
+        prepared.overall_poll_biases = [1.25]
+        prepared.overall_fundamentals_biases = [-0.75]
+        prepared.observations = [
+            (12.0, 8.0, 3.0, 2.5),
+            (-4.0, 6.0, 1.0, 1.5),
+        ]
+
+        def weighted_average(values, weights):
+            return sum(
+                value * weight for value, weight in zip(values, weights)
+            ) / sum(weights)
+
+        def weighted_mse(values, targets, sample_weight):
+            return weighted_average(
+                [
+                    (value - target) ** 2
+                    for value, target in zip(values, targets)
+                ],
+                sample_weight,
+            )
+
+        with mock.patch.object(
+            self.mixing, "average", side_effect=weighted_average
+        ), mock.patch.object(
+            self.mixing,
+            "mean_squared_error",
+            side_effect=weighted_mse,
+        ):
+            _, day_data = self.mixing.evaluate_prepared_mix(
+                prepared, "TPP", 0, 0.25
+            )
+
+        self.assertEqual(
+            day_data.mixed_errors[0][:2],
+            [12.0 * 0.25 + 8.0 * 0.75 - 3.0,
+             -4.0 * 0.25 + 6.0 * 0.75 - 1.0],
+        )
+        self.assertEqual(day_data.mixed_weights[0][:2], [2.5, 1.5])
+        self.assertEqual(day_data.overall_poll_biases, [1.25])
+        self.assertEqual(day_data.overall_fundamentals_biases, [-0.75])
+
+    def test_day_search_prepares_historical_evidence_once(self):
+        prepared = self.mixing.PreparedDayData()
+
+        def evaluate(_prepared, _party_group, _day, factor):
+            return (factor - 0.4) ** 2, self.mixing.DayData()
+
+        with mock.patch.object(
+            self.mixing,
+            "prepare_day_data",
+            return_value=prepared,
+        ) as prepare, mock.patch.object(
+            self.mixing,
+            "evaluate_prepared_mix",
+            side_effect=evaluate,
+        ) as evaluate_mix:
+            day_data = self.mixing.get_day_data(
+                exclude=object(),
+                inputs=object(),
+                poll_trend=object(),
+                party_group="TPP",
+                day=0,
+                target_trend=-40,
+            )
+
+        prepare.assert_called_once()
+        self.assertGreater(evaluate_mix.call_count, 1)
+        self.assertAlmostEqual(day_data.final_mix_factor, 0.4, delta=0.0001)
+
 
 if __name__ == "__main__":
     unittest.main()
