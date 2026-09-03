@@ -151,11 +151,11 @@ Keith De Lacy,Labor,9937,62.9,6.7
 Wally Scholtens,National,5855,37.1,-6.7
 Seat,Callide
 fp
-Di McCauley,National,7365,54.3,4.4
-Greg Clair,Labor,6201,45.7,16.7
+Di McCauley,National,7365,54.3,None
+Greg Clair,Labor,6201,45.7,None
 tcp
-Di McCauley,National,7365,54.3,4.4
-Greg Clair,Labor,6201,45.7,16.7
+Di McCauley,National,7365,54.3,None
+Greg Clair,Labor,6201,45.7,None
 Seat,Carnarvon
 fp
 Lawrence Springborg,National,4712,41.3,-25.8
@@ -306,11 +306,11 @@ David Hamill,Labor,13070,67.8,4.1
 Ian Vagg,Liberal,6207,32.2,-4.1
 Seat,Ipswich West
 fp
-Don Livingstone,Labor,12434,62.1,5.9
-Ken Clift,Liberal,7600,37.9,20.1
+Don Livingstone,Labor,12434,62.1,None
+Ken Clift,Liberal,7600,37.9,None
 tcp
-Don Livingstone,Labor,12434,62.1,5.9
-Ken Clift,Liberal,7600,37.9,20.1
+Don Livingstone,Labor,12434,62.1,None
+Ken Clift,Liberal,7600,37.9,None
 Seat,Isis
 fp
 Bill Nunn,Labor,10174,44.43,6.02
@@ -451,11 +451,11 @@ Bill Eaton,Labor,7280,58.2,4.1
 Malcolm Taylor,National,5228,41.8,-4.1
 Seat,Mulgrave
 fp
-Warren Pitt,Labor,7350,51.7,10.7
-Max Menzel,National,6876,48.3,5.2
+Warren Pitt,Labor,7350,51.7,None
+Max Menzel,National,6876,48.3,None
 tcp
-Warren Pitt,Labor,7350,51.7,10.7
-Max Menzel,National,6876,48.3,5.2
+Warren Pitt,Labor,7350,51.7,None
+Max Menzel,National,6876,48.3,None
 Seat,Murrumba
 fp
 Dean Wells,Labor,12223,61.8,18.5
@@ -550,11 +550,11 @@ Darryl Briskey,Labor,13505,56.2,10.0
 Paul Clauson,National,10526,43.8,-10.0
 Seat,Rockhampton
 fp
-Paul Braddy,Labor,10022,63.8,7.9
-Barry Such,National,5693,36.2,-3.2
+Paul Braddy,Labor,10022,63.8,None
+Barry Such,National,5693,36.2,None
 tcp
-Paul Braddy,Labor,10022,63.8,7.9
-Barry Such,National,5693,36.2,-3.2
+Paul Braddy,Labor,10022,63.8,None
+Barry Such,National,5693,36.2,None
 Seat,Rockhampton North
 fp
 Robert Schwarten,Labor,11358,55.4,-0.8
@@ -757,11 +757,11 @@ Pat Comben,Labor,11633,63.2,None
 Kaye Harcourt,Liberal,6773,36.8,None
 Seat,Wolston
 fp
-Bob Gibbs,Labor,13574,66.9,10.3
-Hendrik Schimmel,Liberal,6724,33.1,8.7
+Bob Gibbs,Labor,13574,66.9,None
+Hendrik Schimmel,Liberal,6724,33.1,None
 tcp
-Bob Gibbs,Labor,13574,66.9,10.3
-Hendrik Schimmel,Liberal,6724,33.1,8.7
+Bob Gibbs,Labor,13574,66.9,None
+Hendrik Schimmel,Liberal,6724,33.1,None
 Seat,Woodridge
 fp
 Bill D'Arcy,Labor,13504,68.7,16.4

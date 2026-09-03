@@ -1,0 +1,40 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,1990fed,@TPP,F2F Morgan,1.0715199529789212,53.545090464110579,,,
+1,leave_one_out,1990fed,@TPP,Newspoll,1.1134004757701963,28.614448540799955,,,
+1,leave_one_out,1990fed,@TPP,Saulwick,1.3746384878989291,4.1947754534926647,,,
+1,leave_one_out,1990fed,ALP FP,F2F Morgan,1.2352924339166114,53.218141641373869,,,
+1,leave_one_out,1990fed,ALP FP,Newspoll,1.1989917072774874,28.739266146464402,,,
+1,leave_one_out,1990fed,ALP FP,Saulwick,2.1354999295623012,4.434755827098031,,,
+1,leave_one_out,1990fed,DEM FP,F2F Morgan,0.75809196115992483,58.803482262007059,,,
+1,leave_one_out,1990fed,DEM FP,Newspoll,0.66852620621934666,30.78481791842254,,,
+1,leave_one_out,1990fed,DEM FP,Saulwick,1.9359813408309674,3.3045434002185132,,,
+1,leave_one_out,1990fed,LNP FP,F2F Morgan,1.1140110476034415,54.397432473556997,,,
+1,leave_one_out,1990fed,LNP FP,Newspoll,1.0612644848003632,28.597959494433745,,,
+1,leave_one_out,1990fed,LNP FP,Saulwick,0.92026626784445342,4.5974757418203147,,,
+1,leave_one_out,1990fed,OTH FP,F2F Morgan,0.84987337458546819,56.889601066895573,,,
+1,leave_one_out,1990fed,OTH FP,Newspoll,0.78695677629560279,30.811958571965423,,,
+1,leave_one_out,1990fed,OTH FP,Saulwick,2.6195294916379432,4.0887000878944315,,,
+1,bias_trend,1990fed,@TPP,,,,51.752000000000002,,
+1,bias_trend,1990fed,ALP FP,,,,39.646000000000001,,
+1,bias_trend,1990fed,DEM FP,,,,14.226000000000001,,
+1,bias_trend,1990fed,LNP FP,,,,40.384,,
+1,bias_trend,1990fed,OTH FP,,,,20.323,,
+1,bias_pollster,1990fed,@TPP,F2F Morgan,,,,0.010999999999999999,17
+1,bias_pollster,1990fed,@TPP,Newspoll,,,,0.19600000000000001,7
+1,bias_pollster,1990fed,@TPP,Quadrant,,,,-0.69999999999999996,1
+1,bias_pollster,1990fed,@TPP,Saulwick,,,,0.499,1
+1,bias_pollster,1990fed,ALP FP,F2F Morgan,,,,0.83999999999999997,17
+1,bias_pollster,1990fed,ALP FP,Newspoll,,,,0.26100000000000001,7
+1,bias_pollster,1990fed,ALP FP,Quadrant,,,,-0.60199999999999998,1
+1,bias_pollster,1990fed,ALP FP,Saulwick,,,,-0.40600000000000003,1
+1,bias_pollster,1990fed,DEM FP,F2F Morgan,,,,-0.13200000000000001,17
+1,bias_pollster,1990fed,DEM FP,Newspoll,,,,0.050000000000000003,7
+1,bias_pollster,1990fed,DEM FP,Saulwick,,,,0.067000000000000004,0
+1,bias_pollster,1990fed,LNP FP,F2F Morgan,,,,0.47899999999999998,17
+1,bias_pollster,1990fed,LNP FP,Newspoll,,,,-0.13,7
+1,bias_pollster,1990fed,LNP FP,Quadrant,,,,1.1000000000000001,1
+1,bias_pollster,1990fed,LNP FP,Saulwick,,,,-1.4770000000000001,1
+1,bias_pollster,1990fed,OTH FP,F2F Morgan,,,,-1.6910000000000001,17
+1,bias_pollster,1990fed,OTH FP,Newspoll,,,,-0.307,7
+1,bias_pollster,1990fed,OTH FP,Quadrant,,,,-0.32200000000000001,1
+1,bias_pollster,1990fed,OTH FP,Saulwick,,,,2.4129999999999998,1

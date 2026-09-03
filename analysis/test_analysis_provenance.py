@@ -2686,6 +2686,83 @@ class AnalysisProvenanceTests(unittest.TestCase):
         self.assertIsNone(negligible_risk)
         self.assertIsNone(pure_only_risk)
 
+    def test_cutoff_invalidation_risk_ignores_future_election_scope(self):
+        registry = {
+            "stages": [
+                {
+                    "id": "generate_cutoff_poll_trends",
+                    "inputs": ["raw_poll_data"],
+                    "outputs": ["cutoff_poll_outputs"],
+                }
+            ]
+        }
+
+        with mock.patch.object(
+            analysis_provenance,
+            "_change_categories",
+            return_value={"raw_poll_data"},
+        ), mock.patch.object(
+            analysis_provenance.trend_adjust_provenance,
+            "required_cutoff_work_units",
+            return_value={
+                "cutoff_poll_outputs:2022fed",
+                "cutoff_poll_outputs:2025fed",
+            },
+        ):
+            future_risk = analysis_provenance.cutoff_invalidation_risk(
+                ["poll-data-fed.csv"],
+                "minor",
+                {
+                    "all": False,
+                    "elections": ["2028fed"],
+                    "stages": [],
+                },
+                registry=registry,
+            )
+            historical_risk = analysis_provenance.cutoff_invalidation_risk(
+                ["poll-data-fed.csv"],
+                "minor",
+                {
+                    "all": False,
+                    "elections": ["2025fed"],
+                    "stages": [],
+                },
+                registry=registry,
+            )
+
+        self.assertIsNone(future_risk)
+        self.assertEqual(historical_risk["elections"], ["2025fed"])
+
+    def test_missing_booth_work_excludes_deferred_victoria(self):
+        with mock.patch.object(
+            analysis_provenance.booth_result_provenance,
+            "MANIFEST_PATH",
+            self.base / "missing-booth-manifest.json",
+        ):
+            missing = analysis_provenance._missing_booth_result_work_units(
+                None
+            )
+
+        self.assertIn("booth_result_archives:2022sa", missing)
+        self.assertNotIn("booth_result_archives:2022vic", missing)
+
+    def test_missing_federal_regional_work_is_election_scoped(self):
+        with mock.patch.object(
+            analysis_provenance.federal_regional_provenance,
+            "MANIFEST_PATH",
+            self.base / "missing-federal-regional-manifest.json",
+        ):
+            missing = (
+                analysis_provenance._missing_federal_regional_work_units(
+                    ["2025fed"]
+                )
+            )
+
+        self.assertEqual(
+            missing,
+            ["federal_regional_statistics:2025fed"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

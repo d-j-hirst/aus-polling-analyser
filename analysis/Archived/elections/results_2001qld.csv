@@ -69,25 +69,25 @@ Peter Beattie,Labor,15936,75.0,10.2
 Joe Vasta,Liberal,5322,25.0,-10.2
 Seat,Broadwater
 fp
-Peta-Kaye Croft,Labor,12388,52.4,23.2
-Allan Grice,National,11231,47.6,7.3
+Peta-Kaye Croft,Labor,12388,52.4,None
+Allan Grice,National,11231,47.6,None
 tcp
-Peta-Kaye Croft,Labor,12388,52.4,23.2
-Allan Grice,National,11231,47.6,7.3
+Peta-Kaye Croft,Labor,12388,52.4,None
+Allan Grice,National,11231,47.6,None
 Seat,Bulimba
 fp
-Pat Purcell,Labor,16295,73.2,16.3
-Brent Woollett,Liberal,5960,26.8,5.2
+Pat Purcell,Labor,16295,73.2,None
+Brent Woollett,Liberal,5960,26.8,None
 tcp
-Pat Purcell,Labor,16295,73.2,16.3
-Brent Woollett,Liberal,5960,26.8,5.2
+Pat Purcell,Labor,16295,73.2,None
+Brent Woollett,Liberal,5960,26.8,None
 Seat,Bundaberg
 fp
-Nita Cunningham,Labor,15812,64.9,23.0
-David Porter,National,8552,35.1,9.8
+Nita Cunningham,Labor,15812,64.9,None
+David Porter,National,8552,35.1,None
 tcp
-Nita Cunningham,Labor,15812,64.9,23.0
-David Porter,National,8552,35.1,9.8
+Nita Cunningham,Labor,15812,64.9,None
+David Porter,National,8552,35.1,None
 Seat,Bundamba
 fp
 Jo-Ann Miller,Labor,15356,71.6,23.4
@@ -115,11 +115,11 @@ Christine Smith,Labor,12062,51.8,10.3
 Judy Gamin,National,11233,48.2,-10.3
 Seat,Burnett
 fp
-Trevor Strong,Labor,11169,51.7,25.0
-Doug Slack,National,10433,48.3,16.1
+Trevor Strong,Labor,11169,51.7,None
+Doug Slack,National,10433,48.3,None
 tcp
-Trevor Strong,Labor,11169,51.7,25.0
-Doug Slack,National,10433,48.3,16.1
+Trevor Strong,Labor,11169,51.7,None
+Doug Slack,National,10433,48.3,None
 Seat,Cairns
 fp
 Desley Boyle,Labor,11170,51.5,12.9
@@ -293,11 +293,11 @@ Gary Fenlon,Labor,14791,64.1,7.7
 Andrew Edwards,Liberal,8289,35.9,-7.7
 Seat,Gregory
 fp
-Vaughan Johnson,National,10047,59.3,16.0
-Scott McDonell,Labor,6897,40.7,11.9
+Vaughan Johnson,National,10047,59.3,None
+Scott McDonell,Labor,6897,40.7,None
 tcp
-Vaughan Johnson,National,10047,59.3,16.0
-Scott McDonell,Labor,6897,40.7,11.9
+Vaughan Johnson,National,10047,59.3,None
+Scott McDonell,Labor,6897,40.7,None
 Seat,Gympie
 fp
 Rae Gate,Labor,8563,33.4,7.4
@@ -420,11 +420,11 @@ Bill Flynn,One Nation,10108,57.3,None
 Virginia Clarke,Labor,7533,42.7,None
 Seat,Logan
 fp
-John Mickel,Labor,15645,72.3,25.6
-Joy Drescher,National,6001,27.7,10.2
+John Mickel,Labor,15645,72.3,None
+Joy Drescher,National,6001,27.7,None
 tcp
-John Mickel,Labor,15645,72.3,25.6
-Joy Drescher,National,6001,27.7,10.2
+John Mickel,Labor,15645,72.3,None
+Joy Drescher,National,6001,27.7,None
 Seat,Lytton
 fp
 Paul Lucas,Labor,16305,66.9,8.0
@@ -591,11 +591,11 @@ Cate Molloy,Labor,11977,50.9,11.3
 Bruce Davidson,Liberal,11552,49.1,-11.3
 Seat,Nudgee
 fp
-Neil Roberts,Labor,18252,75.1,19.9
-Scott Taylor,Liberal,6042,24.9,1.6
+Neil Roberts,Labor,18252,75.1,None
+Scott Taylor,Liberal,6042,24.9,None
 tcp
-Neil Roberts,Labor,18252,75.1,19.9
-Scott Taylor,Liberal,6042,24.9,1.6
+Neil Roberts,Labor,18252,75.1,None
+Scott Taylor,Liberal,6042,24.9,None
 Seat,Pumicestone
 fp
 Carryn Sullivan,Labor,11360,46.3,5.9
@@ -629,11 +629,11 @@ John English,Labor,11494,56.9,7.5
 John Hegarty,National,8721,43.1,-7.5
 Seat,Robina
 fp
-Bob Quinn,Liberal,12822,54.0,9.2
-Bruce Simmonds,Labor,10909,46.0,18.9
+Bob Quinn,Liberal,12822,54.0,None
+Bruce Simmonds,Labor,10909,46.0,None
 tcp
-Bob Quinn,Liberal,12822,54.0,9.2
-Bruce Simmonds,Labor,10909,46.0,18.9
+Bob Quinn,Liberal,12822,54.0,None
+Bruce Simmonds,Labor,10909,46.0,None
 Seat,Rockhampton
 fp
 Robert Schwarten,Labor,15926,69.1,20.5
@@ -698,11 +698,11 @@ Terry Sullivan,Labor,17052,72.4,10.1
 Zenia Belcher,Liberal,6503,27.6,-10.1
 Seat,Stretton
 fp
-Stephen Robertson,Labor,14778,62.7,15.5
-David Lin,Liberal,8805,37.3,6.3
+Stephen Robertson,Labor,14778,62.7,None
+David Lin,Liberal,8805,37.3,None
 tcp
-Stephen Robertson,Labor,14778,62.7,15.5
-David Lin,Liberal,8805,37.3,6.3
+Stephen Robertson,Labor,14778,62.7,None
+David Lin,Liberal,8805,37.3,None
 Seat,Surfers Paradise
 fp
 Rob Borbidge,National,12033,49.7,-2.6

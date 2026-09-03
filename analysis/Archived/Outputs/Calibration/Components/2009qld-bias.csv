@@ -1,0 +1,26 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2009qld,GRN FP,,,,7.9329999999999998,,
+1,bias_pollster,2009qld,GRN FP,F2F Morgan,,,,-0.049000000000000002,0
+1,bias_pollster,2009qld,GRN FP,Galaxy,,,,0.34999999999999998,3
+1,bias_pollster,2009qld,GRN FP,Newspoll,,,,-0.23100000000000001,4
+1,bias_pollster,2009qld,GRN FP,TNS,,,,-0.035999999999999997,0
+1,bias_trend,2009qld,OTH FP,,,,8.1780000000000008,,
+1,bias_pollster,2009qld,OTH FP,F2F Morgan,,,,-0.153,0
+1,bias_pollster,2009qld,OTH FP,Galaxy,,,,-0.53200000000000003,4
+1,bias_pollster,2009qld,OTH FP,Newspoll,,,,0.64700000000000002,4
+1,bias_pollster,2009qld,OTH FP,TNS,,,,0.048000000000000001,0
+1,bias_trend,2009qld,LNP FP,,,,42.622,,
+1,bias_pollster,2009qld,LNP FP,F2F Morgan,,,,-0.090999999999999998,0
+1,bias_pollster,2009qld,LNP FP,Galaxy,,,,0.46800000000000003,4
+1,bias_pollster,2009qld,LNP FP,Newspoll,,,,-0.436,4
+1,bias_pollster,2009qld,LNP FP,TNS,,,,0.085999999999999993,0
+1,bias_trend,2009qld,ALP FP,,,,41.430999999999997,,
+1,bias_pollster,2009qld,ALP FP,F2F Morgan,,,,0.46999999999999997,0
+1,bias_pollster,2009qld,ALP FP,Galaxy,,,,-0.34499999999999997,4
+1,bias_pollster,2009qld,ALP FP,Newspoll,,,,-0.039,4
+1,bias_pollster,2009qld,ALP FP,TNS,,,,-0.096000000000000002,0
+1,bias_trend,2009qld,@TPP,,,,49.643000000000001,,
+1,bias_pollster,2009qld,@TPP,F2F Morgan,,,,0.29399999999999998,0
+1,bias_pollster,2009qld,@TPP,Galaxy,,,,-0.39100000000000001,4
+1,bias_pollster,2009qld,@TPP,Newspoll,,,,0.11799999999999999,4
+1,bias_pollster,2009qld,@TPP,TNS,,,,-0.063,0

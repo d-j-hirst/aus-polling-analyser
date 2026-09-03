@@ -1,0 +1,56 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2007fed,@TPP,F2F Morgan,1.3598018114943036,82.370789524016345,,,
+1,leave_one_out,2007fed,@TPP,Galaxy,1.1041285698362013,8.7722754400447727,,,
+1,leave_one_out,2007fed,@TPP,Morgan Phone,0.98575641579278162,7.2222166827059029,,,
+1,leave_one_out,2007fed,@TPP,Newspoll,1.2234734099071642,68.176892780662115,,,
+1,leave_one_out,2007fed,@TPP,Nielsen,1.4198134561904168,32.220637363169068,,,
+1,leave_one_out,2007fed,ALP FP,F2F Morgan,1.4782297478905393,81.942277098889207,,,
+1,leave_one_out,2007fed,ALP FP,Galaxy,1.456152686802892,8.4756622469581249,,,
+1,leave_one_out,2007fed,ALP FP,Morgan Phone,1.8974295328095261,6.6840169797804503,,,
+1,leave_one_out,2007fed,ALP FP,Newspoll,1.4197162055277315,68.764021112973182,,,
+1,leave_one_out,2007fed,ALP FP,Nielsen,1.4232234306088802,32.667769436423868,,,
+1,leave_one_out,2007fed,GRN FP,F2F Morgan,0.59806933639157112,85.839908054102878,,,
+1,leave_one_out,2007fed,GRN FP,Galaxy,0.58802964984204187,8.3837309870494483,,,
+1,leave_one_out,2007fed,GRN FP,Morgan Phone,1.8817244371709545,4.1960088107567817,,,
+1,leave_one_out,2007fed,GRN FP,Newspoll,0.72793150110899374,69.991440198948538,,,
+1,leave_one_out,2007fed,GRN FP,Nielsen,1.0275670277232705,31.851893510445255,,,
+1,leave_one_out,2007fed,LNP FP,F2F Morgan,1.3768219895760274,81.896141752326756,,,
+1,leave_one_out,2007fed,LNP FP,Galaxy,0.88784561880225288,9.3504148384430739,,,
+1,leave_one_out,2007fed,LNP FP,Morgan Phone,0.88578006723403024,7.2526587488060699,,,
+1,leave_one_out,2007fed,LNP FP,Newspoll,1.3203146203887433,66.670385941763001,,,
+1,leave_one_out,2007fed,LNP FP,Nielsen,1.5347067073685927,31.629844047721541,,,
+1,leave_one_out,2007fed,OTH FP,F2F Morgan,0.7400211962861023,82.072701715849476,,,
+1,leave_one_out,2007fed,OTH FP,Galaxy,1.1453104271572168,8.7669750526058454,,,
+1,leave_one_out,2007fed,OTH FP,Morgan Phone,0.56492738250623697,7.1721127803352385,,,
+1,leave_one_out,2007fed,OTH FP,Newspoll,0.97183009895779227,66.064381975851916,,,
+1,leave_one_out,2007fed,OTH FP,Nielsen,0.95721442027371995,33.850863350161639,,,
+1,bias_trend,2007fed,@TPP,,,,53.735999999999997,,
+1,bias_trend,2007fed,ALP FP,,,,44.728999999999999,,
+1,bias_trend,2007fed,GRN FP,,,,8.0830000000000002,,
+1,bias_trend,2007fed,LNP FP,,,,41.789000000000001,,
+1,bias_trend,2007fed,OTH FP,,,,5.601,,
+1,bias_pollster,2007fed,@TPP,F2F Morgan,,,,1.5489999999999999,20
+1,bias_pollster,2007fed,@TPP,Galaxy,,,,-1.0580000000000001,8
+1,bias_pollster,2007fed,@TPP,Morgan Phone,,,,0.193,8
+1,bias_pollster,2007fed,@TPP,Newspoll,,,,-0.627,16
+1,bias_pollster,2007fed,@TPP,Nielsen,,,,-0.064000000000000001,9
+1,bias_pollster,2007fed,ALP FP,F2F Morgan,,,,1.9159999999999999,20
+1,bias_pollster,2007fed,ALP FP,Galaxy,,,,-1.9410000000000001,8
+1,bias_pollster,2007fed,ALP FP,Morgan Phone,,,,-0.63200000000000001,8
+1,bias_pollster,2007fed,ALP FP,Newspoll,,,,0.31,16
+1,bias_pollster,2007fed,ALP FP,Nielsen,,,,0.32700000000000001,9
+1,bias_pollster,2007fed,GRN FP,F2F Morgan,,,,-0.30299999999999999,20
+1,bias_pollster,2007fed,GRN FP,Galaxy,,,,1.766,7
+1,bias_pollster,2007fed,GRN FP,Morgan Phone,,,,1.0049999999999999,6
+1,bias_pollster,2007fed,GRN FP,Newspoll,,,,-2.403,16
+1,bias_pollster,2007fed,GRN FP,Nielsen,,,,-0.063,9
+1,bias_pollster,2007fed,LNP FP,F2F Morgan,,,,-1.3899999999999999,20
+1,bias_pollster,2007fed,LNP FP,Galaxy,,,,1.456,8
+1,bias_pollster,2007fed,LNP FP,Morgan Phone,,,,-0.74399999999999999,8
+1,bias_pollster,2007fed,LNP FP,Newspoll,,,,0.10199999999999999,16
+1,bias_pollster,2007fed,LNP FP,Nielsen,,,,0.57399999999999995,9
+1,bias_pollster,2007fed,OTH FP,F2F Morgan,,,,-0.16400000000000001,20
+1,bias_pollster,2007fed,OTH FP,Galaxy,,,,-1.202,8
+1,bias_pollster,2007fed,OTH FP,Morgan Phone,,,,0.45200000000000001,8
+1,bias_pollster,2007fed,OTH FP,Newspoll,,,,1.748,16
+1,bias_pollster,2007fed,OTH FP,Nielsen,,,,-0.83699999999999997,9

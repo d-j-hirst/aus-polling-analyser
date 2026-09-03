@@ -25,9 +25,11 @@ from pathlib import Path
 
 import generated_provenance
 import approvals_provenance
+import booth_result_provenance
 import required_work
 import calibration_provenance
 import calibration_summary_provenance
+import federal_regional_provenance
 import pipeline_registry
 import pollster_analysis_provenance
 import provenance_maintenance
@@ -42,6 +44,7 @@ except ImportError:
 
 
 ANALYSIS_DIRECTORY = Path(__file__).resolve().parent
+REPOSITORY_DIRECTORY = ANALYSIS_DIRECTORY.parent
 SOURCE_MANIFEST_PATHS = (
     ANALYSIS_DIRECTORY / "provenance.json",
     ANALYSIS_DIRECTORY / "Data" / "provenance.json",
@@ -49,6 +52,7 @@ SOURCE_MANIFEST_PATHS = (
     ANALYSIS_DIRECTORY / "Models" / "provenance.json",
     ANALYSIS_DIRECTORY / "seats" / "provenance.json",
     ANALYSIS_DIRECTORY / "Federal-State" / "provenance.json",
+    REPOSITORY_DIRECTORY / "downloads" / "provenance.json",
 )
 GENERATED_MANIFEST_PATHS = (
     ANALYSIS_DIRECTORY / "elections" / "generated-provenance.json",
@@ -80,6 +84,9 @@ GENERATED_MANIFEST_PATHS = (
     / "generated-provenance.json",
     ANALYSIS_DIRECTORY
     / "Regional"
+    / "generated-provenance.json",
+    ANALYSIS_DIRECTORY
+    / "Booth Results"
     / "generated-provenance.json",
 )
 # Canonical registration choices. Aliases minor/material/major are still
@@ -1321,6 +1328,32 @@ def _missing_regional_work_units(target_elections):
     return sorted(set(required) - recorded)
 
 
+def _missing_booth_result_work_units(target_elections):
+    required = booth_result_provenance.required_work_units(
+        target_elections
+    )
+    manifest_path = booth_result_provenance.MANIFEST_PATH
+    if manifest_path.is_file():
+        manifest = generated_provenance.load_manifest(manifest_path)
+        recorded = set(manifest["records"])
+    else:
+        recorded = set()
+    return sorted(set(required) - recorded)
+
+
+def _missing_federal_regional_work_units(target_elections):
+    required = federal_regional_provenance.required_work_units(
+        target_elections
+    )
+    manifest_path = federal_regional_provenance.MANIFEST_PATH
+    if manifest_path.is_file():
+        manifest = generated_provenance.load_manifest(manifest_path)
+        recorded = set(manifest["records"])
+    else:
+        recorded = set()
+    return sorted(set(required) - recorded)
+
+
 def _missing_cutoff_work_units(target_elections):
     required = trend_adjust_provenance.required_cutoff_work_units(
         target_elections
@@ -2040,12 +2073,160 @@ def audit_repository(
                 )
             )
 
+    audited_generated_paths = {
+        Path(path).resolve()
+        for path in generated_manifest_paths
+    }
+    audits_federal_regional_outputs = (
+        federal_regional_provenance.MANIFEST_PATH.resolve()
+        in audited_generated_paths
+    )
+    if audits_federal_regional_outputs:
+        missing_federal_regional = []
+        try:
+            missing_federal_regional = (
+                _missing_federal_regional_work_units(target_elections)
+            )
+        except (
+            generated_provenance.GeneratedProvenanceError,
+            OSError,
+        ) as error:
+            internal_errors.append(
+                "could not determine required federal regional work: {}"
+                .format(error)
+            )
+        for record_key in missing_federal_regional:
+            _, election = record_key.split(":", 1)
+            work_units.append(
+                {
+                    "id": _generated_work_unit_id(
+                        federal_regional_provenance.MANIFEST_PATH,
+                        record_key,
+                    ),
+                    "record_key": record_key,
+                    "category": "federal_regional_statistics",
+                    "stage": "analyse_elections",
+                    "scope": generated_provenance.generation_scope(
+                        elections=[election],
+                    ),
+                    "manifest": _manifest_label(
+                        federal_regional_provenance.MANIFEST_PATH
+                    ),
+                    "target_match": True,
+                    "dependencies": [],
+                    "status": "missing",
+                    "blocking": False,
+                    "path_classes": [PATH_IMMEDIATE],
+                    "issues": [
+                        {
+                            "code": "missing_record",
+                            "root_category":
+                                "federal_regional_statistics",
+                            "message":
+                                "required work unit has no generated record",
+                        }
+                    ],
+                }
+            )
+        if missing_federal_regional:
+            shown = missing_federal_regional[:WORK_UNIT_EXAMPLE_LIMIT]
+            suffix = ""
+            if len(missing_federal_regional) > len(shown):
+                suffix = ", ... (+{} more)".format(
+                    len(missing_federal_regional) - len(shown)
+                )
+            root_causes["federal_regional_statistics"].add(
+                "{} required work unit(s) have no generated record; "
+                "work units: {}{}".format(
+                    len(missing_federal_regional),
+                    ", ".join(
+                        key.replace("federal_regional_statistics:", "")
+                        for key in shown
+                    ),
+                    suffix,
+                )
+            )
+            root_path_modes["federal_regional_statistics"].add(
+                PATH_IMMEDIATE
+            )
+            impact_seeds.add(
+                ("federal_regional_statistics", PATH_IMMEDIATE)
+            )
+
+    audits_booth_outputs = (
+        booth_result_provenance.MANIFEST_PATH.resolve()
+        in audited_generated_paths
+    )
+    if audits_booth_outputs:
+        missing_booth_work_units = []
+        try:
+            missing_booth_work_units = _missing_booth_result_work_units(
+                target_elections
+            )
+        except (
+            generated_provenance.GeneratedProvenanceError,
+            OSError,
+        ) as error:
+            internal_errors.append(
+                "could not determine required booth-result work: {}"
+                .format(error)
+            )
+        for record_key in missing_booth_work_units:
+            _, election = record_key.split(":", 1)
+            work_units.append(
+                {
+                    "id": _generated_work_unit_id(
+                        booth_result_provenance.MANIFEST_PATH,
+                        record_key,
+                    ),
+                    "record_key": record_key,
+                    "category": "booth_result_archives",
+                    "stage": "fetch_live_booth_results",
+                    "scope": generated_provenance.generation_scope(
+                        elections=[election],
+                    ),
+                    "manifest": _manifest_label(
+                        booth_result_provenance.MANIFEST_PATH
+                    ),
+                    "target_match": True,
+                    "dependencies": [],
+                    "status": "missing",
+                    "blocking": False,
+                    "path_classes": [PATH_IMMEDIATE],
+                    "issues": [
+                        {
+                            "code": "missing_record",
+                            "root_category": "booth_result_archives",
+                            "message":
+                                "required work unit has no generated record",
+                        }
+                    ],
+                }
+            )
+        if missing_booth_work_units:
+            shown = missing_booth_work_units[:WORK_UNIT_EXAMPLE_LIMIT]
+            suffix = ""
+            if len(missing_booth_work_units) > len(shown):
+                suffix = ", ... (+{} more)".format(
+                    len(missing_booth_work_units) - len(shown)
+                )
+            root_causes["booth_result_archives"].add(
+                "{} required work unit(s) have no generated record; "
+                "work units: {}{}".format(
+                    len(missing_booth_work_units),
+                    ", ".join(
+                        key.replace("booth_result_archives:", "")
+                        for key in shown
+                    ),
+                    suffix,
+                )
+            )
+            root_path_modes["booth_result_archives"].add(PATH_IMMEDIATE)
+            impact_seeds.add(("booth_result_archives", PATH_IMMEDIATE))
+
     audits_regional_outputs = (
         region_model_provenance.MANIFEST_PATH.resolve()
-        in {
-            Path(path).resolve()
-            for path in generated_manifest_paths
-        }
+        in audited_generated_paths
     )
     if audits_regional_outputs:
         missing_regional_work_units = []
@@ -2594,9 +2775,27 @@ def cutoff_invalidation_risk(
     scoped_stages = set(scope.get("stages", []))
     if scoped_stages and scoped_stages.isdisjoint(cutoff_stages):
         return None
+
+    # A specifically scoped future election has no cutoff of its own. Its
+    # frequently changing polls may appear in recorded lineage, but the
+    # cutoff staleness rules deliberately tolerate that current-cycle input.
+    scoped_elections = set(scope.get("elections", []))
+    if not scope.get("all") and scoped_elections:
+        cutoff_elections = {
+            record_key.split(":", 1)[1]
+            for record_key in (
+                trend_adjust_provenance.required_cutoff_work_units()
+            )
+        }
+        affected_elections = sorted(scoped_elections & cutoff_elections)
+        if not affected_elections:
+            return None
+    else:
+        affected_elections = []
     return {
         "categories": affected_categories,
         "stages": sorted(cutoff_stages),
+        "elections": affected_elections,
     }
 
 

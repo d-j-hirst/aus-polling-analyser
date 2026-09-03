@@ -412,7 +412,8 @@ copies to a temporary sibling directory, verifies every copied file against its
 manifest and only then replaces `Archived/`.
 
 Archive payloads contain full generated/cache roots such as `Outputs`,
-`Adjustments`, `Fundamentals`, `Seat Statistics`, `Nationals` and `elections`.
+`Adjustments`, `Fundamentals`, `Seat Statistics`, `Nationals`, `elections` and
+`Booth Results`.
 For the mixed `Regional` and `Federal-State` directories they contain only
 generated files, never authored regional polls or booth mappings. Diagnostic
 calibration traces, incomplete staging files, local calibration checkpoints,
@@ -422,6 +423,11 @@ excluded. Compact `Outputs/Calibration/Summaries/` files and versioned
 `Outputs/Calibration/Seeds/` manifests are retained in a new archive. Archives
 created before this workflow lack the validation manifest and are legacy
 reference data, not reproducible restore inputs.
+
+The booth-result root contains only the supported generated historical JSON
+and its filtered generated manifest. Live support XML under `../downloads`
+remains manual setup and is never part of this archive. `2022vic.json` is not a
+supported work unit until a reproducible generator is added.
 
 ## Source Provenance
 

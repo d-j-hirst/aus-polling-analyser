@@ -1,44 +1,38 @@
-import requests
+import argparse
 import time
 import json
-import datetime
-import environ
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions
-from selenium.common.exceptions import NoSuchElementException
-
-import environ
-
-env = environ.Env(
-    DEBUG=(int, 0)
-)
-
-# reading .env file
-environ.Env.read_env('fetch_election_data.env')
+import os.path
 
 election = '2019nsw'
+driver = None
+By = None
 
 urls = {
     '2015nsw': 'https://pastvtr.elections.nsw.gov.au/SGE2015/la-home.htm',
     '2019nsw': 'https://pastvtr.elections.nsw.gov.au/sg1901/la/results',
 }
 
-options = Options()
-options.add_argument('headless')
-options.add_argument("no-sandbox")
-options.add_argument('window-size=1920x1080')
-options.add_argument("disable-gpu")
-# This assumes running Linux/wsl2 and you have installed chromedriver
-# according to instructions here:
-# https://cloudbytes.dev/snippets/run-selenium-and-chrome-on-wsl2
-service_path = f"/home/{env.str('USERNAME')}/chromedriver/stable/chromedriver"
-webdriver_service = Service(service_path)
-driver = webdriver.Chrome(service=webdriver_service, options=options)
+def create_driver():
+    global By
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By as SeleniumBy
+
+    By = SeleniumBy
+    options = Options()
+    options.add_argument('headless')
+    options.add_argument("no-sandbox")
+    options.add_argument('window-size=1920x1080')
+    options.add_argument("disable-gpu")
+    # This assumes running Linux/wsl2 and you have installed chromedriver
+    # according to instructions here:
+    # https://cloudbytes.dev/snippets/run-selenium-and-chrome-on-wsl2
+    homedir = os.path.expanduser("~")
+    options.binary_location = f"{homedir}/chrome-linux64/chrome"
+    service_path = f"{homedir}/chromedriver-linux64/chromedriver"
+    webdriver_service = Service(service_path)
+    return webdriver.Chrome(service=webdriver_service, options=options)
 
 skip_booths = [
     'Polling Places',
@@ -305,19 +299,39 @@ def add_tcps(tcp_link):
 all_results = {}
 candidate_map = {}
 
-dop_links = get_dop_list()
-for dop_link in dop_links:
-    seat_name, candidates = get_candidate_names(dop_link)
-    candidate_map[seat_name] = candidates
 
-fp_links = get_fp_list()
-for fp_link in fp_links:
-    seat_name, seat_info = get_fps(fp_link)
-    all_results[seat_name] = seat_info
-       
-tcp_links = get_tcp_list()
-for tcp_link in tcp_links:
-    add_tcps(tcp_link)
+def main(argv=None):
+    global driver, election, all_results, candidate_map
+    parser = argparse.ArgumentParser(
+        description='Fetch archived NSW booth results.')
+    parser.add_argument('--election', choices=sorted(urls), default=election)
+    args = parser.parse_args(argv)
+    election = args.election
+    all_results = {}
+    candidate_map = {}
+    driver = create_driver()
+    try:
+        dop_links = get_dop_list()
+        for dop_link in dop_links:
+            seat_name, candidates = get_candidate_names(dop_link)
+            candidate_map[seat_name] = candidates
 
-with open(f'Booth Results/{election}.json', 'w') as f:
-    json.dump(all_results, f, indent=4)
+        fp_links = get_fp_list()
+        for fp_link in fp_links:
+            seat_name, seat_info = get_fps(fp_link)
+            all_results[seat_name] = seat_info
+
+        tcp_links = get_tcp_list()
+        for tcp_link in tcp_links:
+            add_tcps(tcp_link)
+
+        with open(f'Booth Results/{election}.json', 'w') as f:
+            json.dump(all_results, f, indent=4)
+            f.write('\n')
+    finally:
+        driver.quit()
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

@@ -1,5 +1,6 @@
 import importlib.util
 import sys
+import tempfile
 import types
 import unittest
 from pathlib import Path
@@ -126,6 +127,68 @@ class ElectionAnalysisTests(unittest.TestCase):
         self.assertEqual(region_errors["all"], [0.25, 1, 2])
         self.assertEqual(region_errors["NSW"], [0.5, 1])
         self.assertEqual(region_errors["VIC"], [2])
+
+    def test_provenance_publishes_each_supported_federal_term(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            base = Path(temporary_directory)
+            regional = base / "Regional"
+            regional.mkdir()
+
+            def output_paths(election):
+                paths = [
+                    regional / "{}-{}.csv".format(election, index)
+                    for index in range(4)
+                ]
+                for path in paths:
+                    path.write_text("data\n", encoding="utf-8")
+                return paths
+
+            captured = {}
+
+            def update_manifest(path, records, runs, **kwargs):
+                captured.update(records)
+
+            provenance = self.analysis.generated_provenance
+            with mock.patch.object(
+                self.analysis, "ANALYSIS_DIRECTORY", base
+            ), mock.patch.object(
+                self.analysis.federal_regional_provenance,
+                "output_paths",
+                side_effect=output_paths,
+            ), mock.patch.object(
+                provenance, "source_manifest_dependency", return_value={}
+            ), mock.patch.object(
+                provenance, "load_manifest",
+                return_value={"records": {}},
+            ), mock.patch.object(
+                provenance, "generated_manifest_dependency", return_value={}
+            ), mock.patch.object(
+                provenance, "current_source_revision", return_value="revision"
+            ), mock.patch.object(
+                provenance, "current_environment", return_value={}
+            ), mock.patch.object(
+                provenance, "generation_run",
+                return_value=("run", {"command": []}),
+            ), mock.patch.object(
+                provenance, "generation_record",
+                side_effect=lambda **kwargs: kwargs,
+            ), mock.patch.object(
+                provenance, "output_fingerprints",
+                side_effect=lambda paths, _base: {
+                    str(path): {} for path in paths
+                },
+            ), mock.patch.object(
+                provenance, "update_manifest", side_effect=update_manifest
+            ):
+                self.analysis.record_generated_provenance()
+
+        self.assertTrue(
+            {
+                "federal_regional_statistics:2022fed",
+                "federal_regional_statistics:2025fed",
+                "federal_regional_statistics:2028fed",
+            }.issubset(captured)
+        )
 
 
 if __name__ == "__main__":

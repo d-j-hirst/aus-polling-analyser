@@ -1,3 +1,4 @@
+Banks,fed,1.0286
 Adelaide,fed,0.8973
 Brand,fed,0.6291
 Fraser,fed,1.3351
@@ -58,7 +59,7 @@ Hotham,fed,1.0539
 Isaacs,fed,1.3252
 Jagajaga,fed,1.0972
 Kennedy,fed,0.6771
-Kingston,fed,1.1298
+Kingston,fed,1.1297
 Kooyong,fed,1.2664
 Lalor,fed,0.9972
 La Trobe,fed,1.4982
@@ -90,7 +91,6 @@ Wakefield,fed,0.7551
 Warringah,fed,1.0277
 Wentworth,fed,1.0979
 Wide Bay,fed,0.7833
-Banks,fed,1.0350
 Barton,fed,0.7026
 Blaxland,fed,0.6818
 Bradfield,fed,1.2911
@@ -489,17 +489,18 @@ East Melville,wa,1.9361
 Kalamunda,wa,1.0615
 Karrinyup,wa,1.2420
 Mount Lawley,wa,1.1366
-Bean,fed,1.0328
+Bean,fed,1.0327
 Bonner,fed,1.0475
+Bullwinkel,fed,1.0475
 Burt,fed,1.0475
-Clark,fed,1.0328
-Cooper,fed,1.0328
+Clark,fed,1.0327
+Cooper,fed,1.0327
 Durack,fed,0.7785
-Fenner,fed,1.0328
+Fenner,fed,1.0327
 Flynn,fed,0.7785
 Gorton,fed,1.0475
 Hawke,fed,0.8961
-Macnamara,fed,1.0328
+Macnamara,fed,1.0327
 McMahon,fed,1.0475
 Monash,fed,0.7785
 Nicholls,fed,0.7785
@@ -507,112 +508,121 @@ Spence,fed,0.5153
 Whitlam,fed,0.8961
 Wright,fed,0.7785
 Bland,fed,0.7785
-Namadgi,fed,1.0328
+Namadgi,fed,1.0327
 Castle Hill,nsw,1.0475
-Cootamundra,nsw,1.0328
+Cootamundra,nsw,1.0327
 Eden-Bombala,nsw,0.7785
 Goulburn,nsw,0.7785
 Holsworthy,nsw,1.0475
+Kellyville,nsw,1.0475
 Leppington,nsw,1.0475
-Newtown,nsw,1.0328
-Oatley,nsw,1.0328
+Newtown,nsw,1.0327
+Oatley,nsw,1.0327
 Prospect,nsw,1.0475
 Shellharbour,nsw,0.8961
-Summer Hill,nsw,1.0328
-Sydney,nsw,1.0328
+Summer Hill,nsw,1.0327
+Sydney,nsw,1.0327
 Terrigal,nsw,0.8961
 Upper Hunter,nsw,0.7785
 Wollondilly,nsw,0.7785
 Armidale,nsw,0.8961
 Badgerys Creek,nsw,1.0475
-Bass Hill,nsw,1.0328
+Bass Hill,nsw,1.0327
 Burragorang,nsw,0.7785
 Burrendong,nsw,0.7785
-Carlingford,nsw,1.0328
-Fuller,nsw,1.0328
+Carlingford,nsw,1.0327
+Fuller,nsw,1.0327
 Gloucester,nsw,0.7785
 Ingleburn,nsw,1.0475
-Kirribilli,nsw,1.0328
+Kirribilli,nsw,1.0327
 Manning,nsw,0.7785
-Merrylands,nsw,1.0328
+Merrylands,nsw,1.0327
 Minchinbury,nsw,1.0475
 Munmorah,nsw,0.8961
 Nepean,nsw,1.0475
-Phillip,nsw,1.0328
-Pyrmont,nsw,1.0328
+Phillip,nsw,1.0327
+Pyrmont,nsw,1.0327
 Raleigh,nsw,0.7785
 Sturt,nsw,0.7785
 Temora,nsw,0.7785
 Tenterfield,nsw,0.7785
 Toongabbie,nsw,1.0475
-Waverley,nsw,1.0328
+Waverley,nsw,1.0327
+Wahroonga,nsw,1.0327
+Winston Hills,nsw,1.0327
 Woronara,nsw,1.0475
-Yaralla,nsw,1.0328
+Yaralla,nsw,1.0327
 Young,nsw,0.7785
-Albert Park,vic,1.0328
+Albert Park,vic,1.0327
 Altona,vic,1.0475
+Ashwood,vic,1.0327
 Bass,vic,0.7785
 Bayswater,vic,1.0475
 Benambra,vic,0.8961
 Bendigo East,vic,0.8961
 Bendigo West,vic,0.8961
-Bentleigh,vic,1.0328
-Box Hill,vic,1.0328
-Brighton,vic,1.0328
+Bentleigh,vic,1.0327
+Box Hill,vic,1.0327
+Brighton,vic,1.0327
 Broadmeadows,vic,1.0475
-Brunswick,vic,1.0328
-Bulleen,vic,1.0328
+Brunswick,vic,1.0327
+Bulleen,vic,1.0327
 Bundoora,vic,1.0475
 Buninyong,vic,0.8961
-Burwood,vic,1.0328
+Burwood,vic,1.0327
 Carrum,vic,1.0475
-Caulfield,vic,1.0328
+Caulfield,vic,1.0327
 Clarinda,vic,1.0475
 Cranbourne,vic,1.0475
 Croydon,vic,1.0475
 Dandenong,vic,1.0475
 Eildon,vic,0.7785
-Essendon,vic,1.0328
+Essendon,vic,1.0327
+Eureka,vic,0.8961
 Euroa,vic,0.7785
 Evelyn,vic,1.0475
 Ferntree Gully,vic,1.0475
-Footscray,vic,1.0328
-Forest Hill,vic,1.0328
+Footscray,vic,1.0327
+Forest Hill,vic,1.0327
 Frankston,vic,1.0475
 Geelong,vic,0.8961
 Gembrook,vic,1.0475
 Gippsland East,vic,0.7785
 Gippsland South,vic,0.7785
+Greenvale,vic,1.0475
 Hastings,vic,1.0475
-Hawthorn,vic,1.0328
+Hawthorn,vic,1.0327
 Ivanhoe,vic,1.0475
+Kalkallo,vic,1.0475
 Keysborough,vic,1.0475
 Kororoit,vic,1.0475
 Lara,vic,0.8961
+Laverton,vic,1.0475
 Lowan,vic,0.7785
 Macedon,vic,0.8961
-Malvern,vic,1.0328
+Malvern,vic,1.0327
 Melton,vic,1.0475
 Mordialloc,vic,1.0475
 Mornington,vic,1.0475
 Morwell,vic,0.8961
-Mulgrave,vic,1.0328
+Mulgrave,vic,1.0327
 Murray Plains,vic,0.7785
 Narre Warren North,vic,1.0475
 Narre Warren South,vic,1.0475
 Nepean,vic,1.0475
 Niddrie,vic,1.0475
-Northcote,vic,1.0328
-Oakleigh,vic,1.0328
+Northcote,vic,1.0327
+Oakleigh,vic,1.0327
 Ovens Valley,vic,0.7785
 Pascoe Vale,vic,1.0475
+Point Cook,vic,1.0475
 Polwarth,vic,0.7785
-Preston,vic,1.0328
+Preston,vic,1.0327
 Ringwood,vic,1.0475
 Ripon,vic,0.7785
 Rowville,vic,1.0475
 St Albans,vic,1.0475
-Sandringham,vic,1.0328
+Sandringham,vic,1.0327
 Shepparton,vic,0.8961
 South-West Coast,vic,0.8961
 Sunbury,vic,1.0475
@@ -622,20 +632,20 @@ Thomastown,vic,1.0475
 Warrandyte,vic,1.0475
 Wendouree,vic,0.8961
 Werribee,vic,1.0475
-Williamstown,vic,1.0328
+Williamstown,vic,1.0327
 Yan Yean,vic,1.0475
 Yuroke,vic,1.0475
-Ascot Vale,vic,1.0328
+Ascot Vale,vic,1.0327
 Ballarat East,vic,0.8961
 Ballarat North,vic,0.8961
 Ballarat South,vic,0.8961
 Ballarat West,vic,0.8961
-Balwyn,vic,1.0328
+Balwyn,vic,1.0327
 Benalla,vic,0.7785
 Bendigo,vic,0.8961
-Bennettswood,vic,1.0328
+Bennettswood,vic,1.0327
 Berwick,vic,1.0475
-Coburg,vic,1.0328
+Coburg,vic,1.0327
 Dandenong North,vic,1.0475
 Derrimut,vic,1.0475
 Doncaster,vic,1.0475
@@ -647,16 +657,16 @@ Geelong East,vic,0.8961
 Geelong North,vic,0.8961
 Geelong West,vic,0.8961
 Gippsland West,vic,0.7785
-Glen Waverley,vic,1.0328
-Glenhuntly,vic,1.0328
+Glen Waverley,vic,1.0327
+Glenhuntly,vic,1.0327
 Glenroy,vic,1.0475
 Greensborough,vic,1.0475
 Heatherton,vic,1.0475
 Keilor,vic,1.0475
 Kilsyth,vic,1.0475
-Knox,vic,1.0328
+Knox,vic,1.0327
 Lyndhurst,vic,1.0475
-Mentone,vic,1.0328
+Mentone,vic,1.0327
 Midlands,vic,0.7785
 Mitcham,vic,1.0475
 Mooroolbark,vic,1.0475
@@ -664,17 +674,17 @@ Murray Valley,vic,0.7785
 Noble Park,vic,1.0475
 Pakenham,vic,1.0475
 Portland,vic,0.7785
-Reservoir,vic,1.0328
+Reservoir,vic,1.0327
 Rodney,vic,0.7785
-St Kilda,vic,1.0328
-Scoresby,vic,1.0328
+St Kilda,vic,1.0327
+Scoresby,vic,1.0327
 Seymour,vic,0.7785
-Springvale,vic,1.0328
-Sunshine,vic,1.0328
+Springvale,vic,1.0327
+Sunshine,vic,1.0327
 Swan Hill,vic,0.7785
-Syndal,vic,1.0328
+Syndal,vic,1.0327
 Tullamarine,vic,1.0475
-Wantirna,vic,1.0328
+Wantirna,vic,1.0327
 Warrnambool,vic,0.8961
 Westernport,vic,1.0475
 Whittlesea,vic,0.7785
@@ -686,8 +696,8 @@ Broadwater,qld,0.8961
 Buderim,qld,0.8961
 Burnett,qld,0.7785
 Callide,qld,0.7785
-Capalaba,qld,1.0328
-Chatsworth,qld,1.0328
+Capalaba,qld,1.0327
+Chatsworth,qld,1.0327
 Condamine,qld,0.7785
 Coomera,qld,0.8961
 Cooper,qld,1.0475
@@ -700,18 +710,18 @@ Jordan,qld,1.0475
 Kawana,qld,0.8961
 Macalister,qld,1.0475
 Mackay,qld,0.8961
-Maiwar,qld,1.0328
-McConnel,qld,1.0328
+Maiwar,qld,1.0327
+McConnel,qld,1.0327
 Mermaid Beach,qld,0.8961
-Miller,qld,1.0328
+Miller,qld,1.0327
 Mirani,qld,0.7785
 Morayfield,qld,1.0475
 Mudgeeraba,qld,0.8961
 Nanango,qld,0.7785
 Ninderry,qld,0.8961
 Noosa,qld,0.8961
-Nudgee,qld,1.0328
-Oodgeroo,qld,1.0328
+Nudgee,qld,1.0327
+Oodgeroo,qld,1.0327
 Pumicestone,qld,1.0475
 Sandgate,qld,1.0475
 Scenic Rim,qld,0.7785
@@ -736,38 +746,38 @@ Dalrymple,qld,0.7785
 Darling Downs,qld,0.7785
 Fassifern,qld,0.7785
 Flinders,qld,0.7785
-Ithaca,qld,1.0328
+Ithaca,qld,1.0327
 Kallangur,qld,1.0475
-Kurilpa,qld,1.0328
+Kurilpa,qld,1.0327
 Landsborough,qld,0.8961
 Mooloolah,qld,0.8961
 Mourilyan,qld,0.7785
-Nundah,qld,1.0328
+Nundah,qld,1.0327
 Peak Downs,qld,0.7785
 Port Curtis,qld,0.8961
 Robina,qld,0.8961
 Rockhampton North,qld,0.8961
 Rockhampton South,qld,0.8961
-Salisbury,qld,1.0328
-Sherwood,qld,1.0328
+Salisbury,qld,1.0327
+Sherwood,qld,1.0327
 Somerset,qld,0.7785
 South Coast,qld,0.8961
 Townsville East,qld,0.8961
 Townsville South,qld,0.8961
 Townsville West,qld,0.8961
-Wavell,qld,1.0328
+Wavell,qld,1.0327
 Western Downs,qld,0.7785
-Windsor,qld,1.0328
+Windsor,qld,1.0327
 Wolston,qld,1.0475
-Wynnum,qld,1.0328
-Yeerongpilly,qld,1.0328
-Yeronga,qld,1.0328
+Wynnum,qld,1.0327
+Yeerongpilly,qld,1.0327
+Yeronga,qld,1.0327
 Baldivis,wa,1.0475
-Bateman,wa,1.0328
-Bicton,wa,1.0328
+Bateman,wa,1.0327
+Bicton,wa,1.0327
 Burns Beach,wa,1.0475
 Butler,wa,1.0475
-Cannington,wa,1.0328
+Cannington,wa,1.0327
 Central Wheatbelt,wa,0.7785
 Eyre,wa,0.7785
 Forrestfield,wa,1.0475
@@ -777,21 +787,21 @@ Kwinana,wa,1.0475
 Landsdale,wa,1.0475
 Mirrabooka,wa,1.0475
 Moore,wa,0.7785
-Morley,wa,1.0328
+Morley,wa,1.0327
 North West Central,wa,0.7785
 Roe,wa,0.7785
 Wagin,wa,0.7785
 Warnbro,wa,1.0475
 West Swan,wa,1.0475
-Ascot,wa,1.0328
+Ascot,wa,1.0327
 Ashburton,wa,0.7785
 Avon,wa,0.7785
-Balga,wa,1.0328
+Balga,wa,1.0327
 Blackwood-Stirling,wa,0.7785
 Burrup,wa,0.7785
 Canning,wa,1.0475
 Capel,wa,0.7785
-Clontarf,wa,1.0328
+Clontarf,wa,1.0327
 Esperance-Dundas,wa,0.7785
 Gascoyne,wa,0.7785
 Gosnells,wa,1.0475
@@ -801,36 +811,36 @@ Katanning,wa,0.7785
 Marangaroo,wa,1.0475
 Merredin,wa,0.7785
 Mindarie,wa,1.0475
-Mount Hawthorn,wa,1.0328
-Mount Leonora,wa,1.0328
+Mount Hawthorn,wa,1.0327
+Mount Leonora,wa,1.0327
 Mount Marshall,wa,0.7785
 Murchison-Eyre,wa,0.7785
 Narrogin,wa,0.7785
 Ocean Reef,wa,1.0475
 Serpentine-Jarrahdale,wa,1.0475
-Subiaco,wa,1.0328
+Subiaco,wa,1.0327
 Swan,wa,1.0475
-Welshpool,wa,1.0328
+Welshpool,wa,1.0327
 Yilgarn-Dundas,wa,0.7785
-Badcoe,sa,1.0328
+Badcoe,sa,1.0327
 Black,sa,1.0475
-Dunstan,sa,1.0328
-Gibson,sa,1.0328
+Dunstan,sa,1.0327
+Gibson,sa,1.0327
 Hurtle Vale,sa,1.0475
 King,sa,1.0475
 Narungga,sa,0.7785
-Albert Park,sa,1.0328
+Albert Park,sa,1.0327
 Alexandra,sa,0.7785
-Ascot Park,sa,1.0328
+Ascot Park,sa,1.0327
 Baudin,sa,1.0475
 Briggs,sa,1.0475
 Brighton,sa,1.0475
 Custance,sa,0.7785
 Eyre,sa,0.7785
 Gawler,sa,1.0475
-Glenelg,sa,1.0328
+Glenelg,sa,1.0327
 Hayward,sa,1.0475
-Henley Beach,sa,1.0328
+Henley Beach,sa,1.0327
 Little Para,sa,1.0475
 Mallee,sa,0.7785
 Murray,sa,0.7785
@@ -838,10 +848,10 @@ Murray-Mallee,sa,0.7785
 Ridley,sa,0.7785
 Rocky River,sa,0.7785
 Salisbury,sa,1.0475
-Semaphore,sa,1.0328
+Semaphore,sa,1.0327
 Tea Tree Gully,sa,1.0475
 Todd,sa,1.0475
 Victoria,sa,0.7785
-Walsh,sa,1.0328
+Walsh,sa,1.0327
 Whyalla,sa,0.7785
 Wooroora,sa,0.7785

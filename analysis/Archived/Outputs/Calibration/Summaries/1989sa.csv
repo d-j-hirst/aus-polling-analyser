@@ -1,0 +1,9 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,1989sa,@TPP,,,,48.161000000000001,,
+1,bias_trend,1989sa,ALP FP,,,,40.308999999999997,,
+1,bias_trend,1989sa,LNP FP,,,,44.445999999999998,,
+1,bias_trend,1989sa,OTH FP,,,,4.2270000000000003,,
+1,bias_pollster,1989sa,@TPP,Newspoll,,,,-0,2
+1,bias_pollster,1989sa,ALP FP,Newspoll,,,,0,2
+1,bias_pollster,1989sa,LNP FP,Newspoll,,,,0,2
+1,bias_pollster,1989sa,OTH FP,Newspoll,,,,-0,2

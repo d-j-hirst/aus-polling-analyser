@@ -1,0 +1,35 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2002vic,GRN FP,,,,9.8119999999999994,,
+1,bias_pollster,2002vic,GRN FP,F2F Morgan,,,,-0.375,6
+1,bias_pollster,2002vic,GRN FP,Morgan Phone,,,,1.014,3
+1,bias_pollster,2002vic,GRN FP,Newspoll,,,,-0.97299999999999998,5
+1,bias_pollster,2002vic,GRN FP,Nielsen,,,,0.063,1
+1,bias_pollster,2002vic,GRN FP,Saulwick,,,,0.20699999999999999,2
+1,bias_trend,2002vic,OTH FP,,,,6.9619999999999997,,
+1,bias_pollster,2002vic,OTH FP,F2F Morgan,,,,-1.5049999999999999,6
+1,bias_pollster,2002vic,OTH FP,Morgan Phone,,,,-0.78100000000000003,3
+1,bias_pollster,2002vic,OTH FP,Newspoll,,,,1.091,5
+1,bias_pollster,2002vic,OTH FP,Nielsen,,,,-0.33900000000000002,1
+1,bias_pollster,2002vic,OTH FP,Quadrant,,,,0.248,0
+1,bias_pollster,2002vic,OTH FP,Saulwick,,,,1.319,2
+1,bias_trend,2002vic,LNP FP,,,,36.115000000000002,,
+1,bias_pollster,2002vic,LNP FP,F2F Morgan,,,,-0.85199999999999998,6
+1,bias_pollster,2002vic,LNP FP,Morgan Phone,,,,0.26500000000000001,3
+1,bias_pollster,2002vic,LNP FP,Newspoll,,,,1.1659999999999999,5
+1,bias_pollster,2002vic,LNP FP,Nielsen,,,,-0.252,1
+1,bias_pollster,2002vic,LNP FP,Quadrant,,,,0.159,0
+1,bias_pollster,2002vic,LNP FP,Saulwick,,,,-0.44600000000000001,2
+1,bias_trend,2002vic,ALP FP,,,,46.981999999999999,,
+1,bias_pollster,2002vic,ALP FP,F2F Morgan,,,,2.3069999999999999,6
+1,bias_pollster,2002vic,ALP FP,Morgan Phone,,,,-0.28499999999999998,3
+1,bias_pollster,2002vic,ALP FP,Newspoll,,,,-0.78800000000000003,5
+1,bias_pollster,2002vic,ALP FP,Nielsen,,,,0.58499999999999996,1
+1,bias_pollster,2002vic,ALP FP,Quadrant,,,,-0.69899999999999995,0
+1,bias_pollster,2002vic,ALP FP,Saulwick,,,,-0.89500000000000002,2
+1,bias_trend,2002vic,@TPP,,,,57.529000000000003,,
+1,bias_pollster,2002vic,@TPP,F2F Morgan,,,,1.331,6
+1,bias_pollster,2002vic,@TPP,Morgan Phone,,,,-0.248,3
+1,bias_pollster,2002vic,@TPP,Newspoll,,,,-1.075,5
+1,bias_pollster,2002vic,@TPP,Nielsen,,,,0.40000000000000002,1
+1,bias_pollster,2002vic,@TPP,Quadrant,,,,-0.32700000000000001,0
+1,bias_pollster,2002vic,@TPP,Saulwick,,,,-0.0030000000000000001,2

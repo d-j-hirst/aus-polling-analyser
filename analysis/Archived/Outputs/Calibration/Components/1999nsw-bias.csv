@@ -1,0 +1,36 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,1999nsw,GRN FP,,,,3.8570000000000002,,
+1,bias_pollster,1999nsw,GRN FP,F2F Morgan,,,,-0.125,6
+1,bias_pollster,1999nsw,GRN FP,Morgan Phone,,,,0.26100000000000001,3
+1,bias_pollster,1999nsw,GRN FP,Newspoll,,,,-0.251,6
+1,bias_pollster,1999nsw,GRN FP,Nielsen,,,,0.098000000000000004,2
+1,bias_trend,1999nsw,DEM FP,,,,4.6159999999999997,,
+1,bias_pollster,1999nsw,DEM FP,F2F Morgan,,,,0.17299999999999999,6
+1,bias_pollster,1999nsw,DEM FP,Morgan Phone,,,,-0.122,3
+1,bias_pollster,1999nsw,DEM FP,Newspoll,,,,-0.35899999999999999,6
+1,bias_pollster,1999nsw,DEM FP,Nielsen,,,,0.30499999999999999,2
+1,bias_trend,1999nsw,ONP FP,,,,5.3659999999999997,,
+1,bias_pollster,1999nsw,ONP FP,F2F Morgan,,,,-0.501,6
+1,bias_pollster,1999nsw,ONP FP,Morgan Phone,,,,0.016,3
+1,bias_pollster,1999nsw,ONP FP,Newspoll,,,,-0.074999999999999997,6
+1,bias_pollster,1999nsw,ONP FP,Nielsen,,,,0.59499999999999997,2
+1,bias_trend,1999nsw,OTH FP,,,,18.914000000000001,,
+1,bias_pollster,1999nsw,OTH FP,F2F Morgan,,,,0.14099999999999999,6
+1,bias_pollster,1999nsw,OTH FP,Morgan Phone,,,,-0.0050000000000000001,3
+1,bias_pollster,1999nsw,OTH FP,Newspoll,,,,-0.77500000000000002,6
+1,bias_pollster,1999nsw,OTH FP,Nielsen,,,,0.60199999999999998,2
+1,bias_trend,1999nsw,LNP FP,,,,34.902000000000001,,
+1,bias_pollster,1999nsw,LNP FP,F2F Morgan,,,,-0.379,6
+1,bias_pollster,1999nsw,LNP FP,Morgan Phone,,,,-0.95899999999999996,3
+1,bias_pollster,1999nsw,LNP FP,Newspoll,,,,1.7130000000000001,6
+1,bias_pollster,1999nsw,LNP FP,Nielsen,,,,-0.28199999999999997,2
+1,bias_trend,1999nsw,ALP FP,,,,42.594000000000001,,
+1,bias_pollster,1999nsw,ALP FP,F2F Morgan,,,,0.96099999999999997,6
+1,bias_pollster,1999nsw,ALP FP,Morgan Phone,,,,0.28999999999999998,3
+1,bias_pollster,1999nsw,ALP FP,Newspoll,,,,-0.72199999999999998,6
+1,bias_pollster,1999nsw,ALP FP,Nielsen,,,,-0.505,2
+1,bias_trend,1999nsw,@TPP,,,,54.159999999999997,,
+1,bias_pollster,1999nsw,@TPP,F2F Morgan,,,,0.66200000000000003,6
+1,bias_pollster,1999nsw,@TPP,Morgan Phone,,,,0.57899999999999996,3
+1,bias_pollster,1999nsw,@TPP,Newspoll,,,,-1.1879999999999999,6
+1,bias_pollster,1999nsw,@TPP,Nielsen,,,,-0.075999999999999998,2

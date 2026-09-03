@@ -369,11 +369,11 @@ Alan Brown,Liberal,18700,67.9,5.5
 Anwyn Martin,Labor,8847,32.1,-5.5
 Seat,Gisborne
 fp
-Tom Reynolds,Liberal,18478,62.9,7.7
-Barry Rowe,Labor,10905,37.1,-5.5
+Tom Reynolds,Liberal,18478,62.9,None
+Barry Rowe,Labor,10905,37.1,None
 tcp
-Tom Reynolds,Liberal,18478,62.9,7.7
-Barry Rowe,Labor,10905,37.1,-5.5
+Tom Reynolds,Liberal,18478,62.9,None
+Barry Rowe,Labor,10905,37.1,None
 Seat,Glen Waverley
 fp
 Ross Smith,Liberal,19774,67.0,13.0
@@ -530,11 +530,11 @@ Keith Hamilton,Labor,16906,54.0,1.8
 Martin Hill,Liberal,14428,46.0,-1.8
 Seat,Murray Valley
 fp
-Ken Jasper,National,22744,74.0,15.3
-Maria Keller,Labor,7999,26.0,0.2
+Ken Jasper,National,22744,74.0,None
+Maria Keller,Labor,7999,26.0,None
 tcp
-Ken Jasper,National,22744,74.0,15.3
-Maria Keller,Labor,7999,26.0,0.2
+Ken Jasper,National,22744,74.0,None
+Maria Keller,Labor,7999,26.0,None
 Seat,Narracan
 fp
 John Delzoppo,Liberal,15352,52.3,10.6
@@ -570,11 +570,11 @@ Tony Sheehan,Labor,19213,65.2,-6.5
 Nicholas Kotsiras,Liberal,10271,34.8,6.5
 Seat,Oakleigh
 fp
-Denise McGill,Liberal,15485,52.9,13.3
-Race Mathews,Labor,13783,47.1,-2.0
+Denise McGill,Liberal,15485,52.9,None
+Race Mathews,Labor,13783,47.1,None
 tcp
-Denise McGill,Liberal,15485,52.9,13.3
-Race Mathews,Labor,13783,47.1,-2.0
+Denise McGill,Liberal,15485,52.9,None
+Race Mathews,Labor,13783,47.1,None
 Seat,Pakenham
 fp
 Rob Maclellan,Liberal,16251,57.8,7.2
@@ -595,18 +595,18 @@ Kelvin Thomson,Labor,16054,58.0,-0.1
 Con Karavitis,Liberal,11605,42.0,0.1
 Seat,Polwarth
 fp
-Ian Smith,Liberal,19764,65.8,12.7
-Fran Lehmann,Labor,10252,34.2,1.7
+Ian Smith,Liberal,19764,65.8,None
+Fran Lehmann,Labor,10252,34.2,None
 tcp
-Ian Smith,Liberal,19764,65.8,12.7
-Fran Lehmann,Labor,10252,34.2,1.7
+Ian Smith,Liberal,19764,65.8,None
+Fran Lehmann,Labor,10252,34.2,None
 Seat,Portland
 fp
-Denis Napthine,Liberal,19409,67.1,20.5
-Bill Sharrock,Labor,9522,32.9,-0.6
+Denis Napthine,Liberal,19409,67.1,None
+Bill Sharrock,Labor,9522,32.9,None
 tcp
-Denis Napthine,Liberal,19409,67.1,20.5
-Bill Sharrock,Labor,9522,32.9,-0.6
+Denis Napthine,Liberal,19409,67.1,None
+Bill Sharrock,Labor,9522,32.9,None
 Seat,Prahran
 fp
 Don Hayward,Liberal,16502,54.8,6.4
@@ -678,11 +678,11 @@ Marie Tehan,Liberal,17821,61.0,8.1
 Ian Rogers,Labor,11415,39.0,-8.1
 Seat,Shepparton
 fp
-Don Kilgour,National,20385,69.5,14.8
-John Sheen,Labor,8962,30.5,3.9
+Don Kilgour,National,20385,69.5,None
+John Sheen,Labor,8962,30.5,None
 tcp
-Don Kilgour,National,20385,69.5,14.8
-John Sheen,Labor,8962,30.5,3.9
+Don Kilgour,National,20385,69.5,None
+John Sheen,Labor,8962,30.5,None
 Seat,South Barwon
 fp
 Alister Paterson,Liberal,13970,48.4,-2.9
@@ -759,11 +759,11 @@ Phil Honeywood,Liberal,19041,66.7,14.7
 Philip Moran,Labor,9491,33.3,-14.7
 Seat,Warrnambool
 fp
-John McGrath,National,23400,75.8,25.8
-William Thompson,Labor,7454,24.2,2.5
+John McGrath,National,23400,75.8,None
+William Thompson,Labor,7454,24.2,None
 tcp
-John McGrath,National,23400,75.8,25.8
-William Thompson,Labor,7454,24.2,2.5
+John McGrath,National,23400,75.8,None
+William Thompson,Labor,7454,24.2,None
 Seat,Werribee
 fp
 Ken Coghill,Labor,14857,48.6,-6.8
@@ -784,11 +784,11 @@ Joan Kirner,Labor,18734,64.2,-7.0
 Jeff Bird,Liberal,10465,35.8,7.0
 Seat,Wimmera
 fp
-Bill McGrath,National,25325,79.6,30.0
-Felix Blatt,Labor,6485,20.4,-0.9
+Bill McGrath,National,25325,79.6,None
+Felix Blatt,Labor,6485,20.4,None
 tcp
-Bill McGrath,National,25325,79.6,30.0
-Felix Blatt,Labor,6485,20.4,-0.9
+Bill McGrath,National,25325,79.6,None
+Felix Blatt,Labor,6485,20.4,None
 Seat,Yan Yean
 fp
 Bill Willis,Liberal,12567,44.1,1.6

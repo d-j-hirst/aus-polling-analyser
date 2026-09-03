@@ -1,0 +1,39 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2006qld,@TPP,F2F Morgan,1.932919594307575,4.331878023068505,,,
+1,leave_one_out,2006qld,@TPP,Galaxy,2.8614784951233356,2.2761804794185556,,,
+1,leave_one_out,2006qld,@TPP,Newspoll,4.3164490968768376,5.146925272078934,,,
+1,leave_one_out,2006qld,ALP FP,F2F Morgan,2.0055858541416955,4.2344085172558144,,,
+1,leave_one_out,2006qld,ALP FP,Galaxy,3.0120766535324637,2.1497088585509729,,,
+1,leave_one_out,2006qld,ALP FP,Newspoll,4.8685908105167348,4.8910807054079628,,,
+1,leave_one_out,2006qld,GRN FP,F2F Morgan,0.58588499490115453,4.8267880560376879,,,
+1,leave_one_out,2006qld,GRN FP,Newspoll,0.77410497348783669,5.5517975653591805,,,
+1,leave_one_out,2006qld,LNP FP,F2F Morgan,1.6115982334627332,4.3808210560644758,,,
+1,leave_one_out,2006qld,LNP FP,Galaxy,2.989431556033002,2.154768977173426,,,
+1,leave_one_out,2006qld,LNP FP,Newspoll,3.9820608681169145,5.1907281040189197,,,
+1,leave_one_out,2006qld,OTH FP,F2F Morgan,0.87004238858495309,4.9271362027652348,,,
+1,leave_one_out,2006qld,OTH FP,Galaxy,1.2445378556394067,1.9441923362858309,,,
+1,leave_one_out,2006qld,OTH FP,Newspoll,1.7529216417439717,5.2591725475704996,,,
+1,bias_trend,2006qld,@TPP,,,,56.942,,
+1,bias_trend,2006qld,ALP FP,,,,48.488,,
+1,bias_trend,2006qld,GRN FP,,,,5.6379999999999999,,
+1,bias_trend,2006qld,LNP FP,,,,37.484999999999999,,
+1,bias_trend,2006qld,OTH FP,,,,8.0510000000000002,,
+1,bias_pollster,2006qld,@TPP,F2F Morgan,,,,3.4969999999999999,3
+1,bias_pollster,2006qld,@TPP,Galaxy,,,,-1.0589999999999999,3
+1,bias_pollster,2006qld,@TPP,Morgan Phone,,,,-1.1759999999999999,1
+1,bias_pollster,2006qld,@TPP,Newspoll,,,,-1.087,4
+1,bias_pollster,2006qld,ALP FP,F2F Morgan,,,,3.9159999999999999,3
+1,bias_pollster,2006qld,ALP FP,Galaxy,,,,-1.302,3
+1,bias_pollster,2006qld,ALP FP,Morgan Phone,,,,-1.8140000000000001,1
+1,bias_pollster,2006qld,ALP FP,Newspoll,,,,-0.64900000000000002,4
+1,bias_pollster,2006qld,GRN FP,F2F Morgan,,,,-0.161,3
+1,bias_pollster,2006qld,GRN FP,Morgan Phone,,,,1.5609999999999999,1
+1,bias_pollster,2006qld,GRN FP,Newspoll,,,,-1.401,4
+1,bias_pollster,2006qld,LNP FP,F2F Morgan,,,,-2.399,3
+1,bias_pollster,2006qld,LNP FP,Galaxy,,,,1.3680000000000001,3
+1,bias_pollster,2006qld,LNP FP,Morgan Phone,,,,0.55900000000000005,1
+1,bias_pollster,2006qld,LNP FP,Newspoll,,,,0.30599999999999999,4
+1,bias_pollster,2006qld,OTH FP,F2F Morgan,,,,-2.3769999999999998,3
+1,bias_pollster,2006qld,OTH FP,Galaxy,,,,0.029000000000000001,3
+1,bias_pollster,2006qld,OTH FP,Morgan Phone,,,,-0.0040000000000000001,1
+1,bias_pollster,2006qld,OTH FP,Newspoll,,,,2.3780000000000001,4

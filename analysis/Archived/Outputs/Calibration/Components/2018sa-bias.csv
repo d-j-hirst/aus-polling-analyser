@@ -1,0 +1,42 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2018sa,GRN FP,,,,8.2400000000000002,,
+1,bias_pollster,2018sa,GRN FP,Essential,,,,-0.0050000000000000001,1
+1,bias_pollster,2018sa,GRN FP,Galaxy,,,,-0.014999999999999999,0
+1,bias_pollster,2018sa,GRN FP,Newspoll,,,,0.053999999999999999,0
+1,bias_pollster,2018sa,GRN FP,Newspoll2,,,,-0.32400000000000001,3
+1,bias_pollster,2018sa,GRN FP,ReachTEL,,,,-0.23599999999999999,2
+1,bias_pollster,2018sa,GRN FP,SMS Morgan,,,,0.48799999999999999,1
+1,bias_trend,2018sa,SAB FP,,,,17.303000000000001,,
+1,bias_pollster,2018sa,SAB FP,Essential,,,,-1.9530000000000001,1
+1,bias_pollster,2018sa,SAB FP,Galaxy,,,,0.014999999999999999,0
+1,bias_pollster,2018sa,SAB FP,Newspoll2,,,,1.5880000000000001,3
+1,bias_pollster,2018sa,SAB FP,ReachTEL,,,,-2.0299999999999998,2
+1,bias_pollster,2018sa,SAB FP,SMS Morgan,,,,2.375,1
+1,bias_trend,2018sa,OTH FP,,,,27.454999999999998,,
+1,bias_pollster,2018sa,OTH FP,Essential,,,,-2.1989999999999998,1
+1,bias_pollster,2018sa,OTH FP,Galaxy,,,,0.14299999999999999,0
+1,bias_pollster,2018sa,OTH FP,Newspoll,,,,0.38900000000000001,0
+1,bias_pollster,2018sa,OTH FP,Newspoll2,,,,1.4810000000000001,3
+1,bias_pollster,2018sa,OTH FP,ReachTEL,,,,-1.347,2
+1,bias_pollster,2018sa,OTH FP,SMS Morgan,,,,1.248,1
+1,bias_trend,2018sa,LNP FP,,,,33.761000000000003,,
+1,bias_pollster,2018sa,LNP FP,Essential,,,,-0.30399999999999999,1
+1,bias_pollster,2018sa,LNP FP,Galaxy,,,,0.219,0
+1,bias_pollster,2018sa,LNP FP,Newspoll,,,,-0.26900000000000002,0
+1,bias_pollster,2018sa,LNP FP,Newspoll2,,,,-0.34599999999999997,3
+1,bias_pollster,2018sa,LNP FP,ReachTEL,,,,0.36699999999999999,2
+1,bias_pollster,2018sa,LNP FP,SMS Morgan,,,,0.33000000000000002,1
+1,bias_trend,2018sa,ALP FP,,,,31.061,,
+1,bias_pollster,2018sa,ALP FP,Essential,,,,4.1029999999999998,1
+1,bias_pollster,2018sa,ALP FP,Galaxy,,,,-0.42099999999999999,0
+1,bias_pollster,2018sa,ALP FP,Newspoll,,,,-0.63100000000000001,0
+1,bias_pollster,2018sa,ALP FP,Newspoll2,,,,-0.095000000000000001,3
+1,bias_pollster,2018sa,ALP FP,ReachTEL,,,,-0.27200000000000002,2
+1,bias_pollster,2018sa,ALP FP,SMS Morgan,,,,-2.3450000000000002,1
+1,bias_trend,2018sa,@TPP,,,,51.203000000000003,,
+1,bias_pollster,2018sa,@TPP,Essential,,,,1.9830000000000001,1
+1,bias_pollster,2018sa,@TPP,Galaxy,,,,-0.38600000000000001,0
+1,bias_pollster,2018sa,@TPP,Newspoll,,,,-0.081000000000000003,0
+1,bias_pollster,2018sa,@TPP,Newspoll2,,,,0.032000000000000001,3
+1,bias_pollster,2018sa,@TPP,ReachTEL,,,,-0.47899999999999998,2
+1,bias_pollster,2018sa,@TPP,SMS Morgan,,,,-0.79100000000000004,1

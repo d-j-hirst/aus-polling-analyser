@@ -240,8 +240,14 @@ class ProvenanceMaintenanceTests(unittest.TestCase):
             path_base=".",
         )
 
-        # First repair the upstream source metadata. It changes its record
-        # fingerprint while leaving its output untouched.
+        # Repairing upstream source metadata must not change its semantic
+        # generated-record fingerprint or stale an existing consumer.
+        upstream_before = generated_provenance.load_manifest(
+            upstream_generated
+        )
+        digest_before = generated_provenance._generated_records_digest(
+            upstream_before, ["upstream_outputs:2026vic"]
+        )
         upstream_source.write_text("version = 1 # metadata\n", encoding="utf-8")
         source_provenance.record_change(
             upstream_manifest,
@@ -256,10 +262,20 @@ class ProvenanceMaintenanceTests(unittest.TestCase):
         provenance_maintenance.maintain_record(
             upstream_generated, "upstream_outputs:2026vic"
         )
-        self.assertTrue(
+        upstream_after = generated_provenance.load_manifest(
+            upstream_generated
+        )
+        self.assertEqual(
+            generated_provenance._generated_records_digest(
+                upstream_after, ["upstream_outputs:2026vic"]
+            ),
+            digest_before,
+        )
+        self.assertEqual(
             generated_provenance.check_manifest(
                 self.generated_manifest
-            )["test_outputs:2026vic"]
+            )["test_outputs:2026vic"],
+            [],
         )
 
         self.source.write_text("version = 1 # metadata\n", encoding="utf-8")

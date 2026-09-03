@@ -1,0 +1,30 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2012qld,GRN FP,,,,7.3680000000000003,,
+1,bias_pollster,2012qld,GRN FP,Essential,,,,-0.070000000000000007,0
+1,bias_pollster,2012qld,GRN FP,Galaxy,,,,0.42799999999999999,4
+1,bias_pollster,2012qld,GRN FP,Morgan Phone,,,,0.0060000000000000001,1
+1,bias_pollster,2012qld,GRN FP,Newspoll,,,,-0.36399999999999999,3
+1,bias_trend,2012qld,KAP FP,,,,8.4060000000000006,,
+1,bias_pollster,2012qld,KAP FP,Galaxy,,,,-0.027,4
+1,bias_pollster,2012qld,KAP FP,Morgan Phone,,,,-0.035999999999999997,1
+1,bias_pollster,2012qld,KAP FP,Newspoll,,,,0.065000000000000002,2
+1,bias_trend,2012qld,OTH FP,,,,14.122999999999999,,
+1,bias_pollster,2012qld,OTH FP,Essential,,,,-0.129,0
+1,bias_pollster,2012qld,OTH FP,Galaxy,,,,-1.036,4
+1,bias_pollster,2012qld,OTH FP,Morgan Phone,,,,-0.17799999999999999,1
+1,bias_pollster,2012qld,OTH FP,Newspoll,,,,1.4750000000000001,3
+1,bias_trend,2012qld,LNP FP,,,,50.061999999999998,,
+1,bias_pollster,2012qld,LNP FP,Essential,,,,0.247,0
+1,bias_pollster,2012qld,LNP FP,Galaxy,,,,0.41199999999999998,4
+1,bias_pollster,2012qld,LNP FP,Morgan Phone,,,,0.28199999999999997,1
+1,bias_pollster,2012qld,LNP FP,Newspoll,,,,-1.071,3
+1,bias_trend,2012qld,ALP FP,,,,28.515000000000001,,
+1,bias_pollster,2012qld,ALP FP,Essential,,,,0.14599999999999999,0
+1,bias_pollster,2012qld,ALP FP,Galaxy,,,,-0.072999999999999995,4
+1,bias_pollster,2012qld,ALP FP,Morgan Phone,,,,-0.070000000000000007,1
+1,bias_pollster,2012qld,ALP FP,Newspoll,,,,0.0040000000000000001,3
+1,bias_trend,2012qld,@TPP,,,,38.179000000000002,,
+1,bias_pollster,2012qld,@TPP,Essential,,,,-0.032000000000000001,0
+1,bias_pollster,2012qld,@TPP,Galaxy,,,,-0.121,4
+1,bias_pollster,2012qld,@TPP,Morgan Phone,,,,-0.13700000000000001,1
+1,bias_pollster,2012qld,@TPP,Newspoll,,,,0.32700000000000001,3

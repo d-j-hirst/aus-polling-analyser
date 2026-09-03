@@ -307,13 +307,19 @@ def _maintain_record_once(manifest_path, record_key):
         source_manifest_path = (
             base_directory / dependency["manifest"]
         ).resolve()
-        record["dependencies"][category_id] = (
+        current_dependency = (
             generated_provenance.source_manifest_dependency(
-                category_id,
-                source_manifest_path,
-                base_directory,
+                category_id, source_manifest_path, base_directory
             )
         )
+        # A provenance-only event certifies that the generation-time input is
+        # still semantically valid. Advance only the bookkeeping revision:
+        # replacing the content digest with the category's current global
+        # digest would include unrelated scoped source changes and make every
+        # generated consumer mistake metadata maintenance for changed data.
+        dependency["provenance_revision"] = current_dependency[
+            "provenance_revision"
+        ]
 
     generated_provenance.update_manifest(
         manifest_path,

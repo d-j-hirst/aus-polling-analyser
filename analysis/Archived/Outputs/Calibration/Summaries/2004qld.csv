@@ -1,0 +1,43 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2004qld,@TPP,F2F Morgan,1.6504795043046014,5.0405779820642369,,,
+1,leave_one_out,2004qld,@TPP,Newspoll,2.420297556264023,5.4221045174781271,,,
+1,leave_one_out,2004qld,@TPP,TNS,1.9214219755144768,1.6749300512769143,,,
+1,leave_one_out,2004qld,ALP FP,F2F Morgan,2.5986407500019606,5.2033103852038884,,,
+1,leave_one_out,2004qld,ALP FP,Newspoll,3.6158998456016191,5.3407724209161458,,,
+1,leave_one_out,2004qld,ALP FP,TNS,2.2438755897292708,1.6349313632588278,,,
+1,leave_one_out,2004qld,GRN FP,F2F Morgan,0.65652666615154975,5.8795152285641912,,,
+1,leave_one_out,2004qld,GRN FP,Newspoll,0.94710802228884672,5.9120626887331236,,,
+1,leave_one_out,2004qld,GRN FP,TNS,1.4646734492772548,1.6703242113187371,,,
+1,leave_one_out,2004qld,LNP FP,F2F Morgan,1.658577710807035,5.4157012664011006,,,
+1,leave_one_out,2004qld,LNP FP,Newspoll,2.0012618209160351,5.3910699072780615,,,
+1,leave_one_out,2004qld,LNP FP,TNS,1.4761669938037016,1.6169423120532349,,,
+1,leave_one_out,2004qld,ONP FP,F2F Morgan,1.1364397705539917,5.5988558314796943,,,
+1,leave_one_out,2004qld,ONP FP,Newspoll,0.52478795495230124,6.6797486082283655,,,
+1,leave_one_out,2004qld,ONP FP,TNS,0.81495346206263264,2,,,
+1,leave_one_out,2004qld,OTH FP,F2F Morgan,3.1183504128574349,5.4504933754437497,,,
+1,leave_one_out,2004qld,OTH FP,Newspoll,3.0764947744553579,5.8626905880188147,,,
+1,leave_one_out,2004qld,OTH FP,TNS,0.59891102374312055,2,,,
+1,bias_trend,2004qld,@TPP,,,,59.869999999999997,,
+1,bias_trend,2004qld,ALP FP,,,,51.115000000000002,,
+1,bias_trend,2004qld,GRN FP,,,,5.4580000000000002,,
+1,bias_trend,2004qld,LNP FP,,,,32.409999999999997,,
+1,bias_trend,2004qld,ONP FP,,,,3.581,,
+1,bias_trend,2004qld,OTH FP,,,,11.255000000000001,,
+1,bias_pollster,2004qld,@TPP,F2F Morgan,,,,2.5800000000000001,3
+1,bias_pollster,2004qld,@TPP,Newspoll,,,,-1.51,4
+1,bias_pollster,2004qld,@TPP,TNS,,,,-1.022,2
+1,bias_pollster,2004qld,ALP FP,F2F Morgan,,,,2.8519999999999999,3
+1,bias_pollster,2004qld,ALP FP,Newspoll,,,,-1.534,4
+1,bias_pollster,2004qld,ALP FP,TNS,,,,-1.264,2
+1,bias_pollster,2004qld,GRN FP,F2F Morgan,,,,-0.308,3
+1,bias_pollster,2004qld,GRN FP,Newspoll,,,,-0.56200000000000006,4
+1,bias_pollster,2004qld,GRN FP,TNS,,,,0.88900000000000001,2
+1,bias_pollster,2004qld,LNP FP,F2F Morgan,,,,-1.8109999999999999,3
+1,bias_pollster,2004qld,LNP FP,Newspoll,,,,1.2549999999999999,4
+1,bias_pollster,2004qld,LNP FP,TNS,,,,0.51300000000000001,2
+1,bias_pollster,2004qld,ONP FP,F2F Morgan,,,,0.35299999999999998,3
+1,bias_pollster,2004qld,ONP FP,Newspoll,,,,-0.54400000000000004,4
+1,bias_pollster,2004qld,ONP FP,TNS,,,,0.16300000000000001,2
+1,bias_pollster,2004qld,OTH FP,F2F Morgan,,,,-0.36299999999999999,3
+1,bias_pollster,2004qld,OTH FP,Newspoll,,,,0.47699999999999998,4
+1,bias_pollster,2004qld,OTH FP,TNS,,,,-0.088999999999999996,2

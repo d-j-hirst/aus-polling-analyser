@@ -1,0 +1,61 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2011nsw,@TPP,Essential,2.2281344667355585,3.0651175545274922,,,
+1,leave_one_out,2011nsw,@TPP,Galaxy,1.2703267812299415,3.4137120634197857,,,
+1,leave_one_out,2011nsw,@TPP,Morgan Phone,5.2493864030745661,1.7951214820001722,,,
+1,leave_one_out,2011nsw,@TPP,Newspoll,2.2154457945909454,5.9628246636204389,,,
+1,leave_one_out,2011nsw,@TPP,Nielsen,1.8897561597718469,2.6508796679062372,,,
+1,leave_one_out,2011nsw,ALP FP,Essential,2.9947421194615504,3.0531220560096552,,,
+1,leave_one_out,2011nsw,ALP FP,Galaxy,1.5487239932745764,3.401627412554443,,,
+1,leave_one_out,2011nsw,ALP FP,Morgan Phone,5.0353249224112915,1.8004330526624281,,,
+1,leave_one_out,2011nsw,ALP FP,Newspoll,2.9447019972298651,5.3074745650318658,,,
+1,leave_one_out,2011nsw,ALP FP,Nielsen,3.6775980457303508,2.3081975912166852,,,
+1,leave_one_out,2011nsw,GRN FP,Essential,0.8625235601078034,3.3501259468668247,,,
+1,leave_one_out,2011nsw,GRN FP,Galaxy,1.6110572330034894,2.9454198487380037,,,
+1,leave_one_out,2011nsw,GRN FP,Morgan Phone,2.9108166903120289,1.6777161033669383,,,
+1,leave_one_out,2011nsw,GRN FP,Newspoll,2.1681413687616669,5.5051115746432853,,,
+1,leave_one_out,2011nsw,GRN FP,Nielsen,1.9185848339913116,2.12015666272797,,,
+1,leave_one_out,2011nsw,LNP FP,Essential,1.7203948798826427,3.0277749732723751,,,
+1,leave_one_out,2011nsw,LNP FP,Galaxy,1.058663423200902,3.6898924955917622,,,
+1,leave_one_out,2011nsw,LNP FP,Morgan Phone,5.2198810167259335,1.7766532929443217,,,
+1,leave_one_out,2011nsw,LNP FP,Newspoll,2.2519673075354594,6.5531490671587331,,,
+1,leave_one_out,2011nsw,LNP FP,Nielsen,3.259752140884447,2.3986262923792872,,,
+1,leave_one_out,2011nsw,OTH FP,Essential,0.42527592665054736,3.6277796455724856,,,
+1,leave_one_out,2011nsw,OTH FP,Galaxy,0.7512889106776276,4.1546499357228308,,,
+1,leave_one_out,2011nsw,OTH FP,Morgan Phone,0.66106982206870835,1.915678651156393,,,
+1,leave_one_out,2011nsw,OTH FP,Newspoll,1.2942904756762368,6.182258487010345,,,
+1,leave_one_out,2011nsw,OTH FP,Nielsen,1.7524657923177343,2.6906206566979831,,,
+1,bias_trend,2011nsw,@TPP,,,,37.155999999999999,,
+1,bias_trend,2011nsw,ALP FP,,,,22.687999999999999,,
+1,bias_trend,2011nsw,GRN FP,,,,11.898999999999999,,
+1,bias_trend,2011nsw,LNP FP,,,,51.375999999999998,,
+1,bias_trend,2011nsw,OTH FP,,,,14.119999999999999,,
+1,bias_pollster,2011nsw,@TPP,Essential,,,,-0.082000000000000003,4
+1,bias_pollster,2011nsw,@TPP,Galaxy,,,,-0.224,3
+1,bias_pollster,2011nsw,@TPP,Morgan Phone,,,,-0.42399999999999999,1
+1,bias_pollster,2011nsw,@TPP,Newspoll,,,,1.1060000000000001,5
+1,bias_pollster,2011nsw,@TPP,Nielsen,,,,-0.068000000000000005,2
+1,bias_pollster,2011nsw,@TPP,Taverner,,,,-0.13600000000000001,0
+1,bias_pollster,2011nsw,ALP FP,Essential,,,,1.3680000000000001,4
+1,bias_pollster,2011nsw,ALP FP,Galaxy,,,,-0.84699999999999998,3
+1,bias_pollster,2011nsw,ALP FP,Morgan Phone,,,,-0.187,1
+1,bias_pollster,2011nsw,ALP FP,Newspoll,,,,0.062,5
+1,bias_pollster,2011nsw,ALP FP,Nielsen,,,,-0.14799999999999999,2
+1,bias_pollster,2011nsw,ALP FP,Taverner,,,,-0.085999999999999993,0
+1,bias_pollster,2011nsw,GRN FP,Essential,,,,-1.1419999999999999,4
+1,bias_pollster,2011nsw,GRN FP,Galaxy,,,,0.39800000000000002,3
+1,bias_pollster,2011nsw,GRN FP,Morgan Phone,,,,-0.029000000000000001,1
+1,bias_pollster,2011nsw,GRN FP,Newspoll,,,,0.86799999999999999,5
+1,bias_pollster,2011nsw,GRN FP,Nielsen,,,,0.0070000000000000001,2
+1,bias_pollster,2011nsw,GRN FP,Taverner,,,,-0.070999999999999994,0
+1,bias_pollster,2011nsw,LNP FP,Essential,,,,1.3100000000000001,4
+1,bias_pollster,2011nsw,LNP FP,Galaxy,,,,-0.10199999999999999,3
+1,bias_pollster,2011nsw,LNP FP,Morgan Phone,,,,0.73299999999999998,1
+1,bias_pollster,2011nsw,LNP FP,Newspoll,,,,-2.3010000000000002,5
+1,bias_pollster,2011nsw,LNP FP,Nielsen,,,,0.017999999999999999,2
+1,bias_pollster,2011nsw,LNP FP,Taverner,,,,0.16700000000000001,0
+1,bias_pollster,2011nsw,OTH FP,Essential,,,,-1.345,4
+1,bias_pollster,2011nsw,OTH FP,Galaxy,,,,0.48099999999999998,3
+1,bias_pollster,2011nsw,OTH FP,Morgan Phone,,,,-0.27300000000000002,1
+1,bias_pollster,2011nsw,OTH FP,Newspoll,,,,0.99399999999999999,5
+1,bias_pollster,2011nsw,OTH FP,Nielsen,,,,0.059999999999999998,2
+1,bias_pollster,2011nsw,OTH FP,Taverner,,,,0.043999999999999997,0

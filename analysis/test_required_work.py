@@ -1,5 +1,6 @@
 import unittest
 
+import pipeline_registry
 import required_work
 
 
@@ -70,6 +71,15 @@ class RequiredWorkTests(unittest.TestCase):
         self.assertEqual(
             required_work.cpp_input_categories(self.registry), {"final"}
         )
+
+    def test_repository_cpp_roots_include_archive_gap_categories(self):
+        registry = pipeline_registry.load_registry()
+
+        roots = required_work.cpp_input_categories(registry)
+
+        self.assertIn("booth_result_archives", roots)
+        self.assertIn("federal_regional_statistics", roots)
+        self.assertIn("regional_swing_deviations", roots)
 
     def test_default_election_is_not_an_unconditional_global_root(self):
         fallback = self.unit("fallback", "final", ["0none"])

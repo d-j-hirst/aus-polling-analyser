@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-09-02T00:48:20Z",
+  "updated_at_utc": "2026-09-03T11:43:40Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -420,12 +420,12 @@
         "election_analysis_seats.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 4,
+      "semantic_revision": 5,
       "files": {
         "election_analysis.py": {
-          "sha256": "a71339c150dd24ef401435b1605cdf29387a78b161e5408a37b011d84f38b639",
-          "size_bytes": 7473,
-          "recorded_mtime_utc": "2026-08-02T08:09:05.127534Z"
+          "sha256": "f3f6db03e64edd1a6e9fae0f03f11198ab7db0a5fd002eb2a8c48bec94be4e80",
+          "size_bytes": 7876,
+          "recorded_mtime_utc": "2026-09-03T05:53:03.625933Z"
         },
         "election_analysis_common.py": {
           "sha256": "bee528be90fccb4cd2958ee6411bd5a1d9fdda0ba0f58ef79885c43e130c8f03",
@@ -438,9 +438,9 @@
           "recorded_mtime_utc": "2026-08-02T08:10:27.324988Z"
         },
         "election_analysis_regions.py": {
-          "sha256": "025335926066eab731b55a47457008e08ffb5ce961d25de4ba27b9b284067164",
-          "size_bytes": 13732,
-          "recorded_mtime_utc": "2026-08-02T08:10:27.951606Z"
+          "sha256": "ef567d7a6fbb905ea6f65f2edeb1559ee2f056bccef3d705590257325fd0c5d9",
+          "size_bytes": 14101,
+          "recorded_mtime_utc": "2026-09-03T05:53:45.774965Z"
         },
         "election_analysis_seats.py": {
           "sha256": "350b0677111b98d114aa299c198bc5a47abb89ceacb527750dc450e585b64694",
@@ -653,9 +653,35 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260903T055754Z-methodology-election-analysis-script-bc6e55e1",
+          "recorded_at_utc": "2026-09-03T05:57:54Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 5,
+          "provenance_revision": 6,
+          "summary": "Generate federal regional statistics for 2022, 2025 and 2028 without target-year leakage.",
+          "files": [
+            "election_analysis.py",
+            "election_analysis_regions.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2022fed",
+              "2025fed",
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": [
+              "analyse_elections"
+            ]
+          }
         }
       ],
-      "provenance_revision": 5
+      "provenance_revision": 6
     },
     "poll_transform_script": {
       "description": "Vote-share transforms and bounds shared by Python analysis stages.",
@@ -3879,7 +3905,7 @@
         "trend_adjust_mixing.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 5,
+      "semantic_revision": 6,
       "files": {
         "trend_adjust.py": {
           "sha256": "8e53ac847ba088abde76ab40529d4c1fcde28ee6e980fe81f9e3847aadf8656c",
@@ -3892,9 +3918,9 @@
           "recorded_mtime_utc": "2026-08-02T08:10:30.826010Z"
         },
         "trend_adjust_fundamentals.py": {
-          "sha256": "1e75152972024ea405cb888a464da08d0dba1b697232f3ed121cc840b1853c07",
-          "size_bytes": 17247,
-          "recorded_mtime_utc": "2026-09-01T10:46:37.353405Z"
+          "sha256": "80a48a775a87f2e79ee8f2b0143ea299e13706d6c3f0df473fbf41b5dd62e6c0",
+          "size_bytes": 18485,
+          "recorded_mtime_utc": "2026-09-03T02:36:30.420151Z"
         },
         "trend_adjust_io.py": {
           "sha256": "74579c15d548593cfe7ff7670c9ece4e4af34de09aae2d296d46e3eac65e3c68",
@@ -4132,9 +4158,51 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260903T021919Z-correction-trend-adjust-script-ec519f39",
+          "recorded_at_utc": "2026-09-03T02:19:19Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 7,
+          "summary": "Use the established regularised intercept-only fundamentals estimate when fewer than five observations cannot support five-fold ElasticNet cross-validation.",
+          "files": [
+            "trend_adjust_fundamentals.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260903T023637Z-correction-trend-adjust-script-b8c173f9",
+          "recorded_at_utc": "2026-09-03T02:36:37Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 6,
+          "provenance_revision": 8,
+          "summary": "Use prior-result baselines rather than assigning 3 percent to every major party and TPP when an election has no same-tier fundamentals training history.",
+          "files": [
+            "trend_adjust_fundamentals.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "1988nsw"
+            ],
+            "parties": [],
+            "stages": [
+              "generate_trend_adjustments"
+            ]
+          }
         }
       ],
-      "provenance_revision": 7
+      "provenance_revision": 8
     },
     "trend_adjust_provenance_script": {
       "description": "Dependency selection and bundled provenance recording for fundamentals and trend adjustments.",
@@ -4539,9 +4607,9 @@
       "provenance_revision": 45,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "f63a60e5325d5be668356215d409fbc0e1e1a18f652d5723a177f230f1d25b4b",
-          "size_bytes": 125848,
-          "recorded_mtime_utc": "2026-09-01T10:30:39.242089Z"
+          "sha256": "50cfd4cde6b1b91635089686ea485cd8d83076f90e0245b8009336eb55cda9ef",
+          "size_bytes": 133630,
+          "recorded_mtime_utc": "2026-09-03T05:53:17.997286Z"
         },
         "election_catalogue.py": {
           "sha256": "3fe9b5ad68a1099399db5b608ca1852b56f4e8bd1ac100b4384bf154a5989d56",
@@ -4549,19 +4617,19 @@
           "recorded_mtime_utc": "2026-08-30T23:48:35.807589Z"
         },
         "generated_data_archive.py": {
-          "sha256": "5ed28d8ea10f43cc5edb6ecf856458e700300add0f3017b8aee1b18a71fdbb46",
-          "size_bytes": 24049,
-          "recorded_mtime_utc": "2026-08-30T23:58:19.600160Z"
+          "sha256": "8e513138eda024fd3d562353983b78cbf12071512d83c121fb47a122bfeca175",
+          "size_bytes": 24422,
+          "recorded_mtime_utc": "2026-09-03T11:43:24.915182Z"
         },
         "pipeline.py": {
-          "sha256": "59ff47065482c068ce191e71cd2aa885a30222967219ce2fd80c8fd001e29105",
-          "size_bytes": 94447,
-          "recorded_mtime_utc": "2026-09-01T10:30:39.620165Z"
+          "sha256": "7f43704424f3e72b2429908782fefacddadafd8865444fe3718a01a4d20779a9",
+          "size_bytes": 95250,
+          "recorded_mtime_utc": "2026-09-03T11:29:14.661161Z"
         },
         "pipeline_registry.json": {
-          "sha256": "0882410356a601244d1d70b0a63107302d580c2eb8c5c7406a70b026c881223d",
-          "size_bytes": 43231,
-          "recorded_mtime_utc": "2026-09-01T11:07:54.125837Z"
+          "sha256": "22edf256b2c5c0008c0ce939eb78bab959c6478cf8bbc9896c656b61e3b32fa1",
+          "size_bytes": 45915,
+          "recorded_mtime_utc": "2026-09-03T05:53:06.672475Z"
         },
         "pipeline_registry.py": {
           "sha256": "7384ead0eb727880bde6e048eee280344c1ad8e8abc55b2aa235609e4ef81f9b",
@@ -4569,9 +4637,9 @@
           "recorded_mtime_utc": "2026-08-02T08:12:56.808701Z"
         },
         "provenance_maintenance.py": {
-          "sha256": "4a43f688326056ad5e1a25e1c0bcd02c56b7306a1d06517ed0cfc7582aa3a533",
-          "size_bytes": 11100,
-          "recorded_mtime_utc": "2026-08-02T12:23:58.094664Z"
+          "sha256": "19ec7568a84a20111194886f97512aff926e9141f5b67695f21b202e193ebdc8",
+          "size_bytes": 11539,
+          "recorded_mtime_utc": "2026-09-03T03:44:34.719753Z"
         },
         "required_work.py": {
           "sha256": "8f06f07cb3cb4e8e299c39c8d6eba96e523fea87eb0a5c5adc85f532333f6f17",
@@ -6452,6 +6520,122 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260902T041759Z-correction-pipeline-orchestration-tools-1b16fd54",
+          "recorded_at_utc": "2026-09-02T04:17:59Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Restrict cutoff invalidation confirmation to scoped elections that have historical cutoff work.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260903T034458Z-correction-pipeline-orchestration-tools-4c1a30af",
+          "recorded_at_utc": "2026-09-03T03:44:58Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Preserve generation-time source content digests during metadata-only maintenance so unrelated scoped source updates cannot invalidate generated consumers.",
+          "files": [
+            "provenance_maintenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260903T043551Z-formatting-pipeline-orchestration-tools-34849795",
+          "recorded_at_utc": "2026-09-03T04:35:51Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Allow archive preflight to ignore unreferenced calibration staging files, which remain excluded from archive payloads.",
+          "files": [
+            "generated_data_archive.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260903T055810Z-coverage_extension-pipeline-orchestration-tools-9a8d20e3",
+          "recorded_at_utc": "2026-09-03T05:58:10Z",
+          "change_type": "coverage_extension",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Add required-work and archive handling for booth results and historical federal regional statistics.",
+          "files": [
+            "analysis_provenance.py",
+            "generated_data_archive.py",
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260903T112949Z-formatting-pipeline-orchestration-tools-458f7fc5",
+          "recorded_at_utc": "2026-09-03T11:29:49Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Verify and report generated-data archive readiness before an all-work pipeline run is recorded as complete.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260903T114340Z-formatting-pipeline-orchestration-tools-370eafe9",
+          "recorded_at_utc": "2026-09-03T11:43:40Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Retry transient Windows/WSL directory-lock failures while atomically promoting validated generated-data archives.",
+          "files": [
+            "generated_data_archive.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },
@@ -7694,6 +7878,555 @@
         }
       ],
       "provenance_revision": 1
+    },
+    "booth_result_dispatcher_script": {
+      "description": "Election-scoped booth-result generation dispatcher.",
+      "file_patterns": [
+        "fetch_booth_results.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "fetch_booth_results.py": {
+          "sha256": "144c1c241e10ce37b425923214cfe7fdba31dfb6434cbab4643f174be2bd2d28",
+          "size_bytes": 1451,
+          "recorded_mtime_utc": "2026-09-03T05:50:26.059387Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260903T055158Z-baseline-booth-result-dispatcher-script-9c9eca06",
+          "recorded_at_utc": "2026-09-03T05:51:58Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Register the booth-result generation dispatcher.",
+          "files": [
+            "fetch_booth_results.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "booth_result_provenance_script": {
+      "description": "Booth-result generated provenance and required-work support.",
+      "file_patterns": [
+        "booth_result_provenance.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "booth_result_provenance.py": {
+          "sha256": "db09e834f20f0bafc15b036eff59b2461279dc1d125098e9a55055d55b40f511",
+          "size_bytes": 4467,
+          "recorded_mtime_utc": "2026-09-03T05:50:18.228001Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260903T055159Z-baseline-booth-result-provenance-script-a5708f0e",
+          "recorded_at_utc": "2026-09-03T05:51:59Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Register booth-result provenance support.",
+          "files": [
+            "booth_result_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "booth_result_nsw_script": {
+      "description": "NSW archived booth-result scraper.",
+      "file_patterns": [
+        "fetch_election_data_nsw.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 3,
+      "files": {
+        "fetch_election_data_nsw.py": {
+          "sha256": "cdc06d080886c55f8032aa4a73d08c678deb412e22d72904c73d68f69e81beae",
+          "size_bytes": 12010,
+          "recorded_mtime_utc": "2026-09-03T06:04:21.436528Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260903T055202Z-baseline-booth-result-nsw-script-7e771121",
+          "recorded_at_utc": "2026-09-03T05:52:02Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Register the NSW booth-result generator.",
+          "files": [
+            "fetch_election_data_nsw.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260903T055756Z-coverage_extension-booth-result-nsw-script-fee75d42",
+          "recorded_at_utc": "2026-09-03T05:57:56Z",
+          "change_type": "coverage_extension",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Make NSW booth acquisition election-selectable and import-safe.",
+          "files": [
+            "fetch_election_data_nsw.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2015nsw",
+              "2019nsw"
+            ],
+            "parties": [],
+            "stages": [
+              "fetch_live_booth_results"
+            ]
+          }
+        },
+        {
+          "id": "20260903T060428Z-correction-booth-result-nsw-script-97244ba9",
+          "recorded_at_utc": "2026-09-03T06:04:28Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Use the maintained WSL Chrome and chromedriver installation for NSW acquisition.",
+          "files": [
+            "fetch_election_data_nsw.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2015nsw",
+              "2019nsw"
+            ],
+            "parties": [],
+            "stages": [
+              "fetch_live_booth_results"
+            ]
+          }
+        }
+      ],
+      "provenance_revision": 3
+    },
+    "booth_result_vic_script": {
+      "description": "Victorian archived booth-result scraper.",
+      "file_patterns": [
+        "fetch_election_data_vic.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 5,
+      "files": {
+        "fetch_election_data_vic.py": {
+          "sha256": "5dc2e43ff64c58d5ffe41a299a46c531167cef5dbba7cfdce1a1a78a25994284",
+          "size_bytes": 14837,
+          "recorded_mtime_utc": "2026-09-03T06:07:07.270700Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260903T055203Z-baseline-booth-result-vic-script-de120386",
+          "recorded_at_utc": "2026-09-03T05:52:03Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Register the Victorian booth-result generator.",
+          "files": [
+            "fetch_election_data_vic.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260903T055758Z-coverage_extension-booth-result-vic-script-ed161b11",
+          "recorded_at_utc": "2026-09-03T05:57:58Z",
+          "change_type": "coverage_extension",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Make Victorian booth acquisition election-selectable and import-safe.",
+          "files": [
+            "fetch_election_data_vic.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2018vic"
+            ],
+            "parties": [],
+            "stages": [
+              "fetch_live_booth_results"
+            ]
+          }
+        },
+        {
+          "id": "20260903T060429Z-correction-booth-result-vic-script-019105dc",
+          "recorded_at_utc": "2026-09-03T06:04:29Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Use the maintained WSL Chrome and chromedriver installation for Victorian acquisition.",
+          "files": [
+            "fetch_election_data_vic.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2018vic"
+            ],
+            "parties": [],
+            "stages": [
+              "fetch_live_booth_results"
+            ]
+          }
+        },
+        {
+          "id": "20260903T060547Z-correction-booth-result-vic-script-8e766f4b",
+          "recorded_at_utc": "2026-09-03T06:05:47Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "provenance_revision": 4,
+          "summary": "Allow newly exposed party labels while scraping archived Victorian results.",
+          "files": [
+            "fetch_election_data_vic.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2018vic"
+            ],
+            "parties": [],
+            "stages": [
+              "fetch_live_booth_results"
+            ]
+          }
+        },
+        {
+          "id": "20260903T060715Z-correction-booth-result-vic-script-cbc41383",
+          "recorded_at_utc": "2026-09-03T06:07:15Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 5,
+          "provenance_revision": 5,
+          "summary": "Match archived Victorian TCP candidates by party when the displayed candidate differs from the first-preference table.",
+          "files": [
+            "fetch_election_data_vic.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2018vic"
+            ],
+            "parties": [],
+            "stages": [
+              "fetch_live_booth_results"
+            ]
+          }
+        }
+      ],
+      "provenance_revision": 5
+    },
+    "booth_result_qld_script": {
+      "description": "Queensland archived booth-result scraper.",
+      "file_patterns": [
+        "fetch_election_data_qld.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 7,
+      "files": {
+        "fetch_election_data_qld.py": {
+          "sha256": "2ef2cfacd5d6b6f9795a738fc600aefa5d988952822a200161b48ebba3b7ad16",
+          "size_bytes": 7573,
+          "recorded_mtime_utc": "2026-09-03T07:06:03.043081Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260903T055206Z-baseline-booth-result-qld-script-f169bf49",
+          "recorded_at_utc": "2026-09-03T05:52:06Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Register the Queensland booth-result generator.",
+          "files": [
+            "fetch_election_data_qld.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260903T055801Z-coverage_extension-booth-result-qld-script-b49f9f1e",
+          "recorded_at_utc": "2026-09-03T05:58:01Z",
+          "change_type": "coverage_extension",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Make Queensland booth acquisition election-selectable and import-safe.",
+          "files": [
+            "fetch_election_data_qld.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2020qld"
+            ],
+            "parties": [],
+            "stages": [
+              "fetch_live_booth_results"
+            ]
+          }
+        },
+        {
+          "id": "20260903T062020Z-correction-booth-result-qld-script-3d29a9d6",
+          "recorded_at_utc": "2026-09-03T06:20:20Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Retry dynamic ECQ candidate tables when page refreshes invalidate Selenium elements.",
+          "files": [
+            "fetch_election_data_qld.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2020qld"
+            ],
+            "parties": [],
+            "stages": [
+              "fetch_live_booth_results"
+            ]
+          }
+        },
+        {
+          "id": "20260903T063758Z-correction-booth-result-qld-script-b9b818b5",
+          "recorded_at_utc": "2026-09-03T06:37:58Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "provenance_revision": 4,
+          "summary": "Skip ECQ TCP-only declaration categories that have no first-preference booth record.",
+          "files": [
+            "fetch_election_data_qld.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2020qld"
+            ],
+            "parties": [],
+            "stages": [
+              "fetch_live_booth_results"
+            ]
+          }
+        },
+        {
+          "id": "20260903T064647Z-correction-booth-result-qld-script-6e97a82e",
+          "recorded_at_utc": "2026-09-03T06:46:47Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 5,
+          "provenance_revision": 5,
+          "summary": "Retry complete ECQ FP and TCP table reads when dynamic refresh invalidates Selenium rows.",
+          "files": [
+            "fetch_election_data_qld.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2020qld"
+            ],
+            "parties": [],
+            "stages": [
+              "fetch_live_booth_results"
+            ]
+          }
+        },
+        {
+          "id": "20260903T065958Z-correction-booth-result-qld-script-72813cb3",
+          "recorded_at_utc": "2026-09-03T06:59:58Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 6,
+          "provenance_revision": 6,
+          "summary": "Match ECQ TCP headings to full candidate names using exact names or unique surnames.",
+          "files": [
+            "fetch_election_data_qld.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2020qld"
+            ],
+            "parties": [],
+            "stages": [
+              "fetch_live_booth_results"
+            ]
+          }
+        },
+        {
+          "id": "20260903T070018Z-other-booth-result-qld-script-212e397a",
+          "recorded_at_utc": "2026-09-03T07:00:18Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 6,
+          "summary": "Reduce fixed ECQ page settling delay while retaining stale-element retries.",
+          "files": [
+            "fetch_election_data_qld.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2020qld"
+            ],
+            "parties": [],
+            "stages": [
+              "fetch_live_booth_results"
+            ]
+          }
+        },
+        {
+          "id": "20260903T070613Z-correction-booth-result-qld-script-6c565f69",
+          "recorded_at_utc": "2026-09-03T07:06:13Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 7,
+          "provenance_revision": 7,
+          "summary": "Wait for non-empty ECQ candidate tables before accepting a dynamically loaded electorate page.",
+          "files": [
+            "fetch_election_data_qld.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2020qld"
+            ],
+            "parties": [],
+            "stages": [
+              "fetch_live_booth_results"
+            ]
+          }
+        }
+      ],
+      "provenance_revision": 7
+    },
+    "booth_result_sa_script": {
+      "description": "South Australian archived booth CSV converter.",
+      "file_patterns": [
+        "fetch_election_data_sa.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "fetch_election_data_sa.py": {
+          "sha256": "ee5606216c4eff12477478b84fe20c71b89c1a2fdacd06c1cd9f01151331301e",
+          "size_bytes": 9127,
+          "recorded_mtime_utc": "2026-09-03T05:50:31.264158Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260903T055208Z-baseline-booth-result-sa-script-8ea562b7",
+          "recorded_at_utc": "2026-09-03T05:52:08Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Register the South Australian booth-result generator.",
+          "files": [
+            "fetch_election_data_sa.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "federal_regional_provenance_script": {
+      "description": "Supported federal regional-statistics work units and output definitions.",
+      "file_patterns": [
+        "federal_regional_provenance.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "federal_regional_provenance.py": {
+          "sha256": "bab5502da3fe9dadf52767c3c17e14cb66c1723767232fe995ef55808cd6efbc",
+          "size_bytes": 1315,
+          "recorded_mtime_utc": "2026-09-03T05:52:41.516959Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260903T055324Z-baseline-federal-regional-provenance-script-7f370540",
+          "recorded_at_utc": "2026-09-03T05:53:24Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Register federal regional-statistics provenance support.",
+          "files": [
+            "federal_regional_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
     }
   }
 }

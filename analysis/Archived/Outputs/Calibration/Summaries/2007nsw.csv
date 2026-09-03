@@ -1,0 +1,55 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2007nsw,@TPP,F2F Morgan,1.8138968156365556,19.001451155765629,,,
+1,leave_one_out,2007nsw,@TPP,Galaxy,5.7235928890537053,2.1035426039100265,,,
+1,leave_one_out,2007nsw,@TPP,Newspoll,1.3181574116025876,15.904364299806554,,,
+1,leave_one_out,2007nsw,@TPP,Nielsen,2.4839819458049752,2.8657818833824558,,,
+1,leave_one_out,2007nsw,@TPP,Taverner,2.5210519105019955,1.5556675535408591,,,
+1,leave_one_out,2007nsw,ALP FP,F2F Morgan,2.020147423808774,18.49274541589147,,,
+1,leave_one_out,2007nsw,ALP FP,Galaxy,3.0585285334727343,2.464402141300952,,,
+1,leave_one_out,2007nsw,ALP FP,Newspoll,1.4171217768456805,15.393134025459171,,,
+1,leave_one_out,2007nsw,ALP FP,Nielsen,2.5671465604406922,3.2392629985716681,,,
+1,leave_one_out,2007nsw,ALP FP,Taverner,2.3656040426307428,1.5485219060315061,,,
+1,leave_one_out,2007nsw,GRN FP,F2F Morgan,0.91928901565388677,18.261987506821924,,,
+1,leave_one_out,2007nsw,GRN FP,Newspoll,0.91174067019750815,14.007948538107549,,,
+1,leave_one_out,2007nsw,GRN FP,Nielsen,1.7831602851507806,2.2830215065911341,,,
+1,leave_one_out,2007nsw,GRN FP,Taverner,3.7574227283266688,1.5284569235345074,,,
+1,leave_one_out,2007nsw,LNP FP,F2F Morgan,1.9059507021863578,18.785829977322976,,,
+1,leave_one_out,2007nsw,LNP FP,Galaxy,7.2056961146862104,2.1556185530865668,,,
+1,leave_one_out,2007nsw,LNP FP,Newspoll,1.9257315444751708,14.392412097461996,,,
+1,leave_one_out,2007nsw,LNP FP,Nielsen,2.4510641974408451,2.8224301354086045,,,
+1,leave_one_out,2007nsw,LNP FP,Taverner,1.468060333254755,1.508051376877579,,,
+1,leave_one_out,2007nsw,OTH FP,F2F Morgan,1.3427663436685606,18.098265469057484,,,
+1,leave_one_out,2007nsw,OTH FP,Galaxy,2.7392342473497844,2.3587805301991702,,,
+1,leave_one_out,2007nsw,OTH FP,Newspoll,1.4409978581913943,14.938621907280231,,,
+1,leave_one_out,2007nsw,OTH FP,Nielsen,2.630577931889035,2.6427597945400447,,,
+1,leave_one_out,2007nsw,OTH FP,Taverner,4.3237453861468254,1.4410200935908,,,
+1,bias_trend,2007nsw,@TPP,,,,53.847999999999999,,
+1,bias_trend,2007nsw,ALP FP,,,,41.543999999999997,,
+1,bias_trend,2007nsw,GRN FP,,,,9.3510000000000009,,
+1,bias_trend,2007nsw,LNP FP,,,,36.488,,
+1,bias_trend,2007nsw,OTH FP,,,,11.757,,
+1,bias_pollster,2007nsw,@TPP,F2F Morgan,,,,3.278,4
+1,bias_pollster,2007nsw,@TPP,Galaxy,,,,-1.9690000000000001,2
+1,bias_pollster,2007nsw,@TPP,Newspoll,,,,0.22600000000000001,5
+1,bias_pollster,2007nsw,@TPP,Nielsen,,,,-0.36199999999999999,3
+1,bias_pollster,2007nsw,@TPP,Taverner,,,,-1.0660000000000001,1
+1,bias_pollster,2007nsw,ALP FP,F2F Morgan,,,,5.4189999999999996,4
+1,bias_pollster,2007nsw,ALP FP,Galaxy,,,,-2.2829999999999999,2
+1,bias_pollster,2007nsw,ALP FP,Newspoll,,,,-0.097000000000000003,5
+1,bias_pollster,2007nsw,ALP FP,Nielsen,,,,-0.61499999999999999,3
+1,bias_pollster,2007nsw,ALP FP,Taverner,,,,-2.3530000000000002,1
+1,bias_pollster,2007nsw,GRN FP,F2F Morgan,,,,-0.872,4
+1,bias_pollster,2007nsw,GRN FP,Galaxy,,,,0.14099999999999999,1
+1,bias_pollster,2007nsw,GRN FP,Newspoll,,,,-0.61799999999999999,3
+1,bias_pollster,2007nsw,GRN FP,Nielsen,,,,0.82199999999999995,2
+1,bias_pollster,2007nsw,GRN FP,Taverner,,,,0.432,1
+1,bias_pollster,2007nsw,LNP FP,F2F Morgan,,,,-1.3,4
+1,bias_pollster,2007nsw,LNP FP,Galaxy,,,,1.55,2
+1,bias_pollster,2007nsw,LNP FP,Newspoll,,,,-1.0840000000000001,5
+1,bias_pollster,2007nsw,LNP FP,Nielsen,,,,0.33300000000000002,3
+1,bias_pollster,2007nsw,LNP FP,Taverner,,,,0.39000000000000001,1
+1,bias_pollster,2007nsw,OTH FP,F2F Morgan,,,,-2.0880000000000001,4
+1,bias_pollster,2007nsw,OTH FP,Galaxy,,,,0.027,2
+1,bias_pollster,2007nsw,OTH FP,Newspoll,,,,2.25,5
+1,bias_pollster,2007nsw,OTH FP,Nielsen,,,,-0.53200000000000003,3
+1,bias_pollster,2007nsw,OTH FP,Taverner,,,,0.33400000000000002,1

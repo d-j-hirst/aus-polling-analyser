@@ -130,11 +130,11 @@ Ken Hayward,Labor,9956,53.7,None
 Ron Grant,National,8572,46.3,None
 Seat,Cairns
 fp
-Keith De Lacy,Labor,8340,56.2,5.6
-Terry Adair,National,6492,43.8,1.8
+Keith De Lacy,Labor,8340,56.2,None
+Terry Adair,National,6492,43.8,None
 tcp
-Keith De Lacy,Labor,8340,56.2,5.6
-Terry Adair,National,6492,43.8,1.8
+Keith De Lacy,Labor,8340,56.2,None
+Terry Adair,National,6492,43.8,None
 Seat,Callide
 fp
 Di McCauley,National,5950,49.9,10.6
@@ -161,11 +161,11 @@ Terry Mackenroth,Labor,10840,57.3,None
 Greg Jones,National,8089,42.7,None
 Seat,Condamine
 fp
-Brian Littleproud,National,9479,78.5,10.6
-Gordon Zigenbine,Labor,2598,21.5,1.2
+Brian Littleproud,National,9479,78.5,None
+Gordon Zigenbine,Labor,2598,21.5,None
 tcp
-Brian Littleproud,National,9479,78.5,10.6
-Gordon Zigenbine,Labor,2598,21.5,1.2
+Brian Littleproud,National,9479,78.5,None
+Gordon Zigenbine,Labor,2598,21.5,None
 Seat,Cook
 fp
 Bob Scott,Labor,5629,66.7,1.3
@@ -217,11 +217,11 @@ Kev Lingard,National,12030,63.1,-1.9
 Jim Egan,Labor,7023,36.9,1.9
 Seat,Flinders
 fp
-Bob Katter,National,5484,60.8,9.0
-Alex Wilson,Labor,3529,39.2,-2.2
+Bob Katter,National,5484,60.8,None
+Alex Wilson,Labor,3529,39.2,None
 tcp
-Bob Katter,National,5484,60.8,9.0
-Alex Wilson,Labor,3529,39.2,-2.2
+Bob Katter,National,5484,60.8,None
+Alex Wilson,Labor,3529,39.2,None
 Seat,Glass House
 fp
 Bill Newton,National,8563,46.6,None
@@ -349,11 +349,11 @@ Craig Sherrin,National,10126,55.5,0.4
 Nicole Stehn,Labor,8122,44.5,-0.4
 Seat,Maryborough
 fp
-Gilbert Alison,National,8738,50.7,6.4
-Peter Nightingale,Labor,8484,49.3,1.3
+Gilbert Alison,National,8738,50.7,None
+Peter Nightingale,Labor,8484,49.3,None
 tcp
-Gilbert Alison,National,8738,50.7,6.4
-Peter Nightingale,Labor,8484,49.3,1.3
+Gilbert Alison,National,8738,50.7,None
+Peter Nightingale,Labor,8484,49.3,None
 Seat,Merthyr
 fp
 Don Lane,National,5553,32.8,7.2
@@ -527,11 +527,11 @@ Les Yewdale,Labor,11309,60.3,0.8
 Bob Simpson,National,7446,39.7,-0.8
 Seat,Roma
 fp
-Russell Cooper,National,4949,69.5,15.7
-Ray Johanson,Labor,2167,30.5,0.6
+Russell Cooper,National,4949,69.5,None
+Ray Johanson,Labor,2167,30.5,None
 tcp
-Russell Cooper,National,4949,69.5,15.7
-Ray Johanson,Labor,2167,30.5,0.6
+Russell Cooper,National,4949,69.5,None
+Ray Johanson,Labor,2167,30.5,None
 Seat,Salisbury
 fp
 Len Ardill,Labor,8957,45.3,-1.1
@@ -550,18 +550,18 @@ Nev Warburton,Labor,11445,63.7,2.5
 John Curtin,National,6522,36.3,-2.5
 Seat,Sherwood
 fp
-Angus Innes,Liberal,12323,67.7,27.6
-Peter Rowe,Labor,5868,32.3,0.7
+Angus Innes,Liberal,12323,67.7,None
+Peter Rowe,Labor,5868,32.3,None
 tcp
-Angus Innes,Liberal,12323,67.7,27.6
-Peter Rowe,Labor,5868,32.3,0.7
+Angus Innes,Liberal,12323,67.7,None
+Peter Rowe,Labor,5868,32.3,None
 Seat,Somerset
 fp
-Bill Gunn,National,11720,64.0,9.7
-Ron Hazelden,Labor,6594,36.0,-1.1
+Bill Gunn,National,11720,64.0,None
+Ron Hazelden,Labor,6594,36.0,None
 tcp
-Bill Gunn,National,11720,64.0,9.7
-Ron Hazelden,Labor,6594,36.0,-1.1
+Bill Gunn,National,11720,64.0,None
+Ron Hazelden,Labor,6594,36.0,None
 Seat,South Brisbane
 fp
 Anne Warner,Labor,8222,48.1,-6.9

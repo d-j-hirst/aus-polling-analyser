@@ -1,0 +1,36 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2022sa,@TPP,Dynata,0.99946021350925196,0.65885415267203407,,,
+1,leave_one_out,2022sa,@TPP,Galaxy,4.6434435804066476,0.55167229952414987,,,
+1,leave_one_out,2022sa,@TPP,Newspoll2,1.4372371433242392,1.1853613897596753,,,
+1,leave_one_out,2022sa,ALP FP,Dynata,0.54147991817518459,0.65885415267203407,,,
+1,leave_one_out,2022sa,ALP FP,Galaxy,3.1140565593610252,0.324590658251666,,,
+1,leave_one_out,2022sa,ALP FP,Newspoll2,0.31385468095113822,1.1853613897596753,,,
+1,leave_one_out,2022sa,GRN FP,Dynata,2.267424643282737,0.65794871974838898,,,
+1,leave_one_out,2022sa,GRN FP,Galaxy,5.917001691030773,0.52955640920116276,,,
+1,leave_one_out,2022sa,GRN FP,Newspoll2,2.0385894664726596,0.98107050629500692,,,
+1,leave_one_out,2022sa,LNP FP,Dynata,0.15217111969325003,0.65885415267203407,,,
+1,leave_one_out,2022sa,LNP FP,Galaxy,13.719587196795738,0.36284361428909251,,,
+1,leave_one_out,2022sa,LNP FP,Newspoll2,2.190317978367311,0.91310942965953457,,,
+1,leave_one_out,2022sa,OTH FP,Dynata,3.9448061236876661,0.53043812687536529,,,
+1,leave_one_out,2022sa,OTH FP,Galaxy,14.922479234280004,0.27222152420245777,,,
+1,leave_one_out,2022sa,OTH FP,Newspoll2,0.04652402884291007,1.1853613897596753,,,
+1,bias_trend,2022sa,@TPP,,,,53.966999999999999,,
+1,bias_trend,2022sa,ALP FP,,,,40.567,,
+1,bias_trend,2022sa,GRN FP,,,,9.5860000000000003,,
+1,bias_trend,2022sa,LNP FP,,,,35.975000000000001,,
+1,bias_trend,2022sa,OTH FP,,,,13.99,,
+1,bias_pollster,2022sa,@TPP,Dynata,,,,-0.092999999999999999,1
+1,bias_pollster,2022sa,@TPP,Galaxy,,,,0.24399999999999999,1
+1,bias_pollster,2022sa,@TPP,Newspoll2,,,,-0.157,2
+1,bias_pollster,2022sa,ALP FP,Dynata,,,,-0.23400000000000001,1
+1,bias_pollster,2022sa,ALP FP,Galaxy,,,,0.17799999999999999,1
+1,bias_pollster,2022sa,ALP FP,Newspoll2,,,,0.085000000000000006,2
+1,bias_pollster,2022sa,GRN FP,Dynata,,,,-0.311,1
+1,bias_pollster,2022sa,GRN FP,Galaxy,,,,0.23000000000000001,1
+1,bias_pollster,2022sa,GRN FP,Newspoll2,,,,0.075999999999999998,2
+1,bias_pollster,2022sa,LNP FP,Dynata,,,,-0.20100000000000001,1
+1,bias_pollster,2022sa,LNP FP,Galaxy,,,,-0.31900000000000001,1
+1,bias_pollster,2022sa,LNP FP,Newspoll2,,,,0.61899999999999999,2
+1,bias_pollster,2022sa,OTH FP,Dynata,,,,1.0469999999999999,1
+1,bias_pollster,2022sa,OTH FP,Galaxy,,,,-0.17299999999999999,1
+1,bias_pollster,2022sa,OTH FP,Newspoll2,,,,-0.83199999999999996,2

@@ -1,0 +1,52 @@
+{
+  "$schema": "../analysis/source_provenance.schema.json",
+  "schema_version": 1,
+  "folder": ".",
+  "description": "Authored source exports used to prepare live-election support data.",
+  "created_at_utc": "2026-09-03T05:51:54Z",
+  "updated_at_utc": "2026-09-03T05:51:56Z",
+  "categories": {
+    "sa_booth_result_inputs": {
+      "description": "ECSA 2022 first-preference and TCP booth exports used to generate 2022sa.json.",
+      "file_patterns": [
+        "2026sa_prev_fp.csv",
+        "2026sa_prev_tcp.csv"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "2026sa_prev_fp.csv": {
+          "sha256": "0fb5463d759119957f355ad68aa9e62e0fcdb8f3a6451f8dfdc9f4ed9aff1cc9",
+          "size_bytes": 102966,
+          "recorded_mtime_utc": "2026-03-14T04:30:31.327895Z"
+        },
+        "2026sa_prev_tcp.csv": {
+          "sha256": "dad7098fe812efac2df0d09ca834784cc40581d2861fadd6a837444c76a2c3fe",
+          "size_bytes": 43872,
+          "recorded_mtime_utc": "2026-03-14T04:33:17.789273Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260903T055156Z-baseline-sa-booth-result-inputs-ef11ad17",
+          "recorded_at_utc": "2026-09-03T05:51:56Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Record the authored ECSA 2022 booth exports used by the reproducible converter.",
+          "files": [
+            "2026sa_prev_fp.csv",
+            "2026sa_prev_tcp.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    }
+  }
+}

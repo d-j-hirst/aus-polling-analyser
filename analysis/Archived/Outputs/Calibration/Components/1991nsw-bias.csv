@@ -1,0 +1,11 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,1991nsw,DEM FP,,,,5.8090000000000002,,
+1,bias_pollster,1991nsw,DEM FP,Newspoll,,,,-0,2
+1,bias_trend,1991nsw,OTH FP,,,,17.175999999999998,,
+1,bias_pollster,1991nsw,OTH FP,Newspoll,,,,0,2
+1,bias_trend,1991nsw,LNP FP,,,,46,,
+1,bias_pollster,1991nsw,LNP FP,Newspoll,,,,-0,2
+1,bias_trend,1991nsw,ALP FP,,,,36.847999999999999,,
+1,bias_pollster,1991nsw,ALP FP,Newspoll,,,,-0,2
+1,bias_trend,1991nsw,@TPP,,,,44.795999999999999,,
+1,bias_pollster,1991nsw,@TPP,Newspoll,,,,0,2

@@ -1,0 +1,6 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,1996wa,@TPP,Newspoll,1.1815702245784543,0.29283204067893404,,,
+1,leave_one_out,1996wa,ALP FP,Newspoll,4.4136850376597341,0.29283204067893404,,,
+1,leave_one_out,1996wa,LIB FP,Newspoll,1.4447185629826422,0.29283204067893404,,,
+1,leave_one_out,1996wa,NAT FP,Newspoll,3.248811949457616,0.29283204067893404,,,
+1,leave_one_out,1996wa,OTH FP,Newspoll,8.1331554556902219,0.29283204067893404,,,

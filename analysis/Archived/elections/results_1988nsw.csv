@@ -127,11 +127,11 @@ Bill Beckroge,Labor,14022,52.0,-14.9
 Mark Olson,National,12947,48.0,14.9
 Seat,Burragorang
 fp
-Ian McManus,Labor,16503,56.6,-5.8
-Pam Down,Liberal,12652,43.4,11.7
+Ian McManus,Labor,16503,56.6,None
+Pam Down,Liberal,12652,43.4,None
 tcp
-Ian McManus,Labor,16503,56.6,-5.8
-Pam Down,Liberal,12652,43.4,11.7
+Ian McManus,Labor,16503,56.6,None
+Pam Down,Liberal,12652,43.4,None
 Seat,Burrinjuck
 fp
 Terry Sheahan,Labor,12969,43.2,-10.3
@@ -183,11 +183,11 @@ Kevin Moss,Labor,14527,53.4,None
 Victoria Paradakis,Right-wing Populist,12678,46.6,None
 Seat,Carlingford
 fp
-Wayne Merton,Liberal,20171,68.2,9.1
-Jenifer Klugman,Labor,9420,31.8,-1.3
+Wayne Merton,Liberal,20171,68.2,None
+Jenifer Klugman,Labor,9420,31.8,None
 tcp
-Wayne Merton,Liberal,20171,68.2,9.1
-Jenifer Klugman,Labor,9420,31.8,-1.3
+Wayne Merton,Liberal,20171,68.2,None
+Jenifer Klugman,Labor,9420,31.8,None
 Seat,Castlereagh
 fp
 Roger Wotton,National,19482,67.0,11.1
@@ -214,11 +214,11 @@ Richard Face,Labor,14571,50.1,-10.5
 Judith Lloyd,Liberal,14508,49.9,10.5
 Seat,Clarence
 fp
-Ian Causley,National,19842,65.0,13.8
-William Day,Labor,10681,35.0,-8.3
+Ian Causley,National,19842,65.0,None
+William Day,Labor,10681,35.0,None
 tcp
-Ian Causley,National,19842,65.0,13.8
-William Day,Labor,10681,35.0,-8.3
+Ian Causley,National,19842,65.0,None
+William Day,Labor,10681,35.0,None
 Seat,Coffs Harbour
 fp
 Matt Singleton,National,19748,67.3,5.7
@@ -273,18 +273,18 @@ Gerry Peacocke,National,21335,71.3,6.7
 Graham Mantova,Labor,8567,28.7,-6.7
 Seat,Earlwood
 fp
-Phil White,Liberal,15528,51.3,8.5
-Ken Gabb,Labor,14764,48.7,-5.7
+Phil White,Liberal,15528,51.3,None
+Ken Gabb,Labor,14764,48.7,None
 tcp
-Phil White,Liberal,15528,51.3,8.5
-Ken Gabb,Labor,14764,48.7,-5.7
+Phil White,Liberal,15528,51.3,None
+Ken Gabb,Labor,14764,48.7,None
 Seat,East Hills
 fp
-Pat Rogan,Labor,16747,57.4,-5.4
-Peter Carver,Liberal,12425,42.6,11.6
+Pat Rogan,Labor,16747,57.4,None
+Peter Carver,Liberal,12425,42.6,None
 tcp
-Pat Rogan,Labor,16747,57.4,-5.4
-Peter Carver,Liberal,12425,42.6,11.6
+Pat Rogan,Labor,16747,57.4,None
+Peter Carver,Liberal,12425,42.6,None
 Seat,Eastwood
 fp
 Andrew Tink,Liberal,18660,63.3,3.6
@@ -340,11 +340,11 @@ Chris Hartcher,Liberal,18507,57.8,8.7
 Anthony Sansom,Labor,13485,42.2,-8.7
 Seat,Goulburn
 fp
-Robert Webster,National,20606,69.3,16.8
-Roger Lucas,Labor,9144,30.7,-13.2
+Robert Webster,National,20606,69.3,None
+Roger Lucas,Labor,9144,30.7,None
 tcp
-Robert Webster,National,20606,69.3,16.8
-Roger Lucas,Labor,9144,30.7,-13.2
+Robert Webster,National,20606,69.3,None
+Roger Lucas,Labor,9144,30.7,None
 Seat,Granville
 fp
 Laurie Ferguson,Labor,16724,56.8,-8.7
@@ -429,18 +429,18 @@ Brian Langton,Labor,14738,52.2,-4.2
 Stephen Milgate,Liberal,13509,47.8,4.2
 Seat,Ku-ring-gai
 fp
-Nick Greiner,Liberal,23879,79.7,3.5
-Anna Booth,Labor,6097,20.3,2.6
+Nick Greiner,Liberal,23879,79.7,None
+Anna Booth,Labor,6097,20.3,None
 tcp
-Nick Greiner,Liberal,23879,79.7,3.5
-Anna Booth,Labor,6097,20.3,2.6
+Nick Greiner,Liberal,23879,79.7,None
+Anna Booth,Labor,6097,20.3,None
 Seat,Lachlan
 fp
-Ian Armstrong,National,21451,73.6,10.0
-Leslie Saunders,Labor,7687,26.4,-7.6
+Ian Armstrong,National,21451,73.6,None
+Leslie Saunders,Labor,7687,26.4,None
 tcp
-Ian Armstrong,National,21451,73.6,10.0
-Leslie Saunders,Labor,7687,26.4,-7.6
+Ian Armstrong,National,21451,73.6,None
+Leslie Saunders,Labor,7687,26.4,None
 Seat,Lake Macquarie
 fp
 Merv Hunter,Labor,12260,40.4,-21.2
@@ -464,11 +464,11 @@ Wes Davoren,Labor,13173,52.6,-8.4
 Robert Batton,Liberal,11860,47.4,8.4
 Seat,Lane Cove
 fp
-John Dowd,Liberal,20871,72.6,7.4
-Gary Stainton,Labor,7886,27.4,-0.6
+John Dowd,Liberal,20871,72.6,None
+Gary Stainton,Labor,7886,27.4,None
 tcp
-John Dowd,Liberal,20871,72.6,7.4
-Gary Stainton,Labor,7886,27.4,-0.6
+John Dowd,Liberal,20871,72.6,None
+Gary Stainton,Labor,7886,27.4,None
 Seat,Lismore
 fp
 Bill Rixon,National,19493,65.0,47.0
@@ -480,11 +480,11 @@ Bill Rixon,National,20387,69.9,0.1
 Kenneth Gallen,Labor,8782,30.1,-0.1
 Seat,Liverpool
 fp
-George Paciullo,Labor,17024,64.1,-4.2
-Margaret Brock,Liberal,9550,35.9,10.2
+George Paciullo,Labor,17024,64.1,None
+Margaret Brock,Liberal,9550,35.9,None
 tcp
-George Paciullo,Labor,17024,64.1,-4.2
-Margaret Brock,Liberal,9550,35.9,10.2
+George Paciullo,Labor,17024,64.1,None
+Margaret Brock,Liberal,9550,35.9,None
 Seat,Londonderry
 fp
 Paul Gibson,Labor,12651,47.1,-11.2
@@ -523,11 +523,11 @@ David Hay,Liberal,17227,62.2,7.7
 Gregory Smith,Labor,10466,37.8,-7.7
 Seat,Manning
 fp
-Wendy Machin,National,23735,73.9,20.2
-John Tuite,Labor,8391,26.1,-9.1
+Wendy Machin,National,23735,73.9,None
+John Tuite,Labor,8391,26.1,None
 tcp
-Wendy Machin,National,23735,73.9,20.2
-John Tuite,Labor,8391,26.1,-9.1
+Wendy Machin,National,23735,73.9,None
+John Tuite,Labor,8391,26.1,None
 Seat,Maroubra
 fp
 Bob Carr,Labor,15895,54.7,-8.1
@@ -562,11 +562,11 @@ Sandra Nori,Labor,13583,56.6,None
 Frank Sartor,Independent,10420,43.4,None
 Seat,Middle Harbour
 fp
-Peter Collins,Liberal,20147,71.2,5.2
-Marilyn Dodkin,Labor,8161,28.8,-1.1
+Peter Collins,Liberal,20147,71.2,None
+Marilyn Dodkin,Labor,8161,28.8,None
 tcp
-Peter Collins,Liberal,20147,71.2,5.2
-Marilyn Dodkin,Labor,8161,28.8,-1.1
+Peter Collins,Liberal,20147,71.2,None
+Marilyn Dodkin,Labor,8161,28.8,None
 Seat,Minchinbury
 fp
 Anne Cohen,Liberal,12417,40.0,2.1
@@ -577,11 +577,11 @@ Anne Cohen,Liberal,15469,52.5,12.9
 Gregory Lucas,Labor,13996,47.5,-12.9
 Seat,Miranda
 fp
-Ron Phillips,Liberal,18577,61.5,11.3
-Anthony Iffland,Labor,11623,38.5,-8.5
+Ron Phillips,Liberal,18577,61.5,None
+Anthony Iffland,Labor,11623,38.5,None
 tcp
-Ron Phillips,Liberal,18577,61.5,11.3
-Anthony Iffland,Labor,11623,38.5,-8.5
+Ron Phillips,Liberal,18577,61.5,None
+Anthony Iffland,Labor,11623,38.5,None
 Seat,Monaro
 fp
 John Akister,Labor,12399,41.5,-15.6
@@ -592,11 +592,11 @@ Peter Cochran,National,15703,53.9,11.9
 John Akister,Labor,13416,46.1,-11.9
 Seat,Mosman
 fp
-Phillip Smiles,Liberal,21084,73.9,16.6
-Catherine Stanhope,Labor,7463,26.1,6.6
+Phillip Smiles,Liberal,21084,73.9,None
+Catherine Stanhope,Labor,7463,26.1,None
 tcp
-Phillip Smiles,Liberal,21084,73.9,16.6
-Catherine Stanhope,Labor,7463,26.1,6.6
+Phillip Smiles,Liberal,21084,73.9,None
+Catherine Stanhope,Labor,7463,26.1,None
 Seat,Mulgoa
 fp
 Tony Aquilina,Labor,14689,52.0,-11.8
@@ -607,18 +607,18 @@ Tony Aquilina,Labor,15254,55.5,-12.6
 Douglas Hayne,Liberal,12235,44.5,12.6
 Seat,Murray
 fp
-Jim Small,National,22205,77.0,9.1
-Bernard Kelly,Labor,6626,23.0,-0.3
+Jim Small,National,22205,77.0,None
+Bernard Kelly,Labor,6626,23.0,None
 tcp
-Jim Small,National,22205,77.0,9.1
-Bernard Kelly,Labor,6626,23.0,-0.3
+Jim Small,National,22205,77.0,None
+Bernard Kelly,Labor,6626,23.0,None
 Seat,Murrumbidgee
 fp
-Adrian Cruickshank,National,19967,68.4,44.5
-Terence Allen,Labor,9214,31.6,-8.0
+Adrian Cruickshank,National,19967,68.4,None
+Terence Allen,Labor,9214,31.6,None
 tcp
-Adrian Cruickshank,National,19967,68.4,44.5
-Terence Allen,Labor,9214,31.6,-8.0
+Adrian Cruickshank,National,19967,68.4,None
+Terence Allen,Labor,9214,31.6,None
 Seat,Murwillumbah
 fp
 Don Beck,National,16687,56.1,10.7
@@ -656,11 +656,11 @@ Ted Mack,Independent,16257,59.9,4.1
 Jillian Skinner,Liberal,10876,40.1,-4.1
 Seat,Northcott
 fp
-Bruce Baird,Liberal,23271,76.0,8.1
-John Drew,Labor,7350,24.0,-1.6
+Bruce Baird,Liberal,23271,76.0,None
+John Drew,Labor,7350,24.0,None
 tcp
-Bruce Baird,Liberal,23271,76.0,8.1
-John Drew,Labor,7350,24.0,-1.6
+Bruce Baird,Liberal,23271,76.0,None
+John Drew,Labor,7350,24.0,None
 Seat,Northern Tablelands
 fp
 Ray Chappell,National,19933,65.8,15.2
@@ -714,11 +714,11 @@ Jim Longley,Liberal,17424,60.1,None
 Eric Green,Independent,11559,39.9,None
 Seat,Port Macquarie
 fp
-Bruce Jeffery,National,21036,69.4,24.9
-John Murphy,Labor,9284,30.6,0.6
+Bruce Jeffery,National,21036,69.4,None
+John Murphy,Labor,9284,30.6,None
 tcp
-Bruce Jeffery,National,21036,69.4,24.9
-John Murphy,Labor,9284,30.6,0.6
+Bruce Jeffery,National,21036,69.4,None
+John Murphy,Labor,9284,30.6,None
 Seat,Port Stephens
 fp
 Bob Martin,Labor,12967,42.2,-7.6
@@ -730,11 +730,11 @@ Bob Martin,Labor,14235,50.2,-10.2
 Bob Scott,Liberal,14145,49.8,10.2
 Seat,Riverstone
 fp
-Richard Amery,Labor,16648,57.2,-7.1
-Kenneth Jessup,Liberal,12471,42.8,8.2
+Richard Amery,Labor,16648,57.2,None
+Kenneth Jessup,Liberal,12471,42.8,None
 tcp
-Richard Amery,Labor,16648,57.2,-7.1
-Kenneth Jessup,Liberal,12471,42.8,8.2
+Richard Amery,Labor,16648,57.2,None
+Kenneth Jessup,Liberal,12471,42.8,None
 Seat,Rockdale
 fp
 Barrie Unsworth,Labor,15793,53.6,-9.6
@@ -763,11 +763,11 @@ Bob Christie,Labor,14054,55.0,-5.2
 Leonard Robinson,Liberal,11504,45.0,5.2
 Seat,Smithfield
 fp
-Janice Crosio,Labor,16250,60.8,-6.4
-Glenn Ford,Liberal,10468,39.2,14.5
+Janice Crosio,Labor,16250,60.8,None
+Glenn Ford,Liberal,10468,39.2,None
 tcp
-Janice Crosio,Labor,16250,60.8,-6.4
-Glenn Ford,Liberal,10468,39.2,14.5
+Janice Crosio,Labor,16250,60.8,None
+Glenn Ford,Liberal,10468,39.2,None
 Seat,South Coast
 fp
 John Hatton,Independent,14272,46.2,-13.8
@@ -821,39 +821,39 @@ Noel Park,National,22230,75.4,13.2
 Christine Robertson,Labor,7255,24.6,-13.2
 Seat,The Entrance
 fp
-Bob Graham,Liberal,16080,52.0,21.2
-Brian McGowan,Labor,14852,48.0,-3.7
+Bob Graham,Liberal,16080,52.0,None
+Brian McGowan,Labor,14852,48.0,None
 tcp
-Bob Graham,Liberal,16080,52.0,21.2
-Brian McGowan,Labor,14852,48.0,-3.7
+Bob Graham,Liberal,16080,52.0,None
+Brian McGowan,Labor,14852,48.0,None
 Seat,The Hills
 fp
-Fred Caterson,Liberal,23459,75.9,12.7
-Susan Deane,Labor,7458,24.1,1.3
+Fred Caterson,Liberal,23459,75.9,None
+Susan Deane,Labor,7458,24.1,None
 tcp
-Fred Caterson,Liberal,23459,75.9,12.7
-Susan Deane,Labor,7458,24.1,1.3
+Fred Caterson,Liberal,23459,75.9,None
+Susan Deane,Labor,7458,24.1,None
 Seat,Upper Hunter
 fp
-George Souris,National,20055,67.8,9.7
-Colleen Green,Labor,9522,32.2,-8.3
+George Souris,National,20055,67.8,None
+Colleen Green,Labor,9522,32.2,None
 tcp
-George Souris,National,20055,67.8,9.7
-Colleen Green,Labor,9522,32.2,-8.3
+George Souris,National,20055,67.8,None
+Colleen Green,Labor,9522,32.2,None
 Seat,Vaucluse
 fp
-Ray Aston,Liberal,20267,77.2,4.4
-Beverley Crane,Labor,5982,22.8,-0.4
+Ray Aston,Liberal,20267,77.2,None
+Beverley Crane,Labor,5982,22.8,None
 tcp
-Ray Aston,Liberal,20267,77.2,4.4
-Beverley Crane,Labor,5982,22.8,-0.4
+Ray Aston,Liberal,20267,77.2,None
+Beverley Crane,Labor,5982,22.8,None
 Seat,Wagga Wagga
 fp
-Joe Schipp,Liberal,22085,72.6,12.2
-Geoffrey Burch,Labor,8321,27.4,-4.3
+Joe Schipp,Liberal,22085,72.6,None
+Geoffrey Burch,Labor,8321,27.4,None
 tcp
-Joe Schipp,Liberal,22085,72.6,12.2
-Geoffrey Burch,Labor,8321,27.4,-4.3
+Joe Schipp,Liberal,22085,72.6,None
+Geoffrey Burch,Labor,8321,27.4,None
 Seat,Wakehurst
 fp
 John Booth,Liberal,15013,52.2,2.6
@@ -864,18 +864,18 @@ John Booth,Liberal,16004,57.5,5.5
 Tom Webster,Labor,11809,42.5,-5.5
 Seat,Wallsend
 fp
-Ken Booth,Labor,17651,59.4,-7.1
-Peter Wilson,Liberal,12066,40.6,8.1
+Ken Booth,Labor,17651,59.4,None
+Peter Wilson,Liberal,12066,40.6,None
 tcp
-Ken Booth,Labor,17651,59.4,-7.1
-Peter Wilson,Liberal,12066,40.6,8.1
+Ken Booth,Labor,17651,59.4,None
+Peter Wilson,Liberal,12066,40.6,None
 Seat,Waratah
 fp
-John Price,Labor,17294,61.4,7.7
-Milton Caine,Liberal,10863,38.6,10.7
+John Price,Labor,17294,61.4,None
+Milton Caine,Liberal,10863,38.6,None
 tcp
-John Price,Labor,17294,61.4,7.7
-Milton Caine,Liberal,10863,38.6,10.7
+John Price,Labor,17294,61.4,None
+Milton Caine,Liberal,10863,38.6,None
 Seat,Wentworthville
 fp
 Pam Allan,Labor,14603,47.7,-10.0
@@ -897,8 +897,8 @@ Frank Arkell,Independent,15560,55.5,10.2
 Laurie Kelly,Labor,12488,44.5,-10.2
 Seat,Wyong
 fp
-Harry Moore,Labor,16494,54.5,-3.9
-Ian Crook,Liberal,13754,45.5,14.0
+Harry Moore,Labor,16494,54.5,None
+Ian Crook,Liberal,13754,45.5,None
 tcp
-Harry Moore,Labor,16494,54.5,-3.9
-Ian Crook,Liberal,13754,45.5,14.0
+Harry Moore,Labor,16494,54.5,None
+Ian Crook,Liberal,13754,45.5,None

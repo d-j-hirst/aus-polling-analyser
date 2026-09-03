@@ -1,18 +1,18 @@
 1983 QLD Election
 Seat,Albert
 fp
-Ivan Gibbs,National,14595,56.5,11.7
-Walter Ehrich,Labor,11239,43.5,9.8
+Ivan Gibbs,National,14595,56.5,None
+Walter Ehrich,Labor,11239,43.5,None
 tcp
-Ivan Gibbs,National,14595,56.5,11.7
-Walter Ehrich,Labor,11239,43.5,9.8
+Ivan Gibbs,National,14595,56.5,None
+Walter Ehrich,Labor,11239,43.5,None
 Seat,Archerfield
 fp
-Kevin Hooper,Labor,10693,71.6,6.6
-Douglas Jackson,National,4234,28.4,12.0
+Kevin Hooper,Labor,10693,71.6,None
+Douglas Jackson,National,4234,28.4,None
 tcp
-Kevin Hooper,Labor,10693,71.6,6.6
-Douglas Jackson,National,4234,28.4,12.0
+Kevin Hooper,Labor,10693,71.6,None
+Douglas Jackson,National,4234,28.4,None
 Seat,Ashgrove
 fp
 Tom Veivers,Labor,7414,42.4,1.9
@@ -32,11 +32,11 @@ Brian Cahill,National,11033,60.4,None
 D.K. O'Connell,Labor,7226,39.6,None
 Seat,Auburn
 fp
-Neville Harper,National,7116,73.3,6.0
-Raymond Barker,Labor,2590,26.7,-3.2
+Neville Harper,National,7116,73.3,None
+Raymond Barker,Labor,2590,26.7,None
 tcp
-Neville Harper,National,7116,73.3,6.0
-Raymond Barker,Labor,2590,26.7,-3.2
+Neville Harper,National,7116,73.3,None
+Raymond Barker,Labor,2590,26.7,None
 Seat,Balonne
 fp
 Don Neal,National,5736,74.4,5.7
@@ -46,25 +46,25 @@ Don Neal,National,5736,74.4,5.7
 Graham Staerk,Labor,1975,25.6,-5.7
 Seat,Barambah
 fp
-Joh Bjelke-Petersen,National,8446,78.5,-1.9
-Fred Hoberg,Labor,2310,21.5,4.7
+Joh Bjelke-Petersen,National,8446,78.5,None
+Fred Hoberg,Labor,2310,21.5,None
 tcp
-Joh Bjelke-Petersen,National,8446,78.5,-1.9
-Fred Hoberg,Labor,2310,21.5,4.7
+Joh Bjelke-Petersen,National,8446,78.5,None
+Fred Hoberg,Labor,2310,21.5,None
 Seat,Barron River
 fp
-Martin Tenni,National,10966,53.2,10.5
-Wendy Lilja,Labor,9642,46.8,1.6
+Martin Tenni,National,10966,53.2,None
+Wendy Lilja,Labor,9642,46.8,None
 tcp
-Martin Tenni,National,10966,53.2,10.5
-Wendy Lilja,Labor,9642,46.8,1.6
+Martin Tenni,National,10966,53.2,None
+Wendy Lilja,Labor,9642,46.8,None
 Seat,Brisbane Central
 fp
-Brian Davis,Labor,8164,58.9,5.3
-Rodney Daniel,Liberal,5700,41.1,-0.2
+Brian Davis,Labor,8164,58.9,None
+Rodney Daniel,Liberal,5700,41.1,None
 tcp
-Brian Davis,Labor,8164,58.9,5.3
-Rodney Daniel,Liberal,5700,41.1,-0.2
+Brian Davis,Labor,8164,58.9,None
+Rodney Daniel,Liberal,5700,41.1,None
 Seat,Bulimba
 fp
 Ron McLean,Labor,8073,56.9,2.3
@@ -163,11 +163,11 @@ Gordon Simpson,National,14547,62.1,-4.3
 Gordon Nuttall,Labor,8873,37.9,4.3
 Seat,Cunningham
 fp
-Tony Elliott,National,10876,78.7,8.0
-Warren Keats,Labor,2935,21.3,5.3
+Tony Elliott,National,10876,78.7,None
+Warren Keats,Labor,2935,21.3,None
 tcp
-Tony Elliott,National,10876,78.7,8.0
-Warren Keats,Labor,2935,21.3,5.3
+Tony Elliott,National,10876,78.7,None
+Warren Keats,Labor,2935,21.3,None
 Seat,Everton
 fp
 Glen Milliner,Labor,8412,52.9,7.5
@@ -209,11 +209,11 @@ Bill Glasson,National,4690,62.8,3.6
 Robert McPhee,Labor,2772,37.2,-3.6
 Seat,Gympie
 fp
-Len Stephan,National,8964,64.5,10.8
-Thomas Barnett,Labor,4940,35.5,9.6
+Len Stephan,National,8964,64.5,None
+Thomas Barnett,Labor,4940,35.5,None
 tcp
-Len Stephan,National,8964,64.5,10.8
-Thomas Barnett,Labor,4940,35.5,9.6
+Len Stephan,National,8964,64.5,None
+Thomas Barnett,Labor,4940,35.5,None
 Seat,Hinchinbrook
 fp
 Ted Row,National,5718,47.1,-2.5
@@ -242,11 +242,11 @@ David Underwood,Labor,10185,59.4,None
 John Roberts,National,6977,40.6,None
 Seat,Isis
 fp
-Lin Powell,National,10193,57.1,7.0
-Joseph Endres,Labor,7665,42.9,6.7
+Lin Powell,National,10193,57.1,None
+Joseph Endres,Labor,7665,42.9,None
 tcp
-Lin Powell,National,10193,57.1,7.0
-Joseph Endres,Labor,7665,42.9,6.7
+Lin Powell,National,10193,57.1,None
+Joseph Endres,Labor,7665,42.9,None
 Seat,Ithaca
 fp
 Col Miller,Liberal,7475,53.3,-6.6
@@ -292,11 +292,11 @@ Tom Burns,Labor,10670,71.4,-2.2
 Moyra Bidstrup,Liberal,4276,28.6,2.2
 Seat,Mackay
 fp
-Ed Casey,Labor,10372,56.0,-3.2
-John Comerford,National,8163,44.0,12.0
+Ed Casey,Labor,10372,56.0,None
+John Comerford,National,8163,44.0,None
 tcp
-Ed Casey,Labor,10372,56.0,-3.2
-John Comerford,National,8163,44.0,12.0
+Ed Casey,Labor,10372,56.0,None
+John Comerford,National,8163,44.0,None
 Seat,Mansfield
 fp
 Bill Kaus,National,7615,40.0,40.0
@@ -325,11 +325,11 @@ Don Lane,Liberal,7853,57.7,3.2
 Leon Pearce,Labor,5746,42.3,-3.2
 Seat,Mirani
 fp
-Jim Randell,National,8251,56.6,19.4
-Jeffrey Gascoyne,Labor,6338,43.4,5.0
+Jim Randell,National,8251,56.6,None
+Jeffrey Gascoyne,Labor,6338,43.4,None
 tcp
-Jim Randell,National,8251,56.6,19.4
-Jeffrey Gascoyne,Labor,6338,43.4,5.0
+Jim Randell,National,8251,56.6,None
+Jeffrey Gascoyne,Labor,6338,43.4,None
 Seat,Mount Coot-tha
 fp
 Cedric Dowdle,National,5805,32.8,32.8
@@ -593,11 +593,11 @@ Neil Turner,National,4364,57.7,5.1
 David Land,Labor,3205,42.3,-5.1
 Seat,Warwick
 fp
-Des Booth,National,6921,67.9,3.5
-Mary Hill,Labor,3278,32.1,3.1
+Des Booth,National,6921,67.9,None
+Mary Hill,Labor,3278,32.1,None
 tcp
-Des Booth,National,6921,67.9,3.5
-Mary Hill,Labor,3278,32.1,3.1
+Des Booth,National,6921,67.9,None
+Mary Hill,Labor,3278,32.1,None
 Seat,Wavell
 fp
 Brian Austin,Liberal,7208,51.3,-5.6
@@ -622,11 +622,11 @@ Pat Comben,Labor,7549,52.1,None
 Bob Moore,National,6930,47.9,None
 Seat,Wolston
 fp
-Bob Gibbs,Labor,10251,64.3,4.9
-Bob Harper,Liberal,5687,35.7,11.9
+Bob Gibbs,Labor,10251,64.3,None
+Bob Harper,Liberal,5687,35.7,None
 tcp
-Bob Gibbs,Labor,10251,64.3,4.9
-Bob Harper,Liberal,5687,35.7,11.9
+Bob Gibbs,Labor,10251,64.3,None
+Bob Harper,Liberal,5687,35.7,None
 Seat,Woodridge
 fp
 Bill D'Arcy,Labor,11131,48.9,2.6

@@ -155,11 +155,11 @@ Ian Thompson,Liberal,5460,64.4,-4.2
 Kay Hallahan,Labor,3013,35.6,4.2
 Seat,Kalgoorlie
 fp
-Ted Evans,Labor,4109,64.5,2.5
-Douglas Daws,Liberal,2264,35.5,3.9
+Ted Evans,Labor,4109,64.5,None
+Douglas Daws,Liberal,2264,35.5,None
 tcp
-Ted Evans,Labor,4109,64.5,2.5
-Douglas Daws,Liberal,2264,35.5,3.9
+Ted Evans,Labor,4109,64.5,None
+Douglas Daws,Liberal,2264,35.5,None
 Seat,Karrinyup
 fp
 Jim Clarko,Liberal,9284,58.5,-2.5
@@ -169,11 +169,11 @@ Jim Clarko,Liberal,9284,58.5,-2.5
 Evan McKenzie,Labor,6597,41.5,2.5
 Seat,Katanning
 fp
-Dick Old,National,5501,79.3,6.4
-Arnold Bilney,National,1433,20.7,20.7
+Dick Old,National,5501,79.3,None
+Arnold Bilney,National,1433,20.7,None
 tcp
-Dick Old,National,5501,79.3,6.4
-Arnold Bilney,National,1433,20.7,20.7
+Dick Old,National,5501,79.3,None
+Arnold Bilney,National,1433,20.7,None
 Seat,Kimberley
 fp
 Ernie Bridge,Labor,2656,56.1,9.2
@@ -277,11 +277,11 @@ Richard Shalders,Liberal,5640,59.2,-1.1
 David King,Labor,3893,40.8,1.1
 Seat,Narrogin
 fp
-Peter Jones,National,5397,77.0,-1.8
-Malcolm Turner,Labor,1614,23.0,23.0
+Peter Jones,National,5397,77.0,None
+Malcolm Turner,Labor,1614,23.0,None
 tcp
-Peter Jones,National,5397,77.0,-1.8
-Malcolm Turner,Labor,1614,23.0,23.0
+Peter Jones,National,5397,77.0,None
+Malcolm Turner,Labor,1614,23.0,None
 Seat,Nedlands
 fp
 Charles Court,Liberal,8448,67.8,-3.2
@@ -379,11 +379,11 @@ Ron Davies,Labor,8171,64.7,5.1
 Michael Smith,Liberal,4462,35.3,-5.1
 Seat,Warren-Blackwood
 fp
-David Evans,Labor,5126,62.5,8.6
-Graham Happ,Liberal,3080,37.5,-4.7
+David Evans,Labor,5126,62.5,None
+Graham Happ,Liberal,3080,37.5,None
 tcp
-David Evans,Labor,5126,62.5,8.6
-Graham Happ,Liberal,3080,37.5,-4.7
+David Evans,Labor,5126,62.5,None
+Graham Happ,Liberal,3080,37.5,None
 Seat,Wellington
 fp
 June Craig,Liberal,4780,59.2,-2.1
@@ -408,8 +408,8 @@ Mick Nanovich,Liberal,14278,58.3,-4.1
 Nick Griffiths,Labor,10207,41.7,4.1
 Seat,Yilgarn-Dundas
 fp
-Julian Grill,Labor,4242,72.8,-11.0
-James Mazza,Liberal,1584,27.2,-7.3
+Julian Grill,Labor,4242,72.8,None
+James Mazza,Liberal,1584,27.2,None
 tcp
-Julian Grill,Labor,4242,72.8,-11.0
-James Mazza,Liberal,1584,27.2,-7.3
+Julian Grill,Labor,4242,72.8,None
+James Mazza,Liberal,1584,27.2,None

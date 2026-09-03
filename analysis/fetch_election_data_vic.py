@@ -1,38 +1,50 @@
-import requests
+import argparse
 import time
 import json
-import datetime
-import environ
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions
-from selenium.common.exceptions import NoSuchElementException
+import os.path
 
-import environ
+election = '2018vic'
+urls = {
+    '2018vic':
+        'https://www.vec.vic.gov.au/results/state-election-results/'
+        '2018-state-election',
+}
+url = urls[election]
+driver = None
+By = None
 
-env = environ.Env(
-    DEBUG=(int, 0)
-)
 
-# reading .env file
-environ.Env.read_env('fetch_election_data.env')
+def create_driver():
+    global By
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By as SeleniumBy
 
-url = 'https://www.vec.vic.gov.au/results/state-election-results/2018-state-election'
+    By = SeleniumBy
+    options = Options()
+    options.add_argument('headless')
+    options.add_argument("no-sandbox")
+    options.add_argument('window-size=1920x1080')
+    options.add_argument("disable-gpu")
+    # This assumes running Linux/wsl2 and you have installed chromedriver
+    # according to instructions here:
+    # https://cloudbytes.dev/snippets/run-selenium-and-chrome-on-wsl2
+    homedir = os.path.expanduser("~")
+    options.binary_location = f"{homedir}/chrome-linux64/chrome"
+    webdriver_service = Service(
+        f"{homedir}/chromedriver-linux64/chromedriver")
+    return webdriver.Chrome(service=webdriver_service, options=options)
 
-options = Options()
-options.add_argument('headless')
-options.add_argument("no-sandbox")
-options.add_argument('window-size=1920x1080')
-options.add_argument("disable-gpu")
-# This assumes running Linux/wsl2 and you have installed chromedriver
-# according to instructions here:
-# https://cloudbytes.dev/snippets/run-selenium-and-chrome-on-wsl2
-webdriver_service = Service(f"/home/{env.str('USERNAME')}/chromedriver/stable/chromedriver")
-driver = webdriver.Chrome(service=webdriver_service, options=options)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Fetch archived Victorian booth results.')
+    parser.add_argument('--election', choices=sorted(urls), default=election)
+    args = parser.parse_args()
+    election = args.election
+    url = urls[election]
+    driver = create_driver()
 
 # Only for local debug display use
 party_translate = {
@@ -97,7 +109,8 @@ def get_fp_results(link):
     
     name_cols = ' '.join(space(name) for name in names)
     print(f'{space()} {name_cols}')
-    party_cols = ' '.join(space(party_translate[party]) for party in parties)
+    party_cols = ' '.join(
+        space(party_translate.get(party, party)) for party in parties)
     print(f'{space()} {party_cols}')
     for booth_name, votes in fp_booths.items():
         vote_cols = ' '.join(space(str(vote)) for vote in votes)
@@ -117,7 +130,7 @@ def get_fp_results(link):
 
 
 all_results = {}
-for seat_index in range(0, 88):
+for seat_index in (range(0, 88) if driver is not None else ()):
     driver.get(url)
 
     iframe = driver.find_element(By.TAG_NAME, 'iframe')
@@ -246,20 +259,39 @@ for seat_index in range(0, 88):
     
     name_cols = ' '.join(space(name) for name in names)
     print(f'{space()} {name_cols}')
-    party_cols = ' '.join(space(party_translate[party]) for party in parties)
+    party_cols = ' '.join(
+        space(party_translate.get(party, party)) for party in parties)
     print(f'{space()} {party_cols}')
 
     if len(name_to_index) == 0: 
         name_to_index = {b: a for a, b in enumerate(names)}
 
+    tcp_candidate_indices = []
+    for name, party in zip(names, parties):
+        if name in name_to_index:
+            tcp_candidate_indices.append(name_to_index[name])
+            continue
+        party_matches = [
+            index for index, candidate in cand_info.items()
+            if candidate['party'] == party
+        ]
+        if len(party_matches) != 1:
+            raise ValueError(
+                f'Could not match TCP candidate {name!r} ({party})')
+        tcp_candidate_indices.append(party_matches[0])
+
     for booth_name, votes in tcp_booths.items():
         vote_cols = ' '.join(space(str(vote)) for vote in votes)
         print(f'{space(booth_name)} {vote_cols}')
-        booth_info[booth_name]['tcp'] = {name_to_index[names[index]]: results for index, results in enumerate(votes)}
+        booth_info[booth_name]['tcp'] = {
+            tcp_candidate_indices[index]: results
+            for index, results in enumerate(votes)
+        }
 
     all_results[seat_name] = {"candidates": cand_info, "booths": booth_info}
 
-driver.close()
-
-with open('Booth Results/2018vic.json', 'w') as f:
-    json.dump(all_results, f, indent=4)
+if driver is not None:
+    driver.quit()
+    with open(f'Booth Results/{election}.json', 'w') as f:
+        json.dump(all_results, f, indent=4)
+        f.write('\n')

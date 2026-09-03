@@ -1,0 +1,155 @@
+Firm,Day,@TPP,@TPP adj,@TPP reported
+Morgan multi-mode,11,56.674,57.264,58.5
+Morgan multi-mode,35,57.07,57.66,58.0
+Morgan multi-mode,49,56.163,56.753,57.5
+Redbridge,48,55.862,56.042,55.5
+Spectre,52,56.145,56.84,56.5
+DemosAU,59,58.917,59.243,59.0
+Newspoll3,69,56.898,55.891,57.0
+ResolvePM,69,56.443,56.963,56.0
+Morgan multi-mode,67,56.325,56.915,57.0
+Wolf+Smith,77,56.353,56.644,57.0
+Newspoll3,98,56.063,55.056,56.0
+ResolvePM,98,57.038,57.559,59.0
+Morgan multi-mode,95,55.153,55.743,56.5
+Redbridge,113,54.691,54.871,53.5
+ResolvePM,126,56.036,56.557,55.0
+Newspoll3,123,57.745,56.738,58.0
+Morgan multi-mode,123,55.008,55.598,55.5
+YouGov2,143,55.918,56.245,56.0
+Essential,142,55.846,56.722,53.684
+Newspoll3,144,57.028,56.021,57.0
+Redbridge,146,53.911,54.091,54.0
+ResolvePM,154,55.032,55.552,55.0
+Morgan multi-mode,151,56.71,57.3,57.0
+DemosAU,169,55.985,56.311,56.0
+Essential,170,55.559,56.436,53.191
+Newspoll3,172,57.256,56.249,57.0
+YouGov2,172,55.173,55.5,nan
+Freshwater,173,54.536,55.47,55.0
+ResolvePM,182,54.371,54.891,53.0
+Redbridge,186,56.622,56.802,56.0
+Morgan multi-mode,179,55.051,55.641,56.5
+Spectre,187,55.126,55.821,53.0
+Redbridge,193,54.504,54.684,54.0
+Newspoll3,193,57.93,56.923,58.0
+YouGov2,191,54.723,55.05,nan
+Essential,198,55.675,56.551,53.191
+Morgan multi-mode,203,55.643,56.233,56.0
+ResolvePM,211,56.001,56.522,55.0
+Essential,212,54.322,55.199,52.128
+Redbridge,215,55.805,55.985,56.0
+Morgan multi-mode,217,52.94,53.53,54.5
+ResolvePM,225,53.303,53.823,54.0
+DemosAU,243,52.633,53.012,52.0
+Fox & Hedgehog,243,52.797,53.58,53.0
+Morgan multi-mode,245,51.826,52.384,52.0
+Newspoll3,251,55.378,54.372,55.0
+ResolvePM,251,51.139,51.662,52.0
+Morgan multi-mode,252,52.683,53.218,53.5
+Freshwater,254,52.551,53.46,53.0
+DemosAU,254,54.225,54.693,nan
+Morgan multi-mode,259,54.07,54.574,56.5
+YouGov2,260,54.598,54.887,55.0
+Essential,263,51.549,52.544,nan
+Redbridge,263,55.881,56.063,56.0
+Morgan multi-mode,266,54.266,54.747,56.0
+Newspoll3,275,56.018,55.013,nan
+Morgan multi-mode,273,52.748,53.198,53.5
+YouGov2,275,53.818,54.08,54.0
+Morgan multi-mode,279,54.707,55.134,58.5
+ResolvePM,279,53.67,54.199,55.0
+Morgan multi-mode,283,54.329,54.74,55.0
+Redbridge,277,56.391,56.574,nan
+Fox & Hedgehog,286,51.963,52.819,51.0
+DemosAU,286,52.273,53.024,nan
+Morgan multi-mode,287,53.891,54.287,54.5
+Essential,288,51.273,52.377,49.474
+YouGov2,289,53.225,53.463,53.0
+Newspoll3,293,54.136,53.131,nan
+Redbridge,293,54.728,54.912,54.0
+Morgan multi-mode,294,53.164,53.536,56.0
+Morgan multi-mode,301,52.465,52.806,54.5
+YouGov2,303,54.735,54.949,55.0
+ResolvePM,308,52.888,53.421,nan
+Morgan multi-mode,308,52.174,52.491,54.0
+YouGov2,307,52.716,52.923,nan
+Morgan multi-mode,315,50.473,50.759,52.5
+Essential,316,51.87,53.102,49.462
+YouGov2,317,53.99,54.18,54.0
+Fox & Hedgehog,321,53.425,54.343,51.0
+Redbridge,321,55.865,56.051,53.0
+Newspoll3,321,53.763,52.759,nan
+Morgan multi-mode,322,53.721,53.984,56.5
+Morgan multi-mode,329,53.205,53.437,56.0
+YouGov2,331,54.481,54.647,55.0
+Morgan multi-mode,336,53.094,53.303,56.0
+DemosAU,339,50.735,51.965,nan
+Freshwater,324,53.418,54.217,51.0
+ResolvePM,343,54.288,54.828,55.0
+Newspoll3,342,54.68,53.677,nan
+Spectre,332,50.763,51.725,51.0
+Morgan multi-mode,343,54.256,54.433,55.5
+YouGov2,345,52.872,53.014,53.0
+Morgan multi-mode,350,54.179,54.333,54.5
+Essential,351,51.469,52.864,48.958
+Freshwater,356,53.418,54.167,53.0
+Redbridge,354,53.265,53.453,54.0
+Morgan multi-mode,357,53.087,53.21,54.5
+YouGov2,359,54.562,54.683,54.0
+Morgan multi-mode,364,52.347,52.47,53.5
+SMS Morgan,371,53.169,53.433,55.0
+Freshwater,371,50.336,51.082,50.0
+ResolvePM,373,52.343,52.885,nan
+Newspoll3,373,54.018,53.016,nan
+Wolf+Smith,370,52.496,52.819,nan
+Morgan multi-mode,371,51.712,51.835,54.0
+YouGov2,373,51.935,52.056,52.0
+DemosAU,375,50.155,51.545,nan
+Redbridge,363,52.846,53.035,nan
+Morgan multi-mode,378,51.731,51.854,53.0
+Essential,379,50.689,52.112,50.526
+Agenda C Synesis,381,54.366,53.801,nan
+Redbridge,384,51.493,51.682,51.0
+Fox & Hedgehog,383,49.709,50.69,49.0
+Morgan multi-mode,385,52.703,52.826,55.5
+YouGov2,387,51.5,51.621,51.5
+Newspoll3,391,53.156,52.154,nan
+Morgan multi-mode,392,53.559,53.683,56.0
+ResolvePM,399,52.098,52.64,nan
+Morgan multi-mode,399,54.237,54.36,54.5
+YouGov2,401,51.245,51.366,52.0
+DemosAU,405,52.755,54.145,nan
+Morgan multi-mode,406,52.761,52.884,54.0
+DemosAU,407,50.665,52.055,nan
+Redbridge,412,54.747,54.935,54.0
+Newspoll3,412,56.32,55.317,nan
+Morgan multi-mode,413,52.462,52.585,53.5
+YouGov2,415,54.21,54.331,54.0
+Essential,415,51.349,52.771,48.936
+Morgan multi-mode,420,53.814,53.937,55.0
+ResolvePM,427,51.308,51.85,nan
+DemosAU,424,51.292,52.682,nan
+Morgan multi-mode,427,52.304,52.427,54.0
+YouGov2,429,52.943,53.065,53.0
+Newspoll3,433,53.238,52.236,nan
+Morgan multi-mode,434,52.769,52.892,56.0
+Spectre,435,51.308,52.344,51.0
+Morgan multi-mode,441,52.444,52.567,54.0
+YouGov2,443,52.48,52.601,53.0
+Essential,443,53.462,54.885,50.526
+Redbridge,447,50.184,50.373,48.0
+Morgan multi-mode,448,54.295,54.419,52.0
+Agenda C Synesis,434,55.315,54.75,nan
+Newspoll3,454,54.292,53.289,nan
+Morgan multi-mode,455,51.894,52.018,53.0
+YouGov2,456,52.433,52.555,52.0
+ResolvePM,461,51.308,51.85,nan
+Morgan multi-mode,462,51.721,51.844,52.0
+DemosAU,468,49.888,51.278,nan
+Morgan multi-mode,469,52.327,52.45,52.0
+YouGov2,470,52.853,52.975,53.0
+Redbridge,475,51.728,51.917,48.0
+Newspoll3,475,53.12,52.117,nan
+Morgan multi-mode,476,54.583,54.706,56.0
+Essential,478,49.421,50.843,47.368

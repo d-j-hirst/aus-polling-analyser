@@ -1,0 +1,112 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2016fed,@TPP,Essential,1.1269435104995249,57.71286561853114,,,
+1,leave_one_out,2016fed,@TPP,Galaxy,1.1003830734751412,11.507215106485804,,,
+1,leave_one_out,2016fed,@TPP,Ipsos,1.2289362345403794,16.567705792962879,,,
+1,leave_one_out,2016fed,@TPP,Morgan multi-mode,1.3503814088537873,59.821862849219478,,,
+1,leave_one_out,2016fed,@TPP,Newspoll,1.205597689442941,30.005518493630749,,,
+1,leave_one_out,2016fed,@TPP,Newspoll2,0.67578030752612506,20.394379164907601,,,
+1,leave_one_out,2016fed,@TPP,Nielsen,2.268588033606985,6.0126072520033018,,,
+1,leave_one_out,2016fed,@TPP,ReachTEL,1.1041097085088447,32.98359414125138,,,
+1,leave_one_out,2016fed,ALP FP,Essential,1.3181601242110987,56.44943877696177,,,
+1,leave_one_out,2016fed,ALP FP,Galaxy,1.290293366530769,11.426674768277998,,,
+1,leave_one_out,2016fed,ALP FP,Ipsos,0.99205708982266938,17.30272481810416,,,
+1,leave_one_out,2016fed,ALP FP,Morgan multi-mode,1.9084435294169593,56.893933933414793,,,
+1,leave_one_out,2016fed,ALP FP,Newspoll,1.1846837117870403,30.145680814792176,,,
+1,leave_one_out,2016fed,ALP FP,Newspoll2,0.7455416928671853,21.403695345103326,,,
+1,leave_one_out,2016fed,ALP FP,Nielsen,2.4557645271224717,6.0936976809495569,,,
+1,leave_one_out,2016fed,ALP FP,ReachTEL,1.0918742983360969,32.693556673166213,,,
+1,leave_one_out,2016fed,GRN FP,Essential,0.62345407509754813,62.995989417759553,,,
+1,leave_one_out,2016fed,GRN FP,Galaxy,0.58143832398153927,12.098666865795559,,,
+1,leave_one_out,2016fed,GRN FP,Ipsos,0.85679833131364214,15.712509621267088,,,
+1,leave_one_out,2016fed,GRN FP,Morgan multi-mode,0.96623720742401176,60.110296736655513,,,
+1,leave_one_out,2016fed,GRN FP,Newspoll,0.90817368478495586,31.150162818175687,,,
+1,leave_one_out,2016fed,GRN FP,Newspoll2,0.67953102641296237,20.996504554108697,,,
+1,leave_one_out,2016fed,GRN FP,Nielsen,1.31470590519978,6.1241912045534947,,,
+1,leave_one_out,2016fed,GRN FP,ReachTEL,0.67044246316220957,32.503448509637508,,,
+1,leave_one_out,2016fed,LNP FP,Essential,1.1408112675320954,56.513080850459353,,,
+1,leave_one_out,2016fed,LNP FP,Galaxy,1.0976739113931291,11.394484654001033,,,
+1,leave_one_out,2016fed,LNP FP,Ipsos,1.635809350894122,16.315334932984701,,,
+1,leave_one_out,2016fed,LNP FP,Morgan multi-mode,1.4110538907288337,61.346926486170794,,,
+1,leave_one_out,2016fed,LNP FP,Newspoll,1.3294693342841344,29.845031367335235,,,
+1,leave_one_out,2016fed,LNP FP,Newspoll2,0.72713755530015534,20.366796536525374,,,
+1,leave_one_out,2016fed,LNP FP,Nielsen,2.2907652200936748,6.0443410503491943,,,
+1,leave_one_out,2016fed,LNP FP,ReachTEL,1.2461055077586374,32.486799199767376,,,
+1,leave_one_out,2016fed,OTH FP,Essential,0.92009044942991602,61.976777247496059,,,
+1,leave_one_out,2016fed,OTH FP,Galaxy,1.2042742196654546,11.322591792675224,,,
+1,leave_one_out,2016fed,OTH FP,Ipsos,1.0804109095360994,17.351745986463339,,,
+1,leave_one_out,2016fed,OTH FP,Morgan multi-mode,1.4403756586522127,61.374824875659108,,,
+1,leave_one_out,2016fed,OTH FP,Newspoll,1.1083193554266351,29.49244266296613,,,
+1,leave_one_out,2016fed,OTH FP,Newspoll2,0.88686757985606268,20.701145437346412,,,
+1,leave_one_out,2016fed,OTH FP,Nielsen,2.0785880507607812,6.162286223324438,,,
+1,leave_one_out,2016fed,OTH FP,ReachTEL,1.3844050864028226,31.1997915801558,,,
+1,leave_one_out,2016fed,UAP FP,Essential,0.43992060883054046,55.010671991140377,,,
+1,leave_one_out,2016fed,UAP FP,Galaxy,0.50848446076860376,7.710745706349714,,,
+1,leave_one_out,2016fed,UAP FP,Ipsos,0.53005574763519381,3.7414139739786805,,,
+1,leave_one_out,2016fed,UAP FP,Morgan multi-mode,0.45094723654286534,60.229999980298587,,,
+1,leave_one_out,2016fed,UAP FP,Newspoll2,0.067316575457501526,2,,,
+1,leave_one_out,2016fed,UAP FP,Nielsen,0.53025207045474032,3.8646126800790297,,,
+1,leave_one_out,2016fed,UAP FP,ReachTEL,0.6663171032540236,23.600685920554248,,,
+1,bias_trend,2016fed,@TPP,,,,49.651000000000003,,
+1,bias_trend,2016fed,ALP FP,,,,33.975999999999999,,
+1,bias_trend,2016fed,GRN FP,,,,11.462999999999999,,
+1,bias_trend,2016fed,LNP FP,,,,41.941000000000003,,
+1,bias_trend,2016fed,OTH FP,,,,12.218999999999999,,
+1,bias_trend,2016fed,UAP FP,,,,0.85999999999999999,,
+1,bias_pollster,2016fed,@TPP,Essential,,,,0.79800000000000004,14
+1,bias_pollster,2016fed,@TPP,Galaxy,,,,-0.0080000000000000002,3
+1,bias_pollster,2016fed,@TPP,Ipsos,,,,-0.17499999999999999,8
+1,bias_pollster,2016fed,@TPP,Lonergan,,,,-0.050000000000000003,1
+1,bias_pollster,2016fed,@TPP,Morgan Phone,,,,-0.115,0
+1,bias_pollster,2016fed,@TPP,Morgan multi-mode,,,,0.29699999999999999,11
+1,bias_pollster,2016fed,@TPP,Newspoll,,,,-0.067000000000000004,0
+1,bias_pollster,2016fed,@TPP,Newspoll2,,,,0.28299999999999997,12
+1,bias_pollster,2016fed,@TPP,Nielsen,,,,0.069000000000000006,0
+1,bias_pollster,2016fed,@TPP,ReachTEL,,,,-0.98899999999999999,12
+1,bias_pollster,2016fed,ALP FP,Essential,,,,2.3330000000000002,14
+1,bias_pollster,2016fed,ALP FP,Galaxy,,,,0.73199999999999998,3
+1,bias_pollster,2016fed,ALP FP,Ipsos,,,,-1.012,8
+1,bias_pollster,2016fed,ALP FP,Lonergan,,,,-0.021999999999999999,1
+1,bias_pollster,2016fed,ALP FP,Morgan Phone,,,,-0.17799999999999999,0
+1,bias_pollster,2016fed,ALP FP,Morgan multi-mode,,,,-2.6269999999999998,11
+1,bias_pollster,2016fed,ALP FP,Newspoll,,,,-0.36199999999999999,0
+1,bias_pollster,2016fed,ALP FP,Newspoll2,,,,1.1160000000000001,12
+1,bias_pollster,2016fed,ALP FP,Nielsen,,,,-0.076999999999999999,0
+1,bias_pollster,2016fed,ALP FP,ReachTEL,,,,0.182,12
+1,bias_pollster,2016fed,GRN FP,Essential,,,,-1.5609999999999999,14
+1,bias_pollster,2016fed,GRN FP,Galaxy,,,,-0.45100000000000001,3
+1,bias_pollster,2016fed,GRN FP,Ipsos,,,,1.8069999999999999,8
+1,bias_pollster,2016fed,GRN FP,Lonergan,,,,0.021999999999999999,1
+1,bias_pollster,2016fed,GRN FP,Morgan Phone,,,,0.017999999999999999,0
+1,bias_pollster,2016fed,GRN FP,Morgan multi-mode,,,,1.855,11
+1,bias_pollster,2016fed,GRN FP,Newspoll,,,,0.112,0
+1,bias_pollster,2016fed,GRN FP,Newspoll2,,,,-0.76700000000000002,12
+1,bias_pollster,2016fed,GRN FP,Nielsen,,,,0.30099999999999999,0
+1,bias_pollster,2016fed,GRN FP,ReachTEL,,,,-1.375,12
+1,bias_pollster,2016fed,LNP FP,Essential,,,,-0.38,14
+1,bias_pollster,2016fed,LNP FP,Galaxy,,,,0.28999999999999998,3
+1,bias_pollster,2016fed,LNP FP,Ipsos,,,,0.26800000000000002,8
+1,bias_pollster,2016fed,LNP FP,Lonergan,,,,0.073999999999999996,1
+1,bias_pollster,2016fed,LNP FP,Morgan Phone,,,,0.125,0
+1,bias_pollster,2016fed,LNP FP,Morgan multi-mode,,,,-1.7170000000000001,11
+1,bias_pollster,2016fed,LNP FP,Newspoll,,,,-0.185,0
+1,bias_pollster,2016fed,LNP FP,Newspoll2,,,,-0.24199999999999999,12
+1,bias_pollster,2016fed,LNP FP,Nielsen,,,,0.074999999999999997,0
+1,bias_pollster,2016fed,LNP FP,ReachTEL,,,,1.607,12
+1,bias_pollster,2016fed,OTH FP,Essential,,,,-0.97399999999999998,14
+1,bias_pollster,2016fed,OTH FP,Galaxy,,,,-0.27300000000000002,3
+1,bias_pollster,2016fed,OTH FP,Ipsos,,,,-0.627,8
+1,bias_pollster,2016fed,OTH FP,Lonergan,,,,-0.309,1
+1,bias_pollster,2016fed,OTH FP,Morgan Phone,,,,-0.11799999999999999,0
+1,bias_pollster,2016fed,OTH FP,Morgan multi-mode,,,,2.7130000000000001,11
+1,bias_pollster,2016fed,OTH FP,Newspoll,,,,0.13300000000000001,0
+1,bias_pollster,2016fed,OTH FP,Newspoll2,,,,0.151,12
+1,bias_pollster,2016fed,OTH FP,Nielsen,,,,-0.435,0
+1,bias_pollster,2016fed,OTH FP,ReachTEL,,,,0.033000000000000002,12
+1,bias_pollster,2016fed,UAP FP,Essential,,,,0.23200000000000001,11
+1,bias_pollster,2016fed,UAP FP,Galaxy,,,,0.189,0
+1,bias_pollster,2016fed,UAP FP,Ipsos,,,,-0.014999999999999999,0
+1,bias_pollster,2016fed,UAP FP,Morgan Phone,,,,-0.13400000000000001,0
+1,bias_pollster,2016fed,UAP FP,Morgan multi-mode,,,,-0.28499999999999998,12
+1,bias_pollster,2016fed,UAP FP,Newspoll2,,,,0.095000000000000001,1
+1,bias_pollster,2016fed,UAP FP,Nielsen,,,,-0.050999999999999997,0
+1,bias_pollster,2016fed,UAP FP,ReachTEL,,,,-0.017999999999999999,2

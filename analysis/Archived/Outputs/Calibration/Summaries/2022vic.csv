@@ -1,0 +1,71 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2022vic,@TPP,Morgan multi-mode,3.8512263951836481,2.027416438625862,,,
+1,leave_one_out,2022vic,@TPP,Newspoll2,1.2875719144169893,3.9408517456817078,,,
+1,leave_one_out,2022vic,@TPP,Redbridge,2.6398284313826506,2.0569266354537179,,,
+1,leave_one_out,2022vic,@TPP,ResolvePM,1.7051065264630245,3.1746691908525944,,,
+1,leave_one_out,2022vic,@TPP,SMS Morgan,2.4247994547238187,5.4435488221584336,,,
+1,leave_one_out,2022vic,ALP FP,Morgan multi-mode,5.4677517965538351,2.1528310079169071,,,
+1,leave_one_out,2022vic,ALP FP,Newspoll2,1.2571194560379593,4.1227359280721387,,,
+1,leave_one_out,2022vic,ALP FP,Redbridge,1.9219212962133296,2.0524700199638461,,,
+1,leave_one_out,2022vic,ALP FP,ResolvePM,2.3540994746201185,2.8296690965456355,,,
+1,leave_one_out,2022vic,ALP FP,SMS Morgan,2.1437879828789739,6.1303749418031339,,,
+1,leave_one_out,2022vic,GRN FP,Morgan multi-mode,0.45264401947664545,3,,,
+1,leave_one_out,2022vic,GRN FP,Newspoll2,0.15635644522405809,4.9576029808631397,,,
+1,leave_one_out,2022vic,GRN FP,Redbridge,3.4628871742117644,2.0095169218141291,,,
+1,leave_one_out,2022vic,GRN FP,ResolvePM,0.85051367411210477,3.4574701054499775,,,
+1,leave_one_out,2022vic,GRN FP,SMS Morgan,1.0158682916846551,5.9040610802728244,,,
+1,leave_one_out,2022vic,LNP FP,Morgan multi-mode,1.4241842425612385,2.1626078280097603,,,
+1,leave_one_out,2022vic,LNP FP,Newspoll2,1.640008942773699,3.8576189034095232,,,
+1,leave_one_out,2022vic,LNP FP,Redbridge,6.0778960582212429,2.0122114246365408,,,
+1,leave_one_out,2022vic,LNP FP,ResolvePM,1.498426481259127,3.2757168423553673,,,
+1,leave_one_out,2022vic,LNP FP,SMS Morgan,3.3565958206616888,5.1768027681153139,,,
+1,leave_one_out,2022vic,OTH FP,Morgan multi-mode,3.6573941638045775,2.2893226762895114,,,
+1,leave_one_out,2022vic,OTH FP,Newspoll2,2.7773396707808717,3.3374594836997682,,,
+1,leave_one_out,2022vic,OTH FP,Redbridge,6.9442995075642298,1.9334876151251357,,,
+1,leave_one_out,2022vic,OTH FP,ResolvePM,2.2891883148152932,2.610328440258912,,,
+1,leave_one_out,2022vic,OTH FP,SMS Morgan,1.8584067280188414,6.0006308824526711,,,
+1,bias_trend,2022vic,@TPP,,,,55.384,,
+1,bias_trend,2022vic,ALP FP,,,,37.344999999999999,,
+1,bias_trend,2022vic,GRN FP,,,,11.927,,
+1,bias_trend,2022vic,LNP FP,,,,33.923999999999999,,
+1,bias_trend,2022vic,OTH FP,,,,17.213999999999999,,
+1,bias_pollster,2022vic,@TPP,Essential,,,,-1.0369999999999999,1
+1,bias_pollster,2022vic,@TPP,Freshwater,,,,-0.065000000000000002,1
+1,bias_pollster,2022vic,@TPP,Morgan multi-mode,,,,1.1479999999999999,3
+1,bias_pollster,2022vic,@TPP,Newspoll2,,,,-0.629,3
+1,bias_pollster,2022vic,@TPP,Redbridge,,,,-0.35599999999999998,1
+1,bias_pollster,2022vic,@TPP,ResolvePM,,,,0.27500000000000002,2
+1,bias_pollster,2022vic,@TPP,ResolvePM2,,,,-0.48399999999999999,1
+1,bias_pollster,2022vic,@TPP,SMS Morgan,,,,1.3979999999999999,4
+1,bias_pollster,2022vic,ALP FP,Essential,,,,-0.13800000000000001,1
+1,bias_pollster,2022vic,ALP FP,Freshwater,,,,-0.14099999999999999,1
+1,bias_pollster,2022vic,ALP FP,Morgan multi-mode,,,,-0.035000000000000003,3
+1,bias_pollster,2022vic,ALP FP,Newspoll2,,,,0.186,3
+1,bias_pollster,2022vic,ALP FP,Redbridge,,,,-0.27400000000000002,1
+1,bias_pollster,2022vic,ALP FP,ResolvePM,,,,-0.085000000000000006,2
+1,bias_pollster,2022vic,ALP FP,ResolvePM2,,,,-0.20499999999999999,1
+1,bias_pollster,2022vic,ALP FP,SMS Morgan,,,,0.872,4
+1,bias_pollster,2022vic,GRN FP,Essential,,,,-0.28299999999999997,1
+1,bias_pollster,2022vic,GRN FP,Freshwater,,,,0.27000000000000002,1
+1,bias_pollster,2022vic,GRN FP,Morgan multi-mode,,,,0.58399999999999996,3
+1,bias_pollster,2022vic,GRN FP,Newspoll2,,,,0.066000000000000003,3
+1,bias_pollster,2022vic,GRN FP,Redbridge,,,,0.028000000000000001,1
+1,bias_pollster,2022vic,GRN FP,ResolvePM,,,,-0.37,2
+1,bias_pollster,2022vic,GRN FP,ResolvePM2,,,,-0.34499999999999997,1
+1,bias_pollster,2022vic,GRN FP,SMS Morgan,,,,0.094,4
+1,bias_pollster,2022vic,LNP FP,Essential,,,,2.2010000000000001,1
+1,bias_pollster,2022vic,LNP FP,Freshwater,,,,0.11,1
+1,bias_pollster,2022vic,LNP FP,Morgan multi-mode,,,,-2.2269999999999999,3
+1,bias_pollster,2022vic,LNP FP,Newspoll2,,,,2.1560000000000001,3
+1,bias_pollster,2022vic,LNP FP,Redbridge,,,,0.49199999999999999,1
+1,bias_pollster,2022vic,LNP FP,ResolvePM,,,,-1.25,2
+1,bias_pollster,2022vic,LNP FP,ResolvePM2,,,,0.438,1
+1,bias_pollster,2022vic,LNP FP,SMS Morgan,,,,-2.1840000000000002,4
+1,bias_pollster,2022vic,OTH FP,Essential,,,,-0.88800000000000001,1
+1,bias_pollster,2022vic,OTH FP,Freshwater,,,,-0.20599999999999999,1
+1,bias_pollster,2022vic,OTH FP,Morgan multi-mode,,,,1.1919999999999999,3
+1,bias_pollster,2022vic,OTH FP,Newspoll2,,,,-2.8700000000000001,3
+1,bias_pollster,2022vic,OTH FP,Redbridge,,,,-0.112,1
+1,bias_pollster,2022vic,OTH FP,ResolvePM,,,,2.25,2
+1,bias_pollster,2022vic,OTH FP,ResolvePM2,,,,0.20000000000000001,1
+1,bias_pollster,2022vic,OTH FP,SMS Morgan,,,,0.49399999999999999,4

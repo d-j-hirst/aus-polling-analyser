@@ -1,0 +1,23 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,1996wa,@TPP,Newspoll,1.1815702245784543,0.29283204067893404,,,
+1,leave_one_out,1996wa,ALP FP,Newspoll,4.4136850376597341,0.29283204067893404,,,
+1,leave_one_out,1996wa,LIB FP,Newspoll,1.4447185629826422,0.29283204067893404,,,
+1,leave_one_out,1996wa,NAT FP,Newspoll,3.248811949457616,0.29283204067893404,,,
+1,leave_one_out,1996wa,OTH FP,Newspoll,8.1331554556902219,0.29283204067893404,,,
+1,bias_trend,1996wa,@TPP,,,,42.695999999999998,,
+1,bias_trend,1996wa,ALP FP,,,,32.759,,
+1,bias_trend,1996wa,GRN FP,,,,4.2439999999999998,,
+1,bias_trend,1996wa,LIB FP,,,,45.628999999999998,,
+1,bias_trend,1996wa,NAT FP,,,,3.956,,
+1,bias_trend,1996wa,OTH FP,,,,13.686,,
+1,bias_pollster,1996wa,@TPP,Newspoll,,,,-0.085999999999999993,3
+1,bias_pollster,1996wa,@TPP,Westpoll,,,,0.085000000000000006,0
+1,bias_pollster,1996wa,ALP FP,Newspoll,,,,-0.153,3
+1,bias_pollster,1996wa,ALP FP,Westpoll,,,,0.154,0
+1,bias_pollster,1996wa,GRN FP,Westpoll,,,,-0,1
+1,bias_pollster,1996wa,LIB FP,Newspoll,,,,-0.156,3
+1,bias_pollster,1996wa,LIB FP,Westpoll,,,,0.155,0
+1,bias_pollster,1996wa,NAT FP,Newspoll,,,,0.02,3
+1,bias_pollster,1996wa,NAT FP,Westpoll,,,,-0.02,0
+1,bias_pollster,1996wa,OTH FP,Newspoll,,,,0.16800000000000001,3
+1,bias_pollster,1996wa,OTH FP,Westpoll,,,,-0.16800000000000001,0

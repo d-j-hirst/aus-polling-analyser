@@ -1,0 +1,88 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2015qld,@TPP,Essential,1.5918242219378691,12.344449327268936,,,
+1,leave_one_out,2015qld,@TPP,Galaxy,1.2689517186578938,10.642445606467293,,,
+1,leave_one_out,2015qld,@TPP,Morgan Phone,2.2016972673932691,2.4029376842511549,,,
+1,leave_one_out,2015qld,@TPP,Newspoll,1.632495731248508,9.5405789375108814,,,
+1,leave_one_out,2015qld,@TPP,ReachTEL,2.0729566465273557,16.145627786419297,,,
+1,leave_one_out,2015qld,@TPP,SMS Morgan,1.7691067615808556,3.3416297994193727,,,
+1,leave_one_out,2015qld,ALP FP,Essential,1.427547284346067,12.993168861812714,,,
+1,leave_one_out,2015qld,ALP FP,Galaxy,1.051144012784877,10.603256511318596,,,
+1,leave_one_out,2015qld,ALP FP,Morgan Phone,3.1148244355089632,2.3750549989959113,,,
+1,leave_one_out,2015qld,ALP FP,Newspoll,1.294196185625859,9.2775033363042585,,,
+1,leave_one_out,2015qld,ALP FP,ReachTEL,1.790552584575807,17.835374415754782,,,
+1,leave_one_out,2015qld,ALP FP,SMS Morgan,1.7712887262975059,3.1174859435155953,,,
+1,leave_one_out,2015qld,GRN FP,Essential,1.484546780676786,12.665657202897334,,,
+1,leave_one_out,2015qld,GRN FP,Galaxy,0.5976254956795195,9.0467969621785667,,,
+1,leave_one_out,2015qld,GRN FP,Morgan Phone,0.37967005285791017,2.6287049050431186,,,
+1,leave_one_out,2015qld,GRN FP,Newspoll,1.3482564882960364,8.7328562600939001,,,
+1,leave_one_out,2015qld,GRN FP,ReachTEL,1.116947145732782,15.303128929596605,,,
+1,leave_one_out,2015qld,GRN FP,SMS Morgan,0.85920760623608994,3.4948859767454978,,,
+1,leave_one_out,2015qld,KAP FP,Essential,0.97084861616397911,8.905285406052494,,,
+1,leave_one_out,2015qld,KAP FP,Galaxy,0.89243833483467538,5.3248288032546993,,,
+1,leave_one_out,2015qld,KAP FP,Morgan Phone,1.0752501402583146,2.2768469426657614,,,
+1,leave_one_out,2015qld,KAP FP,Newspoll,1.7008348370282551,8.372903744343672,,,
+1,leave_one_out,2015qld,KAP FP,ReachTEL,1.4127829301377615,8.5834458843942656,,,
+1,leave_one_out,2015qld,KAP FP,SMS Morgan,1.2854074687115791,2.3801693682793683,,,
+1,leave_one_out,2015qld,LNP FP,Essential,1.4889170182324951,12.702159345925745,,,
+1,leave_one_out,2015qld,LNP FP,Galaxy,1.2341936683112995,10.333451922420924,,,
+1,leave_one_out,2015qld,LNP FP,Morgan Phone,0.98291613215783991,2.3651371052999037,,,
+1,leave_one_out,2015qld,LNP FP,Newspoll,2.2922186347380675,9.2550230731290277,,,
+1,leave_one_out,2015qld,LNP FP,ReachTEL,1.940275756776338,16.154587981414132,,,
+1,leave_one_out,2015qld,LNP FP,SMS Morgan,2.1949962076506111,3.1097968946187087,,,
+1,leave_one_out,2015qld,OTH FP,Essential,1.2635198201150215,12.692710456714551,,,
+1,leave_one_out,2015qld,OTH FP,Galaxy,1.2650969651290556,10.071578255329751,,,
+1,leave_one_out,2015qld,OTH FP,Morgan Phone,3.0793908925494495,2.2384963829041031,,,
+1,leave_one_out,2015qld,OTH FP,Newspoll,2.2195709698694168,8.5384203741055806,,,
+1,leave_one_out,2015qld,OTH FP,ReachTEL,1.3808164877231524,17.053966850171616,,,
+1,leave_one_out,2015qld,OTH FP,SMS Morgan,1.7347553699442544,2.8913618338551168,,,
+1,leave_one_out,2015qld,UAP FP,Essential,2.1766712876518977,5.9095785738854163,,,
+1,leave_one_out,2015qld,UAP FP,Galaxy,3.327554147641659,3.2888661197991409,,,
+1,leave_one_out,2015qld,UAP FP,ReachTEL,2.320696779438276,6.6909829294792971,,,
+1,leave_one_out,2015qld,UAP FP,SMS Morgan,0.71549770975147509,3.6369714663794421,,,
+1,bias_trend,2015qld,@TPP,,,,48.332999999999998,,
+1,bias_trend,2015qld,ALP FP,,,,37.189,,
+1,bias_trend,2015qld,GRN FP,,,,7.6920000000000002,,
+1,bias_trend,2015qld,KAP FP,,,,2.52,,
+1,bias_trend,2015qld,LNP FP,,,,41.100000000000001,,
+1,bias_trend,2015qld,OTH FP,,,,14.147,,
+1,bias_trend,2015qld,UAP FP,,,,3.8260000000000001,,
+1,bias_pollster,2015qld,@TPP,Essential,,,,0.51400000000000001,5
+1,bias_pollster,2015qld,@TPP,Galaxy,,,,0.033000000000000002,4
+1,bias_pollster,2015qld,@TPP,Morgan Phone,,,,-0.16200000000000001,0
+1,bias_pollster,2015qld,@TPP,Newspoll,,,,-0.41299999999999998,4
+1,bias_pollster,2015qld,@TPP,ReachTEL,,,,-0.112,7
+1,bias_pollster,2015qld,@TPP,SMS Morgan,,,,0.214,4
+1,bias_pollster,2015qld,ALP FP,Essential,,,,0.45900000000000002,5
+1,bias_pollster,2015qld,ALP FP,Galaxy,,,,0.064000000000000001,4
+1,bias_pollster,2015qld,ALP FP,Morgan Phone,,,,0.0040000000000000001,0
+1,bias_pollster,2015qld,ALP FP,Newspoll,,,,-0.90200000000000002,4
+1,bias_pollster,2015qld,ALP FP,ReachTEL,,,,0.11899999999999999,7
+1,bias_pollster,2015qld,ALP FP,SMS Morgan,,,,0.17499999999999999,4
+1,bias_pollster,2015qld,GRN FP,Essential,,,,-0.14999999999999999,5
+1,bias_pollster,2015qld,GRN FP,Galaxy,,,,0.055,4
+1,bias_pollster,2015qld,GRN FP,Morgan Phone,,,,-0.0050000000000000001,0
+1,bias_pollster,2015qld,GRN FP,Newspoll,,,,0.02,4
+1,bias_pollster,2015qld,GRN FP,ReachTEL,,,,-0.66100000000000003,7
+1,bias_pollster,2015qld,GRN FP,SMS Morgan,,,,0.71499999999999997,4
+1,bias_pollster,2015qld,KAP FP,Essential,,,,0.012999999999999999,4
+1,bias_pollster,2015qld,KAP FP,Galaxy,,,,0.097000000000000003,2
+1,bias_pollster,2015qld,KAP FP,Morgan Phone,,,,-0.065000000000000002,0
+1,bias_pollster,2015qld,KAP FP,Newspoll,,,,-0.85699999999999998,4
+1,bias_pollster,2015qld,KAP FP,ReachTEL,,,,0.51600000000000001,0
+1,bias_pollster,2015qld,KAP FP,SMS Morgan,,,,0.17100000000000001,3
+1,bias_pollster,2015qld,LNP FP,Essential,,,,-0.47499999999999998,5
+1,bias_pollster,2015qld,LNP FP,Galaxy,,,,0.010999999999999999,4
+1,bias_pollster,2015qld,LNP FP,Morgan Phone,,,,0.34100000000000003,0
+1,bias_pollster,2015qld,LNP FP,Newspoll,,,,-0.014,4
+1,bias_pollster,2015qld,LNP FP,ReachTEL,,,,0.216,7
+1,bias_pollster,2015qld,LNP FP,SMS Morgan,,,,-0.125,4
+1,bias_pollster,2015qld,OTH FP,Essential,,,,0.19600000000000001,5
+1,bias_pollster,2015qld,OTH FP,Galaxy,,,,-0.158,4
+1,bias_pollster,2015qld,OTH FP,Morgan Phone,,,,-0.091999999999999998,0
+1,bias_pollster,2015qld,OTH FP,Newspoll,,,,0.81299999999999994,4
+1,bias_pollster,2015qld,OTH FP,ReachTEL,,,,0.112,7
+1,bias_pollster,2015qld,OTH FP,SMS Morgan,,,,-0.93300000000000005,4
+1,bias_pollster,2015qld,UAP FP,Essential,,,,-0.46300000000000002,5
+1,bias_pollster,2015qld,UAP FP,Galaxy,,,,0.221,3
+1,bias_pollster,2015qld,UAP FP,ReachTEL,,,,0.89700000000000002,7
+1,bias_pollster,2015qld,UAP FP,SMS Morgan,,,,-0.628,4

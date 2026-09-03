@@ -102,6 +102,40 @@ class TrendAdjustmentTests(unittest.TestCase):
 
         self.assertEqual(result, 20)
 
+    def test_sparse_fundamentals_fit_uses_regularised_intercept(self):
+        with mock.patch.object(
+            self.fundamentals, "amax", return_value=3
+        ), mock.patch.object(
+            self.fundamentals, "amin", return_value=0
+        ):
+            coefficients, intercept = (
+                self.fundamentals.fit_fundamentals_model(
+                    [[1, 0, 3, 0, 0, 0]],
+                    [6.0],
+                )
+            )
+
+        self.assertEqual(coefficients, [0, 0, 0, 0, 0, 0])
+        self.assertEqual(intercept, 2.0)
+
+    def test_no_training_fundamentals_preserve_baseline_with_floor(self):
+        with mock.patch.object(
+            self.fundamentals,
+            "predict_fundamentals",
+            side_effect=[50.0, 1.5],
+        ) as predict:
+            tpp = self.fundamentals.predict_fundamentals_without_training(
+                object(), ElectionCode(1988, "nsw"), "@TPP", "TPP", 6
+            )
+            minor = self.fundamentals.predict_fundamentals_without_training(
+                object(), ElectionCode(1988, "nsw"), "DEM FP", "Misc-p", 1
+            )
+
+        self.assertEqual(tpp, 50.0)
+        self.assertEqual(minor, 3)
+        self.assertTrue(all(call.kwargs["coefficients"] == [0] * 6
+                            for call in predict.call_args_list))
+
     def test_tpp_alignment_accounts_for_continuing_vote_denominator(self):
         election = ElectionCode(2028, "fed")
         inputs = types.SimpleNamespace(

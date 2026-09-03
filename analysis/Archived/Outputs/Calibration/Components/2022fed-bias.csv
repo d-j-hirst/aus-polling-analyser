@@ -1,0 +1,55 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2022fed,GRN FP,,,,12.773999999999999,,
+1,bias_pollster,2022fed,GRN FP,ANU,,,,1.8520000000000001,1
+1,bias_pollster,2022fed,GRN FP,Essential,,,,-1.4199999999999999,12
+1,bias_pollster,2022fed,GRN FP,Ipsos,,,,0.040000000000000001,4
+1,bias_pollster,2022fed,GRN FP,Morgan multi-mode,,,,0.42799999999999999,18
+1,bias_pollster,2022fed,GRN FP,Newspoll2,,,,-1.359,13
+1,bias_pollster,2022fed,GRN FP,ResolvePM,,,,-0.443,5
+1,bias_pollster,2022fed,GRN FP,ResolvePM2,,,,0.78400000000000003,2
+1,bias_trend,2022fed,ONP FP,,,,5.0010000000000003,,
+1,bias_pollster,2022fed,ONP FP,Essential,,,,0.071999999999999995,12
+1,bias_pollster,2022fed,ONP FP,Ipsos,,,,0.094,4
+1,bias_pollster,2022fed,ONP FP,Morgan multi-mode,,,,-0.021999999999999999,18
+1,bias_pollster,2022fed,ONP FP,Newspoll2,,,,-0.17199999999999999,13
+1,bias_pollster,2022fed,ONP FP,ResolvePM,,,,-0.33500000000000002,5
+1,bias_pollster,2022fed,ONP FP,ResolvePM2,,,,0.34699999999999998,2
+1,bias_trend,2022fed,UAP FP,,,,2.927,,
+1,bias_pollster,2022fed,UAP FP,Essential,,,,0.16800000000000001,12
+1,bias_pollster,2022fed,UAP FP,Ipsos,,,,-0.024,4
+1,bias_pollster,2022fed,UAP FP,Morgan multi-mode,,,,-1.591,17
+1,bias_pollster,2022fed,UAP FP,Newspoll2,,,,0.376,10
+1,bias_pollster,2022fed,UAP FP,ResolvePM,,,,0.34499999999999997,5
+1,bias_pollster,2022fed,UAP FP,ResolvePM2,,,,0.58899999999999997,2
+1,bias_trend,2022fed,OTH FP,,,,16.969000000000001,,
+1,bias_pollster,2022fed,OTH FP,ANU,,,,-2.4830000000000001,1
+1,bias_pollster,2022fed,OTH FP,Essential,,,,-3.746,12
+1,bias_pollster,2022fed,OTH FP,Ipsos,,,,0.10100000000000001,4
+1,bias_pollster,2022fed,OTH FP,Morgan multi-mode,,,,1.621,18
+1,bias_pollster,2022fed,OTH FP,Newspoll2,,,,-0.108,13
+1,bias_pollster,2022fed,OTH FP,ResolvePM,,,,3.3849999999999998,5
+1,bias_pollster,2022fed,OTH FP,ResolvePM2,,,,1.1890000000000001,2
+1,bias_trend,2022fed,LNP FP,,,,35.228999999999999,,
+1,bias_pollster,2022fed,LNP FP,ANU,,,,-0.29399999999999998,1
+1,bias_pollster,2022fed,LNP FP,Essential,,,,3.9849999999999999,12
+1,bias_pollster,2022fed,LNP FP,Ipsos,,,,-0.876,4
+1,bias_pollster,2022fed,LNP FP,Morgan multi-mode,,,,-1.3300000000000001,18
+1,bias_pollster,2022fed,LNP FP,Newspoll2,,,,0.024,13
+1,bias_pollster,2022fed,LNP FP,ResolvePM,,,,-0.45400000000000001,5
+1,bias_pollster,2022fed,LNP FP,ResolvePM2,,,,-0.876,2
+1,bias_trend,2022fed,ALP FP,,,,34.887,,
+1,bias_pollster,2022fed,ALP FP,ANU,,,,0.158,1
+1,bias_pollster,2022fed,ALP FP,Essential,,,,1.411,12
+1,bias_pollster,2022fed,ALP FP,Ipsos,,,,0.625,4
+1,bias_pollster,2022fed,ALP FP,Morgan multi-mode,,,,-0.51200000000000001,18
+1,bias_pollster,2022fed,ALP FP,Newspoll2,,,,1.6120000000000001,13
+1,bias_pollster,2022fed,ALP FP,ResolvePM,,,,-1.724,5
+1,bias_pollster,2022fed,ALP FP,ResolvePM2,,,,-1.613,2
+1,bias_trend,2022fed,@TPP,,,,52.918999999999997,,
+1,bias_pollster,2022fed,@TPP,ANU,,,,0.63400000000000001,1
+1,bias_pollster,2022fed,@TPP,Essential,,,,-1.6970000000000001,12
+1,bias_pollster,2022fed,@TPP,Ipsos,,,,0.76500000000000001,4
+1,bias_pollster,2022fed,@TPP,Morgan multi-mode,,,,0.70799999999999996,18
+1,bias_pollster,2022fed,@TPP,Newspoll2,,,,0.22500000000000001,13
+1,bias_pollster,2022fed,@TPP,ResolvePM,,,,-0.60799999999999998,5
+1,bias_pollster,2022fed,@TPP,ResolvePM2,,,,-0.090999999999999998,2

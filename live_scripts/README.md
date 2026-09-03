@@ -47,6 +47,12 @@ saved.
 The setup is validated immediately before the live simulation runs. Missing or
 empty support files cause a fatal setup error rather than a partial run.
 
+Historical `analysis/Booth Results/*.json` files are generated through
+`python analysis/fetch_booth_results.py --election <code>`. Supported outputs
+are recorded in generated provenance and included in the generated-data
+archive. The durable `downloads/*.xml` support files remain manual,
+machine-specific setup and are deliberately not archived.
+
 `current_real_url` may also be set to `local:<filename>` to read an already
 extracted current-result XML from `downloads/<filename>`. This bypasses the
 configured-directory scan. Federal `current_test_url` supports the same form.
@@ -88,7 +94,8 @@ Required durable files:
 
 For `2026vic`, the previous-result file is therefore
 `analysis/Booth Results/2022vic.json`. It still needs to be generated before
-that live forecast is operational.
+that live forecast is operational. The file has no supported generator yet and
+is deliberately not required by generated-data archive preflight.
 
 Put VEC media-feed ZIPs whose names contain
 `mediafilelitepplh_YYYYMMDD_HHMMSS` in the configured current-results

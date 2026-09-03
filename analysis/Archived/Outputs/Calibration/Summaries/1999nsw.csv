@@ -1,0 +1,64 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,1999nsw,@TPP,F2F Morgan,0.81488810042373483,7.2426388742830223,,,
+1,leave_one_out,1999nsw,@TPP,Morgan Phone,2.2501010424115804,3.202126102396043,,,
+1,leave_one_out,1999nsw,@TPP,Newspoll,1.6083727744654936,6.9115332713640001,,,
+1,leave_one_out,1999nsw,@TPP,Nielsen,1.0618646172557198,3.3015596118579578,,,
+1,leave_one_out,1999nsw,ALP FP,F2F Morgan,1.1776194409463927,6.402003908535054,,,
+1,leave_one_out,1999nsw,ALP FP,Morgan Phone,1.9971331751372998,3.5560673295489789,,,
+1,leave_one_out,1999nsw,ALP FP,Newspoll,1.6005288743503063,7.1106154128663759,,,
+1,leave_one_out,1999nsw,ALP FP,Nielsen,1.5816925770040151,3.0371900616339493,,,
+1,leave_one_out,1999nsw,DEM FP,F2F Morgan,0.97199845521429473,6.9216638919678655,,,
+1,leave_one_out,1999nsw,DEM FP,Morgan Phone,0.82821204202128496,2.9922436763786919,,,
+1,leave_one_out,1999nsw,DEM FP,Newspoll,3.8136004907845904,4.5380592184053343,,,
+1,leave_one_out,1999nsw,DEM FP,Nielsen,0.80203288952754337,2.9043215119568146,,,
+1,leave_one_out,1999nsw,GRN FP,F2F Morgan,0.61901124253188688,5.9672360738196746,,,
+1,leave_one_out,1999nsw,GRN FP,Morgan Phone,1.9641656822647093,1.9372200561253994,,,
+1,leave_one_out,1999nsw,GRN FP,Newspoll,0.71704221668736268,4.8713019780221218,,,
+1,leave_one_out,1999nsw,GRN FP,Nielsen,0.70352218671556821,2.4854359369119248,,,
+1,leave_one_out,1999nsw,LNP FP,F2F Morgan,1.4511260347269919,7.3100861506099362,,,
+1,leave_one_out,1999nsw,LNP FP,Morgan Phone,3.1143131567354665,3.1665420174724783,,,
+1,leave_one_out,1999nsw,LNP FP,Newspoll,2.578293670874487,5.0087676732877222,,,
+1,leave_one_out,1999nsw,LNP FP,Nielsen,1.9967923462660195,2.7572110364293598,,,
+1,leave_one_out,1999nsw,ONP FP,F2F Morgan,0.86963247681676992,6.2831607136323964,,,
+1,leave_one_out,1999nsw,ONP FP,Morgan Phone,1.3685319502273143,2.3101419030962331,,,
+1,leave_one_out,1999nsw,ONP FP,Newspoll,0.79823052970174546,4.7300098785113773,,,
+1,leave_one_out,1999nsw,ONP FP,Nielsen,0.82235820027231654,2.8514832672380335,,,
+1,leave_one_out,1999nsw,OTH FP,F2F Morgan,1.286650628389687,7.46274405921117,,,
+1,leave_one_out,1999nsw,OTH FP,Morgan Phone,1.3624845049306216,3.687815482185,,,
+1,leave_one_out,1999nsw,OTH FP,Newspoll,2.9053215139896458,5.2296286948678006,,,
+1,leave_one_out,1999nsw,OTH FP,Nielsen,1.2377403602798711,3.4291825910463078,,,
+1,bias_trend,1999nsw,@TPP,,,,54.159999999999997,,
+1,bias_trend,1999nsw,ALP FP,,,,42.594000000000001,,
+1,bias_trend,1999nsw,DEM FP,,,,4.6159999999999997,,
+1,bias_trend,1999nsw,GRN FP,,,,3.8570000000000002,,
+1,bias_trend,1999nsw,LNP FP,,,,34.902000000000001,,
+1,bias_trend,1999nsw,ONP FP,,,,5.3659999999999997,,
+1,bias_trend,1999nsw,OTH FP,,,,18.914000000000001,,
+1,bias_pollster,1999nsw,@TPP,F2F Morgan,,,,0.66200000000000003,6
+1,bias_pollster,1999nsw,@TPP,Morgan Phone,,,,0.57899999999999996,3
+1,bias_pollster,1999nsw,@TPP,Newspoll,,,,-1.1879999999999999,6
+1,bias_pollster,1999nsw,@TPP,Nielsen,,,,-0.075999999999999998,2
+1,bias_pollster,1999nsw,ALP FP,F2F Morgan,,,,0.96099999999999997,6
+1,bias_pollster,1999nsw,ALP FP,Morgan Phone,,,,0.28999999999999998,3
+1,bias_pollster,1999nsw,ALP FP,Newspoll,,,,-0.72199999999999998,6
+1,bias_pollster,1999nsw,ALP FP,Nielsen,,,,-0.505,2
+1,bias_pollster,1999nsw,DEM FP,F2F Morgan,,,,0.17299999999999999,6
+1,bias_pollster,1999nsw,DEM FP,Morgan Phone,,,,-0.122,3
+1,bias_pollster,1999nsw,DEM FP,Newspoll,,,,-0.35899999999999999,6
+1,bias_pollster,1999nsw,DEM FP,Nielsen,,,,0.30499999999999999,2
+1,bias_pollster,1999nsw,GRN FP,F2F Morgan,,,,-0.125,6
+1,bias_pollster,1999nsw,GRN FP,Morgan Phone,,,,0.26100000000000001,3
+1,bias_pollster,1999nsw,GRN FP,Newspoll,,,,-0.251,6
+1,bias_pollster,1999nsw,GRN FP,Nielsen,,,,0.098000000000000004,2
+1,bias_pollster,1999nsw,LNP FP,F2F Morgan,,,,-0.379,6
+1,bias_pollster,1999nsw,LNP FP,Morgan Phone,,,,-0.95899999999999996,3
+1,bias_pollster,1999nsw,LNP FP,Newspoll,,,,1.7130000000000001,6
+1,bias_pollster,1999nsw,LNP FP,Nielsen,,,,-0.28199999999999997,2
+1,bias_pollster,1999nsw,ONP FP,F2F Morgan,,,,-0.501,6
+1,bias_pollster,1999nsw,ONP FP,Morgan Phone,,,,0.016,3
+1,bias_pollster,1999nsw,ONP FP,Newspoll,,,,-0.074999999999999997,6
+1,bias_pollster,1999nsw,ONP FP,Nielsen,,,,0.59499999999999997,2
+1,bias_pollster,1999nsw,OTH FP,F2F Morgan,,,,0.14099999999999999,6
+1,bias_pollster,1999nsw,OTH FP,Morgan Phone,,,,-0.0050000000000000001,3
+1,bias_pollster,1999nsw,OTH FP,Newspoll,,,,-0.77500000000000002,6
+1,bias_pollster,1999nsw,OTH FP,Nielsen,,,,0.60199999999999998,2

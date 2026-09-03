@@ -1,0 +1,71 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2018vic,@TPP,Essential,1.3564490337934079,10.520513796334313,,,
+1,leave_one_out,2018vic,@TPP,Galaxy,1.1246718806483491,5.5082899560668217,,,
+1,leave_one_out,2018vic,@TPP,Newspoll2,0.57706534468572668,4.3994940847517325,,,
+1,leave_one_out,2018vic,@TPP,ReachTEL,1.6729349787651182,2.7014015908553355,,,
+1,leave_one_out,2018vic,@TPP,SMS Morgan,1.2741730364303032,6.4660498685695842,,,
+1,leave_one_out,2018vic,@TPP,uComms,0.14191170535841025,2,,,
+1,leave_one_out,2018vic,ALP FP,Essential,1.4514086192629094,10.317876135715075,,,
+1,leave_one_out,2018vic,ALP FP,Galaxy,1.4315499539939898,5.7038391054575293,,,
+1,leave_one_out,2018vic,ALP FP,Newspoll2,0.45704804804391297,4.8571211966120362,,,
+1,leave_one_out,2018vic,ALP FP,ReachTEL,3.1122389580428642,2.429227927453697,,,
+1,leave_one_out,2018vic,ALP FP,SMS Morgan,1.5732692806638418,6.4183472596846336,,,
+1,leave_one_out,2018vic,ALP FP,uComms,0.41021490739873911,2,,,
+1,leave_one_out,2018vic,GRN FP,Essential,1.0398544811497485,10.267847012650435,,,
+1,leave_one_out,2018vic,GRN FP,Galaxy,0.9947191469588671,5.3533201502682921,,,
+1,leave_one_out,2018vic,GRN FP,Newspoll2,0.45696226596030737,5.1874855786967853,,,
+1,leave_one_out,2018vic,GRN FP,ReachTEL,2.0496976763285821,2.3959331938414223,,,
+1,leave_one_out,2018vic,GRN FP,SMS Morgan,1.1603169406204905,6.077052784238969,,,
+1,leave_one_out,2018vic,GRN FP,uComms,0.72620338762698822,2,,,
+1,leave_one_out,2018vic,LNP FP,Essential,1.4333908009781084,10.403074241115563,,,
+1,leave_one_out,2018vic,LNP FP,Galaxy,1.1994611626196725,5.5496511805027939,,,
+1,leave_one_out,2018vic,LNP FP,Newspoll2,1.4301949582864379,3.7132090943576967,,,
+1,leave_one_out,2018vic,LNP FP,ReachTEL,0.97907974998174374,2.5260229845138289,,,
+1,leave_one_out,2018vic,LNP FP,SMS Morgan,2.2162537700194584,6.2659102853321702,,,
+1,leave_one_out,2018vic,LNP FP,uComms,1.1525601612659671,1.7352673354623056,,,
+1,leave_one_out,2018vic,OTH FP,Essential,1.7627633740257185,9.1806945794831858,,,
+1,leave_one_out,2018vic,OTH FP,Galaxy,2.3429137462371297,5.0395889305098853,,,
+1,leave_one_out,2018vic,OTH FP,Newspoll2,1.3867219563097932,4.3532266481590352,,,
+1,leave_one_out,2018vic,OTH FP,ReachTEL,1.6668312764092776,2.8349804683260644,,,
+1,leave_one_out,2018vic,OTH FP,SMS Morgan,2.0220605270422722,7.0696707005421944,,,
+1,leave_one_out,2018vic,OTH FP,uComms,2.1544473474883219,1.310406690158223,,,
+1,bias_trend,2018vic,@TPP,,,,55.008000000000003,,
+1,bias_trend,2018vic,ALP FP,,,,39.954000000000001,,
+1,bias_trend,2018vic,GRN FP,,,,11.496,,
+1,bias_trend,2018vic,LNP FP,,,,37.171999999999997,,
+1,bias_trend,2018vic,OTH FP,,,,11.428000000000001,,
+1,bias_pollster,2018vic,@TPP,Essential,,,,-0.016,0
+1,bias_pollster,2018vic,@TPP,Galaxy,,,,-0.313,4
+1,bias_pollster,2018vic,@TPP,Newspoll,,,,0.11700000000000001,0
+1,bias_pollster,2018vic,@TPP,Newspoll2,,,,-0.115,2
+1,bias_pollster,2018vic,@TPP,ReachTEL,,,,-0.51200000000000001,2
+1,bias_pollster,2018vic,@TPP,SMS Morgan,,,,0.76800000000000002,1
+1,bias_pollster,2018vic,@TPP,uComms,,,,0.090999999999999998,2
+1,bias_pollster,2018vic,ALP FP,Essential,,,,0.14000000000000001,0
+1,bias_pollster,2018vic,ALP FP,Galaxy,,,,0.076999999999999999,4
+1,bias_pollster,2018vic,ALP FP,Newspoll,,,,0.042000000000000003,0
+1,bias_pollster,2018vic,ALP FP,Newspoll2,,,,0.40799999999999997,2
+1,bias_pollster,2018vic,ALP FP,ReachTEL,,,,-1.032,2
+1,bias_pollster,2018vic,ALP FP,SMS Morgan,,,,0.053999999999999999,1
+1,bias_pollster,2018vic,ALP FP,uComms,,,,0.16,2
+1,bias_pollster,2018vic,GRN FP,Essential,,,,0.0040000000000000001,0
+1,bias_pollster,2018vic,GRN FP,Galaxy,,,,-0.13100000000000001,4
+1,bias_pollster,2018vic,GRN FP,Newspoll,,,,0.081000000000000003,0
+1,bias_pollster,2018vic,GRN FP,Newspoll2,,,,-0.064000000000000001,2
+1,bias_pollster,2018vic,GRN FP,ReachTEL,,,,-0.056000000000000001,2
+1,bias_pollster,2018vic,GRN FP,SMS Morgan,,,,0.33200000000000002,1
+1,bias_pollster,2018vic,GRN FP,uComms,,,,-0.154,2
+1,bias_pollster,2018vic,LNP FP,Essential,,,,0.20200000000000001,0
+1,bias_pollster,2018vic,LNP FP,Galaxy,,,,0.753,4
+1,bias_pollster,2018vic,LNP FP,Newspoll,,,,-0.19500000000000001,0
+1,bias_pollster,2018vic,LNP FP,Newspoll2,,,,0.63300000000000001,2
+1,bias_pollster,2018vic,LNP FP,ReachTEL,,,,0.114,2
+1,bias_pollster,2018vic,LNP FP,SMS Morgan,,,,-1.4019999999999999,1
+1,bias_pollster,2018vic,LNP FP,uComms,,,,-0.13700000000000001,2
+1,bias_pollster,2018vic,OTH FP,Essential,,,,-0.19400000000000001,0
+1,bias_pollster,2018vic,OTH FP,Galaxy,,,,-0.83099999999999996,4
+1,bias_pollster,2018vic,OTH FP,Newspoll,,,,0.31900000000000001,0
+1,bias_pollster,2018vic,OTH FP,Newspoll2,,,,-1.276,2
+1,bias_pollster,2018vic,OTH FP,ReachTEL,,,,0.60199999999999998,2
+1,bias_pollster,2018vic,OTH FP,SMS Morgan,,,,0.84099999999999997,1
+1,bias_pollster,2018vic,OTH FP,uComms,,,,0.247,2

@@ -1,0 +1,31 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2008wa,GRN FP,,,,10.874000000000001,,
+1,bias_pollster,2008wa,GRN FP,F2F Morgan,,,,-0.097000000000000003,0
+1,bias_pollster,2008wa,GRN FP,Galaxy,,,,-0.29599999999999999,1
+1,bias_pollster,2008wa,GRN FP,Newspoll,,,,0.83199999999999996,3
+1,bias_pollster,2008wa,GRN FP,Westpoll,,,,-0.33900000000000002,4
+1,bias_trend,2008wa,NAT FP,,,,5.3849999999999998,,
+1,bias_pollster,2008wa,NAT FP,F2F Morgan,,,,0.16,0
+1,bias_pollster,2008wa,NAT FP,Galaxy,,,,-0.16200000000000001,1
+1,bias_pollster,2008wa,NAT FP,Newspoll,,,,0.11899999999999999,3
+1,bias_pollster,2008wa,NAT FP,Westpoll,,,,-0.115,5
+1,bias_trend,2008wa,OTH FP,,,,9.3330000000000002,,
+1,bias_pollster,2008wa,OTH FP,F2F Morgan,,,,-0.246,0
+1,bias_pollster,2008wa,OTH FP,Galaxy,,,,-0.27300000000000002,1
+1,bias_pollster,2008wa,OTH FP,Newspoll,,,,1.2729999999999999,3
+1,bias_pollster,2008wa,OTH FP,Westpoll,,,,-0.629,5
+1,bias_trend,2008wa,LIB FP,,,,37.241,,
+1,bias_pollster,2008wa,LIB FP,F2F Morgan,,,,-0.60399999999999998,0
+1,bias_pollster,2008wa,LIB FP,Galaxy,,,,0.72099999999999997,1
+1,bias_pollster,2008wa,LIB FP,Newspoll,,,,-0.85499999999999998,3
+1,bias_pollster,2008wa,LIB FP,Westpoll,,,,0.77600000000000002,5
+1,bias_trend,2008wa,ALP FP,,,,37.579000000000001,,
+1,bias_pollster,2008wa,ALP FP,F2F Morgan,,,,0.71199999999999997,0
+1,bias_pollster,2008wa,ALP FP,Galaxy,,,,0.079000000000000001,1
+1,bias_pollster,2008wa,ALP FP,Newspoll,,,,-0.45000000000000001,3
+1,bias_pollster,2008wa,ALP FP,Westpoll,,,,-0.39800000000000002,5
+1,bias_trend,2008wa,@TPP,,,,50.564999999999998,,
+1,bias_pollster,2008wa,@TPP,F2F Morgan,,,,0.61899999999999999,0
+1,bias_pollster,2008wa,@TPP,Galaxy,,,,-0.214,1
+1,bias_pollster,2008wa,@TPP,Newspoll,,,,0.14599999999999999,3
+1,bias_pollster,2008wa,@TPP,Westpoll,,,,-0.56000000000000005,5

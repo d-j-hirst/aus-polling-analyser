@@ -1,0 +1,41 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2018vic,GRN FP,,,,11.496,,
+1,bias_pollster,2018vic,GRN FP,Essential,,,,0.0040000000000000001,0
+1,bias_pollster,2018vic,GRN FP,Galaxy,,,,-0.13100000000000001,4
+1,bias_pollster,2018vic,GRN FP,Newspoll,,,,0.081000000000000003,0
+1,bias_pollster,2018vic,GRN FP,Newspoll2,,,,-0.064000000000000001,2
+1,bias_pollster,2018vic,GRN FP,ReachTEL,,,,-0.056000000000000001,2
+1,bias_pollster,2018vic,GRN FP,SMS Morgan,,,,0.33200000000000002,1
+1,bias_pollster,2018vic,GRN FP,uComms,,,,-0.154,2
+1,bias_trend,2018vic,OTH FP,,,,11.428000000000001,,
+1,bias_pollster,2018vic,OTH FP,Essential,,,,-0.19400000000000001,0
+1,bias_pollster,2018vic,OTH FP,Galaxy,,,,-0.83099999999999996,4
+1,bias_pollster,2018vic,OTH FP,Newspoll,,,,0.31900000000000001,0
+1,bias_pollster,2018vic,OTH FP,Newspoll2,,,,-1.276,2
+1,bias_pollster,2018vic,OTH FP,ReachTEL,,,,0.60199999999999998,2
+1,bias_pollster,2018vic,OTH FP,SMS Morgan,,,,0.84099999999999997,1
+1,bias_pollster,2018vic,OTH FP,uComms,,,,0.247,2
+1,bias_trend,2018vic,LNP FP,,,,37.171999999999997,,
+1,bias_pollster,2018vic,LNP FP,Essential,,,,0.20200000000000001,0
+1,bias_pollster,2018vic,LNP FP,Galaxy,,,,0.753,4
+1,bias_pollster,2018vic,LNP FP,Newspoll,,,,-0.19500000000000001,0
+1,bias_pollster,2018vic,LNP FP,Newspoll2,,,,0.63300000000000001,2
+1,bias_pollster,2018vic,LNP FP,ReachTEL,,,,0.114,2
+1,bias_pollster,2018vic,LNP FP,SMS Morgan,,,,-1.4019999999999999,1
+1,bias_pollster,2018vic,LNP FP,uComms,,,,-0.13700000000000001,2
+1,bias_trend,2018vic,ALP FP,,,,39.954000000000001,,
+1,bias_pollster,2018vic,ALP FP,Essential,,,,0.14000000000000001,0
+1,bias_pollster,2018vic,ALP FP,Galaxy,,,,0.076999999999999999,4
+1,bias_pollster,2018vic,ALP FP,Newspoll,,,,0.042000000000000003,0
+1,bias_pollster,2018vic,ALP FP,Newspoll2,,,,0.40799999999999997,2
+1,bias_pollster,2018vic,ALP FP,ReachTEL,,,,-1.032,2
+1,bias_pollster,2018vic,ALP FP,SMS Morgan,,,,0.053999999999999999,1
+1,bias_pollster,2018vic,ALP FP,uComms,,,,0.16,2
+1,bias_trend,2018vic,@TPP,,,,55.008000000000003,,
+1,bias_pollster,2018vic,@TPP,Essential,,,,-0.016,0
+1,bias_pollster,2018vic,@TPP,Galaxy,,,,-0.313,4
+1,bias_pollster,2018vic,@TPP,Newspoll,,,,0.11700000000000001,0
+1,bias_pollster,2018vic,@TPP,Newspoll2,,,,-0.115,2
+1,bias_pollster,2018vic,@TPP,ReachTEL,,,,-0.51200000000000001,2
+1,bias_pollster,2018vic,@TPP,SMS Morgan,,,,0.76800000000000002,1
+1,bias_pollster,2018vic,@TPP,uComms,,,,0.090999999999999998,2

@@ -1,0 +1,157 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2028fed,@TPP,Agenda C Synesis,0.44685930958385711,2,,,
+1,leave_one_out,2028fed,@TPP,DemosAU,1.4116640872153483,10.210391688290192,,,
+1,leave_one_out,2028fed,@TPP,Essential,1.1600857559924425,10.915537448980674,,,
+1,leave_one_out,2028fed,@TPP,Fox & Hedgehog,1.2327035494857814,3.7470911050964184,,,
+1,leave_one_out,2028fed,@TPP,Freshwater,0.99807402052713112,4.7119444392180547,,,
+1,leave_one_out,2028fed,@TPP,Morgan multi-mode,0.7707130682301303,41.163266646770381,,,
+1,leave_one_out,2028fed,@TPP,Newspoll3,0.80438643049107572,15.662488050661233,,,
+1,leave_one_out,2028fed,@TPP,Redbridge,1.5033257574425865,14.11273212940738,,,
+1,leave_one_out,2028fed,@TPP,ResolvePM,0.86284017183535577,13.92553445305805,,,
+1,leave_one_out,2028fed,@TPP,Spectre,1.0434933347203794,3.6982583442521464,,,
+1,leave_one_out,2028fed,@TPP,Wolf+Smith,0.1844954153025995,2,,,
+1,leave_one_out,2028fed,@TPP,YouGov2,0.76908329574670442,18.616436294215553,,,
+1,leave_one_out,2028fed,ALP FP,Agenda C Synesis,1.0561202802275318,1.8937236955331618,,,
+1,leave_one_out,2028fed,ALP FP,DemosAU,0.92381404436236514,10.384679406874891,,,
+1,leave_one_out,2028fed,ALP FP,Essential,1.5155449283223006,10.68520711558109,,,
+1,leave_one_out,2028fed,ALP FP,Fox & Hedgehog,1.1758834418267199,3.6877692135153284,,,
+1,leave_one_out,2028fed,ALP FP,Freshwater,1.7931848774721633,4.4468893786461576,,,
+1,leave_one_out,2028fed,ALP FP,Morgan multi-mode,1.0576521680043109,38.787401064225982,,,
+1,leave_one_out,2028fed,ALP FP,Newspoll3,0.74057039415021886,15.84951336773107,,,
+1,leave_one_out,2028fed,ALP FP,Redbridge,1.1235606014349981,14.509865630775044,,,
+1,leave_one_out,2028fed,ALP FP,ResolvePM,0.96830067765775796,13.711054365623644,,,
+1,leave_one_out,2028fed,ALP FP,Spectre,0.81157896831355925,3.6318543609694087,,,
+1,leave_one_out,2028fed,ALP FP,Wolf+Smith,0.30419684926559043,2,,,
+1,leave_one_out,2028fed,ALP FP,YouGov2,0.8752188830010087,18.673532654866655,,,
+1,leave_one_out,2028fed,GRN FP,Agenda C Synesis,0.27952993330135456,2,,,
+1,leave_one_out,2028fed,GRN FP,DemosAU,0.68452808299755719,10.309988851398387,,,
+1,leave_one_out,2028fed,GRN FP,Essential,0.94153301065054695,10.870743199476534,,,
+1,leave_one_out,2028fed,GRN FP,Fox & Hedgehog,1.6277946923246613,3.6493902102306479,,,
+1,leave_one_out,2028fed,GRN FP,Freshwater,1.1765676819931863,4.6030285622401026,,,
+1,leave_one_out,2028fed,GRN FP,Morgan multi-mode,0.80318998800077757,39.154342526527984,,,
+1,leave_one_out,2028fed,GRN FP,Newspoll3,0.60933429313955467,16.160053135631863,,,
+1,leave_one_out,2028fed,GRN FP,Redbridge,1.0315984492289656,14.828481526194084,,,
+1,leave_one_out,2028fed,GRN FP,ResolvePM,0.51243513981743016,14.169203177652976,,,
+1,leave_one_out,2028fed,GRN FP,Spectre,0.90176627813045951,3.562873193122801,,,
+1,leave_one_out,2028fed,GRN FP,Wolf+Smith,0.79909453879833059,2,,,
+1,leave_one_out,2028fed,GRN FP,YouGov2,0.58030039862965255,18.844893621709833,,,
+1,leave_one_out,2028fed,LNP FP,Agenda C Synesis,1.3838330049309633,1.7349855851082141,,,
+1,leave_one_out,2028fed,LNP FP,DemosAU,2.1341419963657784,10.030913681052947,,,
+1,leave_one_out,2028fed,LNP FP,Essential,1.5150856990043724,10.771748434967501,,,
+1,leave_one_out,2028fed,LNP FP,Fox & Hedgehog,1.7436598898251938,3.6934070519134945,,,
+1,leave_one_out,2028fed,LNP FP,Freshwater,1.9841904580911924,4.5172855258301663,,,
+1,leave_one_out,2028fed,LNP FP,Morgan multi-mode,1.3084700919416912,39.9067819001421,,,
+1,leave_one_out,2028fed,LNP FP,Newspoll3,1.1591121332149381,14.972443206570855,,,
+1,leave_one_out,2028fed,LNP FP,Redbridge,1.8894107043878436,14.122411009915755,,,
+1,leave_one_out,2028fed,LNP FP,ResolvePM,1.2565625383478984,13.396171859518327,,,
+1,leave_one_out,2028fed,LNP FP,Spectre,1.5255677004739192,3.6701651820902454,,,
+1,leave_one_out,2028fed,LNP FP,Wolf+Smith,1.1849549164087883,1.948682070319637,,,
+1,leave_one_out,2028fed,LNP FP,YouGov2,1.3541854045380854,17.910870247804183,,,
+1,leave_one_out,2028fed,ONP FP,Agenda C Synesis,0.32315311335804608,2,,,
+1,leave_one_out,2028fed,ONP FP,DemosAU,1.2355302410016578,9.9880277238283508,,,
+1,leave_one_out,2028fed,ONP FP,Essential,1.3469635028957681,10.626828727497772,,,
+1,leave_one_out,2028fed,ONP FP,Fox & Hedgehog,1.6502272263870597,3.5879484144697562,,,
+1,leave_one_out,2028fed,ONP FP,Freshwater,2.3993971357478268,4.3914159163712299,,,
+1,leave_one_out,2028fed,ONP FP,Morgan multi-mode,1.4875404013124078,39.997542742621803,,,
+1,leave_one_out,2028fed,ONP FP,Newspoll3,1.5495590525106817,15.152833058633856,,,
+1,leave_one_out,2028fed,ONP FP,Redbridge,1.0951979623138657,13.83162571747607,,,
+1,leave_one_out,2028fed,ONP FP,ResolvePM,1.307590743507747,12.777816876707845,,,
+1,leave_one_out,2028fed,ONP FP,Spectre,1.6155758709569021,3.3579571850048753,,,
+1,leave_one_out,2028fed,ONP FP,Wolf+Smith,3.299324725032454,1.884821291560336,,,
+1,leave_one_out,2028fed,ONP FP,YouGov2,1.6228175594469381,17.351845947100671,,,
+1,leave_one_out,2028fed,OTH FP,Agenda C Synesis,1.2454001237498176,1.8054866890597425,,,
+1,leave_one_out,2028fed,OTH FP,DemosAU,1.2235681645029772,10.037559918222831,,,
+1,leave_one_out,2028fed,OTH FP,Essential,1.3538386061430363,10.677410992772545,,,
+1,leave_one_out,2028fed,OTH FP,Fox & Hedgehog,1.0994266600905793,3.7817228308707413,,,
+1,leave_one_out,2028fed,OTH FP,Freshwater,2.4666522500534414,4.4758886388189651,,,
+1,leave_one_out,2028fed,OTH FP,Morgan multi-mode,1.4096381885315215,39.288049336288601,,,
+1,leave_one_out,2028fed,OTH FP,Newspoll3,1.42928239715054,15.015048884965848,,,
+1,leave_one_out,2028fed,OTH FP,Redbridge,1.3678363731983745,13.983026294900656,,,
+1,leave_one_out,2028fed,OTH FP,ResolvePM,1.4597996906272885,13.083834552659257,,,
+1,leave_one_out,2028fed,OTH FP,Spectre,1.6064964727449815,3.6014817559809433,,,
+1,leave_one_out,2028fed,OTH FP,Wolf+Smith,0.71819454183598452,2,,,
+1,leave_one_out,2028fed,OTH FP,YouGov2,1.2601151012486855,17.794706213535157,,,
+1,bias_trend,2028fed,@TPP,,,,51.938000000000002,,
+1,bias_trend,2028fed,ALP FP,,,,28.077999999999999,,
+1,bias_trend,2028fed,GRN FP,,,,12.574,,
+1,bias_trend,2028fed,LNP FP,,,,22.145,,
+1,bias_trend,2028fed,ONP FP,,,,26.010000000000002,,
+1,bias_trend,2028fed,OTH FP,,,,36.499000000000002,,
+1,bias_pollster,2028fed,@TPP,Agenda C Synesis,,,,1.3340000000000001,2
+1,bias_pollster,2028fed,@TPP,DemosAU,,,,-1.1659999999999999,6
+1,bias_pollster,2028fed,@TPP,Essential,,,,-0.91400000000000003,6
+1,bias_pollster,2028fed,@TPP,Fox & Hedgehog,,,,-0.57099999999999995,2
+1,bias_pollster,2028fed,@TPP,Freshwater,,,,-0.221,3
+1,bias_pollster,2028fed,@TPP,Morgan multi-mode,,,,0.27200000000000002,26
+1,bias_pollster,2028fed,@TPP,Newspoll3,,,,1.284,8
+1,bias_pollster,2028fed,@TPP,Redbridge,,,,0.25800000000000001,7
+1,bias_pollster,2028fed,@TPP,ResolvePM,,,,-0.14099999999999999,6
+1,bias_pollster,2028fed,@TPP,SMS Morgan,,,,0.25,1
+1,bias_pollster,2028fed,@TPP,Spectre,,,,-0.69599999999999995,2
+1,bias_pollster,2028fed,@TPP,Wolf+Smith,,,,0.055,1
+1,bias_pollster,2028fed,@TPP,YouGov2,,,,0.27100000000000002,14
+1,bias_pollster,2028fed,ALP FP,Agenda C Synesis,,,,2.1880000000000002,2
+1,bias_pollster,2028fed,ALP FP,DemosAU,,,,-2.4260000000000002,6
+1,bias_pollster,2028fed,ALP FP,Essential,,,,1.1060000000000001,6
+1,bias_pollster,2028fed,ALP FP,Fox & Hedgehog,,,,-0.111,2
+1,bias_pollster,2028fed,ALP FP,Freshwater,,,,0.39900000000000002,3
+1,bias_pollster,2028fed,ALP FP,Morgan multi-mode,,,,-0.89200000000000002,26
+1,bias_pollster,2028fed,ALP FP,Newspoll3,,,,1.145,8
+1,bias_pollster,2028fed,ALP FP,Redbridge,,,,0.56899999999999995,7
+1,bias_pollster,2028fed,ALP FP,ResolvePM,,,,-0.11,6
+1,bias_pollster,2028fed,ALP FP,SMS Morgan,,,,-0.23799999999999999,1
+1,bias_pollster,2028fed,ALP FP,Spectre,,,,-0.67400000000000004,2
+1,bias_pollster,2028fed,ALP FP,Wolf+Smith,,,,0.051999999999999998,1
+1,bias_pollster,2028fed,ALP FP,YouGov2,,,,-0.93899999999999995,14
+1,bias_pollster,2028fed,GRN FP,Agenda C Synesis,,,,-0.17000000000000001,2
+1,bias_pollster,2028fed,GRN FP,DemosAU,,,,0.38500000000000001,6
+1,bias_pollster,2028fed,GRN FP,Essential,,,,-0.47299999999999998,6
+1,bias_pollster,2028fed,GRN FP,Fox & Hedgehog,,,,-0.25900000000000001,2
+1,bias_pollster,2028fed,GRN FP,Freshwater,,,,-0.17499999999999999,3
+1,bias_pollster,2028fed,GRN FP,Morgan multi-mode,,,,1.0680000000000001,26
+1,bias_pollster,2028fed,GRN FP,Newspoll3,,,,0.045999999999999999,8
+1,bias_pollster,2028fed,GRN FP,Redbridge,,,,-0.153,7
+1,bias_pollster,2028fed,GRN FP,ResolvePM,,,,-0.20999999999999999,6
+1,bias_pollster,2028fed,GRN FP,SMS Morgan,,,,-0.042000000000000003,1
+1,bias_pollster,2028fed,GRN FP,Spectre,,,,-0.082000000000000003,2
+1,bias_pollster,2028fed,GRN FP,Wolf+Smith,,,,-0.16600000000000001,1
+1,bias_pollster,2028fed,GRN FP,YouGov2,,,,0.45700000000000002,14
+1,bias_pollster,2028fed,LNP FP,Agenda C Synesis,,,,-0.629,2
+1,bias_pollster,2028fed,LNP FP,DemosAU,,,,0.34799999999999998,6
+1,bias_pollster,2028fed,LNP FP,Essential,,,,2.7719999999999998,6
+1,bias_pollster,2028fed,LNP FP,Fox & Hedgehog,,,,1.5049999999999999,2
+1,bias_pollster,2028fed,LNP FP,Freshwater,,,,1.0489999999999999,3
+1,bias_pollster,2028fed,LNP FP,Morgan multi-mode,,,,0.154,26
+1,bias_pollster,2028fed,LNP FP,Newspoll3,,,,-2.2130000000000001,8
+1,bias_pollster,2028fed,LNP FP,Redbridge,,,,-1.3029999999999999,7
+1,bias_pollster,2028fed,LNP FP,ResolvePM,,,,0.61899999999999999,6
+1,bias_pollster,2028fed,LNP FP,SMS Morgan,,,,-2.7970000000000002,1
+1,bias_pollster,2028fed,LNP FP,Spectre,,,,0.70699999999999996,2
+1,bias_pollster,2028fed,LNP FP,Wolf+Smith,,,,0.42699999999999999,1
+1,bias_pollster,2028fed,LNP FP,YouGov2,,,,-0.94099999999999995,14
+1,bias_pollster,2028fed,ONP FP,Agenda C Synesis,,,,-0.33100000000000002,2
+1,bias_pollster,2028fed,ONP FP,DemosAU,,,,0.52200000000000002,6
+1,bias_pollster,2028fed,ONP FP,Essential,,,,-0.10000000000000001,6
+1,bias_pollster,2028fed,ONP FP,Fox & Hedgehog,,,,-0.67000000000000004,2
+1,bias_pollster,2028fed,ONP FP,Freshwater,,,,-0.28699999999999998,3
+1,bias_pollster,2028fed,ONP FP,Morgan multi-mode,,,,-1.639,26
+1,bias_pollster,2028fed,ONP FP,Newspoll3,,,,1.4419999999999999,8
+1,bias_pollster,2028fed,ONP FP,Redbridge,,,,2.2570000000000001,7
+1,bias_pollster,2028fed,ONP FP,ResolvePM,,,,-1.208,6
+1,bias_pollster,2028fed,ONP FP,SMS Morgan,,,,2.335,1
+1,bias_pollster,2028fed,ONP FP,Spectre,,,,-0.040000000000000001,2
+1,bias_pollster,2028fed,ONP FP,Wolf+Smith,,,,-1.9450000000000001,1
+1,bias_pollster,2028fed,ONP FP,YouGov2,,,,-0.13100000000000001,14
+1,bias_pollster,2028fed,OTH FP,Agenda C Synesis,,,,-0.89900000000000002,2
+1,bias_pollster,2028fed,OTH FP,DemosAU,,,,1.3169999999999999,6
+1,bias_pollster,2028fed,OTH FP,Essential,,,,-4.2560000000000002,6
+1,bias_pollster,2028fed,OTH FP,Fox & Hedgehog,,,,-0.83999999999999997,2
+1,bias_pollster,2028fed,OTH FP,Freshwater,,,,-1.427,3
+1,bias_pollster,2028fed,OTH FP,Morgan multi-mode,,,,-0.41499999999999998,26
+1,bias_pollster,2028fed,OTH FP,Newspoll3,,,,0.78500000000000003,8
+1,bias_pollster,2028fed,OTH FP,Redbridge,,,,0.84599999999999997,7
+1,bias_pollster,2028fed,OTH FP,ResolvePM,,,,-0.070000000000000007,6
+1,bias_pollster,2028fed,OTH FP,SMS Morgan,,,,4.0010000000000003,1
+1,bias_pollster,2028fed,OTH FP,Spectre,,,,0.044999999999999998,2
+1,bias_pollster,2028fed,OTH FP,Wolf+Smith,,,,-0.32700000000000001,1
+1,bias_pollster,2028fed,OTH FP,YouGov2,,,,1.474,14

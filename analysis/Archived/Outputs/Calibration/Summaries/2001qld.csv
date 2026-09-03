@@ -1,0 +1,31 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2001qld,@TPP,F2F Morgan,2.0089003928541977,4.2686688431230158,,,
+1,leave_one_out,2001qld,@TPP,Newspoll,2.6190797794667335,4.2158463750241237,,,
+1,leave_one_out,2001qld,ALP FP,F2F Morgan,1.9619807513339953,4.1730079240494149,,,
+1,leave_one_out,2001qld,ALP FP,Newspoll,2.4214145145780441,4.4008122672502257,,,
+1,leave_one_out,2001qld,GRN FP,F2F Morgan,0.75919637908792914,4.4008122672502248,,,
+1,leave_one_out,2001qld,GRN FP,Newspoll,0.75418594739081835,4.4008122672502257,,,
+1,leave_one_out,2001qld,LNP FP,F2F Morgan,2.8094227213887866,4.2613520775054541,,,
+1,leave_one_out,2001qld,LNP FP,Newspoll,3.8537221050550214,3.8814727217701384,,,
+1,leave_one_out,2001qld,ONP FP,F2F Morgan,1.5635481423076165,4.1391512857875847,,,
+1,leave_one_out,2001qld,ONP FP,Newspoll,2.8821945452039843,3.6880414097734775,,,
+1,leave_one_out,2001qld,OTH FP,F2F Morgan,2.6912448004438314,4.2144067932300482,,,
+1,leave_one_out,2001qld,OTH FP,Newspoll,4.1754393749488932,3.9085932092711095,,,
+1,bias_trend,2001qld,@TPP,,,,62.066000000000003,,
+1,bias_trend,2001qld,ALP FP,,,,50.560000000000002,,
+1,bias_trend,2001qld,GRN FP,,,,2.1349999999999998,,
+1,bias_trend,2001qld,LNP FP,,,,27.233000000000001,,
+1,bias_trend,2001qld,ONP FP,,,,10.189,,
+1,bias_trend,2001qld,OTH FP,,,,20.128,,
+1,bias_pollster,2001qld,@TPP,F2F Morgan,,,,1.284,3
+1,bias_pollster,2001qld,@TPP,Newspoll,,,,-1.2849999999999999,3
+1,bias_pollster,2001qld,ALP FP,F2F Morgan,,,,1.1359999999999999,3
+1,bias_pollster,2001qld,ALP FP,Newspoll,,,,-1.1359999999999999,3
+1,bias_pollster,2001qld,GRN FP,F2F Morgan,,,,-0.10000000000000001,3
+1,bias_pollster,2001qld,GRN FP,Newspoll,,,,0.098000000000000004,3
+1,bias_pollster,2001qld,LNP FP,F2F Morgan,,,,-0.84199999999999997,3
+1,bias_pollster,2001qld,LNP FP,Newspoll,,,,0.84199999999999997,3
+1,bias_pollster,2001qld,ONP FP,F2F Morgan,,,,0.073999999999999996,3
+1,bias_pollster,2001qld,ONP FP,Newspoll,,,,-0.073999999999999996,3
+1,bias_pollster,2001qld,OTH FP,F2F Morgan,,,,-0.021000000000000001,3
+1,bias_pollster,2001qld,OTH FP,Newspoll,,,,0.02,3

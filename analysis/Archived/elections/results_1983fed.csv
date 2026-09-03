@@ -35,8 +35,8 @@ Andrew Fairbairn,Liberal,23962,35.5,-1.3
 Montague Greene,Democrats,3908,5.8,-3.8
 David Holmes,Left-wing,572,0.8,0.8
 tcp
-John Mountford,Labor,41822,62.0,3.2
-Andrew Fairbairn,Liberal,25633,38.0,-3.2
+John Mountford,Labor,41226,61.12,2.32
+Andrew Fairbairn,Liberal,26229,38.88,-2.32
 Seat,Barker
 fp
 James Porter,Liberal,42333,57.3,-0.2
@@ -56,8 +56,8 @@ Jean Lindsay,Independent,284,0.5,0.5
 Peter Wright,Right-wing Populist,172,0.3,0.3
 Charles Bellchambers,Independent,166,0.3,-2.4
 tcp
-Gary Punch,Labor,34010,54.0,4.4
-Jim Bradfield,Liberal,28971,46.0,-4.4
+Gary Punch,Labor,32845,52.15,2.55
+Jim Bradfield,Liberal,30136,47.85,-2.55
 Seat,Bass
 fp
 Kevin Newman,Liberal,28448,53.5,0.5
@@ -93,16 +93,16 @@ Donald Vickers,Labor,23799,35.5,-0.7
 Milo Dunphy,Misc,8495,12.7,12.7
 Steve Gabell,Independent,1000,1.5,1.5
 tcp
-John Howard,Liberal,37998,56.7,-1.7
-Donald Vickers,Labor,29017,43.3,1.7
+John Howard,Liberal,37330,55.7,-2.7
+Donald Vickers,Labor,29685,44.3,2.7
 Seat,Berowra
 fp
 Harry Edwards,Liberal,40676,60.1,-1.3
 Maurice Marshan,Labor,20943,31.0,1.5
 Pamela Tuckwell,Democrats,6015,8.9,-0.2
 tcp
-Harry Edwards,Liberal,43083,63.7,-1.3
-Maurice Marshan,Labor,24551,36.3,1.3
+Harry Edwards,Liberal,43209,63.89,-1.11
+Maurice Marshan,Labor,24425,36.11,1.11
 Seat,Blaxland
 fp
 Paul Keating,Labor,41609,62.9,3.3
@@ -110,8 +110,8 @@ David Brown,Liberal,21604,32.7,1.7
 Phillip Grattan,Democrats,2504,3.8,0.5
 Siong Hoe Goh,Left-wing,388,0.6,-4.4
 tcp
-Paul Keating,Labor,43431,65.7,-1.5
-David Brown,Liberal,22674,34.3,1.5
+Paul Keating,Labor,42982,65.02,-2.18
+David Brown,Liberal,23123,34.98,2.18
 Seat,Bonython
 fp
 Neal Blewett,Labor,48097,60.5,6.1
@@ -151,8 +151,8 @@ David Connolly,Liberal,49566,72.1,-3.0
 Peter Donovan,Labor,14535,21.1,3.5
 Anthony Dunne,Democrats,4674,6.8,-0.5
 tcp
-David Connolly,Liberal,51444,74.8,-3.3
-Peter Donovan,Labor,17331,25.2,3.3
+David Connolly,Liberal,51367,74.69,-3.41
+Peter Donovan,Labor,17408,25.31,3.41
 Seat,Brisbane
 fp
 Manfred Cross,Labor,31596,50.4,2.3
@@ -187,8 +187,8 @@ Sandy Mackenzie,National,31087,44.9,-5.1
 Ann Ritter,Democrats,2562,3.7,0.0
 George Simpson,Right-wing Populist,566,0.8,0.8
 tcp
-David Simmons,Labor,36662,52.9,4.4
-Sandy Mackenzie,National,32642,47.1,-4.4
+David Simmons,Labor,36761,53.0,4.5
+Sandy Mackenzie,National,32543,47.0,-4.5
 Seat,Canberra
 fp
 Ros Kelly,Labor,40434,62.2,9.8
@@ -235,8 +235,8 @@ Jonathan Cooper,Independent,3744,5.2,5.2
 Frances Jones,Democrats,2187,3.0,-0.6
 Jane Smith/New,Independent,1114,1.5,1.5
 tcp
-Russ Gorman,Labor,52334,72.1,2.0
-Edna Mitchell,Liberal,20251,27.9,-2.0
+Russ Gorman,Labor,52525,72.4,2.3
+Edna Mitchell,Liberal,20061,27.6,-2.3
 Seat,Chisholm
 fp
 Helen Mayer,Labor,33253,48.2,7.1
@@ -256,11 +256,11 @@ Don Dobie,Liberal,35415,50.1,-5.0
 Michael Addison,Labor,35267,49.9,5.0
 Seat,Corangamite
 fp
-Tony Street,Liberal,40694,58.2,1.6
-Gavan O'Connor,Labor,29231,41.8,10.5
+Tony Street,Liberal,40694,58.2,None
+Gavan O'Connor,Labor,29231,41.8,None
 tcp
-Tony Street,Liberal,40694,58.2,1.6
-Gavan O'Connor,Labor,29231,41.8,10.5
+Tony Street,Liberal,40694,58.2,None
+Gavan O'Connor,Labor,29231,41.8,None
 Seat,Corio
 fp
 Gordon Scholes,Labor,43016,60.1,3.5
@@ -286,8 +286,8 @@ Diana Covell,Left-wing,2802,3.8,2.1
 Romaine Rutnam,Left-wing,704,1.0,-2.6
 Rudolf Pasara,Left-wing,689,0.9,-0.2
 tcp
-Stewart West,Labor,52534,71.5,6.4
-Gary Fisher,Liberal,20940,28.5,-6.4
+Stewart West,Labor,50399,68.6,3.5
+Gary Fisher,Liberal,23075,31.4,-3.5
 Seat,Curtin
 fp
 Allan Rocher,Liberal,30404,51.7,-7.2
@@ -348,8 +348,8 @@ Philip Ruddock,Liberal,33509,50.1,-3.1
 Margaret Blaxell,Labor,29727,44.4,6.7
 John Tumminello,Democrats,3712,5.5,-1.8
 tcp
-Philip Ruddock,Liberal,35014,52.3,-6.1
-Margaret Blaxell,Labor,31934,47.7,6.1
+Philip Ruddock,Liberal,35299,52.7,-5.7
+Margaret Blaxell,Labor,31649,47.3,5.7
 Seat,Eden-Monaro
 fp
 Jim Snow,Labor,36401,49.1,4.0
@@ -358,8 +358,8 @@ Miriam Naughton,Independent,2333,3.1,3.1
 Russell Witt,Democrats,1977,2.7,-2.4
 Ronald Sarina,Independent,260,0.4,0.4
 tcp
-Jim Snow,Labor,38390,51.8,4.6
-Murray Sainsbury,Liberal,35722,48.2,-4.6
+Jim Snow,Labor,38222,51.6,4.4
+Murray Sainsbury,Liberal,35890,48.4,-4.4
 Seat,Fadden
 fp
 David Beddall,Labor,44412,48.3,4.7
@@ -378,8 +378,8 @@ Noel Diffey,Labor,27168,38.9,5.3
 Scott Milne,Democrats,1872,2.7,-4.1
 Maureen Nathan,Right-wing Populist,740,1.1,-0.1
 tcp
-Wal Fife,Liberal,41555,59.5,-2.3
-Noel Diffey,Labor,28285,40.5,2.3
+Wal Fife,Liberal,41347,59.2,-2.6
+Noel Diffey,Labor,28493,40.8,2.6
 Seat,Fisher
 fp
 Evan Adermann,National,36848,39.9,-13.4
@@ -466,8 +466,8 @@ Albert Jarman,Democrats,1831,3.1,-0.1
 Joseph Owens,Left-wing,1008,1.7,1.7
 Michael Karadjis,Left-wing,432,0.7,0.7
 tcp
-Leo McLeay,Labor,39575,67.2,3.7
-Edward James,Liberal,19317,32.8,-3.7
+Leo McLeay,Labor,37208,63.2,-0.3
+Edward James,Liberal,21684,36.8,0.3
 Seat,Grey
 fp
 Lloyd O'Neil,Labor,35276,51.0,0.9
@@ -663,11 +663,11 @@ Peter Milton,Labor,46669,60.9,8.6
 Peter Nugent,Liberal,29964,39.1,-8.6
 Seat,Leichhardt
 fp
-John Gayler,Labor,35071,52.1,5.8
-David Thomson,National,32285,47.9,-1.0
+John Gayler,Labor,35071,52.1,None
+David Thomson,National,32285,47.9,None
 tcp
-John Gayler,Labor,35071,52.1,5.8
-David Thomson,National,32285,47.9,-1.0
+John Gayler,Labor,35071,52.1,None
+David Thomson,National,32285,47.9,None
 Seat,Lilley
 fp
 Elaine Darling,Labor,35350,57.2,9.2

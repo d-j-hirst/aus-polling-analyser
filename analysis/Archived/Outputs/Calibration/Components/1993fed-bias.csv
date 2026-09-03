@@ -1,0 +1,31 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,1993fed,DEM FP,,,,4.5990000000000002,,
+1,bias_pollster,1993fed,DEM FP,AGB McNair,,,,-1.04,16
+1,bias_pollster,1993fed,DEM FP,F2F Morgan,,,,-0.153,15
+1,bias_pollster,1993fed,DEM FP,Morgan Phone,,,,0.012999999999999999,2
+1,bias_pollster,1993fed,DEM FP,Newspoll,,,,1.151,16
+1,bias_pollster,1993fed,DEM FP,Saulwick,,,,0.017000000000000001,1
+1,bias_trend,1993fed,OTH FP,,,,10.593,,
+1,bias_pollster,1993fed,OTH FP,AGB McNair,,,,0.34999999999999998,15
+1,bias_pollster,1993fed,OTH FP,F2F Morgan,,,,0.28499999999999998,14
+1,bias_pollster,1993fed,OTH FP,Morgan Phone,,,,0.246,2
+1,bias_pollster,1993fed,OTH FP,Newspoll,,,,-0.61499999999999999,16
+1,bias_pollster,1993fed,OTH FP,Saulwick,,,,-0.29199999999999998,3
+1,bias_trend,1993fed,LNP FP,,,,45.463000000000001,,
+1,bias_pollster,1993fed,LNP FP,AGB McNair,,,,-0.80600000000000005,15
+1,bias_pollster,1993fed,LNP FP,F2F Morgan,,,,-0.48399999999999999,14
+1,bias_pollster,1993fed,LNP FP,Morgan Phone,,,,-0.16800000000000001,2
+1,bias_pollster,1993fed,LNP FP,Newspoll,,,,0.97999999999999998,16
+1,bias_pollster,1993fed,LNP FP,Saulwick,,,,0.47899999999999998,3
+1,bias_trend,1993fed,ALP FP,,,,43.969000000000001,,
+1,bias_pollster,1993fed,ALP FP,AGB McNair,,,,0.48099999999999998,15
+1,bias_pollster,1993fed,ALP FP,F2F Morgan,,,,0.29499999999999998,14
+1,bias_pollster,1993fed,ALP FP,Morgan Phone,,,,-0.115,2
+1,bias_pollster,1993fed,ALP FP,Newspoll,,,,-0.215,16
+1,bias_pollster,1993fed,ALP FP,Saulwick,,,,-0.41199999999999998,3
+1,bias_trend,1993fed,@TPP,,,,50.524999999999999,,
+1,bias_pollster,1993fed,@TPP,AGB McNair,,,,0.67800000000000005,15
+1,bias_pollster,1993fed,@TPP,F2F Morgan,,,,0.41599999999999998,14
+1,bias_pollster,1993fed,@TPP,Morgan Phone,,,,0.048000000000000001,2
+1,bias_pollster,1993fed,@TPP,Newspoll,,,,-0.65700000000000003,16
+1,bias_pollster,1993fed,@TPP,Saulwick,,,,-0.47199999999999998,3

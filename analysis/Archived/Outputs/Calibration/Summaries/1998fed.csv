@@ -1,0 +1,84 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,1998fed,@TPP,F2F Morgan,0.99839301937646263,65.304721451912428,,,
+1,leave_one_out,1998fed,@TPP,Morgan Phone,1.4827237333237491,53.127044322614815,,,
+1,leave_one_out,1998fed,@TPP,Newspoll,1.2996136843222912,59.173136338398145,,,
+1,leave_one_out,1998fed,@TPP,Nielsen,0.93790921529485982,29.829015039875646,,,
+1,leave_one_out,1998fed,@TPP,Quadrant,2.432928756710719,6.093927339506469,,,
+1,leave_one_out,1998fed,ALP FP,F2F Morgan,1.3289974089780396,61.679326161558251,,,
+1,leave_one_out,1998fed,ALP FP,Morgan Phone,1.7961062484280121,51.999196417803695,,,
+1,leave_one_out,1998fed,ALP FP,Newspoll,1.4182648726979006,59.121493598855423,,,
+1,leave_one_out,1998fed,ALP FP,Nielsen,1.4008808644364918,30.265506093221955,,,
+1,leave_one_out,1998fed,ALP FP,Quadrant,4.1216632567480636,6.0416249937121336,,,
+1,leave_one_out,1998fed,DEM FP,F2F Morgan,0.50122030271307383,65.185293697270396,,,
+1,leave_one_out,1998fed,DEM FP,Morgan Phone,0.71858079479412462,55.097389515533791,,,
+1,leave_one_out,1998fed,DEM FP,Newspoll,0.76262001515838285,41.798437023926695,,,
+1,leave_one_out,1998fed,DEM FP,Nielsen,0.93737289397754608,29.882685754119979,,,
+1,leave_one_out,1998fed,DEM FP,Quadrant,0.91889460019434599,4.6241338143455719,,,
+1,leave_one_out,1998fed,GRN FP,F2F Morgan,0.36880607235726104,68.022419551960851,,,
+1,leave_one_out,1998fed,GRN FP,Morgan Phone,0.4921636743799202,56.610587385382608,,,
+1,leave_one_out,1998fed,GRN FP,Newspoll,0.47919845601606059,43.661748234944113,,,
+1,leave_one_out,1998fed,GRN FP,Nielsen,0.52202205595083206,30.782537203126452,,,
+1,leave_one_out,1998fed,LNP FP,F2F Morgan,1.1283518330310296,64.326941554204993,,,
+1,leave_one_out,1998fed,LNP FP,Morgan Phone,1.4551918323248318,54.129179602181964,,,
+1,leave_one_out,1998fed,LNP FP,Newspoll,1.5695944328762725,57.791392755768705,,,
+1,leave_one_out,1998fed,LNP FP,Nielsen,1.2473529623592414,30.006287560869595,,,
+1,leave_one_out,1998fed,LNP FP,Quadrant,1.6370389613242757,5.9470512155375248,,,
+1,leave_one_out,1998fed,ONP FP,F2F Morgan,0.76703863402412265,40.357471366098238,,,
+1,leave_one_out,1998fed,ONP FP,Morgan Phone,1.1546076317365035,32.17233659748365,,,
+1,leave_one_out,1998fed,ONP FP,Newspoll,1.2815016365186624,37.843111747374785,,,
+1,leave_one_out,1998fed,ONP FP,Nielsen,0.82203787005978313,17.853244037365307,,,
+1,leave_one_out,1998fed,ONP FP,Quadrant,1.3749127558607888,4.399125726532743,,,
+1,leave_one_out,1998fed,OTH FP,F2F Morgan,1.0095920215136367,61.064516705633402,,,
+1,leave_one_out,1998fed,OTH FP,Morgan Phone,1.6330795219629362,50.178757554663648,,,
+1,leave_one_out,1998fed,OTH FP,Newspoll,1.2389764531873411,58.448118313806781,,,
+1,leave_one_out,1998fed,OTH FP,Nielsen,1.6259413612529452,30.265861783282979,,,
+1,leave_one_out,1998fed,OTH FP,Quadrant,3.5307391754619952,5.9310167334240971,,,
+1,bias_trend,1998fed,@TPP,,,,51.223999999999997,,
+1,bias_trend,1998fed,ALP FP,,,,41.095999999999997,,
+1,bias_trend,1998fed,DEM FP,,,,6.2199999999999998,,
+1,bias_trend,1998fed,GRN FP,,,,2.6230000000000002,,
+1,bias_trend,1998fed,LNP FP,,,,40.387999999999998,,
+1,bias_trend,1998fed,ONP FP,,,,7.0069999999999997,,
+1,bias_trend,1998fed,OTH FP,,,,15.927,,
+1,bias_pollster,1998fed,@TPP,ARS,,,,-0.38700000000000001,1
+1,bias_pollster,1998fed,@TPP,F2F Morgan,,,,1.4590000000000001,18
+1,bias_pollster,1998fed,@TPP,Morgan Phone,,,,-0.75,11
+1,bias_pollster,1998fed,@TPP,Newspoll,,,,-0.60899999999999999,16
+1,bias_pollster,1998fed,@TPP,Nielsen,,,,-0.245,11
+1,bias_pollster,1998fed,@TPP,Quadrant,,,,0.59699999999999998,5
+1,bias_pollster,1998fed,ALP FP,ARS,,,,-1.0940000000000001,1
+1,bias_pollster,1998fed,ALP FP,F2F Morgan,,,,0.65100000000000002,18
+1,bias_pollster,1998fed,ALP FP,Morgan Phone,,,,-0.27000000000000002,11
+1,bias_pollster,1998fed,ALP FP,Newspoll,,,,-0.13400000000000001,16
+1,bias_pollster,1998fed,ALP FP,Nielsen,,,,-0.48899999999999999,11
+1,bias_pollster,1998fed,ALP FP,Quadrant,,,,1.4319999999999999,5
+1,bias_pollster,1998fed,DEM FP,ARS,,,,0.89800000000000002,1
+1,bias_pollster,1998fed,DEM FP,F2F Morgan,,,,0.29299999999999998,18
+1,bias_pollster,1998fed,DEM FP,Morgan Phone,,,,0.24099999999999999,11
+1,bias_pollster,1998fed,DEM FP,Newspoll,,,,-1.1779999999999999,16
+1,bias_pollster,1998fed,DEM FP,Nielsen,,,,-0.39900000000000002,11
+1,bias_pollster,1998fed,DEM FP,Quadrant,,,,0.036999999999999998,3
+1,bias_pollster,1998fed,GRN FP,ARS,,,,0.13100000000000001,1
+1,bias_pollster,1998fed,GRN FP,F2F Morgan,,,,0.39100000000000001,18
+1,bias_pollster,1998fed,GRN FP,Morgan Phone,,,,0.049000000000000002,11
+1,bias_pollster,1998fed,GRN FP,Newspoll,,,,-0.47199999999999998,16
+1,bias_pollster,1998fed,GRN FP,Nielsen,,,,-0.017000000000000001,11
+1,bias_pollster,1998fed,GRN FP,Quadrant,,,,-0.096000000000000002,1
+1,bias_pollster,1998fed,LNP FP,ARS,,,,-0.032000000000000001,1
+1,bias_pollster,1998fed,LNP FP,F2F Morgan,,,,-2.1440000000000001,18
+1,bias_pollster,1998fed,LNP FP,Morgan Phone,,,,1.2270000000000001,11
+1,bias_pollster,1998fed,LNP FP,Newspoll,,,,0.98999999999999999,16
+1,bias_pollster,1998fed,LNP FP,Nielsen,,,,-0.012,11
+1,bias_pollster,1998fed,LNP FP,Quadrant,,,,-0.023,5
+1,bias_pollster,1998fed,ONP FP,ARS,,,,-0.042999999999999997,1
+1,bias_pollster,1998fed,ONP FP,F2F Morgan,,,,0.97199999999999998,18
+1,bias_pollster,1998fed,ONP FP,Morgan Phone,,,,-0.26100000000000001,11
+1,bias_pollster,1998fed,ONP FP,Newspoll,,,,-0.58799999999999997,16
+1,bias_pollster,1998fed,ONP FP,Nielsen,,,,0.373,11
+1,bias_pollster,1998fed,ONP FP,Quadrant,,,,-0.36499999999999999,4
+1,bias_pollster,1998fed,OTH FP,ARS,,,,0.76300000000000001,1
+1,bias_pollster,1998fed,OTH FP,F2F Morgan,,,,1.7090000000000001,18
+1,bias_pollster,1998fed,OTH FP,Morgan Phone,,,,-0.46800000000000003,11
+1,bias_pollster,1998fed,OTH FP,Newspoll,,,,-0.56000000000000005,16
+1,bias_pollster,1998fed,OTH FP,Nielsen,,,,0.126,11
+1,bias_pollster,1998fed,OTH FP,Quadrant,,,,-1.639,5

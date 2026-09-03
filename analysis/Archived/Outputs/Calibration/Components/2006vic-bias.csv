@@ -1,0 +1,35 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2006vic,GRN FP,,,,11.031000000000001,,
+1,bias_pollster,2006vic,GRN FP,F2F Morgan,,,,-0.505,3
+1,bias_pollster,2006vic,GRN FP,Galaxy,,,,-0.26100000000000001,2
+1,bias_pollster,2006vic,GRN FP,Morgan Phone,,,,0.626,5
+1,bias_pollster,2006vic,GRN FP,Newspoll,,,,-1.329,5
+1,bias_pollster,2006vic,GRN FP,Nielsen,,,,1.528,4
+1,bias_trend,2006vic,OTH FP,,,,6.7759999999999998,,
+1,bias_pollster,2006vic,OTH FP,F2F Morgan,,,,-0.059999999999999998,3
+1,bias_pollster,2006vic,OTH FP,Galaxy,,,,-0.28799999999999998,2
+1,bias_pollster,2006vic,OTH FP,McNair,,,,-0.52000000000000002,1
+1,bias_pollster,2006vic,OTH FP,Morgan Phone,,,,-0.45000000000000001,5
+1,bias_pollster,2006vic,OTH FP,Newspoll,,,,1.8560000000000001,5
+1,bias_pollster,2006vic,OTH FP,Nielsen,,,,-0.35099999999999998,4
+1,bias_trend,2006vic,LNP FP,,,,39.816000000000003,,
+1,bias_pollster,2006vic,LNP FP,F2F Morgan,,,,-0.60199999999999998,3
+1,bias_pollster,2006vic,LNP FP,Galaxy,,,,0.317,2
+1,bias_pollster,2006vic,LNP FP,McNair,,,,1.8899999999999999,1
+1,bias_pollster,2006vic,LNP FP,Morgan Phone,,,,0.053999999999999999,5
+1,bias_pollster,2006vic,LNP FP,Newspoll,,,,-1.538,5
+1,bias_pollster,2006vic,LNP FP,Nielsen,,,,-0.125,4
+1,bias_trend,2006vic,ALP FP,,,,42.414999999999999,,
+1,bias_pollster,2006vic,ALP FP,F2F Morgan,,,,1.177,3
+1,bias_pollster,2006vic,ALP FP,Galaxy,,,,0.13400000000000001,2
+1,bias_pollster,2006vic,ALP FP,McNair,,,,-0.96599999999999997,1
+1,bias_pollster,2006vic,ALP FP,Morgan Phone,,,,-0.28599999999999998,5
+1,bias_pollster,2006vic,ALP FP,Newspoll,,,,0.93300000000000005,5
+1,bias_pollster,2006vic,ALP FP,Nielsen,,,,-0.91100000000000003,4
+1,bias_trend,2006vic,@TPP,,,,53.720999999999997,,
+1,bias_pollster,2006vic,@TPP,F2F Morgan,,,,0.64100000000000001,3
+1,bias_pollster,2006vic,@TPP,Galaxy,,,,-0.13300000000000001,2
+1,bias_pollster,2006vic,@TPP,McNair,,,,-1.24,1
+1,bias_pollster,2006vic,@TPP,Morgan Phone,,,,0.0040000000000000001,5
+1,bias_pollster,2006vic,@TPP,Newspoll,,,,0.71999999999999997,5
+1,bias_pollster,2006vic,@TPP,Nielsen,,,,-0.0040000000000000001,4

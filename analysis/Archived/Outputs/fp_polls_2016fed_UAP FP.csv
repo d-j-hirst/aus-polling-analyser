@@ -1,158 +1,174 @@
 Firm,Day,UAP FP,UAP FP adj
-Morgan multi-mode,8,4.0,4.243186426981237
-Morgan multi-mode,22,4.5,4.743186426981237
-ReachTEL,26,5.7,5.28878542209374
-Morgan multi-mode,36,4.5,4.743186426981237
-Morgan multi-mode,50,5.5,5.743186426981237
-Morgan multi-mode,64,5.0,5.243186426981237
-ReachTEL,68,6.6,6.18878542209374
-Morgan multi-mode,78,3.5,3.7431864269812367
-Essential,85,4.0,4.341071574751299
-ReachTEL,92,5.1,4.68878542209374
-Morgan multi-mode,88,3.5,3.7431864269812367
-Morgan multi-mode,116,3.5,3.7431864269812367
-Essential,121,4.0,4.341071574751299
-ReachTEL,131,4.6,4.18878542209374
-Morgan multi-mode,130,3.0,3.2431864269812367
-Essential,135,3.0,3.3410715747512993
-Morgan multi-mode,144,4.5,4.743186426981237
-Essential,149,4.0,4.341071574751299
-Morgan multi-mode,158,4.5,4.743186426981237
-ReachTEL,166,4.4,3.9887854220937404
-Morgan multi-mode,172,4.0,4.243186426981237
-Essential,177,4.0,4.341071574751299
-Nielsen,181,4.0,4.352557007831524
-Essential,191,3.0,3.3410715747512993
-Morgan multi-mode,186,4.5,4.743186426981237
-Essential,205,4.0,4.341071574751299
-Nielsen,209,4.0,4.352557007831524
-Essential,219,5.0,5.341071574751299
-Morgan multi-mode,228,5.5,5.743186426981237
-ReachTEL,231,6.0,5.58878542209374
-Galaxy,230,6.0,5.696910233595008
-Essential,233,5.0,5.341071574751299
-ReachTEL,236,7.0,6.58878542209374
-Galaxy,243,8.0,7.696910233595008
-Nielsen,244,6.0,6.352557007831524
-Morgan multi-mode,246,6.5,6.743186426981237
-Essential,247,5.0,5.341071574751299
-Morgan multi-mode,256,7.5,7.743186426981237
-Essential,261,6.0,6.341071574751299
-Morgan Phone,263,3.5,3.8688533180387275
-Morgan multi-mode,267,4.5,4.743186426981237
-Morgan multi-mode,274,5.5,5.743186426981237
-Essential,275,5.0,5.341071574751299
-Morgan multi-mode,284,7.0,7.243186426981237
-ReachTEL,285,6.8,6.38878542209374
-Essential,289,6.0,6.341071574751299
-Morgan multi-mode,298,7.5,7.743186426981237
-Essential,303,6.0,6.341071574751299
-Nielsen,307,5.0,5.352557007831524
-ReachTEL,310,8.0,7.58878542209374
-Morgan multi-mode,312,5.0,5.243186426981237
-Galaxy,314,7.0,6.696910233595008
-Essential,317,4.0,4.341071574751299
-Morgan multi-mode,326,5.5,5.743186426981237
-Essential,331,6.0,6.341071574751299
-Morgan multi-mode,340,4.5,4.743186426981237
-ReachTEL,341,6.7,6.28878542209374
-Essential,345,5.0,5.341071574751299
-Morgan multi-mode,354,4.5,4.743186426981237
-ReachTEL,369,5.3,4.88878542209374
-Morgan multi-mode,368,4.0,4.243186426981237
-Essential,373,4.0,4.341071574751299
-Galaxy,386,4.0,3.696910233595008
-Morgan multi-mode,386,3.5,3.7431864269812367
-Essential,387,3.0,3.3410715747512993
-Morgan multi-mode,396,3.5,3.7431864269812367
-Essential,401,4.0,4.341071574751299
-ReachTEL,404,5.1,4.68878542209374
-Ipsos,412,3.0,3.20983705793276
-Morgan multi-mode,410,3.0,3.2431864269812367
-Essential,415,4.0,4.341071574751299
-Morgan multi-mode,424,2.5,2.7431864269812367
-Essential,429,3.0,3.3410715747512993
-ReachTEL,433,3.1,2.68878542209374
-Morgan multi-mode,438,2.0,2.2431864269812367
-Ipsos,447,2.0,2.20983705793276
-Essential,815,2.0,2.160357521240375
-Morgan multi-mode,817,2.0,2.266081675450625
-Morgan multi-mode,480,2.0,2.2431864269812367
-Essential,483,2.0,2.3410715747512993
-Essential,497,3.0,3.3410715747512993
-Morgan multi-mode,498,3.0,3.2431864269812367
-ReachTEL,500,2.7,2.2887854220937403
-Galaxy,502,3.0,2.696910233595008
-Galaxy,509,3.0,2.696910233595008
-ReachTEL,509,2.7,2.2887854220937403
-Morgan multi-mode,508,2.0,2.2431864269812367
-Essential,511,2.0,2.3410715747512993
-Morgan multi-mode,522,2.0,2.2431864269812367
-Essential,525,2.0,2.3410715747512993
-Morgan multi-mode,536,2.0,2.2431864269812367
-Essential,539,2.0,2.3410715747512993
-Morgan multi-mode,550,1.5,1.7431864269812367
-Essential,553,1.0,1.3410715747512993
-ReachTEL,561,2.2,1.7887854220937403
-Morgan multi-mode,565,1.5,1.7431864269812367
-Essential,567,2.0,2.3410715747512993
-Morgan multi-mode,578,1.5,1.7431864269812367
-Essential,581,2.0,2.3410715747512993
-ReachTEL,586,2.2,1.7887854220937403
-Morgan multi-mode,592,1.0,1.2431864269812367
-Essential,595,1.0,1.3410715747512993
-ReachTEL,606,2.2,1.7887854220937403
-Galaxy,607,2.0,1.6969102335950081
-Essential,609,1.0,1.3410715747512993
-Ipsos,610,1.0,1.2098370579327604
-Morgan multi-mode,610,1.5,1.7431864269812367
-Morgan multi-mode,620,1.0,1.2431864269812367
-Essential,623,1.0,1.3410715747512993
-Morgan multi-mode,634,1.5,1.7431864269812367
-Essential,637,1.0,1.3410715747512993
-Morgan multi-mode,648,1.5,1.7431864269812367
-ReachTEL,649,1.3,0.8887854220937401
-Morgan multi-mode,662,1.0,1.2431864269812367
-Morgan multi-mode,676,1.0,1.2431864269812367
-ReachTEL,684,1.4,0.98878542209374
-ReachTEL,691,1.4,0.98878542209374
-Morgan multi-mode,690,1.0,1.2431864269812367
-Ipsos,699,2.0,2.20983705793276
-Newspoll2,707,2.0,2.0393909059966266
-Essential,707,2.0,2.3410715747512993
-Morgan multi-mode,704,1.5,1.7431864269812367
-ReachTEL,712,1.3,0.8887854220937401
-Morgan multi-mode,722,1.0,1.2431864269812367
-Morgan multi-mode,729,1.5,1.7431864269812367
-ReachTEL,731,0.8,0.38878542209374006
-Galaxy,732,2.0,1.6969102335950081
-Morgan multi-mode,736,1.5,1.7431864269812367
-Essential,742,1.0,1.3410715747512993
-Morgan multi-mode,747,1.5,1.7431864269812367
-Morgan multi-mode,760,0.5,0.7431864269812366
-ReachTEL,768,0.9,0.48878542209374004
-Morgan multi-mode,774,1.0,1.2431864269812367
-Morgan multi-mode,788,1.0,1.248136750974618
-ReachTEL,803,1.0,0.6747619012850609
-Morgan multi-mode,802,1.0,1.256799817963035
-Morgan multi-mode,816,1.0,1.2654628849514524
-Morgan multi-mode,844,1.0,1.2827890189282867
-ReachTEL,859,0.8,0.6840959375769726
-Morgan multi-mode,858,0.5,0.791452085916704
-Essential,859,1.0,0.9331741396837843
-Essential,874,1.0,0.8557252596076738
-ReachTEL,880,0.7,0.6625962011864395
-Morgan multi-mode,886,1.0,1.3087782198935385
-Essential,888,1.0,0.783439638203304
-Morgan multi-mode,901,0.5,0.8174412868819557
-Essential,902,1.0,0.7214805341424155
-Morgan multi-mode,914,0.0,0.3174412868819557
-Morgan multi-mode,928,0.0,0.3174412868819557
-Essential,930,1.0,0.7214805341424155
-Essential,944,1.0,0.7214805341424155
-Morgan multi-mode,942,0.0,0.3174412868819557
-Morgan multi-mode,956,0.0,0.3174412868819557
-Essential,958,1.0,0.7214805341424155
-Morgan multi-mode,974,0.0,0.3174412868819557
-Morgan multi-mode,984,0.0,0.3174412868819557
-Newspoll2,994,1.0,0.9040823807349381
+Morgan multi-mode,12,4.0,4.332
+Morgan multi-mode,26,4.5,4.832
+ReachTEL,30,5.7,5.406
+Morgan multi-mode,40,4.5,4.832
+Morgan multi-mode,54,5.5,5.832
+Morgan multi-mode,68,5.0,5.332
+ReachTEL,72,6.6,6.306
+Morgan multi-mode,82,3.5,3.832
+Essential,85,4.0,4.343
+ReachTEL,96,5.1,4.806
+Morgan multi-mode,92,3.5,3.832
+Morgan multi-mode,120,3.5,3.832
+Essential,124,4.0,4.343
+ReachTEL,135,4.6,4.306
+Morgan multi-mode,134,3.0,3.332
+Essential,134,4.0,4.343
+Morgan multi-mode,148,4.5,4.832
+Essential,148,3.0,3.343
+Essential,162,4.0,4.343
+Morgan multi-mode,162,4.5,4.832
+ReachTEL,170,4.4,4.106
+Morgan multi-mode,176,4.0,4.332
+Essential,176,4.0,4.343
+Nielsen,185,4.0,4.458
+Essential,190,4.0,4.343
+Morgan multi-mode,190,4.5,4.832
+Essential,204,4.0,4.343
+Nielsen,213,4.0,4.458
+Essential,218,5.0,5.343
+Morgan multi-mode,232,5.5,5.832
+Essential,232,5.0,5.343
+ReachTEL,235,6.0,5.706
+Galaxy,234,6.0,5.716
+ReachTEL,240,7.0,6.706
+Galaxy,247,8.0,7.716
+Nielsen,248,6.0,6.458
+Morgan multi-mode,250,6.5,6.832
+Essential,246,5.0,5.343
+Morgan multi-mode,260,7.5,7.832
+Essential,260,6.0,6.343
+Morgan Phone,267,3.5,4.091
+Morgan multi-mode,271,4.5,4.832
+Morgan multi-mode,278,5.5,5.832
+Essential,273,5.0,5.343
+Morgan multi-mode,288,7.0,7.332
+ReachTEL,289,6.8,6.506
+Essential,287,6.0,6.343
+Morgan multi-mode,302,7.5,7.832
+Essential,302,6.0,6.343
+Nielsen,311,5.0,5.458
+ReachTEL,314,8.0,7.706
+Morgan multi-mode,316,5.0,5.332
+Galaxy,318,7.0,6.716
+Essential,316,5.0,5.343
+Morgan multi-mode,330,5.5,5.832
+Essential,330,5.0,5.343
+Morgan multi-mode,344,4.5,4.832
+ReachTEL,345,6.7,6.406
+Essential,344,5.0,5.343
+Morgan multi-mode,358,4.5,4.832
+Essential,358,4.0,4.343
+ReachTEL,373,5.3,5.006
+Morgan multi-mode,372,4.0,4.332
+Essential,372,4.0,4.343
+Galaxy,390,4.0,3.716
+Morgan multi-mode,390,3.5,3.832
+Essential,386,4.0,4.343
+Morgan multi-mode,400,3.5,3.832
+Essential,400,3.0,3.343
+ReachTEL,408,5.1,4.806
+Ipsos,416,3.0,3.315
+Morgan multi-mode,414,3.0,3.332
+Essential,414,4.0,4.343
+Morgan multi-mode,428,2.5,2.832
+Essential,428,3.0,3.343
+ReachTEL,437,3.1,2.806
+Morgan multi-mode,442,2.0,2.332
+Essential,442,4.0,4.343
+Ipsos,451,2.0,2.315
+Essential,821,2.0,2.173
+Morgan multi-mode,821,2.0,2.404
+Morgan multi-mode,484,2.0,2.332
+Essential,491,2.0,2.343
+Essential,505,3.0,3.343
+Morgan multi-mode,502,3.0,3.332
+ReachTEL,504,2.7,2.406
+Galaxy,506,3.0,2.716
+Morgan multi-mode,512,2.0,2.332
+Galaxy,513,3.0,2.716
+ReachTEL,513,2.7,2.406
+Essential,519,2.0,2.343
+Morgan multi-mode,526,2.0,2.332
+Essential,533,2.0,2.343
+Morgan multi-mode,540,2.0,2.332
+Essential,547,2.0,2.343
+Morgan multi-mode,554,1.5,1.832
+Essential,561,1.0,1.343
+ReachTEL,565,2.2,1.906
+Morgan multi-mode,569,1.5,1.832
+Essential,574,2.0,2.343
+Morgan multi-mode,582,1.5,1.832
+Essential,588,2.0,2.343
+ReachTEL,590,2.2,1.906
+Morgan multi-mode,596,1.0,1.332
+Essential,602,1.0,1.343
+ReachTEL,610,2.2,1.906
+Galaxy,611,2.0,1.716
+Ipsos,612,1.0,1.315
+Morgan multi-mode,614,1.5,1.832
+Essential,616,1.0,1.343
+Morgan multi-mode,624,1.0,1.332
+Essential,631,1.0,1.343
+Morgan multi-mode,638,1.5,1.832
+Essential,645,1.0,1.343
+Morgan multi-mode,652,1.5,1.832
+ReachTEL,653,1.3,1.006
+Essential,658,1.0,1.343
+Morgan multi-mode,666,1.0,1.332
+Essential,672,2.0,2.343
+Morgan multi-mode,680,1.0,1.332
+Essential,686,1.0,1.343
+ReachTEL,688,1.4,1.106
+ReachTEL,695,1.4,1.106
+Essential,698,2.0,2.343
+Morgan multi-mode,694,1.0,1.332
+Ipsos,703,2.0,2.315
+Newspoll2,711,2.0,2.068
+Essential,714,2.0,2.343
+Morgan multi-mode,708,1.5,1.832
+ReachTEL,716,1.3,1.006
+Morgan multi-mode,726,1.0,1.332
+Essential,729,2.0,2.343
+Morgan multi-mode,733,1.5,1.832
+ReachTEL,735,0.8,0.506
+Galaxy,736,2.0,1.716
+Morgan multi-mode,740,1.5,1.832
+Essential,739,1.0,1.343
+Essential,749,1.0,1.343
+Morgan multi-mode,751,1.5,1.832
+Essential,763,1.0,1.343
+Morgan multi-mode,764,0.5,0.832
+ReachTEL,772,0.9,0.606
+Essential,777,1.0,1.343
+Morgan multi-mode,778,1.0,1.332
+Essential,791,1.0,1.307
+Morgan multi-mode,792,1.0,1.347
+Essential,805,1.0,1.244
+ReachTEL,807,1.0,0.796
+Morgan multi-mode,806,1.0,1.373
+Essential,819,1.0,1.182
+Morgan multi-mode,820,1.0,1.4
+Morgan multi-mode,848,1.0,1.453
+Essential,859,2.0,2.003
+ReachTEL,863,0.8,0.806
+Morgan multi-mode,862,0.5,0.979
+Essential,863,1.0,0.985
+Essential,875,1.0,0.931
+ReachTEL,884,0.7,0.781
+Morgan multi-mode,890,1.0,1.532
+Essential,889,1.0,0.868
+Morgan multi-mode,905,0.5,1.059
+Essential,903,2.0,1.806
+Morgan multi-mode,918,0.0,0.559
+Essential,917,1.0,0.806
+Essential,931,1.0,0.806
+Morgan multi-mode,932,0.0,0.559
+Essential,945,1.0,0.806
+Morgan multi-mode,946,0.0,0.559
+Essential,959,1.0,0.806
+Morgan multi-mode,960,0.0,0.559
+Morgan multi-mode,978,0.0,0.559
+Morgan multi-mode,988,0.0,0.559
+Newspoll2,998,1.0,1.047

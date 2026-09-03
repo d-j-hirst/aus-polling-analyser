@@ -1,0 +1,46 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2019nsw,GRN FP,,,,9.8680000000000003,,
+1,bias_pollster,2019nsw,GRN FP,Essential,,,,-0.308,1
+1,bias_pollster,2019nsw,GRN FP,Galaxy,,,,-0.21199999999999999,2
+1,bias_pollster,2019nsw,GRN FP,Newspoll2,,,,0.0030000000000000001,3
+1,bias_pollster,2019nsw,GRN FP,ReachTEL,,,,-0.17799999999999999,1
+1,bias_pollster,2019nsw,GRN FP,SMS Morgan,,,,0.629,0
+1,bias_pollster,2019nsw,GRN FP,uComms,,,,0.050999999999999997,2
+1,bias_trend,2019nsw,SFF FP,,,,3.4950000000000001,,
+1,bias_pollster,2019nsw,SFF FP,Galaxy,,,,-0.16900000000000001,1
+1,bias_pollster,2019nsw,SFF FP,ReachTEL,,,,0.069000000000000006,1
+1,bias_pollster,2019nsw,SFF FP,uComms,,,,0.094,2
+1,bias_trend,2019nsw,ONP FP,,,,3.0190000000000001,,
+1,bias_pollster,2019nsw,ONP FP,Essential,,,,0.27800000000000002,1
+1,bias_pollster,2019nsw,ONP FP,Galaxy,,,,-0.26500000000000001,2
+1,bias_pollster,2019nsw,ONP FP,Newspoll2,,,,-0.11799999999999999,2
+1,bias_pollster,2019nsw,ONP FP,ReachTEL,,,,0.0040000000000000001,1
+1,bias_pollster,2019nsw,ONP FP,uComms,,,,0.109,2
+1,bias_trend,2019nsw,OTH FP,,,,13.98,,
+1,bias_pollster,2019nsw,OTH FP,Essential,,,,-0.32200000000000001,1
+1,bias_pollster,2019nsw,OTH FP,Galaxy,,,,-0.59899999999999998,2
+1,bias_pollster,2019nsw,OTH FP,Newspoll2,,,,0.315,3
+1,bias_pollster,2019nsw,OTH FP,ReachTEL,,,,0.24099999999999999,1
+1,bias_pollster,2019nsw,OTH FP,SMS Morgan,,,,0.010999999999999999,0
+1,bias_pollster,2019nsw,OTH FP,uComms,,,,0.317,2
+1,bias_trend,2019nsw,LNP FP,,,,40.668999999999997,,
+1,bias_pollster,2019nsw,LNP FP,Essential,,,,0.047,1
+1,bias_pollster,2019nsw,LNP FP,Galaxy,,,,-0.012,2
+1,bias_pollster,2019nsw,LNP FP,Newspoll2,,,,0.048000000000000001,3
+1,bias_pollster,2019nsw,LNP FP,ReachTEL,,,,0.0040000000000000001,1
+1,bias_pollster,2019nsw,LNP FP,SMS Morgan,,,,0.125,0
+1,bias_pollster,2019nsw,LNP FP,uComms,,,,-0.24399999999999999,2
+1,bias_trend,2019nsw,ALP FP,,,,35.689999999999998,,
+1,bias_pollster,2019nsw,ALP FP,Essential,,,,0.34599999999999997,1
+1,bias_pollster,2019nsw,ALP FP,Galaxy,,,,1.032,2
+1,bias_pollster,2019nsw,ALP FP,Newspoll2,,,,-0.029999999999999999,3
+1,bias_pollster,2019nsw,ALP FP,ReachTEL,,,,-0.042999999999999997,1
+1,bias_pollster,2019nsw,ALP FP,SMS Morgan,,,,-0.89000000000000001,0
+1,bias_pollster,2019nsw,ALP FP,uComms,,,,-0.20699999999999999,2
+1,bias_trend,2019nsw,@TPP,,,,49.103999999999999,,
+1,bias_pollster,2019nsw,@TPP,Essential,,,,0.16,1
+1,bias_pollster,2019nsw,@TPP,Galaxy,,,,0.45400000000000001,2
+1,bias_pollster,2019nsw,@TPP,Newspoll2,,,,-0.065000000000000002,3
+1,bias_pollster,2019nsw,@TPP,ReachTEL,,,,-0.069000000000000006,1
+1,bias_pollster,2019nsw,@TPP,SMS Morgan,,,,-0.52500000000000002,0
+1,bias_pollster,2019nsw,@TPP,uComms,,,,0.070999999999999994,2

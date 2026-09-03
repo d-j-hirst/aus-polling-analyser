@@ -1,0 +1,59 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,1999vic,@TPP,F2F Morgan,1.9164989451516981,9.0809458920513038,,,
+1,leave_one_out,1999vic,@TPP,Morgan Phone,2.260188731697224,2.8240184799331787,,,
+1,leave_one_out,1999vic,@TPP,Newspoll,2.2763674032326358,6.1887161759703186,,,
+1,leave_one_out,1999vic,@TPP,Nielsen,1.7622825627126362,5.5850987640034129,,,
+1,leave_one_out,1999vic,@TPP,Quadrant,3.7619467273201082,1.0509815531824185,,,
+1,leave_one_out,1999vic,ALP FP,F2F Morgan,1.4197625446475486,9.673814939932349,,,
+1,leave_one_out,1999vic,ALP FP,Morgan Phone,1.4880472449054469,3.3619046270861364,,,
+1,leave_one_out,1999vic,ALP FP,Newspoll,2.9849285115495769,4.964325889445762,,,
+1,leave_one_out,1999vic,ALP FP,Nielsen,1.3295185103234226,5.8837746983661212,,,
+1,leave_one_out,1999vic,ALP FP,Quadrant,2.9043301667497161,1.0293997382553874,,,
+1,leave_one_out,1999vic,GRN FP,F2F Morgan,0.48734839355999676,1.0720179098352427,,,
+1,leave_one_out,1999vic,GRN FP,Morgan Phone,1.6223188621504023,0.3375827590066437,,,
+1,leave_one_out,1999vic,LNP FP,F2F Morgan,2.059578109338164,10.018042157498909,,,
+1,leave_one_out,1999vic,LNP FP,Morgan Phone,3.4210901726168617,2.8026497479840224,,,
+1,leave_one_out,1999vic,LNP FP,Newspoll,2.3756902481455469,6.8075794335393001,,,
+1,leave_one_out,1999vic,LNP FP,Nielsen,1.6518499554448003,6.003730628882372,,,
+1,leave_one_out,1999vic,LNP FP,Quadrant,4.2818275129144174,1.0835001278050425,,,
+1,leave_one_out,1999vic,OTH FP,F2F Morgan,1.1426252514848898,10.12792961296835,,,
+1,leave_one_out,1999vic,OTH FP,Morgan Phone,3.4947050747128996,2.5340838765491034,,,
+1,leave_one_out,1999vic,OTH FP,Newspoll,1.2695208075685107,8.1950665379738741,,,
+1,leave_one_out,1999vic,OTH FP,Nielsen,1.3026268184519281,6.3156462396911728,,,
+1,leave_one_out,1999vic,OTH FP,Quadrant,0.52757903795022787,1.4329521634530433,,,
+1,bias_trend,1999vic,@TPP,,,,48.502000000000002,,
+1,bias_trend,1999vic,ALP FP,,,,44.158999999999999,,
+1,bias_trend,1999vic,GRN FP,,,,2.427,,
+1,bias_trend,1999vic,LNP FP,,,,47.926000000000002,,
+1,bias_trend,1999vic,OTH FP,,,,5.609,,
+1,bias_pollster,1999vic,@TPP,AGB McNair,,,,-0.106,0
+1,bias_pollster,1999vic,@TPP,F2F Morgan,,,,0.72999999999999998,6
+1,bias_pollster,1999vic,@TPP,Morgan Phone,,,,0.40999999999999998,3
+1,bias_pollster,1999vic,@TPP,Newspoll,,,,-0.13200000000000001,4
+1,bias_pollster,1999vic,@TPP,Nielsen,,,,-1.806,5
+1,bias_pollster,1999vic,@TPP,Quadrant,,,,0.088999999999999996,1
+1,bias_pollster,1999vic,@TPP,Taverner,,,,0.58599999999999997,0
+1,bias_pollster,1999vic,ALP FP,AGB McNair,,,,-0.055,0
+1,bias_pollster,1999vic,ALP FP,F2F Morgan,,,,0.23699999999999999,6
+1,bias_pollster,1999vic,ALP FP,Morgan Phone,,,,0.51400000000000001,3
+1,bias_pollster,1999vic,ALP FP,Newspoll,,,,-0.050000000000000003,4
+1,bias_pollster,1999vic,ALP FP,Nielsen,,,,-2.4399999999999999,5
+1,bias_pollster,1999vic,ALP FP,Quadrant,,,,0.35699999999999998,1
+1,bias_pollster,1999vic,ALP FP,Taverner,,,,1.028,0
+1,bias_pollster,1999vic,GRN FP,F2F Morgan,,,,-0.124,7
+1,bias_pollster,1999vic,GRN FP,Morgan Phone,,,,0.044999999999999998,1
+1,bias_pollster,1999vic,GRN FP,Nielsen,,,,0.058999999999999997,0
+1,bias_pollster,1999vic,LNP FP,AGB McNair,,,,0.32600000000000001,0
+1,bias_pollster,1999vic,LNP FP,F2F Morgan,,,,-1.76,6
+1,bias_pollster,1999vic,LNP FP,Morgan Phone,,,,-0.28999999999999998,3
+1,bias_pollster,1999vic,LNP FP,Newspoll,,,,0.39900000000000002,4
+1,bias_pollster,1999vic,LNP FP,Nielsen,,,,1.353,5
+1,bias_pollster,1999vic,LNP FP,Quadrant,,,,0.18099999999999999,1
+1,bias_pollster,1999vic,LNP FP,Taverner,,,,-0.253,0
+1,bias_pollster,1999vic,OTH FP,AGB McNair,,,,0.083000000000000004,0
+1,bias_pollster,1999vic,OTH FP,F2F Morgan,,,,0.93400000000000005,6
+1,bias_pollster,1999vic,OTH FP,Morgan Phone,,,,-0.085000000000000006,3
+1,bias_pollster,1999vic,OTH FP,Newspoll,,,,-0.70799999999999996,4
+1,bias_pollster,1999vic,OTH FP,Nielsen,,,,0.36899999999999999,5
+1,bias_pollster,1999vic,OTH FP,Quadrant,,,,-0.442,1
+1,bias_pollster,1999vic,OTH FP,Taverner,,,,-0.057000000000000002,0

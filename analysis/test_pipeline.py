@@ -91,6 +91,32 @@ class PipelineTests(unittest.TestCase):
         self.registry = pipeline_registry.load_registry()
         pipeline_registry.validate_registry(self.registry)
 
+    def test_live_booth_stage_is_election_scoped_and_executable(self):
+        stage = next(
+            stage for stage in self.registry["stages"]
+            if stage["id"] == "fetch_live_booth_results"
+        )
+
+        command = pipeline_registry.stage_command(
+            stage,
+            {"election_cli": "2022sa"},
+            python_executable="python",
+        )
+
+        self.assertEqual(
+            command,
+            [
+                "python",
+                "fetch_booth_results.py",
+                "--election",
+                "2022sa",
+            ],
+        )
+        self.assertEqual(
+            stage["execution"]["task_scope"],
+            "election",
+        )
+
     def test_status_is_aggregated_unless_details_are_requested(self):
         audit = audit_result(
             [
@@ -684,6 +710,10 @@ class PipelineTests(unittest.TestCase):
         final_audit = {
             "required_graph": {"required_work_unit_ids": []}
         }
+        archive_preflight = {
+            "work_units": 0,
+            "managed_files": ["Outputs/generated-provenance.json"],
+        }
 
         with tempfile.TemporaryDirectory() as temporary_directory, \
                 mock.patch.object(
@@ -702,7 +732,11 @@ class PipelineTests(unittest.TestCase):
                     pipeline,
                     "execute_metadata_plan",
                     return_value={"completed": 0, "deferred": []},
-                ) as execute_metadata:
+                ) as execute_metadata, mock.patch.object(
+                    pipeline.generated_data_archive,
+                    "preflight_build",
+                    return_value=archive_preflight,
+                ) as preflight_build:
             result = pipeline._execute_plan_with_log(
                 generation_plan,
                 lambda: generation_plan,
@@ -711,8 +745,12 @@ class PipelineTests(unittest.TestCase):
 
         load_metadata.assert_called_once()
         execute_metadata.assert_called_once()
+        preflight_build.assert_called_once_with(
+            pipeline.ANALYSIS_DIRECTORY
+        )
         self.assertIn("generation", result)
         self.assertIn("metadata", result)
+        self.assertEqual(result["archive_preflight"], archive_preflight)
 
     def test_generation_executor_runs_one_automatic_follow_up(self):
         upstream = {

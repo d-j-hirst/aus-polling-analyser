@@ -1,0 +1,67 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2025wa,@TPP,DemosAU,0.64192790788366949,0.75314435022560566,,,
+1,leave_one_out,2025wa,@TPP,Freshwater,0.36733756297030595,0.49948926356931134,,,
+1,leave_one_out,2025wa,@TPP,Newspoll3,0.88492779475160444,0.64234531488514146,,,
+1,leave_one_out,2025wa,@TPP,Utting,14.751703037193295,0.0041249835236121116,,,
+1,leave_one_out,2025wa,ALP FP,DemosAU,0.34808439100963545,0.75314435022560566,,,
+1,leave_one_out,2025wa,ALP FP,Freshwater,0.90113713261273187,0.49948926356931134,,,
+1,leave_one_out,2025wa,ALP FP,Newspoll3,1.8361965905140818,0.64234531488514146,,,
+1,leave_one_out,2025wa,ALP FP,Utting,19.773181008543702,0.0041249835236121116,,,
+1,leave_one_out,2025wa,GRN FP,DemosAU,0.4204093999421375,0.75314435022560566,,,
+1,leave_one_out,2025wa,GRN FP,Freshwater,0.80941626179932769,0.49948926356931134,,,
+1,leave_one_out,2025wa,GRN FP,Newspoll3,1.5835745240643744,0.64234531488514146,,,
+1,leave_one_out,2025wa,GRN FP,Utting,2.1742696295686597,0.0041249835236121116,,,
+1,leave_one_out,2025wa,LIB FP,DemosAU,2.9175126753871936,0.63332548371354214,,,
+1,leave_one_out,2025wa,LIB FP,Freshwater,1.9714853699811954,0.49948926356931134,,,
+1,leave_one_out,2025wa,LIB FP,Newspoll3,2.2742779137160696,0.64234531488514146,,,
+1,leave_one_out,2025wa,LIB FP,Utting,8.8485697258753007,0.0041249835236121116,,,
+1,leave_one_out,2025wa,NAT FP,DemosAU,0.65876908273047097,0.75314435022560566,,,
+1,leave_one_out,2025wa,NAT FP,Freshwater,1.1643010169069683,0.49948926356931134,,,
+1,leave_one_out,2025wa,NAT FP,Newspoll3,1.7436277663754467,0.64234531488514146,,,
+1,leave_one_out,2025wa,NAT FP,Utting,1.0814281541811079,0.0041249835236121116,,,
+1,leave_one_out,2025wa,OTH FP,DemosAU,3.7291065162160315,0.64494012357844066,,,
+1,leave_one_out,2025wa,OTH FP,Freshwater,1.9251250958695383,0.49948926356931134,,,
+1,leave_one_out,2025wa,OTH FP,Newspoll3,1.3894329033518877,0.64234531488514146,,,
+1,leave_one_out,2025wa,OTH FP,Utting,8.0634181086959273,0.0041249835236121116,,,
+1,bias_trend,2025wa,@TPP,,,,57.433999999999997,,
+1,bias_trend,2025wa,ALP FP,,,,43.216999999999999,,
+1,bias_trend,2025wa,GRN FP,,,,10.794,,
+1,bias_trend,2025wa,LIB FP,,,,29.585000000000001,,
+1,bias_trend,2025wa,NAT FP,,,,4.915,,
+1,bias_trend,2025wa,OTH FP,,,,11.968,,
+1,bias_pollster,2025wa,@TPP,DemosAU,,,,-0.047,2
+1,bias_pollster,2025wa,@TPP,Freshwater,,,,-0.221,1
+1,bias_pollster,2025wa,@TPP,Newspoll3,,,,0.104,2
+1,bias_pollster,2025wa,@TPP,Redbridge,,,,0.14899999999999999,0
+1,bias_pollster,2025wa,@TPP,Utting,,,,-0.065000000000000002,0
+1,bias_pollster,2025wa,@TPP,Wolf&Smith,,,,0.057000000000000002,0
+1,bias_pollster,2025wa,ALP FP,DemosAU,,,,0.0089999999999999993,2
+1,bias_pollster,2025wa,ALP FP,Freshwater,,,,-0.065000000000000002,1
+1,bias_pollster,2025wa,ALP FP,Newspoll3,,,,0.12,2
+1,bias_pollster,2025wa,ALP FP,Redbridge,,,,0.14499999999999999,0
+1,bias_pollster,2025wa,ALP FP,Utting,,,,-0.053999999999999999,0
+1,bias_pollster,2025wa,ALP FP,Wolf&Smith,,,,-0.21199999999999999,0
+1,bias_pollster,2025wa,GRN FP,DemosAU,,,,0.10299999999999999,2
+1,bias_pollster,2025wa,GRN FP,Freshwater,,,,-0.071999999999999995,1
+1,bias_pollster,2025wa,GRN FP,Newspoll3,,,,-0.086999999999999994,2
+1,bias_pollster,2025wa,GRN FP,Redbridge,,,,0.016,0
+1,bias_pollster,2025wa,GRN FP,Utting,,,,-0.062,0
+1,bias_pollster,2025wa,GRN FP,Wolf&Smith,,,,0.042999999999999997,0
+1,bias_pollster,2025wa,LIB FP,DemosAU,,,,0.40500000000000003,2
+1,bias_pollster,2025wa,LIB FP,Freshwater,,,,0.123,1
+1,bias_pollster,2025wa,LIB FP,Newspoll3,,,,-0.058999999999999997,2
+1,bias_pollster,2025wa,LIB FP,Redbridge,,,,-0.14499999999999999,0
+1,bias_pollster,2025wa,LIB FP,Utting,,,,0.064000000000000001,0
+1,bias_pollster,2025wa,LIB FP,Wolf&Smith,,,,-0.36199999999999999,0
+1,bias_pollster,2025wa,NAT FP,DemosAU,,,,-0.0080000000000000002,2
+1,bias_pollster,2025wa,NAT FP,Freshwater,,,,0.23899999999999999,1
+1,bias_pollster,2025wa,NAT FP,Newspoll3,,,,-0.067000000000000004,2
+1,bias_pollster,2025wa,NAT FP,Redbridge,,,,-0.056000000000000001,0
+1,bias_pollster,2025wa,NAT FP,Utting,,,,0.034000000000000002,0
+1,bias_pollster,2025wa,NAT FP,Wolf&Smith,,,,-0.16500000000000001,0
+1,bias_pollster,2025wa,OTH FP,DemosAU,,,,-0.76600000000000001,2
+1,bias_pollster,2025wa,OTH FP,Freshwater,,,,-0.40600000000000003,1
+1,bias_pollster,2025wa,OTH FP,Newspoll3,,,,-0.12,2
+1,bias_pollster,2025wa,OTH FP,Redbridge,,,,-0.031,0
+1,bias_pollster,2025wa,OTH FP,Utting,,,,0.0080000000000000002,0
+1,bias_pollster,2025wa,OTH FP,Wolf&Smith,,,,1.3819999999999999,0

@@ -133,11 +133,11 @@ Desley Boyle,Labor,11724,58.1,4.2
 Wendy Richardson,Liberal,8465,41.9,-4.2
 Seat,Callide
 fp
-Jeff Seeney,National,17022,72.3,11.9
-Mikey Oliver,Labor,6527,27.7,5.9
+Jeff Seeney,National,17022,72.3,None
+Mikey Oliver,Labor,6527,27.7,None
 tcp
-Jeff Seeney,National,17022,72.3,11.9
-Mikey Oliver,Labor,6527,27.7,5.9
+Jeff Seeney,National,17022,72.3,None
+Mikey Oliver,Labor,6527,27.7,None
 Seat,Caloundra
 fp
 Mark McArdle,Liberal,13638,49.3,6.0
@@ -156,11 +156,11 @@ Michael Choi,Labor,15299,66.2,1.0
 Trish Symons,Liberal,7821,33.8,-1.0
 Seat,Charters Towers
 fp
-Shane Knuth,National,10136,61.05,14.28
-Bruce Scott,Labor,6468,38.95,-4.62
+Shane Knuth,National,10136,61.05,None
+Bruce Scott,Labor,6468,38.95,None
 tcp
-Shane Knuth,National,10136,61.05,14.28
-Bruce Scott,Labor,6468,38.95,-4.62
+Shane Knuth,National,10136,61.05,None
+Bruce Scott,Labor,6468,38.95,None
 Seat,Chatsworth
 fp
 Michael Caltabiano,Liberal,12909,46.1,11.1
@@ -513,11 +513,11 @@ Dianne Reilly,Labor,12941,52.9,1.0
 Ros Bates,Liberal,11506,47.1,-1.0
 Seat,Mulgrave
 fp
-Warren Pitt,Labor,14081,59.9,8.5
-Krista Dunford,National,9418,40.1,5.5
+Warren Pitt,Labor,14081,59.9,None
+Krista Dunford,National,9418,40.1,None
 tcp
-Warren Pitt,Labor,14081,59.9,8.5
-Krista Dunford,National,9418,40.1,5.5
+Warren Pitt,Labor,14081,59.9,None
+Krista Dunford,National,9418,40.1,None
 Seat,Mundingburra
 fp
 Lindy Nelson-Carr,Labor,13321,54.7,8.9
@@ -633,11 +633,11 @@ Anna Bligh,Labor,15296,68.4,-2.7
 Lynne Jennings,Liberal,7071,31.6,2.7
 Seat,Southern Downs
 fp
-Lawrence Springborg,National,17973,70.3,0.6
-Andrew Myles,Labor,7602,29.7,8.1
+Lawrence Springborg,National,17973,70.3,None
+Andrew Myles,Labor,7602,29.7,None
 tcp
-Lawrence Springborg,National,17973,70.3,0.6
-Andrew Myles,Labor,7602,29.7,8.1
+Lawrence Springborg,National,17973,70.3,None
+Andrew Myles,Labor,7602,29.7,None
 Seat,Southport
 fp
 Peter Lawlor,Labor,13063,53.3,-0.8

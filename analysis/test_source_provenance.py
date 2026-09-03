@@ -18,6 +18,7 @@ REPOSITORY_MANIFESTS = [
     ANALYSIS_DIRECTORY / "Models" / "provenance.json",
     ANALYSIS_DIRECTORY / "seats" / "provenance.json",
     ANALYSIS_DIRECTORY / "Federal-State" / "provenance.json",
+    ANALYSIS_DIRECTORY.parent / "downloads" / "provenance.json",
 ]
 
 

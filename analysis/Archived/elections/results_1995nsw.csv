@@ -506,11 +506,11 @@ Bill Rixon,National,20403,63.7,1.4
 John Maxwell,Labor,11646,36.3,-1.4
 Seat,Liverpool
 fp
-Paul Lynch,Labor,24042,69.1,11.5
-Albert Galea,Liberal,10733,30.9,7.1
+Paul Lynch,Labor,24042,69.1,None
+Albert Galea,Liberal,10733,30.9,None
 tcp
-Paul Lynch,Labor,24042,69.1,11.5
-Albert Galea,Liberal,10733,30.9,7.1
+Paul Lynch,Labor,24042,69.1,None
+Albert Galea,Liberal,10733,30.9,None
 Seat,Londonderry
 fp
 Paul Gibson,Labor,21724,60.4,-3.7
@@ -603,18 +603,18 @@ Richard Amery,Labor,22759,66.7,3.7
 Jennifer Mackenzie,Liberal,11351,33.3,-3.7
 Seat,Murray
 fp
-Jim Small,National,24495,77.6,3.2
-Peter Hargreaves,Labor,7061,22.4,6.2
+Jim Small,National,24495,77.6,None
+Peter Hargreaves,Labor,7061,22.4,None
 tcp
-Jim Small,National,24495,77.6,3.2
-Peter Hargreaves,Labor,7061,22.4,6.2
+Jim Small,National,24495,77.6,None
+Peter Hargreaves,Labor,7061,22.4,None
 Seat,Murrumbidgee
 fp
-Adrian Cruickshank,National,20222,60.2,12.5
-Tony Catanzariti,Labor,13384,39.8,10.5
+Adrian Cruickshank,National,20222,60.2,None
+Tony Catanzariti,Labor,13384,39.8,None
 tcp
-Adrian Cruickshank,National,20222,60.2,12.5
-Tony Catanzariti,Labor,13384,39.8,10.5
+Adrian Cruickshank,National,20222,60.2,None
+Tony Catanzariti,Labor,13384,39.8,None
 Seat,Murwillumbah
 fp
 Don Beck,National,14701,41.2,4.3
@@ -874,11 +874,11 @@ Michael Richardson,Liberal,27564,75.3,None
 David Brooks,Labor,9038,24.7,None
 Seat,Upper Hunter
 fp
-George Souris,National,23421,69.0,10.8
-Pat Baks,Labor,10521,31.0,-0.9
+George Souris,National,23421,69.0,None
+Pat Baks,Labor,10521,31.0,None
 tcp
-George Souris,National,23421,69.0,10.8
-Pat Baks,Labor,10521,31.0,-0.9
+George Souris,National,23421,69.0,None
+Pat Baks,Labor,10521,31.0,None
 Seat,Vaucluse
 fp
 Peter Debnam,Liberal,19576,59.2,4.1
@@ -910,11 +910,11 @@ Brad Hazzard,Liberal,20188,62.9,0.2
 Patricia Armstrong,Labor,11899,37.1,-0.2
 Seat,Wallsend
 fp
-John Mills,Labor,21454,62.5,6.5
-Christine Nesbitt,Liberal,12881,37.5,7.7
+John Mills,Labor,21454,62.5,None
+Christine Nesbitt,Liberal,12881,37.5,None
 tcp
-John Mills,Labor,21454,62.5,6.5
-Christine Nesbitt,Liberal,12881,37.5,7.7
+John Mills,Labor,21454,62.5,None
+Christine Nesbitt,Liberal,12881,37.5,None
 Seat,Waratah
 fp
 John Price,Labor,20975,65.7,0.6
@@ -945,8 +945,8 @@ Gerry Sullivan,Labor,20823,70.1,None
 Warren Steel,Liberal,8887,29.9,None
 Seat,Wyong
 fp
-Paul Crittenden,Labor,20748,58.7,5.6
-Peter Richardson,Liberal,14584,41.3,4.0
+Paul Crittenden,Labor,20748,58.7,None
+Peter Richardson,Liberal,14584,41.3,None
 tcp
-Paul Crittenden,Labor,20748,58.7,5.6
-Peter Richardson,Liberal,14584,41.3,4.0
+Paul Crittenden,Labor,20748,58.7,None
+Peter Richardson,Liberal,14584,41.3,None

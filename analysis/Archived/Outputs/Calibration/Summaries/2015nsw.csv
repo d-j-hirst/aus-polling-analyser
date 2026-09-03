@@ -1,0 +1,96 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2015nsw,@TPP,Essential,1.0769797500040921,9.9372372325983029,,,
+1,leave_one_out,2015nsw,@TPP,Galaxy,0.74732131414984271,8.8382880818978684,,,
+1,leave_one_out,2015nsw,@TPP,Ipsos,2.1156862590533891,2.3279598705367057,,,
+1,leave_one_out,2015nsw,@TPP,Lonergan,1.5155505684298447,1.7553633492974086,,,
+1,leave_one_out,2015nsw,@TPP,Morgan Phone,4.0729920064674037,1.6693048955757273,,,
+1,leave_one_out,2015nsw,@TPP,Newspoll,1.1574434650129415,9.1724547970761829,,,
+1,leave_one_out,2015nsw,@TPP,Nielsen,9.075306625023515,1.3696749032772417,,,
+1,leave_one_out,2015nsw,@TPP,ReachTEL,0.94662065339589563,2.4582605619590172,,,
+1,leave_one_out,2015nsw,@TPP,SMS Morgan,0.89070621230612668,7.0434222331661411,,,
+1,leave_one_out,2015nsw,ALP FP,Essential,1.2507945225063788,9.3152125360580182,,,
+1,leave_one_out,2015nsw,ALP FP,Galaxy,0.93626782783399387,8.4869354310277636,,,
+1,leave_one_out,2015nsw,ALP FP,Ipsos,2.6924387184880514,2.3462805625257959,,,
+1,leave_one_out,2015nsw,ALP FP,Lonergan,2.4880777634543421,1.8498345924278505,,,
+1,leave_one_out,2015nsw,ALP FP,Morgan Phone,4.2923624062814296,1.6306976088012384,,,
+1,leave_one_out,2015nsw,ALP FP,Newspoll,1.370017288628617,8.8508612041898225,,,
+1,leave_one_out,2015nsw,ALP FP,Nielsen,8.1273542143143054,1.3818205932173435,,,
+1,leave_one_out,2015nsw,ALP FP,ReachTEL,1.7962618453317487,2.0763459801465611,,,
+1,leave_one_out,2015nsw,ALP FP,SMS Morgan,0.9857288533406956,7.1901369682962164,,,
+1,leave_one_out,2015nsw,GRN FP,Essential,0.83210750083454721,9.0494627802073637,,,
+1,leave_one_out,2015nsw,GRN FP,Galaxy,0.41495473503570779,8.9174468350782021,,,
+1,leave_one_out,2015nsw,GRN FP,Ipsos,1.2866254048075532,2.4907442722844713,,,
+1,leave_one_out,2015nsw,GRN FP,Lonergan,0.76200154103112894,2,,,
+1,leave_one_out,2015nsw,GRN FP,Morgan Phone,3.0736385427260036,1.6408912098720547,,,
+1,leave_one_out,2015nsw,GRN FP,Newspoll,0.93605821629403463,9.179848596571933,,,
+1,leave_one_out,2015nsw,GRN FP,Nielsen,2.2236332895382311,1.4351227676005345,,,
+1,leave_one_out,2015nsw,GRN FP,ReachTEL,0.42325965791038289,3,,,
+1,leave_one_out,2015nsw,GRN FP,SMS Morgan,0.93412543736648301,6.897100924738556,,,
+1,leave_one_out,2015nsw,LNP FP,Essential,1.3361859188278109,9.7003488914455094,,,
+1,leave_one_out,2015nsw,LNP FP,Galaxy,0.98003907258741196,8.5296842800952248,,,
+1,leave_one_out,2015nsw,LNP FP,Ipsos,2.0318539317133424,2.3129459440163234,,,
+1,leave_one_out,2015nsw,LNP FP,Lonergan,0.64399523908874556,2,,,
+1,leave_one_out,2015nsw,LNP FP,Morgan Phone,5.7747910931061703,1.654452286993588,,,
+1,leave_one_out,2015nsw,LNP FP,Newspoll,1.6382820878479176,8.8098845394823506,,,
+1,leave_one_out,2015nsw,LNP FP,Nielsen,9.4589756710522224,1.3755010118113882,,,
+1,leave_one_out,2015nsw,LNP FP,ReachTEL,0.72589795687526126,2.7235391114176517,,,
+1,leave_one_out,2015nsw,LNP FP,SMS Morgan,1.2439490406477165,6.6627340548067755,,,
+1,leave_one_out,2015nsw,OTH FP,Essential,1.7363167514901257,8.4393746678224488,,,
+1,leave_one_out,2015nsw,OTH FP,Galaxy,0.99804177191245425,8.0036769357164861,,,
+1,leave_one_out,2015nsw,OTH FP,Ipsos,1.0441631942471505,2.6177221672578606,,,
+1,leave_one_out,2015nsw,OTH FP,Lonergan,0.99865735631461661,2,,,
+1,leave_one_out,2015nsw,OTH FP,Morgan Phone,1.9207216890337133,1.6693048955757273,,,
+1,leave_one_out,2015nsw,OTH FP,Newspoll,1.1725585632078142,9.7239665542127973,,,
+1,leave_one_out,2015nsw,OTH FP,Nielsen,1.2952559735014777,1.5440963337875071,,,
+1,leave_one_out,2015nsw,OTH FP,ReachTEL,0.55096182492754231,2.9075038911557178,,,
+1,leave_one_out,2015nsw,OTH FP,SMS Morgan,1.4577757647358345,6.5977179147135585,,,
+1,bias_trend,2015nsw,@TPP,,,,44.5,,
+1,bias_trend,2015nsw,ALP FP,,,,32.508000000000003,,
+1,bias_trend,2015nsw,GRN FP,,,,11.202999999999999,,
+1,bias_trend,2015nsw,LNP FP,,,,46.366999999999997,,
+1,bias_trend,2015nsw,OTH FP,,,,10.173,,
+1,bias_pollster,2015nsw,@TPP,Essential,,,,0.46999999999999997,3
+1,bias_pollster,2015nsw,@TPP,Galaxy,,,,0.376,7
+1,bias_pollster,2015nsw,@TPP,Ipsos,,,,-0.052999999999999999,3
+1,bias_pollster,2015nsw,@TPP,Lonergan,,,,-0.35999999999999999,2
+1,bias_pollster,2015nsw,@TPP,Morgan Phone,,,,-0.29699999999999999,0
+1,bias_pollster,2015nsw,@TPP,Newspoll,,,,0.52000000000000002,4
+1,bias_pollster,2015nsw,@TPP,Nielsen,,,,-0.069000000000000006,0
+1,bias_pollster,2015nsw,@TPP,ReachTEL,,,,0.11,3
+1,bias_pollster,2015nsw,@TPP,SMS Morgan,,,,-0.58899999999999997,8
+1,bias_pollster,2015nsw,ALP FP,Essential,,,,1.792,3
+1,bias_pollster,2015nsw,ALP FP,Galaxy,,,,0.57399999999999995,7
+1,bias_pollster,2015nsw,ALP FP,Ipsos,,,,-0.079000000000000001,3
+1,bias_pollster,2015nsw,ALP FP,Lonergan,,,,-0.34000000000000002,2
+1,bias_pollster,2015nsw,ALP FP,Morgan Phone,,,,-0.42499999999999999,0
+1,bias_pollster,2015nsw,ALP FP,Newspoll,,,,-0.062,4
+1,bias_pollster,2015nsw,ALP FP,Nielsen,,,,-0.33100000000000002,0
+1,bias_pollster,2015nsw,ALP FP,ReachTEL,,,,0.087999999999999995,3
+1,bias_pollster,2015nsw,ALP FP,SMS Morgan,,,,-0.96499999999999997,8
+1,bias_pollster,2015nsw,GRN FP,Essential,,,,-1.839,3
+1,bias_pollster,2015nsw,GRN FP,Galaxy,,,,0.021000000000000001,7
+1,bias_pollster,2015nsw,GRN FP,Ipsos,,,,0.65900000000000003,3
+1,bias_pollster,2015nsw,GRN FP,Lonergan,,,,-0.105,2
+1,bias_pollster,2015nsw,GRN FP,Morgan Phone,,,,0.16800000000000001,0
+1,bias_pollster,2015nsw,GRN FP,Newspoll,,,,0.38800000000000001,4
+1,bias_pollster,2015nsw,GRN FP,Nielsen,,,,0.17799999999999999,0
+1,bias_pollster,2015nsw,GRN FP,ReachTEL,,,,-0.113,3
+1,bias_pollster,2015nsw,GRN FP,SMS Morgan,,,,0.45700000000000002,8
+1,bias_pollster,2015nsw,LNP FP,Essential,,,,-0.021000000000000001,3
+1,bias_pollster,2015nsw,LNP FP,Galaxy,,,,-0.13600000000000001,7
+1,bias_pollster,2015nsw,LNP FP,Ipsos,,,,0.27900000000000003,3
+1,bias_pollster,2015nsw,LNP FP,Lonergan,,,,0.32400000000000001,2
+1,bias_pollster,2015nsw,LNP FP,Morgan Phone,,,,0.40200000000000002,0
+1,bias_pollster,2015nsw,LNP FP,Newspoll,,,,-1.1539999999999999,4
+1,bias_pollster,2015nsw,LNP FP,Nielsen,,,,-0.114,0
+1,bias_pollster,2015nsw,LNP FP,ReachTEL,,,,-0.189,3
+1,bias_pollster,2015nsw,LNP FP,SMS Morgan,,,,0.46999999999999997,8
+1,bias_pollster,2015nsw,OTH FP,Essential,,,,0.113,3
+1,bias_pollster,2015nsw,OTH FP,Galaxy,,,,-0.50600000000000001,7
+1,bias_pollster,2015nsw,OTH FP,Ipsos,,,,-0.85199999999999998,3
+1,bias_pollster,2015nsw,OTH FP,Lonergan,,,,0.097000000000000003,2
+1,bias_pollster,2015nsw,OTH FP,Morgan Phone,,,,-0.084000000000000005,0
+1,bias_pollster,2015nsw,OTH FP,Newspoll,,,,0.52800000000000002,4
+1,bias_pollster,2015nsw,OTH FP,Nielsen,,,,0.32300000000000001,0
+1,bias_pollster,2015nsw,OTH FP,ReachTEL,,,,0.16900000000000001,3
+1,bias_pollster,2015nsw,OTH FP,SMS Morgan,,,,0.035000000000000003,8

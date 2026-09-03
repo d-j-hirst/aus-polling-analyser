@@ -1,0 +1,11 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2009qld,@TPP,Galaxy,1.5562563912209078,5.1245618209837396,,,
+1,leave_one_out,2009qld,@TPP,Newspoll,2.0350163112126873,3.9113299152999668,,,
+1,leave_one_out,2009qld,ALP FP,Galaxy,2.2741290135336203,4.8575471109357027,,,
+1,leave_one_out,2009qld,ALP FP,Newspoll,2.573435617734146,3.6795934677960069,,,
+1,leave_one_out,2009qld,GRN FP,Galaxy,2.1166705193375726,4.302409362335041,,,
+1,leave_one_out,2009qld,GRN FP,Newspoll,2.1163010144073593,3.2701409626974671,,,
+1,leave_one_out,2009qld,LNP FP,Galaxy,1.4885717046646012,4.6582140060100485,,,
+1,leave_one_out,2009qld,LNP FP,Newspoll,1.9757536773315598,3.6660210812774561,,,
+1,leave_one_out,2009qld,OTH FP,Galaxy,1.3991931845297447,4.6183640335742489,,,
+1,leave_one_out,2009qld,OTH FP,Newspoll,1.4565937405255609,3.6930533025907288,,,

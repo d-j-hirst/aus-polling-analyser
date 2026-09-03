@@ -1,0 +1,36 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2020qld,GRN FP,,,,10.712,,
+1,bias_pollster,2020qld,GRN FP,Essential,,,,0.014999999999999999,0
+1,bias_pollster,2020qld,GRN FP,Galaxy,,,,0.014999999999999999,1
+1,bias_pollster,2020qld,GRN FP,Newspoll2,,,,0.11700000000000001,4
+1,bias_pollster,2020qld,GRN FP,SMS Morgan,,,,-0.122,1
+1,bias_trend,2020qld,ONP FP,,,,10.694000000000001,,
+1,bias_pollster,2020qld,ONP FP,Essential,,,,0.115,0
+1,bias_pollster,2020qld,ONP FP,Galaxy,,,,-0.034000000000000002,1
+1,bias_pollster,2020qld,ONP FP,Newspoll2,,,,-0.41799999999999998,4
+1,bias_pollster,2020qld,ONP FP,SMS Morgan,,,,0.30599999999999999,1
+1,bias_trend,2020qld,KAP FP,,,,2.044,,
+1,bias_pollster,2020qld,KAP FP,Essential,,,,0.01,0
+1,bias_pollster,2020qld,KAP FP,Galaxy,,,,0.068000000000000005,1
+1,bias_pollster,2020qld,KAP FP,Newspoll2,,,,-0.071999999999999995,1
+1,bias_pollster,2020qld,KAP FP,SMS Morgan,,,,-0.017999999999999999,1
+1,bias_trend,2020qld,OTH FP,,,,16.853999999999999,,
+1,bias_pollster,2020qld,OTH FP,Essential,,,,0.19900000000000001,0
+1,bias_pollster,2020qld,OTH FP,Galaxy,,,,0.016,1
+1,bias_pollster,2020qld,OTH FP,Newspoll2,,,,-0.64700000000000002,4
+1,bias_pollster,2020qld,OTH FP,SMS Morgan,,,,0.38200000000000001,1
+1,bias_trend,2020qld,LNP FP,,,,35.780999999999999,,
+1,bias_pollster,2020qld,LNP FP,Essential,,,,-0.20399999999999999,0
+1,bias_pollster,2020qld,LNP FP,Galaxy,,,,0.25800000000000001,1
+1,bias_pollster,2020qld,LNP FP,Newspoll2,,,,0.192,4
+1,bias_pollster,2020qld,LNP FP,SMS Morgan,,,,-0.20999999999999999,1
+1,bias_trend,2020qld,ALP FP,,,,36.494999999999997,,
+1,bias_pollster,2020qld,ALP FP,Essential,,,,0.035999999999999997,0
+1,bias_pollster,2020qld,ALP FP,Galaxy,,,,-0.249,1
+1,bias_pollster,2020qld,ALP FP,Newspoll2,,,,0.27100000000000002,4
+1,bias_pollster,2020qld,ALP FP,SMS Morgan,,,,-0.065000000000000002,1
+1,bias_trend,2020qld,@TPP,,,,52.317,,
+1,bias_pollster,2020qld,@TPP,Essential,,,,0.092999999999999999,0
+1,bias_pollster,2020qld,@TPP,Galaxy,,,,-0.215,1
+1,bias_pollster,2020qld,@TPP,Newspoll2,,,,0.124,4
+1,bias_pollster,2020qld,@TPP,SMS Morgan,,,,-0.02,1

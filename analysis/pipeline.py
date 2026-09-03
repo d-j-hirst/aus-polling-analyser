@@ -2271,9 +2271,31 @@ def _execute_plan_with_log(
             input_func=input_func,
             run_log=run_log,
         )
+        print(
+            "\nRequired generation and metadata maintenance complete. "
+            "Checking archive readiness...",
+            flush=True,
+        )
+        archive_preflight = generated_data_archive.preflight_build(
+            ANALYSIS_DIRECTORY
+        )
+        print(
+            "Archive preflight passed for {} current work units and {} "
+            "generated/cache files.".format(
+                archive_preflight["work_units"],
+                len(archive_preflight["managed_files"]),
+            ),
+            flush=True,
+        )
+        run_log.event(
+            "ARCHIVE PREFLIGHT PASSED",
+            work_units=archive_preflight["work_units"],
+            files=len(archive_preflight["managed_files"]),
+        )
         return {
             "generation": generation_result,
             "metadata": metadata_result,
+            "archive_preflight": archive_preflight,
         }
     print("\nMetadata maintenance completed successfully.")
 

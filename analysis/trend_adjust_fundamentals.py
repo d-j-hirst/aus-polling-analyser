@@ -218,9 +218,15 @@ def build_fundamentals_training_set(
 
 
 def fit_fundamentals_model(input_array, result_deviations):
-    """Fit contextual effects, or a regularised mean when none vary."""
+    """Fit contextual effects when five-fold validation is supportable."""
 
-    if amax(input_array) > 0 or amin(input_array) < 0:
+    # ElasticNetCV defaults to five folds. With fewer observations there is
+    # not enough evidence to select contextual effects reliably (and one
+    # observation raises outright), so retain the established regularised
+    # intercept-only estimate used when no predictors vary.
+    enough_for_cross_validation = len(result_deviations) >= 5
+    predictors_vary = amax(input_array) > 0 or amin(input_array) < 0
+    if enough_for_cross_validation and predictors_vary:
         regression = ElasticNetCV().fit(input_array, result_deviations)
         return regression.coef_, regression.intercept_
 
@@ -271,6 +277,29 @@ def predict_fundamentals(
     if party_group_code in ('OTH', 'xOTH'):
         return inputs.safe_prior_average(average_count, party_code)
     return prediction
+
+
+def predict_fundamentals_without_training(
+    inputs,
+    studied_election,
+    party,
+    party_group_code,
+    average_count,
+):
+    """Use prior baselines when no same-tier election can train a model."""
+
+    prediction = predict_fundamentals(
+        inputs,
+        studied_election,
+        party,
+        party_group_code,
+        average_count,
+        coefficients=[0] * 6,
+        intercept=0,
+    )
+    # A configured significant party should still receive the established
+    # minimum when it has no usable prior-result history.
+    return max(3, prediction)
 
 
 def print_fundamentals_validation(
@@ -341,11 +370,9 @@ def run_fundamentals_regression(
                 avg_len,
             )
             if len(input_array) == 0:
-                # No data for this party group, so can't do regression
-                # If this is the excluded election, save a dummy file
-                # based on the fact that a significant party should be getting
-                # at least 3% of the vote to be included in analysis in the
-                # first place
+                # The first election in a tier has no same-tier history from
+                # which to fit contextual effects. Use its available prior
+                # baselines rather than assigning 3% to majors and TPP too.
                 if studied_election not in inputs.past_elections:
                     if studied_election not in to_file:
                         to_file[studied_election] = {}
@@ -354,7 +381,15 @@ def run_fundamentals_regression(
                             inputs.party_groups.unnamed_others_code):
                         if party not in party_group_list:
                             continue
-                        to_file[studied_election][party] = 3
+                        to_file[studied_election][party] = (
+                            predict_fundamentals_without_training(
+                                inputs,
+                                studied_election,
+                                party,
+                                party_group_code,
+                                avg_len,
+                            )
+                        )
                 continue
             coefs, intercept = fit_fundamentals_model(
                 input_array, dependent_array

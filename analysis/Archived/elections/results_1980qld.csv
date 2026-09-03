@@ -203,18 +203,18 @@ Selwyn Muller,National,12575,59.3,-2.1
 Ray Parker,Labor,8615,40.7,2.1
 Seat,Flinders
 fp
-Bob Katter,National,4993,56.0,1.8
-Thomas Greenwood,Labor,3927,44.0,2.4
+Bob Katter,National,4993,56.0,None
+Thomas Greenwood,Labor,3927,44.0,None
 tcp
-Bob Katter,National,4993,56.0,1.8
-Thomas Greenwood,Labor,3927,44.0,2.4
+Bob Katter,National,4993,56.0,None
+Thomas Greenwood,Labor,3927,44.0,None
 Seat,Greenslopes
 fp
-Bill Hewitt,Liberal,8623,62.3,23.8
-Graeme Kinnear,Labor,5217,37.7,8.0
+Bill Hewitt,Liberal,8623,62.3,None
+Graeme Kinnear,Labor,5217,37.7,None
 tcp
-Bill Hewitt,Liberal,8623,62.3,23.8
-Graeme Kinnear,Labor,5217,37.7,8.0
+Bill Hewitt,Liberal,8623,62.3,None
+Graeme Kinnear,Labor,5217,37.7,None
 Seat,Gregory
 fp
 Bill Glasson,National,4220,59.2,2.4
@@ -270,11 +270,11 @@ Lin Powell,National,8871,58.7,-0.5
 Michael Edgar,Labor,6232,41.3,0.5
 Seat,Ithaca
 fp
-Col Miller,Liberal,8114,59.9,6.4
-Peter Venning,Labor,5440,40.1,-2.8
+Col Miller,Liberal,8114,59.9,None
+Peter Venning,Labor,5440,40.1,None
 tcp
-Col Miller,Liberal,8114,59.9,6.4
-Peter Venning,Labor,5440,40.1,-2.8
+Col Miller,Liberal,8114,59.9,None
+Peter Venning,Labor,5440,40.1,None
 Seat,Kurilpa
 fp
 Sam Doumany,Liberal,7158,50.2,4.8
@@ -336,11 +336,11 @@ Brendan Hansen,Labor,7154,50.6,0.4
 Gilbert Alison,Liberal,6994,49.4,-0.4
 Seat,Merthyr
 fp
-Don Lane,Liberal,7334,54.5,0.9
-Barbara Dawson,Labor,6116,45.5,3.1
+Don Lane,Liberal,7334,54.5,None
+Barbara Dawson,Labor,6116,45.5,None
 tcp
-Don Lane,Liberal,7334,54.5,0.9
-Barbara Dawson,Labor,6116,45.5,3.1
+Don Lane,Liberal,7334,54.5,None
+Barbara Dawson,Labor,6116,45.5,None
 Seat,Mirani
 fp
 Conrad Nicolai,Labor,4728,38.4,-0.1
@@ -377,11 +377,11 @@ Angelo Bertoni,National,6192,50.9,0.3
 Tony McGrady,Labor,5967,49.1,-0.3
 Seat,Mourilyan
 fp
-Bill Eaton,Labor,5139,51.3,3.9
-Vicky Kippin,National,4875,48.7,1.6
+Bill Eaton,Labor,5139,51.3,None
+Vicky Kippin,National,4875,48.7,None
 tcp
-Bill Eaton,Labor,5139,51.3,3.9
-Vicky Kippin,National,4875,48.7,1.6
+Bill Eaton,Labor,5139,51.3,None
+Vicky Kippin,National,4875,48.7,None
 Seat,Mulgrave
 fp
 Max Menzel,National,4739,44.6,-13.8
@@ -423,11 +423,11 @@ Vince Lester,National,6320,62.1,4.3
 William Coffey,Labor,3857,37.9,-4.3
 Seat,Pine Rivers
 fp
-Rob Akers,Liberal,10476,57.5,7.5
-June Willmot,Labor,7747,42.5,-2.5
+Rob Akers,Liberal,10476,57.5,None
+June Willmot,Labor,7747,42.5,None
 tcp
-Rob Akers,Liberal,10476,57.5,7.5
-June Willmot,Labor,7747,42.5,-2.5
+Rob Akers,Liberal,10476,57.5,None
+June Willmot,Labor,7747,42.5,None
 Seat,Port Curtis
 fp
 Bill Prest,Labor,7191,53.8,-4.8
@@ -439,11 +439,11 @@ Bill Prest,Labor,7695,57.6,-4.2
 Michael Crowley,National,5668,42.4,4.2
 Seat,Redcliffe
 fp
-Terry White,Liberal,8599,55.3,26.0
-Roderick Lugton,Labor,6941,44.7,7.6
+Terry White,Liberal,8599,55.3,None
+Roderick Lugton,Labor,6941,44.7,None
 tcp
-Terry White,Liberal,8599,55.3,26.0
-Roderick Lugton,Labor,6941,44.7,7.6
+Terry White,Liberal,8599,55.3,None
+Roderick Lugton,Labor,6941,44.7,None
 Seat,Redlands
 fp
 John Goleby,National,8836,42.4,0.5
@@ -472,11 +472,11 @@ Les Yewdale,Labor,10730,62.2,None
 Robert Simpson,National,6518,37.8,None
 Seat,Roma
 fp
-Ken Tomkins,National,4706,65.4,2.3
-David Bowden,Labor,2491,34.6,1.9
+Ken Tomkins,National,4706,65.4,None
+David Bowden,Labor,2491,34.6,None
 tcp
-Ken Tomkins,National,4706,65.4,2.3
-David Bowden,Labor,2491,34.6,1.9
+Ken Tomkins,National,4706,65.4,None
+David Bowden,Labor,2491,34.6,None
 Seat,Salisbury
 fp
 Rosemary Kyburz,Liberal,7949,46.3,-4.4
@@ -570,11 +570,11 @@ Ian Prentice,Liberal,9279,63.1,4.4
 Gailene Harrison,Labor,5424,36.9,-4.4
 Seat,Toowoomba North
 fp
-John Lockwood,Liberal,8418,55.5,8.0
-Lindsay Jones,Labor,6754,44.5,-0.9
+John Lockwood,Liberal,8418,55.5,None
+Lindsay Jones,Labor,6754,44.5,None
 tcp
-John Lockwood,Liberal,8418,55.5,8.0
-Lindsay Jones,Labor,6754,44.5,-0.9
+John Lockwood,Liberal,8418,55.5,None
+Lindsay Jones,Labor,6754,44.5,None
 Seat,Toowoomba South
 fp
 John Warner,National,7097,45.0,-4.7
@@ -611,11 +611,11 @@ Geoff Smith,Labor,7616,54.4,5.3
 Max Hooper,National,6386,45.6,-5.3
 Seat,Warrego
 fp
-Neil Turner,National,3826,52.6,1.0
-Michael Gordon,Labor,3448,47.4,1.1
+Neil Turner,National,3826,52.6,None
+Michael Gordon,Labor,3448,47.4,None
 tcp
-Neil Turner,National,3826,52.6,1.0
-Michael Gordon,Labor,3448,47.4,1.1
+Neil Turner,National,3826,52.6,None
+Michael Gordon,Labor,3448,47.4,None
 Seat,Warwick
 fp
 Des Booth,National,6199,64.4,11.5
@@ -626,18 +626,18 @@ Des Booth,National,6509,67.7,-1.2
 Stephen Fazackerley,Labor,3112,32.3,1.2
 Seat,Wavell
 fp
-Brian Austin,Liberal,7960,56.9,23.5
-Jack Geran,Labor,6020,43.1,-2.3
+Brian Austin,Liberal,7960,56.9,None
+Jack Geran,Labor,6020,43.1,None
 tcp
-Brian Austin,Liberal,7960,56.9,23.5
-Jack Geran,Labor,6020,43.1,-2.3
+Brian Austin,Liberal,7960,56.9,None
+Jack Geran,Labor,6020,43.1,None
 Seat,Whitsunday
 fp
-Geoff Muntz,National,7238,53.5,0.8
-Stanley Yardley,Labor,6284,46.5,5.0
+Geoff Muntz,National,7238,53.5,None
+Stanley Yardley,Labor,6284,46.5,None
 tcp
-Geoff Muntz,National,7238,53.5,0.8
-Stanley Yardley,Labor,6284,46.5,5.0
+Geoff Muntz,National,7238,53.5,None
+Stanley Yardley,Labor,6284,46.5,None
 Seat,Windsor
 fp
 Bob Moore,Liberal,6685,47.5,-7.0
@@ -675,8 +675,8 @@ Eric Shaw,Labor,8833,57.3,3.2
 Merven Hoppner,National,6572,42.7,-3.2
 Seat,Yeronga
 fp
-Norm Lee,Liberal,8283,57.0,2.3
-Kitchener Farrell,Labor,6237,43.0,2.5
+Norm Lee,Liberal,8283,57.0,None
+Kitchener Farrell,Labor,6237,43.0,None
 tcp
-Norm Lee,Liberal,8283,57.0,2.3
-Kitchener Farrell,Labor,6237,43.0,2.5
+Norm Lee,Liberal,8283,57.0,None
+Kitchener Farrell,Labor,6237,43.0,None

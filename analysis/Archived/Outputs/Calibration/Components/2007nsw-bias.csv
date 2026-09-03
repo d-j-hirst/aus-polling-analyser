@@ -1,0 +1,31 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2007nsw,GRN FP,,,,9.3510000000000009,,
+1,bias_pollster,2007nsw,GRN FP,F2F Morgan,,,,-0.872,4
+1,bias_pollster,2007nsw,GRN FP,Galaxy,,,,0.14099999999999999,1
+1,bias_pollster,2007nsw,GRN FP,Newspoll,,,,-0.61799999999999999,3
+1,bias_pollster,2007nsw,GRN FP,Nielsen,,,,0.82199999999999995,2
+1,bias_pollster,2007nsw,GRN FP,Taverner,,,,0.432,1
+1,bias_trend,2007nsw,OTH FP,,,,11.757,,
+1,bias_pollster,2007nsw,OTH FP,F2F Morgan,,,,-2.0880000000000001,4
+1,bias_pollster,2007nsw,OTH FP,Galaxy,,,,0.027,2
+1,bias_pollster,2007nsw,OTH FP,Newspoll,,,,2.25,5
+1,bias_pollster,2007nsw,OTH FP,Nielsen,,,,-0.53200000000000003,3
+1,bias_pollster,2007nsw,OTH FP,Taverner,,,,0.33400000000000002,1
+1,bias_trend,2007nsw,LNP FP,,,,36.488,,
+1,bias_pollster,2007nsw,LNP FP,F2F Morgan,,,,-1.3,4
+1,bias_pollster,2007nsw,LNP FP,Galaxy,,,,1.55,2
+1,bias_pollster,2007nsw,LNP FP,Newspoll,,,,-1.0840000000000001,5
+1,bias_pollster,2007nsw,LNP FP,Nielsen,,,,0.33300000000000002,3
+1,bias_pollster,2007nsw,LNP FP,Taverner,,,,0.39000000000000001,1
+1,bias_trend,2007nsw,ALP FP,,,,41.543999999999997,,
+1,bias_pollster,2007nsw,ALP FP,F2F Morgan,,,,5.4189999999999996,4
+1,bias_pollster,2007nsw,ALP FP,Galaxy,,,,-2.2829999999999999,2
+1,bias_pollster,2007nsw,ALP FP,Newspoll,,,,-0.097000000000000003,5
+1,bias_pollster,2007nsw,ALP FP,Nielsen,,,,-0.61499999999999999,3
+1,bias_pollster,2007nsw,ALP FP,Taverner,,,,-2.3530000000000002,1
+1,bias_trend,2007nsw,@TPP,,,,53.847999999999999,,
+1,bias_pollster,2007nsw,@TPP,F2F Morgan,,,,3.278,4
+1,bias_pollster,2007nsw,@TPP,Galaxy,,,,-1.9690000000000001,2
+1,bias_pollster,2007nsw,@TPP,Newspoll,,,,0.22600000000000001,5
+1,bias_pollster,2007nsw,@TPP,Nielsen,,,,-0.36199999999999999,3
+1,bias_pollster,2007nsw,@TPP,Taverner,,,,-1.0660000000000001,1

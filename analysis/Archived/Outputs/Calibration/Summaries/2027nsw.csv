@@ -1,0 +1,59 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2027nsw,@TPP,DemosAU,3.6116574329200444,2.4148071257571826,,,
+1,leave_one_out,2027nsw,@TPP,Redbridge,2.6266236141701089,1.6332616389025394,,,
+1,leave_one_out,2027nsw,@TPP,ResolvePM,4.5497901402124823,3.0998653890995045,,,
+1,leave_one_out,2027nsw,ALP FP,DemosAU,2.2791309463780558,2.3511730614178954,,,
+1,leave_one_out,2027nsw,ALP FP,Redbridge,2.1086974623895927,1.9003738011185987,,,
+1,leave_one_out,2027nsw,ALP FP,ResolvePM,3.1226023732649311,4.2933794497821527,,,
+1,leave_one_out,2027nsw,GRN FP,DemosAU,1.2366645297590673,2.4282657688086173,,,
+1,leave_one_out,2027nsw,GRN FP,Redbridge,1.6317860429052959,1.7029582537244081,,,
+1,leave_one_out,2027nsw,GRN FP,ResolvePM,1.0887269106218724,4.5874588124533515,,,
+1,leave_one_out,2027nsw,LNP FP,DemosAU,2.5024139333738913,2.5916642948800717,,,
+1,leave_one_out,2027nsw,LNP FP,Redbridge,0.466681373951009,1.9003738011185987,,,
+1,leave_one_out,2027nsw,LNP FP,ResolvePM,1.9649303889224761,4.1316514981923493,,,
+1,leave_one_out,2027nsw,ONP FP,DemosAU,3.606135028303104,1.3108777972968937,,,
+1,leave_one_out,2027nsw,ONP FP,ResolvePM,1.961917678508087,1.235337103922578,,,
+1,leave_one_out,2027nsw,OTH FP,DemosAU,4.231675546470826,2.4296292025356698,,,
+1,leave_one_out,2027nsw,OTH FP,Redbridge,1.507033905312219,1.9003738011185987,,,
+1,leave_one_out,2027nsw,OTH FP,ResolvePM,2.8999648598405212,4.4332603230963903,,,
+1,bias_trend,2027nsw,@TPP,,,,54.43,,
+1,bias_trend,2027nsw,ALP FP,,,,30.920999999999999,,
+1,bias_trend,2027nsw,GRN FP,,,,12.127000000000001,,
+1,bias_trend,2027nsw,LNP FP,,,,24.466000000000001,,
+1,bias_trend,2027nsw,ONP FP,,,,24.335999999999999,,
+1,bias_trend,2027nsw,OTH FP,,,,33.795999999999999,,
+1,bias_pollster,2027nsw,@TPP,DemosAU,,,,1.5289999999999999,3
+1,bias_pollster,2027nsw,@TPP,Redbridge,,,,-0.16600000000000001,0
+1,bias_pollster,2027nsw,@TPP,ResolvePM,,,,-0.501,3
+1,bias_pollster,2027nsw,@TPP,SMS Morgan,,,,-0.32000000000000001,0
+1,bias_pollster,2027nsw,@TPP,Spectre,,,,-0.035999999999999997,0
+1,bias_pollster,2027nsw,@TPP,Wolf&Smith,,,,-0.19600000000000001,0
+1,bias_pollster,2027nsw,ALP FP,DemosAU,,,,0.82399999999999995,3
+1,bias_pollster,2027nsw,ALP FP,Redbridge,,,,0.65100000000000002,0
+1,bias_pollster,2027nsw,ALP FP,ResolvePM,,,,-0.17299999999999999,3
+1,bias_pollster,2027nsw,ALP FP,SMS Morgan,,,,-1.6919999999999999,0
+1,bias_pollster,2027nsw,ALP FP,Spectre,,,,0.050000000000000003,0
+1,bias_pollster,2027nsw,ALP FP,Wolf&Smith,,,,0.16600000000000001,0
+1,bias_pollster,2027nsw,GRN FP,DemosAU,,,,0.78500000000000003,3
+1,bias_pollster,2027nsw,GRN FP,Redbridge,,,,-0.17699999999999999,0
+1,bias_pollster,2027nsw,GRN FP,ResolvePM,,,,-0.78900000000000003,3
+1,bias_pollster,2027nsw,GRN FP,SMS Morgan,,,,0.106,0
+1,bias_pollster,2027nsw,GRN FP,Spectre,,,,0.028000000000000001,0
+1,bias_pollster,2027nsw,GRN FP,Wolf&Smith,,,,0.017000000000000001,0
+1,bias_pollster,2027nsw,LNP FP,DemosAU,,,,-0.39400000000000002,3
+1,bias_pollster,2027nsw,LNP FP,Redbridge,,,,0.79500000000000004,0
+1,bias_pollster,2027nsw,LNP FP,ResolvePM,,,,0.54600000000000004,3
+1,bias_pollster,2027nsw,LNP FP,SMS Morgan,,,,-0.95899999999999996,0
+1,bias_pollster,2027nsw,LNP FP,Spectre,,,,-0.098000000000000004,0
+1,bias_pollster,2027nsw,LNP FP,Wolf&Smith,,,,0.087999999999999995,0
+1,bias_pollster,2027nsw,ONP FP,DemosAU,,,,-0.17599999999999999,3
+1,bias_pollster,2027nsw,ONP FP,Redbridge,,,,-1.4099999999999999,0
+1,bias_pollster,2027nsw,ONP FP,ResolvePM,,,,-0.48199999999999998,3
+1,bias_pollster,2027nsw,ONP FP,SMS Morgan,,,,2.4220000000000002,0
+1,bias_pollster,2027nsw,ONP FP,Spectre,,,,-0.027,0
+1,bias_pollster,2027nsw,OTH FP,DemosAU,,,,-2.2490000000000001,3
+1,bias_pollster,2027nsw,OTH FP,Redbridge,,,,-1.548,0
+1,bias_pollster,2027nsw,OTH FP,ResolvePM,,,,-0.070999999999999994,3
+1,bias_pollster,2027nsw,OTH FP,SMS Morgan,,,,4.8449999999999998,0
+1,bias_pollster,2027nsw,OTH FP,Spectre,,,,-0.158,0
+1,bias_pollster,2027nsw,OTH FP,Wolf&Smith,,,,-0.34799999999999998,0

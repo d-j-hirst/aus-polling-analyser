@@ -1,0 +1,218 @@
+Firm,Day,GRN FP,GRN FP adj
+F2F Morgan,5,3.0,2.429
+F2F Morgan,18,3.5,2.929
+F2F Morgan,33,3.5,2.929
+F2F Morgan,47,3.5,2.929
+Nielsen,50,3.0,2.573
+F2F Morgan,61,3.5,2.929
+Nielsen,78,3.0,2.573
+Morgan Phone,78,2.5,2.712
+F2F Morgan,79,2.5,1.929
+Nielsen,92,3.0,2.573
+Morgan Phone,99,1.5,1.712
+F2F Morgan,100,3.5,2.929
+Nielsen,106,4.0,3.573
+Morgan Phone,108,3.0,3.212
+F2F Morgan,110,3.5,2.929
+Nielsen,120,4.0,3.573
+Morgan Phone,121,2.5,2.712
+F2F Morgan,124,3.0,2.429
+Morgan Phone,135,3.5,3.712
+F2F Morgan,138,4.0,3.429
+Nielsen,148,3.0,2.573
+Morgan Phone,149,3.5,3.712
+F2F Morgan,152,3.5,2.929
+Nielsen,162,3.0,2.573
+Morgan Phone,164,3.5,3.712
+F2F Morgan,166,4.0,3.429
+Morgan Phone,177,3.0,3.212
+F2F Morgan,180,4.0,3.429
+Morgan Phone,191,2.5,2.712
+F2F Morgan,191,3.5,2.929
+Nielsen,204,3.0,2.573
+Morgan Phone,205,3.5,3.712
+F2F Morgan,208,3.5,2.929
+Morgan Phone,223,2.5,2.712
+F2F Morgan,226,3.5,2.929
+Nielsen,232,4.0,3.573
+Morgan Phone,233,3.0,3.212
+F2F Morgan,236,4.0,3.429
+Morgan Phone,247,2.5,2.712
+F2F Morgan,250,3.5,2.929
+Nielsen,260,3.0,2.573
+Morgan Phone,261,2.5,2.712
+F2F Morgan,264,4.0,3.429
+Morgan Phone,275,2.0,2.212
+F2F Morgan,278,4.0,3.429
+Morgan Phone,303,2.0,2.212
+F2F Morgan,306,4.0,3.429
+Nielsen,309,3.0,2.573
+Morgan Phone,317,3.0,3.212
+F2F Morgan,320,3.5,2.929
+Morgan Phone,331,4.0,4.212
+F2F Morgan,334,4.0,3.429
+Newspoll,337,3.0,3.769
+Nielsen,337,4.0,3.573
+Morgan Phone,345,2.5,2.712
+F2F Morgan,348,3.0,2.429
+Newspoll,351,2.0,2.769
+Morgan Phone,359,2.0,2.212
+F2F Morgan,362,3.5,2.929
+Newspoll,365,3.0,3.769
+Morgan Phone,370,1.5,1.712
+F2F Morgan,373,3.5,2.929
+Morgan Phone,376,4.0,4.212
+F2F Morgan,380,3.5,2.929
+Newspoll,386,2.0,2.769
+Morgan Phone,387,3.0,3.212
+F2F Morgan,390,3.0,2.429
+Nielsen,393,3.0,2.573
+Newspoll,400,2.0,2.769
+Morgan Phone,401,3.0,3.212
+F2F Morgan,404,3.5,2.929
+Nielsen,407,3.0,2.573
+Newspoll,414,2.0,2.769
+Nielsen,414,4.0,3.573
+Morgan Phone,415,2.5,2.712
+F2F Morgan,415,3.0,2.429
+Newspoll,421,2.0,2.769
+Morgan Phone,424,2.5,2.712
+F2F Morgan,425,3.5,2.929
+Newspoll,428,2.0,2.769
+Morgan Phone,433,2.5,2.712
+Nielsen,435,4.0,3.573
+F2F Morgan,436,3.0,2.429
+Newspoll,442,1.0,1.769
+Morgan Phone,443,3.0,3.212
+F2F Morgan,446,3.5,2.929
+Newspoll,456,2.0,2.769
+Morgan Phone,457,2.5,2.712
+F2F Morgan,460,3.0,2.429
+Newspoll,470,2.0,2.769
+Morgan Phone,471,3.0,3.212
+F2F Morgan,474,3.5,2.929
+Newspoll,484,2.0,2.769
+Morgan Phone,485,3.5,3.712
+F2F Morgan,488,3.0,2.429
+Newspoll,498,3.0,3.769
+Morgan Phone,499,3.5,3.712
+F2F Morgan,502,4.0,3.429
+Morgan Phone,510,1.5,1.712
+Newspoll,512,2.0,2.769
+F2F Morgan,513,4.0,3.429
+Morgan Phone,518,3.0,3.212
+Nielsen,519,3.0,2.573
+F2F Morgan,520,2.5,1.929
+Newspoll,526,2.0,2.769
+Morgan Phone,527,3.0,3.212
+F2F Morgan,530,3.5,2.929
+Newspoll,540,3.0,3.769
+Morgan Phone,541,2.0,2.212
+F2F Morgan,544,3.5,2.929
+Morgan Phone,552,3.5,3.712
+Newspoll,554,2.0,2.769
+F2F Morgan,555,4.5,3.929
+Morgan Phone,559,2.0,2.212
+Newspoll,561,1.0,1.769
+F2F Morgan,562,3.5,2.929
+Morgan Phone,569,2.0,2.212
+F2F Morgan,572,3.5,2.929
+Newspoll,575,2.0,2.769
+Nielsen,575,3.0,2.573
+Morgan Phone,580,1.5,1.712
+Newspoll,582,1.0,1.769
+Nielsen,582,3.0,2.573
+F2F Morgan,583,3.0,2.429
+Newspoll,589,1.0,1.769
+Morgan Phone,590,2.0,2.212
+F2F Morgan,593,3.0,2.429
+Newspoll,603,2.0,2.769
+Morgan Phone,604,2.5,2.712
+F2F Morgan,607,3.5,2.929
+Newspoll,617,2.0,2.769
+Nielsen,617,4.0,3.573
+Morgan Phone,618,2.5,2.712
+F2F Morgan,621,3.5,2.929
+Newspoll,631,2.0,2.769
+Morgan Phone,632,2.5,2.712
+F2F Morgan,635,3.0,2.429
+Newspoll,638,3.0,3.769
+Morgan Phone,667,3.0,3.212
+F2F Morgan,670,3.0,2.429
+Newspoll,673,1.0,1.769
+Morgan Phone,681,2.5,2.712
+F2F Morgan,684,3.5,2.929
+Newspoll,322,1.0,1.769
+Nielsen,687,3.0,2.573
+Morgan Phone,695,2.0,2.205
+F2F Morgan,698,3.0,2.436
+Newspoll,701,4.0,4.75
+Morgan Phone,709,2.0,2.18
+F2F Morgan,712,3.0,2.452
+Newspoll,715,2.0,2.723
+Nielsen,716,3.0,2.67
+Morgan Phone,723,2.0,2.155
+F2F Morgan,727,3.5,2.97
+Newspoll,729,2.0,2.696
+Morgan Phone,737,3.0,3.129
+F2F Morgan,740,3.0,2.484
+Newspoll,743,2.0,2.669
+Nielsen,743,3.0,2.784
+Morgan Phone,751,2.5,2.604
+F2F Morgan,754,4.0,3.501
+Morgan Phone,762,3.5,3.586
+Newspoll,764,2.0,2.63
+Nielsen,764,2.0,1.865
+F2F Morgan,765,3.5,3.014
+Morgan Phone,769,3.5,3.572
+F2F Morgan,772,3.0,2.521
+Morgan Phone,776,3.0,3.061
+Newspoll,778,2.0,2.603
+F2F Morgan,779,4.0,3.531
+Morgan Phone,786,2.5,2.543
+F2F Morgan,789,3.5,3.042
+Newspoll,792,2.0,2.577
+Nielsen,799,3.0,3.01
+Morgan Phone,800,3.0,3.018
+F2F Morgan,803,3.5,3.058
+Newspoll,806,1.0,1.55
+Morgan Phone,814,2.5,2.497
+F2F Morgan,817,4.0,3.568
+Newspoll,820,2.0,2.538
+Morgan Phone,825,2.5,2.497
+Nielsen,827,3.0,3.059
+F2F Morgan,828,3.5,3.068
+Newspoll,834,1.0,1.538
+Morgan Phone,835,2.0,1.997
+F2F Morgan,845,2.5,2.068
+Newspoll,848,2.0,2.538
+Nielsen,855,4.0,4.059
+F2F Morgan,859,2.5,2.068
+Newspoll,862,2.0,2.538
+F2F Morgan,873,2.0,1.568
+Newspoll,876,2.0,2.538
+Newspoll,883,1.0,1.538
+Nielsen,883,2.0,2.059
+F2F Morgan,884,2.0,1.568
+F2F Morgan,891,2.5,2.068
+Newspoll,897,2.0,2.538
+F2F Morgan,898,3.0,2.568
+Nielsen,900,1.0,1.059
+Newspoll,904,2.0,2.538
+F2F Morgan,905,3.0,2.568
+Nielsen,908,2.0,2.059
+Newspoll,911,2.0,2.538
+F2F Morgan,912,1.5,1.068
+Nielsen,915,2.0,2.059
+Newspoll,918,2.0,2.538
+F2F Morgan,919,2.5,2.068
+Nielsen,922,2.0,2.059
+Morgan Phone,923,3.0,2.997
+Newspoll,925,2.0,2.538
+F2F Morgan,926,3.0,2.568
+Quadrant,928,2.0,2.068
+Nielsen,928,2.0,2.059
+Newspoll,930,2.0,2.538
+Nielsen,930,2.0,2.059
+ARS,930,3.0,2.922
+Morgan Phone,932,3.0,2.997

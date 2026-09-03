@@ -46,6 +46,12 @@ class RegionPolls:
 
 # Core federal regional-swing calculation
 
+def is_before_target(election_code, target_year):
+    """Return whether an election may train the requested target."""
+
+    return election_code.year() < int(target_year)
+
+
 def regress_and_write_to_file(f, inputs, outputs, region):
     inputs_array = numpy.transpose(numpy.array([inputs]))
     results_array = numpy.array(outputs)
@@ -60,8 +66,10 @@ def regress_and_write_to_file(f, inputs, outputs, region):
     return reg
 
 
-def analyse_region_swings():
-    target_year = 2028
+def analyse_region_swings(target_year):
+    """Generate regional statistics using evidence before ``target_year``."""
+
+    target_year = int(target_year)
     election_results = {}
     state_results = {}
     filename = './Data/tpp-fed-regions.csv'
@@ -83,6 +91,8 @@ def analyse_region_swings():
         linelists = [b.strip().split(',') for b in f.readlines()]
         for a in linelists:
             code = ElectionCode(a[0], a[1])
+            if not is_before_target(code, target_year):
+                continue
             region = a[2]
             region_polls = RegionPolls()
             region_polls.prev_tpp = float(a[3])
@@ -124,7 +134,7 @@ def analyse_region_swings():
     state_swings = {}
     weights = {}
     for election, result in state_results.items():
-        if election[0].year() >= target_year:
+        if not is_before_target(election[0], target_year):
             continue
         if target_year - election[0].year() > 25:
             continue

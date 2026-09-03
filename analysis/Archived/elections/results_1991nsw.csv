@@ -49,11 +49,11 @@ Don Page,National,19580,63.3,-3.9
 Maureen Lane,Labor,11372,36.7,3.9
 Seat,Bankstown
 fp
-Doug Shedden,Labor,16368,60.1,11.8
-Paul Barrett,Liberal,10889,39.9,1.8
+Doug Shedden,Labor,16368,60.1,None
+Paul Barrett,Liberal,10889,39.9,None
 tcp
-Doug Shedden,Labor,16368,60.1,11.8
-Paul Barrett,Liberal,10889,39.9,1.8
+Doug Shedden,Labor,16368,60.1,None
+Paul Barrett,Liberal,10889,39.9,None
 Seat,Barwon
 fp
 Wal Murray,National,16682,50.9,-19.6
@@ -143,11 +143,11 @@ Ian McManus,Labor,19344,63.2,6.9
 Cheryl Hill,Liberal,11263,36.8,-6.9
 Seat,Burrinjuck
 fp
-Alby Schultz,Liberal,17848,58.8,33.5
-George Martin,Labor,12489,41.2,0.8
+Alby Schultz,Liberal,17848,58.8,None
+George Martin,Labor,12489,41.2,None
 tcp
-Alby Schultz,Liberal,17848,58.8,33.5
-George Martin,Labor,12489,41.2,0.8
+Alby Schultz,Liberal,17848,58.8,None
+George Martin,Labor,12489,41.2,None
 Seat,Cabramatta
 fp
 John Newman,Labor,14431,51.7,0.1
@@ -489,11 +489,11 @@ Peter Anderson,Labor,17981,66.5,3.2
 Gloria Arora,Liberal,9060,33.5,-3.2
 Seat,Londonderry
 fp
-Paul Gibson,Labor,17136,64.0,14.0
-Cheryle Symonds,Liberal,9632,36.0,-1.9
+Paul Gibson,Labor,17136,64.0,None
+Cheryle Symonds,Liberal,9632,36.0,None
 tcp
-Paul Gibson,Labor,17136,64.0,14.0
-Cheryle Symonds,Liberal,9632,36.0,-1.9
+Paul Gibson,Labor,17136,64.0,None
+Cheryle Symonds,Liberal,9632,36.0,None
 Seat,Maitland
 fp
 Peter Blackmore,Liberal,12046,36.7,10.3
@@ -872,11 +872,11 @@ Michael Yabsley,Liberal,17862,63.0,None
 Rose Watson,Independent,10475,37.0,None
 Seat,Wagga Wagga
 fp
-Joe Schipp,Liberal,19031,65.8,-1.7
-Geoff Burch,Labor,9886,34.2,4.9
+Joe Schipp,Liberal,19031,65.8,None
+Geoff Burch,Labor,9886,34.2,None
 tcp
-Joe Schipp,Liberal,19031,65.8,-1.7
-Geoff Burch,Labor,9886,34.2,4.9
+Joe Schipp,Liberal,19031,65.8,None
+Geoff Burch,Labor,9886,34.2,None
 Seat,Wakehurst
 fp
 Brad Hazzard,Liberal,17161,55.3,2.4

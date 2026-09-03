@@ -1,11 +1,11 @@
 1981 NSW Election
 Seat,Albury
 fp
-Harold Mair,Labor,15850,55.3,7.1
-Brian Moriarty,Liberal,12833,44.7,5.5
+Harold Mair,Labor,15850,55.3,None
+Brian Moriarty,Liberal,12833,44.7,None
 tcp
-Harold Mair,Labor,15850,55.3,7.1
-Brian Moriarty,Liberal,12833,44.7,5.5
+Harold Mair,Labor,15850,55.3,None
+Brian Moriarty,Liberal,12833,44.7,None
 Seat,Ashfield
 fp
 Paul Whelan,Labor,17449,65.5,-2.7
@@ -16,11 +16,11 @@ Paul Whelan,Labor,17559,68.2,0.1
 George Dryden,Liberal,8178,31.8,-0.1
 Seat,Auburn
 fp
-Peter Cox,Labor,18537,70.3,-3.2
-David Lynam,Liberal,7840,29.7,5.4
+Peter Cox,Labor,18537,70.3,None
+David Lynam,Liberal,7840,29.7,None
 tcp
-Peter Cox,Labor,18537,70.3,-3.2
-David Lynam,Liberal,7840,29.7,5.4
+Peter Cox,Labor,18537,70.3,None
+David Lynam,Liberal,7840,29.7,None
 Seat,Balmain
 fp
 Roger Degen,Labor,14444,59.2,-15.1
@@ -49,11 +49,11 @@ Wal Murray,National,19571,63.2,4.9
 Richard Emerson,Labor,11389,36.8,-4.9
 Seat,Bass Hill
 fp
-Neville Wran,Labor,22567,75.7,-2.8
-Paul Jones,Liberal,7263,24.3,5.3
+Neville Wran,Labor,22567,75.7,None
+Paul Jones,Liberal,7263,24.3,None
 tcp
-Neville Wran,Labor,22567,75.7,-2.8
-Paul Jones,Liberal,7263,24.3,5.3
+Neville Wran,Labor,22567,75.7,None
+Paul Jones,Liberal,7263,24.3,None
 Seat,Bathurst
 fp
 Mick Clough,Labor,15865,50.1,-7.6
@@ -63,11 +63,11 @@ Mick Clough,Labor,15865,50.1,-7.6
 Clive Osborne,National,15834,49.9,7.6
 Seat,Blacktown
 fp
-John Aquilina,Labor,20777,73.1,0.0
-David Bannerman,Liberal,7644,26.9,8.3
+John Aquilina,Labor,20777,73.1,None
+David Bannerman,Liberal,7644,26.9,None
 tcp
-John Aquilina,Labor,20777,73.1,0.0
-David Bannerman,Liberal,7644,26.9,8.3
+John Aquilina,Labor,20777,73.1,None
+David Bannerman,Liberal,7644,26.9,None
 Seat,Bligh
 fp
 Fred Miller,Labor,11807,47.6,None
@@ -264,11 +264,11 @@ Pat Hills,Labor,20063,84.7,3.3
 John Davison,Liberal,3620,15.3,-3.3
 Seat,Fairfield
 fp
-Janice Crosio,Labor,21944,80.2,4.8
-Robert Goninon,Liberal,5432,19.8,1.9
+Janice Crosio,Labor,21944,80.2,None
+Robert Goninon,Liberal,5432,19.8,None
 tcp
-Janice Crosio,Labor,21944,80.2,4.8
-Robert Goninon,Liberal,5432,19.8,1.9
+Janice Crosio,Labor,21944,80.2,None
+Robert Goninon,Liberal,5432,19.8,None
 Seat,Georges River
 fp
 Frank Walker,Labor,17368,60.9,-4.3
@@ -322,11 +322,11 @@ Ron Brewer,National,14999,51.8,None
 Robert Stephens,Labor,13926,48.1,None
 Seat,Granville
 fp
-Pat Flaherty,Labor,19188,72.0,0.6
-Florence Maio,Liberal,7467,28.0,9.3
+Pat Flaherty,Labor,19188,72.0,None
+Florence Maio,Liberal,7467,28.0,None
 tcp
-Pat Flaherty,Labor,19188,72.0,0.6
-Florence Maio,Liberal,7467,28.0,9.3
+Pat Flaherty,Labor,19188,72.0,None
+Florence Maio,Liberal,7467,28.0,None
 Seat,Hawkesbury
 fp
 Kevin Rozzoli,Liberal,17755,58.5,None
@@ -424,11 +424,11 @@ Merv Hunter,Labor,22134,71.7,-1.8
 Judith Ball,Liberal,8747,28.3,1.8
 Seat,Lakemba
 fp
-Vince Durick,Labor,20657,78.6,3.7
-Vivian Salama,Liberal,5635,21.4,0.0
+Vince Durick,Labor,20657,78.6,None
+Vivian Salama,Liberal,5635,21.4,None
 tcp
-Vince Durick,Labor,20657,78.6,3.7
-Vivian Salama,Liberal,5635,21.4,0.0
+Vince Durick,Labor,20657,78.6,None
+Vivian Salama,Liberal,5635,21.4,None
 Seat,Lane Cove
 fp
 John Dowd,Liberal,15511,58.1,5.9
@@ -440,11 +440,11 @@ John Dowd,Liberal,16511,64.1,6.6
 Miron Shapira,Labor,9264,35.9,-6.6
 Seat,Lismore
 fp
-Bruce Duncan,National,20848,68.9,8.3
-Alan Veacock,Labor,9419,31.1,-2.0
+Bruce Duncan,National,20848,68.9,None
+Alan Veacock,Labor,9419,31.1,None
 tcp
-Bruce Duncan,National,20848,68.9,8.3
-Alan Veacock,Labor,9419,31.1,-2.0
+Bruce Duncan,National,20848,68.9,None
+Alan Veacock,Labor,9419,31.1,None
 Seat,Liverpool
 fp
 George Paciullo,Labor,19733,76.5,-1.3
@@ -473,11 +473,11 @@ Alan Stewart,Labor,14600,51.2,-2.6
 Nelson Meers,Liberal,13893,48.8,2.6
 Seat,Maroubra
 fp
-Bill Haigh,Labor,19619,68.8,-1.5
-Mervyn Colbron,Liberal,8910,31.2,6.0
+Bill Haigh,Labor,19619,68.8,None
+Mervyn Colbron,Liberal,8910,31.2,None
 tcp
-Bill Haigh,Labor,19619,68.8,-1.5
-Mervyn Colbron,Liberal,8910,31.2,6.0
+Bill Haigh,Labor,19619,68.8,None
+Mervyn Colbron,Liberal,8910,31.2,None
 Seat,Marrickville
 fp
 Tom Cahill,Labor,17120,71.3,-2.9
@@ -489,11 +489,11 @@ Tom Cahill,Labor,17820,78.0,-1.8
 John Kekis,Liberal,5036,22.0,1.8
 Seat,Merrylands
 fp
-Jack Ferguson,Labor,20732,75.3,-1.1
-Alan Byers,Liberal,6794,24.7,5.4
+Jack Ferguson,Labor,20732,75.3,None
+Alan Byers,Liberal,6794,24.7,None
 tcp
-Jack Ferguson,Labor,20732,75.3,-1.1
-Alan Byers,Liberal,6794,24.7,5.4
+Jack Ferguson,Labor,20732,75.3,None
+Alan Byers,Liberal,6794,24.7,None
 Seat,Miranda
 fp
 Bill Robb,Labor,15241,51.8,-1.7
@@ -606,11 +606,11 @@ Peter Anderson,Labor,22850,70.8,-1.2
 Ross Shuttleworth,Liberal,9413,29.2,1.2
 Seat,Pittwater
 fp
-Max Smith,Liberal,16910,60.9,14.9
-Patrick Sewell,Labor,10872,39.1,-1.5
+Max Smith,Liberal,16910,60.9,None
+Patrick Sewell,Labor,10872,39.1,None
 tcp
-Max Smith,Liberal,16910,60.9,14.9
-Patrick Sewell,Labor,10872,39.1,-1.5
+Max Smith,Liberal,16910,60.9,None
+Patrick Sewell,Labor,10872,39.1,None
 Seat,Riverstone
 fp
 Tony Johnson,Labor,18139,71.1,None
@@ -758,8 +758,8 @@ Eric Ramsay,Labor,14034,50.1,None
 Frank Arkell,Independent,13983,49.9,None
 Seat,Woronora
 fp
-Maurie Keane,Labor,18646,62.1,-4.5
-Chris Downy,Liberal,11405,37.9,13.0
+Maurie Keane,Labor,18646,62.1,None
+Chris Downy,Liberal,11405,37.9,None
 tcp
-Maurie Keane,Labor,18646,62.1,-4.5
-Chris Downy,Liberal,11405,37.9,13.0
+Maurie Keane,Labor,18646,62.1,None
+Chris Downy,Liberal,11405,37.9,None

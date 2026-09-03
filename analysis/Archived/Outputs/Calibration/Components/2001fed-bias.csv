@@ -1,0 +1,29 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2001fed,GRN FP,,,,4.4089999999999998,,
+1,bias_pollster,2001fed,GRN FP,F2F Morgan,,,,0.60999999999999999,18
+1,bias_pollster,2001fed,GRN FP,Newspoll,,,,-0.47799999999999998,18
+1,bias_pollster,2001fed,GRN FP,Nielsen,,,,-0.122,8
+1,bias_trend,2001fed,DEM FP,,,,6.0149999999999997,,
+1,bias_pollster,2001fed,DEM FP,F2F Morgan,,,,0.27300000000000002,18
+1,bias_pollster,2001fed,DEM FP,Newspoll,,,,-0.42299999999999999,18
+1,bias_pollster,2001fed,DEM FP,Nielsen,,,,0.13600000000000001,8
+1,bias_trend,2001fed,OTH FP,,,,12.387,,
+1,bias_pollster,2001fed,OTH FP,F2F Morgan,,,,0.98599999999999999,18
+1,bias_pollster,2001fed,OTH FP,Newspoll,,,,-1.2310000000000001,18
+1,bias_pollster,2001fed,OTH FP,Nielsen,,,,0.48799999999999999,8
+1,bias_pollster,2001fed,OTH FP,Quadrant,,,,-0.20000000000000001,0
+1,bias_trend,2001fed,LNP FP,,,,44.640999999999998,,
+1,bias_pollster,2001fed,LNP FP,F2F Morgan,,,,-1.3180000000000001,18
+1,bias_pollster,2001fed,LNP FP,Newspoll,,,,2.0569999999999999,18
+1,bias_pollster,2001fed,LNP FP,Nielsen,,,,-0.070000000000000007,8
+1,bias_pollster,2001fed,LNP FP,Quadrant,,,,-0.59599999999999997,0
+1,bias_trend,2001fed,ALP FP,,,,39.822000000000003,,
+1,bias_pollster,2001fed,ALP FP,F2F Morgan,,,,1.22,18
+1,bias_pollster,2001fed,ALP FP,Newspoll,,,,-0.85699999999999998,18
+1,bias_pollster,2001fed,ALP FP,Nielsen,,,,-1.3180000000000001,8
+1,bias_pollster,2001fed,ALP FP,Quadrant,,,,0.84999999999999998,0
+1,bias_trend,2001fed,@TPP,,,,48.219000000000001,,
+1,bias_pollster,2001fed,@TPP,F2F Morgan,,,,1.355,18
+1,bias_pollster,2001fed,@TPP,Newspoll,,,,-1.4279999999999999,18
+1,bias_pollster,2001fed,@TPP,Nielsen,,,,-0.52700000000000002,8
+1,bias_pollster,2001fed,@TPP,Quadrant,,,,0.52000000000000002,0

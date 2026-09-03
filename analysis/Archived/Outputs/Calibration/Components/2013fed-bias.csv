@@ -1,0 +1,66 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2013fed,GRN FP,,,,10.148,,
+1,bias_pollster,2013fed,GRN FP,AMR,,,,-0.48699999999999999,4
+1,bias_pollster,2013fed,GRN FP,Essential,,,,-0.84299999999999997,15
+1,bias_pollster,2013fed,GRN FP,F2F Morgan,,,,-0.11700000000000001,0
+1,bias_pollster,2013fed,GRN FP,Galaxy,,,,0.19,11
+1,bias_pollster,2013fed,GRN FP,Lonergan,,,,1.5109999999999999,2
+1,bias_pollster,2013fed,GRN FP,Morgan Phone,,,,0.16600000000000001,2
+1,bias_pollster,2013fed,GRN FP,Morgan multi-mode,,,,-0.028000000000000001,28
+1,bias_pollster,2013fed,GRN FP,Newspoll,,,,-0.092999999999999999,17
+1,bias_pollster,2013fed,GRN FP,Nielsen,,,,0.46300000000000002,8
+1,bias_pollster,2013fed,GRN FP,ReachTEL,,,,-0.30399999999999999,10
+1,bias_pollster,2013fed,GRN FP,SMS Morgan,,,,-0.34799999999999998,1
+1,bias_trend,2013fed,UAP FP,,,,5.7270000000000003,,
+1,bias_pollster,2013fed,UAP FP,Essential,,,,-0.092999999999999999,2
+1,bias_pollster,2013fed,UAP FP,Galaxy,,,,0.037999999999999999,1
+1,bias_pollster,2013fed,UAP FP,Morgan multi-mode,,,,0.095000000000000001,3
+1,bias_pollster,2013fed,UAP FP,ReachTEL,,,,-0.036999999999999998,8
+1,bias_trend,2013fed,OTH FP,,,,14.156000000000001,,
+1,bias_pollster,2013fed,OTH FP,AMR,,,,0.076999999999999999,4
+1,bias_pollster,2013fed,OTH FP,Essential,,,,-0.65300000000000002,15
+1,bias_pollster,2013fed,OTH FP,F2F Morgan,,,,0.61199999999999999,0
+1,bias_pollster,2013fed,OTH FP,Galaxy,,,,-0.68799999999999994,11
+1,bias_pollster,2013fed,OTH FP,Lonergan,,,,-0.66700000000000004,2
+1,bias_pollster,2013fed,OTH FP,Morgan Phone,,,,-0.043999999999999997,2
+1,bias_pollster,2013fed,OTH FP,Morgan multi-mode,,,,1.3779999999999999,28
+1,bias_pollster,2013fed,OTH FP,Newspoll,,,,0.34399999999999997,17
+1,bias_pollster,2013fed,OTH FP,Nielsen,,,,-0.29799999999999999,8
+1,bias_pollster,2013fed,OTH FP,ReachTEL,,,,-0.26700000000000002,10
+1,bias_pollster,2013fed,OTH FP,SMS Morgan,,,,0.092999999999999999,1
+1,bias_trend,2013fed,LNP FP,,,,44.566000000000003,,
+1,bias_pollster,2013fed,LNP FP,AMR,,,,-0.71599999999999997,4
+1,bias_pollster,2013fed,LNP FP,Essential,,,,0.041000000000000002,15
+1,bias_pollster,2013fed,LNP FP,F2F Morgan,,,,-1.6830000000000001,0
+1,bias_pollster,2013fed,LNP FP,Galaxy,,,,0.058000000000000003,11
+1,bias_pollster,2013fed,LNP FP,Lonergan,,,,-0.755,2
+1,bias_pollster,2013fed,LNP FP,Morgan Phone,,,,3.2719999999999998,2
+1,bias_pollster,2013fed,LNP FP,Morgan multi-mode,,,,-1.3120000000000001,28
+1,bias_pollster,2013fed,LNP FP,Newspoll,,,,0.39000000000000001,17
+1,bias_pollster,2013fed,LNP FP,Nielsen,,,,0.17899999999999999,8
+1,bias_pollster,2013fed,LNP FP,ReachTEL,,,,0.49199999999999999,10
+1,bias_pollster,2013fed,LNP FP,SMS Morgan,,,,0.075999999999999998,1
+1,bias_trend,2013fed,ALP FP,,,,33.331000000000003,,
+1,bias_pollster,2013fed,ALP FP,AMR,,,,1.252,4
+1,bias_pollster,2013fed,ALP FP,Essential,,,,1.423,15
+1,bias_pollster,2013fed,ALP FP,F2F Morgan,,,,0.71799999999999997,0
+1,bias_pollster,2013fed,ALP FP,Galaxy,,,,0.70799999999999996,11
+1,bias_pollster,2013fed,ALP FP,Lonergan,,,,0.124,2
+1,bias_pollster,2013fed,ALP FP,Morgan Phone,,,,-3.4049999999999998,2
+1,bias_pollster,2013fed,ALP FP,Morgan multi-mode,,,,0.13,28
+1,bias_pollster,2013fed,ALP FP,Newspoll,,,,-0.82299999999999995,17
+1,bias_pollster,2013fed,ALP FP,Nielsen,,,,-0.61899999999999999,8
+1,bias_pollster,2013fed,ALP FP,ReachTEL,,,,0.066000000000000003,10
+1,bias_pollster,2013fed,ALP FP,SMS Morgan,,,,0.22,1
+1,bias_trend,2013fed,@TPP,,,,46.277999999999999,,
+1,bias_pollster,2013fed,@TPP,AMR,,,,0.76400000000000001,4
+1,bias_pollster,2013fed,@TPP,Essential,,,,0.38800000000000001,15
+1,bias_pollster,2013fed,@TPP,F2F Morgan,,,,1.05,0
+1,bias_pollster,2013fed,@TPP,Galaxy,,,,0.38700000000000001,11
+1,bias_pollster,2013fed,@TPP,Lonergan,,,,0.91500000000000004,2
+1,bias_pollster,2013fed,@TPP,Morgan Phone,,,,-3.0190000000000001,2
+1,bias_pollster,2013fed,@TPP,Morgan multi-mode,,,,0.55100000000000005,28
+1,bias_pollster,2013fed,@TPP,Newspoll,,,,-0.67300000000000004,17
+1,bias_pollster,2013fed,@TPP,Nielsen,,,,-0.29099999999999998,8
+1,bias_pollster,2013fed,@TPP,ReachTEL,,,,-0.27300000000000002,10
+1,bias_pollster,2013fed,@TPP,SMS Morgan,,,,0.0040000000000000001,1

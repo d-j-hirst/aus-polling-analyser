@@ -1,0 +1,41 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2023nsw,GRN FP,,,,10.31,,
+1,bias_pollster,2023nsw,GRN FP,Essential,,,,-0.11700000000000001,0
+1,bias_pollster,2023nsw,GRN FP,Freshwater,,,,-0.113,3
+1,bias_pollster,2023nsw,GRN FP,Morgan multi-mode,,,,-0.073999999999999996,4
+1,bias_pollster,2023nsw,GRN FP,Newspoll2,,,,0.34599999999999997,4
+1,bias_pollster,2023nsw,GRN FP,ResolvePM,,,,0.108,3
+1,bias_pollster,2023nsw,GRN FP,ResolvePM2,,,,-0.50900000000000001,1
+1,bias_pollster,2023nsw,GRN FP,SMS Morgan,,,,0.40300000000000002,2
+1,bias_trend,2023nsw,OTH FP,,,,17.228000000000002,,
+1,bias_pollster,2023nsw,OTH FP,Essential,,,,-1.03,0
+1,bias_pollster,2023nsw,OTH FP,Freshwater,,,,-1.0069999999999999,3
+1,bias_pollster,2023nsw,OTH FP,Morgan multi-mode,,,,2.5619999999999998,4
+1,bias_pollster,2023nsw,OTH FP,Newspoll2,,,,-1.4990000000000001,4
+1,bias_pollster,2023nsw,OTH FP,ResolvePM,,,,0.17399999999999999,3
+1,bias_pollster,2023nsw,OTH FP,ResolvePM2,,,,-0.378,1
+1,bias_pollster,2023nsw,OTH FP,SMS Morgan,,,,1.413,2
+1,bias_trend,2023nsw,LNP FP,,,,35.927,,
+1,bias_pollster,2023nsw,LNP FP,Essential,,,,1.8049999999999999,0
+1,bias_pollster,2023nsw,LNP FP,Freshwater,,,,0.64600000000000002,3
+1,bias_pollster,2023nsw,LNP FP,Morgan multi-mode,,,,-0.42999999999999999,4
+1,bias_pollster,2023nsw,LNP FP,Newspoll2,,,,-0.19800000000000001,4
+1,bias_pollster,2023nsw,LNP FP,ResolvePM,,,,-1.3520000000000001,3
+1,bias_pollster,2023nsw,LNP FP,ResolvePM2,,,,0.41199999999999998,1
+1,bias_pollster,2023nsw,LNP FP,SMS Morgan,,,,-0.96699999999999997,2
+1,bias_trend,2023nsw,ALP FP,,,,36.688000000000002,,
+1,bias_pollster,2023nsw,ALP FP,Essential,,,,-0.114,0
+1,bias_pollster,2023nsw,ALP FP,Freshwater,,,,0.51500000000000001,3
+1,bias_pollster,2023nsw,ALP FP,Morgan multi-mode,,,,-1.915,4
+1,bias_pollster,2023nsw,ALP FP,Newspoll2,,,,0.94199999999999995,4
+1,bias_pollster,2023nsw,ALP FP,ResolvePM,,,,0.96599999999999997,3
+1,bias_pollster,2023nsw,ALP FP,ResolvePM2,,,,0.42499999999999999,1
+1,bias_pollster,2023nsw,ALP FP,SMS Morgan,,,,-0.99099999999999999,2
+1,bias_trend,2023nsw,@TPP,,,,53.508000000000003,,
+1,bias_pollster,2023nsw,@TPP,Essential,,,,-1.111,0
+1,bias_pollster,2023nsw,@TPP,Freshwater,,,,-0.13,3
+1,bias_pollster,2023nsw,@TPP,Morgan multi-mode,,,,-0.61599999999999999,4
+1,bias_pollster,2023nsw,@TPP,Newspoll2,,,,0.73799999999999999,4
+1,bias_pollster,2023nsw,@TPP,ResolvePM,,,,1.653,3
+1,bias_pollster,2023nsw,@TPP,ResolvePM2,,,,-0.23699999999999999,1
+1,bias_pollster,2023nsw,@TPP,SMS Morgan,,,,-0.021000000000000001,2

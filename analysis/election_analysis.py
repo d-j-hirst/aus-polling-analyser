@@ -34,6 +34,7 @@ from election_analysis_parties import (
     load_seat_types,
 )
 from election_analysis_regions import analyse_region_swings
+import federal_regional_provenance
 from election_analysis_seats import (
     analyse_green_independent_correlation,
     analyse_nationals,
@@ -62,6 +63,7 @@ def record_generated_provenance():
         'election_check_script',
         'election_data_script',
         'election_code_script',
+        'federal_regional_provenance_script',
         'poll_transform_script',
         'sample_kurtosis_script',
     ):
@@ -156,31 +158,32 @@ def record_generated_provenance():
             )
         )
 
-    regional_outputs = sorted(
-        path
-        for pattern in (
-            '2028fed-regions-base.csv',
-            '2028fed-regions-polled.csv',
-            '2028fed-mix-regions.csv',
-            '2028fed-mix-parameters.csv',
+    for election in federal_regional_provenance.SUPPORTED_ELECTIONS:
+        regional_outputs = federal_regional_provenance.output_paths(election)
+        missing_outputs = [
+            path for path in regional_outputs if not path.is_file()
+        ]
+        if missing_outputs:
+            raise RuntimeError(
+                'Federal regional analysis did not create: {}'.format(
+                    ', '.join(str(path) for path in missing_outputs)
+                )
+            )
+        records[f'federal_regional_statistics:{election}'] = (
+            generated_provenance.generation_record(
+                category='federal_regional_statistics',
+                stage='analyse_elections',
+                scope=generated_provenance.generation_scope(
+                    elections=[election]
+                ),
+                run=run_id,
+                dependencies=dependencies,
+                outputs=generated_provenance.output_fingerprints(
+                    regional_outputs, ANALYSIS_DIRECTORY
+                ),
+                random_seed=None,
+            )
         )
-        for path in (ANALYSIS_DIRECTORY / 'Regional').glob(pattern)
-    )
-    records['federal_regional_statistics:2028fed'] = (
-        generated_provenance.generation_record(
-            category='federal_regional_statistics',
-            stage='analyse_elections',
-            scope=generated_provenance.generation_scope(
-                elections=['2028fed']
-            ),
-            run=run_id,
-            dependencies=dependencies,
-            outputs=generated_provenance.output_fingerprints(
-                regional_outputs, ANALYSIS_DIRECTORY
-            ),
-            random_seed=None,
-        )
-    )
 
     generated_provenance.update_manifest(
         GENERATED_MANIFEST,
@@ -217,7 +220,8 @@ def main():
     analyse_centrist_minors(elections, seat_types, seat_regions)
     analyse_others(elections)
     analyse_emerging_parties(elections)
-    analyse_region_swings()
+    for election in federal_regional_provenance.SUPPORTED_ELECTIONS:
+        analyse_region_swings(int(election[:4]))
     analyse_seat_swings(elections, seat_types, seat_regions, by_elections)
     analyse_green_independent_correlation(elections)
     analyse_nationals(elections, all_elections)

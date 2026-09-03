@@ -1,0 +1,11 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,1974fed,@TPP,,,,51.064,,
+1,bias_trend,1974fed,ALP FP,,,,46.395000000000003,,
+1,bias_trend,1974fed,DLP FP,,,,4.0709999999999997,,
+1,bias_trend,1974fed,LNP FP,,,,44.121000000000002,,
+1,bias_trend,1974fed,OTH FP,,,,9.4969999999999999,,
+1,bias_pollster,1974fed,@TPP,F2F Morgan,,,,-0,11
+1,bias_pollster,1974fed,ALP FP,F2F Morgan,,,,0,11
+1,bias_pollster,1974fed,DLP FP,F2F Morgan,,,,-0,11
+1,bias_pollster,1974fed,LNP FP,F2F Morgan,,,,-0,11
+1,bias_pollster,1974fed,OTH FP,F2F Morgan,,,,-0,11

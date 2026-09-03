@@ -1,0 +1,49 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2010sa,@TPP,Advertiser,4.0359871233118128,2.1664024910741286,,,
+1,leave_one_out,2010sa,@TPP,F2F Morgan,2.4897389333818354,0.90079245342457037,,,
+1,leave_one_out,2010sa,@TPP,Newspoll,3.1489132774743949,2.4111610679880591,,,
+1,leave_one_out,2010sa,ALP FP,Advertiser,4.6003661029493275,2.3559036592107563,,,
+1,leave_one_out,2010sa,ALP FP,F2F Morgan,2.7843751062860771,0.90079245342457037,,,
+1,leave_one_out,2010sa,ALP FP,Newspoll,3.4656257530247125,2.4917971796537532,,,
+1,leave_one_out,2010sa,FF FP,Advertiser,2.6347194796534645,2.2582853837715784,,,
+1,leave_one_out,2010sa,FF FP,F2F Morgan,0.70775763971907046,0.90079245342457037,,,
+1,leave_one_out,2010sa,FF FP,Newspoll,1.3417446927270034,2.5956521692442722,,,
+1,leave_one_out,2010sa,GRN FP,Advertiser,1.4227407149291553,2.3559036592107563,,,
+1,leave_one_out,2010sa,GRN FP,F2F Morgan,0.62603788616043909,0.90079245342457037,,,
+1,leave_one_out,2010sa,GRN FP,Newspoll,2.1758832740522296,2.7365947045186605,,,
+1,leave_one_out,2010sa,LNP FP,Advertiser,4.451621978305413,2.223727075011551,,,
+1,leave_one_out,2010sa,LNP FP,F2F Morgan,2.7415475603200186,0.90079245342457037,,,
+1,leave_one_out,2010sa,LNP FP,Newspoll,3.4818330955654884,2.2544810916698488,,,
+1,leave_one_out,2010sa,OTH FP,Advertiser,3.2639451638336476,2.2619120908137562,,,
+1,leave_one_out,2010sa,OTH FP,F2F Morgan,2.6743450976357295,0.90079245342457037,,,
+1,leave_one_out,2010sa,OTH FP,Newspoll,1.4092717022191448,2.7365947045186605,,,
+1,bias_trend,2010sa,@TPP,,,,49.213999999999999,,
+1,bias_trend,2010sa,ALP FP,,,,36.823,,
+1,bias_trend,2010sa,FF FP,,,,4.5460000000000003,,
+1,bias_trend,2010sa,GRN FP,,,,9.2479999999999993,,
+1,bias_trend,2010sa,LNP FP,,,,41.908999999999999,,
+1,bias_trend,2010sa,OTH FP,,,,11.585000000000001,,
+1,bias_pollster,2010sa,@TPP,Advertiser,,,,-0.028000000000000001,4
+1,bias_pollster,2010sa,@TPP,F2F Morgan,,,,0.63200000000000001,0
+1,bias_pollster,2010sa,@TPP,Galaxy,,,,-0.13,1
+1,bias_pollster,2010sa,@TPP,Newspoll,,,,-0.495,3
+1,bias_pollster,2010sa,ALP FP,Advertiser,,,,0.42099999999999999,4
+1,bias_pollster,2010sa,ALP FP,F2F Morgan,,,,1.044,0
+1,bias_pollster,2010sa,ALP FP,Galaxy,,,,-0.12,1
+1,bias_pollster,2010sa,ALP FP,Newspoll,,,,-1.5149999999999999,3
+1,bias_pollster,2010sa,FF FP,Advertiser,,,,0.51700000000000002,4
+1,bias_pollster,2010sa,FF FP,F2F Morgan,,,,0.11600000000000001,0
+1,bias_pollster,2010sa,FF FP,Galaxy,,,,0.33900000000000002,1
+1,bias_pollster,2010sa,FF FP,Newspoll,,,,-1.101,3
+1,bias_pollster,2010sa,GRN FP,Advertiser,,,,-0.39700000000000002,4
+1,bias_pollster,2010sa,GRN FP,F2F Morgan,,,,-0.128,0
+1,bias_pollster,2010sa,GRN FP,Galaxy,,,,0.159,1
+1,bias_pollster,2010sa,GRN FP,Newspoll,,,,0.32100000000000001,3
+1,bias_pollster,2010sa,LNP FP,Advertiser,,,,0.223,4
+1,bias_pollster,2010sa,LNP FP,F2F Morgan,,,,-0.58699999999999997,0
+1,bias_pollster,2010sa,LNP FP,Galaxy,,,,0.13400000000000001,1
+1,bias_pollster,2010sa,LNP FP,Newspoll,,,,0.17799999999999999,3
+1,bias_pollster,2010sa,OTH FP,Advertiser,,,,-0.378,4
+1,bias_pollster,2010sa,OTH FP,F2F Morgan,,,,-0.034000000000000002,0
+1,bias_pollster,2010sa,OTH FP,Galaxy,,,,-0.151,1
+1,bias_pollster,2010sa,OTH FP,Newspoll,,,,0.62,3

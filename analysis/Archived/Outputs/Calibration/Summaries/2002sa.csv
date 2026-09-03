@@ -1,0 +1,53 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2002sa,@TPP,Advertiser,3.2154192820753771,6.3641017697315414,,,
+1,leave_one_out,2002sa,@TPP,F2F Morgan,2.5930844803487147,9.839336123009133,,,
+1,leave_one_out,2002sa,@TPP,Morgan Phone,1.8035581892520725,1.6752318931649877,,,
+1,leave_one_out,2002sa,@TPP,Newspoll,2.2969992821359915,10.377077076838757,,,
+1,leave_one_out,2002sa,ALP FP,Advertiser,2.6883755352845595,6.8260774146049235,,,
+1,leave_one_out,2002sa,ALP FP,F2F Morgan,2.3127515254603415,9.9045997714294991,,,
+1,leave_one_out,2002sa,ALP FP,Morgan Phone,0.82387769223704055,2,,,
+1,leave_one_out,2002sa,ALP FP,Newspoll,2.0692536113747884,10.124595294812412,,,
+1,leave_one_out,2002sa,DEM FP,Advertiser,2.1703297595824189,6.2141560974153212,,,
+1,leave_one_out,2002sa,DEM FP,F2F Morgan,0.87419426243446896,8.6551599194637792,,,
+1,leave_one_out,2002sa,DEM FP,Morgan Phone,4.6059311914391898,1.5642286817264812,,,
+1,leave_one_out,2002sa,DEM FP,Newspoll,1.2016997875184354,7.3118052391420623,,,
+1,leave_one_out,2002sa,LNP FP,Advertiser,4.0507367822309188,6.9806472101659809,,,
+1,leave_one_out,2002sa,LNP FP,F2F Morgan,2.914609418135568,9.9884463835819837,,,
+1,leave_one_out,2002sa,LNP FP,Morgan Phone,3.8538688680529489,1.5594536076524577,,,
+1,leave_one_out,2002sa,LNP FP,Newspoll,3.0181048034971338,9.8693435731081856,,,
+1,leave_one_out,2002sa,OTH FP,Advertiser,2.7717717209609423,6.7216895217206458,,,
+1,leave_one_out,2002sa,OTH FP,F2F Morgan,1.8579673282481584,10.338444715050937,,,
+1,leave_one_out,2002sa,OTH FP,Morgan Phone,3.6545277087334327,1.6012000262845263,,,
+1,leave_one_out,2002sa,OTH FP,Newspoll,2.8282368204619712,9.6360734531652703,,,
+1,bias_trend,2002sa,@TPP,,,,48.712000000000003,,
+1,bias_trend,2002sa,ALP FP,,,,36.517000000000003,,
+1,bias_trend,2002sa,DEM FP,,,,9.1329999999999991,,
+1,bias_trend,2002sa,FF FP,,,,2.109,,
+1,bias_trend,2002sa,LNP FP,,,,42.097999999999999,,
+1,bias_trend,2002sa,OTH FP,,,,18.126999999999999,,
+1,bias_pollster,2002sa,@TPP,Advertiser,,,,-0.13100000000000001,3
+1,bias_pollster,2002sa,@TPP,F2F Morgan,,,,0.96399999999999997,3
+1,bias_pollster,2002sa,@TPP,Morgan Phone,,,,0.108,2
+1,bias_pollster,2002sa,@TPP,Newspoll,,,,-0.74399999999999999,4
+1,bias_pollster,2002sa,@TPP,Sunday Mail,,,,-0.16200000000000001,1
+1,bias_pollster,2002sa,ALP FP,Advertiser,,,,-0.033000000000000002,3
+1,bias_pollster,2002sa,ALP FP,F2F Morgan,,,,0.51400000000000001,3
+1,bias_pollster,2002sa,ALP FP,Morgan Phone,,,,-0.246,2
+1,bias_pollster,2002sa,ALP FP,Newspoll,,,,0.158,4
+1,bias_pollster,2002sa,ALP FP,Sunday Mail,,,,-0.33100000000000002,1
+1,bias_pollster,2002sa,DEM FP,Advertiser,,,,-0.13900000000000001,3
+1,bias_pollster,2002sa,DEM FP,F2F Morgan,,,,-0.125,3
+1,bias_pollster,2002sa,DEM FP,Morgan Phone,,,,0.247,2
+1,bias_pollster,2002sa,DEM FP,Newspoll,,,,-1.081,4
+1,bias_pollster,2002sa,DEM FP,Sunday Mail,,,,1.0449999999999999,1
+1,bias_pollster,2002sa,FF FP,Advertiser,,,,0,1
+1,bias_pollster,2002sa,LNP FP,Advertiser,,,,0.29499999999999998,3
+1,bias_pollster,2002sa,LNP FP,F2F Morgan,,,,-1.163,3
+1,bias_pollster,2002sa,LNP FP,Morgan Phone,,,,-0.48999999999999999,2
+1,bias_pollster,2002sa,LNP FP,Newspoll,,,,1.5109999999999999,4
+1,bias_pollster,2002sa,LNP FP,Sunday Mail,,,,-0.10299999999999999,1
+1,bias_pollster,2002sa,OTH FP,Advertiser,,,,0.097000000000000003,3
+1,bias_pollster,2002sa,OTH FP,F2F Morgan,,,,0.311,3
+1,bias_pollster,2002sa,OTH FP,Morgan Phone,,,,0.72899999999999998,2
+1,bias_pollster,2002sa,OTH FP,Newspoll,,,,-1.508,4
+1,bias_pollster,2002sa,OTH FP,Sunday Mail,,,,0.183,1

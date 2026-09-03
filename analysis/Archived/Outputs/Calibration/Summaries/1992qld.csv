@@ -1,0 +1,9 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,1992qld,@TPP,,,,53.851999999999997,,
+1,bias_trend,1992qld,ALP FP,,,,49.871000000000002,,
+1,bias_trend,1992qld,LNP FP,,,,42.360999999999997,,
+1,bias_trend,1992qld,OTH FP,,,,7.9470000000000001,,
+1,bias_pollster,1992qld,@TPP,Newspoll,,,,0,4
+1,bias_pollster,1992qld,ALP FP,Newspoll,,,,-0,4
+1,bias_pollster,1992qld,LNP FP,Newspoll,,,,0,4
+1,bias_pollster,1992qld,OTH FP,Newspoll,,,,0,4

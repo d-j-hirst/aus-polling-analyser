@@ -1,0 +1,31 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2007fed,GRN FP,,,,8.0830000000000002,,
+1,bias_pollster,2007fed,GRN FP,F2F Morgan,,,,-0.30299999999999999,20
+1,bias_pollster,2007fed,GRN FP,Galaxy,,,,1.766,7
+1,bias_pollster,2007fed,GRN FP,Morgan Phone,,,,1.0049999999999999,6
+1,bias_pollster,2007fed,GRN FP,Newspoll,,,,-2.403,16
+1,bias_pollster,2007fed,GRN FP,Nielsen,,,,-0.063,9
+1,bias_trend,2007fed,OTH FP,,,,5.601,,
+1,bias_pollster,2007fed,OTH FP,F2F Morgan,,,,-0.16400000000000001,20
+1,bias_pollster,2007fed,OTH FP,Galaxy,,,,-1.202,8
+1,bias_pollster,2007fed,OTH FP,Morgan Phone,,,,0.45200000000000001,8
+1,bias_pollster,2007fed,OTH FP,Newspoll,,,,1.748,16
+1,bias_pollster,2007fed,OTH FP,Nielsen,,,,-0.83699999999999997,9
+1,bias_trend,2007fed,LNP FP,,,,41.789000000000001,,
+1,bias_pollster,2007fed,LNP FP,F2F Morgan,,,,-1.3899999999999999,20
+1,bias_pollster,2007fed,LNP FP,Galaxy,,,,1.456,8
+1,bias_pollster,2007fed,LNP FP,Morgan Phone,,,,-0.74399999999999999,8
+1,bias_pollster,2007fed,LNP FP,Newspoll,,,,0.10199999999999999,16
+1,bias_pollster,2007fed,LNP FP,Nielsen,,,,0.57399999999999995,9
+1,bias_trend,2007fed,ALP FP,,,,44.728999999999999,,
+1,bias_pollster,2007fed,ALP FP,F2F Morgan,,,,1.9159999999999999,20
+1,bias_pollster,2007fed,ALP FP,Galaxy,,,,-1.9410000000000001,8
+1,bias_pollster,2007fed,ALP FP,Morgan Phone,,,,-0.63200000000000001,8
+1,bias_pollster,2007fed,ALP FP,Newspoll,,,,0.31,16
+1,bias_pollster,2007fed,ALP FP,Nielsen,,,,0.32700000000000001,9
+1,bias_trend,2007fed,@TPP,,,,53.735999999999997,,
+1,bias_pollster,2007fed,@TPP,F2F Morgan,,,,1.5489999999999999,20
+1,bias_pollster,2007fed,@TPP,Galaxy,,,,-1.0580000000000001,8
+1,bias_pollster,2007fed,@TPP,Morgan Phone,,,,0.193,8
+1,bias_pollster,2007fed,@TPP,Newspoll,,,,-0.627,16
+1,bias_pollster,2007fed,@TPP,Nielsen,,,,-0.064000000000000001,9

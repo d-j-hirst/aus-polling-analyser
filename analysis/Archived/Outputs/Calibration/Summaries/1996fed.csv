@@ -1,0 +1,64 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,1996fed,@TPP,AGB McNair,1.9348876460068434,50.998609685636033,,,
+1,leave_one_out,1996fed,@TPP,F2F Morgan,1.0887346079102398,64.669657289145562,,,
+1,leave_one_out,1996fed,@TPP,Morgan Phone,1.4010989691025511,3.7014697681694066,,,
+1,leave_one_out,1996fed,@TPP,Newspoll,1.5451553649395253,65.374119491257701,,,
+1,leave_one_out,1996fed,@TPP,Quadrant,1.6023714434808909,1.6117421384933137,,,
+1,leave_one_out,1996fed,ALP FP,AGB McNair,1.7023056881075225,54.228737824807936,,,
+1,leave_one_out,1996fed,ALP FP,F2F Morgan,0.99569360319627476,67.980895426237865,,,
+1,leave_one_out,1996fed,ALP FP,Morgan Phone,1.0686623266375284,5.3350511767231925,,,
+1,leave_one_out,1996fed,ALP FP,Newspoll,1.5254146777748672,64.57444521922109,,,
+1,leave_one_out,1996fed,ALP FP,Quadrant,1.8144094226680991,1.6256632556405703,,,
+1,leave_one_out,1996fed,DEM FP,AGB McNair,0.57563701138251022,61.000029737830502,,,
+1,leave_one_out,1996fed,DEM FP,F2F Morgan,0.63092807476245816,68.914601435230594,,,
+1,leave_one_out,1996fed,DEM FP,Morgan Phone,0.68105514627605612,5.0921785812574702,,,
+1,leave_one_out,1996fed,DEM FP,Newspoll,1.0706214887640049,66.817075175197076,,,
+1,leave_one_out,1996fed,GRN FP,AGB McNair,0.54708076245577431,43.075902948468446,,,
+1,leave_one_out,1996fed,GRN FP,F2F Morgan,0.4922452534897957,52.725747616191825,,,
+1,leave_one_out,1996fed,GRN FP,Morgan Phone,0.35194117292542265,5.865180895434376,,,
+1,leave_one_out,1996fed,GRN FP,Newspoll,0.42590636512444363,5.7184736572622219,,,
+1,leave_one_out,1996fed,LNP FP,AGB McNair,2.0440030291839748,50.469718531571672,,,
+1,leave_one_out,1996fed,LNP FP,F2F Morgan,1.066919706963928,66.591680715317267,,,
+1,leave_one_out,1996fed,LNP FP,Morgan Phone,1.9762126359928054,3.3737738989124635,,,
+1,leave_one_out,1996fed,LNP FP,Newspoll,1.7703612421851915,64.001832784982639,,,
+1,leave_one_out,1996fed,LNP FP,Quadrant,1.4021484101936821,1.5912632311929875,,,
+1,leave_one_out,1996fed,OTH FP,AGB McNair,1.163160888985425,57.229367415833323,,,
+1,leave_one_out,1996fed,OTH FP,F2F Morgan,1.5395923706808559,62.073169743386707,,,
+1,leave_one_out,1996fed,OTH FP,Morgan Phone,1.2964543193122897,4.2098652358694686,,,
+1,leave_one_out,1996fed,OTH FP,Newspoll,1.1132683401846222,67.086409783832892,,,
+1,leave_one_out,1996fed,OTH FP,Quadrant,0.044807134990616504,2,,,
+1,bias_trend,1996fed,@TPP,,,,48.850999999999999,,
+1,bias_trend,1996fed,ALP FP,,,,40.423000000000002,,
+1,bias_trend,1996fed,DEM FP,,,,6.6070000000000002,,
+1,bias_trend,1996fed,GRN FP,,,,2.6659999999999999,,
+1,bias_trend,1996fed,LNP FP,,,,45.814,,
+1,bias_trend,1996fed,OTH FP,,,,11.388,,
+1,bias_pollster,1996fed,@TPP,AGB McNair,,,,-1.8120000000000001,7
+1,bias_pollster,1996fed,@TPP,F2F Morgan,,,,0.20000000000000001,12
+1,bias_pollster,1996fed,@TPP,Morgan Phone,,,,1.2769999999999999,6
+1,bias_pollster,1996fed,@TPP,Newspoll,,,,-0.35399999999999998,15
+1,bias_pollster,1996fed,@TPP,Quadrant,,,,0.58199999999999996,2
+1,bias_pollster,1996fed,ALP FP,AGB McNair,,,,-1.994,7
+1,bias_pollster,1996fed,ALP FP,F2F Morgan,,,,-0.20100000000000001,12
+1,bias_pollster,1996fed,ALP FP,Morgan Phone,,,,0.16200000000000001,6
+1,bias_pollster,1996fed,ALP FP,Newspoll,,,,0.64300000000000002,15
+1,bias_pollster,1996fed,ALP FP,Quadrant,,,,1.363,2
+1,bias_pollster,1996fed,DEM FP,AGB McNair,,,,-1.1419999999999999,6
+1,bias_pollster,1996fed,DEM FP,F2F Morgan,,,,0.10000000000000001,12
+1,bias_pollster,1996fed,DEM FP,Morgan Phone,,,,1.2529999999999999,6
+1,bias_pollster,1996fed,DEM FP,Newspoll,,,,-0.32100000000000001,15
+1,bias_pollster,1996fed,DEM FP,Quadrant,,,,0.058999999999999997,1
+1,bias_pollster,1996fed,GRN FP,AGB McNair,,,,0.081000000000000003,6
+1,bias_pollster,1996fed,GRN FP,F2F Morgan,,,,0.36099999999999999,12
+1,bias_pollster,1996fed,GRN FP,Morgan Phone,,,,0.14499999999999999,6
+1,bias_pollster,1996fed,GRN FP,Newspoll,,,,-0.63900000000000001,6
+1,bias_pollster,1996fed,LNP FP,AGB McNair,,,,1.6539999999999999,7
+1,bias_pollster,1996fed,LNP FP,F2F Morgan,,,,-0.45800000000000002,12
+1,bias_pollster,1996fed,LNP FP,Morgan Phone,,,,-2.1520000000000001,6
+1,bias_pollster,1996fed,LNP FP,Newspoll,,,,1.1639999999999999,15
+1,bias_pollster,1996fed,LNP FP,Quadrant,,,,-0.154,2
+1,bias_pollster,1996fed,OTH FP,AGB McNair,,,,0.087999999999999995,7
+1,bias_pollster,1996fed,OTH FP,F2F Morgan,,,,0.68400000000000005,12
+1,bias_pollster,1996fed,OTH FP,Morgan Phone,,,,1.403,6
+1,bias_pollster,1996fed,OTH FP,Newspoll,,,,-1.365,15
+1,bias_pollster,1996fed,OTH FP,Quadrant,,,,-0.77800000000000002,2

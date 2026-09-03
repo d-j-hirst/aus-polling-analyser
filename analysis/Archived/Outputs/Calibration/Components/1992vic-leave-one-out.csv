@@ -1,0 +1,13 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,1992vic,@TPP,F2F Morgan,3.2427812040029456,1.6709839957453902,,,
+1,leave_one_out,1992vic,@TPP,Newspoll,2.5850232944652953,8.2289660114332364,,,
+1,leave_one_out,1992vic,@TPP,Saulwick,3.4477994951647601,9.2210558690109323,,,
+1,leave_one_out,1992vic,ALP FP,F2F Morgan,2.1876237822546942,1.5605003395143555,,,
+1,leave_one_out,1992vic,ALP FP,Newspoll,2.297614053135844,8.8531891405625771,,,
+1,leave_one_out,1992vic,ALP FP,Saulwick,3.9973342772028029,7.9784705720292175,,,
+1,leave_one_out,1992vic,LNP FP,F2F Morgan,3.3068089399425409,1.6415243538205955,,,
+1,leave_one_out,1992vic,LNP FP,Newspoll,3.4878214782572261,6.8536973082060664,,,
+1,leave_one_out,1992vic,LNP FP,Saulwick,3.3645816485476416,8.4353077198309183,,,
+1,leave_one_out,1992vic,OTH FP,F2F Morgan,3.3930816445768639,1.5042735723911331,,,
+1,leave_one_out,1992vic,OTH FP,Newspoll,3.018314766525382,8.938117765210901,,,
+1,leave_one_out,1992vic,OTH FP,Saulwick,4.7176018565834257,7.505171175723472,,,

@@ -3,6 +3,7 @@ import hashlib
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import generated_data_archive
 
@@ -255,7 +256,39 @@ class GeneratedDataArchiveTests(unittest.TestCase):
             generated_data_archive.ARCHIVE_SCHEMA_VERSION,
         )
 
-    def test_preflight_rejects_noncurrent_work_or_calibration_staging(self):
+    def test_archive_promotion_retries_a_transient_directory_lock(self):
+        staging = self.analysis / ".Archived-build"
+        archive = self.analysis / "Archived"
+        staging.mkdir()
+        archive.mkdir()
+        (staging / "new.txt").write_text("new\n", encoding="utf-8")
+        (archive / "old.txt").write_text("old\n", encoding="utf-8")
+        real_replace = generated_data_archive.os.replace
+        failed_once = False
+
+        def transient_replace(source, destination):
+            nonlocal failed_once
+            if Path(source) == staging and not failed_once:
+                failed_once = True
+                raise PermissionError(13, "temporary Windows directory lock")
+            return real_replace(source, destination)
+
+        with mock.patch.object(
+            generated_data_archive.os,
+            "replace",
+            side_effect=transient_replace,
+        ), mock.patch.object(generated_data_archive.time, "sleep") as sleep:
+            generated_data_archive._promote_directory(staging, archive)
+
+        self.assertTrue(failed_once)
+        sleep.assert_called_once_with(0.25)
+        self.assertEqual(
+            (archive / "new.txt").read_text(encoding="utf-8"),
+            "new\n",
+        )
+        self.assertFalse((archive / "old.txt").exists())
+
+    def test_preflight_rejects_noncurrent_work(self):
         stale = self.current_audit()
         stale["work_units"] = [{"status": "legacy", "stage": "calibrate_pollsters", "record_key": "x"}]
         with self.assertRaisesRegex(
@@ -265,15 +298,19 @@ class GeneratedDataArchiveTests(unittest.TestCase):
                 self.analysis, audit_runner=lambda: stale
             )
 
+    def test_preflight_ignores_unreferenced_calibration_staging(self):
         staging = self.analysis / "Outputs" / "Calibration" / "Staging" / "2028fed-bias.csv"
         staging.parent.mkdir(parents=True)
         staging.write_text("partial\n", encoding="utf-8")
-        with self.assertRaisesRegex(
-            generated_data_archive.GeneratedDataArchiveError, "staging files"
-        ):
-            generated_data_archive.preflight_build(
-                self.analysis, audit_runner=self.current_audit
-            )
+
+        preflight = generated_data_archive.preflight_build(
+            self.analysis, audit_runner=self.current_audit
+        )
+
+        self.assertNotIn(
+            "Outputs/Calibration/Staging/2028fed-bias.csv",
+            preflight["managed_files"],
+        )
 
     def test_archive_ignores_inactive_staleness_and_filters_its_manifest(self):
         self._write_scoped_generated_manifest()
@@ -377,6 +414,28 @@ class GeneratedDataArchiveTests(unittest.TestCase):
             "roots do not match",
         ):
             generated_data_archive.validate_archive(archive)
+
+    def test_booth_results_are_an_optional_full_archive_root(self):
+        booth_directory = self.analysis / "Booth Results"
+        booth_directory.mkdir()
+        booth_json = booth_directory / "2022sa.json"
+        booth_json.write_text("{}\n", encoding="utf-8")
+
+        managed = generated_data_archive._managed_relative_paths(
+            self.analysis
+        )
+
+        self.assertIn("Booth Results/2022sa.json", managed)
+        self.assertTrue(
+            generated_data_archive._archive_eligible_path(
+                "Booth Results/2022sa.json"
+            )
+        )
+        self.assertFalse(
+            generated_data_archive._archive_eligible_path(
+                "downloads/2026sa_zeros.xml"
+            )
+        )
 
 
 if __name__ == "__main__":

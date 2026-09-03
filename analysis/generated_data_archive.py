@@ -4,8 +4,8 @@ Parent flow: ``pipeline.py`` interactive archive actions.  The archive mirrors
 generated/cache data only; authored files in mixed directories remain local.
 
 Main functions:
-* ``preflight_build`` requires a complete current provenance audit and rejects
-  staging files before an archive can be created.
+* ``preflight_build`` requires a complete current provenance audit and excludes
+  transient staging files from the archive.
 * ``_managed_relative_paths`` selects permanent generated output paths while
   excluding large compatibility calibration traces.
 * ``validate_archive`` verifies archive manifest structure and every payload
@@ -16,10 +16,12 @@ Main functions:
 """
 
 import copy
+import errno
 import hashlib
 import json
 import os
 import shutil
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
@@ -38,6 +40,7 @@ FULL_ROOTS = (
     "Nationals",
     "elections",
     "Synthetic TPPs",
+    "Booth Results",
 )
 REQUIRED_FULL_ROOTS = (
     "Outputs",
@@ -274,16 +277,6 @@ def _require_complete_roots(analysis_directory):
         )
 
 
-def _require_no_staging_files(analysis_directory):
-    staging_directory = Path(analysis_directory) / "Outputs" / "Calibration" / "Staging"
-    if staging_directory.is_dir() and any(
-        _is_regular_file(path) for path in staging_directory.rglob("*")
-    ):
-        raise GeneratedDataArchiveError(
-            "cannot build archive while calibration staging files exist"
-        )
-
-
 def preflight_build(analysis_directory, audit_runner=analysis_provenance.audit_repository):
     """Require the operationally required graph to be current."""
 
@@ -326,7 +319,6 @@ def preflight_build(analysis_directory, audit_runner=analysis_provenance.audit_r
             .format("; ".join(details))
         )
     _require_complete_roots(analysis_directory)
-    _require_no_staging_files(analysis_directory)
     managed_files, manifest_overrides = _required_archive_payload(
         analysis_directory, audit
     )
@@ -478,6 +470,27 @@ def _remove_tree(path):
         shutil.rmtree(path)
 
 
+def _replace_directory(source, destination):
+    """Rename a directory, tolerating short-lived Windows/WSL file locks."""
+
+    retryable_errors = {errno.EACCES, errno.EBUSY, errno.EPERM}
+    attempts = 20
+    for attempt in range(attempts):
+        try:
+            os.replace(source, destination)
+            return
+        except OSError as error:
+            if error.errno not in retryable_errors or attempt == attempts - 1:
+                raise
+            if attempt == 0:
+                print(
+                    "Directory promotion is temporarily blocked; retrying for "
+                    "up to 5 seconds...",
+                    flush=True,
+                )
+            time.sleep(0.25)
+
+
 def _promote_directory(staging_directory, destination_directory):
     """Replace one directory via rename, restoring its prior version on error."""
 
@@ -487,12 +500,12 @@ def _promote_directory(staging_directory, destination_directory):
     moved_existing = False
     try:
         if destination_directory.exists():
-            os.replace(destination_directory, backup)
+            _replace_directory(destination_directory, backup)
             moved_existing = True
-        os.replace(staging_directory, destination_directory)
+        _replace_directory(staging_directory, destination_directory)
     except OSError as error:
         if moved_existing and backup.exists() and not destination_directory.exists():
-            os.replace(backup, destination_directory)
+            _replace_directory(backup, destination_directory)
         raise GeneratedDataArchiveError(
             "could not promote {}: {}".format(destination_directory, error)
         ) from error
@@ -586,22 +599,22 @@ def _promote_roots(staging_directory, analysis_directory, roots):
             destination = analysis_directory / root
             backup = _temporary_sibling(destination, "restore-backup")
             if destination.exists():
-                os.replace(destination, backup)
+                _replace_directory(destination, backup)
                 backups[root] = backup
-            os.replace(staged_root, destination)
+            _replace_directory(staged_root, destination)
             promoted.append(root)
     except OSError as error:
         for root in reversed(promoted):
             destination = analysis_directory / root
             failed_new = staging_directory / root
             if destination.exists():
-                os.replace(destination, failed_new)
+                _replace_directory(destination, failed_new)
             if root in backups and backups[root].exists():
-                os.replace(backups[root], destination)
+                _replace_directory(backups[root], destination)
         for root, backup in backups.items():
             destination = analysis_directory / root
             if root not in promoted and backup.exists() and not destination.exists():
-                os.replace(backup, destination)
+                _replace_directory(backup, destination)
         raise GeneratedDataArchiveError(
             "could not promote restored generated data: {}".format(error)
         ) from error

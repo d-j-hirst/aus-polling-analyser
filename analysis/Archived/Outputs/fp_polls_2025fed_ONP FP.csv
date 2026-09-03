@@ -1,14 +1,285 @@
 Firm,Day,ONP FP,ONP FP adj
-Morgan multi-mode,1,3.5,3.925673693646462
-Morgan multi-mode,8,4.0,4.447603839019013
-Newspoll2,51,6.0,5.204224749324529
-ResolvePM,72,5.0,5.221279273701651
-Newspoll2,87,7.0,6.177593906307762
-ResolvePM,102,6.0,6.221279273701651
-ResolvePM,123,5.0,5.221279273701651
-Newspoll2,143,6.0,5.177593906307762
-ResolvePM,142,4.0,4.221279273701651
-Morgan multi-mode,137,4.5,5.101114856626875
-Morgan multi-mode,144,3.0,3.601114856626875
-Newspoll2,177,6.0,5.177593906307762
-ResolvePM,177,4.0,4.221279273701651
+Morgan multi-mode,19,3.5,4.69
+Morgan multi-mode,26,4.0,5.19
+Newspoll2,69,6.0,5.404
+Morgan multi-mode,82,3.991,5.182
+Morgan multi-mode,89,2.586,3.777
+ResolvePM,90,5.0,5.534
+Morgan multi-mode,96,4.025,5.216
+Morgan multi-mode,103,4.064,5.254
+Newspoll2,105,7.0,6.404
+Morgan multi-mode,110,3.727,4.918
+Morgan multi-mode,117,3.928,5.118
+ResolvePM,120,6.0,6.534
+Morgan multi-mode,124,3.401,4.591
+Morgan multi-mode,131,3.586,4.777
+Morgan multi-mode,138,3.598,4.788
+ResolvePM,141,5.0,5.534
+Morgan multi-mode,145,4.184,5.374
+Morgan multi-mode,152,4.255,5.446
+Morgan multi-mode,159,2.979,4.169
+Newspoll2,161,6.0,5.404
+ResolvePM,160,4.0,4.534
+Morgan multi-mode,162,3.0,4.19
+Morgan multi-mode,166,3.909,5.099
+Morgan multi-mode,173,2.165,3.355
+Morgan multi-mode,180,3.788,4.978
+Morgan multi-mode,187,4.04,5.231
+Morgan multi-mode,194,2.679,3.869
+Newspoll2,195,6.0,5.404
+ResolvePM,195,4.0,4.534
+Morgan multi-mode,203,4.452,5.642
+Freshwater,210,4.0,4.119
+Morgan multi-mode,233,5.161,6.352
+ResolvePM,246,4.0,4.534
+Morgan multi-mode,247,5.223,6.413
+Newspoll2,259,6.0,5.404
+Essential,259,6.316,5.489
+Morgan multi-mode,257,5.42,6.611
+Morgan multi-mode,264,5.005,6.196
+Morgan multi-mode,271,5.309,6.499
+ResolvePM,272,5.0,5.534
+Essential,272,6.383,5.556
+Morgan multi-mode,278,4.113,5.303
+Morgan multi-mode,285,5.167,6.357
+Essential,286,7.527,6.7
+Newspoll2,287,7.0,6.404
+Morgan multi-mode,292,4.865,6.055
+Morgan multi-mode,299,5.206,6.396
+Essential,300,5.263,4.437
+ResolvePM,300,5.0,5.534
+Morgan multi-mode,306,5.998,7.188
+Newspoll2,314,8.0,7.404
+Morgan multi-mode,313,4.941,6.131
+Essential,314,6.316,5.489
+Morgan multi-mode,320,6.311,7.502
+Morgan multi-mode,327,4.984,6.174
+Essential,328,6.186,5.359
+ResolvePM,328,6.0,6.534
+Newspoll2,335,7.0,6.404
+Morgan multi-mode,334,4.672,5.862
+Essential,342,5.319,4.493
+Morgan multi-mode,341,5.778,6.968
+Morgan multi-mode,348,5.42,6.61
+Newspoll2,356,7.0,6.404
+Essential,356,5.319,4.493
+ResolvePM,356,5.0,5.534
+Morgan multi-mode,355,4.868,6.058
+Morgan multi-mode,362,4.757,5.947
+Essential,370,6.316,5.489
+Morgan multi-mode,369,4.676,5.866
+Newspoll2,377,6.0,5.404
+Morgan multi-mode,376,5.464,6.655
+Essential,384,5.263,4.437
+ResolvePM,384,6.0,6.534
+Newspoll2,398,6.0,5.404
+Essential,398,7.527,6.7
+Essential,412,8.421,7.594
+Newspoll2,419,7.0,6.404
+ResolvePM,419,6.0,6.534
+Essential,426,7.447,6.62
+Essential,440,8.602,7.776
+ResolvePM,447,5.0,5.534
+Essential,454,5.263,4.437
+Morgan multi-mode,453,5.5,6.69
+Morgan multi-mode,460,5.0,6.19
+Newspoll,468,7.0,6.89
+Essential,468,7.447,6.62
+ResolvePM,475,5.0,5.534
+Essential,482,8.511,7.684
+Newspoll,490,6.0,5.89
+Essential,496,6.383,5.556
+Newspoll2,503,5.0,4.404
+ResolvePM,495,7.0,7.534
+YouGov2,505,6.0,5.199
+Newspoll,505,6.0,5.89
+Morgan multi-mode,509,5.0,6.19
+Morgan multi-mode,516,4.5,5.69
+Essential,524,7.368,6.542
+Newspoll,529,6.0,5.89
+ResolvePM,531,7.0,7.534
+Essential,538,7.368,6.542
+YouGov2,540,7.0,6.199
+Morgan multi-mode,544,6.5,7.69
+Newspoll,550,6.0,5.89
+Essential,552,7.447,6.62
+Morgan multi-mode,551,5.0,6.19
+ResolvePM,559,5.0,5.534
+Morgan multi-mode,558,5.0,6.19
+YouGov2,561,7.0,6.199
+Morgan multi-mode,565,5.0,6.19
+Essential,566,6.316,5.489
+Newspoll,571,7.0,6.89
+Morgan multi-mode,572,4.5,5.69
+Morgan multi-mode,594,5.0,6.19
+Morgan multi-mode,601,4.5,5.69
+YouGov2,604,7.0,6.199
+Morgan multi-mode,608,5.0,6.19
+Morgan multi-mode,615,5.5,6.69
+Essential,615,7.368,6.542
+Newspoll,622,7.0,6.89
+Morgan multi-mode,622,5.0,6.19
+YouGov2,625,8.0,7.199
+Morgan multi-mode,629,4.5,5.69
+Essential,629,7.292,6.465
+ResolvePM,643,6.0,6.534
+Newspoll,643,6.0,5.89
+Morgan multi-mode,643,5.0,6.19
+Essential,643,7.368,6.542
+Morgan multi-mode,650,3.5,4.69
+YouGov2,651,6.0,5.199
+Morgan multi-mode,657,4.0,5.19
+Essential,657,8.333,7.507
+Newspoll,671,7.0,6.89
+Morgan multi-mode,671,4.5,5.69
+ResolvePM,671,5.0,5.534
+Essential,671,7.527,6.7
+YouGov2,674,7.0,6.199
+Morgan multi-mode,678,3.5,4.69
+Morgan multi-mode,685,6.0,7.19
+Essential,685,6.452,5.625
+Morgan multi-mode,692,5.5,6.69
+ResolvePM,699,5.0,5.534
+Newspoll,699,7.0,6.89
+Morgan multi-mode,698,5.5,6.69
+Essential,698,9.375,8.548
+YouGov2,701,8.0,7.199
+Redbridge,697,7.0,6.824
+Morgan multi-mode,705,5.5,6.69
+Morgan multi-mode,712,6.0,7.19
+Essential,712,7.527,6.7
+Morgan multi-mode,719,5.5,6.69
+YouGov2,722,8.0,7.199
+ResolvePM,727,7.0,7.534
+Newspoll,727,7.0,6.89
+Morgan multi-mode,726,5.5,6.69
+Essential,726,8.696,7.869
+Morgan multi-mode,733,6.0,7.19
+Morgan multi-mode,740,4.5,5.69
+Essential,740,5.155,4.328
+YouGov2,743,8.0,7.199
+Newspoll,748,7.0,6.89
+Morgan multi-mode,747,5.5,6.69
+ResolvePM,755,6.0,6.534
+Morgan multi-mode,754,5.0,6.19
+Essential,754,8.511,7.684
+Morgan multi-mode,761,6.0,7.19
+Newspoll,769,7.0,6.89
+Morgan multi-mode,768,4.5,5.69
+Essential,768,7.527,6.7
+Morgan multi-mode,775,5.0,6.19
+Morgan multi-mode,782,5.0,6.19
+ResolvePM,783,6.0,6.534
+Essential,782,8.421,7.594
+Newspoll,790,6.0,5.89
+Morgan multi-mode,789,5.0,6.19
+YouGov2,786,7.0,6.199
+Morgan multi-mode,796,6.5,7.69
+Essential,796,7.368,6.542
+Morgan multi-mode,803,5.5,6.69
+ResolvePM,811,6.0,6.534
+Newspoll,811,6.0,5.89
+Morgan multi-mode,810,5.0,6.19
+Essential,810,7.527,6.7
+Morgan multi-mode,817,4.0,5.19
+Morgan multi-mode,824,4.0,5.19
+Essential,824,7.447,6.62
+YouGov2,828,8.0,7.199
+Newspoll,832,7.0,6.89
+Morgan multi-mode,831,6.0,7.19
+Wolf+Smith,820,6.0,5.859
+ResolvePM,839,6.0,6.515
+Morgan multi-mode,838,6.0,7.196
+Essential,838,8.421,7.584
+Morgan multi-mode,845,5.5,6.72
+YouGov2,849,7.0,6.184
+Newspoll,853,6.0,5.932
+Morgan multi-mode,852,5.0,6.238
+Essential,852,8.421,7.509
+Morgan multi-mode,859,4.5,5.761
+Morgan multi-mode,866,5.5,6.779
+ResolvePM,867,5.0,5.38
+Essential,866,8.333,7.346
+Newspoll,874,7.0,6.978
+Morgan multi-mode,873,5.5,6.802
+Morgan multi-mode,880,5.5,6.82
+Essential,880,7.527,6.464
+Morgan multi-mode,887,5.5,6.844
+Morgan multi-mode,894,6.0,7.362
+Essential,894,9.375,8.238
+ResolvePM,902,5.0,5.217
+Newspoll,902,5.0,5.043
+Morgan multi-mode,901,6.5,7.885
+Morgan multi-mode,908,6.5,7.903
+Essential,908,7.368,6.156
+Morgan multi-mode,915,6.5,7.926
+DemosAU,914,7.0,6.745
+YouGov2,912,9.0,8.121
+Morgan multi-mode,922,6.5,7.944
+Essential,922,8.333,7.046
+ResolvePM,930,7.0,7.082
+Newspoll,930,7.0,7.108
+Morgan multi-mode,929,6.5,7.968
+Morgan multi-mode,936,5.0,6.486
+Essential,936,6.25,4.887
+Morgan multi-mode,957,3.5,5.045
+Morgan multi-mode,964,4.5,6.045
+YouGov2,967,7.0,6.076
+Morgan multi-mode,971,4.0,5.545
+Essential,971,7.368,5.899
+ResolvePM,972,7.0,6.957
+Newspoll,977,7.0,7.168
+Morgan multi-mode,978,6.0,7.545
+Morgan multi-mode,985,5.5,7.045
+Essential,985,8.333,6.864
+DemosAU,985,7.0,6.671
+Morgan multi-mode,992,4.0,5.545
+YouGov2,988,9.1,8.176
+Newspoll,1000,7.0,7.168
+Morgan multi-mode,999,5.5,7.045
+Essential,999,9.375,7.905
+ResolvePM,1007,9.0,8.957
+Morgan multi-mode,1006,5.0,6.545
+YouGov2,1010,8.0,7.076
+Morgan multi-mode,1013,4.0,5.545
+Essential,1013,8.333,6.864
+YouGov2,1017,7.0,6.076
+Newspoll,1019,7.0,7.168
+Morgan multi-mode,1020,5.0,6.545
+YouGov2,1024,7.5,6.576
+Morgan multi-mode,1027,5.0,6.545
+Essential,1027,8.511,7.041
+YouGov2,1031,7.0,6.076
+Morgan multi-mode,1034,4.0,5.545
+YouGov2,1027,9.3,8.376
+Newspoll,1041,6.0,6.168
+ResolvePM,1042,7.0,6.957
+Morgan multi-mode,1041,5.5,7.045
+Essential,1041,9.474,8.004
+YouGov2,1045,7.0,6.076
+Newspoll,1047,7.0,7.168
+Morgan multi-mode,1048,6.0,7.545
+YouGov2,1052,8.5,7.576
+Newspoll,1054,8.0,8.168
+Morgan multi-mode,1055,6.0,7.545
+ResolvePM,1056,6.0,5.957
+Essential,1055,9.375,7.905
+YouGov2,1058,7.0,6.076
+Newspoll,1061,7.0,7.168
+Morgan multi-mode,1062,6.0,7.545
+YouGov2,1065,10.5,9.576
+Newspoll,1068,8.0,8.168
+DemosAU,1068,9.0,8.671
+Morgan multi-mode,1069,7.5,9.045
+Essential,1069,10.0,8.53
+ResolvePM,1070,7.0,7.371
+Spectre,1071,10.0,9.56
+Redbridge,1071,8.0,7.888
+YouGov2,1060,9.1,8.176
+DemosAU,1073,9.0,8.671
+Freshwater,1075,8.0,7.913
+DemosAU,1074,9.0,8.671
+Newspoll,1075,8.0,8.168
+Morgan multi-mode,1075,6.5,8.045
+YouGov2,1073,8.5,7.576
+Ipsos,1074,8.333,8.148

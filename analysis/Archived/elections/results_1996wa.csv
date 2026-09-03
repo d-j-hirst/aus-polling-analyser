@@ -93,11 +93,11 @@ Katie Hodson-Thomas,Liberal,11360,52.2,None
 Peter Kyle,Independent,10387,47.8,None
 Seat,Churchlands
 fp
-Liz Constable,Independent,17254,83.2,35.6
-Geoffrey Baker,Labor,3478,16.8,10.0
+Liz Constable,Independent,17254,83.2,None
+Geoffrey Baker,Labor,3478,16.8,None
 tcp
-Liz Constable,Independent,17254,83.2,35.6
-Geoffrey Baker,Labor,3478,16.8,10.0
+Liz Constable,Independent,17254,83.2,None
+Geoffrey Baker,Labor,3478,16.8,None
 Seat,Cockburn
 fp
 Bill Thomas,Labor,10326,50.9,-3.4
@@ -109,11 +109,11 @@ Bill Thomas,Labor,12245,60.6,0.2
 Wendy Blake,Liberal,7976,39.4,-0.2
 Seat,Collie-Preston
 fp
-Hilda Turnbull,National,6954,59.3,26.1
-Mick Murray,Labor,4779,40.7,1.8
+Hilda Turnbull,National,6954,59.3,None
+Mick Murray,Labor,4779,40.7,None
 tcp
-Hilda Turnbull,National,6954,59.3,26.1
-Mick Murray,Labor,4779,40.7,1.8
+Hilda Turnbull,National,6954,59.3,None
+Mick Murray,Labor,4779,40.7,None
 Seat,Cottesloe
 fp
 Colin Barnett,Liberal,12572,60.5,-1.6
@@ -178,11 +178,11 @@ Ted Cunningham,Labor,11966,62.6,-0.9
 Avis Gobby,Liberal,7143,37.4,0.9
 Seat,Greenough
 fp
-Kevin Minson,Liberal,8202,72.1,15.7
-Carl Reynolds,Labor,3172,27.9,2.7
+Kevin Minson,Liberal,8202,72.1,None
+Carl Reynolds,Labor,3172,27.9,None
 tcp
-Kevin Minson,Liberal,8202,72.1,15.7
-Carl Reynolds,Labor,3172,27.9,2.7
+Kevin Minson,Liberal,8202,72.1,None
+Carl Reynolds,Labor,3172,27.9,None
 Seat,Hillarys
 fp
 Rob Johnson,Liberal,12085,53.3,2.6
@@ -259,11 +259,11 @@ Judy Edwards,Labor,11549,57.1,3.1
 Bev Brennan,Liberal,8678,42.9,-3.1
 Seat,Merredin
 fp
-Hendy Cowan,National,9488,81.2,30.9
-Mick Cole,Labor,2203,18.8,3.7
+Hendy Cowan,National,9488,81.2,None
+Mick Cole,Labor,2203,18.8,None
 tcp
-Hendy Cowan,National,9488,81.2,30.9
-Mick Cole,Labor,2203,18.8,3.7
+Hendy Cowan,National,9488,81.2,None
+Mick Cole,Labor,2203,18.8,None
 Seat,Midland
 fp
 Michelle Roberts,Labor,10340,47.1,0.4
@@ -284,11 +284,11 @@ Dan Sullivan,Liberal,6774,53.2,3.7
 Melissa Parke,Labor,5961,46.8,-3.7
 Seat,Moore
 fp
-Bill McNee,Liberal,8497,77.9,22.1
-Steve Kirby,Labor,2409,22.1,3.7
+Bill McNee,Liberal,8497,77.9,None
+Steve Kirby,Labor,2409,22.1,None
 tcp
-Bill McNee,Liberal,8497,77.9,22.1
-Steve Kirby,Labor,2409,22.1,3.7
+Bill McNee,Liberal,8497,77.9,None
+Steve Kirby,Labor,2409,22.1,None
 Seat,Murdoch
 fp
 Mike Board,Liberal,12387,60.04,-0.42
@@ -383,7 +383,7 @@ Arthur Galletly,Independent,420,2.1,0.8
 Frans Schutte,Independent,195,1.0,1.0
 tcp
 Mark McGowan,Labor,11531,57.5,3.4
-Rob Brown,Liberal,8530,42.5,3.4
+Rob Brown,Liberal,8530,42.5,-3.4
 Seat,Roe
 fp
 Ross Ainsworth,National,6286,53.6,0.0

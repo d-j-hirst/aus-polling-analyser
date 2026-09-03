@@ -1,0 +1,139 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,leave_one_out,2025fed,@TPP,DemosAU,0.97079975921414885,4.3211265652612072,,,
+1,leave_one_out,2025fed,@TPP,Essential,0.78605660983404879,51.518840556676494,,,
+1,leave_one_out,2025fed,@TPP,Freshwater,0.71513231688708967,20.421963093540253,,,
+1,leave_one_out,2025fed,@TPP,Morgan multi-mode,1.1115753655616825,104.49356781380324,,,
+1,leave_one_out,2025fed,@TPP,Newspoll2,0.88461449479842458,11.495104696051619,,,
+1,leave_one_out,2025fed,@TPP,Newspoll3,0.55453224219555319,27.173414892011557,,,
+1,leave_one_out,2025fed,@TPP,Redbridge,0.8319992015588793,13.888181549127262,,,
+1,leave_one_out,2025fed,@TPP,ResolvePM,2.4181098213559715,27.544812809458257,,,
+1,leave_one_out,2025fed,@TPP,YouGov2,0.77496478156681969,25.805872368807901,,,
+1,leave_one_out,2025fed,ALP FP,DemosAU,2.6946641933538622,4.2951032739755117,,,
+1,leave_one_out,2025fed,ALP FP,Essential,1.4262783981278857,47.872834725869808,,,
+1,leave_one_out,2025fed,ALP FP,Freshwater,1.0926645992116708,19.627696027421166,,,
+1,leave_one_out,2025fed,ALP FP,Morgan multi-mode,0.96133079728411752,118.66744665366849,,,
+1,leave_one_out,2025fed,ALP FP,Newspoll2,0.69645435958492652,11.569153505102474,,,
+1,leave_one_out,2025fed,ALP FP,Newspoll3,0.69143598907670167,26.927081558180205,,,
+1,leave_one_out,2025fed,ALP FP,Redbridge,0.89605874076732672,13.670184140349408,,,
+1,leave_one_out,2025fed,ALP FP,ResolvePM,3.0074464297504542,27.579957949808271,,,
+1,leave_one_out,2025fed,ALP FP,YouGov2,0.98832727171843682,25.481050039472851,,,
+1,leave_one_out,2025fed,GRN FP,DemosAU,0.9443278088696957,4.2593633630439056,,,
+1,leave_one_out,2025fed,GRN FP,Essential,1.2871357250922015,48.5960994370935,,,
+1,leave_one_out,2025fed,GRN FP,Freshwater,0.77693965013222699,20.177608164205722,,,
+1,leave_one_out,2025fed,GRN FP,Morgan multi-mode,0.76766409233781363,109.46279737423271,,,
+1,leave_one_out,2025fed,GRN FP,Newspoll2,0.97340179459460219,11.183720202100778,,,
+1,leave_one_out,2025fed,GRN FP,Newspoll3,0.61019465680501395,27.25574524468588,,,
+1,leave_one_out,2025fed,GRN FP,Redbridge,0.70890929108048617,14.240527074328142,,,
+1,leave_one_out,2025fed,GRN FP,ResolvePM,0.8947515653929472,28.494105178086023,,,
+1,leave_one_out,2025fed,GRN FP,YouGov2,0.56591671345329253,26.331066516308571,,,
+1,leave_one_out,2025fed,LNP FP,DemosAU,1.0812229948883294,4.6211486518784897,,,
+1,leave_one_out,2025fed,LNP FP,Essential,0.84893554888637435,51.307048181116805,,,
+1,leave_one_out,2025fed,LNP FP,Freshwater,0.85932220511243462,20.107694860808742,,,
+1,leave_one_out,2025fed,LNP FP,Morgan multi-mode,1.2842628949864263,98.674953887640555,,,
+1,leave_one_out,2025fed,LNP FP,Newspoll2,1.5506949071043665,10.939821503033697,,,
+1,leave_one_out,2025fed,LNP FP,Newspoll3,0.84894317159101784,26.496682860706468,,,
+1,leave_one_out,2025fed,LNP FP,Redbridge,1.1441889386741539,14.041704318666204,,,
+1,leave_one_out,2025fed,LNP FP,ResolvePM,2.1602039946786045,27.441806105486197,,,
+1,leave_one_out,2025fed,LNP FP,YouGov2,1.0080687120531167,25.077322728701041,,,
+1,leave_one_out,2025fed,ONP FP,DemosAU,0.51671937320877359,4.7854923650671939,,,
+1,leave_one_out,2025fed,ONP FP,Essential,0.8381839892852313,48.642347507183494,,,
+1,leave_one_out,2025fed,ONP FP,Freshwater,1.0179128005408167,1.9648048427501852,,,
+1,leave_one_out,2025fed,ONP FP,Morgan multi-mode,0.64107377621754746,99.016699256561694,,,
+1,leave_one_out,2025fed,ONP FP,Newspoll2,0.77145581125042495,11.766031681803369,,,
+1,leave_one_out,2025fed,ONP FP,Newspoll3,0.50727256489457595,27.478558955674874,,,
+1,leave_one_out,2025fed,ONP FP,Redbridge,0.92822158334806204,2,,,
+1,leave_one_out,2025fed,ONP FP,ResolvePM,0.79572134539160222,29.126791233730057,,,
+1,leave_one_out,2025fed,ONP FP,YouGov2,0.67294670201173412,24.981843658083697,,,
+1,leave_one_out,2025fed,OTH FP,DemosAU,3.8425030705914107,4.173801913989827,,,
+1,leave_one_out,2025fed,OTH FP,Essential,1.000147226941243,52.571242612308374,,,
+1,leave_one_out,2025fed,OTH FP,Freshwater,1.0028406913273185,19.78387824125096,,,
+1,leave_one_out,2025fed,OTH FP,Morgan multi-mode,1.031087073615427,107.05923165381257,,,
+1,leave_one_out,2025fed,OTH FP,Newspoll2,1.2190953840931631,11.434063638850617,,,
+1,leave_one_out,2025fed,OTH FP,Newspoll3,0.92406646609628995,26.835313245914417,,,
+1,leave_one_out,2025fed,OTH FP,Redbridge,1.2387508086017729,13.876123676073108,,,
+1,leave_one_out,2025fed,OTH FP,ResolvePM,1.4623806947482583,28.015199661494826,,,
+1,leave_one_out,2025fed,OTH FP,YouGov2,1.0873059579749285,25.451093320761778,,,
+1,bias_trend,2025fed,@TPP,,,,52.195999999999998,,
+1,bias_trend,2025fed,ALP FP,,,,31.888999999999999,,
+1,bias_trend,2025fed,GRN FP,,,,12.975,,
+1,bias_trend,2025fed,LNP FP,,,,33.972000000000001,,
+1,bias_trend,2025fed,ONP FP,,,,8.2850000000000001,,
+1,bias_trend,2025fed,OTH FP,,,,21.280000000000001,,
+1,bias_pollster,2025fed,@TPP,DemosAU,,,,0.184,5
+1,bias_pollster,2025fed,@TPP,Essential,,,,0.38300000000000001,12
+1,bias_pollster,2025fed,@TPP,Freshwater,,,,-0.88500000000000001,8
+1,bias_pollster,2025fed,@TPP,Ipsos,,,,-0.187,1
+1,bias_pollster,2025fed,@TPP,Morgan multi-mode,,,,0.40100000000000002,25
+1,bias_pollster,2025fed,@TPP,Newspoll2,,,,0.082000000000000003,0
+1,bias_pollster,2025fed,@TPP,Newspoll3,,,,0.045999999999999999,11
+1,bias_pollster,2025fed,@TPP,Redbridge,,,,0.32000000000000001,7
+1,bias_pollster,2025fed,@TPP,ResolvePM,,,,-1.0409999999999999,6
+1,bias_pollster,2025fed,@TPP,ResolvePM2,,,,0.023,1
+1,bias_pollster,2025fed,@TPP,Spectre,,,,0.043999999999999997,1
+1,bias_pollster,2025fed,@TPP,Wolf+Smith,,,,0.13400000000000001,0
+1,bias_pollster,2025fed,@TPP,YouGov2,,,,0.27600000000000002,14
+1,bias_pollster,2025fed,ALP FP,DemosAU,,,,-0.16,5
+1,bias_pollster,2025fed,ALP FP,Essential,,,,0.57999999999999996,12
+1,bias_pollster,2025fed,ALP FP,Freshwater,,,,0.23899999999999999,8
+1,bias_pollster,2025fed,ALP FP,Ipsos,,,,-0.47599999999999998,1
+1,bias_pollster,2025fed,ALP FP,Morgan multi-mode,,,,-0.055,25
+1,bias_pollster,2025fed,ALP FP,Newspoll2,,,,0.28399999999999997,0
+1,bias_pollster,2025fed,ALP FP,Newspoll3,,,,1.1839999999999999,11
+1,bias_pollster,2025fed,ALP FP,Redbridge,,,,1.605,7
+1,bias_pollster,2025fed,ALP FP,ResolvePM,,,,-2.581,6
+1,bias_pollster,2025fed,ALP FP,ResolvePM2,,,,-0.123,1
+1,bias_pollster,2025fed,ALP FP,Spectre,,,,-0.087999999999999995,1
+1,bias_pollster,2025fed,ALP FP,Wolf+Smith,,,,-0.028000000000000001,0
+1,bias_pollster,2025fed,ALP FP,YouGov2,,,,-0.223,14
+1,bias_pollster,2025fed,GRN FP,DemosAU,,,,-0.17999999999999999,5
+1,bias_pollster,2025fed,GRN FP,Essential,,,,0.13,12
+1,bias_pollster,2025fed,GRN FP,Freshwater,,,,0.14099999999999999,8
+1,bias_pollster,2025fed,GRN FP,Ipsos,,,,0.11799999999999999,1
+1,bias_pollster,2025fed,GRN FP,Morgan multi-mode,,,,0.27900000000000003,25
+1,bias_pollster,2025fed,GRN FP,Newspoll2,,,,-0.245,0
+1,bias_pollster,2025fed,GRN FP,Newspoll3,,,,-0.63500000000000001,11
+1,bias_pollster,2025fed,GRN FP,Redbridge,,,,-0.75900000000000001,7
+1,bias_pollster,2025fed,GRN FP,ResolvePM,,,,-0.042000000000000003,6
+1,bias_pollster,2025fed,GRN FP,ResolvePM2,,,,0.187,1
+1,bias_pollster,2025fed,GRN FP,Spectre,,,,0.44900000000000001,1
+1,bias_pollster,2025fed,GRN FP,Wolf+Smith,,,,0.032000000000000001,0
+1,bias_pollster,2025fed,GRN FP,YouGov2,,,,0.34200000000000003,14
+1,bias_pollster,2025fed,LNP FP,DemosAU,,,,-0.88800000000000001,5
+1,bias_pollster,2025fed,LNP FP,Essential,,,,-0.88400000000000001,12
+1,bias_pollster,2025fed,LNP FP,Freshwater,,,,2.3250000000000002,8
+1,bias_pollster,2025fed,LNP FP,Ipsos,,,,0.113,1
+1,bias_pollster,2025fed,LNP FP,Morgan multi-mode,,,,0.031,25
+1,bias_pollster,2025fed,LNP FP,Newspoll2,,,,-0.13600000000000001,0
+1,bias_pollster,2025fed,LNP FP,Newspoll3,,,,0.47099999999999997,11
+1,bias_pollster,2025fed,LNP FP,Redbridge,,,,0.062,7
+1,bias_pollster,2025fed,LNP FP,ResolvePM,,,,0.067000000000000004,6
+1,bias_pollster,2025fed,LNP FP,ResolvePM2,,,,0.158,1
+1,bias_pollster,2025fed,LNP FP,Spectre,,,,-0.025000000000000001,1
+1,bias_pollster,2025fed,LNP FP,Wolf+Smith,,,,-0.14899999999999999,0
+1,bias_pollster,2025fed,LNP FP,YouGov2,,,,-1.0820000000000001,14
+1,bias_pollster,2025fed,ONP FP,DemosAU,,,,0.14799999999999999,5
+1,bias_pollster,2025fed,ONP FP,Essential,,,,1.179,12
+1,bias_pollster,2025fed,ONP FP,Freshwater,,,,-0.097000000000000003,1
+1,bias_pollster,2025fed,ONP FP,Ipsos,,,,-0.014,1
+1,bias_pollster,2025fed,ONP FP,Morgan multi-mode,,,,-1.647,25
+1,bias_pollster,2025fed,ONP FP,Newspoll2,,,,0.151,0
+1,bias_pollster,2025fed,ONP FP,Newspoll3,,,,-0.20699999999999999,11
+1,bias_pollster,2025fed,ONP FP,Redbridge,,,,-0.097000000000000003,1
+1,bias_pollster,2025fed,ONP FP,ResolvePM,,,,-0.11899999999999999,6
+1,bias_pollster,2025fed,ONP FP,ResolvePM2,,,,-0.34699999999999998,1
+1,bias_pollster,2025fed,ONP FP,Spectre,,,,0.375,1
+1,bias_pollster,2025fed,ONP FP,Wolf+Smith,,,,-0.002,0
+1,bias_pollster,2025fed,ONP FP,YouGov2,,,,0.68400000000000005,14
+1,bias_pollster,2025fed,OTH FP,DemosAU,,,,1.395,5
+1,bias_pollster,2025fed,OTH FP,Essential,,,,0.031,12
+1,bias_pollster,2025fed,OTH FP,Freshwater,,,,-2.9910000000000001,8
+1,bias_pollster,2025fed,OTH FP,Ipsos,,,,0.188,1
+1,bias_pollster,2025fed,OTH FP,Morgan multi-mode,,,,-0.45600000000000002,25
+1,bias_pollster,2025fed,OTH FP,Newspoll2,,,,0.13100000000000001,0
+1,bias_pollster,2025fed,OTH FP,Newspoll3,,,,-1.0760000000000001,11
+1,bias_pollster,2025fed,OTH FP,Redbridge,,,,-0.35999999999999999,7
+1,bias_pollster,2025fed,OTH FP,ResolvePM,,,,2.3849999999999998,6
+1,bias_pollster,2025fed,OTH FP,ResolvePM2,,,,-0.20200000000000001,1
+1,bias_pollster,2025fed,OTH FP,Spectre,,,,-0.050999999999999997,1
+1,bias_pollster,2025fed,OTH FP,Wolf+Smith,,,,0.156,0
+1,bias_pollster,2025fed,OTH FP,YouGov2,,,,0.749,14

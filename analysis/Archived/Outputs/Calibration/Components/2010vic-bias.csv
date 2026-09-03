@@ -1,0 +1,41 @@
+schema_version,record_type,election,party,pollster,weighted_abs_error,error_weight,final_trend_median,new_house_effect_median,recent_poll_count
+1,bias_trend,2010vic,GRN FP,,,,14.381,,
+1,bias_pollster,2010vic,GRN FP,Essential,,,,-0.71799999999999997,1
+1,bias_pollster,2010vic,GRN FP,Galaxy,,,,-0.11799999999999999,3
+1,bias_pollster,2010vic,GRN FP,JWS Research,,,,0.73699999999999999,1
+1,bias_pollster,2010vic,GRN FP,Morgan Phone,,,,-0.627,4
+1,bias_pollster,2010vic,GRN FP,Newspoll,,,,1.1459999999999999,5
+1,bias_pollster,2010vic,GRN FP,Nielsen,,,,0.071999999999999995,3
+1,bias_pollster,2010vic,GRN FP,Saulwick,,,,-0.32800000000000001,0
+1,bias_trend,2010vic,OTH FP,,,,6.8150000000000004,,
+1,bias_pollster,2010vic,OTH FP,Essential,,,,0.77500000000000002,1
+1,bias_pollster,2010vic,OTH FP,Galaxy,,,,-0.47099999999999997,3
+1,bias_pollster,2010vic,OTH FP,JWS Research,,,,0.10199999999999999,1
+1,bias_pollster,2010vic,OTH FP,Morgan Phone,,,,-0.46400000000000002,4
+1,bias_pollster,2010vic,OTH FP,Newspoll,,,,0.068000000000000005,5
+1,bias_pollster,2010vic,OTH FP,Nielsen,,,,0.248,3
+1,bias_pollster,2010vic,OTH FP,Saulwick,,,,-0.25,0
+1,bias_trend,2010vic,LNP FP,,,,43.959000000000003,,
+1,bias_pollster,2010vic,LNP FP,Essential,,,,0.76100000000000001,1
+1,bias_pollster,2010vic,LNP FP,Galaxy,,,,0.248,3
+1,bias_pollster,2010vic,LNP FP,JWS Research,,,,-0.89700000000000002,1
+1,bias_pollster,2010vic,LNP FP,Morgan Phone,,,,0.52100000000000002,4
+1,bias_pollster,2010vic,LNP FP,Newspoll,,,,-0.159,5
+1,bias_pollster,2010vic,LNP FP,Nielsen,,,,-0.47099999999999997,3
+1,bias_pollster,2010vic,LNP FP,Saulwick,,,,-0.025000000000000001,0
+1,bias_trend,2010vic,ALP FP,,,,34.997,,
+1,bias_pollster,2010vic,ALP FP,Essential,,,,-0.037999999999999999,1
+1,bias_pollster,2010vic,ALP FP,Galaxy,,,,0.078,3
+1,bias_pollster,2010vic,ALP FP,JWS Research,,,,-0.161,1
+1,bias_pollster,2010vic,ALP FP,Morgan Phone,,,,0.46200000000000002,4
+1,bias_pollster,2010vic,ALP FP,Newspoll,,,,-1.0109999999999999,5
+1,bias_pollster,2010vic,ALP FP,Nielsen,,,,-0.0050000000000000001,3
+1,bias_pollster,2010vic,ALP FP,Saulwick,,,,0.58199999999999996,0
+1,bias_trend,2010vic,@TPP,,,,49.082000000000001,,
+1,bias_pollster,2010vic,@TPP,Essential,,,,-0.57399999999999995,1
+1,bias_pollster,2010vic,@TPP,Galaxy,,,,-0.071999999999999995,3
+1,bias_pollster,2010vic,@TPP,JWS Research,,,,0.48199999999999998,1
+1,bias_pollster,2010vic,@TPP,Morgan Phone,,,,-0.153,4
+1,bias_pollster,2010vic,@TPP,Newspoll,,,,-0.085999999999999993,5
+1,bias_pollster,2010vic,@TPP,Nielsen,,,,0.20300000000000001,3
+1,bias_pollster,2010vic,@TPP,Saulwick,,,,0.16900000000000001,0

@@ -150,11 +150,11 @@ Con Sciacca,Labor,35609,55.0,-0.3
 Andrew Crowe,Liberal,29085,45.0,0.3
 Seat,Braddon
 fp
-Chris Miles,Liberal,32108,57.9,5.2
-David Currie,Labor,23307,42.1,-1.3
+Chris Miles,Liberal,32108,57.9,None
+David Currie,Labor,23307,42.1,None
 tcp
-Chris Miles,Liberal,32108,57.9,5.2
-David Currie,Labor,23307,42.1,-1.3
+Chris Miles,Liberal,32108,57.9,None
+David Currie,Labor,23307,42.1,None
 Seat,Bradfield
 fp
 David Connolly,Liberal,45630,71.6,0.1
@@ -564,11 +564,11 @@ Leo McLeay,Labor,35395,59.7,-5.2
 Keith Tartak,Liberal,23883,40.3,5.2
 Seat,Greenway
 fp
-Russ Gorman,Labor,35386,59.9,3.1
-Warren Musgrave,Liberal,23700,40.1,11.6
+Russ Gorman,Labor,35386,59.9,None
+Warren Musgrave,Liberal,23700,40.1,None
 tcp
-Russ Gorman,Labor,35386,59.9,3.1
-Warren Musgrave,Liberal,23700,40.1,11.6
+Russ Gorman,Labor,35386,59.9,None
+Warren Musgrave,Liberal,23700,40.1,None
 Seat,Grey
 fp
 Lloyd O'Neil,Labor,32005,51.9,-0.6
@@ -978,11 +978,11 @@ Neil Brown,Liberal,35049,57.3,1.6
 Ivana Csar,Labor,26085,42.7,-1.6
 Seat,Mitchell
 fp
-Alan Cadman,Liberal,46473,72.5,5.0
-Geoff Robinson,Labor,17603,27.5,2.0
+Alan Cadman,Liberal,46473,72.5,None
+Geoff Robinson,Labor,17603,27.5,None
 tcp
-Alan Cadman,Liberal,46473,72.5,5.0
-Geoff Robinson,Labor,17603,27.5,2.0
+Alan Cadman,Liberal,46473,72.5,None
+Geoff Robinson,Labor,17603,27.5,None
 Seat,Moncrieff
 fp
 Robert Boyce,Labor,23067,35.9,-0.1
@@ -1177,11 +1177,11 @@ Charles Blunt,National,34542,56.6,-0.6
 Klaas Woldring,Labor,26500,43.4,0.6
 Seat,Riverina-Darling
 fp
-Noel Hicks,National,32238,53.5,6.1
-Peter Black,Labor,28017,46.5,2.5
+Noel Hicks,National,32238,53.5,None
+Peter Black,Labor,28017,46.5,None
 tcp
-Noel Hicks,National,32238,53.5,6.1
-Peter Black,Labor,28017,46.5,2.5
+Noel Hicks,National,32238,53.5,None
+Peter Black,Labor,28017,46.5,None
 Seat,Robertson
 fp
 Barry Cohen,Labor,31983,49.0,-6.3
@@ -1327,11 +1327,11 @@ John Hewson,Liberal,34101,58.0,1.7
 Anne-Maree Whitaker,Labor,24695,42.0,-1.7
 Seat,Werriwa
 fp
-John Kerin,Labor,43094,63.7,0.0
-David Brock,Liberal,24600,36.3,7.0
+John Kerin,Labor,43094,63.7,None
+David Brock,Liberal,24600,36.3,None
 tcp
-John Kerin,Labor,43094,63.7,0.0
-David Brock,Liberal,24600,36.3,7.0
+John Kerin,Labor,43094,63.7,None
+David Brock,Liberal,24600,36.3,None
 Seat,Wide Bay
 fp
 Clarrie Millar,National,30699,50.5,-8.6
