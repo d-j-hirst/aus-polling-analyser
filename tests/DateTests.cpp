@@ -38,6 +38,11 @@ int main()
 	auto const localTimestamp = Timestamp::parseCompactLocal("20260323121118");
 	assert(localTimestamp);
 	assert(localTimestamp->formatIsoLocal() == "2026-03-23T12:11:18");
+	auto const localWithOffset = localTimestamp->formatIsoLocalOffset();
+	assert(localWithOffset.starts_with(localTimestamp->formatIsoLocal()));
+	assert(localWithOffset.size() == localTimestamp->formatIsoLocal().size() + 6);
+	assert(localWithOffset[19] == '+' || localWithOffset[19] == '-');
+	assert(localWithOffset[22] == ':');
 	assert(!Timestamp::parseCompactLocal("20260230121118"));
 	auto const restoredTimestamp = Timestamp::fromLegacyJulianDay(
 		localTimestamp->toLegacyJulianDay());

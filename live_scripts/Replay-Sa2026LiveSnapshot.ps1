@@ -1,10 +1,40 @@
 <#
-Replays archived 2026 South Australian ECSA live-result snapshots.
+.SYNOPSIS
+Installs an archived 2026 SA ECSA snapshot as el2026_ha_detail.xml.
 
+.DESCRIPTION
 The polling application looks for el2026_ha_detail.xml in the current-results
-directory configured for the simulation. This script installs one timestamped
-archived snapshot under that name, then remembers the selection so a later run
-without arguments moves to the next available snapshot.
+directory configured for the simulation. This script copies one timestamped
+archive (el2026<12-digit stamp>.xml) to that name, then remembers the
+selection so a later run without arguments moves to the next snapshot.
+
+Source archives are left unchanged. The script does not write into the
+repository downloads folder; LivePreparation copies the selected feed to
+downloads/2026sa_latest.xml when the simulation runs.
+
+.PARAMETER Timestamp
+12-digit filename stamp, for example 260315004007 for el2026260315004007.xml.
+This is not the 14-digit ECSA last_updated value used as snapshot_code in
+live-run JSON exports.
+
+.PARAMETER Interactive
+List matching archives and prompt for a selection.
+
+.PARAMETER ResultsDirectory
+Directory that contains the archives and receives el2026_ha_detail.xml.
+Must match the simulation's Current results directory. Defaults to Downloads.
+
+.PARAMETER Help
+Print brief usage and exit.
+
+.EXAMPLE
+.\Replay-Sa2026LiveSnapshot.ps1 260315004007
+
+.EXAMPLE
+.\Replay-Sa2026LiveSnapshot.ps1 -Interactive
+
+.EXAMPLE
+.\Replay-Sa2026LiveSnapshot.ps1
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
@@ -13,11 +43,46 @@ param(
 
     [switch]$Interactive,
 
-    [string]$ResultsDirectory = (Join-Path $HOME 'Downloads')
+    [string]$ResultsDirectory = (Join-Path $HOME 'Downloads'),
+
+    [Alias('h')]
+    [switch]$Help
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+if ($Help) {
+    Write-Host @'
+Replay-Sa2026LiveSnapshot.ps1
+  Copies one archived ECSA feed (el2026<12-digit stamp>.xml) to
+  el2026_ha_detail.xml in the simulation's Current results directory
+  (default: Downloads). Source archives are not modified.
+
+  The 12-digit argument is the filename stamp, not the 14-digit
+  last_updated value that appears as snapshot_code in live-run JSON.
+
+Usage:
+  .\Replay-Sa2026LiveSnapshot.ps1 260315004007
+      Install that archive.
+
+  .\Replay-Sa2026LiveSnapshot.ps1 -Interactive
+      List archives and choose one.
+
+  .\Replay-Sa2026LiveSnapshot.ps1
+      Advance one snapshot from the last selection (requires a prior run).
+
+  .\Replay-Sa2026LiveSnapshot.ps1 -Interactive -ResultsDirectory C:\LiveTests\SA2026
+      Use a directory other than Downloads.
+
+  .\Replay-Sa2026LiveSnapshot.ps1 260315004007 -WhatIf
+      Show the choice without replacing el2026_ha_detail.xml.
+
+Then run the automatic live simulation as usual. LivePreparation copies
+the installed feed to downloads/2026sa_latest.xml at run time.
+'@
+    return
+}
 
 $ResultsDirectory = [System.IO.Path]::GetFullPath($ResultsDirectory)
 $TargetFilename = 'el2026_ha_detail.xml'

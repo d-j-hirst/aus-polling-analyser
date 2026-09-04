@@ -69,6 +69,7 @@ run_test DateTests
 run_test ForecastSpecificationTests
 run_test LiveDataTests
 run_test LiveResultsInputTests
+run_test LiveRunExportTests
 run_test MacroTargetResolverTests
 run_test RandomGeneratorTests
 run_test TerminalMacroFeedbackTests

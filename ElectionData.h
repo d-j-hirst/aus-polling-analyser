@@ -5,9 +5,10 @@
 #include "json.h"
 
 #include <array>
-#include <unordered_map>
 #include <numeric>
+#include <optional>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace Results {
@@ -143,7 +144,8 @@ namespace Results2 {
 		int32_t parentSeat;
 		bool confirmedPresent; // "Phantom booths" can appear in the preload but not in the live data, this 
 
-		std::pair<float, float> coords = { 0.0f, 0.0f }; // latitude, longitude
+		// Unset when the feed has no lat/lon (typical for ECSA and declaration booths).
+		std::optional<std::pair<float, float>> coords;
 
 		std::unordered_map<int32_t, int32_t> fpVotes; // map candidate id -> vote count
 		std::unordered_map<int32_t, int32_t> tcpVotes; // map affiliation id -> vote count

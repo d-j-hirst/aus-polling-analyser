@@ -70,6 +70,7 @@ public:
 	std::int64_t unixMilliseconds() const { return unixMillis; }
 
 	std::string formatIsoLocal() const;
+	std::string formatIsoLocalOffset() const;
 	std::string formatIsoDateLocal() const;
 	std::string formatIsoTimeLocal() const;
 	std::string formatIsoUtc() const;

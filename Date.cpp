@@ -96,6 +96,33 @@ namespace {
 		return output.str();
 	}
 
+	int localUtcOffsetMinutes(std::tm const& local, std::tm const& utc)
+	{
+		int const localMinutes = local.tm_hour * 60 + local.tm_min;
+		int const utcMinutes = utc.tm_hour * 60 + utc.tm_min;
+		int offset = localMinutes - utcMinutes;
+		if (local.tm_year > utc.tm_year ||
+			(local.tm_year == utc.tm_year && local.tm_yday > utc.tm_yday)) {
+			offset += 24 * 60;
+		}
+		else if (local.tm_year < utc.tm_year ||
+			(local.tm_year == utc.tm_year && local.tm_yday < utc.tm_yday)) {
+			offset -= 24 * 60;
+		}
+		return offset;
+	}
+
+	std::string formatUtcOffset(int totalMinutes)
+	{
+		char const sign = totalMinutes < 0 ? '-' : '+';
+		int const absolute = totalMinutes < 0 ? -totalMinutes : totalMinutes;
+		std::ostringstream output;
+		output << sign << std::setfill('0') <<
+			std::setw(2) << (absolute / 60) << ':' <<
+			std::setw(2) << (absolute % 60);
+		return output.str();
+	}
+
 	bool localTime(std::time_t value, std::tm& result)
 	{
 #ifdef _WIN32
@@ -314,6 +341,17 @@ std::string Timestamp::formatIsoLocal() const
 	std::tm local = {};
 	if (!localTime(unixSeconds(unixMillis), local)) return {};
 	return formatDateTime(local, true);
+}
+
+std::string Timestamp::formatIsoLocalOffset() const
+{
+	if (!isValid()) return {};
+	auto const seconds = unixSeconds(unixMillis);
+	std::tm local = {};
+	std::tm utc = {};
+	if (!localTime(seconds, local) || !utcTime(seconds, utc)) return {};
+	return formatDateTime(local, true) +
+		formatUtcOffset(localUtcOffsetMinutes(local, utc));
 }
 
 std::string Timestamp::formatIsoDateLocal() const

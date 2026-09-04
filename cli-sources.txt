@@ -2,6 +2,7 @@
 # boundary test. The executable adds PollingCli.cpp; GUI, live parsing and
 # network upload remains outside the CLI; local report serialization is shared.
 CliLivePreparationBridge.cpp
+CliLiveRunExport.cpp
 Config.cpp
 CoreMacroRunner.cpp
 CoreReportSummary.cpp

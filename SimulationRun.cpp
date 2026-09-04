@@ -2,6 +2,7 @@
 
 #include "General.h"
 #include "LivePreparationBridge.h"
+#include "LiveRunExport.h"
 #include "Log.h"
 #include "PollingProject.h"
 #include "Simulation.h"
@@ -120,6 +121,16 @@ bool SimulationRun::run(
 		feedback(
 			"Could not run simulation: the configured iteration count must be positive.");
 		return false;
+	}
+	if (sim.isLiveAutomatic()) {
+		auto const outputError = LiveRunExport::validateOutputFolder(
+			sim.settings.liveOutputFolder);
+		if (outputError) {
+			feedback(
+				"Could not run live simulation because its diagnostic output "
+				"folder is invalid:\n" + *outputError);
+			return false;
+		}
 	}
 
 	Projection const& thisProjection = project.projections().view(sim.settings.baseProjection);

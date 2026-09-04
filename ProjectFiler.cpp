@@ -75,7 +75,8 @@
 // Version 63: save seat live manual overrides
 // Version 64: save candidate names in simulation reports
 // Version 65: save each simulation's current-results input directory
-constexpr int VersionNum = 65;
+// Version 66: save each simulation's live diagnostic output folder
+constexpr int VersionNum = 66;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -882,6 +883,7 @@ void ProjectFiler::saveSimulations(SaveFileOutput& saveOutput)
 		saveOutput << thisSimulation.getSettings().currentRealUrl;
 		saveOutput << LiveResultsInput::portableDirectory(
 			thisSimulation.getSettings().currentResultsDirectory);
+		saveOutput << thisSimulation.getSettings().liveOutputFolder;
 		saveOutput << thisSimulation.getSettings().fedElectionDate.toLegacyJulianDay();
 		saveOutput << thisSimulation.lastUpdated.toLegacyJulianDay();
 		saveReport(saveOutput, thisSimulation.latestReport);
@@ -928,6 +930,9 @@ void ProjectFiler::loadSimulations(SaveFileInput& saveInput, [[maybe_unused]] in
 		thisSettings.currentResultsDirectory =
 			LiveResultsInput::portableDirectory(
 				thisSettings.currentResultsDirectory);
+		if (versionNum >= 66) {
+			saveInput >> thisSettings.liveOutputFolder;
+		}
 		if (versionNum >= 55) {
 			thisSettings.fedElectionDate =
 				Date::fromLegacyJulianDay(saveInput.extract<double>());

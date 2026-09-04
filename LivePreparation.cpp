@@ -520,6 +520,9 @@ void LivePreparation::acquireCurrentResults()
 				LiveResultsInput::pathToUtf8(inputDirectory));
 		}
 		auto const& selectedPath = selected->path;
+		if (selected->timestamp) {
+			sim.latestReport.dateCode = *selected->timestamp;
+		}
 
 		xmlFilename = "downloads/" + run.getTermCode() + "_latest.xml";
 		if (run.regionCode == "sa") {
@@ -532,6 +535,9 @@ void LivePreparation::acquireCurrentResults()
 			tinyxml2::XMLDocument archiveXml;
 			loadEcsaXmlDocument(archiveXml, xmlFilename);
 			auto const updateTimestamp = ecsaCompactUpdateTimestamp(archiveXml);
+			if (updateTimestamp) {
+				sim.latestReport.dateCode = *updateTimestamp;
+			}
 			bool const archiveCurrent = isLiveArchiveDate(
 				Date::todayLocal(), electionDate) && updateTimestamp &&
 				isLiveArchiveDate(

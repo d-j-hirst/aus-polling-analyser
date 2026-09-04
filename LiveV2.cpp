@@ -524,7 +524,7 @@ Booth::Booth(
   bool sameSeat
 )
   : name(Results2::voteTypeName(voteType)), parentSeatId(parentSeatId), voteType(voteType), boothType(Results2::Booth::Type::Other),
-  coords({ 0.0f, 0.0f }), sameSeat(sameSeat)
+  sameSeat(sameSeat)
 {
   auto processVotes = [this, &partyMapper, voteType](
     Results2::Seat::VotesByType const& currentVotes,
@@ -674,7 +674,12 @@ void Booth::log() const
   logger << "Booth: " << name << "\n";
   logger << "Vote type: " << voteTypeName(voteType) << "\n";
   logger << "Booth type: " << Results2::Booth::boothTypeName(boothType) << "\n";
-  logger << "Coordinates: (" << coords.first << ", " << coords.second << ")\n";
+  if (coords) {
+    logger << "Coordinates: (" << coords->first << ", " << coords->second << ")\n";
+  }
+  else {
+    logger << "Coordinates: (not available)\n";
+  }
   logger << "Same seat: " << (sameSeat ? "true" : "false") << "\n";
   logger << "tppVotesEstimated: (" << tppVotesEstimated << ")\n";
   node.log();

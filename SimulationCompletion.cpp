@@ -1,6 +1,7 @@
 #include "SimulationCompletion.h"
 
 #include "LiveData.h"
+#include "LiveRunExport.h"
 #include "PollingProject.h"
 #include "Simulation.h"
 #include "SimulationRun.h"
@@ -145,6 +146,8 @@ void SimulationCompletion::completeRun(
 
 	if (run.isLiveAutomatic() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
 		exportSummary(feedback, actionRequired);
+		LiveRunExport::exportCompletedAutomaticLiveRun(
+			project, sim, run, iterations, feedback, actionRequired);
 	}
 
 	logger << "Simulation successfully completed.\n";

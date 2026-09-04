@@ -2989,14 +2989,14 @@ void Results2::Election::updateAecPollingPlaces(tinyxml2::XMLDocument const& xml
         int boothId = requiredIntAttribute(*locationEl, "Id",
           "AEC polling-place data/PollingDistrict/PollingPlaces/PollingPlace/eml:PhysicalLocation", 0);
         if (booths.contains(boothId)) {
-          booths[boothId].coords = {
+          booths[boothId].coords.emplace(
             requiredFloatText(*latitudeEl,
               "AEC polling-place data/PollingDistrict/PollingPlaces/PollingPlace/latitude",
               -90.0f, 90.0f),
             requiredFloatText(*longitudeEl,
               "AEC polling-place data/PollingDistrict/PollingPlaces/PollingPlace/longitude",
               -180.0f, 180.0f)
-          };
+          );
         }
       }
       currentPollingPlace = currentPollingPlace->NextSiblingElement("PollingPlace");

@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <set>
 
 class PollingProject;
@@ -134,7 +135,7 @@ public:
 
   Results2::VoteType voteType = Results2::VoteType::Ordinary;
   Results2::Booth::Type boothType = Results2::Booth::Type::Normal;
-  std::pair<float, float> coords = { 0.0f, 0.0f }; // latitude, longitude
+  std::optional<std::pair<float, float>> coords; // latitude, longitude; unset if the source booth has none
   std::map<int, float> tppVotesEstimated; // estimate-only count for tpp votes, used for calculating general bias in TPP estimates
 
   // Booths from a different seat are much less reliable for extrapolation
@@ -157,7 +158,12 @@ public:
   // and allows the vector to be resized
   std::vector<int> booths;
 
+  // Live candidate ID matched to the baseline/prominent Independent
+  // (ecCandidateId + 100000). Booth vote maps keep this raw ID; deviations
+  // and projected votes remap it onto run.indPartyIndex.
   int independentPartyIndex = InvalidPartyIndex;
+  // Highest-polling live Independent, which can differ from the candidate
+  // matched to the prominent Independent in the baseline projection.
   int liveIndependentPartyIndex = InvalidPartyIndex;
 
   std::map<int, float> finalSpecificFpDeviations; // deviations taking into account change in voter categories
@@ -445,6 +451,8 @@ public:
   }
 
   std::vector<BoothSnapshot> getBoothSnapshots() const override;
+
+  nlohmann::json getDiagnosticSnapshot() const;
 
   std::unique_ptr<LiveData::Provider> generateScenario(
     int iterationIndex) const override;

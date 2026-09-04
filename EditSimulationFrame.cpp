@@ -30,6 +30,7 @@ enum ControlId
 	CurrentTestUrl,
 	CurrentRealUrl,
 	CurrentResultsDirectory,
+	LiveOutputFolder,
 	FedElectionDate,
 	ForceTpp
 };
@@ -60,6 +61,7 @@ void EditSimulationFrame::createControls(int & y)
 	createCurrentTestUrlInput(y);
 	createCurrentRealUrlInput(y);
 	createCurrentResultsDirectoryInput(y);
+	createLiveOutputFolderInput(y);
 	createFedElectionDateInput(y);
 	createForceTppInput(y);
 
@@ -188,6 +190,19 @@ void EditSimulationFrame::createCurrentResultsDirectoryInput(int& y)
 		simulationSettings.currentResultsDirectory,
 		wxPoint(2, y), callback));
 	y += currentResultsDirectoryInput->Height + ControlPadding;
+}
+
+void EditSimulationFrame::createLiveOutputFolderInput(int& y)
+{
+	auto callback = [this](std::string value) {
+		simulationSettings.liveOutputFolder = std::move(value);
+	};
+	liveOutputFolderInput.reset(new TextInput(
+		this, ControlId::LiveOutputFolder,
+		"Live diagnostic output folder:",
+		simulationSettings.liveOutputFolder,
+		wxPoint(2, y), callback));
+	y += liveOutputFolderInput->Height + ControlPadding;
 }
 
 void EditSimulationFrame::createFedElectionDateInput(int& y)

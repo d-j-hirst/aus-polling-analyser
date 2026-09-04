@@ -311,6 +311,7 @@
     <ClCompile Include="LivePreparationBridge.cpp" />
     <ClCompile Include="LiveBoothFrame.cpp" />
     <ClCompile Include="LiveV2.cpp" />
+    <ClCompile Include="LiveRunExport.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="MacroRunner.cpp" />
     <ClCompile Include="MacroTargetResolver.cpp" />
@@ -411,6 +412,7 @@
     <ClInclude Include="LivePreparation.h" />
     <ClInclude Include="LiveBoothFrame.h" />
     <ClInclude Include="LiveV2.h" />
+    <ClInclude Include="LiveRunExport.h" />
     <ClInclude Include="MacroRunner.h" />
     <ClInclude Include="MacroFeedback.h" />
     <ClInclude Include="MacroTargetResolver.h" />

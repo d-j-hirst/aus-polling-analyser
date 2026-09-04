@@ -77,6 +77,10 @@ public:
 		// Machine-local directory scanned for state current-results feeds.
 		std::string currentResultsDirectory =
 			LiveResultsInput::defaultDirectory();
+
+		// Single folder name under live_runs/ for optional diagnostic JSON.
+		// Empty disables export. Not a filesystem path.
+		std::string liveOutputFolder;
 	};
 
 	enum MajorParty {

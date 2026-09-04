@@ -284,6 +284,9 @@
     <ClCompile Include="LiveV2.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
+    <ClCompile Include="LiveRunExport.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -688,6 +691,9 @@
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
     <ClInclude Include="LiveV2.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveRunExport.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
     <ClInclude Include="Utf16ToUtf8.h">

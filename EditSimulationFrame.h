@@ -60,6 +60,7 @@ private:
 	void createCurrentTestUrlInput(int& y);
 	void createCurrentRealUrlInput(int& y);
 	void createCurrentResultsDirectoryInput(int& y);
+	void createLiveOutputFolderInput(int& y);
 	void createFedElectionDateInput(int& y);
 	void createForceTppInput(int& y);
 
@@ -92,6 +93,7 @@ private:
 	std::unique_ptr<TextInput> currentTestUrlInput;
 	std::unique_ptr<TextInput> currentRealUrlInput;
 	std::unique_ptr<TextInput> currentResultsDirectoryInput;
+	std::unique_ptr<TextInput> liveOutputFolderInput;
 	std::unique_ptr<DateInput> fedElectionDateInput;
 	std::unique_ptr<FloatInput> forceTppInput;
 
