@@ -38,12 +38,14 @@ void PartiesFrame::newPartyCallback(Party party)
 {
 	addParty(party);
 	refresher.refreshPollData();
+	refresher.refreshLiveBooths();
 }
 
 void PartiesFrame::editPartyCallback(Party party)
 {
 	replaceParty(party);
 	refresher.refreshPollData();
+	refresher.refreshLiveBooths();
 }
 
 void PartiesFrame::partySettingsCallback(PartySettingsData partySettingsData)
@@ -203,6 +205,7 @@ void PartiesFrame::OnRemoveParty(wxCommandEvent& WXUNUSED(event)) {
 	refresher.refreshMap();
 	refresher.refreshResults();
 	refresher.refreshSeatData();
+	refresher.refreshLiveBooths();
 
 	return;
 }

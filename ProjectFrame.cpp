@@ -340,6 +340,9 @@ void ProjectFrame::OnSwitch(wxBookCtrlEvent& event) {
 		mapFrame->resetMouseOver();
 		mapFrame->paint();
 	}
+	if (liveBoothFrame && GetPage(tabselected) == liveBoothFrame) {
+		liveBoothFrame->refreshData();
+	}
 }
 
 void ProjectFrame::setupPages() {

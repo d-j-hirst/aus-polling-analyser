@@ -12,6 +12,9 @@ ForecastSpecificationProjectAdapter.cpp
 General.cpp
 Log.cpp
 LiveResultsInput.cpp
+LiveSnapshotData.cpp
+LiveSnapshotGraph.cpp
+LiveSnapshotTable.cpp
 MacroTargetResolver.cpp
 ModelCollection.cpp
 OutcomeCollection.cpp

@@ -200,6 +200,7 @@ void SimulationsFrame::addSimulation(Simulation::Settings settings) {
 
 	refresher.refreshDisplay();
 	refresher.refreshMap();
+	refresher.refreshLiveBooths();
 }
 
 void SimulationsFrame::addSimulationToSimulationData(Simulation simulation) {
@@ -224,6 +225,7 @@ void SimulationsFrame::replaceSimulation(Simulation::Settings settings) {
 
 	refresher.refreshDisplay();
 	refresher.refreshMap();
+	refresher.refreshLiveBooths();
 }
 
 void SimulationsFrame::removeSimulation() {
@@ -236,6 +238,7 @@ void SimulationsFrame::removeSimulation() {
 
 	refresher.refreshDisplay();
 	refresher.refreshMap();
+	refresher.refreshLiveBooths();
 }
 
 void SimulationsFrame::runSimulation() {

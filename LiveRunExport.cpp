@@ -12,6 +12,7 @@
 
 #include <cctype>
 #include <cmath>
+#include <cstdio>
 #include <exception>
 #include <filesystem>
 #include <fstream>
@@ -317,6 +318,18 @@ json floatArray(std::vector<float> const& values)
 	return array;
 }
 
+json seatCompletionArray(
+	LiveData::Provider const& election,
+	std::vector<std::string> const& seatNames,
+	float (LiveData::Provider::*getter)(std::string const&) const)
+{
+	json array = json::array();
+	for (auto const& name : seatNames) {
+		array.push_back(number((election.*getter)(name)));
+	}
+	return array;
+}
+
 json floatArray2(std::vector<std::vector<float>> const& values)
 {
 	json array = json::array();
@@ -581,6 +594,172 @@ void reportExportFailure(
 	actionRequired(message);
 }
 
+json liveAnalysisSummaryFrom(json const& analysis)
+{
+	json summary = {
+		{"booth_count", 0},
+		{"seat_count", 0}
+	};
+	if (analysis.contains("booths") && analysis["booths"].is_array()) {
+		summary["booth_count"] = analysis["booths"].size();
+		if (!analysis["booths"].empty() && analysis["booths"][0].is_object()) {
+			auto const& booth = analysis["booths"][0];
+			if (booth.contains("seat_name")) {
+				summary["first_booth_seat"] = booth["seat_name"];
+			}
+			if (booth.contains("name")) {
+				summary["first_booth_name"] = booth["name"];
+			}
+		}
+	}
+	if (analysis.contains("seats") && analysis["seats"].is_array()) {
+		summary["seat_count"] = analysis["seats"].size();
+	}
+	summary["booth_type"] = json::array();
+	summary["vote_type"] = json::array();
+	summary["raw_2pp_deviation"] = 0.0;
+	if (analysis.contains("category_biases") &&
+		analysis["category_biases"].is_object()) {
+		auto const& biases = analysis["category_biases"];
+		if (biases.contains("tpp") && biases["tpp"].is_object()) {
+			auto const& tpp = biases["tpp"];
+			if (tpp.contains("booth_type") && tpp["booth_type"].is_array()) {
+				summary["booth_type"] = tpp["booth_type"];
+			}
+			if (tpp.contains("vote_type") && tpp["vote_type"].is_array()) {
+				summary["vote_type"] = tpp["vote_type"];
+			}
+		}
+	}
+	if (analysis.contains("election") && analysis["election"].is_object()) {
+		auto const& election = analysis["election"];
+		if (election.contains("projected_2pp")) {
+			summary["projected_2pp"] = election["projected_2pp"];
+		}
+		if (election.contains("node") && election["node"].is_object()) {
+			auto const& node = election["node"];
+			if (node.contains("tpp_deviation") &&
+				!node["tpp_deviation"].is_null()) {
+				summary["raw_2pp_deviation"] = node["tpp_deviation"];
+			}
+		}
+	}
+	return summary;
+}
+
+bool isHighPrecisionFloatKey(std::string_view key)
+{
+	return key == "seat_fp_completion" ||
+		key == "seat_tpp_completion" ||
+		key == "seat_tcp_completion" ||
+		key == "bias" ||
+		key == "std_dev" ||
+		key == "raw" ||
+		key == "raw_2pp_deviation";
+}
+
+std::string formatExportFloat(double value, int decimals)
+{
+	if (!std::isfinite(value)) return "null";
+	if (decimals < 0) decimals = 0;
+	double const scale = std::pow(10.0, decimals);
+	double const rounded = std::round(value * scale) / scale;
+	if (rounded == 0.0) return "0";
+	char buffer[64];
+	int const length = std::snprintf(buffer, sizeof(buffer), "%.*f", decimals, rounded);
+	if (length <= 0 || length >= int(sizeof(buffer))) return "0";
+	int end = length;
+	while (end > 0 && buffer[end - 1] == '0') --end;
+	if (end > 0 && buffer[end - 1] == '.') --end;
+	if (end <= 0) return "0";
+	return std::string(buffer, buffer + end);
+}
+
+void appendCompactJson(std::string& out, json const& value, std::string_view parentKey = {})
+{
+	if (value.is_number_float()) {
+		int const decimals = isHighPrecisionFloatKey(parentKey) ? 4 : 3;
+		out += formatExportFloat(value.get<double>(), decimals);
+		return;
+	}
+	if (value.is_array()) {
+		out.push_back('[');
+		bool first = true;
+		for (auto const& item : value) {
+			if (!first) out.push_back(',');
+			first = false;
+			appendCompactJson(out, item, parentKey);
+		}
+		out.push_back(']');
+		return;
+	}
+	if (value.is_object()) {
+		out.push_back('{');
+		bool first = true;
+		for (auto it = value.begin(); it != value.end(); ++it) {
+			if (!first) out.push_back(',');
+			first = false;
+			out += json(it.key()).dump();
+			out.push_back(':');
+			appendCompactJson(out, it.value(), it.key());
+		}
+		out.push_back('}');
+		return;
+	}
+	out += value.dump();
+}
+
+std::string dumpCompactJson(json const& value)
+{
+	std::string out;
+	out.reserve(256);
+	appendCompactJson(out, value);
+	return out;
+}
+
+bool writeUtf8FileAtomically(
+	std::filesystem::path const& finalPath,
+	std::string const& relativePath,
+	std::string const& contents,
+	LiveRunExport::FeedbackFunc const& feedback,
+	LiveRunExport::ActionRequiredFunc const& actionRequired)
+{
+	if (std::filesystem::exists(finalPath)) {
+		reportExportFailure(feedback, actionRequired,
+			relativePath + " already exists.");
+		return false;
+	}
+	auto temporaryPath = finalPath;
+	temporaryPath += ".tmp";
+	{
+		std::ofstream output(temporaryPath, std::ios::binary | std::ios::trunc);
+		if (!output) {
+			reportExportFailure(feedback, actionRequired,
+				"could not open a temporary file for " + relativePath + ".");
+			return false;
+		}
+		output << contents;
+		output.close();
+		if (output.fail()) {
+			std::error_code removeError;
+			std::filesystem::remove(temporaryPath, removeError);
+			reportExportFailure(feedback, actionRequired,
+				"could not finish writing " + relativePath + ".");
+			return false;
+		}
+	}
+	std::error_code renameError;
+	std::filesystem::rename(temporaryPath, finalPath, renameError);
+	if (renameError) {
+		std::error_code removeError;
+		std::filesystem::remove(temporaryPath, removeError);
+		reportExportFailure(feedback, actionRequired,
+			"could not replace " + relativePath + ".");
+		return false;
+	}
+	return true;
+}
+
 } // namespace
 
 nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
@@ -804,21 +983,32 @@ void LiveRunExport::exportCompletedAutomaticLiveRun(
 			{"output_set", folder}
 		};
 		document["parties"] = partiesCatalog(report);
-		document["simulation_report"] = serializeReport(report, parties);
-		auto const& baselineReport = sim.getLiveBaselineReport();
-		if (baselineReport) {
-			PartyNames const baselineParties{*baselineReport};
-			document["live_baseline_report"] =
-				serializeReport(*baselineReport, baselineParties);
+		json reportJson = serializeReport(report, parties);
+		reportJson["seat_fp_completion"] = seatCompletionArray(
+			*election, report.seatName, &LiveData::Provider::getSeatFpCompletion);
+		reportJson["seat_tpp_completion"] = seatCompletionArray(
+			*election, report.seatName, &LiveData::Provider::getSeatTppCompletion);
+		reportJson["seat_tcp_completion"] = seatCompletionArray(
+			*election, report.seatName, &LiveData::Provider::getSeatTcpCompletion);
+		document["simulation_report"] = std::move(reportJson);
+		json analysis = election->getDiagnosticSnapshot();
+		document["live_analysis_summary"] = liveAnalysisSummaryFrom(analysis);
+
+		std::string analysisSerialised;
+		try {
+			analysisSerialised = analysis.dump();
 		}
-		else {
-			document["live_baseline_report"] = nullptr;
+		catch (json::exception const& error) {
+			reportExportFailure(feedback, actionRequired,
+				std::string("the live analysis sidecar could not be serialized: ") +
+					error.what());
+			return;
 		}
-		document["live_analysis"] = election->getDiagnosticSnapshot();
+		analysis = json();
 
 		std::string serialised;
 		try {
-			serialised = document.dump(2);
+			serialised = dumpCompactJson(document);
 		}
 		catch (json::exception const& error) {
 			reportExportFailure(feedback, actionRequired,
@@ -838,43 +1028,26 @@ void LiveRunExport::exportCompletedAutomaticLiveRun(
 		}
 
 		auto const finalPath = outputDir / filename;
-		if (std::filesystem::exists(finalPath)) {
-			reportExportFailure(feedback, actionRequired,
-				relativePath + " already exists.");
+		if (!writeUtf8FileAtomically(
+			finalPath, relativePath, serialised, feedback, actionRequired)) {
 			return;
 		}
 
-		auto const temporaryPath = outputDir / (filename + ".tmp");
-		{
-			std::ofstream output(temporaryPath,
-				std::ios::binary | std::ios::trunc);
-			if (!output) {
-				reportExportFailure(feedback, actionRequired,
-					"could not open a temporary file in " + relativeDir + ".");
-				return;
-			}
-			output << serialised;
-			output.close();
-			if (output.fail()) {
-				std::error_code removeError;
-				std::filesystem::remove(temporaryPath, removeError);
-				reportExportFailure(feedback, actionRequired,
-					"could not finish writing " + relativePath + ".");
-				return;
-			}
-		}
-
-		std::error_code renameError;
-		std::filesystem::rename(temporaryPath, finalPath, renameError);
-		if (renameError) {
-			std::error_code removeError;
-			std::filesystem::remove(temporaryPath, removeError);
-			reportExportFailure(feedback, actionRequired,
-				"could not replace " + relativePath + ".");
+		std::string const analysisFilename =
+			filename.substr(0, filename.size() - 5) + ".analysis.json";
+		std::string const analysisRelativePath =
+			relativeDir + "/" + analysisFilename;
+		if (!writeUtf8FileAtomically(
+			outputDir / analysisFilename,
+			analysisRelativePath,
+			analysisSerialised,
+			feedback,
+			actionRequired)) {
 			return;
 		}
 
-		logger << "Wrote live diagnostic export to " << relativePath << "\n";
+		logger << "Wrote live diagnostic export to " << relativePath
+			<< " and " << analysisRelativePath << "\n";
 	}
 	catch (std::exception const& error) {
 		reportExportFailure(feedback, actionRequired, error.what());
