@@ -19,7 +19,11 @@ Main classes and functions:
 
 from dataclasses import dataclass, field
 from datetime import date, datetime
+import json
+import os
+from pathlib import Path
 import re
+import tempfile
 from typing import List, Optional
 
 
@@ -36,8 +40,12 @@ CANONICAL_VOTE_TYPES = frozenset({
     'declaration_early',
     'postal',
     'provisional',
+    'enrolment',
+    'enrolment_or_provisional',
     'mobile_or_institution',
     'telephone',
+    'remote_electronic',
+    'marked_as_voted',
     'declaration_combined',
     'other',
 })
@@ -166,11 +174,14 @@ class SeatTotal:
     informal_votes: Optional[int]
     total_ballots: Optional[int]
     source_seat_id: str = ''
+    subdivision: str = ''
 
     def validate(self):
         _validate_election_code(self.election_code)
         _require_text(self.seat_name, 'seat_name')
         _validate_identifier(self.source_id, 'source_id')
+        if self.subdivision:
+            _validate_identifier(self.subdivision, 'subdivision')
         _validate_optional_count(
             self.enrolment,
             '{} enrolment'.format(self.seat_name),
@@ -443,3 +454,100 @@ class TurnoutDataset:
                     seat_total.formal_votes,
                 )
             )
+
+
+def dataset_to_dict(dataset):
+    """Return the stable JSON representation of a validated dataset."""
+    dataset.validate()
+
+    def record_dict(record):
+        return dict(record.__dict__)
+
+    return {
+        'schema_version': 1,
+        'elections': [record_dict(record) for record in dataset.elections],
+        'sources': [record_dict(record) for record in dataset.sources],
+        'seat_totals': [record_dict(record) for record in dataset.seat_totals],
+        'vote_types': [record_dict(record) for record in dataset.vote_types],
+        'operational_observations': [
+            record_dict(record) for record in dataset.operational_observations
+        ],
+    }
+
+
+def dataset_from_dict(payload):
+    """Load and validate the strict version-one JSON representation."""
+    if not isinstance(payload, dict):
+        raise TurnoutDataError('turnout dataset must be a JSON object')
+    if payload.get('schema_version') != 1:
+        raise TurnoutDataError('unsupported turnout dataset schema_version')
+    expected_keys = {
+        'schema_version',
+        'elections',
+        'sources',
+        'seat_totals',
+        'vote_types',
+        'operational_observations',
+    }
+    unexpected_keys = set(payload) - expected_keys
+    if unexpected_keys:
+        raise TurnoutDataError(
+            'unexpected turnout dataset fields: {}'.format(
+                ', '.join(sorted(unexpected_keys))
+            )
+        )
+    missing_keys = expected_keys - set(payload)
+    if missing_keys:
+        raise TurnoutDataError(
+            'missing turnout dataset fields: {}'.format(
+                ', '.join(sorted(missing_keys))
+            )
+        )
+
+    try:
+        dataset = TurnoutDataset(
+            elections=[ElectionDefinition(**row) for row in payload['elections']],
+            sources=[SourceDefinition(**row) for row in payload['sources']],
+            seat_totals=[SeatTotal(**row) for row in payload['seat_totals']],
+            vote_types=[VoteTypeRecord(**row) for row in payload['vote_types']],
+            operational_observations=[
+                OperationalObservation(**row)
+                for row in payload['operational_observations']
+            ],
+        )
+    except (TypeError, AttributeError) as error:
+        raise TurnoutDataError(
+            'invalid turnout dataset record: {}'.format(error)
+        )
+    dataset.validate()
+    return dataset
+
+
+def load_dataset(path):
+    """Load one normalized turnout JSON file."""
+    try:
+        with open(path, encoding='utf-8') as source:
+            payload = json.load(source)
+    except (OSError, json.JSONDecodeError) as error:
+        raise TurnoutDataError('could not read {}: {}'.format(path, error))
+    return dataset_from_dict(payload)
+
+
+def write_dataset_atomically(path, dataset):
+    """Validate and replace one normalized turnout JSON file atomically."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = dataset_to_dict(dataset)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix='.{}-'.format(path.name),
+        suffix='.tmp',
+        dir=str(path.parent),
+    )
+    try:
+        with os.fdopen(descriptor, 'w', encoding='utf-8', newline='\n') as output:
+            json.dump(payload, output, indent=2, sort_keys=True)
+            output.write('\n')
+        os.replace(temporary_name, str(path))
+    finally:
+        if os.path.exists(temporary_name):
+            os.unlink(temporary_name)

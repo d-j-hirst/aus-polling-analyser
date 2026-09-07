@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+import tempfile
 import unittest
 
 import turnout_data
@@ -192,6 +195,18 @@ class TurnoutDataTests(unittest.TestCase):
             'do not equal total ballots',
         ):
             dataset.validate()
+
+    def test_json_round_trip_preserves_null_counts(self):
+        dataset = self.make_dataset()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'turnout.json'
+            turnout_data.write_dataset_atomically(path, dataset)
+            restored = turnout_data.load_dataset(path)
+
+            self.assertEqual(restored, dataset)
+            self.assertIsNone(restored.vote_types[0].informal_votes)
+            with open(path, encoding='utf-8') as source:
+                self.assertEqual(json.load(source)['schema_version'], 1)
 
 
 if __name__ == '__main__':
