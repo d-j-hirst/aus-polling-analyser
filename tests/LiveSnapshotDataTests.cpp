@@ -151,6 +151,13 @@ int main()
 	assert(compareCompletedAt(
 		"2026-09-04T20:00:00+10:00",
 		"2026-09-04T09:48:52Z") > 0);
+	assert(snapshotCodeTimeSeconds("19700101000000") == 0);
+	assert(snapshotCodeTimeSeconds("19700102000000") == 86400);
+	assert(snapshotCodeTimeSeconds("20000229000000").has_value());
+	assert(!snapshotCodeTimeSeconds("19000229000000").has_value());
+	assert(compareCompletedAt(
+		"2000-02-29T10:30:00+10:30",
+		"2000-02-29T00:00:00Z") == 0);
 
 	assert(isMajorParliamentParty(0));
 	assert(isMajorParliamentParty(1));

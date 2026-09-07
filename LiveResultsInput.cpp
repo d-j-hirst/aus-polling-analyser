@@ -1,8 +1,13 @@
 #include "LiveResultsInput.h"
 
+#include "json.h"
+
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cstdlib>
+#include <fstream>
+#include <stdexcept>
 #include <utility>
 
 namespace LiveResultsInput {
@@ -102,6 +107,86 @@ bool isCurrentResultsCandidate(
 		return filenameContains(path, "LA VERBOSE RESULTS");
 	}
 	return stateFeedTimestamp(path, regionCode).has_value();
+}
+
+std::optional<std::string> saReplayTimestamp(
+	std::filesystem::path const& path,
+	std::string const& termCode)
+{
+	if (termCode.size() < 4) return std::nullopt;
+	std::string const filename = pathToUtf8(path.filename());
+	std::string const prefix = "el" + termCode.substr(0, 4);
+	constexpr std::size_t TimestampLength = 12;
+	if (filename.size() != prefix.size() + TimestampLength + 4 ||
+		filename.compare(0, prefix.size(), prefix) != 0 ||
+		filename.substr(filename.size() - 4) != ".xml") {
+		return std::nullopt;
+	}
+	std::string const timestamp = filename.substr(prefix.size(), TimestampLength);
+	if (!std::all_of(timestamp.begin(), timestamp.end(),
+		[](unsigned char character) { return std::isdigit(character); })) {
+		return std::nullopt;
+	}
+	return timestamp;
+}
+
+bool filesMatch(
+	std::filesystem::path const& first,
+	std::filesystem::path const& second)
+{
+	std::error_code error;
+	auto const firstSize = std::filesystem::file_size(first, error);
+	if (error) return false;
+	auto const secondSize = std::filesystem::file_size(second, error);
+	if (error || firstSize != secondSize) return false;
+
+	std::ifstream firstFile(first, std::ios::binary);
+	std::ifstream secondFile(second, std::ios::binary);
+	if (!firstFile || !secondFile) return false;
+	std::array<char, 64 * 1024> firstBuffer;
+	std::array<char, 64 * 1024> secondBuffer;
+	do {
+		firstFile.read(firstBuffer.data(), firstBuffer.size());
+		secondFile.read(secondBuffer.data(), secondBuffer.size());
+		auto const firstRead = firstFile.gcount();
+		auto const secondRead = secondFile.gcount();
+		if (firstRead != secondRead || !std::equal(
+			firstBuffer.begin(), firstBuffer.begin() + firstRead,
+			secondBuffer.begin())) {
+			return false;
+		}
+	} while (firstFile);
+	return firstFile.eof() && secondFile.eof();
+}
+
+void writeReplayState(
+	std::filesystem::path const& statePath,
+	CurrentFile const& selected)
+{
+	nlohmann::json const state = {
+		{"timestamp", selected.timestamp.value_or("")},
+		{"source_filename", pathToUtf8(selected.path.filename())}
+	};
+	auto temporaryPath = statePath;
+	temporaryPath += ".tmp";
+	{
+		std::ofstream output(temporaryPath, std::ios::binary | std::ios::trunc);
+		if (!output || !(output << state.dump(2) << '\n')) {
+			std::error_code removeError;
+			std::filesystem::remove(temporaryPath, removeError);
+			throw std::runtime_error(
+				"Could not update live replay state: " + pathToUtf8(statePath));
+		}
+	}
+	std::error_code error;
+	std::filesystem::copy_file(
+		temporaryPath, statePath,
+		std::filesystem::copy_options::overwrite_existing, error);
+	std::filesystem::remove(temporaryPath);
+	if (error) {
+		throw std::runtime_error(
+			"Could not update live replay state: " + pathToUtf8(statePath));
+	}
 }
 
 std::filesystem::path absolutePath(std::filesystem::path path)
@@ -246,6 +331,102 @@ std::optional<CurrentFile> findCurrentFile(
 		entry.increment(error);
 	}
 	return selected;
+}
+
+SaReplaySequence loadSaReplaySequence(
+	std::filesystem::path const& directory,
+	std::string const& termCode,
+	std::filesystem::path const& statePath)
+{
+	if (termCode.size() < 5 || termCode.substr(4) != "sa") {
+		throw std::runtime_error(
+			"Automatic snapshot replay currently supports SA elections only.");
+	}
+	SaReplaySequence sequence;
+	sequence.targetPath = directory /
+		("el" + termCode.substr(0, 4) + "_ha_detail.xml");
+	sequence.statePath = statePath;
+	if (!std::filesystem::is_regular_file(sequence.targetPath)) {
+		throw std::runtime_error(
+			"The installed SA results file was not found: " +
+			pathToUtf8(sequence.targetPath));
+	}
+
+	std::error_code directoryError;
+	for (std::filesystem::directory_iterator entry(directory, directoryError), end;
+		!directoryError && entry != end; entry.increment(directoryError)) {
+		auto timestamp = saReplayTimestamp(entry->path(), termCode);
+		if (timestamp && std::filesystem::is_regular_file(entry->path())) {
+			sequence.snapshots.push_back(
+				CurrentFile{entry->path(), std::move(timestamp)});
+		}
+	}
+	if (directoryError) {
+		throw std::runtime_error(
+			"Could not scan the current-results directory: " + pathToUtf8(directory));
+	}
+	std::sort(sequence.snapshots.begin(), sequence.snapshots.end(),
+		[](CurrentFile const& first, CurrentFile const& second) {
+			return first.timestamp < second.timestamp;
+		});
+	if (sequence.snapshots.empty()) {
+		throw std::runtime_error(
+			"No archived SA snapshots were found in " + pathToUtf8(directory));
+	}
+
+	std::ifstream stateInput(statePath, std::ios::binary);
+	if (!stateInput) {
+		throw std::runtime_error(
+			"No replay selection exists. Select the initial snapshot with "
+			"Replay-Sa2026LiveSnapshot.ps1 first.");
+	}
+	nlohmann::json state;
+	try {
+		stateInput >> state;
+	}
+	catch (nlohmann::json::exception const&) {
+		throw std::runtime_error(
+			"The live replay state is malformed: " + pathToUtf8(statePath));
+	}
+	std::string const selectedFilename =
+		state.value("source_filename", std::string());
+	auto const selected = std::find_if(
+		sequence.snapshots.begin(), sequence.snapshots.end(),
+		[&](CurrentFile const& snapshot) {
+			return pathToUtf8(snapshot.path.filename()) == selectedFilename;
+		});
+	if (selected == sequence.snapshots.end()) {
+		throw std::runtime_error(
+			"The replay state does not identify an available archived snapshot. "
+			"Select the initial snapshot manually again.");
+	}
+	if (!filesMatch(sequence.targetPath, selected->path)) {
+		throw std::runtime_error(
+			"The installed SA results file does not match the remembered replay "
+			"snapshot. Select the initial snapshot manually again.");
+	}
+	sequence.currentIndex = std::size_t(
+		std::distance(sequence.snapshots.begin(), selected));
+	return sequence;
+}
+
+CurrentFile advanceSaReplaySequence(SaReplaySequence& sequence)
+{
+	if (!sequence.remaining()) {
+		throw std::runtime_error("The selected snapshot is already the latest available.");
+	}
+	CurrentFile const& next = sequence.snapshots[sequence.currentIndex + 1];
+	std::error_code copyError;
+	std::filesystem::copy_file(
+		next.path, sequence.targetPath,
+		std::filesystem::copy_options::overwrite_existing, copyError);
+	if (copyError) {
+		throw std::runtime_error(
+			"Could not install the next SA snapshot: " + pathToUtf8(next.path));
+	}
+	writeReplayState(sequence.statePath, next);
+	++sequence.currentIndex;
+	return next;
 }
 
 }

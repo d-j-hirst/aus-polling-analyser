@@ -525,9 +525,13 @@ private:
 
   void calculateNationalsProportions();
 
+  void estimatePpvcSizeMultiplier();
+
+  float expectedPpvcSize(int boothIndex) const;
+
   int generateDeclarationVoteExpectedSize(int boothIndex);
 
-  void refreshFpProgressForDeclarationEstimates();
+  void refreshFpProgressForExpectedSizes();
 
   void recomposeBoothFpVotes(bool allowCurrentData, int boothIndex);
   // recomposing 2CP votes is only ever done with current data
@@ -626,6 +630,11 @@ private:
 
   float nonClassicTppBiasPercentagePoints = 0.0f;
   float nonClassicTppBiasConfidence = 0.0f;
+
+  float ppvcSizeMultiplier = 1.0f;
+  int ppvcSizeEvidenceSourceCount = 0;
+  float ppvcSizeEvidencePreviousVotes = 0.0f;
+  float ppvcSizeEvidenceCurrentVotes = 0.0f;
 
   int variabilitySampleIndex = 0;
   std::uint64_t variabilityBaseSeed = 0x9e3779b97f4a7c15ULL;

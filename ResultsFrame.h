@@ -56,6 +56,16 @@ private:
 	// Runs all "live" simulations found
 	void OnRunLiveSimulations(wxCommandEvent& event);
 
+	// Advances archived SA snapshots and runs automatic-live simulations for
+	// each one. Initial and out-of-sequence selection remains manual.
+	void runLiveSnapshotBatch();
+
+	bool runLiveSimulations(
+		bool automaticOnly = false,
+		std::string* failureMessage = nullptr);
+
+	void finishLiveSimulationRun();
+
 	// Adds the currently entered result to the records
 	void OnAddResult(wxCommandEvent& event);
 

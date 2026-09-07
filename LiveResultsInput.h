@@ -4,12 +4,24 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace LiveResultsInput {
 
 struct CurrentFile {
 	std::filesystem::path path;
 	std::optional<std::string> timestamp;
+};
+
+struct SaReplaySequence {
+	std::filesystem::path targetPath;
+	std::filesystem::path statePath;
+	std::vector<CurrentFile> snapshots;
+	std::size_t currentIndex = 0;
+
+	std::size_t remaining() const {
+		return snapshots.size() - currentIndex - 1;
+	}
 };
 
 // Simulation settings store paths as UTF-8, while filesystem operations use
@@ -34,5 +46,16 @@ std::optional<CurrentFile> findCurrentFile(
 	std::filesystem::path const& directory,
 	std::string const& regionCode,
 	std::string const& termCode);
+
+// Loads the sequence selected by Replay-Sa2026LiveSnapshot.ps1. The state is
+// checked against the installed feed so a stale selection cannot skip files.
+SaReplaySequence loadSaReplaySequence(
+	std::filesystem::path const& directory,
+	std::string const& termCode,
+	std::filesystem::path const& statePath);
+
+// Installs the next archived feed and updates the PowerShell-compatible state.
+// Throws when the sequence is exhausted or files can no longer be read.
+CurrentFile advanceSaReplaySequence(SaReplaySequence& sequence);
 
 }

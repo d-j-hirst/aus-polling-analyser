@@ -775,6 +775,13 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 		parties.values(offsetSpecificFpDeviations);
 	electionJson["offset_specific_tpp_deviation"] =
 		optionalNumber(offsetSpecificTppDeviation);
+	electionJson["ppvc_size_multiplier"] = number(ppvcSizeMultiplier);
+	electionJson["ppvc_size_evidence_source_count"] =
+		ppvcSizeEvidenceSourceCount;
+	electionJson["ppvc_size_evidence_previous_votes"] =
+		number(ppvcSizeEvidencePreviousVotes);
+	electionJson["ppvc_size_evidence_current_votes"] =
+		number(ppvcSizeEvidenceCurrentVotes);
 	electionJson["node"] = serializeNode(node, parties);
 
 	json regions = json::array();

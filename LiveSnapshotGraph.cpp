@@ -1,7 +1,6 @@
 #include "LiveSnapshotGraph.h"
 
 #include <algorithm>
-#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <iomanip>
@@ -114,11 +113,14 @@ constexpr double PostBreakpointScale =
 std::optional<double> threeAmAfter(double timeSeconds)
 {
 	if (!std::isfinite(timeSeconds)) return std::nullopt;
-	using namespace std::chrono;
-	sys_seconds const first{seconds{std::int64_t(std::llround(timeSeconds))}};
-	sys_seconds breakpoint = floor<days>(first) + hours{3};
-	if (breakpoint <= first) breakpoint += days{1};
-	return double(duration_cast<seconds>(breakpoint.time_since_epoch()).count());
+	constexpr std::int64_t SecondsPerDay = 24 * 60 * 60;
+	constexpr std::int64_t ThreeAmSeconds = 3 * 60 * 60;
+	std::int64_t const first = std::int64_t(std::llround(timeSeconds));
+	std::int64_t day = first / SecondsPerDay;
+	if (first < 0 && first % SecondsPerDay != 0) --day;
+	std::int64_t breakpoint = day * SecondsPerDay + ThreeAmSeconds;
+	if (breakpoint <= first) breakpoint += SecondsPerDay;
+	return double(breakpoint);
 }
 
 double timeAxisOffset(double time, double origin, double breakpoint)

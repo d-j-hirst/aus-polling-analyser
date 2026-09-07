@@ -264,6 +264,23 @@ std::optional<int> findEcsaCandidateMatch(std::map<CandidateMatchKey, int> const
   return found->second;
 }
 
+bool isKnownCancelledEcsaBooth(
+  std::string const& termCode,
+  std::string const& seatName,
+  std::string const& boothName)
+{
+  if (termCode != "2026sa" || seatName != "Giles") return false;
+
+  // ECSA advised before polling day that these booths would not open because
+  // of staffing illness, and redirected their electors to nearby booths.
+  static std::set<std::string> const cancelledBooths = {
+    "Whyalla Norrie North",
+    "Whyalla Norrie North-West",
+    "Willsden",
+  };
+  return cancelledBooths.contains(boothName);
+}
+
 }
 
 Results2::Election Results2::Election::createAec(tinyxml2::XMLDocument const& xml, std::string const& termCode)
@@ -1763,6 +1780,10 @@ void Results2::Election::preloadEcsa([[maybe_unused]] nlohmann::json const& resu
           requiredChild(*currentBooth, "polling_place_name",
             seatContext + "/first_preferences/candidate/polling_places/polling_place"),
           seatContext + "/first_preferences/candidate/polling_places/polling_place/polling_place_name");
+        if (isKnownCancelledEcsaBooth(termCode, seat.name, boothName)) {
+          currentBooth = currentBooth->NextSiblingElement("polling_place");
+          continue;
+        }
         auto voteType = getBoothVoteTypeEcsa(boothName);
         if (voteType != VoteType::Ordinary) {
           currentBooth = currentBooth->NextSiblingElement("polling_place");

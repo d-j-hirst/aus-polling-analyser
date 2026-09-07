@@ -8,7 +8,6 @@
 
 #include <algorithm>
 #include <cctype>
-#include <chrono>
 #include <climits>
 #include <cmath>
 #include <cstdint>
@@ -385,16 +384,35 @@ std::optional<DateTimeParts> parseIsoDateTime(std::string_view text)
 
 std::optional<std::int64_t> dateTimePartsToSeconds(DateTimeParts const& parts)
 {
-	using namespace std::chrono;
-	year_month_day const ymd{
-		year{parts.year},
-		month{unsigned(parts.month)},
-		day{unsigned(parts.day)}};
-	if (!ymd.ok()) return std::nullopt;
-	auto timePoint = sys_days{ymd} + hours{parts.hour} +
-		minutes{parts.minute} + seconds{parts.second};
-	if (parts.hasOffset) timePoint -= minutes{parts.offsetMinutes};
-	return duration_cast<seconds>(timePoint.time_since_epoch()).count();
+	static constexpr int daysPerMonth[] = {
+		31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+	bool const leapYear = parts.year % 4 == 0 &&
+		(parts.year % 100 != 0 || parts.year % 400 == 0);
+	int const monthDays = daysPerMonth[parts.month - 1] +
+		(parts.month == 2 && leapYear ? 1 : 0);
+	if (!inRange(parts.day, 1, monthDays)) return std::nullopt;
+
+	// Convert a proleptic Gregorian date to days since 1970-01-01. Keeping
+	// this arithmetic local avoids requiring C++20 calendar support from the
+	// standard library, which is absent from otherwise usable older compilers.
+	int adjustedYear = parts.year - (parts.month <= 2 ? 1 : 0);
+	int const era = (adjustedYear >= 0 ? adjustedYear : adjustedYear - 399) / 400;
+	unsigned const yearOfEra = unsigned(adjustedYear - era * 400);
+	unsigned const adjustedMonth = unsigned(parts.month +
+		(parts.month > 2 ? -3 : 9));
+	unsigned const dayOfYear =
+		(153 * adjustedMonth + 2) / 5 + unsigned(parts.day) - 1;
+	unsigned const dayOfEra = yearOfEra * 365 + yearOfEra / 4 -
+		yearOfEra / 100 + dayOfYear;
+	std::int64_t const daysSinceEpoch =
+		std::int64_t(era) * 146097 + std::int64_t(dayOfEra) - 719468;
+	std::int64_t secondsSinceEpoch = daysSinceEpoch * 86400 +
+		std::int64_t(parts.hour) * 3600 + std::int64_t(parts.minute) * 60 +
+		parts.second;
+	if (parts.hasOffset) {
+		secondsSinceEpoch -= std::int64_t(parts.offsetMinutes) * 60;
+	}
+	return secondsSinceEpoch;
 }
 
 std::optional<DateTimeParts> parseSnapshotCode(std::string_view snapshotCode)

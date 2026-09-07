@@ -42,6 +42,7 @@ constexpr float DifferentSeatRelevanceModifier = 0.1f;
 constexpr float NonClassicTppVariabilityStdDev = 2.5f;
 constexpr float NonClassicBiasEffectiveBoothScale = 5.0f;
 constexpr float MaxPreferenceVoteTotalDifference = 0.02f;
+constexpr float PpvcSizePriorEquivalentVotes = 2000.0f;
 constexpr int VariabilityPreparationSamples = 288;
 constexpr int VariabilityPreparationThreads = 24;
 
@@ -803,6 +804,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   calculateDeviationsFromBaseline();
   aggregate();
   determineSpecificDeviations();
+  estimatePpvcSizeMultiplier();
   measureFpBoothTypeBiases();
   measureTppBoothTypeBiases();
   calculateNationalsProportions();
@@ -2200,7 +2202,7 @@ void Election::recomposeVoteCounts() {
   //    and perhaps also be compensated for by higher turnout in other booths, might need to look at both turnout and formality)
 
   if (!createRandomVariation) {
-    refreshFpProgressForDeclarationEstimates();
+    refreshFpProgressForExpectedSizes();
 
     for (int boothIndex : std::ranges::views::iota(0, int(booths.size()))) {
       recomposeBoothFpVotes(false, boothIndex);
@@ -2266,6 +2268,50 @@ void Election::recomposeVoteCounts() {
   }
 }
 
+void Election::estimatePpvcSizeMultiplier() {
+  // Keep a modest election-specific prior until reported PPVCs provide direct
+  // evidence. The ordinary-booth model treats these reports as complete.
+  // Weighting aggregate vote totals estimates the multiplier needed for the
+  // remaining PPVC vote pool rather than the average centre.
+  float const priorMultiplier = run.getTermCode() == "2026sa" ? 2.19f : 1.0f;
+  ppvcSizeEvidenceSourceCount = 0;
+  ppvcSizeEvidencePreviousVotes = 0.0f;
+  ppvcSizeEvidenceCurrentVotes = 0.0f;
+
+  for (auto const& booth : booths) {
+    if (booth.boothType != Results2::Booth::Type::Ppvc
+      || booth.voteType != Results2::VoteType::Ordinary) {
+      continue;
+    }
+    int const previousVotes = booth.node.totalVotesPrevious();
+    int const currentVotes = booth.node.totalFpVotesCurrent();
+    if (previousVotes <= 0 || currentVotes <= 0) continue;
+
+    ppvcSizeEvidencePreviousVotes += float(previousVotes);
+    ppvcSizeEvidenceCurrentVotes += float(currentVotes);
+    ++ppvcSizeEvidenceSourceCount;
+  }
+
+  ppvcSizeMultiplier = priorMultiplier;
+  if (ppvcSizeEvidencePreviousVotes > 0.0f) {
+    // This small prior weight makes the transition continuous while allowing
+    // the many PPVCs reported during an election night to dominate quickly.
+    // It should eventually be calibrated across historical live counts.
+    ppvcSizeMultiplier =
+      (priorMultiplier * PpvcSizePriorEquivalentVotes
+        + ppvcSizeEvidenceCurrentVotes)
+      / (PpvcSizePriorEquivalentVotes + ppvcSizeEvidencePreviousVotes);
+  }
+}
+
+float Election::expectedPpvcSize(int boothIndex) const {
+  auto const& booth = booths.at(boothIndex);
+  float const previousVotes = booth.node.totalVotesPrevious() > 0
+    ? float(booth.node.totalVotesPrevious())
+    : PreviousTotalVotesGuess;
+  return previousVotes * ppvcSizeMultiplier;
+}
+
 // Temporary declaration-size model used to prevent partial counts becoming
 // prematurely certain. These constants should eventually be calibrated from
 // historical declaration-count progression, enrolment and turnout data rather
@@ -2301,16 +2347,28 @@ int Election::generateDeclarationVoteExpectedSize(int boothIndex) {
   return static_cast<int>(baseExpectation);
 }
 
-void Election::refreshFpProgressForDeclarationEstimates() {
-  // Declaration counts do not have a reliable completion marker in the feed.
-  // Replace the previous-election denominator with the current expected final
-  // size, then propagate only FP progress. Calling aggregate() here would also
-  // recompute deviations and other already-derived hierarchy state.
+void Election::refreshFpProgressForExpectedSizes() {
+  // Use current size estimates when weighting FP progress. Reported ordinary
+  // booths, including PPVCs, are complete batches; unreported PPVCs use the
+  // election-wide size estimate. Declaration counts have no reliable completion
+  // marker, so they continue to use their expected final size.
+  // These category estimates are not yet reconciled to a seat/election turnout
+  // target. Any future reconciliation should allow substitution between vote
+  // categories rather than interpreting a PPVC decline as lost turnout.
+  //
+  // Propagate only FP progress: calling aggregate() here would also recompute
+  // deviations and other already-derived hierarchy state.
   std::vector<float> boothExpectedVotes(booths.size(), 0.0f);
   for (int boothIndex : std::ranges::views::iota(0, int(booths.size()))) {
     auto& booth = booths[boothIndex];
     float expectedVotes = expectedVotesForAggregation(booth.node);
-    if (booth.voteType != Results2::VoteType::Ordinary) {
+    if (booth.voteType == Results2::VoteType::Ordinary
+      && booth.boothType == Results2::Booth::Type::Ppvc) {
+      expectedVotes = booth.node.totalFpVotesCurrent() > 0
+        ? float(booth.node.totalFpVotesCurrent())
+        : expectedPpvcSize(boothIndex);
+    }
+    else if (booth.voteType != Results2::VoteType::Ordinary) {
       expectedVotes = std::max(
         float(generateDeclarationVoteExpectedSize(boothIndex)),
         float(booth.node.totalFpVotesCurrent()));
@@ -2472,14 +2530,8 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
     if (booth.voteType != Results2::VoteType::Ordinary) {
       currentVotesEstimate = float(generateDeclarationVoteExpectedSize(boothIndex));
     }
-    else if (run.getTermCode() == "2026sa") {
-      if (booth.boothType == Results2::Booth::Type::Ppvc) {
-        currentVotesEstimate *= 2.19f; // account for large increase in PPVC votes in SA
-      }
-      else {
-        // Postals are known to be flat, so the general decline is shares across other booths
-        //currentVotesEstimate *= 0.661f;
-      }
+    else if (booth.boothType == Results2::Booth::Type::Ppvc) {
+      currentVotesEstimate = expectedPpvcSize(boothIndex);
     }
     float currentVoteTarget = fpTotalCurrent ? fpTotalCurrent : currentVotesEstimate;
     std::map<int, float> tempFpVotesProjected;
@@ -2732,14 +2784,8 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
     if (booth.voteType != Results2::VoteType::Ordinary) {
       currentVotesEstimate = float(generateDeclarationVoteExpectedSize(boothIndex));
     }
-    else if (run.getTermCode() == "2026sa") {
-      if (booth.boothType == Results2::Booth::Type::Ppvc) {
-        currentVotesEstimate *= 2.19f; // account for large increase in PPVC votes in SA
-      }
-      else {
-        // Postals are known to be flat, so the general decline is shares across other booths
-        // currentVotesEstimate *= 0.661f;
-      }
+    else if (booth.boothType == Results2::Booth::Type::Ppvc) {
+      currentVotesEstimate = expectedPpvcSize(boothIndex);
     }
     float currentVoteTarget = fpTotalProjected > 0.0f
       ? fpTotalProjected
@@ -3090,14 +3136,8 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
   if (booth.voteType != Results2::VoteType::Ordinary) {
     currentVotesEstimate = float(generateDeclarationVoteExpectedSize(boothIndex));
   }
-  else if (run.getTermCode() == "2026sa") {
-    if (booth.boothType == Results2::Booth::Type::Ppvc) {
-      currentVotesEstimate *= 2.19f; // account for large increase in PPVC votes in SA
-    }
-    else {
-      // Postals are known to be flat, so the general decline is shares across other booths
-      //currentVotesEstimate *= 0.661f;
-    }
+  else if (booth.boothType == Results2::Booth::Type::Ppvc) {
+    currentVotesEstimate = expectedPpvcSize(boothIndex);
   }
   float currentVoteTarget = fpTotalProjected > 0.0f
     ? fpTotalProjected
