@@ -52,10 +52,32 @@ CANONICAL_VOTE_TYPES = frozenset({
 
 SOURCE_STATUSES = frozenset({'final', 'provisional', 'operational'})
 PARTITION_COVERAGE = frozenset({'complete', 'partial'})
-DERIVATIONS = frozenset({'direct', 'sum_official_rows'})
+OPERATIONAL_GEOGRAPHY_BASES = frozenset({
+    'administering_division',
+    'elector_division',
+    'national',
+    'state',
+})
+OPERATIONAL_OBSERVATION_STATUSES = frozenset({
+    'contemporaneous',
+    'final_reconciled',
+})
+OPERATIONAL_COUNT_PRECISIONS = frozenset({'approximate', 'exact'})
+OPERATIONAL_DERIVATIONS = frozenset({
+    'direct',
+    'rounded_rate_times_enrolment',
+    'rounded_rate_times_reference_count',
+    'sum_published_counts',
+})
+DERIVATIONS = frozenset({
+    'direct',
+    'sum_official_rows',
+    'difference_official_total',
+})
 
 _ELECTION_CODE_PATTERN = re.compile(r'^[1-9][0-9]{3}[a-z]+$')
 _IDENTIFIER_PATTERN = re.compile(r'^[a-z0-9][a-z0-9_.-]*$')
+CURRENT_SCHEMA_VERSION = 3
 
 
 def _require_text(value, field_name):
@@ -265,14 +287,72 @@ class OperationalObservation:
     measure: str
     observed_at: str
     count: int
+    geography_basis: str
+    observation_status: str
     seat_name: str = ''
     source_category: str = ''
+    count_precision: str = 'exact'
+    derivation: str = 'direct'
 
     def validate(self):
         _validate_election_code(self.election_code)
         _validate_identifier(self.source_id, 'source_id')
         _validate_identifier(self.measure, 'measure')
-        _validate_optional_count(self.count, '{} count'.format(self.measure))
+        if isinstance(self.count, bool) or not isinstance(self.count, int):
+            raise TurnoutDataError(
+                '{} count must be an integer'.format(self.measure)
+            )
+        if self.count < 0:
+            raise TurnoutDataError(
+                '{} count cannot be negative'.format(self.measure)
+            )
+        if self.geography_basis not in OPERATIONAL_GEOGRAPHY_BASES:
+            raise TurnoutDataError(
+                '{} has unsupported geography_basis {!r}'.format(
+                    self.measure, self.geography_basis
+                )
+            )
+        if self.observation_status not in OPERATIONAL_OBSERVATION_STATUSES:
+            raise TurnoutDataError(
+                '{} has unsupported observation_status {!r}'.format(
+                    self.measure, self.observation_status
+                )
+            )
+        if self.count_precision not in OPERATIONAL_COUNT_PRECISIONS:
+            raise TurnoutDataError(
+                '{} has unsupported count_precision {!r}'.format(
+                    self.measure, self.count_precision
+                )
+            )
+        if self.derivation not in OPERATIONAL_DERIVATIONS:
+            raise TurnoutDataError(
+                '{} has unsupported operational derivation {!r}'.format(
+                    self.measure, self.derivation
+                )
+            )
+        if (
+            self.derivation.startswith('rounded_rate_times_')
+            and self.count_precision != 'approximate'
+        ):
+            raise TurnoutDataError(
+                '{} derived from a rounded rate must be approximate'.format(
+                    self.measure
+                )
+            )
+        if self.geography_basis in {
+            'administering_division', 'elector_division'
+        } and not self.seat_name:
+            raise TurnoutDataError(
+                '{} requires seat_name for {} geography'.format(
+                    self.measure, self.geography_basis
+                )
+            )
+        if self.geography_basis in {'national', 'state'} and self.seat_name:
+            raise TurnoutDataError(
+                '{} cannot use seat_name with {} geography'.format(
+                    self.measure, self.geography_basis
+                )
+            )
         try:
             datetime.fromisoformat(self.observed_at)
         except (TypeError, ValueError):
@@ -386,6 +466,8 @@ class TurnoutDataset:
                 record.observed_at,
                 record.seat_name,
                 record.source_category,
+                record.geography_basis,
+                record.observation_status,
             )
             if key in observation_keys:
                 raise TurnoutDataError(
@@ -461,10 +543,16 @@ def dataset_to_dict(dataset):
     dataset.validate()
 
     def record_dict(record):
-        return dict(record.__dict__)
+        values = dict(record.__dict__)
+        if isinstance(record, OperationalObservation):
+            if record.count_precision == 'exact':
+                values.pop('count_precision')
+            if record.derivation == 'direct':
+                values.pop('derivation')
+        return values
 
     return {
-        'schema_version': 1,
+        'schema_version': CURRENT_SCHEMA_VERSION,
         'elections': [record_dict(record) for record in dataset.elections],
         'sources': [record_dict(record) for record in dataset.sources],
         'seat_totals': [record_dict(record) for record in dataset.seat_totals],
@@ -476,10 +564,11 @@ def dataset_to_dict(dataset):
 
 
 def dataset_from_dict(payload):
-    """Load and validate the strict version-one JSON representation."""
+    """Load and validate a supported JSON representation."""
     if not isinstance(payload, dict):
         raise TurnoutDataError('turnout dataset must be a JSON object')
-    if payload.get('schema_version') != 1:
+    schema_version = payload.get('schema_version')
+    if schema_version not in {1, 2, CURRENT_SCHEMA_VERSION}:
         raise TurnoutDataError('unsupported turnout dataset schema_version')
     expected_keys = {
         'schema_version',
@@ -502,6 +591,15 @@ def dataset_from_dict(payload):
             'missing turnout dataset fields: {}'.format(
                 ', '.join(sorted(missing_keys))
             )
+        )
+
+    if schema_version == 1 and any(
+        'geography_basis' not in row or 'observation_status' not in row
+        for row in payload['operational_observations']
+    ):
+        raise TurnoutDataError(
+            'schema version 1 operational observations do not identify '
+            'geography or reconciliation status; regenerate this dataset'
         )
 
     try:

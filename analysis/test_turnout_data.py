@@ -126,6 +126,8 @@ class TurnoutDataTests(unittest.TestCase):
                 measure='postal_applications',
                 observed_at='2025-05-01T17:00:00+10:00',
                 count=250,
+                geography_basis='elector_division',
+                observation_status='contemporaneous',
                 seat_name='Example',
                 source_category='Postal applications',
             )
@@ -133,6 +135,119 @@ class TurnoutDataTests(unittest.TestCase):
 
         dataset.validate()
         self.assertEqual(dataset.operational_observations[0].count, 250)
+
+    def test_operational_observation_requires_explicit_geography(self):
+        observation = turnout_data.OperationalObservation(
+            election_code='2025fed',
+            source_id='aec-2025-daily',
+            measure='prepoll_votes_issued_cumulative',
+            observed_at='2025-05-01',
+            count=250,
+            geography_basis='unknown',
+            observation_status='contemporaneous',
+            seat_name='Example',
+        )
+
+        with self.assertRaisesRegex(
+            turnout_data.TurnoutDataError,
+            'unsupported geography_basis',
+        ):
+            observation.validate()
+
+    def test_division_observation_requires_a_seat(self):
+        observation = turnout_data.OperationalObservation(
+            election_code='2025fed',
+            source_id='aec-2025-daily',
+            measure='postal_applications',
+            observed_at='2025-05-01',
+            count=250,
+            geography_basis='elector_division',
+            observation_status='contemporaneous',
+        )
+
+        with self.assertRaisesRegex(
+            turnout_data.TurnoutDataError,
+            'requires seat_name',
+        ):
+            observation.validate()
+
+    def test_operational_observation_rejects_null_count(self):
+        observation = turnout_data.OperationalObservation(
+            election_code='2025fed',
+            source_id='aec-2025-daily',
+            measure='postal_applications',
+            observed_at='2025-05-01',
+            count=None,
+            geography_basis='elector_division',
+            observation_status='contemporaneous',
+            seat_name='Example',
+        )
+
+        with self.assertRaisesRegex(
+            turnout_data.TurnoutDataError,
+            'count must be an integer',
+        ):
+            observation.validate()
+
+    def test_approximate_operational_observation_preserves_its_derivation(self):
+        dataset = self.make_dataset()
+        dataset.sources.append(
+            turnout_data.SourceDefinition(
+                source_id='published-election-eve',
+                election_code='2025fed',
+                authority='Example publisher',
+                locator='https://example.test/election-eve',
+                adapter='published-operational-v1',
+                status='operational',
+                category_regime='published-election-eve-v1',
+            )
+        )
+        dataset.operational_observations.append(
+            turnout_data.OperationalObservation(
+                election_code='2025fed',
+                source_id='published-election-eve',
+                measure='prepoll_votes_cast_cumulative',
+                observed_at='2025-05-02',
+                count=321,
+                geography_basis='elector_division',
+                observation_status='contemporaneous',
+                seat_name='Example',
+                count_precision='approximate',
+                derivation='rounded_rate_times_enrolment',
+            )
+        )
+
+        restored = turnout_data.dataset_from_dict(
+            turnout_data.dataset_to_dict(dataset)
+        )
+
+        self.assertEqual(
+            restored.operational_observations[0].count_precision,
+            'approximate',
+        )
+        self.assertEqual(
+            restored.operational_observations[0].derivation,
+            'rounded_rate_times_enrolment',
+        )
+
+    def test_rounded_rate_count_cannot_be_labelled_exact(self):
+        observation = turnout_data.OperationalObservation(
+            election_code='2025fed',
+            source_id='published-election-eve',
+            measure='prepoll_votes_cast_cumulative',
+            observed_at='2025-05-02',
+            count=321,
+            geography_basis='elector_division',
+            observation_status='contemporaneous',
+            seat_name='Example',
+            derivation='rounded_rate_times_enrolment',
+        )
+
+        with self.assertRaisesRegex(
+            turnout_data.TurnoutDataError,
+            'derived from a rounded rate must be approximate',
+        ):
+            observation.validate()
 
     def test_enrolment_only_seat_can_anchor_pre_election_observations(self):
         dataset = self.make_dataset()
@@ -206,7 +321,43 @@ class TurnoutDataTests(unittest.TestCase):
             self.assertEqual(restored, dataset)
             self.assertIsNone(restored.vote_types[0].informal_votes)
             with open(path, encoding='utf-8') as source:
-                self.assertEqual(json.load(source)['schema_version'], 1)
+                self.assertEqual(json.load(source)['schema_version'], 3)
+
+    def test_version_two_operational_records_default_to_exact_direct_counts(self):
+        dataset = self.make_dataset()
+        payload = turnout_data.dataset_to_dict(dataset)
+        payload['schema_version'] = 2
+
+        restored = turnout_data.dataset_from_dict(payload)
+
+        self.assertEqual(restored, dataset)
+
+    def test_version_one_without_operational_records_remains_readable(self):
+        payload = turnout_data.dataset_to_dict(self.make_dataset())
+        payload['schema_version'] = 1
+
+        restored = turnout_data.dataset_from_dict(payload)
+
+        self.assertEqual(restored, self.make_dataset())
+
+    def test_version_one_operational_records_require_regeneration(self):
+        payload = turnout_data.dataset_to_dict(self.make_dataset())
+        payload['schema_version'] = 1
+        payload['operational_observations'] = [{
+            'election_code': '2025fed',
+            'source_id': 'aec-2025-daily',
+            'measure': 'postal_applications',
+            'observed_at': '2025-05-01',
+            'count': 250,
+            'seat_name': 'Example',
+            'source_category': 'Postal applications',
+        }]
+
+        with self.assertRaisesRegex(
+            turnout_data.TurnoutDataError,
+            'do not identify geography',
+        ):
+            turnout_data.dataset_from_dict(payload)
 
 
 if __name__ == '__main__':

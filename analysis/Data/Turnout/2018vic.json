@@ -6,8 +6,31 @@
       "jurisdiction": "vic"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 383921,
+      "election_code": "2018vic",
+      "geography_basis": "state",
+      "measure": "postal_applications_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2018-11-21",
+      "seat_name": "",
+      "source_category": "Retrospective final postal application total",
+      "source_id": "antony-green-2018vic-election-eve"
+    },
+    {
+      "count": 1389980,
+      "election_code": "2018vic",
+      "geography_basis": "state",
+      "measure": "prepoll_votes_cast_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2018-11-23",
+      "seat_name": "",
+      "source_category": "Retrospective final pre-poll total",
+      "source_id": "antony-green-2018vic-election-eve"
+    }
+  ],
+  "schema_version": 3,
   "seat_totals": [
     {
       "election_code": "2018vic",
@@ -988,6 +1011,16 @@
       "notes": "Early votes retain the VEC aggregate, including small early-voting modes. Marked As Voted remains separate. Ripon has final recount totals but no recount vote-type breakdown. The linked Brunswick voting-centre page contains stale totals, so its current district-summary totals are used without that unreliable partition.",
       "source_id": "vec-2018-lower-house-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "Antony Green, based on electoral commission data",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2018vic",
+      "locator": "https://antonygreen.com.au/tracking-the-early-vote-for-the-2022-victorian-election/",
+      "notes": "Final pre-election controls; some older values survive only in a later retrospective publication. District rates are retained as approximate counts derived from final enrolment.",
+      "source_id": "antony-green-2018vic-election-eve",
+      "status": "operational"
     }
   ],
   "vote_types": [
