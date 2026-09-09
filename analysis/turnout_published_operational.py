@@ -38,6 +38,7 @@ POSTAL_RETURN_MEASURE = 'postal_votes_returned_cumulative'
 POSTAL_ACCEPTED_MEASURE = 'postal_votes_accepted_cumulative'
 PREPOLL_READY_MEASURE = 'prepoll_votes_ready_for_election_night_count'
 POSTAL_READY_MEASURE = 'postal_votes_ready_for_election_night_count'
+EARLY_VOTES_RECORDED_MEASURE = 'early_and_postal_votes_recorded_cumulative'
 
 
 @dataclass(frozen=True)
@@ -64,6 +65,23 @@ class PublishedElection:
 
 
 ELECTIONS = {
+    '2014vic': PublishedElection(
+        election_code='2014vic',
+        election_date='2014-11-29',
+        article_url=(
+            'https://www.abc.net.au/news/2014-11-28/'
+            'victorian-election-2014---early-and-postal-vote-turnouts-by-elec/'
+            '9388518'
+        ),
+        state_counts=(),
+        district_url=(
+            'https://www.abc.net.au/news/2014-11-28/'
+            'victorian-election-2014---early-and-postal-vote-turnouts-by-elec/'
+            '9388518'
+        ),
+        district_layout='vic2014-combined-rates-article',
+        district_observed_at='2014-11-28T18:00:00+11:00',
+    ),
     '2014sa': PublishedElection(
         election_code='2014sa',
         election_date='2014-03-15',
@@ -613,6 +631,127 @@ def _chart_data(html, label):
         )
 
 
+def _node_text(node):
+    if not isinstance(node, dict):
+        return ''
+    if node.get('type') == 'text':
+        return node.get('content', '')
+    return ''.join(_node_text(child) for child in node.get('children', ()))
+
+
+def _abc_article_tables(data, label):
+    try:
+        text = data.decode('utf-8')
+    except UnicodeDecodeError as error:
+        raise turnout_data.TurnoutDataError(
+            '{} is not valid UTF-8: {}'.format(label, error)
+        )
+    match = re.search(
+        r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', text, re.DOTALL
+    )
+    if not match:
+        raise turnout_data.TurnoutDataError(
+            '{} contains no ABC article document'.format(label)
+        )
+    try:
+        document = json.loads(match.group(1))
+    except json.JSONDecodeError as error:
+        raise turnout_data.TurnoutDataError(
+            '{} has invalid ABC article data: {}'.format(label, error)
+        )
+
+    tables = []
+
+    def collect(node):
+        if isinstance(node, dict):
+            if node.get('key') == 'table':
+                tables.append(node)
+            for value in node.values():
+                collect(value)
+        elif isinstance(node, list):
+            for value in node:
+                collect(value)
+
+    collect(document)
+    return tables
+
+
+def _parse_vic2014_combined_rates(election, data, dataset, source_id):
+    seats = _seat_index(dataset)
+    label = '{} election-eve article'.format(election.election_code)
+    matching_tables = [
+        table for table in _abc_article_tables(data, label)
+        if 'Alphabetic List' in _node_text(table)
+        and 'Descending Turnout %' in _node_text(table)
+    ]
+    if len(matching_tables) != 1:
+        raise turnout_data.TurnoutDataError(
+            '{} contains {} matching turnout tables'.format(
+                label, len(matching_tables)
+            )
+        )
+
+    body = next(
+        (child for child in matching_tables[0].get('children', ())
+         if child.get('key') == 'tbody'),
+        None,
+    )
+    if body is None:
+        raise turnout_data.TurnoutDataError(
+            '{} turnout table has no body'.format(label)
+        )
+
+    observations = []
+    represented = set()
+    for row_number, row in enumerate(body.get('children', ()), start=1):
+        cells = [
+            _node_text(cell).strip() for cell in row.get('children', ())
+            if cell.get('key') in {'td', 'th'}
+        ]
+        if len(cells) < 2 or cells[:2] == ['Pct', 'Electorate']:
+            continue
+        if cells[1] == 'State Total':
+            continue
+        rate = _parse_rate(cells[0], '{} row {}'.format(label, row_number))
+        district = '{} District'.format(cells[1])
+        if district not in seats:
+            raise turnout_data.TurnoutDataError(
+                '{} row {} contains unknown district {!r}'.format(
+                    election.election_code, row_number, cells[1]
+                )
+            )
+        if district in represented:
+            raise turnout_data.TurnoutDataError(
+                '{} repeats district {}'.format(election.election_code, district)
+            )
+        represented.add(district)
+        observations.append(turnout_data.OperationalObservation(
+            election_code=election.election_code,
+            source_id=source_id,
+            measure=EARLY_VOTES_RECORDED_MEASURE,
+            observed_at=election.district_observed_at,
+            count=_count_from_rate(seats[district].enrolment, rate),
+            geography_basis='elector_division',
+            observation_status='contemporaneous',
+            seat_name=district,
+            source_category=(
+                'Postal votes received plus pre-poll votes cast '
+                '({}% of enrolment)'.format(rate)
+            ),
+            count_precision='approximate',
+            derivation='rounded_rate_times_enrolment',
+        ))
+
+    missing = set(seats) - represented
+    if missing:
+        raise turnout_data.TurnoutDataError(
+            '{} turnout table omits: {}'.format(
+                election.election_code, ', '.join(sorted(missing))
+            )
+        )
+    return observations
+
+
 def _parse_qld2020_postal(election, data, dataset, source_id):
     seats = _seat_index(dataset)
     rows = _csv_rows(
@@ -699,6 +838,10 @@ def build_observations(election, downloaded_files, dataset):
     ]
     if election.district_layout in DISTRICT_RATE_COLUMNS:
         observations.extend(_parse_district_rates(
+            election, downloaded_files['district'], dataset, source_id
+        ))
+    elif election.district_layout == 'vic2014-combined-rates-article':
+        observations.extend(_parse_vic2014_combined_rates(
             election, downloaded_files['district'], dataset, source_id
         ))
     elif election.district_layout == 'qld2020-postal-chart':

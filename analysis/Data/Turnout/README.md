@@ -10,6 +10,8 @@ Regenerate the normalized files from the commissions' official material with:
 cd analysis
 ./env/bin/python -B turnout_aec.py --election all
 ./env/bin/python -B turnout_aec_operational.py --election all
+
+./env/bin/python -B turnout_nsw_operational.py --election 2015nsw
 ./env/bin/python -B turnout_nsw.py --election all
 ./env/bin/python -B turnout_vic.py --election all
 ./env/bin/python -B turnout_qld.py --election all
@@ -47,12 +49,14 @@ state postal totals are retained because they include a small unallocated
 residual absent from the 93 district rows.
 The published-operational adapter adds the last useful pre-election update
 retained by Antony Green for Queensland 2020/2024, Western Australia 2021/2025,
-South Australia 2022, Victoria 2022 and NSW 2023. It also retains exact
+South Australia 2022, Victoria 2014/2022 and NSW 2023. The 2014 Victorian
+district records are the contemporaneous 6pm election-eve percentages of
+postal votes received plus pre-poll votes cast. It also retains exact
 retrospective final controls for South Australia 2014/2018 and Victoria 2018.
 The surviving federal 2022 election-eve national pre-poll, postal-application
 and postal-return totals supplement the later AEC reconciled postal snapshot.
-Integer headline figures are kept exact. The 2021 WA, 2022 SA/Victoria and
-2023 NSW district tables that publish only one-decimal rates are converted
+Integer headline figures are kept exact. The 2014/2022 Victorian, 2021 WA,
+2022 SA and 2023 NSW district tables that publish only rounded rates are converted
 using each district's official enrolment and explicitly marked approximate;
 they must not be treated as commission-published exact counts.
 Western Australian files use the Legislative Assembly vote-type tables in
@@ -67,6 +71,10 @@ votes by category. The 2017 and 2021 PDFs detach the printed ordinary column
 from its rows in their text layer; the adapter therefore records those ordinary
 counts as the exact difference between each official formal total and the other
 published categories.
+The operational NSW adapter streams NSWEC's complete depersonalized 2015
+pre-poll transaction file. It records the exact final election-eve mark-off
+count for each elector's enrolled district and the corresponding state sum;
+the 65 MB source CSV is not retained in the repository.
 South Australian files use ECSA's final election-statistics tables from 2006
 through 2018 and the equivalent final CSVs for 2022. They retain a complete
 ordinary/declaration partition with formal and informal votes in each category.

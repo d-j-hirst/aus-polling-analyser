@@ -133,6 +133,20 @@ assign it an invented observation date.
 Rows for applications still awaiting division assignment, or subsequently
 withdrawn, duplicated or rejected, are likewise excluded from division series.
 
+`analysis/turnout_nsw_operational.py` streams NSWEC's complete depersonalized
+2015 pre-poll transaction file:
+
+```bash
+cd analysis
+./env/bin/python -B turnout_nsw_operational.py --election 2015nsw
+```
+
+The source covers 16-27 March and therefore directly reconstructs the final
+pre-election count. The adapter validates all 642,408 transactions and all 93
+districts, then stores exact cumulative totals by enrolled district plus their
+state sum. It does not retain the 65 MB source CSV or infer postal counts from
+the separate transaction file's final-state fields.
+
 ## Curated Election-Eve Evidence
 
 `analysis/turnout_published_operational.py` preserves the last useful update
@@ -145,15 +159,16 @@ cd analysis
 ```
 
 The adapter covers Queensland 2020 and 2024, Western Australia 2021 and 2025,
-South Australia 2022, Victoria 2022 and NSW 2023. It also retains exact
+South Australia 2022, Victoria 2014 and 2022, and NSW 2023. The 2014 Victorian
+records preserve each district's contemporaneous 6pm election-eve percentage
+of postal votes received plus pre-poll votes cast. It also retains exact
 retrospective final controls for South Australia 2014/2018 and Victoria 2018,
 labelled `final_reconciled` rather than contemporaneous. It uses fixed Antony
 Green articles and embedded tables based on electoral-commission data. The
 federal 2022 election-eve national totals supplement the AEC's later reconciled
 postal snapshot. Exact aggregate totals and the Queensland 2020 district postal
-table remain exact. NSW,
-Victorian, South Australian and 2021 WA district tables expose only one-decimal
-rates; their counts are deterministic approximations based on final official
+table remain exact. NSW, Victorian, South Australian and 2021 WA district
+tables expose only rounded rates; their counts are deterministic approximations based on final official
 district enrolment and are labelled accordingly. Approximate statements such
 as votes ready for election-night counting are also kept separate from exact
 totals.

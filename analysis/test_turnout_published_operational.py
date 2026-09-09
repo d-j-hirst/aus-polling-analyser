@@ -1,5 +1,6 @@
 import json
 import unittest
+from dataclasses import replace
 
 import turnout_data
 import turnout_published_operational as published
@@ -136,6 +137,115 @@ class PublishedOperationalTurnoutTests(unittest.TestCase):
             ),
             600,
         )
+
+    @staticmethod
+    def vic2014_article(rows):
+        def cell(value):
+            return {
+                'type': 'tagname',
+                'key': 'td',
+                'children': [{'type': 'text', 'content': value}],
+            }
+
+        table_rows = [[
+            'Pct', 'Electorate', 'Pct', 'Electorate'
+        ]] + rows
+        document = {
+            'props': {
+                'pageProps': {
+                    'article': {
+                        'children': [{
+                            'type': 'tagname',
+                            'key': 'table',
+                            'children': [
+                                {
+                                    'type': 'tagname',
+                                    'key': 'thead',
+                                    'children': [{
+                                        'type': 'text',
+                                        'content': (
+                                            'Alphabetic List '
+                                            'Descending Turnout %'
+                                        ),
+                                    }],
+                                },
+                                {
+                                    'type': 'tagname',
+                                    'key': 'tbody',
+                                    'children': [{
+                                        'type': 'tagname',
+                                        'key': 'tr',
+                                        'children': [cell(value) for value in row],
+                                    } for row in table_rows],
+                                },
+                            ],
+                        }],
+                    },
+                },
+            },
+        }
+        return (
+            '<script id="__NEXT_DATA__" type="application/json">{}</script>'
+            .format(json.dumps(document))
+            .encode('utf-8')
+        )
+
+    def test_vic2014_article_uses_alphabetic_half_of_duplicated_table(self):
+        election = published.PublishedElection(
+            election_code='2014vic',
+            election_date='2014-11-29',
+            article_url='https://example.test/election-eve',
+            state_counts=(),
+            district_url='https://example.test/election-eve',
+            district_layout='vic2014-combined-rates-article',
+            district_observed_at='2014-11-28T18:00:00+11:00',
+        )
+        article = self.vic2014_article([
+            ['25.0', 'Alpha', '40.0', 'Beta'],
+            ['40.0', 'Beta', '25.0', 'Alpha'],
+            ['33.0', 'State Total', '33.0', 'State Total'],
+        ])
+
+        dataset = self.make_dataset('2014vic', '2014-11-29')
+        dataset.seat_totals = [
+            replace(seat, seat_name=seat.seat_name + ' District')
+            for seat in dataset.seat_totals
+        ]
+        _source, observations = published.build_observations(
+            election,
+            {'district': article},
+            dataset,
+        )
+
+        self.assertEqual(len(observations), 2)
+        self.assertEqual(
+            [(record.seat_name, record.count) for record in observations],
+            [('Alpha District', 250), ('Beta District', 800)],
+        )
+        self.assertTrue(all(
+            record.measure == published.EARLY_VOTES_RECORDED_MEASURE
+            and record.count_precision == 'approximate'
+            and record.derivation == 'rounded_rate_times_enrolment'
+            for record in observations
+        ))
+
+    def test_vic2014_article_requires_every_final_dataset_district(self):
+        election = published.ELECTIONS['2014vic']
+        article = self.vic2014_article([
+            ['25.0', 'Alpha', '25.0', 'Alpha'],
+        ])
+        dataset = self.make_dataset('2014vic', '2014-11-29')
+        dataset.seat_totals = [
+            replace(seat, seat_name=seat.seat_name + ' District')
+            for seat in dataset.seat_totals
+        ]
+
+        with self.assertRaisesRegex(turnout_data.TurnoutDataError, 'omits'):
+            published.build_observations(
+                election,
+                {'district': article},
+                dataset,
+            )
 
     def test_merge_replaces_only_this_adapters_previous_records(self):
         dataset = self.make_dataset()
