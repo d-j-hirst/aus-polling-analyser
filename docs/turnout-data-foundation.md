@@ -183,8 +183,8 @@ cd analysis
 
 The adapter covers federal elections in 2004 and 2007, Queensland 2006, 2009,
 2015, 2017, 2020 and 2024, Western Australia
-2008, 2013, 2017, 2021 and 2025, South Australia 2010 and 2022, Victoria
-2006, 2014, 2018 and 2022, and NSW 2019 and 2023. The 2014 Victorian records preserve each district's
+2005, 2008, 2013, 2017, 2021 and 2025, South Australia 2006, 2010, 2014, 2018 and 2022, Victoria
+2006, 2010, 2014, 2018 and 2022, and NSW 2019 and 2023. The 2014 Victorian records preserve each district's
 contemporaneous 6pm
 election-eve percentage of postal votes received plus pre-poll votes cast. It
 also retains exact retrospective final controls for South Australia 2014/2018
@@ -204,11 +204,33 @@ numbers cast. The 2017 Queensland records are rounded election-day reports of
 pre-poll votes cast and postal ballots issued. The postal figure is not treated
 as returned ballots: ECQ later reported only 168,000 returns before election
 day and approximately 300,000 postals counted overall.
-The 2008 WA records come from the later WAEC election report and are therefore
-labelled `final_reconciled`: they distinguish 81,219 early-by-post votes issued
-from the 35,467 postal votes admitted for election-night counting. The 2009
+The 2008 WA records come from later WAEC reports and are therefore labelled
+`final_reconciled`. They preserve a lower bound of more than 60,000 in-person
+early votes and more than 65,000 postal applications four days before polling,
+and distinguish 81,219 early-by-post votes issued from the 35,467 postal votes
+admitted for election-night counting. The 2009
 Queensland record is a contemporaneous Electoral Commissioner estimate of
 about 213,000 postal-vote requests, not a count of returned or accepted votes.
+The 2005 WA report similarly preserves 35,220 in-person early votes issued,
+50,419 postal applications and the 34,821 postal votes ready for election-night
+counting. These separate controls should not be combined as equivalent votes.
+The 2006 South Australian report preserves 23,419 in-person pre-polls, 66,066
+processed postal applications, 61,364 postal packs issued including automatic
+declaration-register electors, 54,543 returned certificates and 51,584 accepted
+for scrutiny. These are later reconciliations of election-period operations,
+not observations reconstructed from final result-category totals.
+For 2014 South Australia, an ABC election-eve report adds a contemporaneous
+lower bound of 50,000 pre-polls, approximately 86,000 postal applications, and
+ECSA forecasts of more than 70,000 final pre-polls and about 160,000 early or
+postal voters. The forecasts are explicitly distinguished from both reported
+progress and Antony Green's later exact 80,087 pre-poll control.
+For 2018 South Australia, an ABC election-morning report records approximately
+120,000 pre-polls, 95,000 postal votes and more than 215,000 votes before
+election day. The rounded postal figure is classified as ballots issued because
+it agrees with the later exact 94,831 issue total rather than the 82,213 postal
+applications. Antony Green's retrospective figures remain separate exact
+controls, allowing the election-eve estimates to be evaluated rather than
+silently replaced by final data.
 The latest retained 2010 South Australian update predates polling day by six
 days and reports only that postal applications exceeded 80,000. It is retained
 as an approximate lower bound, not promoted to a final application total.
@@ -222,6 +244,25 @@ application totals, an approximate 2006 Queensland postal-application total,
 and Queensland's exact 2015 central postal mailout. These are marked
 `final_reconciled` because the surviving publications postdate the election;
 they remain operational quantities rather than final accepted ballot counts.
+An election-eve ABC PM report supplies an approximate contemporaneous count of
+half a million early in-person votes for 2010 Victoria. Its wording is loose,
+but the figure aligns with the later exact 543,763 pre-poll total rather than
+the combined total. A separate ABC retrospective supplies a combined total of
+768,483 votes cast before polling day; that control is deliberately not split
+into in-person and postal components because the source does not establish the
+split.
+
+The source survey covered Antony Green's current election-eve tracking posts,
+his older ABC election-blog archive, and surviving electoral-commission
+reports. All supported general-election tracking posts with usable numeric
+updates are represented above. The remaining gap is 2012 Queensland: retained
+publications provide final category totals or post-election commentary, but no
+defensible pre-election operational snapshot. That election therefore remains
+without operational observations rather than having final-result totals
+mislabelled as forecasts or election-eve counts.
+ACT, Northern Territory and Tasmanian elections, referendums and by-elections
+were reviewed but remain outside the current normalized general-election
+dataset.
 
 ## Queensland Operational Evidence
 

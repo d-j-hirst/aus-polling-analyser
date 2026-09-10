@@ -382,6 +382,8 @@ class PublishedOperationalTurnoutTests(unittest.TestCase):
         self.assertEqual(
             {record.measure: record.count for record in observations},
             {
+                published.PREPOLL_MEASURE: 60000,
+                published.POSTAL_APPLICATION_MEASURE: 65000,
                 published.POSTAL_ISSUED_MEASURE: 81219,
                 published.POSTAL_READY_MEASURE: 35467,
             },
@@ -392,8 +394,21 @@ class PublishedOperationalTurnoutTests(unittest.TestCase):
         ))
         self.assertEqual(
             [source.authority for source in sources],
-            ['Western Australian Electoral Commission'],
+            [
+                'Western Australian Electoral Commission',
+                'Western Australian Electoral Commission',
+            ],
         )
+        lower_bounds = [
+            record for record in observations
+            if record.source_id == 'waec-2008-annual-report'
+        ]
+        self.assertEqual(len(lower_bounds), 2)
+        self.assertTrue(all(
+            record.count_precision == 'approximate'
+            and record.count_relation == 'lower_bound'
+            for record in lower_bounds
+        ))
 
     def test_early_federal_postal_controls_are_not_returned_votes(self):
         expected = {
@@ -430,6 +445,18 @@ class PublishedOperationalTurnoutTests(unittest.TestCase):
 
     def test_older_commission_reconciliations_preserve_measure_semantics(self):
         expected = {
+            '2005wa': {
+                published.PREPOLL_MEASURE: 35220,
+                published.POSTAL_APPLICATION_MEASURE: 50419,
+                published.POSTAL_READY_MEASURE: 34821,
+            },
+            '2006sa': {
+                published.PREPOLL_MEASURE: 23419,
+                published.POSTAL_APPLICATION_MEASURE: 66066,
+                published.POSTAL_ISSUED_MEASURE: 61364,
+                published.POSTAL_RETURN_MEASURE: 54543,
+                published.POSTAL_ACCEPTED_MEASURE: 51584,
+            },
             '2006qld': {
                 published.POSTAL_APPLICATION_MEASURE: 141000,
             },
@@ -458,6 +485,141 @@ class PublishedOperationalTurnoutTests(unittest.TestCase):
                 record.observation_status == 'final_reconciled'
                 for record in observations
             ))
+
+    def test_vic2010_keeps_election_eve_estimate_and_combined_final_control(self):
+        election = published.ELECTIONS['2010vic']
+
+        sources, observations = published.build_observations(
+            election,
+            {},
+            self.make_dataset('2010vic', '2010-11-27'),
+        )
+
+        self.assertEqual(len(observations), 2)
+        self.assertEqual(
+            [source.source_id for source in sources],
+            [
+                'abc-2010vic-election-eve',
+                'abc-2014-vic-election-day-retrospective',
+            ],
+        )
+        prepoll = next(
+            record for record in observations
+            if record.measure == published.PREPOLL_MEASURE
+        )
+        self.assertEqual(prepoll.count, 500000)
+        self.assertEqual(prepoll.count_precision, 'approximate')
+        self.assertEqual(prepoll.observation_status, 'contemporaneous')
+        combined = next(
+            record for record in observations
+            if record.measure == published.PRE_ELECTION_VOTES_CAST_MEASURE
+        )
+        self.assertEqual(
+            combined.observation_status,
+            'final_reconciled',
+        )
+        self.assertEqual(combined.count, 768483)
+
+    def test_sa2014_preserves_election_eve_forecasts_and_final_control(self):
+        election = published.ELECTIONS['2014sa']
+
+        sources, observations = published.build_observations(
+            election,
+            {},
+            self.make_dataset('2014sa', '2014-03-15'),
+        )
+
+        self.assertEqual(
+            [source.source_id for source in sources],
+            [
+                'abc-2014sa-election-eve',
+                'antony-green-2014sa-retrospective',
+            ],
+        )
+        forecasts = [
+            record for record in observations
+            if record.count_basis == 'forecast'
+        ]
+        self.assertEqual(
+            {(record.measure, record.count) for record in forecasts},
+            {
+                (published.PREPOLL_MEASURE, 70000),
+                (published.PRE_ELECTION_VOTES_CAST_MEASURE, 160000),
+            },
+        )
+        self.assertEqual(
+            next(
+                record for record in observations
+                if record.measure == published.PREPOLL_MEASURE
+                and record.observation_status == 'final_reconciled'
+            ).count,
+            80087,
+        )
+        reported_prepoll = next(
+            record for record in observations
+            if record.measure == published.PREPOLL_MEASURE
+            and record.observation_status == 'contemporaneous'
+            and record.count_basis == 'reported'
+        )
+        self.assertEqual(reported_prepoll.count, 50000)
+        self.assertEqual(reported_prepoll.count_relation, 'lower_bound')
+        self.assertEqual(
+            next(
+                record for record in observations
+                if record.measure == published.POSTAL_APPLICATION_MEASURE
+            ).count,
+            86000,
+        )
+
+    def test_sa2018_keeps_election_eve_estimates_and_final_controls(self):
+        election = published.ELECTIONS['2018sa']
+
+        sources, observations = published.build_observations(
+            election,
+            {},
+            self.make_dataset('2018sa', '2018-03-17'),
+        )
+
+        self.assertEqual(
+            [source.source_id for source in sources],
+            [
+                'abc-2018sa-election-morning',
+                'antony-green-2018sa-retrospective',
+            ],
+        )
+        contemporaneous = [
+            record for record in observations
+            if record.observation_status == 'contemporaneous'
+        ]
+        self.assertEqual(
+            {(record.measure, record.count) for record in contemporaneous},
+            {
+                (published.PREPOLL_MEASURE, 120000),
+                (published.POSTAL_ISSUED_MEASURE, 95000),
+                (published.PRE_ELECTION_VOTES_CAST_MEASURE, 215000),
+            },
+        )
+        self.assertTrue(all(
+            record.count_precision == 'approximate'
+            for record in contemporaneous
+        ))
+        combined = next(
+            record for record in contemporaneous
+            if record.measure == published.PRE_ELECTION_VOTES_CAST_MEASURE
+        )
+        self.assertEqual(combined.count_relation, 'lower_bound')
+        final_controls = [
+            record for record in observations
+            if record.observation_status == 'final_reconciled'
+        ]
+        self.assertEqual(
+            {(record.measure, record.count) for record in final_controls},
+            {
+                (published.PREPOLL_MEASURE, 120468),
+                (published.POSTAL_APPLICATION_MEASURE, 82213),
+                (published.POSTAL_ISSUED_MEASURE, 94831),
+            },
+        )
 
     def test_qld2009_report_remains_an_approximate_application_count(self):
         election = published.ELECTIONS['2009qld']

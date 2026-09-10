@@ -8,6 +8,58 @@
   ],
   "operational_observations": [
     {
+      "count": 50000,
+      "count_precision": "approximate",
+      "count_relation": "lower_bound",
+      "election_code": "2014sa",
+      "geography_basis": "state",
+      "measure": "prepoll_votes_cast_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2014-03-12T18:00:00+10:30",
+      "seat_name": "",
+      "source_category": "More than 50,000 pre-poll votes cast by Wednesday evening",
+      "source_id": "abc-2014sa-election-eve"
+    },
+    {
+      "count": 86000,
+      "count_precision": "approximate",
+      "election_code": "2014sa",
+      "geography_basis": "state",
+      "measure": "postal_applications_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2014-03-13",
+      "seat_name": "",
+      "source_category": "Approximately 86,000 postal-vote applications received",
+      "source_id": "abc-2014sa-election-eve"
+    },
+    {
+      "count": 160000,
+      "count_basis": "forecast",
+      "count_precision": "approximate",
+      "election_code": "2014sa",
+      "geography_basis": "state",
+      "measure": "pre_election_votes_cast_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2014-03-13",
+      "seat_name": "",
+      "source_category": "Forecast of about 160,000 early or postal voters",
+      "source_id": "abc-2014sa-election-eve"
+    },
+    {
+      "count": 70000,
+      "count_basis": "forecast",
+      "count_precision": "approximate",
+      "count_relation": "lower_bound",
+      "election_code": "2014sa",
+      "geography_basis": "state",
+      "measure": "prepoll_votes_cast_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2014-03-13",
+      "seat_name": "",
+      "source_category": "Forecast of more than 70,000 pre-poll votes by Friday evening",
+      "source_id": "abc-2014sa-election-eve"
+    },
+    {
       "count": 80087,
       "election_code": "2014sa",
       "geography_basis": "state",
@@ -16,10 +68,10 @@
       "observed_at": "2014-03-14",
       "seat_name": "",
       "source_category": "Retrospective final in-state pre-poll total",
-      "source_id": "antony-green-2014sa-election-eve"
+      "source_id": "antony-green-2014sa-retrospective"
     }
   ],
-  "schema_version": 3,
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2014sa",
@@ -552,12 +604,22 @@
     },
     {
       "adapter": "published-election-eve-operational-v1",
-      "authority": "Antony Green, based on electoral commission data",
+      "authority": "ABC News, reporting ECSA figures",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2014sa",
+      "locator": "https://www.abc.net.au/news/2014-03-13/sa-election-liberal-costings-keen-to-vote-early/5318740",
+      "notes": "Published two days before polling. The pre-poll and postal-application counts report progress at publication; the 70,000 and 160,000 figures are ECSA forecasts.",
+      "source_id": "abc-2014sa-election-eve",
+      "status": "operational"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "Antony Green, based on ECSA data",
       "category_regime": "published-election-eve-v1",
       "election_code": "2014sa",
       "locator": "https://antonygreen.com.au/2022-sa-election-pre-poll-and-postal-voting-rates/",
-      "notes": "Final pre-election controls; some older values survive only in a later retrospective publication. District rates are retained as approximate counts derived from final enrolment.",
-      "source_id": "antony-green-2014sa-election-eve",
+      "notes": "Later retrospective providing the exact final in-state pre-poll count used to assess the election-eve forecast.",
+      "source_id": "antony-green-2014sa-retrospective",
       "status": "operational"
     }
   ],

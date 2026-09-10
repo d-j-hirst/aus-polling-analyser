@@ -6,8 +6,42 @@
       "jurisdiction": "wa"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 50419,
+      "election_code": "2005wa",
+      "geography_basis": "state",
+      "measure": "postal_applications_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2005-02-24",
+      "seat_name": "",
+      "source_category": "Applications for an early vote by post",
+      "source_id": "waec-2005-election-report"
+    },
+    {
+      "count": 35220,
+      "election_code": "2005wa",
+      "geography_basis": "state",
+      "measure": "prepoll_votes_cast_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2005-02-25T18:00:00+08:00",
+      "seat_name": "",
+      "source_category": "In-person early votes issued before polling day",
+      "source_id": "waec-2005-election-report"
+    },
+    {
+      "count": 34821,
+      "election_code": "2005wa",
+      "geography_basis": "state",
+      "measure": "postal_votes_ready_for_election_night_count",
+      "observation_status": "final_reconciled",
+      "observed_at": "2005-02-26T18:00:00+08:00",
+      "seat_name": "",
+      "source_category": "Postal votes admitted for election-night counting",
+      "source_id": "waec-2005-election-report"
+    }
+  ],
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2005wa",
@@ -647,6 +681,16 @@
       "notes": "Formal vote-type counts come from the Legislative Assembly Types of Votes by District table. The 2025 ordinary category explicitly includes early in-person votes.",
       "source_id": "waec-2005-assembly-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "Western Australian Electoral Commission",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2005wa",
+      "locator": "https://www.elections.wa.gov.au/sites/default/files/content/documents/2005_SGE_Report.pdf",
+      "notes": "Later official election report reconstructing the completed pre-election early-voting operation. The in-person count is described as votes issued; at an issuing office this also represents ballots cast.",
+      "source_id": "waec-2005-election-report",
+      "status": "operational"
     }
   ],
   "vote_types": [

@@ -103,6 +103,54 @@ ELECTIONS = {
             ),
         ),),
     ),
+    '2005wa': PublishedElection(
+        election_code='2005wa',
+        election_date='2005-02-26',
+        article_url=(
+            'https://www.elections.wa.gov.au/sites/default/files/content/'
+            'documents/2005_SGE_Report.pdf'
+        ),
+        state_counts=(
+            PublishedCount(
+                PREPOLL_MEASURE,
+                '2005-02-25T18:00:00+08:00',
+                35220,
+                'In-person early votes issued before polling day',
+                observation_status='final_reconciled',
+                source_id='waec-2005-election-report',
+            ),
+            PublishedCount(
+                POSTAL_APPLICATION_MEASURE,
+                '2005-02-24',
+                50419,
+                'Applications for an early vote by post',
+                observation_status='final_reconciled',
+                source_id='waec-2005-election-report',
+            ),
+            PublishedCount(
+                POSTAL_READY_MEASURE,
+                '2005-02-26T18:00:00+08:00',
+                34821,
+                'Postal votes admitted for election-night counting',
+                observation_status='final_reconciled',
+                source_id='waec-2005-election-report',
+            ),
+        ),
+        additional_sources=(PublishedSource(
+            source_id='waec-2005-election-report',
+            authority='Western Australian Electoral Commission',
+            locator=(
+                'https://www.elections.wa.gov.au/sites/default/files/'
+                'content/documents/2005_SGE_Report.pdf'
+            ),
+            notes=(
+                'Later official election report reconstructing the completed '
+                'pre-election early-voting operation. The in-person count is '
+                'described as votes issued; at an issuing office this also '
+                'represents ballots cast.'
+            ),
+        ),),
+    ),
     '2006qld': PublishedElection(
         election_code='2006qld',
         election_date='2006-09-09',
@@ -126,6 +174,71 @@ ELECTIONS = {
             notes=(
                 'Later judgment recording ECQ evidence about total '
                 'applications; the published figure is rounded.'
+            ),
+        ),),
+    ),
+    '2006sa': PublishedElection(
+        election_code='2006sa',
+        election_date='2006-03-18',
+        article_url=(
+            'https://ecsa.sa.gov.au/component/edocman/'
+            '2006-state-election-report/download'
+        ),
+        state_counts=(
+            PublishedCount(
+                PREPOLL_MEASURE,
+                '2006-03-17T18:00:00+10:30',
+                23419,
+                'Pre-poll electors assisted in person',
+                observation_status='final_reconciled',
+                source_id='ecsa-2006-election-report',
+            ),
+            PublishedCount(
+                POSTAL_APPLICATION_MEASURE,
+                '2006-03-16',
+                66066,
+                'Postal-vote applications processed',
+                observation_status='final_reconciled',
+                source_id='ecsa-2006-election-report',
+            ),
+            PublishedCount(
+                POSTAL_ISSUED_MEASURE,
+                '2006-03-16',
+                61364,
+                'Accepted postal applications; ballot papers dispatched',
+                observation_status='final_reconciled',
+                source_id='ecsa-2006-election-report',
+            ),
+            PublishedCount(
+                POSTAL_RETURN_MEASURE,
+                '2006-03-18',
+                54543,
+                'Postal declaration certificates returned',
+                observation_status='final_reconciled',
+                source_id='ecsa-2006-election-report',
+            ),
+            PublishedCount(
+                POSTAL_ACCEPTED_MEASURE,
+                '2006-03-18',
+                51584,
+                'Postal declaration certificates accepted for scrutiny',
+                observation_status='final_reconciled',
+                source_id='ecsa-2006-election-report',
+            ),
+        ),
+        additional_sources=(PublishedSource(
+            source_id='ecsa-2006-election-report',
+            authority='South Australian State Electoral Office',
+            locator=(
+                'https://ecsa.sa.gov.au/component/edocman/'
+                '2006-state-election-report/download'
+            ),
+            notes=(
+                'Later official election report reconstructing final '
+                'election-period pre-poll and postal operations. Postal '
+                'ballots were dispatched for 61,364 accepted applications; '
+                'this total already includes 8,450 electors on the register '
+                'of declaration voters.'
             ),
         ),),
     ),
@@ -215,6 +328,26 @@ ELECTIONS = {
         ),
         state_counts=(
             PublishedCount(
+                PREPOLL_MEASURE,
+                '2008-09-02',
+                60000,
+                'More than 60,000 early in-person votes cast',
+                count_precision='approximate',
+                count_relation='lower_bound',
+                observation_status='final_reconciled',
+                source_id='waec-2008-annual-report',
+            ),
+            PublishedCount(
+                POSTAL_APPLICATION_MEASURE,
+                '2008-09-02',
+                65000,
+                'More than 65,000 postal-vote applications received',
+                count_precision='approximate',
+                count_relation='lower_bound',
+                observation_status='final_reconciled',
+                source_id='waec-2008-annual-report',
+            ),
+            PublishedCount(
                 POSTAL_ISSUED_MEASURE,
                 '2008-09-04',
                 81219,
@@ -231,19 +364,35 @@ ELECTIONS = {
                 source_id='waec-2008-election-report',
             ),
         ),
-        additional_sources=(PublishedSource(
-            source_id='waec-2008-election-report',
-            authority='Western Australian Electoral Commission',
-            locator=(
-                'https://www.elections.wa.gov.au/sites/default/files/'
-                'content/documents/2008_SGE_Report.pdf'
+        additional_sources=(
+            PublishedSource(
+                source_id='waec-2008-election-report',
+                authority='Western Australian Electoral Commission',
+                locator=(
+                    'https://www.elections.wa.gov.au/sites/default/files/'
+                    'content/documents/2008_SGE_Report.pdf'
+                ),
+                notes=(
+                    'Later official election report reconstructing postal '
+                    'issuance and election-night readiness, not a retained '
+                    'contemporaneous snapshot.'
+                ),
             ),
-            notes=(
-                'Later official election report reconstructing postal '
-                'issuance and election-night readiness, not a retained '
-                'contemporaneous snapshot.'
+            PublishedSource(
+                source_id='waec-2008-annual-report',
+                authority='Western Australian Electoral Commission',
+                locator=(
+                    'https://www.elections.wa.gov.au/sites/default/files/'
+                    'content/documents/Annual_Report_2009.pdf'
+                ),
+                notes=(
+                    'Later annual report stating that, four days before '
+                    'polling, more than 60,000 in-person early votes had '
+                    'been cast and more than 65,000 postal applications had '
+                    'been received.'
+                ),
             ),
-        ),),
+        ),
     ),
     '2009qld': PublishedElection(
         election_code='2009qld',
@@ -301,6 +450,64 @@ ELECTIONS = {
                 'the reported count refers to the preceding weekend.'
             ),
         ),),
+    ),
+    '2010vic': PublishedElection(
+        election_code='2010vic',
+        election_date='2010-11-27',
+        article_url=(
+            'https://www.abc.net.au/pm/archive/articles/2010/11/26/'
+            's3077848.htm'
+        ),
+        state_counts=(
+            PublishedCount(
+                PREPOLL_MEASURE,
+                '2010-11-26T18:21:00+11:00',
+                500000,
+                'About half a million Victorians had voted early',
+                count_precision='approximate',
+                source_id='abc-2010vic-election-eve',
+            ),
+            PublishedCount(
+                PRE_ELECTION_VOTES_CAST_MEASURE,
+                '2010-11-26',
+                768483,
+                'People who cast votes before election day',
+                observation_status='final_reconciled',
+                source_id='abc-2014-vic-election-day-retrospective',
+            ),
+        ),
+        additional_sources=(
+            PublishedSource(
+                source_id='abc-2010vic-election-eve',
+                authority='ABC PM',
+                locator=(
+                    'https://www.abc.net.au/pm/archive/articles/2010/11/26/'
+                    's3077848.htm'
+                ),
+                notes=(
+                    'Election-eve report using the loose phrase "posted their '
+                    'vote early" for ballots cast before polling day. Its '
+                    'rough half-million figure is treated as in-person early '
+                    'voting because it closely tracks the later 543,763 '
+                    'pre-poll total rather than the 768,483 combined total.'
+                ),
+            ),
+            PublishedSource(
+                source_id='abc-2014-vic-election-day-retrospective',
+                authority='ABC News',
+                locator=(
+                    'https://www.abc.net.au/news/2014-11-29/'
+                    'victorians-head-to-the-polls-with-focus-on-marginal-seats/'
+                    '5922606'
+                ),
+                notes=(
+                    'Later retrospective reporting an exact combined count '
+                    'of votes cast before the 2010 polling day. The source '
+                    'does not support splitting that count into in-person and '
+                    'postal components.'
+                ),
+            ),
+        ),
     ),
     '2013wa': PublishedElection(
         election_code='2013wa',
@@ -375,16 +582,83 @@ ELECTIONS = {
         election_code='2014sa',
         election_date='2014-03-15',
         article_url=(
-            'https://antonygreen.com.au/'
-            '2022-sa-election-pre-poll-and-postal-voting-rates/'
+            'https://www.abc.net.au/news/2014-03-13/'
+            'sa-election-liberal-costings-keen-to-vote-early/5318740'
         ),
-        state_counts=(PublishedCount(
-            PREPOLL_MEASURE,
-            '2014-03-14',
-            80087,
-            'Retrospective final in-state pre-poll total',
-            observation_status='final_reconciled',
-        ),),
+        state_counts=(
+            PublishedCount(
+                PREPOLL_MEASURE,
+                '2014-03-12T18:00:00+10:30',
+                50000,
+                'More than 50,000 pre-poll votes cast by Wednesday evening',
+                count_precision='approximate',
+                count_relation='lower_bound',
+                source_id='abc-2014sa-election-eve',
+            ),
+            PublishedCount(
+                PREPOLL_MEASURE,
+                '2014-03-13',
+                70000,
+                'Forecast of more than 70,000 pre-poll votes by Friday evening',
+                count_precision='approximate',
+                count_relation='lower_bound',
+                source_id='abc-2014sa-election-eve',
+                count_basis='forecast',
+            ),
+            PublishedCount(
+                POSTAL_APPLICATION_MEASURE,
+                '2014-03-13',
+                86000,
+                'Approximately 86,000 postal-vote applications received',
+                count_precision='approximate',
+                source_id='abc-2014sa-election-eve',
+            ),
+            PublishedCount(
+                PRE_ELECTION_VOTES_CAST_MEASURE,
+                '2014-03-13',
+                160000,
+                'Forecast of about 160,000 early or postal voters',
+                count_precision='approximate',
+                source_id='abc-2014sa-election-eve',
+                count_basis='forecast',
+            ),
+            PublishedCount(
+                PREPOLL_MEASURE,
+                '2014-03-14',
+                80087,
+                'Retrospective final in-state pre-poll total',
+                observation_status='final_reconciled',
+                source_id='antony-green-2014sa-retrospective',
+            ),
+        ),
+        additional_sources=(
+            PublishedSource(
+                source_id='abc-2014sa-election-eve',
+                authority='ABC News, reporting ECSA figures',
+                locator=(
+                    'https://www.abc.net.au/news/2014-03-13/'
+                    'sa-election-liberal-costings-keen-to-vote-early/'
+                    '5318740'
+                ),
+                notes=(
+                    'Published two days before polling. The pre-poll and '
+                    'postal-application counts report progress at publication; '
+                    'the 70,000 and 160,000 figures are ECSA forecasts.'
+                ),
+            ),
+            PublishedSource(
+                source_id='antony-green-2014sa-retrospective',
+                authority='Antony Green, based on ECSA data',
+                locator=(
+                    'https://antonygreen.com.au/'
+                    '2022-sa-election-pre-poll-and-postal-voting-rates/'
+                ),
+                notes=(
+                    'Later retrospective providing the exact final in-state '
+                    'pre-poll count used to assess the election-eve forecast.'
+                ),
+            ),
+        ),
     ),
     '2017wa': PublishedElection(
         election_code='2017wa',
@@ -469,16 +743,42 @@ ELECTIONS = {
         election_code='2018sa',
         election_date='2018-03-17',
         article_url=(
-            'https://antonygreen.com.au/'
-            '2022-sa-election-pre-poll-and-postal-voting-rates/'
+            'https://www.abc.net.au/news/2018-03-17/'
+            'sa-election-booths-open-for-unpredictable-poll/9557780'
         ),
         state_counts=(
+            PublishedCount(
+                PREPOLL_MEASURE,
+                '2018-03-17T09:10:00+10:30',
+                120000,
+                'About 120,000 votes cast at pre-polling centres',
+                count_precision='approximate',
+                source_id='abc-2018sa-election-morning',
+            ),
+            PublishedCount(
+                POSTAL_ISSUED_MEASURE,
+                '2018-03-17T09:10:00+10:30',
+                95000,
+                'About 95,000 people reported as having voted by post',
+                count_precision='approximate',
+                source_id='abc-2018sa-election-morning',
+            ),
+            PublishedCount(
+                PRE_ELECTION_VOTES_CAST_MEASURE,
+                '2018-03-17T09:10:00+10:30',
+                215000,
+                'More than 215,000 people reported as voting before election day',
+                count_precision='approximate',
+                count_relation='lower_bound',
+                source_id='abc-2018sa-election-morning',
+            ),
             PublishedCount(
                 PREPOLL_MEASURE,
                 '2018-03-16',
                 120468,
                 'Retrospective final pre-poll total',
                 observation_status='final_reconciled',
+                source_id='antony-green-2018sa-retrospective',
             ),
             PublishedCount(
                 POSTAL_APPLICATION_MEASURE,
@@ -486,6 +786,7 @@ ELECTIONS = {
                 82213,
                 'Retrospective postal applications received',
                 observation_status='final_reconciled',
+                source_id='antony-green-2018sa-retrospective',
             ),
             PublishedCount(
                 POSTAL_ISSUED_MEASURE,
@@ -494,6 +795,35 @@ ELECTIONS = {
                 'Accepted applications plus permanent postal electors',
                 derivation='sum_published_counts',
                 observation_status='final_reconciled',
+                source_id='antony-green-2018sa-retrospective',
+            ),
+        ),
+        additional_sources=(
+            PublishedSource(
+                source_id='abc-2018sa-election-morning',
+                authority='ABC News, reporting South Australian election figures',
+                locator=(
+                    'https://www.abc.net.au/news/2018-03-17/'
+                    'sa-election-booths-open-for-unpredictable-poll/9557780'
+                ),
+                notes=(
+                    'Published at 9:10am on election morning. The rounded postal '
+                    'figure is treated as ballots issued because it closely '
+                    'matches the later 94,831 issue total, rather than the '
+                    '82,213 application total.'
+                ),
+            ),
+            PublishedSource(
+                source_id='antony-green-2018sa-retrospective',
+                authority='Antony Green, based on ECSA data',
+                locator=(
+                    'https://antonygreen.com.au/'
+                    '2022-sa-election-pre-poll-and-postal-voting-rates/'
+                ),
+                notes=(
+                    'Later retrospective providing exact final controls for '
+                    'the election-eve rounded figures.'
+                ),
             ),
         ),
     ),

@@ -16,7 +16,7 @@
       "observed_at": "2018-03-16",
       "seat_name": "",
       "source_category": "Retrospective postal applications received",
-      "source_id": "antony-green-2018sa-election-eve"
+      "source_id": "antony-green-2018sa-retrospective"
     },
     {
       "count": 94831,
@@ -28,7 +28,7 @@
       "observed_at": "2018-03-16",
       "seat_name": "",
       "source_category": "Accepted applications plus permanent postal electors",
-      "source_id": "antony-green-2018sa-election-eve"
+      "source_id": "antony-green-2018sa-retrospective"
     },
     {
       "count": 120468,
@@ -39,10 +39,47 @@
       "observed_at": "2018-03-16",
       "seat_name": "",
       "source_category": "Retrospective final pre-poll total",
-      "source_id": "antony-green-2018sa-election-eve"
+      "source_id": "antony-green-2018sa-retrospective"
+    },
+    {
+      "count": 95000,
+      "count_precision": "approximate",
+      "election_code": "2018sa",
+      "geography_basis": "state",
+      "measure": "postal_ballots_issued_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2018-03-17T09:10:00+10:30",
+      "seat_name": "",
+      "source_category": "About 95,000 people reported as having voted by post",
+      "source_id": "abc-2018sa-election-morning"
+    },
+    {
+      "count": 215000,
+      "count_precision": "approximate",
+      "count_relation": "lower_bound",
+      "election_code": "2018sa",
+      "geography_basis": "state",
+      "measure": "pre_election_votes_cast_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2018-03-17T09:10:00+10:30",
+      "seat_name": "",
+      "source_category": "More than 215,000 people reported as voting before election day",
+      "source_id": "abc-2018sa-election-morning"
+    },
+    {
+      "count": 120000,
+      "count_precision": "approximate",
+      "election_code": "2018sa",
+      "geography_basis": "state",
+      "measure": "prepoll_votes_cast_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2018-03-17T09:10:00+10:30",
+      "seat_name": "",
+      "source_category": "About 120,000 votes cast at pre-polling centres",
+      "source_id": "abc-2018sa-election-morning"
     }
   ],
-  "schema_version": 3,
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2018sa",
@@ -575,12 +612,22 @@
     },
     {
       "adapter": "published-election-eve-operational-v1",
-      "authority": "Antony Green, based on electoral commission data",
+      "authority": "ABC News, reporting South Australian election figures",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2018sa",
+      "locator": "https://www.abc.net.au/news/2018-03-17/sa-election-booths-open-for-unpredictable-poll/9557780",
+      "notes": "Published at 9:10am on election morning. The rounded postal figure is treated as ballots issued because it closely matches the later 94,831 issue total, rather than the 82,213 application total.",
+      "source_id": "abc-2018sa-election-morning",
+      "status": "operational"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "Antony Green, based on ECSA data",
       "category_regime": "published-election-eve-v1",
       "election_code": "2018sa",
       "locator": "https://antonygreen.com.au/2022-sa-election-pre-poll-and-postal-voting-rates/",
-      "notes": "Final pre-election controls; some older values survive only in a later retrospective publication. District rates are retained as approximate counts derived from final enrolment.",
-      "source_id": "antony-green-2018sa-election-eve",
+      "notes": "Later retrospective providing exact final controls for the election-eve rounded figures.",
+      "source_id": "antony-green-2018sa-retrospective",
       "status": "operational"
     }
   ],

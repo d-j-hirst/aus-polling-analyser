@@ -6,8 +6,64 @@
       "jurisdiction": "sa"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 66066,
+      "election_code": "2006sa",
+      "geography_basis": "state",
+      "measure": "postal_applications_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2006-03-16",
+      "seat_name": "",
+      "source_category": "Postal-vote applications processed",
+      "source_id": "ecsa-2006-election-report"
+    },
+    {
+      "count": 61364,
+      "election_code": "2006sa",
+      "geography_basis": "state",
+      "measure": "postal_ballots_issued_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2006-03-16",
+      "seat_name": "",
+      "source_category": "Accepted postal applications; ballot papers dispatched",
+      "source_id": "ecsa-2006-election-report"
+    },
+    {
+      "count": 23419,
+      "election_code": "2006sa",
+      "geography_basis": "state",
+      "measure": "prepoll_votes_cast_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2006-03-17T18:00:00+10:30",
+      "seat_name": "",
+      "source_category": "Pre-poll electors assisted in person",
+      "source_id": "ecsa-2006-election-report"
+    },
+    {
+      "count": 51584,
+      "election_code": "2006sa",
+      "geography_basis": "state",
+      "measure": "postal_votes_accepted_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2006-03-18",
+      "seat_name": "",
+      "source_category": "Postal declaration certificates accepted for scrutiny",
+      "source_id": "ecsa-2006-election-report"
+    },
+    {
+      "count": 54543,
+      "election_code": "2006sa",
+      "geography_basis": "state",
+      "measure": "postal_votes_returned_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2006-03-18",
+      "seat_name": "",
+      "source_category": "Postal declaration certificates returned",
+      "source_id": "ecsa-2006-election-report"
+    }
+  ],
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2006sa",
@@ -537,6 +593,16 @@
       "notes": "The election-statistics report tables provide district enrolment and ordinary/declaration formal, informal and total ballot papers. Declaration ballot papers combine pre-poll, postal, absent and other declaration modes and are not split by this adapter.",
       "source_id": "ecsa-2006-assembly-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "South Australian State Electoral Office",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2006sa",
+      "locator": "https://ecsa.sa.gov.au/component/edocman/2006-state-election-report/download",
+      "notes": "Later official election report reconstructing final election-period pre-poll and postal operations. Postal ballots were dispatched for 61,364 accepted applications; this total already includes 8,450 electors on the register of declaration voters.",
+      "source_id": "ecsa-2006-election-report",
+      "status": "operational"
     }
   ],
   "vote_types": [

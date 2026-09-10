@@ -6,8 +6,32 @@
       "jurisdiction": "vic"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 768483,
+      "election_code": "2010vic",
+      "geography_basis": "state",
+      "measure": "pre_election_votes_cast_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2010-11-26",
+      "seat_name": "",
+      "source_category": "People who cast votes before election day",
+      "source_id": "abc-2014-vic-election-day-retrospective"
+    },
+    {
+      "count": 500000,
+      "count_precision": "approximate",
+      "election_code": "2010vic",
+      "geography_basis": "state",
+      "measure": "prepoll_votes_cast_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2010-11-26T18:21:00+11:00",
+      "seat_name": "",
+      "source_category": "About half a million Victorians had voted early",
+      "source_id": "abc-2010vic-election-eve"
+    }
+  ],
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2010vic",
@@ -988,6 +1012,26 @@
       "notes": "Early votes retain the VEC aggregate, including small early-voting modes. Marked As Voted remains separate.",
       "source_id": "vec-2010-lower-house-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "ABC PM",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2010vic",
+      "locator": "https://www.abc.net.au/pm/archive/articles/2010/11/26/s3077848.htm",
+      "notes": "Election-eve report using the loose phrase \"posted their vote early\" for ballots cast before polling day. Its rough half-million figure is treated as in-person early voting because it closely tracks the later 543,763 pre-poll total rather than the 768,483 combined total.",
+      "source_id": "abc-2010vic-election-eve",
+      "status": "operational"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "ABC News",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2010vic",
+      "locator": "https://www.abc.net.au/news/2014-11-29/victorians-head-to-the-polls-with-focus-on-marginal-seats/5922606",
+      "notes": "Later retrospective reporting an exact combined count of votes cast before the 2010 polling day. The source does not support splitting that count into in-person and postal components.",
+      "source_id": "abc-2014-vic-election-day-retrospective",
+      "status": "operational"
     }
   ],
   "vote_types": [

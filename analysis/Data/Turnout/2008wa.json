@@ -8,6 +8,32 @@
   ],
   "operational_observations": [
     {
+      "count": 65000,
+      "count_precision": "approximate",
+      "count_relation": "lower_bound",
+      "election_code": "2008wa",
+      "geography_basis": "state",
+      "measure": "postal_applications_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2008-09-02",
+      "seat_name": "",
+      "source_category": "More than 65,000 postal-vote applications received",
+      "source_id": "waec-2008-annual-report"
+    },
+    {
+      "count": 60000,
+      "count_precision": "approximate",
+      "count_relation": "lower_bound",
+      "election_code": "2008wa",
+      "geography_basis": "state",
+      "measure": "prepoll_votes_cast_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2008-09-02",
+      "seat_name": "",
+      "source_category": "More than 60,000 early in-person votes cast",
+      "source_id": "waec-2008-annual-report"
+    },
+    {
       "count": 81219,
       "election_code": "2008wa",
       "geography_basis": "state",
@@ -701,6 +727,16 @@
       "locator": "https://www.elections.wa.gov.au/sites/default/files/content/documents/2008_SGE_Report.pdf",
       "notes": "Later official election report reconstructing postal issuance and election-night readiness, not a retained contemporaneous snapshot.",
       "source_id": "waec-2008-election-report",
+      "status": "operational"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "Western Australian Electoral Commission",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2008wa",
+      "locator": "https://www.elections.wa.gov.au/sites/default/files/content/documents/Annual_Report_2009.pdf",
+      "notes": "Later annual report stating that, four days before polling, more than 60,000 in-person early votes had been cast and more than 65,000 postal applications had been received.",
+      "source_id": "waec-2008-annual-report",
       "status": "operational"
     }
   ],
