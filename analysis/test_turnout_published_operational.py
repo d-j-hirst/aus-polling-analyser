@@ -291,6 +291,229 @@ class PublishedOperationalTurnoutTests(unittest.TestCase):
             observations[0].observation_status, 'final_reconciled'
         )
 
+    def test_published_lower_bound_retains_its_relation(self):
+        dataset = self.make_dataset()
+        election = published.PublishedElection(
+            election_code='2023nsw',
+            election_date='2023-03-25',
+            article_url='https://example.test/election-eve',
+            state_counts=(published.PublishedCount(
+                published.POSTAL_READY_MEASURE,
+                '2023-03-24',
+                1000,
+                'At least 1,000 returned postals',
+                count_precision='approximate',
+                count_relation='lower_bound',
+            ),),
+        )
+
+        _source, observations = published.build_observations(
+            election, {}, dataset
+        )
+
+        self.assertEqual(observations[0].count_relation, 'lower_bound')
+
+    def test_additional_publication_source_is_attributed_separately(self):
+        election = published.ELECTIONS['2019nsw']
+
+        sources, observations = published.build_observations(
+            election,
+            {},
+            self.make_dataset('2019nsw', '2019-03-23'),
+        )
+
+        self.assertEqual(
+            [source.source_id for source in sources],
+            ['abc-2019nsw-election-eve'],
+        )
+        self.assertTrue(all(
+            record.source_id == 'abc-2019nsw-election-eve'
+            for record in observations
+        ))
+        combined = next(
+            record for record in observations
+            if record.measure == published.PRE_ELECTION_VOTES_CAST_MEASURE
+        )
+        self.assertEqual(combined.count_relation, 'lower_bound')
+        self.assertEqual(combined.count_precision, 'approximate')
+
+    def test_published_forecast_retains_its_basis(self):
+        election = published.ELECTIONS['2017wa']
+
+        sources, observations = published.build_observations(
+            election,
+            {},
+            self.make_dataset('2017wa', '2017-03-11'),
+        )
+
+        prepoll = next(
+            record for record in observations
+            if record.measure == published.PREPOLL_MEASURE
+        )
+        self.assertEqual(prepoll.count_basis, 'forecast')
+        self.assertEqual(prepoll.count_relation, 'lower_bound')
+
+    def test_wa2013_records_only_votes_ready_for_election_night(self):
+        election = published.ELECTIONS['2013wa']
+
+        _sources, observations = published.build_observations(
+            election,
+            {},
+            self.make_dataset('2013wa', '2013-03-09'),
+        )
+
+        self.assertEqual(
+            {record.measure: record.count for record in observations},
+            {
+                published.PREPOLL_READY_MEASURE: 78000,
+                published.POSTAL_READY_MEASURE: 45000,
+            },
+        )
+
+    def test_wa2008_distinguishes_postal_issuance_from_ready_votes(self):
+        election = published.ELECTIONS['2008wa']
+
+        sources, observations = published.build_observations(
+            election,
+            {},
+            self.make_dataset('2008wa', '2008-09-06'),
+        )
+
+        self.assertEqual(
+            {record.measure: record.count for record in observations},
+            {
+                published.POSTAL_ISSUED_MEASURE: 81219,
+                published.POSTAL_READY_MEASURE: 35467,
+            },
+        )
+        self.assertTrue(all(
+            record.observation_status == 'final_reconciled'
+            for record in observations
+        ))
+        self.assertEqual(
+            [source.authority for source in sources],
+            ['Western Australian Electoral Commission'],
+        )
+
+    def test_early_federal_postal_controls_are_not_returned_votes(self):
+        expected = {
+            '2004fed': {
+                published.POSTAL_ISSUED_MEASURE: 760000,
+            },
+            '2007fed': {
+                published.POSTAL_APPLICATION_MEASURE: 833178,
+                published.POSTAL_ISSUED_MEASURE: 812826,
+            },
+        }
+
+        for election_code, expected_counts in expected.items():
+            election = published.ELECTIONS[election_code]
+            _sources, observations = published.build_observations(
+                election,
+                {},
+                self.make_dataset(election_code, election.election_date),
+            )
+
+            self.assertEqual(
+                {record.measure: record.count for record in observations},
+                expected_counts,
+            )
+            self.assertTrue(all(
+                record.geography_basis == 'national'
+                and record.observation_status == 'final_reconciled'
+                for record in observations
+            ))
+            self.assertNotIn(
+                published.POSTAL_RETURN_MEASURE,
+                {record.measure for record in observations},
+            )
+
+    def test_older_commission_reconciliations_preserve_measure_semantics(self):
+        expected = {
+            '2006qld': {
+                published.POSTAL_APPLICATION_MEASURE: 141000,
+            },
+            '2006vic': {
+                published.PREPOLL_MEASURE: 255161,
+                published.POSTAL_APPLICATION_MEASURE: 226170,
+            },
+            '2015qld': {
+                published.POSTAL_ISSUED_MEASURE: 306064,
+            },
+        }
+
+        for election_code, expected_counts in expected.items():
+            election = published.ELECTIONS[election_code]
+            _sources, observations = published.build_observations(
+                election,
+                {},
+                self.make_dataset(election_code, election.election_date),
+            )
+
+            self.assertEqual(
+                {record.measure: record.count for record in observations},
+                expected_counts,
+            )
+            self.assertTrue(all(
+                record.observation_status == 'final_reconciled'
+                for record in observations
+            ))
+
+    def test_qld2009_report_remains_an_approximate_application_count(self):
+        election = published.ELECTIONS['2009qld']
+
+        _sources, observations = published.build_observations(
+            election,
+            {},
+            self.make_dataset('2009qld', '2009-03-21'),
+        )
+
+        self.assertEqual(len(observations), 1)
+        self.assertEqual(
+            observations[0].measure,
+            published.POSTAL_APPLICATION_MEASURE,
+        )
+        self.assertEqual(observations[0].count, 213000)
+        self.assertEqual(observations[0].count_precision, 'approximate')
+
+    def test_sa2010_report_remains_a_postal_application_lower_bound(self):
+        election = published.ELECTIONS['2010sa']
+
+        _sources, observations = published.build_observations(
+            election,
+            {},
+            self.make_dataset('2010sa', '2010-03-20'),
+        )
+
+        self.assertEqual(len(observations), 1)
+        self.assertEqual(
+            observations[0].measure,
+            published.POSTAL_APPLICATION_MEASURE,
+        )
+        self.assertEqual(observations[0].count, 80000)
+        self.assertEqual(observations[0].count_precision, 'approximate')
+        self.assertEqual(observations[0].count_relation, 'lower_bound')
+
+    def test_qld2017_postal_report_is_not_treated_as_returned_ballots(self):
+        election = published.ELECTIONS['2017qld']
+
+        _sources, observations = published.build_observations(
+            election,
+            {},
+            self.make_dataset('2017qld', '2017-11-25'),
+        )
+
+        postal = next(
+            record for record in observations
+            if record.measure == published.POSTAL_ISSUED_MEASURE
+        )
+        self.assertEqual(postal.count, 369000)
+        self.assertEqual(postal.count_precision, 'approximate')
+        self.assertNotIn(
+            published.POSTAL_RETURN_MEASURE,
+            {record.measure for record in observations},
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -27,8 +27,11 @@ formats differ.
 
 Schema version 2 added explicit operational geography and reconciliation
 status. Schema version 3 adds count precision and derivation so rounded
-published rates cannot be mistaken for exact counts. The loader continues to
-accept version-1 final-result datasets and version-2 operational datasets.
+published rates cannot be mistaken for exact counts. Schema version 4 adds
+`count_relation`, distinguishing point values from lower and upper bounds.
+Schema version 5 adds `count_basis`, so a commission forecast cannot be
+mistaken for a count already reported. The loader continues to accept earlier
+schema versions.
 
 1. `SeatTotal` records final enrolment, formal, informal and total ballots,
    together with the state or territory subdivision needed for federal data.
@@ -41,10 +44,12 @@ accept version-1 final-result datasets and version-2 operational datasets.
    identifies whether its geography refers to an elector's division, an
    administering division, a state or the nation. It also distinguishes a
    contemporaneously published snapshot from a later final-reconciled series.
-   Exact direct counts omit the optional `count_precision` and `derivation`
-   fields. Approximate counts identify both fields explicitly; district counts
-   reconstructed from a one-decimal published rate use
-   `rounded_rate_times_enrolment`.
+   Exact direct point counts omit the optional `count_precision`,
+   `count_relation` and `derivation` fields. Approximate counts identify their
+   precision explicitly; `count_basis=forecast` identifies forward estimates;
+   district counts reconstructed from a rounded
+   published rate also record their derivation. Phrases such as “at least” are
+   retained as `lower_bound`, rather than treated as point estimates.
 4. `SourceDefinition` records the authority, source location, adapter, status
    and category regime used for each set of observations.
 
@@ -102,8 +107,9 @@ level, but ingestion never fabricates detail in older elections.
    of Assembly evidence from ECSA's final statistics reports and CSVs. It
    retains ordinary votes separately and preserves all other modes as the
    published `declaration_combined` aggregate, including category informality.
-7. Ingest 2026 daily early/postal figures separately as operational
-   observations; they must not be treated as final category totals.
+7. `analysis/turnout_sa_operational.py` ingests ECSA's final 2026 district and
+   state early-voting mark-offs and postal applications as operational
+   observations; they are not treated as final accepted ballot totals.
 8. Only after coverage is measured should the turnout model decide which
    common categories and election years have enough evidence for estimation.
 
@@ -133,6 +139,20 @@ assign it an invented observation date.
 Rows for applications still awaiting division assignment, or subsequently
 withdrawn, duplicated or rejected, are likewise excluded from division series.
 
+`analysis/turnout_sa_operational.py` reads ECSA's published 2026 daily-tally
+page:
+
+```bash
+cd analysis
+./env/bin/python -B turnout_sa_operational.py --election 2026sa
+```
+
+It reconciles every district's daily cells to its published total and all 47
+district totals to the state totals. The source reports 454,862 early-voting
+mark-offs and 174,121 postal applications. Antony Green separately reported
+466,364 early votes while noting an approximately 11,000-vote discrepancy
+with ECSA; the normalized exact records therefore use ECSA's own table.
+
 `analysis/turnout_nsw_operational.py` streams NSWEC's complete depersonalized
 2015 pre-poll transaction file:
 
@@ -161,20 +181,47 @@ cd analysis
 ./env/bin/python -B turnout_published_operational.py --election all
 ```
 
-The adapter covers Queensland 2020 and 2024, Western Australia 2021 and 2025,
-South Australia 2022, Victoria 2014 and 2022, and NSW 2023. The 2014 Victorian
-records preserve each district's contemporaneous 6pm election-eve percentage
-of postal votes received plus pre-poll votes cast. It also retains exact
-retrospective final controls for South Australia 2014/2018 and Victoria 2018,
-labelled `final_reconciled` rather than contemporaneous. It uses fixed Antony
-Green articles and embedded tables based on electoral-commission data. The
-federal 2022 election-eve national totals supplement the AEC's later reconciled
-postal snapshot. Exact aggregate totals and the Queensland 2020 district postal
-table remain exact. NSW, Victorian, South Australian and 2021 WA district
-tables expose only rounded rates; their counts are deterministic approximations based on final official
-district enrolment and are labelled accordingly. Approximate statements such
-as votes ready for election-night counting are also kept separate from exact
-totals.
+The adapter covers federal elections in 2004 and 2007, Queensland 2006, 2009,
+2015, 2017, 2020 and 2024, Western Australia
+2008, 2013, 2017, 2021 and 2025, South Australia 2010 and 2022, Victoria
+2006, 2014, 2018 and 2022, and NSW 2019 and 2023. The 2014 Victorian records preserve each district's
+contemporaneous 6pm
+election-eve percentage of postal votes received plus pre-poll votes cast. It
+also retains exact retrospective final controls for South Australia 2014/2018
+and Victoria 2018, labelled `final_reconciled` rather than contemporaneous. It
+uses fixed Antony Green or ABC News articles and embedded tables based on
+electoral-commission data. The federal 2022 election-eve national totals
+supplement the AEC's later reconciled postal snapshot. Exact aggregate totals
+and the Queensland 2020 district postal table remain exact. NSW, Victorian,
+South Australian and 2021 WA district tables expose only rounded rates; their
+counts are deterministic approximations based on final official district
+enrolment and are labelled accordingly. Approximate statements retain explicit
+bounds, while the 2017 WA election-eve estimate is additionally labelled as a
+forecast rather than a reported count.
+The 2013 WA records are deliberately limited to pre-poll and postal ballots
+processed for election-night counting; they are not represented as the final
+numbers cast. The 2017 Queensland records are rounded election-day reports of
+pre-poll votes cast and postal ballots issued. The postal figure is not treated
+as returned ballots: ECQ later reported only 168,000 returns before election
+day and approximately 300,000 postals counted overall.
+The 2008 WA records come from the later WAEC election report and are therefore
+labelled `final_reconciled`: they distinguish 81,219 early-by-post votes issued
+from the 35,467 postal votes admitted for election-night counting. The 2009
+Queensland record is a contemporaneous Electoral Commissioner estimate of
+about 213,000 postal-vote requests, not a count of returned or accepted votes.
+The latest retained 2010 South Australian update predates polling day by six
+days and reports only that postal applications exceeded 80,000. It is retained
+as an approximate lower bound, not promoted to a final application total.
+The early federal records are later AEC reconciliations of pre-election postal
+operations: an approximate 760,000 packages issued in 2004, and exact totals of
+833,178 applications and 812,826 packages issued in 2007. They fill the postal
+gap before the daily AEC operational adapter begins in 2010, but do not provide
+equivalent daily series.
+Older commission reports add exact 2006 Victorian early-vote and postal-
+application totals, an approximate 2006 Queensland postal-application total,
+and Queensland's exact 2015 central postal mailout. These are marked
+`final_reconciled` because the surviving publications postdate the election;
+they remain operational quantities rather than final accepted ballot counts.
 
 ## Queensland Operational Evidence
 

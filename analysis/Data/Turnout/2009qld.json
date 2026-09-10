@@ -6,8 +6,21 @@
       "jurisdiction": "qld"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 213000,
+      "count_precision": "approximate",
+      "election_code": "2009qld",
+      "geography_basis": "state",
+      "measure": "postal_applications_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2009-03-21T12:07:00+10:00",
+      "seat_name": "",
+      "source_category": "About 213,000 postal-vote requests received",
+      "source_id": "abc-2009qld-election-day"
+    }
+  ],
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2009qld",
@@ -999,6 +1012,16 @@
       "notes": "ECQ booth type codes and explicit venue labels determine the normalized category. Detailed source categories are retained and no unavailable category split is estimated.",
       "source_id": "ecq-2009-state-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "ABC News, quoting Queensland Electoral Commissioner David Kerslake",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2009qld",
+      "locator": "https://www.abc.net.au/news/2009-03-21/polls-open-for-qld-election/1626004",
+      "notes": "Election-day report updated at 12:07pm AEST.",
+      "source_id": "abc-2009qld-election-day",
+      "status": "operational"
     }
   ],
   "vote_types": [

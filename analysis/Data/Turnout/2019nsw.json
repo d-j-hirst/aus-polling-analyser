@@ -6,8 +6,34 @@
       "jurisdiction": "nsw"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 1300000,
+      "count_precision": "approximate",
+      "count_relation": "lower_bound",
+      "election_code": "2019nsw",
+      "geography_basis": "state",
+      "measure": "pre_election_votes_cast_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2019-03-22",
+      "seat_name": "",
+      "source_category": "More than 1.3 million people voted before election day",
+      "source_id": "abc-2019nsw-election-eve"
+    },
+    {
+      "count": 220000,
+      "count_precision": "approximate",
+      "election_code": "2019nsw",
+      "geography_basis": "state",
+      "measure": "remote_electronic_votes_cast_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2019-03-22",
+      "seat_name": "",
+      "source_category": "220,000 people used iVote",
+      "source_id": "abc-2019nsw-election-eve"
+    }
+  ],
+  "schema_version": 4,
   "seat_totals": [
     {
       "election_code": "2019nsw",
@@ -1043,6 +1069,16 @@
       "notes": "Early voting is the published aggregate of early voting centres, declared facilities and any small modes included by NSWEC. Enrolment / Provisional remains combined. iVote is retained as remote electronic voting.",
       "source_id": "nswec-sg1901-la-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "ABC News, reporting NSW Electoral Commission figures",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2019nsw",
+      "locator": "https://www.abc.net.au/news/2019-03-23/nsw-election-polls-open-premier-daley-make-last-ditch-pitch/10932594",
+      "notes": "Final contemporaneous report of pre-election voting. The combined total is published only as a lower bound and the iVote count is rounded to the nearest thousand.",
+      "source_id": "abc-2019nsw-election-eve",
+      "status": "operational"
     }
   ],
   "vote_types": [

@@ -19,6 +19,19 @@
       "source_id": "antony-green-2018vic-election-eve"
     },
     {
+      "count": 1600000,
+      "count_precision": "approximate",
+      "count_relation": "lower_bound",
+      "election_code": "2018vic",
+      "geography_basis": "state",
+      "measure": "early_and_postal_votes_recorded_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2018-11-23",
+      "seat_name": "",
+      "source_category": "More than 1.6 million early and postal votes cast",
+      "source_id": "abc-2018vic-election-eve"
+    },
+    {
       "count": 1389980,
       "election_code": "2018vic",
       "geography_basis": "state",
@@ -30,7 +43,7 @@
       "source_id": "antony-green-2018vic-election-eve"
     }
   ],
-  "schema_version": 3,
+  "schema_version": 4,
   "seat_totals": [
     {
       "election_code": "2018vic",
@@ -1020,6 +1033,16 @@
       "locator": "https://antonygreen.com.au/tracking-the-early-vote-for-the-2022-victorian-election/",
       "notes": "Final pre-election controls; some older values survive only in a later retrospective publication. District rates are retained as approximate counts derived from final enrolment.",
       "source_id": "antony-green-2018vic-election-eve",
+      "status": "operational"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "ABC News, reporting Victorian election figures",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2018vic",
+      "locator": "https://www.abc.net.au/news/2018-11-23/victorian-election-early-votes-counting-result/10529776",
+      "notes": "Contemporaneous election-eve lower bound for combined early and postal votes; the publication did not provide an exact combined count.",
+      "source_id": "abc-2018vic-election-eve",
       "status": "operational"
     }
   ],

@@ -6,8 +6,21 @@
       "jurisdiction": "fed"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 760000,
+      "count_precision": "approximate",
+      "election_code": "2004fed",
+      "geography_basis": "national",
+      "measure": "postal_ballots_issued_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2004-10-08",
+      "seat_name": "",
+      "source_category": "Almost 760,000 postal votes issued",
+      "source_id": "aec-2004-behind-the-scenes"
+    }
+  ],
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2004fed",
@@ -1670,6 +1683,16 @@
       "notes": "OrdinaryVotes contains election-day ordinary votes; PrePollVotes is declaration pre-poll.",
       "source_id": "aec-12246-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "Australian Electoral Commission",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2004fed",
+      "locator": "https://results.aec.gov.au/12246/polling.htm",
+      "notes": "Later official account of the election-period postal issue total; published as a rounded figure.",
+      "source_id": "aec-2004-behind-the-scenes",
+      "status": "operational"
     }
   ],
   "vote_types": [

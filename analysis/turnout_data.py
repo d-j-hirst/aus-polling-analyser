@@ -63,6 +63,12 @@ OPERATIONAL_OBSERVATION_STATUSES = frozenset({
     'final_reconciled',
 })
 OPERATIONAL_COUNT_PRECISIONS = frozenset({'approximate', 'exact'})
+OPERATIONAL_COUNT_RELATIONS = frozenset({
+    'equal',
+    'lower_bound',
+    'upper_bound',
+})
+OPERATIONAL_COUNT_BASES = frozenset({'reported', 'forecast'})
 OPERATIONAL_DERIVATIONS = frozenset({
     'direct',
     'rounded_rate_times_enrolment',
@@ -77,7 +83,7 @@ DERIVATIONS = frozenset({
 
 _ELECTION_CODE_PATTERN = re.compile(r'^[1-9][0-9]{3}[a-z]+$')
 _IDENTIFIER_PATTERN = re.compile(r'^[a-z0-9][a-z0-9_.-]*$')
-CURRENT_SCHEMA_VERSION = 3
+CURRENT_SCHEMA_VERSION = 5
 
 
 def _require_text(value, field_name):
@@ -292,6 +298,8 @@ class OperationalObservation:
     seat_name: str = ''
     source_category: str = ''
     count_precision: str = 'exact'
+    count_relation: str = 'equal'
+    count_basis: str = 'reported'
     derivation: str = 'direct'
 
     def validate(self):
@@ -322,6 +330,18 @@ class OperationalObservation:
             raise TurnoutDataError(
                 '{} has unsupported count_precision {!r}'.format(
                     self.measure, self.count_precision
+                )
+            )
+        if self.count_relation not in OPERATIONAL_COUNT_RELATIONS:
+            raise TurnoutDataError(
+                '{} has unsupported count_relation {!r}'.format(
+                    self.measure, self.count_relation
+                )
+            )
+        if self.count_basis not in OPERATIONAL_COUNT_BASES:
+            raise TurnoutDataError(
+                '{} has unsupported count_basis {!r}'.format(
+                    self.measure, self.count_basis
                 )
             )
         if self.derivation not in OPERATIONAL_DERIVATIONS:
@@ -445,6 +465,9 @@ class TurnoutDataset:
             self._validate_partition(partition_key, records, seats)
 
         observation_keys = set()
+        elections_with_seat_totals = {
+            record.election_code for record in self.seat_totals
+        }
         for record in self.operational_observations:
             source = self._validate_record_source(record, sources)
             if source.status != 'operational':
@@ -455,7 +478,10 @@ class TurnoutDataset:
                 )
             if record.seat_name:
                 seat_key = (record.election_code, record.seat_name)
-                if seat_key not in seats:
+                if (
+                    record.election_code in elections_with_seat_totals
+                    and seat_key not in seats
+                ):
                     raise TurnoutDataError(
                         '{} references an unknown seat total'.format(seat_key)
                     )
@@ -547,6 +573,10 @@ def dataset_to_dict(dataset):
         if isinstance(record, OperationalObservation):
             if record.count_precision == 'exact':
                 values.pop('count_precision')
+            if record.count_relation == 'equal':
+                values.pop('count_relation')
+            if record.count_basis == 'reported':
+                values.pop('count_basis')
             if record.derivation == 'direct':
                 values.pop('derivation')
         return values
@@ -568,7 +598,7 @@ def dataset_from_dict(payload):
     if not isinstance(payload, dict):
         raise TurnoutDataError('turnout dataset must be a JSON object')
     schema_version = payload.get('schema_version')
-    if schema_version not in {1, 2, CURRENT_SCHEMA_VERSION}:
+    if schema_version not in {1, 2, 3, 4, CURRENT_SCHEMA_VERSION}:
         raise TurnoutDataError('unsupported turnout dataset schema_version')
     expected_keys = {
         'schema_version',

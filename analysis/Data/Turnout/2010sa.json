@@ -6,8 +6,22 @@
       "jurisdiction": "sa"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 80000,
+      "count_precision": "approximate",
+      "count_relation": "lower_bound",
+      "election_code": "2010sa",
+      "geography_basis": "state",
+      "measure": "postal_applications_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2010-03-14",
+      "seat_name": "",
+      "source_category": "More than 80,000 postal-vote applications received",
+      "source_id": "abc-2010sa-postal-update"
+    }
+  ],
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2010sa",
@@ -537,6 +551,16 @@
       "notes": "The election-statistics report tables provide district enrolment and ordinary/declaration formal, informal and total ballot papers. Declaration ballot papers combine pre-poll, postal, absent and other declaration modes and are not split by this adapter.",
       "source_id": "ecsa-2010-assembly-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "ABC News, reporting ECSA figures",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2010sa",
+      "locator": "https://www.abc.net.au/news/2010-03-16/game-on-for-sa-politics/365834",
+      "notes": "Latest retained numeric update found before polling day; the reported count refers to the preceding weekend.",
+      "source_id": "abc-2010sa-postal-update",
+      "status": "operational"
     }
   ],
   "vote_types": [

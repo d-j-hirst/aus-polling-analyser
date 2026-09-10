@@ -136,6 +136,34 @@ class TurnoutDataTests(unittest.TestCase):
         dataset.validate()
         self.assertEqual(dataset.operational_observations[0].count, 250)
 
+    def test_operational_only_dataset_can_identify_districts_before_results(self):
+        dataset = self.make_dataset()
+        dataset.seat_totals = []
+        dataset.vote_types = []
+        dataset.sources = [turnout_data.SourceDefinition(
+            source_id='ecsa-2026-daily',
+            election_code='2025fed',
+            authority='Electoral Commission SA',
+            locator='https://example.test/daily',
+            adapter='ecsa-operational-v1',
+            status='operational',
+            category_regime='ecsa-early-vote-v1',
+        )]
+        dataset.operational_observations = [
+            turnout_data.OperationalObservation(
+                election_code='2025fed',
+                source_id='ecsa-2026-daily',
+                measure='prepoll_votes_cast_cumulative',
+                observed_at='2025-05-02',
+                count=100,
+                geography_basis='elector_division',
+                observation_status='contemporaneous',
+                seat_name='Example',
+            )
+        ]
+
+        dataset.validate()
+
     def test_operational_observation_requires_explicit_geography(self):
         observation = turnout_data.OperationalObservation(
             election_code='2025fed',
@@ -321,7 +349,93 @@ class TurnoutDataTests(unittest.TestCase):
             self.assertEqual(restored, dataset)
             self.assertIsNone(restored.vote_types[0].informal_votes)
             with open(path, encoding='utf-8') as source:
-                self.assertEqual(json.load(source)['schema_version'], 3)
+                self.assertEqual(json.load(source)['schema_version'], 5)
+
+    def test_operational_count_relation_round_trips_and_is_validated(self):
+        dataset = self.make_dataset()
+        dataset.sources.append(turnout_data.SourceDefinition(
+            source_id='aec-2025-daily',
+            election_code='2025fed',
+            authority='Australian Electoral Commission',
+            locator='https://example.test/daily',
+            adapter='aec-operational-v1',
+            status='operational',
+            category_regime='aec-pre-election-v1',
+        ))
+        observation = turnout_data.OperationalObservation(
+            election_code='2025fed',
+            source_id='aec-2025-daily',
+            measure='postal_votes_ready',
+            observed_at='2025-05-02',
+            count=1000,
+            geography_basis='national',
+            observation_status='contemporaneous',
+            count_precision='approximate',
+            count_relation='lower_bound',
+        )
+        dataset.operational_observations.append(observation)
+
+        restored = turnout_data.dataset_from_dict(
+            turnout_data.dataset_to_dict(dataset)
+        )
+        self.assertEqual(
+            restored.operational_observations[0].count_relation,
+            'lower_bound',
+        )
+
+        invalid = turnout_data.OperationalObservation(
+            **{
+                **observation.__dict__,
+                'count_relation': 'unsupported',
+            }
+        )
+        with self.assertRaisesRegex(
+            turnout_data.TurnoutDataError, 'unsupported count_relation'
+        ):
+            invalid.validate()
+
+    def test_operational_forecast_basis_round_trips_and_is_validated(self):
+        dataset = self.make_dataset()
+        dataset.sources.append(turnout_data.SourceDefinition(
+            source_id='aec-2025-daily',
+            election_code='2025fed',
+            authority='Australian Electoral Commission',
+            locator='https://example.test/daily',
+            adapter='aec-operational-v1',
+            status='operational',
+            category_regime='aec-pre-election-v1',
+        ))
+        observation = turnout_data.OperationalObservation(
+            election_code='2025fed',
+            source_id='aec-2025-daily',
+            measure='expected_prepoll_votes',
+            observed_at='2025-05-02',
+            count=1000,
+            geography_basis='national',
+            observation_status='contemporaneous',
+            count_precision='approximate',
+            count_basis='forecast',
+        )
+        dataset.operational_observations.append(observation)
+
+        restored = turnout_data.dataset_from_dict(
+            turnout_data.dataset_to_dict(dataset)
+        )
+        self.assertEqual(
+            restored.operational_observations[0].count_basis,
+            'forecast',
+        )
+
+        invalid = turnout_data.OperationalObservation(
+            **{
+                **observation.__dict__,
+                'count_basis': 'unsupported',
+            }
+        )
+        with self.assertRaisesRegex(
+            turnout_data.TurnoutDataError, 'unsupported count_basis'
+        ):
+            invalid.validate()
 
     def test_version_two_operational_records_default_to_exact_direct_counts(self):
         dataset = self.make_dataset()

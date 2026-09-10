@@ -1077,6 +1077,7 @@
     {
       "count": 320000,
       "count_precision": "approximate",
+      "count_relation": "lower_bound",
       "election_code": "2020qld",
       "geography_basis": "state",
       "measure": "postal_votes_ready_for_election_night_count",
@@ -2122,7 +2123,7 @@
       "source_id": "antony-green-2020qld-election-eve"
     }
   ],
-  "schema_version": 3,
+  "schema_version": 4,
   "seat_totals": [
     {
       "election_code": "2020qld",
@@ -3165,7 +3166,7 @@
       "category_regime": "published-election-eve-v1",
       "election_code": "2020qld",
       "locator": "https://antonygreen.com.au/2020-queensland-election-tracking-the-early-vote/",
-      "notes": "Last useful update published before polls closed. District rates are retained as approximate counts derived from final enrolment.",
+      "notes": "Final pre-election controls; some older values survive only in a later retrospective publication. District rates are retained as approximate counts derived from final enrolment.",
       "source_id": "antony-green-2020qld-election-eve",
       "status": "operational"
     }

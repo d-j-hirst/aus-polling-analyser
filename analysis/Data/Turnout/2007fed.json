@@ -6,8 +6,31 @@
       "jurisdiction": "fed"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 833178,
+      "election_code": "2007fed",
+      "geography_basis": "national",
+      "measure": "postal_applications_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2007-11-22",
+      "seat_name": "",
+      "source_category": "Postal vote applications received",
+      "source_id": "aec-2007-jscem-submission"
+    },
+    {
+      "count": 812826,
+      "election_code": "2007fed",
+      "geography_basis": "national",
+      "measure": "postal_ballots_issued_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2007-11-22",
+      "seat_name": "",
+      "source_category": "Postal voting packages issued within Australia",
+      "source_id": "aec-2007-jscem-submission"
+    }
+  ],
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2007fed",
@@ -1670,6 +1693,16 @@
       "notes": "OrdinaryVotes contains election-day ordinary votes; PrePollVotes is declaration pre-poll.",
       "source_id": "aec-13745-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "Australian Electoral Commission",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2007fed",
+      "locator": "https://aphref.aph.gov.au/house/committee/em/elect07/subs/sub169.pdf",
+      "notes": "Later AEC submission reconstructing final election-period postal application and package issue totals.",
+      "source_id": "aec-2007-jscem-submission",
+      "status": "operational"
     }
   ],
   "vote_types": [

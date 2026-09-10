@@ -6,8 +6,31 @@
       "jurisdiction": "vic"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 226170,
+      "election_code": "2006vic",
+      "geography_basis": "state",
+      "measure": "postal_applications_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2006-11-23",
+      "seat_name": "",
+      "source_category": "Postal-vote applications processed",
+      "source_id": "vec-2006-annual-report"
+    },
+    {
+      "count": 255161,
+      "election_code": "2006vic",
+      "geography_basis": "state",
+      "measure": "prepoll_votes_cast_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2006-11-24",
+      "seat_name": "",
+      "source_category": "Early votes cast at early voting centres",
+      "source_id": "vec-2006-annual-report"
+    }
+  ],
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2006vic",
@@ -988,6 +1011,16 @@
       "notes": "Early votes retain the VEC aggregate. The VEC Declaration Votes category remains combined.",
       "source_id": "vec-2006-lower-house-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "Victorian Electoral Commission",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2006vic",
+      "locator": "https://www.vec.vic.gov.au/-/media/f2c09bfff28349918caa42745fec83e1.pdf",
+      "notes": "Later official annual report recording final election-period early-vote and postal-application totals.",
+      "source_id": "vec-2006-annual-report",
+      "status": "operational"
     }
   ],
   "vote_types": [

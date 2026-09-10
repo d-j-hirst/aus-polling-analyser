@@ -6,8 +6,31 @@
       "jurisdiction": "wa"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 81219,
+      "election_code": "2008wa",
+      "geography_basis": "state",
+      "measure": "postal_ballots_issued_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2008-09-04",
+      "seat_name": "",
+      "source_category": "Early-by-post votes requested and issued",
+      "source_id": "waec-2008-election-report"
+    },
+    {
+      "count": 35467,
+      "election_code": "2008wa",
+      "geography_basis": "state",
+      "measure": "postal_votes_ready_for_election_night_count",
+      "observation_status": "final_reconciled",
+      "observed_at": "2008-09-06T18:00:00+08:00",
+      "seat_name": "",
+      "source_category": "Postal votes admitted for election-night counting",
+      "source_id": "waec-2008-election-report"
+    }
+  ],
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2008wa",
@@ -669,6 +692,16 @@
       "notes": "Formal vote-type counts come from the Legislative Assembly Types of Votes by District table. The 2025 ordinary category explicitly includes early in-person votes.",
       "source_id": "waec-2008-assembly-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "Western Australian Electoral Commission",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2008wa",
+      "locator": "https://www.elections.wa.gov.au/sites/default/files/content/documents/2008_SGE_Report.pdf",
+      "notes": "Later official election report reconstructing postal issuance and election-night readiness, not a retained contemporaneous snapshot.",
+      "source_id": "waec-2008-election-report",
+      "status": "operational"
     }
   ],
   "vote_types": [

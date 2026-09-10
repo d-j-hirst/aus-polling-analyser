@@ -6,8 +6,21 @@
       "jurisdiction": "qld"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 141000,
+      "count_precision": "approximate",
+      "election_code": "2006qld",
+      "geography_basis": "state",
+      "measure": "postal_applications_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2006-09-07",
+      "seat_name": "",
+      "source_category": "About 141,000 postal-vote applications received",
+      "source_id": "qsc-2009-ecq-postal-evidence"
+    }
+  ],
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2006qld",
@@ -999,6 +1012,16 @@
       "notes": "ECQ booth type codes and explicit venue labels determine the normalized category. Detailed source categories are retained and no unavailable category split is estimated.",
       "source_id": "ecq-2006-state-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "Supreme Court of Queensland, recording Electoral Commission of Queensland evidence",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2006qld",
+      "locator": "https://www.queenslandjudgments.com.au/caselaw/qsc/2009/294",
+      "notes": "Later judgment recording ECQ evidence about total applications; the published figure is rounded.",
+      "source_id": "qsc-2009-ecq-postal-evidence",
+      "status": "operational"
     }
   ],
   "vote_types": [

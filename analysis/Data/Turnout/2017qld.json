@@ -6,8 +6,33 @@
       "jurisdiction": "qld"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 369000,
+      "count_precision": "approximate",
+      "election_code": "2017qld",
+      "geography_basis": "state",
+      "measure": "postal_ballots_issued_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2017-11-25T07:58:00+10:00",
+      "seat_name": "",
+      "source_category": "About 369,000 postal voters; ballots returned were fewer",
+      "source_id": "antony-green-2017qld-election-eve"
+    },
+    {
+      "count": 717000,
+      "count_precision": "approximate",
+      "election_code": "2017qld",
+      "geography_basis": "state",
+      "measure": "prepoll_votes_cast_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2017-11-25T07:58:00+10:00",
+      "seat_name": "",
+      "source_category": "About 717,000 people had cast pre-poll votes",
+      "source_id": "antony-green-2017qld-election-eve"
+    }
+  ],
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2017qld",
@@ -1043,6 +1068,16 @@
       "notes": "ECQ booth type codes and explicit venue labels determine the normalized category. Detailed source categories are retained and no unavailable category split is estimated.",
       "source_id": "ecq-2017-state-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "Antony Green, based on electoral commission data",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2017qld",
+      "locator": "https://www.abc.net.au/news/2017-11-25/qld-election-state-go-to-the-polls/9191428",
+      "notes": "Final pre-election controls; some older values survive only in a later retrospective publication. District rates are retained as approximate counts derived from final enrolment.",
+      "source_id": "antony-green-2017qld-election-eve",
+      "status": "operational"
     }
   ],
   "vote_types": [

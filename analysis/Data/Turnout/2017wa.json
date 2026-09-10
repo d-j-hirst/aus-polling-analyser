@@ -6,8 +6,34 @@
       "jurisdiction": "wa"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 160513,
+      "election_code": "2017wa",
+      "geography_basis": "state",
+      "measure": "postal_applications_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2017-03-07T08:21:00+08:00",
+      "seat_name": "",
+      "source_category": "Postal vote applications received before applications closed",
+      "source_id": "abc-2017wa-postal-update"
+    },
+    {
+      "count": 180000,
+      "count_basis": "forecast",
+      "count_precision": "approximate",
+      "count_relation": "lower_bound",
+      "election_code": "2017wa",
+      "geography_basis": "state",
+      "measure": "prepoll_votes_cast_cumulative",
+      "observation_status": "contemporaneous",
+      "observed_at": "2017-03-10T19:14:00+08:00",
+      "seat_name": "",
+      "source_category": "WAEC expected final early voting to exceed 180,000",
+      "source_id": "abc-2017wa-election-eve"
+    }
+  ],
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2017wa",
@@ -669,6 +695,26 @@
       "notes": "Formal vote-type counts come from the Legislative Assembly Types of Votes by District table. The 2025 ordinary category explicitly includes early in-person votes. For 2017 and 2021, ordinary is reconstructed exactly from the official formal total because the PDF text layer separates its column.",
       "source_id": "waec-2017-assembly-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "ABC News, reporting WA Electoral Commission figures",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2017wa",
+      "locator": "https://www.abc.net.au/news/2017-03-10/wa-election-things-you-need-to-know-before-you-vote/8332860",
+      "notes": "Election-eve WAEC forecast, not a completed final pre-poll count.",
+      "source_id": "abc-2017wa-election-eve",
+      "status": "operational"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "ABC News, reporting WA Electoral Commission figures",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2017wa",
+      "locator": "https://www.abc.net.au/news/2017-03-07/wa-election-sees-record-number-of-early-voting-applications/8333474",
+      "notes": "Latest surviving exact postal-application update found; applications remained open until the following day.",
+      "source_id": "abc-2017wa-postal-update",
+      "status": "operational"
     }
   ],
   "vote_types": [

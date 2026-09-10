@@ -39,6 +39,16 @@ POSTAL_ACCEPTED_MEASURE = 'postal_votes_accepted_cumulative'
 PREPOLL_READY_MEASURE = 'prepoll_votes_ready_for_election_night_count'
 POSTAL_READY_MEASURE = 'postal_votes_ready_for_election_night_count'
 EARLY_VOTES_RECORDED_MEASURE = 'early_and_postal_votes_recorded_cumulative'
+PRE_ELECTION_VOTES_CAST_MEASURE = 'pre_election_votes_cast_cumulative'
+REMOTE_ELECTRONIC_MEASURE = 'remote_electronic_votes_cast_cumulative'
+
+
+@dataclass(frozen=True)
+class PublishedSource:
+    source_id: str
+    authority: str
+    locator: str
+    notes: str = ''
 
 
 @dataclass(frozen=True)
@@ -48,8 +58,11 @@ class PublishedCount:
     count: int
     source_category: str
     count_precision: str = 'exact'
+    count_relation: str = 'equal'
     derivation: str = 'direct'
     observation_status: str = 'contemporaneous'
+    source_id: str = ''
+    count_basis: str = 'reported'
 
 
 @dataclass(frozen=True)
@@ -62,9 +75,256 @@ class PublishedElection:
     district_layout: str = ''
     district_observed_at: str = ''
     geography_basis: str = 'state'
+    additional_sources: tuple = ()
 
 
 ELECTIONS = {
+    '2004fed': PublishedElection(
+        election_code='2004fed',
+        election_date='2004-10-09',
+        article_url='https://results.aec.gov.au/12246/polling.htm',
+        state_counts=(PublishedCount(
+            POSTAL_ISSUED_MEASURE,
+            '2004-10-08',
+            760000,
+            'Almost 760,000 postal votes issued',
+            count_precision='approximate',
+            observation_status='final_reconciled',
+            source_id='aec-2004-behind-the-scenes',
+        ),),
+        geography_basis='national',
+        additional_sources=(PublishedSource(
+            source_id='aec-2004-behind-the-scenes',
+            authority='Australian Electoral Commission',
+            locator='https://results.aec.gov.au/12246/polling.htm',
+            notes=(
+                'Later official account of the election-period postal issue '
+                'total; published as a rounded figure.'
+            ),
+        ),),
+    ),
+    '2006qld': PublishedElection(
+        election_code='2006qld',
+        election_date='2006-09-09',
+        article_url='https://www.queenslandjudgments.com.au/caselaw/qsc/2009/294',
+        state_counts=(PublishedCount(
+            POSTAL_APPLICATION_MEASURE,
+            '2006-09-07',
+            141000,
+            'About 141,000 postal-vote applications received',
+            count_precision='approximate',
+            observation_status='final_reconciled',
+            source_id='qsc-2009-ecq-postal-evidence',
+        ),),
+        additional_sources=(PublishedSource(
+            source_id='qsc-2009-ecq-postal-evidence',
+            authority=(
+                'Supreme Court of Queensland, recording Electoral '
+                'Commission of Queensland evidence'
+            ),
+            locator='https://www.queenslandjudgments.com.au/caselaw/qsc/2009/294',
+            notes=(
+                'Later judgment recording ECQ evidence about total '
+                'applications; the published figure is rounded.'
+            ),
+        ),),
+    ),
+    '2006vic': PublishedElection(
+        election_code='2006vic',
+        election_date='2006-11-25',
+        article_url=(
+            'https://www.vec.vic.gov.au/-/media/'
+            'f2c09bfff28349918caa42745fec83e1.pdf'
+        ),
+        state_counts=(
+            PublishedCount(
+                PREPOLL_MEASURE,
+                '2006-11-24',
+                255161,
+                'Early votes cast at early voting centres',
+                observation_status='final_reconciled',
+                source_id='vec-2006-annual-report',
+            ),
+            PublishedCount(
+                POSTAL_APPLICATION_MEASURE,
+                '2006-11-23',
+                226170,
+                'Postal-vote applications processed',
+                observation_status='final_reconciled',
+                source_id='vec-2006-annual-report',
+            ),
+        ),
+        additional_sources=(PublishedSource(
+            source_id='vec-2006-annual-report',
+            authority='Victorian Electoral Commission',
+            locator=(
+                'https://www.vec.vic.gov.au/-/media/'
+                'f2c09bfff28349918caa42745fec83e1.pdf'
+            ),
+            notes=(
+                'Later official annual report recording final election-period '
+                'early-vote and postal-application totals.'
+            ),
+        ),),
+    ),
+    '2007fed': PublishedElection(
+        election_code='2007fed',
+        election_date='2007-11-24',
+        article_url=(
+            'https://aphref.aph.gov.au/house/committee/em/elect07/subs/'
+            'sub169.pdf'
+        ),
+        state_counts=(
+            PublishedCount(
+                POSTAL_APPLICATION_MEASURE,
+                '2007-11-22',
+                833178,
+                'Postal vote applications received',
+                observation_status='final_reconciled',
+                source_id='aec-2007-jscem-submission',
+            ),
+            PublishedCount(
+                POSTAL_ISSUED_MEASURE,
+                '2007-11-22',
+                812826,
+                'Postal voting packages issued within Australia',
+                observation_status='final_reconciled',
+                source_id='aec-2007-jscem-submission',
+            ),
+        ),
+        geography_basis='national',
+        additional_sources=(PublishedSource(
+            source_id='aec-2007-jscem-submission',
+            authority='Australian Electoral Commission',
+            locator=(
+                'https://aphref.aph.gov.au/house/committee/em/elect07/'
+                'subs/sub169.pdf'
+            ),
+            notes=(
+                'Later AEC submission reconstructing final election-period '
+                'postal application and package issue totals.'
+            ),
+        ),),
+    ),
+    '2008wa': PublishedElection(
+        election_code='2008wa',
+        election_date='2008-09-06',
+        article_url=(
+            'https://www.elections.wa.gov.au/sites/default/files/content/'
+            'documents/2008_SGE_Report.pdf'
+        ),
+        state_counts=(
+            PublishedCount(
+                POSTAL_ISSUED_MEASURE,
+                '2008-09-04',
+                81219,
+                'Early-by-post votes requested and issued',
+                observation_status='final_reconciled',
+                source_id='waec-2008-election-report',
+            ),
+            PublishedCount(
+                POSTAL_READY_MEASURE,
+                '2008-09-06T18:00:00+08:00',
+                35467,
+                'Postal votes admitted for election-night counting',
+                observation_status='final_reconciled',
+                source_id='waec-2008-election-report',
+            ),
+        ),
+        additional_sources=(PublishedSource(
+            source_id='waec-2008-election-report',
+            authority='Western Australian Electoral Commission',
+            locator=(
+                'https://www.elections.wa.gov.au/sites/default/files/'
+                'content/documents/2008_SGE_Report.pdf'
+            ),
+            notes=(
+                'Later official election report reconstructing postal '
+                'issuance and election-night readiness, not a retained '
+                'contemporaneous snapshot.'
+            ),
+        ),),
+    ),
+    '2009qld': PublishedElection(
+        election_code='2009qld',
+        election_date='2009-03-21',
+        article_url=(
+            'https://www.abc.net.au/news/2009-03-21/'
+            'polls-open-for-qld-election/1626004'
+        ),
+        state_counts=(PublishedCount(
+            POSTAL_APPLICATION_MEASURE,
+            '2009-03-21T12:07:00+10:00',
+            213000,
+            'About 213,000 postal-vote requests received',
+            count_precision='approximate',
+            source_id='abc-2009qld-election-day',
+        ),),
+        additional_sources=(PublishedSource(
+            source_id='abc-2009qld-election-day',
+            authority=(
+                'ABC News, quoting Queensland Electoral Commissioner '
+                'David Kerslake'
+            ),
+            locator=(
+                'https://www.abc.net.au/news/2009-03-21/'
+                'polls-open-for-qld-election/1626004'
+            ),
+            notes='Election-day report updated at 12:07pm AEST.',
+        ),),
+    ),
+    '2010sa': PublishedElection(
+        election_code='2010sa',
+        election_date='2010-03-20',
+        article_url=(
+            'https://www.abc.net.au/news/2010-03-16/'
+            'game-on-for-sa-politics/365834'
+        ),
+        state_counts=(PublishedCount(
+            POSTAL_APPLICATION_MEASURE,
+            '2010-03-14',
+            80000,
+            'More than 80,000 postal-vote applications received',
+            count_precision='approximate',
+            count_relation='lower_bound',
+            source_id='abc-2010sa-postal-update',
+        ),),
+        additional_sources=(PublishedSource(
+            source_id='abc-2010sa-postal-update',
+            authority='ABC News, reporting ECSA figures',
+            locator=(
+                'https://www.abc.net.au/news/2010-03-16/'
+                'game-on-for-sa-politics/365834'
+            ),
+            notes=(
+                'Latest retained numeric update found before polling day; '
+                'the reported count refers to the preceding weekend.'
+            ),
+        ),),
+    ),
+    '2013wa': PublishedElection(
+        election_code='2013wa',
+        election_date='2013-03-09',
+        article_url=(
+            'https://www.abc.net.au/news/2013-03-09/'
+            '2013-wa-election---some-notes-on-interpeting-abc-election-'
+            'result/9388140'
+        ),
+        state_counts=(
+            PublishedCount(
+                PREPOLL_READY_MEASURE,
+                '2013-03-08',
+                78000,
+                'Pre-poll votes processed and ready for election-night count',
+            ),
+            PublishedCount(
+                POSTAL_READY_MEASURE,
+                '2013-03-08',
+                45000,
+                'Postal votes processed and ready for election-night count',
+            ),
+        ),
+    ),
     '2014vic': PublishedElection(
         election_code='2014vic',
         election_date='2014-11-29',
@@ -82,6 +342,35 @@ ELECTIONS = {
         district_layout='vic2014-combined-rates-article',
         district_observed_at='2014-11-28T18:00:00+11:00',
     ),
+    '2015qld': PublishedElection(
+        election_code='2015qld',
+        election_date='2015-01-31',
+        article_url=(
+            'https://www.ecq.qld.gov.au/_resource/documents/pdf/about-us/'
+            'publications/annual-reports/2014-15-Annual-Report.pdf'
+        ),
+        state_counts=(PublishedCount(
+            POSTAL_ISSUED_MEASURE,
+            '2015-01-28',
+            306064,
+            'Postal votes mailed by the central postal-voting project',
+            observation_status='final_reconciled',
+            source_id='ecq-2014-15-annual-report',
+        ),),
+        additional_sources=(PublishedSource(
+            source_id='ecq-2014-15-annual-report',
+            authority='Electoral Commission of Queensland',
+            locator=(
+                'https://www.ecq.qld.gov.au/_resource/documents/pdf/'
+                'about-us/publications/annual-reports/'
+                '2014-15-Annual-Report.pdf'
+            ),
+            notes=(
+                'Later official annual report recording the exact central '
+                'postal mailout total; duplicate applications are excluded.'
+            ),
+        ),),
+    ),
     '2014sa': PublishedElection(
         election_code='2014sa',
         election_date='2014-03-15',
@@ -96,6 +385,85 @@ ELECTIONS = {
             'Retrospective final in-state pre-poll total',
             observation_status='final_reconciled',
         ),),
+    ),
+    '2017wa': PublishedElection(
+        election_code='2017wa',
+        election_date='2017-03-11',
+        article_url=(
+            'https://www.abc.net.au/news/2017-03-10/'
+            'wa-election-things-you-need-to-know-before-you-vote/8332860'
+        ),
+        state_counts=(
+            PublishedCount(
+                PREPOLL_MEASURE,
+                '2017-03-10T19:14:00+08:00',
+                180000,
+                'WAEC expected final early voting to exceed 180,000',
+                count_precision='approximate',
+                count_relation='lower_bound',
+                source_id='abc-2017wa-election-eve',
+                count_basis='forecast',
+            ),
+            PublishedCount(
+                POSTAL_APPLICATION_MEASURE,
+                '2017-03-07T08:21:00+08:00',
+                160513,
+                'Postal vote applications received before applications closed',
+                source_id='abc-2017wa-postal-update',
+            ),
+        ),
+        additional_sources=(
+            PublishedSource(
+                source_id='abc-2017wa-election-eve',
+                authority='ABC News, reporting WA Electoral Commission figures',
+                locator=(
+                    'https://www.abc.net.au/news/2017-03-10/'
+                    'wa-election-things-you-need-to-know-before-you-vote/'
+                    '8332860'
+                ),
+                notes=(
+                    'Election-eve WAEC forecast, not a completed final '
+                    'pre-poll count.'
+                ),
+            ),
+            PublishedSource(
+                source_id='abc-2017wa-postal-update',
+                authority='ABC News, reporting WA Electoral Commission figures',
+                locator=(
+                    'https://www.abc.net.au/news/2017-03-07/'
+                    'wa-election-sees-record-number-of-early-voting-'
+                    'applications/8333474'
+                ),
+                notes=(
+                    'Latest surviving exact postal-application update found; '
+                    'applications remained open until the following day.'
+                ),
+            ),
+        ),
+    ),
+    '2017qld': PublishedElection(
+        election_code='2017qld',
+        election_date='2017-11-25',
+        article_url=(
+            'https://www.abc.net.au/news/2017-11-25/'
+            'qld-election-state-go-to-the-polls/9191428'
+        ),
+        state_counts=(
+            PublishedCount(
+                PREPOLL_MEASURE,
+                '2017-11-25T07:58:00+10:00',
+                717000,
+                'About 717,000 people had cast pre-poll votes',
+                count_precision='approximate',
+            ),
+            PublishedCount(
+                POSTAL_ISSUED_MEASURE,
+                '2017-11-25T07:58:00+10:00',
+                369000,
+                'About 369,000 postal voters; ballots returned were fewer',
+                count_precision='approximate',
+            ),
+        ),
     ),
     '2018sa': PublishedElection(
         election_code='2018sa',
@@ -151,7 +519,71 @@ ELECTIONS = {
                 'Retrospective final postal application total',
                 observation_status='final_reconciled',
             ),
+            PublishedCount(
+                EARLY_VOTES_RECORDED_MEASURE,
+                '2018-11-23',
+                1600000,
+                'More than 1.6 million early and postal votes cast',
+                count_precision='approximate',
+                count_relation='lower_bound',
+                source_id='abc-2018vic-election-eve',
+            ),
         ),
+        additional_sources=(PublishedSource(
+            source_id='abc-2018vic-election-eve',
+            authority='ABC News, reporting Victorian election figures',
+            locator=(
+                'https://www.abc.net.au/news/2018-11-23/'
+                'victorian-election-early-votes-counting-result/10529776'
+            ),
+            notes=(
+                'Contemporaneous election-eve lower bound for combined early '
+                'and postal votes; the publication did not provide an exact '
+                'combined count.'
+            ),
+        ),),
+    ),
+    '2019nsw': PublishedElection(
+        election_code='2019nsw',
+        election_date='2019-03-23',
+        article_url=(
+            'https://www.abc.net.au/news/2019-03-23/'
+            'nsw-election-polls-open-premier-daley-make-last-ditch-pitch/'
+            '10932594'
+        ),
+        state_counts=(
+            PublishedCount(
+                PRE_ELECTION_VOTES_CAST_MEASURE,
+                '2019-03-22',
+                1300000,
+                'More than 1.3 million people voted before election day',
+                count_precision='approximate',
+                count_relation='lower_bound',
+                source_id='abc-2019nsw-election-eve',
+            ),
+            PublishedCount(
+                REMOTE_ELECTRONIC_MEASURE,
+                '2019-03-22',
+                220000,
+                '220,000 people used iVote',
+                count_precision='approximate',
+                source_id='abc-2019nsw-election-eve',
+            ),
+        ),
+        additional_sources=(PublishedSource(
+            source_id='abc-2019nsw-election-eve',
+            authority='ABC News, reporting NSW Electoral Commission figures',
+            locator=(
+                'https://www.abc.net.au/news/2019-03-23/'
+                'nsw-election-polls-open-premier-daley-make-last-ditch-pitch/'
+                '10932594'
+            ),
+            notes=(
+                'Final contemporaneous report of pre-election voting. The '
+                'combined total is published only as a lower bound and the '
+                'iVote count is rounded to the nearest thousand.'
+            ),
+        ),),
     ),
     '2020qld': PublishedElection(
         election_code='2020qld',
@@ -198,6 +630,7 @@ ELECTIONS = {
                 320000,
                 'At least 320,000 postal votes available election night',
                 count_precision='approximate',
+                count_relation='lower_bound',
             ),
         ),
         district_url='https://datawrapper.dwcdn.net/OZgDp/7/',
@@ -806,25 +1239,56 @@ def _parse_qld2020_postal(election, data, dataset, source_id):
 
 def build_observations(election, downloaded_files, dataset):
     """Build and validate one publication's state and district evidence."""
-    source_id = 'antony-green-{}-election-eve'.format(election.election_code)
-    source = turnout_data.SourceDefinition(
-        source_id=source_id,
-        election_code=election.election_code,
-        authority='Antony Green, based on electoral commission data',
-        locator=election.article_url,
-        adapter=ADAPTER_ID,
-        status='operational',
-        category_regime='published-election-eve-v1',
-        notes=(
-            'Final pre-election controls; some older values survive only in a '
-            'later retrospective publication. District rates are retained as '
-            'approximate counts derived from final enrolment.'
-        ),
+    default_source_id = 'antony-green-{}-election-eve'.format(
+        election.election_code
     )
+    source_specs = {source.source_id: source
+                    for source in election.additional_sources}
+    uses_default_source = bool(election.district_layout) or any(
+        not count.source_id for count in election.state_counts
+    )
+    sources = []
+    if uses_default_source:
+        sources.append(turnout_data.SourceDefinition(
+            source_id=default_source_id,
+            election_code=election.election_code,
+            authority='Antony Green, based on electoral commission data',
+            locator=election.article_url,
+            adapter=ADAPTER_ID,
+            status='operational',
+            category_regime='published-election-eve-v1',
+            notes=(
+                'Final pre-election controls; some older values survive only '
+                'in a later retrospective publication. District rates are '
+                'retained as approximate counts derived from final enrolment.'
+            ),
+        ))
+    for source in election.additional_sources:
+        sources.append(turnout_data.SourceDefinition(
+            source_id=source.source_id,
+            election_code=election.election_code,
+            authority=source.authority,
+            locator=source.locator,
+            adapter=ADAPTER_ID,
+            status='operational',
+            category_regime='published-election-eve-v1',
+            notes=source.notes,
+        ))
+    unknown_source_ids = {
+        count.source_id for count in election.state_counts
+        if count.source_id and count.source_id not in source_specs
+    }
+    if unknown_source_ids:
+        raise turnout_data.TurnoutDataError(
+            '{} counts reference unknown published sources: {}'.format(
+                election.election_code,
+                ', '.join(sorted(unknown_source_ids)),
+            )
+        )
     observations = [
         turnout_data.OperationalObservation(
             election_code=election.election_code,
-            source_id=source_id,
+            source_id=count.source_id or default_source_id,
             measure=count.measure,
             observed_at=count.observed_at,
             count=count.count,
@@ -832,27 +1296,38 @@ def build_observations(election, downloaded_files, dataset):
             observation_status=count.observation_status,
             source_category=count.source_category,
             count_precision=count.count_precision,
+            count_relation=count.count_relation,
             derivation=count.derivation,
+            count_basis=count.count_basis,
         )
         for count in election.state_counts
     ]
     if election.district_layout in DISTRICT_RATE_COLUMNS:
         observations.extend(_parse_district_rates(
-            election, downloaded_files['district'], dataset, source_id
+            election,
+            downloaded_files['district'],
+            dataset,
+            default_source_id,
         ))
     elif election.district_layout == 'vic2014-combined-rates-article':
         observations.extend(_parse_vic2014_combined_rates(
-            election, downloaded_files['district'], dataset, source_id
+            election,
+            downloaded_files['district'],
+            dataset,
+            default_source_id,
         ))
     elif election.district_layout == 'qld2020-postal-chart':
         observations.extend(_parse_qld2020_postal(
-            election, downloaded_files['district'], dataset, source_id
+            election,
+            downloaded_files['district'],
+            dataset,
+            default_source_id,
         ))
     elif election.district_layout:
         raise turnout_data.TurnoutDataError(
             'unsupported district layout {}'.format(election.district_layout)
         )
-    return source, observations
+    return sources, observations
 
 
 def merge_dataset(dataset, election, downloaded_files):
@@ -881,10 +1356,10 @@ def merge_dataset(dataset, election, downloaded_files):
         observation for observation in dataset.operational_observations
         if observation.source_id not in replaced_source_ids
     ]
-    source, observations = build_observations(
+    sources, observations = build_observations(
         election, downloaded_files, dataset
     )
-    dataset.sources.append(source)
+    dataset.sources.extend(sources)
     dataset.operational_observations.extend(observations)
     dataset.operational_observations.sort(key=lambda record: (
         record.observed_at,
@@ -897,9 +1372,13 @@ def merge_dataset(dataset, election, downloaded_files):
 
 
 def coverage_summary(dataset):
+    source_ids = {
+        source.source_id for source in dataset.sources
+        if source.adapter == ADAPTER_ID
+    }
     records = [
         observation for observation in dataset.operational_observations
-        if observation.source_id.startswith('antony-green-')
+        if observation.source_id in source_ids
     ]
     return {
         'records': len(records),

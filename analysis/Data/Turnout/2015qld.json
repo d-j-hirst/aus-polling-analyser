@@ -6,8 +6,20 @@
       "jurisdiction": "qld"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 306064,
+      "election_code": "2015qld",
+      "geography_basis": "state",
+      "measure": "postal_ballots_issued_cumulative",
+      "observation_status": "final_reconciled",
+      "observed_at": "2015-01-28",
+      "seat_name": "",
+      "source_category": "Postal votes mailed by the central postal-voting project",
+      "source_id": "ecq-2014-15-annual-report"
+    }
+  ],
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2015qld",
@@ -999,6 +1011,16 @@
       "notes": "ECQ booth type codes and explicit venue labels determine the normalized category. Detailed source categories are retained and no unavailable category split is estimated.",
       "source_id": "ecq-2015-state-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "Electoral Commission of Queensland",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2015qld",
+      "locator": "https://www.ecq.qld.gov.au/_resource/documents/pdf/about-us/publications/annual-reports/2014-15-Annual-Report.pdf",
+      "notes": "Later official annual report recording the exact central postal mailout total; duplicate applications are excluded.",
+      "source_id": "ecq-2014-15-annual-report",
+      "status": "operational"
     }
   ],
   "vote_types": [

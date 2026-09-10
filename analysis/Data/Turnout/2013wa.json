@@ -6,8 +6,31 @@
       "jurisdiction": "wa"
     }
   ],
-  "operational_observations": [],
-  "schema_version": 1,
+  "operational_observations": [
+    {
+      "count": 45000,
+      "election_code": "2013wa",
+      "geography_basis": "state",
+      "measure": "postal_votes_ready_for_election_night_count",
+      "observation_status": "contemporaneous",
+      "observed_at": "2013-03-08",
+      "seat_name": "",
+      "source_category": "Postal votes processed and ready for election-night count",
+      "source_id": "antony-green-2013wa-election-eve"
+    },
+    {
+      "count": 78000,
+      "election_code": "2013wa",
+      "geography_basis": "state",
+      "measure": "prepoll_votes_ready_for_election_night_count",
+      "observation_status": "contemporaneous",
+      "observed_at": "2013-03-08",
+      "seat_name": "",
+      "source_category": "Pre-poll votes processed and ready for election-night count",
+      "source_id": "antony-green-2013wa-election-eve"
+    }
+  ],
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2013wa",
@@ -669,6 +692,16 @@
       "notes": "Formal vote-type counts come from the Legislative Assembly Types of Votes by District table. The 2025 ordinary category explicitly includes early in-person votes.",
       "source_id": "waec-2013-assembly-final",
       "status": "final"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "Antony Green, based on electoral commission data",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2013wa",
+      "locator": "https://www.abc.net.au/news/2013-03-09/2013-wa-election---some-notes-on-interpeting-abc-election-result/9388140",
+      "notes": "Final pre-election controls; some older values survive only in a later retrospective publication. District rates are retained as approximate counts derived from final enrolment.",
+      "source_id": "antony-green-2013wa-election-eve",
+      "status": "operational"
     }
   ],
   "vote_types": [
