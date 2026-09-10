@@ -74,7 +74,10 @@ published categories.
 The operational NSW adapter streams NSWEC's complete depersonalized 2015
 pre-poll transaction file. It records the exact final election-eve mark-off
 count for each elector's enrolled district and the corresponding state sum;
-the 65 MB source CSV is not retained in the repository.
+the 65 MB source CSV is not retained in the repository. Compare these marks
+with final rows whose source category is `Total Pre-Poll Ordinary Votes`.
+The broader canonical `early_combined` category also contains declared-
+institution votes and is not a like-for-like denominator.
 South Australian files use ECSA's final election-statistics tables from 2006
 through 2018 and the equivalent final CSVs for 2022. They retain a complete
 ordinary/declaration partition with formal and informal votes in each category.

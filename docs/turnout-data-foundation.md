@@ -145,7 +145,10 @@ The source covers 16-27 March and therefore directly reconstructs the final
 pre-election count. The adapter validates all 642,408 transactions and all 93
 districts, then stores exact cumulative totals by enrolled district plus their
 state sum. It does not retain the 65 MB source CSV or infer postal counts from
-the separate transaction file's final-state fields.
+the separate transaction file's final-state fields. Calibration should compare
+these mark-offs with final `Total Pre-Poll Ordinary Votes` source rows, not the
+broader canonical `early_combined` category, which also contains declared-
+institution votes.
 
 ## Curated Election-Eve Evidence
 
