@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-08-14T01:45:07Z",
+  "updated_at_utc": "2026-09-12T09:55:11Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 3,
+      "semantic_revision": 6,
       "files": {
         "2019fed.txt": {
           "sha256": "014946dc77548034140f78ad66a062f1c59a6d070122cea4c7dcb8bd4525b321",
@@ -65,9 +65,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "7035ea59b6c88dbd8d97b961f2945f5e57f56487eb27e6accbf94639666c5eea",
-          "size_bytes": 16509,
-          "recorded_mtime_utc": "2026-08-14T01:44:24.616863Z"
+          "sha256": "e476ae7ee6c11824a9b32bbe7585385451621443985322a1fbb60309dc543499",
+          "size_bytes": 19592,
+          "recorded_mtime_utc": "2026-09-12T09:49:25.368273Z"
         },
         "2027nsw.txt": {
           "sha256": "3cd50ea2510b00263868659b59fcbbcbf23c30555b932b8db35a318cf2e5f47b",
@@ -152,9 +152,72 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260912T040835Z-source_refresh-forecast-seats-37d712e8",
+          "recorded_at_utc": "2026-09-12T04:08:35Z",
+          "change_type": "source_refresh",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "provenance_revision": 4,
+          "summary": "Refresh confirmed 2026 Victorian party candidates, retirements, and Nepean post-by-election incumbency; leave independent candidates for separate review.",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260912T092734Z-source_refresh-forecast-seats-e68a60af",
+          "recorded_at_utc": "2026-09-12T09:27:34Z",
+          "change_type": "source_refresh",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 5,
+          "provenance_revision": 5,
+          "summary": "Add ten confirmed prominent independent candidates and their assessed seat-level viability for the 2026 Victorian election.",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260912T095511Z-other-forecast-seats-8ccb378d",
+          "recorded_at_utc": "2026-09-12T09:55:11Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 6,
+          "provenance_revision": 6,
+          "summary": "adjust minor viability down",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 3
+      "provenance_revision": 6
     }
   }
 }

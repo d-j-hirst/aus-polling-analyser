@@ -25,7 +25,7 @@ def handle_response(response):
     else:
         decoded = decoded.replace('\\n', '\n')
         decoded = decoded.replace('"', '')
-        with open('long_response.txt', mode='w') as f:
+        with open('long_response.txt', mode='w', encoding='utf-8') as f:
             f.write(decoded)
         print('Response too long, written to file long_response.txt')
 
@@ -87,7 +87,7 @@ elif results:
     url_part = 'submit-results-update'
     pre_fill = None
     if not upload_local:
-        with open("prefill_results.json") as f:
+        with open("prefill_results.json", encoding='utf-8') as f:
             pre_fill = json.load(f)
         if pre_fill.get("code") != results:
             pre_fill = None
@@ -101,24 +101,30 @@ elif clear_cache:
     data = '{"termCode":"' + review + '"}'
     url_part = 'reset-cache'
 else:
-    with open("latest_json.dat") as f:
+    with open("latest_json.dat", encoding='utf-8') as f:
         data = f.read()
         print(f"Report name: {json.loads(data)['reportLabel']}")
         print(f"Report mode: {json.loads(data)['reportMode']}")
         url_part = 'submit-report'
 
 login_data = {'email': AUTO_EMAIL, 'password': AUTO_PASSWORD}
+encoded_data = data.encode('utf-8')
+
+
+def authenticated_json_headers(token):
+    return {
+        'Authorization': 'JWT ' + token,
+        'Content-Type': 'application/json; charset=utf-8',
+    }
 
 if upload_local:
     print("Sending to local server:")
     response = requests.post('http://localhost:8000/auth-api/v1/auth/login/', data=login_data)
     token = response.cookies['jwt_token']
 
-    headers = {
-        'Authorization': 'JWT ' + token
-    }
+    headers = authenticated_json_headers(token)
 
-    response = requests.post(f'http://localhost:8000/forecast-api/{url_part}', headers=headers, data=data)
+    response = requests.post(f'http://localhost:8000/forecast-api/{url_part}', headers=headers, data=encoded_data)
     handle_response(response)
 
 if upload_test:
@@ -127,11 +133,9 @@ if upload_test:
 
     token = response.cookies['jwt_token']
 
-    headers = {
-        'Authorization': 'JWT ' + token
-    }
+    headers = authenticated_json_headers(token)
 
-    response = requests.post(f'https://dendrite.pythonanywhere.com/forecast-api/{url_part}', headers=headers, data=data)
+    response = requests.post(f'https://dendrite.pythonanywhere.com/forecast-api/{url_part}', headers=headers, data=encoded_data)
     handle_response(response)
 
 if upload_remote:
@@ -140,11 +144,9 @@ if upload_remote:
 
     token = response.cookies['jwt_token']
 
-    headers = {
-        'Authorization': 'JWT ' + token
-    }
+    headers = authenticated_json_headers(token)
 
-    response = requests.post(f'https://www.aeforecasts.com/forecast-api/{url_part}', headers=headers, data=data)
+    response = requests.post(f'https://www.aeforecasts.com/forecast-api/{url_part}', headers=headers, data=encoded_data)
     handle_response(response)
     
 print(f'Upload completed: {datetime.datetime.now()}')
