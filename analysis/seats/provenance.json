@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-09-12T09:55:11Z",
+  "updated_at_utc": "2026-09-13T07:19:07Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 6,
+      "semantic_revision": 8,
       "files": {
         "2019fed.txt": {
           "sha256": "014946dc77548034140f78ad66a062f1c59a6d070122cea4c7dcb8bd4525b321",
@@ -65,9 +65,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "e476ae7ee6c11824a9b32bbe7585385451621443985322a1fbb60309dc543499",
-          "size_bytes": 19592,
-          "recorded_mtime_utc": "2026-09-12T09:49:25.368273Z"
+          "sha256": "580d2b96ea4178d0710069e9bbc5c413a52ac325e8a809f748e8e2fae2cc9a44",
+          "size_bytes": 20367,
+          "recorded_mtime_utc": "2026-09-13T07:18:55.375977Z"
         },
         "2027nsw.txt": {
           "sha256": "3cd50ea2510b00263868659b59fcbbcbf23c30555b932b8db35a318cf2e5f47b",
@@ -215,9 +215,51 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260913T070825Z-methodology-forecast-seats-18f16045",
+          "recorded_at_utc": "2026-09-13T07:08:25Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 7,
+          "provenance_revision": 7,
+          "summary": "Model uncertain Liberal-Nationals candidacy separately from the conditional Coalition primary split in Bass and Ripon.",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260913T071907Z-methodology-forecast-seats-fd634a41",
+          "recorded_at_utc": "2026-09-13T07:19:07Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 8,
+          "provenance_revision": 8,
+          "summary": "Expand explicit 2026 Victorian Coalition candidacy probabilities and conditional Nationals shares across plausible intra-Coalition contests.",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 6
+      "provenance_revision": 8
     }
   }
 }

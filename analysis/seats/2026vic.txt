@@ -23,6 +23,8 @@ fPreviousTppSwing=0.9
 fTransposedFederalSwing=0.9
 fTransposedFederalSwing=2.7
 bRetirement=1
+sCoalitionCandidates=LNP;NAT,0.2
+fNationalsCoalitionShare=0.3064516129
 sCandidateNames=Chris Buckingham,ALP;Rochelle Halstead,LNP;Sophie Thorn,GRN;Nikole Schellekens,ONP
 #Bayswater
 sIncumbent=ALP
@@ -52,6 +54,8 @@ fTransposedFederalSwing=-2.9
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
+sCoalitionCandidates=LNP;NAT,0.075
+fNationalsCoalitionShare=0.28
 sCandidateNames=Steve Martin,LNP;Graham Parton,GRN;Lachie McKeeman,IND
 #Bendigo East
 sIncumbent=ALP
@@ -61,6 +65,8 @@ fTppMargin=10.8
 fPreviousTppSwing=-1.3
 fTransposedFederalSwing=-11.3
 bRetirement=1
+sCoalitionCandidates=NAT;LNP,0.1
+fNationalsCoalitionShare=0.7
 sCandidateNames=Andrew Lethlean,NAT;Michael Tolhurst,GRN;Cheryl Hawken,ONP
 #Bendigo West
 sIncumbent=ALP
@@ -70,6 +76,8 @@ fTppMargin=14.6
 fPreviousTppSwing=-4.0
 fTransposedFederalSwing=-11.3
 bRetirement=1
+sCoalitionCandidates=NAT;LNP,0.1
+fNationalsCoalitionShare=0.6
 sCandidateNames=David Hutchings,NAT;Liza Shaw,GRN
 #Bentleigh
 sIncumbent=ALP
@@ -193,6 +201,7 @@ sRegion=Rural North & East
 fTppMargin=-7.0
 fPreviousTppSwing=-5.9
 fTransposedFederalSwing=-3.6
+sCoalitionCandidates=LNP
 sCandidateNames=Cindy McLeish,LNP;Talia Gulpilil,GRN
 #Eltham
 sIncumbent=ALP
@@ -220,6 +229,8 @@ sRegion=Ballarat & Bendigo
 fTppMargin=7.2
 fPreviousTppSwing=-2.4
 fTransposedFederalSwing=-2.1
+sCoalitionCandidates=LNP;NAT,0.03
+fNationalsCoalitionShare=0.15
 sCandidateNames=Michaela Settle,ALP;Emma Muir,LNP;Sam McColl,GRN;Paul Ballinger,ONP
 #Euroa
 sIncumbent=NAT
@@ -229,6 +240,7 @@ fTppMargin=-9.9
 fPreviousTppSwing=5.4
 fTransposedFederalSwing=-3.7
 bSophomoreCandidate=1
+sCoalitionCandidates=NAT
 sCandidateNames=Annabelle Cleeland,NAT;Alysia Regan,GRN;Steve Campbell,ONP
 #Evelyn
 sIncumbent=LNP
@@ -272,6 +284,8 @@ fTppMargin=-24.6
 fPreviousTppSwing=-7.0
 fTransposedFederalSwing=-0.2
 bRetirement=1
+sCoalitionCandidates=NAT;LNP,0.1
+fNationalsCoalitionShare=0.78
 sCandidateNames=Sonny Stephens,ALP;Gemma Rendell,NAT;Ash Munro,GRN;Steve Goodman,ONP
 #Gippsland South
 sIncumbent=NAT
@@ -280,6 +294,7 @@ sRegion=Gippsland
 fTppMargin=-15.6
 fPreviousTppSwing=-1.6
 fTransposedFederalSwing=-0.1
+sCoalitionCandidates=NAT
 sCandidateNames=Danny O'Brien,NAT;Zave Evans,GRN;Bianca Wilke,ONP
 #Glen Waverley
 sIncumbent=ALP
@@ -383,6 +398,7 @@ sRegion=Rural Outer West
 fTppMargin=-21.6
 fPreviousTppSwing=-0.5
 fTransposedFederalSwing=-3.3
+sCoalitionCandidates=NAT
 sCandidateNames=Emma Kealy,NAT
 #Macedon
 sIncumbent=ALP
@@ -428,6 +444,7 @@ fPreviousTppSwing=-8.0
 fTransposedFederalSwing=0.1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,2
+sCoalitionCandidates=NAT
 sCandidateNames=Jade Benham,NAT;Katie Clements,GRN;Guy Cooper,ONP;Ali Cupper,IND
 #Mill Park
 sIncumbent=ALP
@@ -475,6 +492,7 @@ fPreviousTppSwing=-8.4
 fTransposedFederalSwing=0.8
 bSophomoreCandidate=1
 bSophomoreParty=1
+sCoalitionCandidates=NAT
 sCandidateNames=Tracie Lund,ALP;Martin Cameron,NAT;Rochelle Hine,GRN
 #Mulgrave
 sIncumbent=ALP
@@ -493,6 +511,8 @@ fTppMargin=-23.4
 fPreviousTppSwing=0.5
 fTransposedFederalSwing=-3.0
 bRetirement=1
+sCoalitionCandidates=NAT;LNP,0.075
+fNationalsCoalitionShare=0.82
 sCandidateNames=Brett Hosking,NAT;Zoe Cook,GRN;Garner Smith,ONP
 #Narracan
 sIncumbent=LNP
@@ -502,6 +522,7 @@ fTppMargin=-13.0
 fPreviousTppSwing=-3.0
 fTransposedFederalSwing=1.7
 bSophomoreCandidate=1
+sCoalitionCandidates=LNP
 sCandidateNames=Jannette Langley,ALP;Wayne Farnham,LNP;Alyssa Weaver,GRN;Ben Lucas,ONP
 #Narre Warren North
 sIncumbent=ALP
@@ -562,6 +583,7 @@ sRegion=Rural North & East
 fTppMargin=-17.8
 fPreviousTppSwing=-5.7
 fTransposedFederalSwing=-3.1
+sCoalitionCandidates=NAT
 sCandidateNames=Tim McCurdy,NAT;Ben Gilbert,GRN
 #Pakenham
 sIncumbent=ALP
@@ -645,6 +667,8 @@ fPreviousTppSwing=0.2
 fTransposedFederalSwing=-3.4
 bSophomoreCandidate=1
 bSophomoreParty=1
+sCoalitionCandidates=LNP;NAT
+fNationalsCoalitionShare=0.32
 sCandidateNames=Martha Haylett,ALP;Megan Read,LNP;Jo Armstrong,NAT;Tim Drylie,GRN;Donna Buxton,ONP
 #Rowville
 sIncumbent=LNP
@@ -672,6 +696,8 @@ fPreviousTppSwing=-12.62
 fTransposedFederalSwing=-3.4
 bRetirement=1
 bSophomoreParty=1
+sCoalitionCandidates=NAT;LNP,0.25
+fNationalsCoalitionShare=0.52
 sCandidateNames=Cayla Fin,ALP;Shane Sali,NAT;Grace Verney,GRN;Phillip Bryant,ONP
 #South Barwon
 sIncumbent=ALP

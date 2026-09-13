@@ -145,6 +145,7 @@ enum class VariabilityTag : std::uint32_t {
 	IndEmergenceQuantile = 45,
 	CoalitionFutureRetirement = 46,
 	NationalsLiveVariability = 47,
+	CoalitionCandidateParticipation = 48,
 };
 
 bool isMajor(int partyIndex, int natPartyIndex = -100) {
@@ -1757,9 +1758,13 @@ void SimulationIteration::determineNationalsShare(int seatIndex)
 	if (run.natPartyIndex < 0) return; // Nationals may not be relevant in some elections
 
 	nationalsShare[seatIndex] = std::clamp(
-		run.seatNationalsExpectation[seatIndex], 0.0f, 1.0f);
+		seat.nationalsCoalitionShare.value_or(
+			run.seatNationalsExpectation[seatIndex]),
+		0.0f, 1.0f);
 	auto const& runningParties = run.runningParties[seatIndex];
 	int const incumbentPartyIndex = project.parties().idToIndex(seat.incumbent);
+	std::string const majorCoalitionCode =
+		project.parties().viewByIndex(Mp::Two).abbreviation;
 
 	// If Nationals are not running in this seat, then their share is zero
 	if (!runningParties.empty() &&
@@ -1772,13 +1777,42 @@ void SimulationIteration::determineNationalsShare(int seatIndex)
 	if (!runningParties.empty() &&
 		!contains(
 			runningParties,
-			project.parties().viewByIndex(Mp::Two).abbreviation)) {
+			majorCoalitionCode)) {
 		nationalsShare[seatIndex] = 1.0f;
 		return;
 	}
 
+	// Before ballot declarations are final, model explicitly configured
+	// Coalition candidacy independently of the conditional vote split.
+	if (runningParties.empty() && !seat.coalitionCandidates.empty()) {
+		auto candidateRuns = [&](std::string const& partyCode,
+			int partyIndex) {
+			auto const candidate = seat.coalitionCandidates.find(partyCode);
+			if (candidate == seat.coalitionCandidates.end() ||
+				candidate->second <= 0.0f) return false;
+			if (candidate->second >= 1.0f) return true;
+			return variabilityUniform(
+				0.0f, 1.0f, seatIndex, partyIndex,
+				uint32_t(VariabilityTag::CoalitionCandidateParticipation)) <
+				candidate->second;
+		};
+		bool const majorCoalitionRuns =
+			candidateRuns(majorCoalitionCode, Mp::Two);
+		bool const nationalsRun =
+			candidateRuns("NAT", run.natPartyIndex);
+		if (!nationalsRun) {
+			nationalsShare[seatIndex] = 0.0f;
+			return;
+		}
+		if (!majorCoalitionRuns) {
+			nationalsShare[seatIndex] = 1.0f;
+			return;
+		}
+	}
+
 	// If the seat has a NAT candidate, raise the expectation to a minimum of 5%
-	if (std::any_of(seat.candidateNames.begin(), seat.candidateNames.end(), 
+	if (!seat.nationalsCoalitionShare &&
+		std::any_of(seat.candidateNames.begin(), seat.candidateNames.end(),
 		[](const auto& pair) { return pair.second == "NAT"; })) {
 		nationalsShare[seatIndex] = std::max(nationalsShare[seatIndex], 0.05f);
 	}
@@ -1792,7 +1826,7 @@ void SimulationIteration::determineNationalsShare(int seatIndex)
 	bool waException =
 		project.regions().view(seat.region).name == "WA" ||
 		run.regionCode == "wa";
-	if (runningParties.empty() &&
+	if (runningParties.empty() && seat.coalitionCandidates.empty() &&
 		futureRetirementQuantile < ContinuationChance && !waException) {
 		if (incumbentPartyIndex == Mp::Two && !seat.retirement) {
 			nationalsShare[seatIndex] = 0.0f;

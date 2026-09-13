@@ -70,6 +70,7 @@ private:
 	void loadTppSwingFactors();
 	void loadNationalsParameters();
 	void loadNationalsSeatExpectations();
+	void validateCoalitionSeatSettings() const;
 	void loadIndividualSeatParameters();
 	void prepareProminentMinors();
 	void prepareRunningParties();

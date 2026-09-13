@@ -159,6 +159,8 @@ constexpr std::string_view Polls = "sPolls";
 constexpr std::string_view TppPolls = "sTppPolls";
 constexpr std::string_view TppMrpPolls = "sTppMrpPolls";
 constexpr std::string_view RunningParties = "sRunningParties";
+constexpr std::string_view CoalitionCandidates = "sCoalitionCandidates";
+constexpr std::string_view NationalsCoalitionShare = "fNationalsCoalitionShare";
 constexpr std::string_view TcpChange = "sTcpChange";
 constexpr std::string_view MinorViability = "sMinorViability";
 constexpr std::string_view CandidateNames = "sCandidateNames";
@@ -245,6 +247,20 @@ void SeatCollection::exportInfo() const
 		auto pollsTransformed = mapTransform<std::string>(seat.polls, pollConversion);
 		if (seat.polls.size()) os << Polls << "=" << joinString(pollsTransformed, ";") << "\n";
 		if (seat.runningParties.size()) os << RunningParties << "=" << joinString(seat.runningParties, ",") << "\n";
+		auto coalitionCandidateConversion = [](auto const& candidate) {
+			if (candidate.second == 1.0f) return candidate.first;
+			return candidate.first + "," + formatFloat(candidate.second, 3);
+		};
+		auto coalitionCandidatesTransformed = mapTransform<std::string>(
+			seat.coalitionCandidates, coalitionCandidateConversion);
+		if (!seat.coalitionCandidates.empty()) {
+			os << CoalitionCandidates << "=" <<
+				joinString(coalitionCandidatesTransformed, ";") << "\n";
+		}
+		if (seat.nationalsCoalitionShare) {
+			os << NationalsCoalitionShare << "=" <<
+				*seat.nationalsCoalitionShare << "\n";
+		}
 		auto tcpChangeTransformed = mapTransform<std::string>(seat.tcpChange, stringFloatConversion);
 		if (seat.tcpChange.size()) os << TcpChange << "=" << joinString(tcpChangeTransformed, ";") << "\n";
 		auto minorViabilityTransformed = mapTransform<std::string>(seat.minorViability, stringFloatConversion);
@@ -437,6 +453,39 @@ void SeatCollection::importInfo()
 			}
 			else if (tag == RunningParties)
 				seat.runningParties = splitString(value, ",");
+			else if (tag == CoalitionCandidates) {
+				if (value.empty()) {
+					throw std::runtime_error(
+						"coalition candidate list is empty");
+				}
+				for (auto const& item : splitString(value, ";")) {
+					auto const values = splitString(item, ",");
+					if (values.empty() || values.size() > 2 ||
+						values[0].empty()) {
+						throw std::runtime_error(
+							"expected PARTY or PARTY,probability");
+					}
+					float const probability = values.size() == 1 ?
+						1.0f : parseFiniteFloat(values[1]);
+					if (probability < 0.0f || probability > 1.0f) {
+						throw std::runtime_error(
+							"coalition candidacy probability must be between 0 and 1");
+					}
+					if (!seat.coalitionCandidates.emplace(
+						values[0], probability).second) {
+						throw std::runtime_error(
+							"duplicate coalition candidate party " + values[0]);
+					}
+				}
+			}
+			else if (tag == NationalsCoalitionShare) {
+				float const share = parseFiniteFloat(value);
+				if (share <= 0.0f || share >= 1.0f) {
+					throw std::runtime_error(
+						"Nationals Coalition share must be strictly between 0 and 1");
+				}
+				seat.nationalsCoalitionShare = share;
+			}
 			else if (tag == TcpChange || tag == MinorViability) {
 				auto& valuesByParty = tag == TcpChange ?
 					seat.tcpChange : seat.minorViability;

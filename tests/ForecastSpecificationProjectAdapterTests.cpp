@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <cmath>
 #include <string>
 
 int main(int argc, char const* argv[])
@@ -94,6 +95,38 @@ int main(int argc, char const* argv[])
 				std::cerr << argv[argument] <<
 					": simulation ID mapping is incorrect for " <<
 					configured.id << '\n';
+				valid = false;
+			}
+		}
+
+		if (specification.electionCode == "2026vic") {
+			auto seatByName = [&](std::string const& name) -> Seat const* {
+				for (auto const& [id, seat] : project.seats()) {
+					static_cast<void>(id);
+					if (seat.name == name) return &seat;
+				}
+				return nullptr;
+			};
+			auto const* bass = seatByName("Bass");
+			auto const* ripon = seatByName("Ripon");
+			if (!bass || !ripon) {
+				std::cerr << argv[argument] <<
+					": Coalition candidacy test seats are missing\n";
+				valid = false;
+				continue;
+			}
+			if (bass->coalitionCandidates.at("LNP") != 1.0f ||
+				bass->coalitionCandidates.at("NAT") != 0.2f ||
+				!bass->nationalsCoalitionShare ||
+				std::abs(*bass->nationalsCoalitionShare -
+					0.3064516129f) > 0.000001f ||
+				ripon->coalitionCandidates.at("LNP") != 1.0f ||
+				ripon->coalitionCandidates.at("NAT") != 1.0f ||
+				!ripon->nationalsCoalitionShare ||
+				std::abs(*ripon->nationalsCoalitionShare - 0.32f) >
+					0.000001f) {
+				std::cerr << argv[argument] <<
+					": Coalition seat settings were not imported correctly\n";
 				valid = false;
 			}
 		}

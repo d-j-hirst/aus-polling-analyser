@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-09-09T12:28:37Z",
+  "updated_at_utc": "2026-09-13T09:47:39Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -88,12 +88,12 @@
         "poll-data-*.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 49,
+      "semantic_revision": 50,
       "files": {
         "poll-data-fed.csv": {
-          "sha256": "e5d3c28ccf1f03cbeeabd49c0632a2e2a5e43d1139ee60b88ae294b0dd1ec450",
-          "size_bytes": 285724,
-          "recorded_mtime_utc": "2026-09-09T07:22:33.076700Z"
+          "sha256": "18dd88ca8dedbc658583a5996f7f5c9169dec1050111624469bc25bd79aa5e3f",
+          "size_bytes": 285788,
+          "recorded_mtime_utc": "2026-09-13T09:46:48.865304Z"
         },
         "poll-data-nsw.csv": {
           "sha256": "238a392342ca8e56c912b2e5a18c718cacbfefe92fe3a1e7624cef4741a8ccb1",
@@ -1295,9 +1295,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260913T094739Z-new_polling-raw-poll-data-fb741262",
+          "recorded_at_utc": "2026-09-13T09:47:39Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 50,
+          "provenance_revision": 50,
+          "summary": "Resolve poll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 49
+      "provenance_revision": 50
     },
     "poll_model_configuration": {
       "description": "Party coverage, discontinuities and sampling settings used by fp_model.py.",

@@ -350,6 +350,7 @@ void SimulationPreparation::prepareForIterations()
 	loadSeatTppPolls();
 	loadNationalsParameters();
 	loadNationalsSeatExpectations();
+	validateCoalitionSeatSettings();
 
 	// Prepare regional inputs and result containers after seat-region
 	// membership has been validated and counted.
@@ -2087,6 +2088,73 @@ void SimulationPreparation::loadNationalsSeatExpectations()
 		}
 		if (run.getTermCode() == "2025fed" && seat.name == "O'Connor") {
 			run.seatNationalsExpectation[seatIndex] = 0.23f; // based on 2019 results
+		}
+	}
+}
+
+void SimulationPreparation::validateCoalitionSeatSettings() const
+{
+	std::string const majorCoalitionCode =
+		project.parties().viewByIndex(Mp::Two).abbreviation;
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		auto const& seat = project.seats().viewByIndex(seatIndex);
+		if (seat.coalitionCandidates.empty() &&
+			!seat.nationalsCoalitionShare) continue;
+
+		std::string const label = "Seat " + seat.name;
+		if (run.natPartyIndex < 0) {
+			throw Exception(label +
+				" configures Coalition candidates, but the election has no NAT party.");
+		}
+		if (!seat.runningParties.empty() &&
+			!seat.coalitionCandidates.empty()) {
+			throw Exception(label +
+				" cannot set both sRunningParties and sCoalitionCandidates.");
+		}
+
+		bool hasGuaranteedCandidate = false;
+		for (auto const& [partyCode, probability] :
+			seat.coalitionCandidates) {
+			if (partyCode != majorCoalitionCode && partyCode != "NAT") {
+				throw Exception(label +
+					" has non-Coalition party " + partyCode +
+					" in sCoalitionCandidates; expected " +
+					majorCoalitionCode + " or NAT.");
+			}
+			if (!std::isfinite(probability) ||
+				probability < 0.0f || probability > 1.0f) {
+				throw Exception(label + " gives " + partyCode +
+					" an invalid Coalition candidacy probability.");
+			}
+			hasGuaranteedCandidate = hasGuaranteedCandidate ||
+				probability == 1.0f;
+		}
+		if (!seat.coalitionCandidates.empty() && !hasGuaranteedCandidate) {
+			throw Exception(label +
+				" must give at least one Coalition candidate probability 1.");
+		}
+
+		auto candidateChance = [&](std::string const& code) {
+			auto const candidate = seat.coalitionCandidates.find(code);
+			return candidate == seat.coalitionCandidates.end() ?
+				0.0f : candidate->second;
+		};
+		bool const bothCanRun =
+			candidateChance(majorCoalitionCode) > 0.0f &&
+			candidateChance("NAT") > 0.0f;
+		if (!seat.coalitionCandidates.empty() && bothCanRun &&
+			!seat.nationalsCoalitionShare &&
+			(run.seatNationalsExpectation[seatIndex] <= 0.0f ||
+			 run.seatNationalsExpectation[seatIndex] >= 1.0f)) {
+			throw Exception(label +
+				" can run both Coalition parties but has no usable historical "
+				"share; set fNationalsCoalitionShare.");
+		}
+		if (!seat.coalitionCandidates.empty() &&
+			seat.nationalsCoalitionShare && !bothCanRun) {
+			throw Exception(label +
+				" sets fNationalsCoalitionShare although both Coalition "
+				"parties cannot run.");
 		}
 	}
 }

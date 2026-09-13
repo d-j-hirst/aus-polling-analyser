@@ -94,6 +94,13 @@ public:
 	std::vector<std::string> prominentMinors;
 	std::vector<std::string> runningParties;
 
+	// Optional Coalition-specific candidacy model. An omitted party does not
+	// run; each listed party maps to its probability of running.
+	std::map<std::string, float> coalitionCandidates;
+	// Expected Nationals share of the combined Coalition primary when both
+	// Coalition parties run. Otherwise the historical seat estimate is used.
+	std::optional<float> nationalsCoalitionShare;
+
 	std::map<std::string, float> bettingOdds;
 
 	// first argument is party of challenger, incumbent being the other party is assumed
