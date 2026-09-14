@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-09-13T07:19:07Z",
+  "updated_at_utc": "2026-09-14T03:47:07Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 8,
+      "semantic_revision": 11,
       "files": {
         "2019fed.txt": {
           "sha256": "014946dc77548034140f78ad66a062f1c59a6d070122cea4c7dcb8bd4525b321",
@@ -70,14 +70,14 @@
           "recorded_mtime_utc": "2026-09-13T07:18:55.375977Z"
         },
         "2027nsw.txt": {
-          "sha256": "3cd50ea2510b00263868659b59fcbbcbf23c30555b932b8db35a318cf2e5f47b",
-          "size_bytes": 16566,
-          "recorded_mtime_utc": "2026-04-15T06:46:20.582550Z"
+          "sha256": "9066c05124dc34153f7b56e0d6c2a7238d5a40e3e1edb7965d74778378c4120a",
+          "size_bytes": 18704,
+          "recorded_mtime_utc": "2026-09-13T23:28:54.408756Z"
         },
         "2028fed.txt": {
-          "sha256": "97bf5236a2818c43fca1125c6b91317f2b2921bec70cdca2d8dd39b360780374",
-          "size_bytes": 29474,
-          "recorded_mtime_utc": "2026-07-15T01:43:03.129030Z"
+          "sha256": "fbd123da8f1c97f9ef5468999eb63393eeb15fce233e4b38275585ee5cdd9610",
+          "size_bytes": 30605,
+          "recorded_mtime_utc": "2026-09-14T03:46:55.124691Z"
         }
       },
       "events": [
@@ -257,9 +257,72 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260913T234823Z-other-forecast-seats-a20a0e4b",
+          "recorded_at_utc": "2026-09-13T23:48:23Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 9,
+          "provenance_revision": 9,
+          "summary": "candidate updates",
+          "files": [
+            "2027nsw.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2027nsw"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260914T034515Z-source_refresh-forecast-seats-3820cdfe",
+          "recorded_at_utc": "2026-09-14T03:45:15Z",
+          "change_type": "source_refresh",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 10,
+          "provenance_revision": 10,
+          "summary": "Add confirmed 2028 candidates, prominent-independent viability, current New England affiliation, and explicit probabilistic Coalition contests.",
+          "files": [
+            "2028fed.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260914T034707Z-source_refresh-forecast-seats-6a41bc64",
+          "recorded_at_utc": "2026-09-14T03:47:07Z",
+          "change_type": "source_refresh",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 11,
+          "provenance_revision": 11,
+          "summary": "Transpose the final 2026 ACT and South Australian federal redistributions using Antony Green's TPP estimates, including the O'Donoghue rename; Tasmanian estimates were already current.",
+          "files": [
+            "2028fed.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 8
+      "provenance_revision": 11
     }
   }
 }
