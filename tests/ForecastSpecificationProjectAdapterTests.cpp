@@ -130,6 +130,32 @@ int main(int argc, char const* argv[])
 				valid = false;
 			}
 		}
+		if (specification.electionCode == "2028fed") {
+			auto seatByName = [&](std::string const& name) -> Seat const* {
+				for (auto const& [id, seat] : project.seats()) {
+					static_cast<void>(id);
+					if (seat.name == name) return &seat;
+				}
+				return nullptr;
+			};
+			for (auto const& name : { "Bean", "Canberra", "Fremantle" }) {
+				auto const* seat = seatByName(name);
+				if (!seat || !seat->previousIndRunning ||
+					seat->confirmedProminentIndependent) {
+					std::cerr << argv[argument] <<
+						": returning-independent setting was not imported for " <<
+						name << '\n';
+					valid = false;
+				}
+			}
+			auto const* grayndler = seatByName("Grayndler");
+			if (!grayndler || grayndler->previousIndRunning ||
+				!grayndler->confirmedProminentIndependent) {
+				std::cerr << argv[argument] <<
+					": emerging-independent setting was not retained for Grayndler\n";
+				valid = false;
+			}
+		}
 	}
 	return valid ? 0 : 1;
 }

@@ -153,6 +153,7 @@ constexpr std::string_view Disendorsement = "bDisendorsement";
 constexpr std::string_view PreviousDisendorsement = "bPreviousDisendorsement";
 constexpr std::string_view IncumbentRecontestConfirmed = "bIncumbentRecontestConfirmed";
 constexpr std::string_view ConfirmedProminentIndependent = "bConfirmedProminentIndependent";
+constexpr std::string_view PreviousIndRunning = "bPreviousIndRunning";
 constexpr std::string_view ProminentMinors = "sProminentMinors";
 constexpr std::string_view BettingOdds = "sBettingOdds";
 constexpr std::string_view Polls = "sPolls";
@@ -234,6 +235,7 @@ void SeatCollection::exportInfo() const
 		if (seat.previousDisendorsement) os << PreviousDisendorsement << "=" << seat.previousDisendorsement << "\n";
 		if (seat.incumbentRecontestConfirmed) os << IncumbentRecontestConfirmed << "=" << seat.incumbentRecontestConfirmed << "\n";
 		if (seat.confirmedProminentIndependent) os << ConfirmedProminentIndependent << "=" << seat.confirmedProminentIndependent << "\n";
+		if (seat.previousIndRunning) os << PreviousIndRunning << "=" << seat.previousIndRunning << "\n";
 		if (seat.prominentMinors.size()) os << ProminentMinors << "=" << joinString(seat.prominentMinors, ";") << "\n";
 
 		auto stringFloatConversion = [&](decltype(seat.bettingOdds)::value_type a) {return a.first + "," + formatFloat(a.second, 2); };
@@ -425,6 +427,8 @@ void SeatCollection::importInfo()
 			else if (tag == ConfirmedProminentIndependent)
 				seat.confirmedProminentIndependent =
 					parseInteger(value) != 0;
+			else if (tag == PreviousIndRunning)
+				seat.previousIndRunning = parseInteger(value) != 0;
 			else if (tag == ProminentMinors)
 				seat.prominentMinors = splitSeatList(value);
 			else if (tag == BettingOdds) {

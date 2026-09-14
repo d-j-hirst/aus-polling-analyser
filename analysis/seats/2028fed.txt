@@ -1110,8 +1110,7 @@ sRegion=WA
 fTppMargin=18.68
 fPreviousTppSwing=1.75
 sPolls=GRN,13,3;ON,14,3;GRN,14,3;ON,21,3
-bConfirmedProminentIndependent=1
-sMinorViability=IND,3
+bPreviousIndRunning=1
 sCandidateNames=Josh Wilson,ALP;Kate Hulett,IND
 #Hasluck
 sIncumbent=ALP
@@ -1342,8 +1341,7 @@ fTppMargin=19.4
 fPreviousTppSwing=6.34
 sPolls=GRN,11,3;ON,7,3;GRN,13,3;ON,13,3
 sTppMrpPolls=DemosAU,2026-02-07,64
-bConfirmedProminentIndependent=1
-sMinorViability=IND,3
+bPreviousIndRunning=1
 sCandidateNames=David Smith,ALP;Jessie Price,IND
 #Canberra
 sIncumbent=ALP
@@ -1353,8 +1351,7 @@ fTppMargin=26.4
 fPreviousTppSwing=3.96
 sPolls=GRN,20,3;ON,5,3;GRN,22,3;ON,9,3
 sTppMrpPolls=DemosAU,2025-10-24,73
-bConfirmedProminentIndependent=1
-sMinorViability=IND,1
+bPreviousIndRunning=1
 sCandidateNames=Alicia Payne,ALP;Claire Miles,IND
 #Fenner
 sIncumbent=ALP

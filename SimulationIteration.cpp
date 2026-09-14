@@ -1157,12 +1157,13 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		if (effectiveGreen) {
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.greensSeatStatistics);
 		}
-		// only continue to apply independent votes if they're an incumbent
-		// assume re-runs don't happen unless explicitly confirmed
+		// Continue personal independent votes only for incumbents or candidates
+		// explicitly identified as returning/prominent.
 		else if (effectiveIndependent && (
-			incumbentPartyIndex == partyIndex ||
-			contains(run.seatProminentMinors[seatIndex], partyIndex)
-		)) {
+				incumbentPartyIndex == partyIndex ||
+				contains(run.seatProminentMinors[seatIndex], partyIndex) ||
+				(seat.previousIndRunning && partyIndex == run.indPartyIndex)
+			)) {
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.indSeatStatistics);
 		}
 		else if (effectivePopulist) {
@@ -1180,7 +1181,9 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 
 	determineSeatEmergingParties(seatIndex);
 
-	if (seat.confirmedProminentIndependent) determineSeatConfirmedInds(seatIndex);
+	if (seat.confirmedProminentIndependent && !seat.previousIndRunning) {
+		determineSeatConfirmedInds(seatIndex);
+	}
 
 	determineSeatEmergingInds(seatIndex);
 
@@ -1203,19 +1206,25 @@ void SimulationIteration::determineSpecificPartyFp(
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	int const incumbentPartyIndex = project.parties().idToIndex(seat.incumbent);
+	bool const returningUnsuccessfulIndependent =
+		partyIndex == run.indPartyIndex && seat.previousIndRunning;
 
 	if (run.runningParties[seatIndex].size() && partyIndex >= Mp::Others &&
 		!contains(run.runningParties[seatIndex], project.parties().viewByIndex(partyIndex).abbreviation)) {
 		voteShare = 0.0f;
 		return;
 	}
-	if (partyIndex == run.indPartyIndex && seat.confirmedProminentIndependent) {
+	if (partyIndex == run.indPartyIndex &&
+		seat.confirmedProminentIndependent &&
+		!returningUnsuccessfulIndependent) {
 		// this case will be handled by the "confirmed independent" logic instead
 		voteShare = 0.0f;
 		return;
 	}
 	float modifiedVoteShare = voteShare;
-	float minorViability = getAt(
+	// A returning candidate's observed primary already captures the profile
+	// represented by minor viability; multiplying it would count that twice.
+	float minorViability = returningUnsuccessfulIndependent ? 0.0f : getAt(
 		run.seatMinorViability[seatIndex], partyIndex, 0.0f);
 	float minorVoteMod = 1.0f + (0.4f * minorViability);
 	modifiedVoteShare = std::clamp(
@@ -1251,6 +1260,10 @@ void SimulationIteration::determineSpecificPartyFp(
 		// independents who have publically confirmed they are recontesting are given a much higher chance of
 		// actually running, but not 100% as unforeseen events may occur
 		if (seat.incumbentRecontestConfirmed) recontestRateMixed = 0.9f + 0.1f * recontestRateMixed;
+	}
+	else if (returningUnsuccessfulIndependent) {
+		// Match the existing treatment of an announced prominent independent.
+		recontestRateMixed = 0.9f + 0.1f * recontestRateMixed;
 	}
 	else if (partyIndex >= Mp::Others && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("IND"))) {
 		// non-incumbent independents have a reverse effect: less likely to recontest as time passes
@@ -1309,6 +1322,11 @@ void SimulationIteration::determineSpecificPartyFp(
 		variabilityUniform(0.0f, 1.0f, seatIndex, partyIndex, uint32_t(VariabilityTag::MinorQuantile));
 	float variableVote = rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed, quantile);
 	transformedFp += variableVote;
+	if (returningUnsuccessfulIndependent &&
+		!run.oddsCalibrationMeans.contains({ seatIndex, partyIndex })) {
+		transformedFp = applyIndependentSeatPolls(
+			seatIndex, transformedFp);
+	}
 
 	// Model can't really deal with the libs not existing (=> large OTH vote) in Richmond 2018
 	// so likely underestimates GRN fp support here. This is a temporary workaround to bring in line
@@ -1336,7 +1354,8 @@ void SimulationIteration::determineSpecificPartyFp(
 	regularVoteShare = std::min(regularVoteShare, MaxSpecificPartyFpShare);
 
 	if (partyIndex == run.indPartyIndex &&
-		incumbentPartyIndex != run.indPartyIndex) {
+		incumbentPartyIndex != run.indPartyIndex &&
+		!returningUnsuccessfulIndependent) {
 		// Add potential re-runs under "Emerging Independent" instead
 		voteShare = 0.0f;
 		seatFpVoteShare[seatIndex][EmergingIndIndex] = regularVoteShare;
@@ -1344,6 +1363,36 @@ void SimulationIteration::determineSpecificPartyFp(
 	else {
 		voteShare = regularVoteShare;
 	}
+}
+
+float SimulationIteration::applyIndependentSeatPolls(
+	int seatIndex, float transformedVoteShare) const
+{
+	if (!run.seatPolls[seatIndex].contains(run.indPartyIndex)) {
+		return transformedVoteShare;
+	}
+	float weightedSum = 0.0f;
+	float sumOfWeights = 0.0f;
+	for (auto const& poll :
+		run.seatPolls[seatIndex].at(run.indPartyIndex)) {
+		constexpr float QualityWeightBase = 0.6f;
+		float const weight = myPow(QualityWeightBase, poll.second);
+		if (!std::isfinite(weight) || weight <= 0.0f) continue;
+		// Historical seat polls understated strong independent and
+		// pseudo-independent candidates, especially at low readings.
+		float const pollRaw = poll.first * 0.503f + 15.59f;
+		weightedSum += pollRaw * weight;
+		sumOfWeights += weight;
+	}
+	if (sumOfWeights <= 0.0f) return transformedVoteShare;
+
+	float const transformedPollFp = transformVoteShare(
+		std::clamp(weightedSum / sumOfWeights, 0.1f, 99.9f));
+	constexpr float MaxPollWeight = 0.8f;
+	constexpr float PollWeightBase = 0.6f;
+	float const pollFactor = MaxPollWeight *
+		(1.0f - std::pow(PollWeightBase, sumOfWeights));
+	return mix(transformedVoteShare, transformedPollFp, pollFactor);
 }
 
 void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, float& voteShare)
@@ -1493,33 +1542,8 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 					transformedVoteShare = oddsBasedVoteShare;
 				}
 			}
-			if (run.seatPolls[seatIndex].contains(run.indPartyIndex)) {
-				float weightedSum = 0.0f;
-				float sumOfWeights = 0.0f;
-				for (auto const& poll : run.seatPolls[seatIndex][run.indPartyIndex]) {
-					constexpr float QualityWeightBase = 0.6f;
-					float weight = myPow(QualityWeightBase, poll.second);
-					if (!std::isfinite(weight) || weight <= 0.0f) continue;
-					float pollRaw = poll.first;
-					// Historical seat polls understated strong independent and
-					// pseudo-independent candidates, especially at low readings.
-					// This shrunk correction is deliberately IND-only: equivalent
-					// evidence is not available for general minor-party candidates.
-					pollRaw = pollRaw * 0.503f + 15.59f;
-					weightedSum += pollRaw * weight;
-					sumOfWeights += weight;
-				}
-				if (sumOfWeights > 0.0f) {
-					float transformedPollFp = transformVoteShare(
-						std::clamp(weightedSum / sumOfWeights, 0.1f, 99.9f));
-					constexpr float MaxPollWeight = 0.8f;
-					constexpr float PollWeightBase = 0.6f;
-					float pollFactor = MaxPollWeight *
-						(1.0f - std::pow(PollWeightBase, sumOfWeights));
-					transformedVoteShare = mix(
-						transformedVoteShare, transformedPollFp, pollFactor);
-				}
-			}
+			transformedVoteShare = applyIndependentSeatPolls(
+				seatIndex, transformedVoteShare);
 		}
 
 		constexpr float MaxSpecificPartyFpShare = 99.0f;

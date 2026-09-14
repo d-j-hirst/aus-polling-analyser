@@ -81,7 +81,8 @@ public:
 	bool previousDisendorsement = false;
 	bool incumbentRecontestConfirmed = false;
 	bool confirmedProminentIndependent = false;
-	bool previousIndRunning = false; // Only used for independents who didn't win last time.
+	// The current independent is the same unsuccessful candidate as last time.
+	bool previousIndRunning = false;
 
 	float knownPrepollPercent = 0.0f;
 	float knownPostalPercent = 0.0f;

@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-09-14T03:47:07Z",
+  "updated_at_utc": "2026-09-14T05:55:59Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 11,
+      "semantic_revision": 12,
       "files": {
         "2019fed.txt": {
           "sha256": "014946dc77548034140f78ad66a062f1c59a6d070122cea4c7dcb8bd4525b321",
@@ -75,9 +75,9 @@
           "recorded_mtime_utc": "2026-09-13T23:28:54.408756Z"
         },
         "2028fed.txt": {
-          "sha256": "fbd123da8f1c97f9ef5468999eb63393eeb15fce233e4b38275585ee5cdd9610",
-          "size_bytes": 30605,
-          "recorded_mtime_utc": "2026-09-14T03:46:55.124691Z"
+          "sha256": "c8cd396e12fea93793036e496b6ec22cdec48b6166c2c4fdfda54d2703db0538",
+          "size_bytes": 30506,
+          "recorded_mtime_utc": "2026-09-14T05:55:33.329933Z"
         }
       },
       "events": [
@@ -320,9 +320,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260914T055559Z-correction-forecast-seats-00559361",
+          "recorded_at_utc": "2026-09-14T05:55:59Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 12,
+          "provenance_revision": 12,
+          "summary": "Model confirmed unsuccessful independent recontests from their previous primary-vote evidence rather than as newly emerging candidates.",
+          "files": [
+            "2028fed.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 11
+      "provenance_revision": 12
     }
   }
 }

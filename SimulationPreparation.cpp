@@ -614,12 +614,16 @@ void SimulationPreparation::validateIterationInputs() const
 
 void SimulationPreparation::validatePastSeatResults() const
 {
+	std::string const indAbbreviation =
+		project.parties().viewByIndex(run.indPartyIndex).abbreviation;
+	float const materialIndependentVote =
+		detransformVoteShare(run.indEmergence.fpThreshold);
 	for (int seatIndex = 0;
 		seatIndex < int(run.pastSeatResults.size()); ++seatIndex) {
 		auto const& results = run.pastSeatResults[seatIndex];
+		auto const& seat = project.seats().viewByIndex(seatIndex);
 		std::string const label =
-			"Previous results for " +
-			project.seats().viewByIndex(seatIndex).name;
+			"Previous results for " + seat.name;
 		if (results.turnoutCount < 0) {
 			throw Exception(label + " have a negative turnout.");
 		}
@@ -641,6 +645,44 @@ void SimulationPreparation::validatePastSeatResults() const
 					throw Exception(
 						label + " contain a vote share outside 0-100.");
 				}
+			}
+		}
+		if (seat.previousIndRunning) {
+			if (project.parties().idToIndex(seat.incumbent) ==
+				run.indPartyIndex) {
+				throw Exception(
+					"Seat " + seat.name +
+					" marks an unsuccessful independent as recontesting, "
+					"but its incumbent is IND.");
+			}
+			auto const previousInd =
+				results.fpVotePercent.find(run.indPartyIndex);
+			if (previousInd == results.fpVotePercent.end() ||
+				previousInd->second < materialIndependentVote) {
+				throw Exception(
+					"Seat " + seat.name +
+					" marks an unsuccessful independent as recontesting, "
+					"but has no material previous IND primary vote.");
+			}
+			auto const previousIndTcp =
+				results.tcpVotePercent.find(run.indPartyIndex);
+			if (previousIndTcp != results.tcpVotePercent.end() &&
+				previousIndTcp->second > 50.0f) {
+				throw Exception(
+					"Seat " + seat.name +
+					" marks an unsuccessful independent as recontesting, "
+					"but the previous IND candidate won the seat.");
+			}
+			int const currentIndependentCandidates = std::count_if(
+				seat.candidateNames.begin(), seat.candidateNames.end(),
+				[&](auto const& candidate) {
+					return candidate.second == indAbbreviation;
+				});
+			if (currentIndependentCandidates != 1) {
+				throw Exception(
+					"Seat " + seat.name +
+					" marks an unsuccessful independent as recontesting, "
+					"but must name exactly one current IND candidate.");
 			}
 		}
 	}
@@ -2279,7 +2321,10 @@ void SimulationPreparation::calculateIndEmergenceModifier()
 	// are already confirmed relative to the usual number.
 	int numConfirmed = std::count_if(project.seats().begin(), project.seats().end(),
 		[](const decltype(project.seats().begin())::value_type& seatPair) {
-			return seatPair.second.confirmedProminentIndependent && seatPair.second.minorViability.contains("IND") && seatPair.second.minorViability.at("IND") >= 0; }
+			return seatPair.second.previousIndRunning ||
+				(seatPair.second.confirmedProminentIndependent &&
+					seatPair.second.minorViability.contains("IND") &&
+					seatPair.second.minorViability.at("IND") >= 0); }
 		);
 	// Only the sampled date is needed here. A nowcast uses the run's fixed current
 	// date; other forecasts retain the projection's possible-date distribution.
