@@ -1157,12 +1157,13 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		if (effectiveGreen) {
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.greensSeatStatistics);
 		}
-		// Continue personal independent votes only for incumbents or candidates
-		// explicitly identified as returning/prominent.
+		// Independents use the continuing-candidate model when incumbent,
+		// confirmed, or sampled as a possible recontest by the strongest previous
+		// candidate. Unsuccessful unconfirmed candidates are phased out below.
 		else if (effectiveIndependent && (
 				incumbentPartyIndex == partyIndex ||
 				contains(run.seatProminentMinors[seatIndex], partyIndex) ||
-				(seat.previousIndRunning && partyIndex == run.indPartyIndex)
+				partyIndex == run.indPartyIndex
 			)) {
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.indSeatStatistics);
 		}
@@ -1208,6 +1209,11 @@ void SimulationIteration::determineSpecificPartyFp(
 	int const incumbentPartyIndex = project.parties().idToIndex(seat.incumbent);
 	bool const returningUnsuccessfulIndependent =
 		partyIndex == run.indPartyIndex && seat.previousIndRunning;
+	bool const unconfirmedPreviousIndependent =
+		partyIndex == run.indPartyIndex &&
+		incumbentPartyIndex != run.indPartyIndex &&
+		!seat.confirmedProminentIndependent &&
+		!returningUnsuccessfulIndependent;
 
 	if (run.runningParties[seatIndex].size() && partyIndex >= Mp::Others &&
 		!contains(run.runningParties[seatIndex], project.parties().viewByIndex(partyIndex).abbreviation)) {
@@ -1265,9 +1271,18 @@ void SimulationIteration::determineSpecificPartyFp(
 		// Match the existing treatment of an announced prominent independent.
 		recontestRateMixed = 0.9f + 0.1f * recontestRateMixed;
 	}
-	else if (partyIndex >= Mp::Others && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("IND"))) {
-		// non-incumbent independents have a reverse effect: less likely to recontest as time passes
-		recontestRateMixed *= 1.0f - timeToElectionFactor;
+	else if (unconfirmedPreviousIndependent) {
+		// A previous candidate becomes progressively less likely to return if they
+		// remain unannounced as polling day approaches.
+		constexpr float RecontestPhaseOutStartDays = 180.0f;
+		constexpr float RecontestPhaseOutEndDays = 30.0f;
+		constexpr float MinimumUnconfirmedRecontestShare = 0.1f;
+		float const phaseOut = std::clamp(
+			(RecontestPhaseOutStartDays - float(daysToElection)) /
+				(RecontestPhaseOutStartDays - RecontestPhaseOutEndDays),
+			0.0f, 1.0f);
+		recontestRateMixed *= mix(
+			1.0f, MinimumUnconfirmedRecontestShare, phaseOut);
 	}
 	if (run.runningParties[seatIndex].size() && partyIndex >= Mp::Others &&
 		contains(run.runningParties[seatIndex], project.parties().viewByIndex(partyIndex).abbreviation)) {
@@ -1566,6 +1581,13 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 	if (run.runningParties[seatIndex].size() && !ballotConfirmed) {
 		return;
 	}
+	// The generic slot already represents the strongest previous independent
+	// when that candidate has been sampled as recontesting. Do not add a
+	// separate new candidate to the same aggregate slot in that case.
+	if (seatFpVoteShare[seatIndex].contains(EmergingIndIndex) &&
+		seatFpVoteShare[seatIndex].at(EmergingIndIndex) > 0.0f) {
+		return;
+	}
 
 	float indEmergenceRate = run.indEmergence.baseRate;
 	bool isFederal = run.regionCode == "fed";
@@ -1580,20 +1602,8 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 	float prevOthers = run.pastSeatResults[seatIndex].prevOthers;
 	indEmergenceRate += run.indEmergence.prevOthersRateMod * prevOthers;
 	bool existingStrongCandidate = false;
-	// increased change of emerging inds based on how competitive one was last time
-	// (a bit ad-hoc for now, should do more scientifically later)
-	if (run.pastSeatResults[seatIndex].fpVotePercent.contains(run.indPartyIndex)) {
-		float multiplier = 1.0f;
-		// Reduce emergence chance if an ind actually won last time
-		// as re-run by the same ind will not count for this category in that case
-		if (run.pastSeatResults[seatIndex].tcpVotePercent.contains(run.indPartyIndex) &&
-			run.pastSeatResults[seatIndex].tcpVotePercent[run.indPartyIndex] > 50.0f) {
-			multiplier *= 0.3f;
-		}
-		indEmergenceRate += 0.008f * multiplier * std::clamp(run.pastSeatResults[seatIndex].fpVotePercent.at(run.indPartyIndex) - 8.0f, 0.0f, 24.0f);
-	}
 	for (auto [partyIndex, vote] : seatFpVoteShare[seatIndex]) {
-		if (partyIndex < 0) continue;
+		if (partyIndex < 0 || vote <= 0.0f) continue;
 		auto const& party = project.parties().viewByIndex(partyIndex);
 		if ((
 				party.ideology == 2 &&
@@ -1611,9 +1621,22 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 	else indEmergenceRate *= run.indEmergenceModifier;
 	// If a notable independent hasn't emerged by the time candidacy is confirmed, much less likely they will
 	if (run.runningParties[seatIndex].size()) indEmergenceRate *= 0.1f;
+	// High rates can result when several favourable but individually uncertain
+	// indicators coincide. Preserve rates through 25%, then smoothly compress
+	// the excess toward a 50% asymptote.
+	constexpr float EmergenceSoftCapStart = 0.25f;
+	constexpr float MaximumEmergenceRate = 0.5f;
+	if (indEmergenceRate > EmergenceSoftCapStart) {
+		float const capRange =
+			MaximumEmergenceRate - EmergenceSoftCapStart;
+		float const excess = indEmergenceRate - EmergenceSoftCapStart;
+		indEmergenceRate = EmergenceSoftCapStart +
+			excess / (1.0f + excess / capRange);
+	}
 	// Beta distribution flipped because it's desired for the high rate of ind emergence
 	// to match high rate of ind voting
-	indEmergenceRate = std::clamp(indEmergenceRate, 0.01f, 1.0f);
+	indEmergenceRate = std::clamp(
+		indEmergenceRate, 0.01f, MaximumEmergenceRate);
 	if (1.0f - variabilityBeta(indAlpha, indBeta, seatIndex, run.indPartyIndex, uint32_t(VariabilityTag::IndEmergenceDecision)) < indEmergenceRate) {
 		float rmse = run.indEmergence.voteRmse;
 		float kurtosis = run.indEmergence.voteKurtosis;
@@ -1628,21 +1651,6 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 		if (isOuterMetro) rmse *= (1.0f + run.indEmergence.outerMetroVoteCoeff / interceptSize);
 		float prevOthersCoeff = run.indEmergence.prevOthersVoteCoeff * prevOthers;
 		rmse *= (1.0f + prevOthersCoeff / interceptSize);
-		// increased vote for emerging inds based on how competitive one was last time
-		// (a bit ad-hoc for now, should do more scientifically later)
-		if (run.pastSeatResults[seatIndex].fpVotePercent.contains(run.indPartyIndex) && !existingStrongCandidate) {
-			float multiplier = 1.0f;
-			// Reduce vote if an ind actually won last time
-			// as re-run by the same ind will not count for this category in that case
-			if (run.pastSeatResults[seatIndex].tcpVotePercent.contains(run.indPartyIndex) &&
-				run.pastSeatResults[seatIndex].tcpVotePercent[run.indPartyIndex] > 50.0f) {
-				multiplier *= 0.5f;
-			}
-			rmse = predictorCorrectorTransformedSwing(
-				rmse, 
-				0.8f * multiplier * std::clamp(run.pastSeatResults[seatIndex].fpVotePercent.at(run.indPartyIndex) - 8.0f, 0.0f, 24.0f)
-			);
-		}
 		rmse = std::max(rmse, 0.0f);
 		// The quantile should only fall within the upper half of the distribution
 		// so that the correlation created using the beta distribution works

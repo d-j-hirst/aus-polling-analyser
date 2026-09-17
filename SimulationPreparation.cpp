@@ -2317,14 +2317,15 @@ void SimulationPreparation::prepareRunningParties()
 
 void SimulationPreparation::calculateIndEmergenceModifier()
 {
-	// More independents should be expected to emerge if more
-	// are already confirmed relative to the usual number.
+	// More independents should be expected to emerge if more new prominent
+	// candidates are already confirmed relative to the usual number. Returning
+	// candidates are seat-specific evidence, not evidence of wider emergence.
 	int numConfirmed = std::count_if(project.seats().begin(), project.seats().end(),
 		[](const decltype(project.seats().begin())::value_type& seatPair) {
-			return seatPair.second.previousIndRunning ||
-				(seatPair.second.confirmedProminentIndependent &&
-					seatPair.second.minorViability.contains("IND") &&
-					seatPair.second.minorViability.at("IND") >= 0); }
+			return !seatPair.second.previousIndRunning &&
+				seatPair.second.confirmedProminentIndependent &&
+				seatPair.second.minorViability.contains("IND") &&
+				seatPair.second.minorViability.at("IND") >= 0; }
 		);
 	// Only the sampled date is needed here. A nowcast uses the run's fixed current
 	// date; other forecasts retain the projection's possible-date distribution.
@@ -2333,7 +2334,20 @@ void SimulationPreparation::calculateIndEmergenceModifier()
 		sim.settings.baseProjection).generateSupportSample(
 			project.models(), sampleDate, 0).daysToElection;
 	float expectedConfirmed = std::max(float(daysToElection) * -0.02f + 3.5f, 0.0f) * project.seats().count() / 100.0f;
-	run.indEmergenceModifier = std::min((float(numConfirmed) + 1.0f) / (expectedConfirmed + 1.0f), 2.5f);
+	float const campaignModifier = std::min(
+		(float(numConfirmed) + 1.0f) / (expectedConfirmed + 1.0f),
+		2.5f);
+	// Candidate information is too sparse far from polling day for isolated
+	// announcements to imply a nationwide independent wave. Phase in the
+	// established modifier smoothly over the final part of the campaign.
+	constexpr float PhaseInStartDays = 175.0f;
+	constexpr float FullEffectDays = 60.0f;
+	float const phaseIn = std::clamp(
+		(PhaseInStartDays - float(daysToElection)) /
+			(PhaseInStartDays - FullEffectDays),
+		0.0f, 1.0f);
+	run.indEmergenceModifier =
+		1.0f + phaseIn * (campaignModifier - 1.0f);
 }
 
 void SimulationPreparation::calculateRegionalProportion()
