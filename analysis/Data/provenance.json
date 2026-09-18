@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-09-16T03:21:47Z",
+  "updated_at_utc": "2026-09-17T22:10:10Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -88,17 +88,17 @@
         "poll-data-*.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 54,
+      "semantic_revision": 56,
       "files": {
         "poll-data-fed.csv": {
-          "sha256": "56e241ccb4f1ceaa4f8655713966c67a1a5585b7aea5d507a3651eb208896b74",
-          "size_bytes": 285863,
-          "recorded_mtime_utc": "2026-09-14T09:02:23.573894Z"
+          "sha256": "41196c512096c689612f2a08a5e3e2109dd650b55c1739bb0593de57a3680b1d",
+          "size_bytes": 285926,
+          "recorded_mtime_utc": "2026-09-17T05:32:08.302389Z"
         },
         "poll-data-nsw.csv": {
-          "sha256": "238a392342ca8e56c912b2e5a18c718cacbfefe92fe3a1e7624cef4741a8ccb1",
-          "size_bytes": 27175,
-          "recorded_mtime_utc": "2026-08-31T02:34:17.382365Z"
+          "sha256": "5cd7dfa3554f930c464ae178e5e67d98a5f72712604b260a977e12a5d4a8765e",
+          "size_bytes": 27228,
+          "recorded_mtime_utc": "2026-09-17T22:09:22.874647Z"
         },
         "poll-data-qld.csv": {
           "sha256": "335322fd80a075011c748c5ae0c7c326b3e1be871d028cdd0fd077d4f5bdb2d6",
@@ -1421,9 +1421,51 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260917T053238Z-new_polling-raw-poll-data-4831929c",
+          "recorded_at_utc": "2026-09-17T05:32:38Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 55,
+          "provenance_revision": 55,
+          "summary": "DemosAU poll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260917T221010Z-new_polling-raw-poll-data-60d9a460",
+          "recorded_at_utc": "2026-09-17T22:10:10Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 56,
+          "provenance_revision": 56,
+          "summary": "DemosAU poll",
+          "files": [
+            "poll-data-nsw.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2027nsw"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 54
+      "provenance_revision": 56
     },
     "poll_model_configuration": {
       "description": "Party coverage, discontinuities and sampling settings used by fp_model.py.",
