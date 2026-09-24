@@ -369,3 +369,6 @@ analysis/suspend.txt
 /live_summary.csv
 /live_runs/
 /downloads/temp
+analysis/betting_odds/capture_vic_2026.py
+analysis/test_capture_vic_betting_odds.py
+analysis/betting_odds/archive/
