@@ -18,7 +18,7 @@ The seat-file update follows these rules:
 - Greens map to `GRN`. Named independents and Victorian Socialists map to `IND` as independent or quasi-independent candidates.
 - Labor, Liberal/Coalition/Nationals and One Nation prices are excluded.
 - A party candidate's mean price is included only when it is $8.00 or shorter.
-- Independent and quasi-independent prices are treated alike: they are included only when the seat has `bConfirmedProminentIndependent=1`, and are then included regardless of price. If that candidate has no specific selection with an agency, the agency's `Any Other` price is used. A specific selection takes precedence over `Any Other`.
+- Independent and quasi-independent prices are treated alike: they are included only when the seat has `bConfirmedProminentIndependent=1`, and are then included regardless of price. If that candidate has no specific selection with an agency, the agency's `Any Other` or `Other` price is used. A specific selection takes precedence over a catch-all.
 - An unconfirmed independent or quasi-independent is omitted. If its mean price is $8.00 or shorter, the script prints a `REVIEW` notice so that the result can be raised for human assessment.
 - The archive always retains the bookmaker's original selection wording, including `Any Other`.
 - Betfair is treated as an exchange. Its best available back and lay prices are archived when individual-seat markets exist, but are never used in the seat file.

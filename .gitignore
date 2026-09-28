@@ -372,3 +372,5 @@ analysis/suspend.txt
 analysis/betting_odds/capture_vic_2026.py
 analysis/test_capture_vic_betting_odds.py
 analysis/betting_odds/archive/
+analysis/betting_odds/browser_extension/
+analysis/betting_odds/tab-current.json
