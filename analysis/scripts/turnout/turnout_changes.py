@@ -357,6 +357,10 @@ def render_report(elections, excluded, tables):
     changes, categories = tables['changes'], tables['category_changes']
     lines = [
         '# Historical turnout and vote-category changes', '',
+        'This report describes how turnout, ballot formality and voting methods '
+        'changed between consecutive elections.', '',
+        'It compares official final counts at election, district and federal-state '
+        'level, and identifies differences in coverage that affect interpretation.', '',
         'Generated from the validated normalized final-result JSONs in '
         '`analysis/Data/Turnout`. Reproduce with `cd analysis && python3 -B -m scripts.turnout.turnout_changes`.', '',
         '## Scope and interpretation', '',
@@ -530,21 +534,21 @@ def render_report(elections, excluded, tables):
               '* Category allocation needs both common election shifts and seat-specific '
               'variation. The paired seat spreads show the residual risk of applying '
               'one uniform multiplier to every seat.',
-              '* Federal state differences suggest testing state-level adjustments '
-              'before assuming every division follows the national turnout change.',
+              '* Federal state differences show that divisions do not all follow '
+              'the national turnout change.',
               '* Early-voting definitions require jurisdiction-specific matching; '
               'federal final category totals alone cannot identify all early ordinary votes.',
               '* WA absent votes can include voting outside the enrolled district before '
-              'polling day. The 2025 rise in absent share must be investigated before '
-              'interpreting the early-polling-place decline as fewer early voters. '
+              'polling day. The 2025 rise in absent share means that a decline in '
+              'early-polling-place share alone does not establish fewer early voters. '
               'NSW electronic voting disappearing from the 2023 partition is also a '
               'change in available voting modes, not ordinary behavioural substitution.',
-              '* Fit/test splits should hold out elections. Inspect COVID-era elections '
-              'and category breaks separately; thousands of seats are not thousands '
+              '* Elections share common conditions, including COVID-era effects '
+              'and changes in category definitions; thousands of seats are not thousands '
               'of independent election conditions.',
-              '* Next, match the latest pre-election early/postal observations to '
-              'these final totals, preserving observation geography, precision and '
-              'application/issue/return/acceptance distinctions.', '',
+              '* Operational early/postal observations are excluded from these '
+              'historical final-count comparisons. Their geography and counting '
+              'stage can differ from the final vote categories.', '',
               '### Transition notes', '']
     for r in changes:
         if r['level'] == 'election' and r['notes']:

@@ -1,13 +1,20 @@
-# Turnout Data Foundation
+# Turnout Evidence and Sources
+
+This document explains the election turnout evidence available in this
+repository. It helps readers understand what the recorded counts represent
+and reproduce the datasets and historical analyses.
+
+The turnout tools collect enrolment, final vote counts and published counts
+of early voting and postal applications. They store these in a common format,
+retain source details and check that the reported totals agree. The reports
+describe changes between elections and the limits of comparisons between
+different voting categories and geographic areas.
+
+## Running the tools
 
 Run Python command examples from `analysis/`. Commands using `env/bin/python`
 refer to the Linux/WSL environment; Windows uses `.venv-win/Scripts/python.exe`.
-Turnout scripts now live in the `scripts.turnout` package and use `python -m`.
-
-This dataset is intended to support a general live-turnout model. It must not
-encode the one-off conversion between the combined 2022 SA declaration total
-and the separate 2026 SA declaration categories as if that conversion were an
-observed historical fact.
+Turnout scripts live in the `scripts.turnout` package and use `python -m`.
 
 ## Available Official Evidence
 
@@ -22,12 +29,12 @@ formats differ.
 | NSW | [Final election reports](https://elections.nsw.gov.au/about-us/reports/election-reports) and Virtual Tally Room pages provide district enrolment and categories including Ordinary, Early Voting, Declared Facility, Absent, Postal and Enrolment/Provisional. | Labels and aggregation rules have changed between elections; telephone and other small modes may be folded into broader categories. |
 | Victoria | [Final result pages](https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results), election reports and retained official XML feeds provide district totals and vote-type evidence. VEC defines Ordinary, Absent, Early, Postal, Provisional and Marked-as-voted categories. | VEC's `Early` category itself includes several modes, including mobile and telephone-assisted voting. Preserve it as a combined category. |
 | Queensland | Retained final ECQ XML media feeds provide district totals and booth vote types from 2006 through 2024; [election reports and election-data spreadsheets](https://www.ecq.qld.gov.au/elections/election-events/2024-election-events/2024-state-general-election) provide pre-election early/postal evidence. | Generic historical polling-booth records require explicit venue labels to distinguish pre-poll, telephone, electronically assisted and mobile voting. |
-| South Australia | [ECSA publishes](https://www.ecsa.sa.gov.au/elections/past-state-election-results?catid=12:elections&id=636:2022-state-election-results-and-statistics-downloads&view=article) enrolment, early-vote and postal statistics plus final result downloads. The 2022 summary provides ordinary and combined declaration totals by district. | The combined 2022 declaration total cannot be defensibly split into the distinct categories reported in 2026. Keep it combined. |
+| South Australia | [ECSA publishes](https://www.ecsa.sa.gov.au/elections/past-state-election-results?catid=12:elections&id=636:2022-state-election-results-and-statistics-downloads&view=article) historical enrolment and vote statistics. Its [reviewed final 2026 results](https://result.ecsa.sa.gov.au/) provide district structure, polling places and detailed declaration/absent batches as public JSON. | Historical declaration totals remain combined. SA 2026 has a separate detailed category regime; first preferences and later count stages are distinct sources. |
 | Western Australia | [Final statistical reports](https://www.elections.wa.gov.au/elections/state/reports) provide district enrolment and category totals from 2005 through 2025. Reports through 2021 separate ordinary, absent, postal, early in-person and provisional votes; the [2025 final verbose XML](http://media.waec.wa.gov.au/Archive/2025%20SGE%20Final/8%20March%202025%20State%20General%20Election%20-%20LA%20VERBOSE%20RESULTS.xml) also retains polling-place identities. | The 2025 report combines election-day, early and mobile polling. The final XML permits an exact split by WAEC's `Early Polling Place` designation, reconciled to every report district total. |
 
 ## Normalized Structure
 
-`analysis/turnout_data.py` defines four kinds of evidence:
+`analysis/lib/shared/turnout_data.py` defines four kinds of evidence:
 
 Schema version 2 added explicit operational geography and reconciliation
 status. Schema version 3 adds count precision and derivation so rounded
@@ -86,40 +93,41 @@ Adapters should choose the least specific category supported by the source:
 This means models can aggregate detailed elections to a comparable historical
 level, but ingestion never fabricates detail in older elections.
 
-## Initial Acquisition Sequence
+## Acquisition Tools
 
-1. `analysis/turnout_aec.py` acquires 2004 through 2025 federal evidence and
+1. `analysis/scripts/turnout/turnout_aec.py` acquires 2004 through 2025 federal evidence and
    tests exact reconciliation against official division and category totals.
    The adapter preserves the 2010 change that moved own-division pre-poll
    votes into the ordinary count.
-2. `analysis/turnout_nsw.py` acquires 2015, 2019 and 2023 NSW Legislative Assembly
+2. `analysis/scripts/turnout/turnout_nsw.py` acquires 2015, 2019 and 2023 NSW Legislative Assembly
    evidence from final VTR district pages. It preserves combined NSWEC
    categories and retains 2019 iVote separately.
-3. `analysis/turnout_vic.py` acquires 2006 through 2022 Victorian Lower House
+3. `analysis/scripts/turnout/turnout_vic.py` acquires 2006 through 2022 Victorian Lower House
    evidence from final VEC district-result pages. The 2006 declaration category
    remains combined, and the postponed 2022 Narracan supplementary election is
    correctly excluded from the general election.
-4. `analysis/turnout_qld.py` acquires 2006 through 2024 Queensland district
+4. `analysis/scripts/turnout/turnout_qld.py` acquires 2006 through 2024 Queensland district
    evidence from ECQ final XML archives. It uses official booth type codes and
    explicit venue labels, and reconciles every category partition to its final
    district total.
-5. `analysis/turnout_wa.py` acquires 2005 through 2025 Western Australian
+5. `analysis/scripts/turnout/turnout_wa.py` acquires 2005 through 2025 Western Australian
    Legislative Assembly evidence from WAEC final results and statistics
    reports. For 2025, final verbose XML polling-place names split the report's
    combined ordinary/early/mobile figure into exact reconciled categories.
-6. `analysis/turnout_sa.py` acquires 2006 through 2022 South Australian House
+6. `analysis/scripts/turnout/turnout_sa.py` acquires 2006 through 2022 South Australian House
    of Assembly evidence from ECSA's final statistics reports and CSVs. It
    retains ordinary votes separately and preserves all other modes as the
    published `declaration_combined` aggregate, including category informality.
-7. `analysis/turnout_sa_operational.py` ingests ECSA's final 2026 district and
+7. `analysis/scripts/turnout/turnout_sa_operational.py` ingests ECSA's final 2026 district and
    state early-voting mark-offs and postal applications as operational
    observations; they are not treated as final accepted ballot totals.
-8. Only after coverage is measured should the turnout model decide which
-   common categories and election years have enough evidence for estimation.
+8. `analysis/scripts/turnout/turnout_sa_final.py` imports reviewed final SA 2026
+   first preferences from ECSA's public results JSON, preserving detailed
+   categories and existing pre-election observations.
 
 ## Federal Operational Evidence
 
-`analysis/turnout_aec_operational.py` adds official AEC operational series to
+`analysis/scripts/turnout/turnout_aec_operational.py` adds official AEC operational series to
 the existing 2010 through 2025 federal JSON files:
 
 ```bash
@@ -143,7 +151,7 @@ assign it an invented observation date.
 Rows for applications still awaiting division assignment, or subsequently
 withdrawn, duplicated or rejected, are likewise excluded from division series.
 
-`analysis/turnout_sa_operational.py` reads ECSA's published 2026 daily-tally
+`analysis/scripts/turnout/turnout_sa_operational.py` reads ECSA's published 2026 daily-tally
 page:
 
 ```bash
@@ -151,13 +159,14 @@ cd analysis
 ./env/bin/python -B -m scripts.turnout.turnout_sa_operational --election 2026sa
 ```
 
-It reconciles every district's daily cells to its published total and all 47
-district totals to the state totals. The source reports 454,862 early-voting
-mark-offs and 174,121 postal applications. Antony Green separately reported
+It reconciles every district's daily cells to its published total. The 47
+district early-markoff rows sum to 454,860, while the source's displayed state
+total is 454,862; both are preserved with the two-vote residual. Postal district
+rows sum to the published state total of 174,121. Antony Green separately reported
 466,364 early votes while noting an approximately 11,000-vote discrepancy
 with ECSA; the normalized exact records therefore use ECSA's own table.
 
-`analysis/turnout_nsw_operational.py` streams NSWEC's complete depersonalized
+`analysis/scripts/turnout/turnout_nsw_operational.py` streams NSWEC's complete depersonalized
 2015 pre-poll transaction file:
 
 ```bash
@@ -176,7 +185,7 @@ institution votes.
 
 ## Curated Election-Eve Evidence
 
-`analysis/turnout_published_operational.py` preserves the last useful update
+`analysis/scripts/turnout/turnout_published_operational.py` preserves the last useful update
 available before polls closed where original commission operational files were
 not retained:
 
@@ -284,9 +293,9 @@ Regenerate the report from the normalized final-result files with:
 python3 -B -m scripts.turnout.turnout_changes
 ```
 
-This is descriptive evidence for developing the turnout model. Seat comparisons
-are not redistribution-adjusted, and pre-election operational observations are
-reserved for a separate prediction-error analysis.
+These reports describe observed historical changes. Seat comparisons are not
+redistribution-adjusted, and pre-election operational observations are not
+inputs to these historical-change calculations.
 
 [`turnout-expectations/report.md`](turnout-expectations/report.md) builds on
 that description with election-wide drift statistics, federal state residuals,
@@ -321,7 +330,7 @@ This is still offline research, not a change to the live forecasting model.
 
 ## Queensland Operational Evidence
 
-`analysis/turnout_qld_operational.py` adds ECQ's retained 2024 operational
+`analysis/scripts/turnout/turnout_qld_operational.py` adds ECQ's retained 2024 operational
 workbooks to the existing final Queensland dataset:
 
 ```bash
@@ -341,3 +350,85 @@ with the ECQ's warning that issued ballots can include duplicates. Its
 statewide returned and accepted totals slightly exceed the sums of the 93
 district rows, so both the district observations and distinct statewide totals
 are preserved without assigning the residual to invented districts.
+
+## Conservative Evidence Audit
+
+`analysis/scripts/turnout/turnout_evidence_audit.py` describes the coverage and
+comparability of the recorded evidence. It uses the existing normalized-data validation,
+then writes [a coverage/comparison report](turnout-evidence-audit/report.md)
+and a machine-readable `turnout-evidence-audit/audit.json` manifest.
+
+Run from `analysis/` on native Windows:
+
+```powershell
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_evidence_audit
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_evidence_audit --check
+```
+
+The selection admits reported exact point counts and counts reconstructed
+from published rates rounded to 0.1 percentage point or finer. It excludes
+forecasts, bounds and vague or unspecified approximations. Those excluded
+records remain in the original datasets. Each source contributes its latest
+eligible control through polling day for each measure, geography, district
+and reconciliation status. Source alternatives and district/parent totals
+must not be treated as independent calibration samples.
+
+The audit covers 35 datasets, all with final seat evidence,
+and retains 3,038 latest controls: 2,318 exact and 720 reconstructed from close
+rates. A precise control is not automatically usable for calibration. The
+manifest records a supported final target or an explicit category/geography
+gap, with publication availability marked unknown where it is unverified.
+Final-reconciled controls are distinguished from contemporary evidence.
+QLD 2024's detailed final postal workbook is dated after polling and therefore
+does not supply election-eve district controls. SA 2026 has detailed reviewed
+final counts. Federal early counts from 2010 lack a final ordinary/early split;
+SA's older combined declarations remain combined.
+
+For source updates during or after an election, refresh the relevant
+ingestion adapter and regenerate the audit. The manifest records source URLs,
+adapters, quantity dates, category regimes and normalized snapshot hashes.
+`--check` detects changed counts/metadata, added or removed datasets and
+changed audit/loader code; JSON formatting changes alone do not invalidate it.
+It checks local refreshed evidence, rather than polling remote publications.
+The consolidated audit report is public documentation. Its detailed JSON
+manifest and retained raw source downloads are generated local artifacts.
+
+## South Australia 2026 Final Results
+
+The SA 2026 dataset contains reviewed final first-preference counts for all
+47 House of Assembly districts. The source is the public JSON used by the
+[ECSA results website](https://result.ecsa.sa.gov.au/), with election status
+`final`, result revision 912 and a source update of 21 September 2026.
+
+The imported revision totals 1,317,186 enrolled electors, 1,115,864 formal
+votes, 50,332 informal votes and 1,166,196 ballots. These are the current
+source's first-preference counts, rather than totals reconstructed from
+two-candidate-preferred or preference-distribution records. ECSA's
+[review statement](https://ecsa.sa.gov.au/se2026news/se2026-results-review-complete)
+acknowledges residual differences between some count stages.
+
+The import retains named early-voting-centre votes and early absent-ordinary
+votes in `early_in_person`, with early declaration votes separately recorded
+as `declaration_early`. Final early-vote comparisons include both categories.
+Postal, polling-day absent, provisional and mobile votes retain their own
+observed categories. Telephone/interstate/overseas declarations stay combined
+as `other`. No historical SA declaration aggregate is split using these data.
+
+Each polling place and published batch contributes once. Candidate ordinary
+and declaration summaries reconcile to the corresponding detailed counts;
+the absent-ordinary batches are separate additions. The existing 96 dated
+pre-election observations are preserved when final data are refreshed.
+
+Download and validate without changing files, then import:
+
+```powershell
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_sa_final --election 2026sa --dry-run
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_sa_final --election 2026sa
+```
+
+An import retains `elections.json`, `static.json` and `results.json` beneath
+`downloads/turnout/2026sa/version-<version>-<hash>/`. Their hashes and URLs are
+recorded in the normalized source notes. A later source revision receives a
+separate snapshot directory, including corrections without a version-number
+change. To reproduce an import from retained files, add
+`--source-directory <snapshot-directory>` to the command.

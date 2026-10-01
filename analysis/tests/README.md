@@ -1,5 +1,9 @@
 # Analysis Tests
 
+This guide explains how to check the Python analysis tools with automated tests.
+The test runner supports both routine checks and focused selections for a
+particular part of the system.
+
 The Python tests live here rather than beside the production procedures.
 The separate repository-root `tests/` directory contains the C++ core tests.
 

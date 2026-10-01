@@ -1,5 +1,8 @@
 # Victorian seat betting odds
 
+This utility preserves published Victorian seat betting prices and prepares
+the price inputs used in the seat configuration.
+
 `capture_vic_2026.py` records every individual-seat price offered by Sportsbet and TAB, checks Betfair for exchange markets, and updates `analysis/seats/2026vic.txt` with the model-relevant prices.
 
 Run it from the repository root:

@@ -1,8 +1,11 @@
 # 2026 SA turnout inputs
 
-`turnout-inputs.csv` records pre-election operational counts published by ECSA.
-They are retained as source data for a future turnout-balancing model and are
-not currently consumed by the forecast.
+These recorded counts document early voting and postal applications before
+the SA 2026 election. They provide a reproducible record of the published
+operational evidence.
+
+`turnout-inputs.csv` stores the ECSA district counts and their quantity dates.
+It is retained source data and is not currently consumed by the forecast.
 
 - `early_voting_mark_offs` is the number of electors marked off as voting early
   through 20 March 2026. These are ballots issued, not formal votes, and 2026
@@ -22,8 +25,9 @@ state total establish that the full stop is a thousands-separator typo.
 The results feed separates named early-voting-centre counts from
 `Early Voting Absent Ordinary Votes`, used when an elector voted early outside
 their enrolled district, and from the much smaller
-`Early Voting Declaration Votes` category. A future turnout model must compare
-the mark-offs with all applicable early-vote categories, not only named EVCs.
+`Early Voting Declaration Votes` category. The normalized final turnout
+dataset compares the mark-offs with all applicable early-vote categories,
+including votes cast outside the elector's district, rather than named EVCs alone.
 
 ## Known polling-place changes
 

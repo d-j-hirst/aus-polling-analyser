@@ -1,8 +1,11 @@
 # Forecast Specification Schema Version 1
 
-This schema contains the portable configuration required by the core forecast
-pipeline. It does not replace existing analysis datasets or preserve the
-complete contents of a `.pol2` project.
+This schema gives saved forecasts a portable configuration format shared by
+the forecasting tools.
+
+Version 1 stores election, model, projection and simulation settings and
+references the associated seat inputs. Existing analysis datasets and the
+other contents of a `.pol2` project remain separate.
 
 ## Scope
 

@@ -1,6 +1,11 @@
 # Automatic Live Results
 
-Automatic live simulations combine three kinds of input:
+This guide explains how to supply reported election results to live forecasts
+and reproduce forecasts from retained result feeds.
+
+The loaders match previous-election booths and candidates to the current
+election, then pass counted votes to the live projection. Automatic live
+simulations combine three kinds of input:
 
 1. A previous-election result, used to match booths and candidates.
 2. A current-election preload (candidate, seat and booth structure with zero

@@ -57,7 +57,7 @@ Categories currently have four kinds:
 * `diagnostic`: generated analysis that is not currently required by the core
   forecast pipeline.
 
-Scopes identify the useful unit of generation and future freshness reporting.
+Scopes identify the useful unit of generation and freshness reporting.
 Examples include a whole election, an election-party pair, or an individual
 pollster calibration unit.
 
@@ -985,8 +985,7 @@ and either:
 Live-election preparation additionally consumes archived booth-result JSON.
 
 The consumer lists in `pipeline_registry.json` are category-level boundaries,
-not yet exhaustive file-access enforcement. Direct file access will be checked
-more precisely as each generator and consumer is reviewed.
+rather than exhaustive enforcement of individual file access.
 
 ## Point-In-Time Trend Calibration
 
@@ -1110,25 +1109,7 @@ Jurisdiction-specific booth-result fetchers have inconsistent interfaces and
 network dependencies. They belong to the live-analysis branch rather than the
 ordinary regeneration sequence.
 
-## Planned Next Steps
-
-The next infrastructure stages are:
-
-1. Add narrowly scoped staging or validation where direct multi-file writes
-   create a demonstrated risk.
-2. Review generators in dependency order and tighten their schemas,
-   validation, documentation and output boundaries.
-3. Replace detailed calibration output with compact summaries where all
-   consumers permit it.
-
-Future regeneration planning must support two additional explicit flows:
-
-* A changed-file run should regenerate only categories affected by the selected
-  files and their downstream dependencies.
-* A completed-election run should require every expected source category for
-  that election to be either updated or explicitly marked unavailable or not
-  applicable with a reason. An unaddressed expected category should block
-  generation.
+## Routine poll updates
 
 Routine poll updates remain jurisdiction-specific:
 

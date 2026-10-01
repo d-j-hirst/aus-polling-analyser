@@ -31,3 +31,14 @@ Status and all planning profiles are non-Stan. Generation profiles can launch
 Stan even when named `regular`; `run` defaults to calibration. The routine
 test selection excludes real Stan fitting; do not use `--all` in this environment.
 Setup and recreation instructions are in `analysis/README.md`.
+
+## Documentation
+
+Public documentation explains implemented behaviour, reproduction commands,
+source evidence and consolidated findings for observers and contributors.
+Start each public document with its purpose, then explain its function in
+plain language before giving commands or technical details.
+
+Keep internal plans, priorities, delivery sequences and proposed work under
+the gitignored `docs/planning/` directory. Public documents and generated
+public reports must not link to or reproduce that planning material.

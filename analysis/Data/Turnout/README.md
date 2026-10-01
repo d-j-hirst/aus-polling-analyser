@@ -1,24 +1,29 @@
 # Normalized Turnout Evidence
 
-The JSON files in this directory contain validated official turnout evidence
-for modelling and coverage analysis. They are source-derived data, not model
-outputs.
+These datasets make published election turnout evidence available for
+historical comparisons and analysis of vote counts.
+
+The JSON files store enrolment, final votes by district and voting category,
+and dated early-voting or postal counts. Each file retains its source details
+and is checked against the published totals during import.
 
 Regenerate the normalized files from the commissions' official material with:
 
 ```bash
 cd analysis
-./env/bin/python -B turnout_aec.py --election all
-./env/bin/python -B turnout_aec_operational.py --election all
+./env/bin/python -B -m scripts.turnout.turnout_aec --election all
+./env/bin/python -B -m scripts.turnout.turnout_aec_operational --election all
 
-./env/bin/python -B turnout_nsw_operational.py --election 2015nsw
-./env/bin/python -B turnout_nsw.py --election all
-./env/bin/python -B turnout_vic.py --election all
-./env/bin/python -B turnout_qld.py --election all
-./env/bin/python -B turnout_qld_operational.py --election all
-./env/bin/python -B turnout_wa.py --election all
-./env/bin/python -B turnout_sa.py --election all
-./env/bin/python -B turnout_published_operational.py --election all
+./env/bin/python -B -m scripts.turnout.turnout_nsw_operational --election 2015nsw
+./env/bin/python -B -m scripts.turnout.turnout_nsw --election all
+./env/bin/python -B -m scripts.turnout.turnout_vic --election all
+./env/bin/python -B -m scripts.turnout.turnout_qld --election all
+./env/bin/python -B -m scripts.turnout.turnout_qld_operational --election all
+./env/bin/python -B -m scripts.turnout.turnout_wa --election all
+./env/bin/python -B -m scripts.turnout.turnout_sa --election all
+./env/bin/python -B -m scripts.turnout.turnout_sa_operational --election 2026sa
+./env/bin/python -B -m scripts.turnout.turnout_sa_final --election 2026sa
+./env/bin/python -B -m scripts.turnout.turnout_published_operational --election all
 ```
 
 Each adapter validates its official inputs before replacing an election file.
@@ -84,5 +89,14 @@ ordinary/declaration partition with formal and informal votes in each category.
 The declaration aggregate is not split into early, postal, absent or provisional
 votes because ECSA's district summary does not support that distinction.
 
+SA 2026 uses ECSA's reviewed final results JSON and records detailed polling-
+place, declaration and absent-ordinary counts instead. Named EVCs and early
+absent-ordinary votes contribute to `early_in_person`; early declarations
+remain `declaration_early`. The complete partition includes postal, ordinary,
+absent, provisional, mobile and the combined telephone/interstate/overseas
+category. Its source notes record the result version, update time, endpoint
+URLs and raw-source hashes. Refreshing final evidence preserves the dated
+pre-election observations.
+
 See [`docs/turnout-data-foundation.md`](../../../docs/turnout-data-foundation.md)
-for the shared schema, category policy and planned state-election adapters.
+for the shared schema, category policy, available sources and reproduction commands.

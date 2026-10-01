@@ -289,6 +289,11 @@ def render_report(elections, rows, predictions, scores, descriptive):
     table = changes_report.table
     lines = [
         '# Simple turnout and formality expectations', '',
+        'This report measures how accurately simple historical turnout and '
+        'formality assumptions estimate final formal vote totals.', '',
+        'It compares predictions with held-out election results, using current '
+        'enrolment and rates from previous elections. It also describes variation '
+        'between elections, states and districts.', '',
         'Reproduce with `cd analysis && python3 -B -m scripts.turnout.turnout_expectations`. This report '
         'uses {} final-result elections and their consecutive transitions from '
         '`analysis/Data/Turnout`.'.format(len(elections)), '',

@@ -378,4 +378,9 @@ analysis/betting_odds/tab-current.json
 /docs/turnout-election-changes
 /docs/turnout-expectations
 /docs/turnout-priors
+/docs/turnout-evidence-audit/*
+!/docs/turnout-evidence-audit/report.md
 /docs/turnout-model-plan.md
+/docs/planning/
+/docs/*-plan.md
+/downloads/turnout/

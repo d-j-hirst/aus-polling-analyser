@@ -1,12 +1,13 @@
 # Polling Analyser
 
-Instructions for supplying and replaying automatic live-election result feeds
-are in [live_scripts/README.md](live_scripts/README.md).
+Polling Analyser produces polling trends and election simulations for
+AE Forecasts. This guide explains how to prepare its inputs and run the
+forecasting tools.
 
-This README is under construction and may be incomplete.
-
-This project contains the analysis code used to produce polling trends and
-election simulations. The overall approach is described on the
+Python tools process historical results and polling data. The C++ application
+uses those inputs to estimate vote shares and simulate election outcomes;
+live forecasts also use reported counts as voting results arrive.
+The overall approach is described on the
 [AE Forecasts methodology page](https://www.aeforecasts.com/methodology).
 
 For a given election forecast, the implementation has four stages:
@@ -15,7 +16,7 @@ For a given election forecast, the implementation has four stages:
   while excluding data from the election being forecast. Python scripts in
   `analysis/` perform this work.
 * Calculate the unadjusted poll trend for the forecast election with
-  `analysis/fp_model.py`.
+  `analysis/scripts/pipeline/fp_model.py`.
 * Combine the trend with historical bias and error estimates to create
   distributions of overall vote shares. The C++ application performs this
   stage.
@@ -25,6 +26,8 @@ For a given election forecast, the implementation has four stages:
 The application uses paths relative to the repository root, so run it with the
 repository root as its working directory. See [analysis/README.md](analysis/README.md)
 for the Python environment and data-generation workflow.
+Instructions for supplying and replaying automatic live-election result feeds
+are in [live_scripts/README.md](live_scripts/README.md).
 
 ## Generated Data Archive
 

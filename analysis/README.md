@@ -1,7 +1,12 @@
 # Python Analysis
 
-The generated-data dependency graph, regeneration order, calibration caveats
-and planned provenance system are documented in [PIPELINE.md](PIPELINE.md).
+The Python analysis tools prepare historical election data, polling trends
+and statistical inputs used by the forecasts. This guide explains environment
+setup and the commands for generating and checking those inputs.
+
+The pipeline connects source data to generated forecast files and records
+which inputs each output used. Its dependencies, regeneration order,
+calibration caveats and provenance system are documented in [PIPELINE.md](PIPELINE.md).
 The corresponding machine-readable registry is
 [`pipeline_registry.json`](pipeline_registry.json).
 

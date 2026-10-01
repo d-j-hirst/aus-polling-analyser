@@ -360,10 +360,15 @@ def render_report(elections, rows, uncertainty_rows, covariance, score_rows,
     local_formality = stats.get(('seat_local', 'stable_ballot', 'formality_pct'),
                                stats['seat_local', 'all', 'formality_pct'])
     lines = ['# Pooled turnout expectations and prior variability', '',
-             'Reproduce with `cd analysis && python3 -B -m scripts.turnout.turnout_priors`. This follow-up '
-             'supersedes the jurisdiction-specific model comparisons in the previous '
-             'expectations report: all drift estimates are pooled across jurisdictions. '
-             'No live forecasting code or assumptions are changed.', '',
+             'This report assesses whether historical changes in turnout and '
+             'formality improve estimates of final formal votes, and describes '
+             'the variation those estimates need to account for.', '',
+             'It compares assumptions learned across jurisdictions with results '
+             'from held-out elections, then separates variation shared by '
+             'elections and federal states from local district variation.', '',
+             'Reproduce with `cd analysis && python3 -B -m scripts.turnout.turnout_priors`. '
+             'All drift estimates are pooled across jurisdictions. '
+             'These research comparisons do not change live forecasting assumptions.', '',
              '## Main findings', '',
              '* Across {} election transitions, turnout changed by **{:.2f} pp** on '
              'average, with a **{:.2f} pp between-election sample SD**. The previous-rate '
@@ -424,10 +429,10 @@ def render_report(elections, rows, uncertainty_rows, covariance, score_rows,
              '* No historical transitions means zero drift/slope. Seats match by '
              'name only, without redistribution correction. Roll size is treated '
              'as known; rate predictions are clipped to [0,100].',
-             '* Election/state/seat predictions are evaluated separately, not yet '
-             'reconciled to consistent vote totals. A future live hierarchy must '
-             'respect population-weighted totals; centring equal-seat corrections '
-             'in this research test does not ensure that constraint.',
+             '* Election/state/seat predictions are evaluated separately and are '
+             'not reconciled to consistent vote totals. Centring equal-seat '
+             'corrections in this research test does not ensure consistency '
+             'with population-weighted totals.',
              '* Election transitions share endpoints and national influences. '
              'The transitions are not fully independent experimental trials; '
              'validation differences are exploratory, not precise significance tests.', '',
@@ -511,8 +516,8 @@ def render_report(elections, rows, uncertainty_rows, covariance, score_rows,
               'preferable to adding this slope. The formality-gap correction '
               'has a small improvement in these tests, but ballot length, '
               'redistributions and regression to the mean remain competing '
-              'explanations. It is a candidate for further testing, not a '
-              'production change.', '',
+              'explanations. These tests do not establish it as a production '
+              'correction.', '',
               '### Does local variability depend on the previous seat level?', '',
               'Fixed bins use the previous seat gap from its state/election, '
               'not its current result. Each bin weights contributing elections '
@@ -558,20 +563,18 @@ def render_report(elections, rows, uncertainty_rows, covariance, score_rows,
               '{:.2f} and {:.2f} pp. This is a sensitivity check on the pooled mean, '
               'not a separate model for each state.'.format(min(leave_group_means), max(leave_group_means)), '']
     lines += [
-              '## Interpretation and next step', '',
-              'Choose the point expectation from whole-election out-of-sample '
-              'results, not the historical mean alone. Keep uncertainty even if '
-              'the selected point correction is zero. The SD/RMS tables provide '
-              'starting scales; future priors need common election and federal-state '
-              'draws shared across their seats, plus local variation.', '',
-              'Local gap slopes and outlier histories remain exploratory. Do not '
-              'replace them with per-seat drift fits on three or four transitions. '
+              '## Interpretation', '',
+              'Whole-election out-of-sample results measure prediction quality; '
+              'the historical mean alone does not establish an improvement. '
+              'A zero point correction still has uncertainty. The variability '
+              'tables describe common election and federal-state changes as well '
+              'as local variation; they are not a calibrated joint forecast.', '',
+              'Local gap slopes and outlier histories remain exploratory. '
+              'Individual seats have only a few observed transitions. '
               'Unmodelled redistributions, ballot length and roll composition may '
               'explain part of the observed local variation.', '',
-              'The next distinct task is calibrating final-election-eve early/postal '
-              'observations against final category counts, then allocating the '
-              'expected total formal votes across categories without double-counting '
-              'a shift from ordinary to early voting.', '',
+              'Operational early/postal counts and changes in vote-category '
+              'allocation are outside these rate-prediction comparisons.', '',
               '## Detailed outputs', '',
               '* `uncertainty.csv`: hierarchical shock scales and weighted quantiles.',
               '* `covariance.csv`: turnout/formality co-movement at each level.',
