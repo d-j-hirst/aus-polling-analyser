@@ -1,4 +1,5 @@
 import pickle
+import io
 from pathlib import Path
 import runpy
 import sys
@@ -8,9 +9,28 @@ import unittest
 from unittest import mock
 
 import election_data
+from lib.shared.election_code import ElectionCode
 
 
 class ElectionDataTests(unittest.TestCase):
+    def test_legacy_election_code_cache_remains_readable(self):
+        # Recreate the old protocol-zero module identity while retaining a real
+        # object's state. Legacy caches must preserve dictionary-key equality
+        # and hashing without a compatibility module at the analysis root.
+        original = ElectionCode(2028, 'fed')
+        current = pickle.dumps(original, protocol=0)
+        legacy = current.replace(
+            b'clib.shared.election_code\nElectionCode\n',
+            b'celection_code\nElectionCode\n',
+        )
+        self.assertNotEqual(current, legacy)
+        restored = election_data._ElectionCacheUnpickler(
+            io.BytesIO(legacy)
+        ).load()
+        self.assertIsInstance(restored, ElectionCode)
+        self.assertEqual(restored, original)
+        self.assertEqual(hash(restored), hash(original))
+
     def test_download_checks_http_status_and_sets_timeout(self):
         response = mock.Mock(content=b'election page')
         requests = SimpleNamespace(

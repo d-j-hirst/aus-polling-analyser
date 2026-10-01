@@ -9,7 +9,7 @@ from unittest import mock
 
 from tests import ANALYSIS_DIRECTORY
 
-from election_code import ElectionCode
+from lib.shared.election_code import ElectionCode
 
 
 def _load_trend_adjust_without_optional_dependencies():
@@ -32,7 +32,7 @@ def _load_trend_adjust_without_optional_dependencies():
     fake_sklearn_linear.ElasticNetCV = object
     fake_sklearn_metrics = types.ModuleType("sklearn.metrics")
     fake_sklearn_metrics.mean_squared_error = lambda *args, **kwargs: None
-    fake_kurtosis = types.ModuleType("sample_kurtosis")
+    fake_kurtosis = types.ModuleType("lib.shared.sample_kurtosis")
     fake_kurtosis.one_tail_kurtosis = lambda *args, **kwargs: None
     replacements = {
         "numpy": fake_numpy,
@@ -41,7 +41,7 @@ def _load_trend_adjust_without_optional_dependencies():
         "sklearn": fake_sklearn,
         "sklearn.linear_model": fake_sklearn_linear,
         "sklearn.metrics": fake_sklearn_metrics,
-        "sample_kurtosis": fake_kurtosis,
+        "lib.shared.sample_kurtosis": fake_kurtosis,
     }
 
     module_path = ANALYSIS_DIRECTORY / "trend_adjust.py"
@@ -51,10 +51,10 @@ def _load_trend_adjust_without_optional_dependencies():
     module = importlib.util.module_from_spec(spec)
     with mock.patch.dict(sys.modules, replacements):
         spec.loader.exec_module(module)
-        module.data_module = sys.modules["trend_adjust_data"]
-        module.fundamentals_module = sys.modules["trend_adjust_fundamentals"]
-        module.io_module = sys.modules["trend_adjust_io"]
-        module.mixing_module = sys.modules["trend_adjust_mixing"]
+        module.data_module = sys.modules["lib.trend_adjustments.trend_adjust_data"]
+        module.fundamentals_module = sys.modules["lib.trend_adjustments.trend_adjust_fundamentals"]
+        module.io_module = sys.modules["lib.trend_adjustments.trend_adjust_io"]
+        module.mixing_module = sys.modules["lib.trend_adjustments.trend_adjust_mixing"]
     return module
 
 

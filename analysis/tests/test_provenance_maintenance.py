@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest import mock
 
 import generated_provenance
-import provenance_maintenance
+from lib.orchestration import provenance_maintenance
 import source_provenance
 
 

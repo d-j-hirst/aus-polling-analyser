@@ -1578,7 +1578,7 @@ class AnalysisProvenanceTests(unittest.TestCase):
             "dependencies": [],
         }
         with mock.patch(
-            "fp_model_data.load_election_cycles",
+            "lib.poll_models.fp_model_data.load_election_cycles",
             return_value=cycles,
         ):
             analysis_provenance._attach_federal_prior_dependencies(

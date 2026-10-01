@@ -16,12 +16,12 @@ Main functions:
 from pathlib import Path
 import sys
 
-from election_analysis_common import (
+from lib.election_analysis.election_analysis_common import (
     extend_region_errors_with_selected_factor,
     has_material_independent_vote,
     total_others_vote_share,
 )
-from election_analysis_parties import (
+from lib.election_analysis.election_analysis_parties import (
     analyse_centrist_minors,
     analyse_emerging_independents,
     analyse_emerging_parties,
@@ -33,9 +33,9 @@ from election_analysis_parties import (
     load_seat_regions,
     load_seat_types,
 )
-from election_analysis_regions import analyse_region_swings
-import federal_regional_provenance
-from election_analysis_seats import (
+from lib.election_analysis.election_analysis_regions import analyse_region_swings
+from lib.provenance import federal_regional_provenance
+from lib.election_analysis.election_analysis_seats import (
     analyse_green_independent_correlation,
     analyse_nationals,
     analyse_seat_swings,
@@ -75,7 +75,7 @@ def record_generated_provenance():
             )
         )
     for category in (
-        'election_catalogue',
+        "election_catalogue",
         'election_result_rules',
         'seat_analysis_inputs',
     ):

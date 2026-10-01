@@ -20,7 +20,7 @@ from pathlib import Path
 import pickle
 import re
 
-from election_code import ElectionCode
+from lib.shared.election_code import ElectionCode
 
 
 ANALYSIS_DIRECTORY = Path(__file__).resolve().parent
@@ -50,6 +50,17 @@ default_headers = {'User-Agent': 'AEF Occasional Data Updating (https://www.aefo
 
 
 # Downloading and cache publication infrastructure
+
+class _ElectionCacheUnpickler(pickle.Unpickler):
+    """Keep caches written before the internal-module move readable."""
+
+    def find_class(self, module, name):
+        # ElectionCode moved into lib/shared. Other cache classes remain in
+        # election_data, so remap only this known historical class identity.
+        if module == "election_code" and name == "ElectionCode":
+            return ElectionCode
+        return super().find_class(module, name)
+
 
 def _download_page(url, headers):
     """Return the historical byte-string representation used by the parser."""
@@ -348,7 +359,7 @@ def generic_download(state, year, allow_download=True):
     filename = ELECTION_CACHE_DIRECTORY / f'{year}{state}_results.pkl'
     try:
         with open(filename, 'rb') as pkl:
-            all_results = pickle.load(pkl)
+            all_results = _ElectionCacheUnpickler(pkl).load()
         return all_results.results
     except FileNotFoundError:
         if not allow_download:

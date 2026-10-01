@@ -2,7 +2,7 @@ import unittest
 
 
 try:
-    import sample_kurtosis
+    from lib.shared import sample_kurtosis
 except ModuleNotFoundError as error:
     sample_kurtosis = None
     NUMERICAL_DEPENDENCIES_AVAILABLE = False

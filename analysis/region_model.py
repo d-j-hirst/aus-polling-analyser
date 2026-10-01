@@ -16,7 +16,7 @@ import secrets
 import sys
 from pathlib import Path
 
-from region_model_common import (
+from lib.regional_models.region_model_common import (
   BASELINE_WEIGHT_TOLERANCE,
   DAYS_PER_MODEL_STEP,
   MISSING_OBSERVATION,
@@ -34,7 +34,7 @@ from region_model_common import (
   validate_regional_input,
   vic_regions,
 )
-from region_model_mappings import (
+from lib.regional_models.region_model_mappings import (
   run_model_fed2025,
   run_model_nsw2027,
   run_model_qld2024,
@@ -42,7 +42,7 @@ from region_model_mappings import (
   run_model_vic2026,
   runner_for,
 )
-from region_model_stan import (
+from lib.regional_models.region_model_stan import (
   latest_parameter_means,
   sample_region_model,
   write_latest_parameter_means,

@@ -19,7 +19,7 @@ from datetime import date
 from pathlib import Path
 import statistics
 
-from turnout_data import load_dataset
+from lib.shared.turnout_data import load_dataset
 
 
 ROOT = Path(__file__).resolve().parent.parent

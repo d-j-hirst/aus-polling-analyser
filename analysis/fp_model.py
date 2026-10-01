@@ -13,7 +13,7 @@ Implementation is split across ``fp_model_constants``, ``fp_model_data``,
 for restart and trend provenance. This module is the command-line entry point.
 """
 
-from fp_model_runner import run_models
+from lib.poll_models.fp_model_runner import run_models
 
 __all__ = ["run_models"]
 

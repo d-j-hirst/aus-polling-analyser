@@ -21,7 +21,7 @@ from urllib.request import Request, urlopen
 import xml.etree.ElementTree as ET
 from zipfile import BadZipFile, ZipFile
 
-import turnout_data
+from lib.shared import turnout_data
 
 
 ANALYSIS_DIRECTORY = Path(__file__).resolve().parent

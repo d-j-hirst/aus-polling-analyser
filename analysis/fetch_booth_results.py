@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-import booth_result_provenance
+from lib.provenance import booth_result_provenance
 
 
 ANALYSIS_DIRECTORY = Path(__file__).resolve().parent

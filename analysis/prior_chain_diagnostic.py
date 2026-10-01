@@ -451,7 +451,7 @@ def boundary_convergence(
 def _load_stan_model():
     """Load the cached model, importing PyStan infrastructure only on demand."""
 
-    from stan_cache import stan_cache
+    from lib.shared.stan_cache import stan_cache
 
     model_code = MODEL_PATH.read_text(encoding="utf-8")
     return stan_cache(model_code=model_code)

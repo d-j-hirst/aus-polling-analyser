@@ -20,22 +20,22 @@ import tempfile
 
 import generated_provenance
 import trend_adjust_provenance
-from election_code import ElectionCode, no_target_election_marker
-from trend_adjust_cutoffs import CutoffTrendError
-from trend_adjust_data import (
+from lib.shared.election_code import ElectionCode, no_target_election_marker
+from lib.trend_adjustments.trend_adjust_cutoffs import CutoffTrendError
+from lib.trend_adjustments.trend_adjust_data import (
     Inputs,
     PartyGroupConfig,
     PollTrend,
     TrendAdjustmentDataError,
 )
-from trend_adjust_fundamentals import run_fundamentals_regression
-from trend_adjust_mixing import generate_adjustments
-from trend_adjust_io import (
+from lib.trend_adjustments.trend_adjust_fundamentals import run_fundamentals_regression
+from lib.trend_adjustments.trend_adjust_mixing import generate_adjustments
+from lib.trend_adjustments.trend_adjust_io import (
     promote_staged_outputs,
     validate_generated_adjustment,
     validate_generated_fundamentals,
 )
-from trend_adjust_check import check_poll_predictiveness
+from lib.trend_adjustments.trend_adjust_check import check_poll_predictiveness
 
 
 # Command-line configuration and input validation

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from trend_adjust_cutoffs import (
+from lib.trend_adjustments.trend_adjust_cutoffs import (
     CutoffTrendData,
     CutoffTrendError,
     KEY_COLUMNS,

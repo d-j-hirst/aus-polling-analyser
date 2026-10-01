@@ -31,10 +31,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import analysis_provenance
-import generated_data_archive
+from lib.orchestration import generated_data_archive
 import generated_provenance
 import pipeline_registry
-import provenance_maintenance
+from lib.orchestration import provenance_maintenance
 import source_provenance
 
 try:

@@ -6,7 +6,7 @@ from unittest import mock
 
 from tests import ANALYSIS_DIRECTORY
 
-import federal_regional_provenance
+from lib.provenance import federal_regional_provenance
 
 
 def load_regions_module():
@@ -16,19 +16,19 @@ def load_regions_module():
         "scipy.optimize": types.ModuleType("scipy.optimize"),
         "sklearn": types.ModuleType("sklearn"),
         "sklearn.linear_model": types.ModuleType("sklearn.linear_model"),
-        "election_analysis_common":
-            types.ModuleType("election_analysis_common"),
-        "poll_transform": types.ModuleType("poll_transform"),
-        "sample_kurtosis": types.ModuleType("sample_kurtosis"),
+        "lib.election_analysis.election_analysis_common":
+            types.ModuleType("lib.election_analysis.election_analysis_common"),
+        "lib.shared.poll_transform": types.ModuleType("lib.shared.poll_transform"),
+        "lib.shared.sample_kurtosis": types.ModuleType("lib.shared.sample_kurtosis"),
     }
     modules["scipy.optimize"].curve_fit = object
     modules["sklearn.linear_model"].LinearRegression = object
-    modules["election_analysis_common"].extend_region_errors_with_selected_factor = object
-    modules["election_analysis_common"].one_tail_kurtosis = object
-    modules["poll_transform"].clamp = object
-    modules["sample_kurtosis"].calc_rmse = object
-    modules["sample_kurtosis"].two_tail_kurtosis = object
-    path = ANALYSIS_DIRECTORY / "election_analysis_regions.py"
+    modules["lib.election_analysis.election_analysis_common"].extend_region_errors_with_selected_factor = object
+    modules["lib.election_analysis.election_analysis_common"].one_tail_kurtosis = object
+    modules["lib.shared.poll_transform"].clamp = object
+    modules["lib.shared.sample_kurtosis"].calc_rmse = object
+    modules["lib.shared.sample_kurtosis"].two_tail_kurtosis = object
+    path = ANALYSIS_DIRECTORY / "lib/election_analysis/election_analysis_regions.py"
     spec = importlib.util.spec_from_file_location(
         "election_analysis_regions_under_test", path
     )

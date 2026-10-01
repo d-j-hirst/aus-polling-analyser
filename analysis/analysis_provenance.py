@@ -25,14 +25,14 @@ from pathlib import Path
 
 import generated_provenance
 import approvals_provenance
-import booth_result_provenance
-import required_work
+from lib.provenance import booth_result_provenance
+from lib.orchestration import required_work
 import calibration_provenance
 import calibration_summary_provenance
-import federal_regional_provenance
+from lib.provenance import federal_regional_provenance
 import pipeline_registry
 import pollster_analysis_provenance
-import provenance_maintenance
+from lib.orchestration import provenance_maintenance
 import region_model_provenance
 import source_provenance
 import trend_adjust_provenance
@@ -1569,7 +1569,7 @@ def _attach_federal_prior_dependencies(work_units):
     if not prior_ids_by_election:
         return
 
-    import fp_model_data
+    from lib.poll_models import fp_model_data
 
     try:
         election_cycles = fp_model_data.load_election_cycles(

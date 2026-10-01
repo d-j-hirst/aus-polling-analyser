@@ -18,10 +18,10 @@ from pathlib import Path
 import sys
 import tempfile
 
-from election_code import ElectionCode
+from lib.shared.election_code import ElectionCode
 import generated_provenance
-from pollster_analysis_bias import analyse_bias
-from pollster_analysis_common import (
+from lib.pollster_analysis.pollster_analysis_bias import analyse_bias
+from lib.pollster_analysis.pollster_analysis_common import (
     COALITION_PARTY,
     LIBERAL_PARTY,
     Config,
@@ -35,14 +35,14 @@ from pollster_analysis_common import (
     output_party,
     output_paths,
 )
-from pollster_analysis_evidence import (
+from lib.pollster_analysis.pollster_analysis_evidence import (
     BiasEvidence,
     CalibrationEvidence,
     load_calibration_evidence,
 )
-from pollster_analysis_house_effects import analyse_house_effects
+from lib.pollster_analysis.pollster_analysis_house_effects import analyse_house_effects
 import pollster_analysis_provenance
-from pollster_analysis_variability import analyse_variability
+from lib.pollster_analysis.pollster_analysis_variability import analyse_variability
 
 
 # Completion status and output staging helpers

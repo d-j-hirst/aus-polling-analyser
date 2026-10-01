@@ -1,7 +1,7 @@
 import unittest
 
 import turnout_aec
-import turnout_data
+from lib.shared import turnout_data
 
 
 def csv_bytes(metadata_name, header, rows):

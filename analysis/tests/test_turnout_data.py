@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-import turnout_data
+from lib.shared import turnout_data
 
 
 class TurnoutDataTests(unittest.TestCase):
@@ -312,7 +312,7 @@ class TurnoutDataTests(unittest.TestCase):
         dataset.sources[0] = turnout_data.SourceDefinition(
             **{
                 **dataset.sources[0].__dict__,
-                'election_code': '2022fed',
+                "election_code": '2022fed',
             }
         )
         dataset.elections.append(
@@ -458,7 +458,7 @@ class TurnoutDataTests(unittest.TestCase):
         payload = turnout_data.dataset_to_dict(self.make_dataset())
         payload['schema_version'] = 1
         payload['operational_observations'] = [{
-            'election_code': '2025fed',
+            "election_code": '2025fed',
             'source_id': 'aec-2025-daily',
             'measure': 'postal_applications',
             'observed_at': '2025-05-01',

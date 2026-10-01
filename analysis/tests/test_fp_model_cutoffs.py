@@ -7,9 +7,9 @@ from unittest import mock
 
 import pandas as pd
 
-import fp_model_data
+from lib.poll_models import fp_model_data
 import fp_model_provenance
-import trend_adjust_cutoffs
+from lib.trend_adjustments import trend_adjust_cutoffs
 
 
 class CutoffScheduleTests(unittest.TestCase):

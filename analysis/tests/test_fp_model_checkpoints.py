@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import fp_model_checkpoints
+from lib.poll_models import fp_model_checkpoints
 
 
 class CalibrationCheckpointStoreTests(unittest.TestCase):

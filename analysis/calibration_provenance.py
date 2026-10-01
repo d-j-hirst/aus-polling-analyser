@@ -22,8 +22,8 @@ from collections import defaultdict
 from pathlib import Path
 
 import generated_provenance
-from election_code import ElectionCode
-from fp_model_constants import derive_stan_seed
+from lib.shared.election_code import ElectionCode
+from lib.poll_models.fp_model_constants import derive_stan_seed
 
 
 ANALYSIS_DIRECTORY = Path(__file__).resolve().parent
@@ -130,7 +130,7 @@ def required_federal_prior_elections(
 ):
     """Return federal elections whose calibration priors state runs need."""
 
-    import fp_model_data
+    from lib.poll_models import fp_model_data
 
     if election_cycles is None:
         try:

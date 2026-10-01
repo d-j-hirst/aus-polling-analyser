@@ -20,7 +20,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-import election_catalogue
+from lib.shared import election_catalogue
 import generated_provenance
 
 

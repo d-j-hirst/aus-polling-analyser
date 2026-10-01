@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 import calibration_summary
-from pollster_analysis_evidence import load_calibration_evidence
+from lib.pollster_analysis.pollster_analysis_evidence import load_calibration_evidence
 
 
 class PollsterAnalysisEvidenceTests(unittest.TestCase):

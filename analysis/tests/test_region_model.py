@@ -10,7 +10,7 @@ from unittest import mock
 
 from tests import ANALYSIS_DIRECTORY
 
-from election_code import ElectionCode
+from lib.shared.election_code import ElectionCode
 
 
 def load_region_model():
@@ -21,7 +21,7 @@ def load_region_model():
         value is None
         or isinstance(value, float) and math.isnan(value)
     )
-    stan_cache = types.ModuleType("stan_cache")
+    stan_cache = types.ModuleType("lib.shared.stan_cache")
     stan_cache.stan_cache = object
 
     module_path = ANALYSIS_DIRECTORY / "region_model.py"
@@ -33,7 +33,7 @@ def load_region_model():
         sys.modules,
         {
             "pandas": pandas,
-            "stan_cache": stan_cache,
+            "lib.shared.stan_cache": stan_cache,
         },
     ):
         spec.loader.exec_module(module)

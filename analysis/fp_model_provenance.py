@@ -38,7 +38,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import approvals_provenance
-import fp_model_checkpoints
+from lib.poll_models import fp_model_checkpoints
 import generated_provenance
 
 

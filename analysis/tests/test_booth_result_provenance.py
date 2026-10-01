@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import booth_result_provenance
+from lib.provenance import booth_result_provenance
 import fetch_booth_results
 
 

@@ -2,7 +2,7 @@ import math
 import os
 import unittest
 
-import fp_model_stan
+from lib.poll_models import fp_model_stan
 
 
 @unittest.skipUnless(

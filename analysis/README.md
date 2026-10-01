@@ -5,6 +5,22 @@ and planned provenance system are documented in [PIPELINE.md](PIPELINE.md).
 The corresponding machine-readable registry is
 [`pipeline_registry.json`](pipeline_registry.json).
 
+Internal modules live under `lib/`, grouped into `poll_models`,
+`election_analysis`, `pollster_analysis`, `regional_models`,
+`trend_adjustments`, `shared`, `provenance` and `orchestration` packages.
+Import them by their package-qualified names; they are not standalone commands.
+Package initializers do not import implementation modules, so pipeline status
+and planning retain their non-Stan dependency boundary.
+
+`pipeline.py` and `analysis_provenance.py` remain the daily command interfaces.
+Other existing command entry points stay at the analysis root for now. Durable
+inputs, models and generated outputs remain in their established directories;
+`lib/paths.py` anchors internal file-relative lookups to that analysis root.
+
+The internal-module relocation is registered as **negligible** in source
+provenance. Source category IDs and semantic revisions are preserved, and
+existing generated records and outputs require no metadata upgrade or refitting.
+
 Python tests are kept in [`tests/`](tests/README.md). From the repository root,
 run the shared Linux/Windows CI selection with:
 

@@ -2,7 +2,7 @@
 
 import unittest
 
-from turnout_data import SeatTotal, VoteTypeRecord
+from lib.shared.turnout_data import SeatTotal, VoteTypeRecord
 import turnout_changes as report
 
 

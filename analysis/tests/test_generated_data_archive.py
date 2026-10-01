@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import generated_data_archive
+from lib.orchestration import generated_data_archive
 
 
 class GeneratedDataArchiveTests(unittest.TestCase):

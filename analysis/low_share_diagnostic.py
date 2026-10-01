@@ -324,7 +324,7 @@ def build_stan_data(
 def _load_stan_model():
     """Load the cached comparison model only when sampling is requested."""
 
-    from stan_cache import stan_cache
+    from lib.shared.stan_cache import stan_cache
 
     model_code = MODEL_PATH.read_text(encoding="utf-8")
     return stan_cache(model_code=model_code)

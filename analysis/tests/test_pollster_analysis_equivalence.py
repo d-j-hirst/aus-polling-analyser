@@ -10,9 +10,9 @@ from pathlib import Path
 from unittest import mock
 
 import calibration_summary
-from election_code import ElectionCode
+from lib.shared.election_code import ElectionCode
 import pollster_analysis
-from pollster_analysis_evidence import load_calibration_evidence
+from lib.pollster_analysis.pollster_analysis_evidence import load_calibration_evidence
 
 
 class _WeightedStatistics:

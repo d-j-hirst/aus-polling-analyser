@@ -9,15 +9,15 @@ from unittest import mock
 import pandas as pd
 
 import calibration_provenance
-import fp_model_checkpoints
-import fp_model_constants
-import fp_model_data
-import fp_model_outputs
-import fp_model_prepare
+from lib.poll_models import fp_model_checkpoints
+from lib.poll_models import fp_model_constants
+from lib.poll_models import fp_model_data
+from lib.poll_models import fp_model_outputs
+from lib.poll_models import fp_model_prepare
 import fp_model_provenance
-import fp_model_runner
-import fp_model_stan
-from election_code import ElectionCode
+from lib.poll_models import fp_model_runner
+from lib.poll_models import fp_model_stan
+from lib.shared.election_code import ElectionCode
 
 
 # This suite exercises the implementation modules directly.  fp_model.py is
@@ -973,7 +973,7 @@ class PollsterParameterLoadTests(unittest.TestCase):
                 )
 
             with mock.patch(
-                'fp_model_data.load_pollster_parameter_file',
+                "lib.poll_models.fp_model_data.load_pollster_parameter_file",
                 side_effect=load_from_temp,
             ):
                 fp_model_data.ElectionData.get_pollster_analysis(

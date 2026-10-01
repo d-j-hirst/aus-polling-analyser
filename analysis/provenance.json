@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-09-03T11:43:40Z",
+  "updated_at_utc": "2026-10-01T03:45:52Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -254,9 +254,9 @@
       "semantic_revision": 1,
       "files": {
         "election_data.py": {
-          "sha256": "bb69c77c0add7b32c77a7bba14d84ae4a0bc77726ec92eaf5f29e5b33eb73cff",
-          "size_bytes": 22763,
-          "recorded_mtime_utc": "2026-08-02T08:09:03.044105Z"
+          "sha256": "d1b6e920bc4dcadc75a3ba32d2845b3c1518048b7ba291f60803ab84186e4749",
+          "size_bytes": 23255,
+          "recorded_mtime_utc": "2026-10-01T03:40:32.309662Z"
         }
       },
       "events": [
@@ -351,6 +351,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034551Z-formatting-election-data-script-b74e7f81",
+          "recorded_at_utc": "2026-10-01T03:45:51Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "election_data.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -358,12 +377,12 @@
     "election_code_script": {
       "description": "Stable election identifiers used throughout election-result processing.",
       "file_patterns": [
-        "election_code.py"
+        "lib/shared/election_code.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "election_code.py": {
+        "lib/shared/election_code.py": {
           "sha256": "7ba41da4739b2156964bf0111a723dbedeb315267ed7e2488e0f478d0d7b399b",
           "size_bytes": 1481,
           "recorded_mtime_utc": "2026-08-02T08:07:03.600559Z"
@@ -406,6 +425,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-election-code-script-6cf80c6a",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "election_code.py",
+            "lib/shared/election_code.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -414,38 +453,38 @@
       "description": "Historical seat, regional and Coalition-allocation analysis.",
       "file_patterns": [
         "election_analysis.py",
-        "election_analysis_common.py",
-        "election_analysis_parties.py",
-        "election_analysis_regions.py",
-        "election_analysis_seats.py"
+        "lib/election_analysis/election_analysis_common.py",
+        "lib/election_analysis/election_analysis_parties.py",
+        "lib/election_analysis/election_analysis_regions.py",
+        "lib/election_analysis/election_analysis_seats.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 5,
       "files": {
         "election_analysis.py": {
-          "sha256": "f3f6db03e64edd1a6e9fae0f03f11198ab7db0a5fd002eb2a8c48bec94be4e80",
-          "size_bytes": 7876,
-          "recorded_mtime_utc": "2026-09-03T05:53:03.625933Z"
+          "sha256": "952148f45a66a5b640bbc89f57afe8436ec2933755000a84070fac38a41da270",
+          "size_bytes": 7984,
+          "recorded_mtime_utc": "2026-10-01T03:42:17.564507Z"
         },
-        "election_analysis_common.py": {
-          "sha256": "bee528be90fccb4cd2958ee6411bd5a1d9fdda0ba0f58ef79885c43e130c8f03",
-          "size_bytes": 11445,
-          "recorded_mtime_utc": "2026-08-02T08:10:26.677914Z"
+        "lib/election_analysis/election_analysis_common.py": {
+          "sha256": "73592677cc34c03e24f7235fe8858fb04d967201fe287e1abfdf2629bc1b4a94",
+          "size_bytes": 11467,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.303647Z"
         },
-        "election_analysis_parties.py": {
-          "sha256": "d26d8249e518cd119ea531f13e6601a7428f2417b9661f34b14c8064dcfd1407",
-          "size_bytes": 29668,
-          "recorded_mtime_utc": "2026-08-02T08:10:27.324988Z"
+        "lib/election_analysis/election_analysis_parties.py": {
+          "sha256": "899309a794d47e4bab1c3f334befb5fca14be42bb0805833307974f21d1f7202",
+          "size_bytes": 29723,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.316652Z"
         },
-        "election_analysis_regions.py": {
-          "sha256": "ef567d7a6fbb905ea6f65f2edeb1559ee2f056bccef3d705590257325fd0c5d9",
-          "size_bytes": 14101,
-          "recorded_mtime_utc": "2026-09-03T05:53:45.774965Z"
+        "lib/election_analysis/election_analysis_regions.py": {
+          "sha256": "2aea864ffb89c5bc992d0e1572699f3f413dc3146cb1715f2cfd851b08085f98",
+          "size_bytes": 14156,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.321651Z"
         },
-        "election_analysis_seats.py": {
-          "sha256": "350b0677111b98d114aa299c198bc5a47abb89ceacb527750dc450e585b64694",
-          "size_bytes": 32617,
-          "recorded_mtime_utc": "2026-08-31T10:09:30.728459Z"
+        "lib/election_analysis/election_analysis_seats.py": {
+          "sha256": "504c743bd20dff8256b95bb13eaa0b83c61fe59cbc27167681d8dab5a4fe51e4",
+          "size_bytes": 32672,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.331758Z"
         }
       },
       "events": [
@@ -679,6 +718,33 @@
               "analyse_elections"
             ]
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-election-analysis-script-496c494c",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 6,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "election_analysis.py",
+            "election_analysis_common.py",
+            "election_analysis_parties.py",
+            "election_analysis_regions.py",
+            "election_analysis_seats.py",
+            "lib/election_analysis/election_analysis_common.py",
+            "lib/election_analysis/election_analysis_parties.py",
+            "lib/election_analysis/election_analysis_regions.py",
+            "lib/election_analysis/election_analysis_seats.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 6
@@ -686,12 +752,12 @@
     "poll_transform_script": {
       "description": "Vote-share transforms and bounds shared by Python analysis stages.",
       "file_patterns": [
-        "poll_transform.py"
+        "lib/shared/poll_transform.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "poll_transform.py": {
+        "lib/shared/poll_transform.py": {
           "sha256": "d6854b715164114ca96b07b92291d9935b2902cd008727fb3a88274d85e6d310",
           "size_bytes": 845,
           "recorded_mtime_utc": "2026-08-02T08:07:07.472085Z"
@@ -734,6 +800,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-poll-transform-script-65458c0d",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "lib/shared/poll_transform.py",
+            "poll_transform.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -741,12 +827,12 @@
     "sample_kurtosis_script": {
       "description": "RMSE and kurtosis estimators shared by Python analysis stages.",
       "file_patterns": [
-        "sample_kurtosis.py"
+        "lib/shared/sample_kurtosis.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 2,
       "files": {
-        "sample_kurtosis.py": {
+        "lib/shared/sample_kurtosis.py": {
           "sha256": "309f76d396d148ef54f7c1058c99350a08da3942b4e7918bee319b4c4e646ce2",
           "size_bytes": 5349,
           "recorded_mtime_utc": "2026-08-02T08:07:09.176192Z"
@@ -846,6 +932,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-sample-kurtosis-script-0ae407a0",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "lib/shared/sample_kurtosis.py",
+            "sample_kurtosis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 2
@@ -854,50 +960,50 @@
       "description": "Poll-trend data preparation, Stan execution and output serialization.",
       "file_patterns": [
         "fp_model.py",
-        "fp_model_constants.py",
-        "fp_model_data.py",
-        "fp_model_prepare.py",
-        "fp_model_stan.py",
-        "fp_model_outputs.py",
-        "fp_model_runner.py"
+        "lib/poll_models/fp_model_constants.py",
+        "lib/poll_models/fp_model_data.py",
+        "lib/poll_models/fp_model_prepare.py",
+        "lib/poll_models/fp_model_stan.py",
+        "lib/poll_models/fp_model_outputs.py",
+        "lib/poll_models/fp_model_runner.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 14,
       "files": {
         "fp_model.py": {
-          "sha256": "c13812c8b2655ca38638941050f486bbf0d08391dc49f73247b40f689819a609",
-          "size_bytes": 890,
-          "recorded_mtime_utc": "2026-08-06T22:50:45.405449Z"
+          "sha256": "c4a97ce3001f40d452f38dcfc22f3d34efd70e8ba2ebc323e4f760f7dfe12a19",
+          "size_bytes": 906,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.387851Z"
         },
-        "fp_model_constants.py": {
-          "sha256": "4da5494b32c07453c9352e8fff5072c2c399c1aa3bb96b853e4d413e94c3086a",
-          "size_bytes": 3653,
-          "recorded_mtime_utc": "2026-09-01T00:13:55.161674Z"
+        "lib/poll_models/fp_model_constants.py": {
+          "sha256": "b939e8f4be6c9f5dae2ba5e23ba3700d15c884e92e356c23f36e0c7590337120",
+          "size_bytes": 3778,
+          "recorded_mtime_utc": "2026-10-01T03:39:20.459678Z"
         },
-        "fp_model_data.py": {
-          "sha256": "d2e84f1e596aeb68c7fe5622a306f489a1c505b1e2c22ba08857457f2792afc4",
-          "size_bytes": 64568,
-          "recorded_mtime_utc": "2026-09-01T00:13:56.281648Z"
+        "lib/poll_models/fp_model_data.py": {
+          "sha256": "9d4715700fcbf97a126c5d6c587511648af6e37d938d9fc49a58ad8715a8af5c",
+          "size_bytes": 64653,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.414352Z"
         },
-        "fp_model_outputs.py": {
-          "sha256": "b675f1bfef1bfb41029942ece982f55c8c86e14c2894a91d842e3923c1b34f41",
-          "size_bytes": 36956,
-          "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
+        "lib/poll_models/fp_model_outputs.py": {
+          "sha256": "1c9be4eb667f13a55636fa9a4d834ce7c876cf7ff10e732e431b9447ce2be2c0",
+          "size_bytes": 37020,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.426355Z"
         },
-        "fp_model_prepare.py": {
-          "sha256": "400bb13398fa478a798d31d9b01db8c58e1809839b6280786f809426b7e0fda4",
-          "size_bytes": 29935,
-          "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
+        "lib/poll_models/fp_model_prepare.py": {
+          "sha256": "3ee033b4b384dab15e7749f7a2c805f87d61f2f13d3b2fe7015c51fa2ad7f279",
+          "size_bytes": 29967,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.434868Z"
         },
-        "fp_model_runner.py": {
-          "sha256": "16baf99d119098c216d0f85ced11bd9ace8008a0a462df5ff27f3f5bd6dbf19b",
-          "size_bytes": 34594,
-          "recorded_mtime_utc": "2026-09-01T00:13:56.800215Z"
+        "lib/poll_models/fp_model_runner.py": {
+          "sha256": "419a7507a58e980aacf0e210133a44a557e9b7c342f0712d870a4d96e8fbc922",
+          "size_bytes": 34690,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.459381Z"
         },
-        "fp_model_stan.py": {
-          "sha256": "204a5e9a76d73a3925f4691546f75555ce87ca4be0d7534ead800ee9efc65938",
-          "size_bytes": 5557,
-          "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
+        "lib/poll_models/fp_model_stan.py": {
+          "sha256": "ba2dee2ef1aefbbb9394bd423c49b9bc08ca020a2894e3c9ab52a7f601765c3a",
+          "size_bytes": 5584,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.462381Z"
         }
       },
       "events": [
@@ -1832,6 +1938,37 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-fp-model-script-90ce7ade",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 14,
+          "provenance_revision": 20,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "fp_model.py",
+            "fp_model_constants.py",
+            "fp_model_data.py",
+            "fp_model_outputs.py",
+            "fp_model_prepare.py",
+            "fp_model_runner.py",
+            "fp_model_stan.py",
+            "lib/poll_models/fp_model_constants.py",
+            "lib/poll_models/fp_model_data.py",
+            "lib/poll_models/fp_model_outputs.py",
+            "lib/poll_models/fp_model_prepare.py",
+            "lib/poll_models/fp_model_runner.py",
+            "lib/poll_models/fp_model_stan.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 20
@@ -1839,12 +1976,12 @@
     "stan_cache_script": {
       "description": "Compilation and local caching of Stan model executables.",
       "file_patterns": [
-        "stan_cache.py"
+        "lib/shared/stan_cache.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "stan_cache.py": {
+        "lib/shared/stan_cache.py": {
           "sha256": "afc3112471bd3a6426a876d0c3665747a1626ba29e106f86ef36c16dfc3ce450",
           "size_bytes": 2403,
           "recorded_mtime_utc": "2026-08-02T08:07:13.219375Z"
@@ -1944,6 +2081,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-stan-cache-script-0f36cbff",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "lib/shared/stan_cache.py",
+            "stan_cache.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -1957,9 +2114,9 @@
       "semantic_revision": 5,
       "files": {
         "calibration_provenance.py": {
-          "sha256": "e6eaa2a2b53ceb6bf98f96c1342ee47fda26b8ec27eceb123695dc27e8aa5b89",
-          "size_bytes": 21307,
-          "recorded_mtime_utc": "2026-09-01T00:13:55.690869Z"
+          "sha256": "e7be8e24bcc29793f87716b6af245b85c628ecea80d3d7bc0e0970d8051751c4",
+          "size_bytes": 21355,
+          "recorded_mtime_utc": "2026-10-01T03:42:17.564507Z"
         }
       },
       "events": [
@@ -2296,6 +2453,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-calibration-provenance-script-e741e06c",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 9,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 9
@@ -2304,44 +2480,44 @@
       "description": "Reduction of calibration evidence into compact election-level pollster parameters.",
       "file_patterns": [
         "pollster_analysis.py",
-        "pollster_analysis_common.py",
-        "pollster_analysis_evidence.py",
-        "pollster_analysis_variability.py",
-        "pollster_analysis_house_effects.py",
-        "pollster_analysis_bias.py"
+        "lib/pollster_analysis/pollster_analysis_common.py",
+        "lib/pollster_analysis/pollster_analysis_evidence.py",
+        "lib/pollster_analysis/pollster_analysis_variability.py",
+        "lib/pollster_analysis/pollster_analysis_house_effects.py",
+        "lib/pollster_analysis/pollster_analysis_bias.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 3,
       "files": {
+        "lib/pollster_analysis/pollster_analysis_bias.py": {
+          "sha256": "ffc449c27012383c8dfc7e3fe089168c698c37046b4ed57fddb7df0bc9858757",
+          "size_bytes": 7460,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.544897Z"
+        },
+        "lib/pollster_analysis/pollster_analysis_common.py": {
+          "sha256": "1cee70570fa41642cb2079ec06fb4964ffde97c8306b4f876ff2ba59e425dd2f",
+          "size_bytes": 6913,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.546898Z"
+        },
+        "lib/pollster_analysis/pollster_analysis_evidence.py": {
+          "sha256": "c9c8f10813f277e3d9fb83f74b82c710c6384bf9c58c4ac9071eaf7ae5e74bf3",
+          "size_bytes": 12591,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.550898Z"
+        },
+        "lib/pollster_analysis/pollster_analysis_house_effects.py": {
+          "sha256": "d6c219d512239b85382dc2c1f4b3a3089505e8a1c6558a3d928c87e0e408733e",
+          "size_bytes": 4988,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.552890Z"
+        },
+        "lib/pollster_analysis/pollster_analysis_variability.py": {
+          "sha256": "b9ad94590a237b4240254bd8e85a6523d73689e7ca442e2c8c1de4d4a991df81",
+          "size_bytes": 4391,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.561894Z"
+        },
         "pollster_analysis.py": {
-          "sha256": "977a6584cb754849eeb68b10ef74dfdfb29e959b3263c1a1dbf72c998e4e1358",
-          "size_bytes": 4343,
-          "recorded_mtime_utc": "2026-08-02T08:09:05.905223Z"
-        },
-        "pollster_analysis_bias.py": {
-          "sha256": "8df7d3e875c710bdbdf4bba4aeeb0f693c15bb3a9f731b0420617bb0a3237838",
-          "size_bytes": 7405,
-          "recorded_mtime_utc": "2026-08-02T08:11:37.036114Z"
-        },
-        "pollster_analysis_common.py": {
-          "sha256": "2dec0e43c3eb1bd161d4202d12ce6d66b891ca95d182b2680bb25a1e8141ccbc",
-          "size_bytes": 6902,
-          "recorded_mtime_utc": "2026-08-02T08:11:22.720202Z"
-        },
-        "pollster_analysis_evidence.py": {
-          "sha256": "512ed9f52e3a595cd2f4d06e0b6fb8a1eafe1b5be0a1f88e1e8c6e1fb6acaf16",
-          "size_bytes": 12558,
-          "recorded_mtime_utc": "2026-08-08T07:46:46.109533Z"
-        },
-        "pollster_analysis_house_effects.py": {
-          "sha256": "adb71d006baf389af5f0f8857458b86572c4334168f373aca3b0f518a76df861",
-          "size_bytes": 4966,
-          "recorded_mtime_utc": "2026-08-02T08:11:33.030050Z"
-        },
-        "pollster_analysis_variability.py": {
-          "sha256": "1f3bd9dbb27bdba9ba86128644a9b62abceee73674cf50655414c228733ad86e",
-          "size_bytes": 4369,
-          "recorded_mtime_utc": "2026-08-02T08:11:30.059701Z"
+          "sha256": "361fe633285aad02b88fc44e72e2d7fad5b82bd013c278de1f2fb5496e40ce27",
+          "size_bytes": 4464,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.541904Z"
         }
       },
       "events": [
@@ -2566,6 +2742,35 @@
           "summary": "Reuse strict compact-calibration validation before pollster analysis loads summary evidence.",
           "files": [
             "pollster_analysis_evidence.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261001T034552Z-formatting-pollster-analysis-script-18687710",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 6,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "lib/pollster_analysis/pollster_analysis_bias.py",
+            "lib/pollster_analysis/pollster_analysis_common.py",
+            "lib/pollster_analysis/pollster_analysis_evidence.py",
+            "lib/pollster_analysis/pollster_analysis_house_effects.py",
+            "lib/pollster_analysis/pollster_analysis_variability.py",
+            "pollster_analysis.py",
+            "pollster_analysis_bias.py",
+            "pollster_analysis_common.py",
+            "pollster_analysis_evidence.py",
+            "pollster_analysis_house_effects.py",
+            "pollster_analysis_variability.py"
           ],
           "scope": {
             "all": true,
@@ -2798,9 +3003,9 @@
       "semantic_revision": 5,
       "files": {
         "fp_model_provenance.py": {
-          "sha256": "a503e3ef9ad14e33b7a08ced5e370d7ce1b68e66d01adcb6e9455f5757d1a459",
-          "size_bytes": 53352,
-          "recorded_mtime_utc": "2026-09-01T00:14:30.995932Z"
+          "sha256": "2ea775be4fc8edba1c120f0d94091c6d6ed6053164554d80f290e2e4f275b9cb",
+          "size_bytes": 53373,
+          "recorded_mtime_utc": "2026-10-01T03:42:17.566011Z"
         }
       },
       "events": [
@@ -3270,6 +3475,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-fp-model-provenance-script-86d04ef4",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 6,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 6
@@ -3449,9 +3673,9 @@
       "semantic_revision": 2,
       "files": {
         "approvals_provenance.py": {
-          "sha256": "108cdbf48df0d88e6a72bc9b2ed437e8e588aab656121f1bb025f3c22b7f9a17",
-          "size_bytes": 14080,
-          "recorded_mtime_utc": "2026-08-30T23:58:19.965667Z"
+          "sha256": "f0ff50aad7e7fa568d815c729b2aeb14b1f0cb064ee1b9971ce33c6102b6bb5f",
+          "size_bytes": 14096,
+          "recorded_mtime_utc": "2026-10-01T03:42:17.563507Z"
         }
       },
       "events": [
@@ -3601,6 +3825,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-approvals-provenance-script-82073311",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "approvals_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 2
@@ -3609,32 +3852,32 @@
       "description": "Election-specific regional poll preparation, Stan execution and swing-deviation output.",
       "file_patterns": [
         "region_model.py",
-        "region_model_common.py",
-        "region_model_stan.py",
-        "region_model_mappings.py"
+        "lib/regional_models/region_model_common.py",
+        "lib/regional_models/region_model_stan.py",
+        "lib/regional_models/region_model_mappings.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 2,
       "files": {
+        "lib/regional_models/region_model_common.py": {
+          "sha256": "93b887404682f764817db3a1779197f25b90e95d5d9ab0853b2fe9bc93a170e8",
+          "size_bytes": 13199,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.580930Z"
+        },
+        "lib/regional_models/region_model_mappings.py": {
+          "sha256": "5243594b1010b73a7ce77547ed17258e238e1b4873528e3d20c1c8876b8ef909",
+          "size_bytes": 7429,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.583930Z"
+        },
+        "lib/regional_models/region_model_stan.py": {
+          "sha256": "2cb755b9fd33686e9efd32b2b6b63192de4ee90d423a0997bd302a26999f7e63",
+          "size_bytes": 3017,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.589932Z"
+        },
         "region_model.py": {
-          "sha256": "9e5d3f818b2d5d9c29e53b814a87b9808038e4fdcc984bf24b3742a384a9b5f6",
-          "size_bytes": 3667,
-          "recorded_mtime_utc": "2026-08-02T08:09:07.145825Z"
-        },
-        "region_model_common.py": {
-          "sha256": "76217daa95046f5c9c54016b24663b9426c06b0c65699e386921bd9700bef388",
-          "size_bytes": 13177,
-          "recorded_mtime_utc": "2026-08-02T08:10:29.178792Z"
-        },
-        "region_model_mappings.py": {
-          "sha256": "dee1935b3863946e18107090b3bb6d9a9549dd112a815ac5f365889770ecca5c",
-          "size_bytes": 7389,
-          "recorded_mtime_utc": "2026-08-02T08:10:30.239635Z"
-        },
-        "region_model_stan.py": {
-          "sha256": "9d6144d8e988bdf462e7401d258dd910014ccba0bb1a103fb4fdea16ca2d4912",
-          "size_bytes": 2986,
-          "recorded_mtime_utc": "2026-08-02T08:10:29.763206Z"
+          "sha256": "33e59ef67032648dc27f33f8fc3a90c3a696cc55ebdbf8b57275c7bff4c040f2",
+          "size_bytes": 3727,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.574930Z"
         }
       },
       "events": [
@@ -3800,6 +4043,31 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-region-model-script-571fad95",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "lib/regional_models/region_model_common.py",
+            "lib/regional_models/region_model_mappings.py",
+            "lib/regional_models/region_model_stan.py",
+            "region_model.py",
+            "region_model_common.py",
+            "region_model_mappings.py",
+            "region_model_stan.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 3
@@ -3899,38 +4167,38 @@
       "description": "Fundamentals regression and historical trend-adjustment calibration.",
       "file_patterns": [
         "trend_adjust.py",
-        "trend_adjust_data.py",
-        "trend_adjust_fundamentals.py",
-        "trend_adjust_io.py",
-        "trend_adjust_mixing.py"
+        "lib/trend_adjustments/trend_adjust_data.py",
+        "lib/trend_adjustments/trend_adjust_fundamentals.py",
+        "lib/trend_adjustments/trend_adjust_io.py",
+        "lib/trend_adjustments/trend_adjust_mixing.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 6,
       "files": {
+        "lib/trend_adjustments/trend_adjust_data.py": {
+          "sha256": "afe8c7a5b40da348764c491be067fb566152e3ae62720af314b750aee155a42b",
+          "size_bytes": 14349,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.626970Z"
+        },
+        "lib/trend_adjustments/trend_adjust_fundamentals.py": {
+          "sha256": "2de711a47de1208d80815bb84dad2aef880d1be43a1d92fdebfd3b53f5026408",
+          "size_bytes": 18540,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.631974Z"
+        },
+        "lib/trend_adjustments/trend_adjust_io.py": {
+          "sha256": "ba7da63503d0d19fb54cc64adef9ac0553fac521be116b388c8c739b71cf69c0",
+          "size_bytes": 14695,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.636970Z"
+        },
+        "lib/trend_adjustments/trend_adjust_mixing.py": {
+          "sha256": "a86f44b6947ce1aeb6a53834c74445b7c775f5622822982f50d7aa87da11fe8c",
+          "size_bytes": 26635,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.645977Z"
+        },
         "trend_adjust.py": {
-          "sha256": "8e53ac847ba088abde76ab40529d4c1fcde28ee6e980fe81f9e3847aadf8656c",
-          "size_bytes": 12146,
-          "recorded_mtime_utc": "2026-09-01T10:46:36.967213Z"
-        },
-        "trend_adjust_data.py": {
-          "sha256": "6d69ef13163a5289fcf120a72bda932d749c6b5c612ea3681b67949c0995450a",
-          "size_bytes": 14316,
-          "recorded_mtime_utc": "2026-08-02T08:10:30.826010Z"
-        },
-        "trend_adjust_fundamentals.py": {
-          "sha256": "80a48a775a87f2e79ee8f2b0143ea299e13706d6c3f0df473fbf41b5dd62e6c0",
-          "size_bytes": 18485,
-          "recorded_mtime_utc": "2026-09-03T02:36:30.420151Z"
-        },
-        "trend_adjust_io.py": {
-          "sha256": "74579c15d548593cfe7ff7670c9ece4e4af34de09aae2d296d46e3eac65e3c68",
-          "size_bytes": 14640,
-          "recorded_mtime_utc": "2026-09-01T10:46:37.746469Z"
-        },
-        "trend_adjust_mixing.py": {
-          "sha256": "6bae04cc4e7e98f221a3e11c386ed07ccbc6ec0f4b278cab330c1b7d214b2712",
-          "size_bytes": 26558,
-          "recorded_mtime_utc": "2026-09-02T00:48:12.824730Z"
+          "sha256": "e047f3eedf0d9fdd7c78503a9aac596a63db92be34a6a54aa88d0556a847ea67",
+          "size_bytes": 12289,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.616938Z"
         }
       },
       "events": [
@@ -4200,6 +4468,33 @@
               "generate_trend_adjustments"
             ]
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-trend-adjust-script-f72e117b",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 8,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "lib/trend_adjustments/trend_adjust_data.py",
+            "lib/trend_adjustments/trend_adjust_fundamentals.py",
+            "lib/trend_adjustments/trend_adjust_io.py",
+            "lib/trend_adjustments/trend_adjust_mixing.py",
+            "trend_adjust.py",
+            "trend_adjust_data.py",
+            "trend_adjust_fundamentals.py",
+            "trend_adjust_io.py",
+            "trend_adjust_mixing.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 8
@@ -4392,12 +4687,12 @@
     "trend_adjust_cutoffs_script": {
       "description": "Strict loading and triangular-root interpolation of historical cutoff trends.",
       "file_patterns": [
-        "trend_adjust_cutoffs.py"
+        "lib/trend_adjustments/trend_adjust_cutoffs.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "trend_adjust_cutoffs.py": {
+        "lib/trend_adjustments/trend_adjust_cutoffs.py": {
           "sha256": "46bd9d11004fc3b03f90257b2d4f87ce846c84a8cb877ebd508c1bc83a854c93",
           "size_bytes": 7659,
           "recorded_mtime_utc": "2026-08-02T08:11:18.144537Z"
@@ -4469,6 +4764,26 @@
           "provenance_revision": 1,
           "summary": "Documented module roles, main functions and calculation boundaries for human review.",
           "files": [
+            "trend_adjust_cutoffs.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261001T034552Z-formatting-trend-adjust-cutoffs-script-eb762be4",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "lib/trend_adjustments/trend_adjust_cutoffs.py",
             "trend_adjust_cutoffs.py"
           ],
           "scope": {
@@ -4594,57 +4909,109 @@
       "description": "Pipeline registry, structured audit, planning, execution and metadata-maintenance tools.",
       "file_patterns": [
         "pipeline.py",
-        "generated_data_archive.py",
+        "lib/orchestration/generated_data_archive.py",
         "pipeline_registry.py",
         "pipeline_registry.json",
         "analysis_provenance.py",
-        "election_catalogue.py",
-        "provenance_maintenance.py",
-        "required_work.py"
+        "lib/shared/election_catalogue.py",
+        "lib/orchestration/provenance_maintenance.py",
+        "lib/orchestration/required_work.py",
+        "lib/paths.py",
+        "lib/**/__init__.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 6,
       "provenance_revision": 45,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "50cfd4cde6b1b91635089686ea485cd8d83076f90e0245b8009336eb55cda9ef",
-          "size_bytes": 133630,
-          "recorded_mtime_utc": "2026-09-03T05:53:17.997286Z"
+          "sha256": "4135b5b1cf78ca484ddf1602664bd6b0f46be1e95d7cdd788875549149cfdc15",
+          "size_bytes": 133737,
+          "recorded_mtime_utc": "2026-10-01T03:42:17.562508Z"
         },
-        "election_catalogue.py": {
-          "sha256": "3fe9b5ad68a1099399db5b608ca1852b56f4e8bd1ac100b4384bf154a5989d56",
-          "size_bytes": 5231,
-          "recorded_mtime_utc": "2026-08-30T23:48:35.807589Z"
+        "lib/__init__.py": {
+          "sha256": "ee3293d28006d6db658657b690a444ce3e76d244d4cec783a2ee351ca23dd38f",
+          "size_bytes": 86,
+          "recorded_mtime_utc": "2026-10-01T03:39:15.119357Z"
         },
-        "generated_data_archive.py": {
+        "lib/election_analysis/__init__.py": {
+          "sha256": "ee3293d28006d6db658657b690a444ce3e76d244d4cec783a2ee351ca23dd38f",
+          "size_bytes": 86,
+          "recorded_mtime_utc": "2026-10-01T03:39:15.119357Z"
+        },
+        "lib/orchestration/__init__.py": {
+          "sha256": "ee3293d28006d6db658657b690a444ce3e76d244d4cec783a2ee351ca23dd38f",
+          "size_bytes": 86,
+          "recorded_mtime_utc": "2026-10-01T03:39:15.120363Z"
+        },
+        "lib/orchestration/generated_data_archive.py": {
           "sha256": "8e513138eda024fd3d562353983b78cbf12071512d83c121fb47a122bfeca175",
           "size_bytes": 24422,
           "recorded_mtime_utc": "2026-09-03T11:43:24.915182Z"
         },
+        "lib/orchestration/provenance_maintenance.py": {
+          "sha256": "19ec7568a84a20111194886f97512aff926e9141f5b67695f21b202e193ebdc8",
+          "size_bytes": 11539,
+          "recorded_mtime_utc": "2026-10-01T03:42:17.570015Z"
+        },
+        "lib/orchestration/required_work.py": {
+          "sha256": "0035df24095ebc431df6a00b4f6a3e1550ee19b6d24d9ba4425a67c84a37262e",
+          "size_bytes": 6699,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.592932Z"
+        },
+        "lib/paths.py": {
+          "sha256": "eb33d15edd0addd0e36559cdcbe8eebb3da0865e9ce3a05eedb4638bab6bdf96",
+          "size_bytes": 448,
+          "recorded_mtime_utc": "2026-10-01T03:39:16.361818Z"
+        },
+        "lib/poll_models/__init__.py": {
+          "sha256": "ee3293d28006d6db658657b690a444ce3e76d244d4cec783a2ee351ca23dd38f",
+          "size_bytes": 86,
+          "recorded_mtime_utc": "2026-10-01T03:39:15.120363Z"
+        },
+        "lib/pollster_analysis/__init__.py": {
+          "sha256": "ee3293d28006d6db658657b690a444ce3e76d244d4cec783a2ee351ca23dd38f",
+          "size_bytes": 86,
+          "recorded_mtime_utc": "2026-10-01T03:39:15.120363Z"
+        },
+        "lib/provenance/__init__.py": {
+          "sha256": "ee3293d28006d6db658657b690a444ce3e76d244d4cec783a2ee351ca23dd38f",
+          "size_bytes": 86,
+          "recorded_mtime_utc": "2026-10-01T03:39:15.121363Z"
+        },
+        "lib/regional_models/__init__.py": {
+          "sha256": "ee3293d28006d6db658657b690a444ce3e76d244d4cec783a2ee351ca23dd38f",
+          "size_bytes": 86,
+          "recorded_mtime_utc": "2026-10-01T03:39:15.121363Z"
+        },
+        "lib/shared/__init__.py": {
+          "sha256": "ee3293d28006d6db658657b690a444ce3e76d244d4cec783a2ee351ca23dd38f",
+          "size_bytes": 86,
+          "recorded_mtime_utc": "2026-10-01T03:39:15.121363Z"
+        },
+        "lib/shared/election_catalogue.py": {
+          "sha256": "f3fe1b5ab1e9232cf4ecc22964b83c8f0674ac15d686e974a06a0a7ce337a39a",
+          "size_bytes": 5271,
+          "recorded_mtime_utc": "2026-10-01T03:39:17.689761Z"
+        },
+        "lib/trend_adjustments/__init__.py": {
+          "sha256": "ee3293d28006d6db658657b690a444ce3e76d244d4cec783a2ee351ca23dd38f",
+          "size_bytes": 86,
+          "recorded_mtime_utc": "2026-10-01T03:39:15.122363Z"
+        },
         "pipeline.py": {
-          "sha256": "7f43704424f3e72b2429908782fefacddadafd8865444fe3718a01a4d20779a9",
-          "size_bytes": 95250,
-          "recorded_mtime_utc": "2026-09-03T11:29:14.661161Z"
+          "sha256": "7e9dedfc750ba814c017fa652540890ea7c494e9262faf224d683984954368c3",
+          "size_bytes": 95296,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.530898Z"
         },
         "pipeline_registry.json": {
-          "sha256": "22edf256b2c5c0008c0ce939eb78bab959c6478cf8bbc9896c656b61e3b32fa1",
-          "size_bytes": 45915,
-          "recorded_mtime_utc": "2026-09-03T05:53:06.672475Z"
+          "sha256": "a25e3bcbf93e4b297ab40abc1b5cee051079ee943a3b1d75323faf1ee5e96bbe",
+          "size_bytes": 46545,
+          "recorded_mtime_utc": "2026-10-01T03:40:34.873236Z"
         },
         "pipeline_registry.py": {
           "sha256": "7384ead0eb727880bde6e048eee280344c1ad8e8abc55b2aa235609e4ef81f9b",
           "size_bytes": 21039,
           "recorded_mtime_utc": "2026-08-02T08:12:56.808701Z"
-        },
-        "provenance_maintenance.py": {
-          "sha256": "19ec7568a84a20111194886f97512aff926e9141f5b67695f21b202e193ebdc8",
-          "size_bytes": 11539,
-          "recorded_mtime_utc": "2026-09-03T03:44:34.719753Z"
-        },
-        "required_work.py": {
-          "sha256": "8f06f07cb3cb4e8e299c39c8d6eba96e523fea87eb0a5c5adc85f532333f6f17",
-          "size_bytes": 6683,
-          "recorded_mtime_utc": "2026-09-01T10:47:44.692889Z"
         }
       },
       "events": [
@@ -6636,6 +7003,45 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-pipeline-orchestration-tools-c8af323e",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "analysis_provenance.py",
+            "election_catalogue.py",
+            "generated_data_archive.py",
+            "lib/__init__.py",
+            "lib/election_analysis/__init__.py",
+            "lib/orchestration/__init__.py",
+            "lib/orchestration/generated_data_archive.py",
+            "lib/orchestration/provenance_maintenance.py",
+            "lib/orchestration/required_work.py",
+            "lib/paths.py",
+            "lib/poll_models/__init__.py",
+            "lib/pollster_analysis/__init__.py",
+            "lib/provenance/__init__.py",
+            "lib/regional_models/__init__.py",
+            "lib/shared/__init__.py",
+            "lib/shared/election_catalogue.py",
+            "lib/trend_adjustments/__init__.py",
+            "pipeline.py",
+            "pipeline_registry.json",
+            "provenance_maintenance.py",
+            "required_work.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },
@@ -7101,15 +7507,15 @@
     "trend_adjust_check_script": {
       "description": "Read-only historical diagnostics for saved trend adjustments.",
       "file_patterns": [
-        "trend_adjust_check.py"
+        "lib/trend_adjustments/trend_adjust_check.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "trend_adjust_check.py": {
-          "sha256": "f3ce4adbc7feb69c2cba95f473639c511973437bbbff7452e66b0f95f8a16f51",
-          "size_bytes": 6027,
-          "recorded_mtime_utc": "2026-08-02T08:11:14.012399Z"
+        "lib/trend_adjustments/trend_adjust_check.py": {
+          "sha256": "0dcb19ea3b36a259a77330d4f87c7aacc8c75dfdef4d998cac1f9f8f485c64f1",
+          "size_bytes": 6093,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.618937Z"
         }
       },
       "events": [
@@ -7160,6 +7566,26 @@
           "provenance_revision": 1,
           "summary": "Documented module roles, main functions and calculation boundaries for human review.",
           "files": [
+            "trend_adjust_check.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261001T034552Z-formatting-trend-adjust-check-script-d209cab7",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "lib/trend_adjustments/trend_adjust_check.py",
             "trend_adjust_check.py"
           ],
           "scope": {
@@ -7765,12 +8191,12 @@
     "fp_model_checkpoint_script": {
       "description": "Atomic fingerprinted restart checkpoints used by fp_model calibration.",
       "file_patterns": [
-        "fp_model_checkpoints.py"
+        "lib/poll_models/fp_model_checkpoints.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 2,
       "files": {
-        "fp_model_checkpoints.py": {
+        "lib/poll_models/fp_model_checkpoints.py": {
           "sha256": "a629f7336056d5245dbc8b9061972979beec7b1af4d6fe2f798f59d5e1e312c5",
           "size_bytes": 6075,
           "recorded_mtime_utc": "2026-08-02T14:56:21.358670Z"
@@ -7813,6 +8239,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-fp-model-checkpoint-script-860bd0d2",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "fp_model_checkpoints.py",
+            "lib/poll_models/fp_model_checkpoints.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 2
@@ -7827,14 +8273,14 @@
       "semantic_revision": 1,
       "files": {
         "low_share_diagnostic.py": {
-          "sha256": "0fdb6124efefb886353ee6b2a89e01765733f41965e983a5c12d8f02302b2839",
-          "size_bytes": 17014,
-          "recorded_mtime_utc": "2026-08-02T15:50:43.304772Z"
+          "sha256": "f3c089127bc9365396843293a2dfecf22bed9223b78d54349985194cdcbeaf34",
+          "size_bytes": 17025,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.497894Z"
         },
         "prior_chain_diagnostic.py": {
-          "sha256": "2a8e2582143375797116f1576c86eaa80ced9bea56d96325b47b99334aa9e1cf",
-          "size_bytes": 21969,
-          "recorded_mtime_utc": "2026-08-02T14:50:11.195744Z"
+          "sha256": "e1eeafaf25bd8e4fa6badb7e933732db6bfd82c23c675b196638390092d23839",
+          "size_bytes": 21980,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.569895Z"
         }
       },
       "events": [
@@ -7875,6 +8321,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-fp-model-diagnostic-tools-c69638f5",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "low_share_diagnostic.py",
+            "prior_chain_diagnostic.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -7888,9 +8354,9 @@
       "semantic_revision": 1,
       "files": {
         "fetch_booth_results.py": {
-          "sha256": "144c1c241e10ce37b425923214cfe7fdba31dfb6434cbab4643f174be2bd2d28",
-          "size_bytes": 1451,
-          "recorded_mtime_utc": "2026-09-03T05:50:26.059387Z"
+          "sha256": "a06d58cc392d85aba2e352cf7e90d91d712ada089954380123b23f2edcbe3f7e",
+          "size_bytes": 1471,
+          "recorded_mtime_utc": "2026-10-01T03:39:14.366764Z"
         }
       },
       "events": [
@@ -7911,21 +8377,41 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-booth-result-dispatcher-script-a98719b7",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "fetch_booth_results.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     },
     "booth_result_provenance_script": {
       "description": "Booth-result generated provenance and required-work support.",
       "file_patterns": [
-        "booth_result_provenance.py"
+        "lib/provenance/booth_result_provenance.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "booth_result_provenance.py": {
-          "sha256": "db09e834f20f0bafc15b036eff59b2461279dc1d125098e9a55055d55b40f511",
-          "size_bytes": 4467,
-          "recorded_mtime_utc": "2026-09-03T05:50:18.228001Z"
+        "lib/provenance/booth_result_provenance.py": {
+          "sha256": "2ade25caa64a8522a38d3583f018ca9bde90563c7765bb6a5e3dfea3d78d48ac",
+          "size_bytes": 4429,
+          "recorded_mtime_utc": "2026-10-01T03:42:17.570015Z"
         }
       },
       "events": [
@@ -7946,8 +8432,29 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-booth-result-provenance-script-2956416e",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "booth_result_provenance.py",
+            "lib/provenance/booth_result_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     },
     "booth_result_nsw_script": {
       "description": "NSW archived booth-result scraper.",
@@ -8396,15 +8903,15 @@
     "federal_regional_provenance_script": {
       "description": "Supported federal regional-statistics work units and output definitions.",
       "file_patterns": [
-        "federal_regional_provenance.py"
+        "lib/provenance/federal_regional_provenance.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "federal_regional_provenance.py": {
-          "sha256": "bab5502da3fe9dadf52767c3c17e14cb66c1723767232fe995ef55808cd6efbc",
-          "size_bytes": 1315,
-          "recorded_mtime_utc": "2026-09-03T05:52:41.516959Z"
+        "lib/provenance/federal_regional_provenance.py": {
+          "sha256": "adbdd70fbb962c3a049e96068505a798dbda002b86a220ad2ebb133401ccf3c8",
+          "size_bytes": 1304,
+          "recorded_mtime_utc": "2026-10-01T03:39:19.763048Z"
         }
       },
       "events": [
@@ -8425,8 +8932,29 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T034552Z-formatting-federal-regional-provenance-script-e60062ba",
+          "recorded_at_utc": "2026-10-01T03:45:52Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
+          "files": [
+            "federal_regional_provenance.py",
+            "lib/provenance/federal_regional_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     }
   }
 }

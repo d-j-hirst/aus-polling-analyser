@@ -14,7 +14,7 @@ from tests import ANALYSIS_DIRECTORY
 
 
 def load_stan_cache(fake_pystan):
-    module_path = ANALYSIS_DIRECTORY / "stan_cache.py"
+    module_path = ANALYSIS_DIRECTORY / "lib/shared/stan_cache.py"
     spec = importlib.util.spec_from_file_location(
         "stan_cache_under_test", module_path
     )

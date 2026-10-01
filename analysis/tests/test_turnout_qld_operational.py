@@ -4,7 +4,7 @@ from unittest import mock
 import xml.etree.ElementTree as ET
 from zipfile import ZipFile
 
-import turnout_data
+from lib.shared import turnout_data
 import turnout_qld_operational
 
 

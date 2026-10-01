@@ -22,7 +22,7 @@ import re
 from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 
-import turnout_data
+from lib.shared import turnout_data
 
 
 ANALYSIS_DIRECTORY = Path(__file__).resolve().parent

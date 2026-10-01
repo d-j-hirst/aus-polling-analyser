@@ -1,6 +1,6 @@
 import unittest
 
-import turnout_data
+from lib.shared import turnout_data
 import turnout_vic
 
 

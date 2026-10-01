@@ -132,7 +132,7 @@ class PipelineRegistryTests(unittest.TestCase):
         self.assertNotIn("poll_calibration_summaries", stage["inputs"])
         self.assertIn("pollster_analysis_script", stage["inputs"])
         self.assertIn(
-            "pollster_analysis_evidence.py",
+            "lib/pollster_analysis/pollster_analysis_evidence.py",
             self.registry["categories"]["pollster_analysis_script"]["paths"],
         )
         self.assertIn(

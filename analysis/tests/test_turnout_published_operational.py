@@ -2,7 +2,7 @@ import json
 import unittest
 from dataclasses import replace
 
-import turnout_data
+from lib.shared import turnout_data
 import turnout_published_operational as published
 
 

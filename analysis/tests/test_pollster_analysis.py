@@ -8,7 +8,7 @@ from unittest import mock
 
 from tests import ANALYSIS_DIRECTORY
 
-from election_code import ElectionCode
+from lib.shared.election_code import ElectionCode
 
 
 def load_pollster_analysis():
@@ -71,7 +71,7 @@ class PollsterAnalysisTests(unittest.TestCase):
                 ),
             ),
         )
-        from pollster_analysis_house_effects import get_n_polls
+        from lib.pollster_analysis.pollster_analysis_house_effects import get_n_polls
 
         counts = get_n_polls(evidence)
 

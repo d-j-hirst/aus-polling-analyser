@@ -57,6 +57,7 @@ CI_TEST_MODULES = (
     'test_election_catalogue',
     'test_required_work',
     'test_generated_data_archive',
+    'test_internal_module_layout',
     'test_turnout_data',
     'test_turnout_aec',
     'test_turnout_aec_operational',

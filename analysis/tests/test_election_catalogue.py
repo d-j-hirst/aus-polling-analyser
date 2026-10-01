@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import election_catalogue
+from lib.shared import election_catalogue
 
 
 class ElectionCatalogueTests(unittest.TestCase):

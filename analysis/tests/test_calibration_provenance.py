@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest import mock
 
 import calibration_provenance
-import fp_model_constants
+from lib.poll_models import fp_model_constants
 import generated_provenance
 
 

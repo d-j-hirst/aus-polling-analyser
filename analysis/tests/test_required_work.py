@@ -1,7 +1,7 @@
 import unittest
 
 import pipeline_registry
-import required_work
+from lib.orchestration import required_work
 
 
 class RequiredWorkTests(unittest.TestCase):

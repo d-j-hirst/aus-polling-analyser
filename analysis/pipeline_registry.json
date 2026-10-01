@@ -145,7 +145,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "election_code.py"
+        "lib/shared/election_code.py"
       ],
       "description": "Stable election identifiers used throughout election-result processing."
     },
@@ -155,10 +155,10 @@
       "core": true,
       "paths": [
         "election_analysis.py",
-        "election_analysis_common.py",
-        "election_analysis_parties.py",
-        "election_analysis_regions.py",
-        "election_analysis_seats.py"
+        "lib/election_analysis/election_analysis_common.py",
+        "lib/election_analysis/election_analysis_parties.py",
+        "lib/election_analysis/election_analysis_regions.py",
+        "lib/election_analysis/election_analysis_seats.py"
       ],
       "description": "Historical seat, regional and Coalition-allocation analysis."
     },
@@ -167,7 +167,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "poll_transform.py"
+        "lib/shared/poll_transform.py"
       ],
       "description": "Vote-share transforms and bounds shared by Python analysis stages."
     },
@@ -176,7 +176,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "sample_kurtosis.py"
+        "lib/shared/sample_kurtosis.py"
       ],
       "description": "RMSE and kurtosis estimators shared by Python analysis stages."
     },
@@ -186,10 +186,10 @@
       "core": true,
       "paths": [
         "trend_adjust.py",
-        "trend_adjust_data.py",
-        "trend_adjust_fundamentals.py",
-        "trend_adjust_io.py",
-        "trend_adjust_mixing.py"
+        "lib/trend_adjustments/trend_adjust_data.py",
+        "lib/trend_adjustments/trend_adjust_fundamentals.py",
+        "lib/trend_adjustments/trend_adjust_io.py",
+        "lib/trend_adjustments/trend_adjust_mixing.py"
       ],
       "description": "Fundamentals regression and historical trend-adjustment calibration."
     },
@@ -198,7 +198,7 @@
       "scope": "global",
       "core": false,
       "paths": [
-        "trend_adjust_check.py"
+        "lib/trend_adjustments/trend_adjust_check.py"
       ],
       "description": "Read-only historical diagnostics for saved trend adjustments."
     },
@@ -216,7 +216,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "trend_adjust_cutoffs.py"
+        "lib/trend_adjustments/trend_adjust_cutoffs.py"
       ],
       "description": "Strict loading and triangular-root interpolation of historical cutoff trends."
     },
@@ -226,12 +226,12 @@
       "core": true,
       "paths": [
         "fp_model.py",
-        "fp_model_constants.py",
-        "fp_model_data.py",
-        "fp_model_prepare.py",
-        "fp_model_stan.py",
-        "fp_model_outputs.py",
-        "fp_model_runner.py"
+        "lib/poll_models/fp_model_constants.py",
+        "lib/poll_models/fp_model_data.py",
+        "lib/poll_models/fp_model_prepare.py",
+        "lib/poll_models/fp_model_stan.py",
+        "lib/poll_models/fp_model_outputs.py",
+        "lib/poll_models/fp_model_runner.py"
       ],
       "description": "Poll-trend data preparation, Stan execution and output serialization."
     },
@@ -252,7 +252,9 @@
         "pipeline.py",
         "pipeline_registry.py",
         "pipeline_registry.json",
-        "analysis_provenance.py"
+        "analysis_provenance.py",
+        "lib/paths.py",
+        "lib/**/__init__.py"
       ],
       "description": "Read-only dependency inspection, freshness status and regeneration planning tools."
     },
@@ -272,7 +274,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "stan_cache.py"
+        "lib/shared/stan_cache.py"
       ],
       "description": "Compilation and local caching of Stan model executables."
     },
@@ -281,7 +283,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "fp_model_checkpoints.py"
+        "lib/poll_models/fp_model_checkpoints.py"
       ],
       "description": "Atomic fingerprinted restart checkpoints for completed fp-model calibration blocks."
     },
@@ -337,9 +339,9 @@
       "core": true,
       "paths": [
         "region_model.py",
-        "region_model_common.py",
-        "region_model_stan.py",
-        "region_model_mappings.py"
+        "lib/regional_models/region_model_common.py",
+        "lib/regional_models/region_model_stan.py",
+        "lib/regional_models/region_model_mappings.py"
       ],
       "description": "Election-specific regional poll preparation, Stan execution and swing-deviation output."
     },
@@ -376,11 +378,11 @@
       "core": true,
       "paths": [
         "pollster_analysis.py",
-        "pollster_analysis_common.py",
-        "pollster_analysis_evidence.py",
-        "pollster_analysis_variability.py",
-        "pollster_analysis_house_effects.py",
-        "pollster_analysis_bias.py"
+        "lib/pollster_analysis/pollster_analysis_common.py",
+        "lib/pollster_analysis/pollster_analysis_evidence.py",
+        "lib/pollster_analysis/pollster_analysis_variability.py",
+        "lib/pollster_analysis/pollster_analysis_house_effects.py",
+        "lib/pollster_analysis/pollster_analysis_bias.py"
       ],
       "description": "Reduction of calibration evidence into compact election-level pollster parameters."
     },
@@ -516,7 +518,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "federal_regional_provenance.py"
+        "lib/provenance/federal_regional_provenance.py"
       ],
       "description": "Supported federal regional-statistics work units and output definitions."
     },
@@ -727,7 +729,7 @@
       "scope": "global",
       "core": false,
       "paths": [
-        "booth_result_provenance.py"
+        "lib/provenance/booth_result_provenance.py"
       ],
       "description": "Generated provenance recorder and supported-work discovery for booth results."
     },
