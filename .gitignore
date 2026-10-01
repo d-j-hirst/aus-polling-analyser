@@ -308,6 +308,7 @@ __pycache__/
 **/generated-provenance.json
 **/*-generated-provenance.json
 */env
+/analysis/.venv-win/
 /analysis/Adjustments/*
 /Federal Election 2022 test v14.pol2
 *.pkl
@@ -370,7 +371,10 @@ analysis/suspend.txt
 /live_runs/
 /downloads/temp
 analysis/betting_odds/capture_vic_2026.py
-analysis/test_capture_vic_betting_odds.py
+analysis/tests/test_capture_vic_betting_odds.py
 analysis/betting_odds/archive/
 analysis/betting_odds/browser_extension/
 analysis/betting_odds/tab-current.json
+/docs/turnout-election-changes
+/docs/turnout-expectations
+/docs/turnout-priors

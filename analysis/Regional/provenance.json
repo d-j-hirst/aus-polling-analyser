@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored election-specific regional polling inputs.",
   "created_at_utc": "2026-07-23T23:21:58Z",
-  "updated_at_utc": "2026-09-27T22:06:46Z",
+  "updated_at_utc": "2026-09-29T06:55:19Z",
   "categories": {
     "regional_poll_inputs": {
       "description": "Election-specific regional poll breakdowns used by region_model.py.",
@@ -13,7 +13,7 @@
         "*-polls-ON.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 5,
+      "semantic_revision": 6,
       "files": {
         "2024qld-polls.csv": {
           "sha256": "87b685e3a3be3c726a75e09ffebcefa603b4c55ad3556e937a2db810e3f94412",
@@ -46,14 +46,14 @@
           "recorded_mtime_utc": "2026-07-29T14:17:40.248107Z"
         },
         "2028fed-polls-ON.csv": {
-          "sha256": "aab2f07ee24b4fe977f105cfc4a3a9e459573890b6c1bd92631a39753dca206c",
-          "size_bytes": 1974,
-          "recorded_mtime_utc": "2026-09-27T22:01:52.017448Z"
+          "sha256": "ce738fd6e961a81a46ebb09c37593ac4eb330d541fcc446edbc956d2cd452a50",
+          "size_bytes": 2047,
+          "recorded_mtime_utc": "2026-09-29T06:54:07.537597Z"
         },
         "2028fed-polls.csv": {
-          "sha256": "15870531b5b0dbb4603992cd52201bde86cb1c50057f8a1fa69621522286832e",
-          "size_bytes": 3107,
-          "recorded_mtime_utc": "2026-09-27T22:01:55.361017Z"
+          "sha256": "fd431fa93f758e7f8b7cfa225c5362d1d1f05b871eeda8941f73424f497d1249",
+          "size_bytes": 3218,
+          "recorded_mtime_utc": "2026-09-29T06:54:30.020300Z"
         },
         "2028qld-polls-ON.csv": {
           "sha256": "948e26ac2d7c1b3f413d64aec71a58335881f830cea6224d892162a4984ea0c2",
@@ -229,9 +229,31 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260929T065519Z-new_polling-regional-poll-inputs-460fb6e2",
+          "recorded_at_utc": "2026-09-29T06:55:19Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 6,
+          "provenance_revision": 6,
+          "summary": "Morgan poll",
+          "files": [
+            "2028fed-polls-ON.csv",
+            "2028fed-polls.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 5
+      "provenance_revision": 6
     }
   }
 }

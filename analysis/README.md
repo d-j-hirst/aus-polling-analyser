@@ -5,6 +5,17 @@ and planned provenance system are documented in [PIPELINE.md](PIPELINE.md).
 The corresponding machine-readable registry is
 [`pipeline_registry.json`](pipeline_registry.json).
 
+Python tests are kept in [`tests/`](tests/README.md). From the repository root,
+run the shared Linux/Windows CI selection with:
+
+```bash
+python3 -B analysis/tests/run_tests.py
+```
+
+Use `python3 -B tests/run_tests.py` when already in `analysis/`. The runner
+also accepts individual test modules and `--all` for the extended numerical
+suite; see the [test instructions](tests/README.md) for dependency requirements.
+
 Audit authored inputs, monitored scripts and generated provenance with:
 
 ```bash
@@ -171,6 +182,55 @@ python3 analysis_provenance.py register-change fp_model_provenance.py \
 ```
 
 ## Environment
+
+### Windows: routine non-Stan work
+
+Use native 64-bit CPython 3.12 with a separate `.venv-win` environment.
+`requirements-nonstan.txt` supplies the numerical and retrieval dependencies
+for routine tests and non-Stan analysis. PyStan, Selenium and a C++ toolchain
+are not required for this environment. InquirerPy is optional; the menus use
+plain terminal prompts when it is absent.
+
+From `analysis/`, create and install the environment using a working Python
+3.12 executable. For the current machine, this is:
+
+```powershell
+& "$env:USERPROFILE\.pyenv\pyenv-win\versions\3.12.1\python.exe" -m venv .venv-win
+.\.venv-win\Scripts\python.exe -m pip install --only-binary=:all: -r requirements-nonstan.txt
+```
+
+On another machine, replace the first executable with its native Python 3.12
+path or `py -3.12` if the Windows launcher can find that interpreter. Activation
+is optional: using the environment's executable directly also avoids changing
+PowerShell execution policy or the global pyenv selection.
+
+Run routine checks and read-only pipeline inspection from `analysis/`:
+
+```powershell
+.\.venv-win\Scripts\python.exe -B tests\run_tests.py
+.\.venv-win\Scripts\python.exe -B pipeline_registry.py --check-paths
+.\.venv-win\Scripts\python.exe -B pipeline.py status --election 2026vic
+.\.venv-win\Scripts\python.exe -B pipeline.py plan --election 2026vic --profile regular
+```
+
+All `status` and `plan` profiles work without PyStan. There is no pipeline
+`--dry-run` flag; use `plan` to preview work. `run --profile regular` can still
+launch Stan, and `run` defaults to calibration. Full test discovery with
+`--all` also imports PyStan-dependent modules. Use the default or focused
+non-Stan test selection here.
+
+Existing generated data can be inspected and consumed by non-Stan reducers.
+This environment does not establish numerical equivalence with the legacy
+Linux package versions. NSW/VIC/QLD booth scrapers retain their separate
+Linux browser requirements.
+
+Change impact: **negligible**. This setup changes development dependencies,
+documentation and ignored local files only; it changes no generator source,
+model input, generated output or generated-provenance record. These setup
+files are outside the monitored generator categories, so no source-manifest
+registration or metadata upgrade is needed.
+
+### Linux/WSL: full analysis and Stan fitting
 
 Run these commands from the `analysis/` directory. `fp_model.py` is unlikely to
 work natively on Windows because it depends on pystan; WSL is recommended.

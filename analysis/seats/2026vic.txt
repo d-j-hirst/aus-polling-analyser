@@ -57,7 +57,7 @@ bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
 sCoalitionCandidates=LNP;NAT,0.075
 fNationalsCoalitionShare=0.28
-sBettingOdds=IND,7.75
+sBettingOdds=IND,9.00
 sCandidateNames=Steve Martin,LNP;Graham Parton,GRN;Lachie McKeeman,IND
 #Bendigo East
 sIncumbent=ALP
@@ -263,7 +263,7 @@ fPreviousTppSwing=-3.0
 fTransposedFederalSwing=3.9
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
-sBettingOdds=GRN,3.60;IND,13.00
+sBettingOdds=GRN,3.60;IND,11.00
 sCandidateNames=Katie Hall,ALP;Elena Pereyra,GRN;Alexander Lopez,ONP;Jess Marsh,IND
 #Frankston
 sIncumbent=ALP

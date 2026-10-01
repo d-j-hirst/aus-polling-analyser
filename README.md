@@ -171,6 +171,16 @@ cross-build results should instead be compared for statistical equivalence.
 
 ### Portable Tests
 
+The Python analysis suite has a separate runner and lives under
+[`analysis/tests/`](analysis/tests/README.md):
+
+```bash
+python3 -B analysis/tests/run_tests.py
+```
+
+This preserves the routine CI selection without requiring Stan. Focused and
+extended numerical suites are documented in the linked test instructions.
+
 Run the portable core tests from the repository root:
 
 ```bash

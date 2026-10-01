@@ -264,6 +264,57 @@ ACT, Northern Territory and Tasmanian elections, referendums and by-elections
 were reviewed but remain outside the current normalized general-election
 dataset.
 
+## Historical Change Analysis
+
+[`turnout-election-changes/report.md`](turnout-election-changes/report.md)
+describes consecutive-election changes in turnout, formality, formal votes per
+enrolled elector, enrolment, formal-vote counts and vote-category shares. It
+covers election totals, same-named seats, and federal states and territories.
+Detailed CSVs accompany the report, including category formality where known,
+seat dispersion, unmatched seats and residual changes after election/state
+adjustments.
+
+Regenerate the report from the normalized final-result files with:
+
+```bash
+python3 -B analysis/turnout_changes.py
+```
+
+This is descriptive evidence for developing the turnout model. Seat comparisons
+are not redistribution-adjusted, and pre-election operational observations are
+reserved for a separate prediction-error analysis.
+
+[`turnout-expectations/report.md`](turnout-expectations/report.md) builds on
+that description with election-wide drift statistics, federal state residuals,
+seat variation, stable ballot-regime comparisons and simple formal-vote
+expectation tests. Both leave-one-out and earlier-elections-only validation
+hold out entire elections. The leave-one-out training set also excludes the
+successor transition, which would otherwise leak the held result through its
+previous-election baseline. Enrolment is treated as a known exposure.
+
+```bash
+python3 -B analysis/turnout_expectations.py
+```
+
+This remains a research report: it does not change live turnout assumptions.
+Known lower- and upper-house ballot reforms are documented with official
+sources; their individual causal effects are not inferred from single events.
+
+[`turnout-priors/report.md`](turnout-priors/report.md) is the follow-up pooled
+analysis. It supersedes jurisdiction-specific expectation models with shared
+turnout/formality drift estimates, whole-election validation and a test of
+transferability when each jurisdiction is left out. Its main findings highlight
+uncertainty scales for common election shocks, pooled federal-state variation
+and seat-local changes. Detailed seat histories and prior-rate-gap bins identify
+persistent differences and unusually volatile seats without fitting separate
+coefficients to small seat/state histories.
+
+```bash
+python3 -B analysis/turnout_priors.py
+```
+
+This is still offline research, not a change to the live forecasting model.
+
 ## Queensland Operational Evidence
 
 `analysis/turnout_qld_operational.py` adds ECQ's retained 2024 operational

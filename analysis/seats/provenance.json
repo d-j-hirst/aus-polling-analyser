@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-09-28T09:17:36Z",
+  "updated_at_utc": "2026-09-30T23:25:59Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 17,
+      "semantic_revision": 20,
       "files": {
         "2019fed.txt": {
           "sha256": "014946dc77548034140f78ad66a062f1c59a6d070122cea4c7dcb8bd4525b321",
@@ -65,9 +65,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "983d1d5571c35bb8f1211ed0bf842c41abe0c2a756072c0e0012a6785a912ff9",
+          "sha256": "8587a1b4805a9ab042973d0e596302432be91f9b4761cfc674d6156dc6f1e019",
           "size_bytes": 21071,
-          "recorded_mtime_utc": "2026-09-28T09:15:36.691731Z"
+          "recorded_mtime_utc": "2026-09-30T21:45:11.226288Z"
         },
         "2027nsw.txt": {
           "sha256": "9066c05124dc34153f7b56e0d6c2a7238d5a40e3e1edb7965d74778378c4120a",
@@ -446,9 +446,72 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260929T065549Z-other-forecast-seats-394b96f9",
+          "recorded_at_utc": "2026-09-29T06:55:49Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 18,
+          "provenance_revision": 18,
+          "summary": "Seat betting update",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260930T020451Z-other-forecast-seats-f4774d5a",
+          "recorded_at_utc": "2026-09-30T02:04:51Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 19,
+          "provenance_revision": 19,
+          "summary": "Seat betting update",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260930T232559Z-new_polling-forecast-seats-24527374",
+          "recorded_at_utc": "2026-09-30T23:25:59Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 20,
+          "provenance_revision": 20,
+          "summary": "2026vic",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 17
+      "provenance_revision": 20
     }
   }
 }
