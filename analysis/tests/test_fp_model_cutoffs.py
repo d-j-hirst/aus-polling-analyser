@@ -8,7 +8,7 @@ from unittest import mock
 import pandas as pd
 
 from lib.poll_models import fp_model_data
-import fp_model_provenance
+from lib.provenance import fp_model_provenance
 from lib.trend_adjustments import trend_adjust_cutoffs
 
 

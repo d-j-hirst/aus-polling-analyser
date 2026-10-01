@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import region_model_provenance
+from lib.provenance import region_model_provenance
 
 
 class RegionalWorkUnitTests(unittest.TestCase):

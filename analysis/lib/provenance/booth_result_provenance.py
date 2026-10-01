@@ -10,7 +10,7 @@ import sys
 
 from lib.paths import ANALYSIS_DIRECTORY, REPOSITORY_DIRECTORY
 
-import generated_provenance
+from lib.provenance import generated_provenance
 
 
 BOOTH_RESULTS_DIRECTORY = ANALYSIS_DIRECTORY / "Booth Results"
@@ -115,7 +115,7 @@ def record_generated_output(election, command=None):
             "booth-result generator did not create {}".format(output)
         )
     run_id, run = generated_provenance.generation_run(
-        command=command or [Path(sys.executable).name] + sys.argv,
+        command=command or generated_provenance.current_command(),
         source_revision=generated_provenance.current_source_revision(
             REPOSITORY_DIRECTORY
         ),

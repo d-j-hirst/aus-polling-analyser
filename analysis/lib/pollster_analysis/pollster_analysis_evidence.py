@@ -19,7 +19,7 @@ import csv
 from dataclasses import dataclass
 from pathlib import Path
 
-import calibration_summary
+from scripts.pipeline import calibration_summary
 from lib.shared.election_code import ElectionCode
 from lib.pollster_analysis.pollster_analysis_common import ConfigError, canonical_party
 

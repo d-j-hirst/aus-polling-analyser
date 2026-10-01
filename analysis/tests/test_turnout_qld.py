@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 from zipfile import ZipFile
 
 from lib.shared import turnout_data
-import turnout_qld
+from scripts.turnout import turnout_qld
 
 
 def legacy_xml(unknown_type=False, bad_total=False):

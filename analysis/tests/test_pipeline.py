@@ -8,9 +8,9 @@ from io import StringIO
 from pathlib import Path
 from unittest import mock
 
-import generated_provenance
+from lib.provenance import generated_provenance
 import pipeline
-import pipeline_registry
+from lib.orchestration import pipeline_registry
 
 
 def work_unit(
@@ -107,7 +107,7 @@ class PipelineTests(unittest.TestCase):
             command,
             [
                 "python",
-                "fetch_booth_results.py",
+                "-m", 'scripts.elections.fetch_booth_results',
                 "--election",
                 "2022sa",
             ],
@@ -296,7 +296,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(task["status_counts"]["stale"], 1)
         self.assertEqual(
             task["command"][1:],
-            ["run_fp_model.py", "--election", "2026-vic"],
+            ["-m", 'scripts.pipeline.run_fp_model', "--election", "2026-vic"],
         )
 
     def test_calibration_profile_schedules_missing_federal_prior_before_state_bias(self):
@@ -483,14 +483,14 @@ class PipelineTests(unittest.TestCase):
             "status": "legacy",
             "status_counts": {"legacy": 1},
             "work_units": ["poll_calibration_summaries:1987fed"],
-            "command": ["python", "run_fp_model.py", "--calibrate"],
+            "command": ["python", "-m", 'scripts.pipeline.run_fp_model', "--calibrate"],
             "working_directory": ".",
         }
         task_two = {
             **task_one,
             "stage": "calibrate_pollster_bias",
             "work_units": ["bias_calibration_outputs:1987fed"],
-            "command": ["python", "run_fp_model.py", "--bias"],
+            "command": ["python", "-m", 'scripts.pipeline.run_fp_model', "--bias"],
         }
         initial = {
             "profiles": ["calibration"],
@@ -534,7 +534,7 @@ class PipelineTests(unittest.TestCase):
             "status": "legacy",
             "status_counts": {"legacy": 1},
             "work_units": ["poll_calibration_summaries:1987fed"],
-            "command": ["python", "run_fp_model.py", "--calibrate"],
+            "command": ["python", "-m", 'scripts.pipeline.run_fp_model', "--calibrate"],
             "working_directory": ".",
         }
         plan = {
@@ -565,7 +565,7 @@ class PipelineTests(unittest.TestCase):
             "status": "legacy",
             "status_counts": {"legacy": 1},
             "work_units": ["poll_calibration_summaries:1987fed"],
-            "command": ["python", "run_fp_model.py", "--calibrate"],
+            "command": ["python", "-m", 'scripts.pipeline.run_fp_model', "--calibrate"],
             "working_directory": ".",
         }
         plan = {
@@ -597,7 +597,7 @@ class PipelineTests(unittest.TestCase):
             "work_units": ["poll_trend_outputs:2026vic:@TPP"],
             "command": [
                 "python",
-                "run_fp_model.py",
+                "-m", 'scripts.pipeline.run_fp_model',
                 "--election",
                 "2026-vic",
             ],
@@ -642,7 +642,7 @@ class PipelineTests(unittest.TestCase):
             "status": "stale",
             "status_counts": {"stale": 1},
             "work_units": ["poll_trend_outputs:2026vic:@TPP"],
-            "command": ["python", "run_fp_model.py", "--election", "2026-vic"],
+            "command": ["python", "-m", 'scripts.pipeline.run_fp_model', "--election", "2026-vic"],
             "working_directory": ".",
         }
         plan = {
@@ -763,7 +763,7 @@ class PipelineTests(unittest.TestCase):
             "work_units": ["pollster_parameters:2026vic"],
             "command": [
                 "python",
-                "pollster_analysis.py",
+                "-m", 'scripts.pipeline.pollster_analysis',
                 "--election",
                 "2026-vic",
             ],
@@ -776,7 +776,7 @@ class PipelineTests(unittest.TestCase):
             "work_units": ["poll_trend_outputs:2026vic:@TPP"],
             "command": [
                 "python",
-                "run_fp_model.py",
+                "-m", 'scripts.pipeline.run_fp_model',
                 "--election",
                 "2026-vic",
             ],
@@ -833,7 +833,7 @@ class PipelineTests(unittest.TestCase):
             "issue_signatures": ["old source revision"],
             "command": [
                 "python",
-                "run_fp_model.py",
+                "-m", 'scripts.pipeline.run_fp_model',
                 "--election",
                 "2028-fed",
             ],
@@ -2264,7 +2264,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(
             plan["tasks"][0]["command"][1:],
             [
-                "region_model.py",
+                "-m", 'scripts.pipeline.region_model',
                 "--election",
                 "2028-qld",
                 "--party",
@@ -2510,12 +2510,12 @@ class PipelineTests(unittest.TestCase):
         with redirect_stdout(concise):
             pipeline.print_plan(plan)
         self.assertIn("Use --details", concise.getvalue())
-        self.assertNotIn("run_fp_model.py", concise.getvalue())
+        self.assertNotIn('scripts.pipeline.run_fp_model', concise.getvalue())
 
         detailed = StringIO()
         with redirect_stdout(detailed):
             pipeline.print_plan(plan, include_details=True)
-        self.assertIn("run_fp_model.py", detailed.getvalue())
+        self.assertIn('scripts.pipeline.run_fp_model', detailed.getvalue())
 
 
 if __name__ == "__main__":

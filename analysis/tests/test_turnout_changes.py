@@ -3,7 +3,7 @@
 import unittest
 
 from lib.shared.turnout_data import SeatTotal, VoteTypeRecord
-import turnout_changes as report
+from scripts.turnout import turnout_changes as report
 
 
 def election(code, seats, categories=None, jurisdiction='fed'):

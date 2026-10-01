@@ -18,10 +18,10 @@ def load_approvals():
     pandas = types.ModuleType("pandas")
     statsmodels = types.ModuleType("statsmodels")
     statsmodels_api = types.ModuleType("statsmodels.api")
-    provenance = types.ModuleType("approvals_provenance")
+    provenance = types.ModuleType('lib.provenance.approvals_provenance')
     provenance.SyntheticTppRecorder = object
 
-    module_path = ANALYSIS_DIRECTORY / "approvals.py"
+    module_path = ANALYSIS_DIRECTORY / 'scripts/pipeline/approvals.py'
     spec = importlib.util.spec_from_file_location(
         "approvals_under_test", module_path
     )
@@ -33,7 +33,7 @@ def load_approvals():
             "pandas": pandas,
             "statsmodels": statsmodels,
             "statsmodels.api": statsmodels_api,
-            "approvals_provenance": provenance,
+            'lib.provenance.approvals_provenance': provenance,
         },
     ):
         spec.loader.exec_module(module)

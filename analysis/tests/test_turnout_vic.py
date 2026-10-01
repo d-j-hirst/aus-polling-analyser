@@ -1,7 +1,7 @@
 import unittest
 
 from lib.shared import turnout_data
-import turnout_vic
+from scripts.turnout import turnout_vic
 
 
 def district_html(

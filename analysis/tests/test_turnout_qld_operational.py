@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 from zipfile import ZipFile
 
 from lib.shared import turnout_data
-import turnout_qld_operational
+from scripts.turnout import turnout_qld_operational
 
 
 SPREADSHEET_NAMESPACE = (

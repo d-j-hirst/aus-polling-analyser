@@ -3,7 +3,7 @@ import unittest
 from dataclasses import replace
 
 from lib.shared import turnout_data
-import turnout_published_operational as published
+from scripts.turnout import turnout_published_operational as published
 
 
 class PublishedOperationalTurnoutTests(unittest.TestCase):

@@ -1,6 +1,6 @@
 import unittest
 
-import turnout_aec_operational
+from scripts.turnout import turnout_aec_operational
 from lib.shared import turnout_data
 
 

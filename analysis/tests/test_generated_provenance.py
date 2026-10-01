@@ -1,16 +1,39 @@
 import json
 import os
+import sys
 import tempfile
 import threading
 import unittest
 from pathlib import Path
 from unittest import mock
 
-import generated_provenance
-import source_provenance
+from lib.provenance import generated_provenance
+from lib.provenance import source_provenance
 
 
 class GeneratedProvenanceTests(unittest.TestCase):
+    def test_current_command_preserves_packaged_launches_and_root_commands(self):
+        analysis = generated_provenance.ANALYSIS_DIRECTORY
+        for path, expected in (
+            (analysis / 'scripts/pipeline/fp_model.py',
+             ['-m', 'scripts.pipeline.fp_model', '--election', '2028-fed']),
+            (analysis / 'pipeline.py',
+             [str(analysis / 'pipeline.py'), '--election', '2028-fed']),
+        ):
+            with self.subTest(path=path), mock.patch.object(
+                sys, 'argv', [str(path), '--election', '2028-fed']
+            ):
+                self.assertEqual(generated_provenance.current_command()[1:], expected)
+
+    def test_explicit_module_command_uses_forwarded_arguments(self):
+        self.assertEqual(
+            generated_provenance.current_command(
+                arguments=['--election', '2022sa'],
+                module='scripts.elections.fetch_booth_results',
+            )[1:],
+            ['-m', 'scripts.elections.fetch_booth_results', '--election', '2022sa'],
+        )
+
     def setUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.base = Path(self.temporary_directory.name)
@@ -191,7 +214,7 @@ class GeneratedProvenanceTests(unittest.TestCase):
             {
                 "test-run": {
                     "generated_at_utc": "2026-01-01T00:00:00Z",
-                    "command": ["python3", "election_store.py"],
+                    "command": ["python3", 'lib/elections/election_store.py'],
                     "source_revision": {
                         "system": "git",
                         "revision": "a" * 40,
@@ -221,7 +244,7 @@ class GeneratedProvenanceTests(unittest.TestCase):
 
     def test_cross_drive_schema_reference_uses_file_uri(self):
         with mock.patch(
-            "generated_provenance.os.path.relpath",
+            'lib.provenance.generated_provenance.os.path.relpath',
             side_effect=ValueError("different drives"),
         ):
             reference = generated_provenance._schema_reference(
@@ -363,7 +386,7 @@ class GeneratedProvenanceTests(unittest.TestCase):
             {
                 "downstream-run": {
                     "generated_at_utc": "2026-01-02T00:00:00Z",
-                    "command": ["python3", "election_analysis.py"],
+                    "command": ["python3", 'scripts/pipeline/election_analysis.py'],
                     "source_revision": {
                         "system": "git",
                         "revision": "b" * 40,
@@ -487,7 +510,7 @@ class GeneratedProvenanceTests(unittest.TestCase):
         context.load_manifest(self.generated_manifest_path)
 
         with mock.patch(
-            "generated_provenance._hash_file",
+            'lib.provenance.generated_provenance._hash_file',
             side_effect=AssertionError("unchanged dependency was rehashed"),
         ):
             issues = generated_provenance.check_record(
@@ -516,7 +539,7 @@ class GeneratedProvenanceTests(unittest.TestCase):
         )
 
         with mock.patch(
-            "generated_provenance._hash_file",
+            'lib.provenance.generated_provenance._hash_file',
             wraps=generated_provenance._hash_file,
         ) as hash_file:
             current = generated_provenance.file_dependency(
@@ -608,7 +631,7 @@ class GeneratedProvenanceTests(unittest.TestCase):
             {
                 "downstream-run": {
                     "generated_at_utc": "2026-01-02T00:00:00Z",
-                    "command": ["python3", "election_analysis.py"],
+                    "command": ["python3", 'scripts/pipeline/election_analysis.py'],
                     "source_revision": {
                         "system": "git",
                         "revision": "b" * 40,
@@ -796,8 +819,8 @@ class GeneratedProvenanceTests(unittest.TestCase):
 
     def test_resolve_path_uses_abspath_on_posix(self):
         context = generated_provenance.ManifestCheckContext()
-        with mock.patch("generated_provenance.os.name", "posix"), mock.patch(
-            "generated_provenance.Path.resolve",
+        with mock.patch('lib.provenance.generated_provenance.os.name', "posix"), mock.patch(
+            'lib.provenance.generated_provenance.Path.resolve',
             side_effect=AssertionError(
                 "POSIX resolve_path must avoid resolve()"
             ),
@@ -851,7 +874,7 @@ class GeneratedProvenanceTests(unittest.TestCase):
             "prime_expected_outputs",
             side_effect=AssertionError("cached check_manifest re-primed"),
         ), mock.patch(
-            "generated_provenance.check_record",
+            'lib.provenance.generated_provenance.check_record',
             side_effect=AssertionError("cached check_manifest rechecked"),
         ):
             second = generated_provenance.check_manifest(
@@ -952,7 +975,7 @@ class GeneratedProvenanceTests(unittest.TestCase):
         manifest = context.load_manifest(self.generated_manifest_path)
         record_keys = ["election_result_exports:2025fed"]
         with mock.patch(
-            "generated_provenance._generated_records_digest",
+            'lib.provenance.generated_provenance._generated_records_digest',
             wraps=generated_provenance._generated_records_digest,
         ) as digest:
             first = context.generated_records_digest(

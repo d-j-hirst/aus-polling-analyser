@@ -32,10 +32,10 @@ from pathlib import Path
 
 import analysis_provenance
 from lib.orchestration import generated_data_archive
-import generated_provenance
-import pipeline_registry
+from lib.provenance import generated_provenance
+from lib.orchestration import pipeline_registry
 from lib.orchestration import provenance_maintenance
-import source_provenance
+from lib.provenance import source_provenance
 
 try:
     from InquirerPy import inquirer

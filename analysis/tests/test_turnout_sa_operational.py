@@ -2,7 +2,7 @@ from dataclasses import replace
 import unittest
 
 from lib.shared import turnout_data
-import turnout_sa_operational as operational
+from scripts.turnout import turnout_sa_operational as operational
 
 
 class SaOperationalTurnoutTests(unittest.TestCase):

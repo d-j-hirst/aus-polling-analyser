@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-import backfill_live_snapshot_summary as backfill
+from scripts.maintenance import backfill_live_snapshot_summary as backfill
 
 
 def sidecar_analysis():

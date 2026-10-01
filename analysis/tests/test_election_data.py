@@ -8,11 +8,33 @@ from types import SimpleNamespace
 import unittest
 from unittest import mock
 
-import election_data
+from lib.elections import election_data
 from lib.shared.election_code import ElectionCode
 
 
 class ElectionDataTests(unittest.TestCase):
+    def test_legacy_result_cache_loads_without_downloading(self):
+        # Exercise the real cache-reading boundary with a nested old-format
+        # result, ensuring both class identities and numerical values survive.
+        saved = election_data.SavedResults()
+        seat = election_data.SeatResults('Example')
+        seat.fp.append(election_data.CandidateResult('Candidate', 'ALP', 123, 51.5, 1.2))
+        saved.results.append(seat)
+        current = pickle.dumps(saved, protocol=0)
+        legacy = current.replace(
+            b'clib.elections.election_data\n', b'celection_data\n'
+        )
+        self.assertNotEqual(current, legacy)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            (path / '2025fed_results.pkl').write_bytes(legacy)
+            with mock.patch.object(election_data, 'ELECTION_CACHE_DIRECTORY', path):
+                results = election_data.generic_download('fed', 2025, allow_download=False)
+        self.assertIsInstance(results[0], election_data.SeatResults)
+        self.assertIsInstance(results[0].fp[0], election_data.CandidateResult)
+        self.assertEqual(results[0].fp[0].votes, 123)
+        self.assertEqual(results[0].fp[0].percent, 51.5)
+
     def test_legacy_election_code_cache_remains_readable(self):
         # Recreate the old protocol-zero module identity while retaining a real
         # object's state. Legacy caches must preserve dictionary-key equality

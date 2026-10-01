@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import calibration_summary
+from scripts.pipeline import calibration_summary
 from lib.pollster_analysis.pollster_analysis_evidence import load_calibration_evidence
 
 

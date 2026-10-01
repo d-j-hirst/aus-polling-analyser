@@ -4,8 +4,8 @@ from datetime import date
 from pathlib import Path
 from unittest import mock
 
-import fp_model_provenance
-import generated_provenance
+from lib.provenance import fp_model_provenance
+from lib.provenance import generated_provenance
 
 
 class PureTrendProvenanceTests(unittest.TestCase):
@@ -186,7 +186,7 @@ class PureTrendProvenanceTests(unittest.TestCase):
             return_value=feedback_dependency,
         ) as file_call:
             recorder = fp_model_provenance.PureTrendRecorder(
-                ["python3", "fp_model.py", "--pure"]
+                ["python3", 'scripts/pipeline/fp_model.py', "--pure"]
             )
             dependencies = recorder.dependencies_for(
                 "2028fed",
@@ -372,7 +372,7 @@ class PureTrendProvenanceTests(unittest.TestCase):
                 return_value={},
             ):
                 recorder = fp_model_provenance.PureTrendRecorder(
-                    ["python3", "fp_model.py", "--pure"]
+                    ["python3", 'scripts/pipeline/fp_model.py', "--pure"]
                 )
                 recorder.record(
                     election="2028fed",
@@ -482,7 +482,7 @@ class FinalTrendProvenanceTests(unittest.TestCase):
             return_value=feedback_dependency,
         ):
             recorder = fp_model_provenance.FinalTrendRecorder(
-                ["python3", "fp_model.py"]
+                ["python3", 'scripts/pipeline/fp_model.py']
             )
             major_dependencies = recorder.dependencies_for(
                 "2026vic",
@@ -521,7 +521,7 @@ class FinalTrendProvenanceTests(unittest.TestCase):
             return_value=feedback_dependency,
         ):
             recorder = fp_model_provenance.FinalTrendRecorder(
-                ["python3", "fp_model.py"]
+                ["python3", 'scripts/pipeline/fp_model.py']
             )
             minor_dependencies = recorder.dependencies_for(
                 "2026vic",
@@ -569,7 +569,7 @@ class FinalTrendProvenanceTests(unittest.TestCase):
             return_value=pollster_dependency,
         ):
             recorder = fp_model_provenance.CutoffTrendRecorder(
-                ["python3", "fp_model.py", "--cutoff"]
+                ["python3", 'scripts/pipeline/fp_model.py', "--cutoff"]
             )
             dependencies = recorder.dependencies_for_election(
                 "1975fed",
@@ -609,7 +609,7 @@ class FinalTrendProvenanceTests(unittest.TestCase):
             return_value=pollster_dependency,
         ) as generated_call:
             recorder = fp_model_provenance.CutoffTrendRecorder(
-                ["python3", "fp_model.py", "--cutoff"]
+                ["python3", 'scripts/pipeline/fp_model.py', "--cutoff"]
             )
             recorder.preflight_election("1975fed")
 
@@ -660,7 +660,7 @@ class FinalTrendProvenanceTests(unittest.TestCase):
             return_value=pollster_dependency,
         ):
             recorder = fp_model_provenance.CutoffTrendRecorder(
-                ["python3", "fp_model.py", "--cutoff"]
+                ["python3", 'scripts/pipeline/fp_model.py', "--cutoff"]
             )
             dependencies = recorder.dependencies_for_election(
                 "2025fed", []
@@ -704,7 +704,7 @@ class CutoffTrendProvenanceTests(unittest.TestCase):
                 return_value={},
             ):
                 recorder = fp_model_provenance.CutoffTrendRecorder(
-                    ["python3", "fp_model.py", "--cutoff"]
+                    ["python3", 'scripts/pipeline/fp_model.py', "--cutoff"]
                 )
                 recorder.record(
                     election="2025fed",

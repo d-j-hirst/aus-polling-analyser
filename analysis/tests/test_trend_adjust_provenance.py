@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import generated_provenance
-import trend_adjust_provenance
+from lib.provenance import generated_provenance
+from lib.provenance import trend_adjust_provenance
 
 
 class TrendAdjustmentProvenanceTests(unittest.TestCase):

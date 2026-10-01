@@ -1,20 +1,21 @@
 """Batch orchestration and CLI entry helpers for fp_model."""
 
-import calibration_provenance
-import calibration_summary
+from lib.provenance import calibration_provenance
+from scripts.pipeline import calibration_summary
 import datetime
 from lib.poll_models import fp_model_checkpoints
-import fp_model_provenance
+from lib.provenance import fp_model_provenance
 import os
 import pandas as pd
 import pystan
 import sys
+from lib.provenance import generated_provenance
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from approvals import generate_synthetic_tpps
+from scripts.pipeline.approvals import generate_synthetic_tpps
 from lib.shared.election_code import ElectionCode
 
 from lib.poll_models.fp_model_constants import (
@@ -294,14 +295,14 @@ def run_models() -> None:
             )
         provenance_recorder = (
             calibration_provenance.CalibrationRecorder(
-                [os.path.basename(sys.executable)] + sys.argv
+                generated_provenance.current_command()
             )
             if config.calibrate_pollsters or config.calibrate_bias
             else None
         )
         pure_provenance_recorder = (
             fp_model_provenance.PureTrendRecorder(
-                [os.path.basename(sys.executable)] + sys.argv
+                generated_provenance.current_command()
             )
             if (
                 config.pure
@@ -313,14 +314,14 @@ def run_models() -> None:
         )
         final_provenance_recorder = (
             fp_model_provenance.FinalTrendRecorder(
-                [os.path.basename(sys.executable)] + sys.argv
+                generated_provenance.current_command()
             )
             if config.use_approvals() and not config.cutoff_mode
             else None
         )
         cutoff_provenance_recorder = (
             fp_model_provenance.CutoffTrendRecorder(
-                [os.path.basename(sys.executable)] + sys.argv
+                generated_provenance.current_command()
             )
             if config.use_approvals() and config.cutoff_mode
             else None

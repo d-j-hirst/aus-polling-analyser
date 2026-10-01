@@ -1,7 +1,9 @@
 """Protect data locations and the import boundary after internal-module moves."""
 
 import json
+import importlib.util
 import os
+from pathlib import Path
 import subprocess
 import sys
 import tempfile
@@ -11,6 +13,7 @@ from tests import ANALYSIS_DIRECTORY
 from lib.paths import ANALYSIS_DIRECTORY as LIB_ANALYSIS_DIRECTORY
 from lib.poll_models.fp_model_constants import fp_model_source_files
 from lib.provenance import booth_result_provenance, federal_regional_provenance
+from lib.orchestration import pipeline_registry
 from lib.shared import election_catalogue
 
 
@@ -64,7 +67,25 @@ class InternalModuleLayoutTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertTrue(path.is_file())
                 self.assertIn(path.relative_to(ANALYSIS_DIRECTORY).as_posix(), monitored)
-        self.assertEqual(paths[0], ANALYSIS_DIRECTORY / 'fp_model.py')
+        self.assertEqual(paths[0], ANALYSIS_DIRECTORY / 'scripts/pipeline/fp_model.py')
+
+    def test_packaged_stage_commands_resolve_without_loading_generators(self):
+        # Finding each entry-point spec imports only package initializers. It
+        # validates every launch target without sampling or acquiring any data.
+        registry = pipeline_registry.load_registry()
+        for stage in registry['stages']:
+            execution = stage.get('execution')
+            if execution is not None:
+                with self.subTest(stage=stage['id']):
+                    spec = importlib.util.find_spec(execution['module'])
+                    self.assertIsNotNone(spec)
+                    self.assertTrue(Path(spec.origin).is_file())
+
+    def test_only_daily_entry_points_remain_at_analysis_root(self):
+        self.assertEqual(
+            {path.name for path in ANALYSIS_DIRECTORY.glob('*.py')},
+            {'pipeline.py', 'analysis_provenance.py'},
+        )
 
 
 if __name__ == '__main__':

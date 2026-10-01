@@ -6,8 +6,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import pipeline_registry
-import source_provenance
+from lib.orchestration import pipeline_registry
+from lib.provenance import source_provenance
 from tests import ANALYSIS_DIRECTORY
 
 
@@ -79,7 +79,7 @@ class SourceProvenanceTests(unittest.TestCase):
 
     def test_cross_drive_schema_reference_uses_file_uri(self):
         with mock.patch(
-            "source_provenance.os.path.relpath",
+            'lib.provenance.source_provenance.os.path.relpath',
             side_effect=ValueError("different drives"),
         ):
             reference = source_provenance._schema_reference(

@@ -1,3 +1,5 @@
+import io
+import pickle
 import sys
 import tempfile
 import unittest
@@ -5,7 +7,7 @@ from pathlib import Path
 from unittest import mock
 
 try:
-    import federal_state
+    from scripts.elections import federal_state
     from bs4 import BeautifulSoup
 except ModuleNotFoundError as error:
     OPTIONAL_IMPORT_ERROR = error
@@ -30,12 +32,31 @@ def raw_results(booths):
     ),
 )
 class FederalStateConfigTests(unittest.TestCase):
+    def test_legacy_raw_cache_identities_retain_booth_values(self):
+        # Historical CLI runs and imported runs used different module names;
+        # neither cache identity should trigger network acquisition after a move.
+        original = raw_results([(('Seat', 'Booth'), 2.1, -0.5, 51.0, 123)])
+        current = pickle.dumps(original, protocol=0)
+        for module in ('federal_state', '__main__'):
+            with self.subTest(module=module):
+                legacy = current.replace(
+                    b'cscripts.elections.federal_state\n',
+                    ('c' + module + '\n').encode('ascii'),
+                )
+                self.assertNotEqual(current, legacy)
+                restored = federal_state._FederalStateCacheUnpickler(
+                    io.BytesIO(legacy)
+                ).load()
+                self.assertTrue(federal_state.is_raw_results(restored))
+                self.assertEqual(restored.tpp_percentages, original.tpp_percentages)
+                self.assertEqual(restored.vote_totals, original.vote_totals)
+
     def test_requires_a_known_election(self):
-        with mock.patch.object(sys, 'argv', ['federal_state.py']):
+        with mock.patch.object(sys, 'argv', ['scripts/elections/federal_state.py']):
             with self.assertRaisesRegex(federal_state.ConfigError, 'must be provided'):
                 federal_state.Config()
 
-        with mock.patch.object(sys, 'argv', ['federal_state.py', '--election', '2099-sa']):
+        with mock.patch.object(sys, 'argv', ['scripts/elections/federal_state.py', '--election', '2099-sa']):
             with self.assertRaisesRegex(federal_state.ConfigError, 'Unknown election'):
                 federal_state.Config()
 

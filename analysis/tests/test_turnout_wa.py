@@ -1,7 +1,7 @@
 import unittest
 
 from lib.shared import turnout_data
-import turnout_wa
+from scripts.turnout import turnout_wa
 
 
 def election(layout='contiguous', combined=False, district_names=()):

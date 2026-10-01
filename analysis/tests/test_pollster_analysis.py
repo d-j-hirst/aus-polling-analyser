@@ -23,7 +23,7 @@ def load_pollster_analysis():
     weightstats = types.ModuleType("statsmodels.stats.weightstats")
     weightstats.DescrStatsW = object
 
-    module_path = ANALYSIS_DIRECTORY / "pollster_analysis.py"
+    module_path = ANALYSIS_DIRECTORY / 'scripts/pipeline/pollster_analysis.py'
     spec = importlib.util.spec_from_file_location(
         "pollster_analysis_under_test", module_path
     )

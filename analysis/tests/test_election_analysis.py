@@ -28,7 +28,7 @@ def load_election_analysis():
     modules["scipy.optimize"].curve_fit = object
     modules["scipy.stats"].moment = object
 
-    module_path = ANALYSIS_DIRECTORY / "election_analysis.py"
+    module_path = ANALYSIS_DIRECTORY / 'scripts/pipeline/election_analysis.py'
     spec = importlib.util.spec_from_file_location(
         "election_analysis_under_test", module_path
     )

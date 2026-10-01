@@ -1,0 +1,531 @@
+"""Acquire and cache historical lower-house election results.
+
+The downloader intentionally remains source-specific. Wikipedia's historical
+tables are not a stable data API, so new elections and unusual old tables may
+need explicit corrections below. Once downloaded, the pickle is the working
+cache used by election analysis and by ``election_store.py``; routine analysis
+does not contact the network.
+
+Main functions:
+* ``ElectionResults``, ``SeatResults`` and ``CandidateResult`` are the cached
+  result data structures shared with checking and export stages.
+* ``generic_download`` contains the source-specific parsing and correction
+  logic that performs the actual acquisition/processing work for one election.
+* ``AllElections`` loads, caches and retrieves election result sets.
+* ``main`` refreshes the configured historical cache from source pages.
+"""
+
+import os
+from pathlib import Path
+from lib.paths import ANALYSIS_DIRECTORY
+import pickle
+import re
+
+from lib.shared.election_code import ElectionCode
+
+
+ELECTION_CACHE_DIRECTORY = ANALYSIS_DIRECTORY / 'elections'
+REQUEST_TIMEOUT_SECONDS = 30
+
+state_page = {'nsw': 'New South Wales',
+              'vic': "Victoria (Australia)",
+              'qld': "Queensland",
+              'sa': "South Australian",
+              'wa': "Western Australian",
+              }
+
+state_election_name = {'fed': 'Australian federal election',
+                       'nsw': 'New South Wales state election',
+                       'vic': 'Victorian state election',
+                       'qld': 'Queensland state election',
+                       'sa': 'South Australian state election',
+                       'wa': 'Western Australian state election',
+                      }
+
+previous_names = [
+    {'Newtown', 'Marrickville'}
+]
+
+default_headers = {'User-Agent': 'AEF Occasional Data Updating (https://www.aeforecasts.com/; aeforecasts@gmail.com)'}
+
+
+# Downloading and cache publication infrastructure
+
+class _ElectionCacheUnpickler(pickle.Unpickler):
+    """Keep caches written before the internal-module move readable."""
+
+    def find_class(self, module, name):
+        # Old caches name the original root modules. Remap only our known data
+        # classes so relocating acquisition code cannot force a fresh download.
+        if module == "election_code" and name == "ElectionCode":
+            return ElectionCode
+        if module == "election_data" and name in {
+            "ElectionResults", "SavedResults", "SeatResults", "CandidateResult",
+            "AllElections",
+        }:
+            return globals()[name]
+        return super().find_class(module, name)
+
+
+def _download_page(url, headers):
+    """Return the historical byte-string representation used by the parser."""
+    # Keep requests optional for cache-only consumers such as election_store.
+    import requests
+
+    response = requests.get(
+        url,
+        headers=headers,
+        timeout=REQUEST_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    # The parsing rules below predate requests' text decoding and explicitly
+    # handle byte escape sequences. Preserve that representation here.
+    return str(response.content)
+
+
+def _write_pickle_atomically(filename, value):
+    """Replace a cache only after its complete pickle has been written."""
+    temporary_filename = filename.with_name(filename.name + '.tmp')
+    try:
+        with open(temporary_filename, 'wb') as pkl:
+            pickle.dump(value, pkl, pickle.HIGHEST_PROTOCOL)
+        os.replace(temporary_filename, filename)
+    finally:
+        if temporary_filename.exists():
+            temporary_filename.unlink()
+
+
+class ElectionResults:
+    def __init__(self, name, download):
+        self.name = name
+        self.seat_results = download()
+        self.calculate_totals_by_party()
+
+    def __repr__(self):
+        repr = f'\n*** Election: {self.name} ***\n\n'
+        for seat_result in self.seat_results:
+            repr += f'{seat_result}\n'
+        return repr
+    
+    def seat_names(self, include_name_changes=False):
+        names = [a.name for a in self.seat_results]
+        extra_names = []
+        if include_name_changes:
+            for name in names:
+                for name_set in previous_names:
+                    if name in name_set:
+                        extra_names += [a for a in name_set
+                                        if a != name]
+        return names + extra_names
+    
+    def seat_by_name(self, name, include_name_changes=False):
+        if include_name_changes:
+            for actual_name in [a.name for a in self.seat_results]:
+                if name == actual_name:
+                    return self.seat_by_name(actual_name,
+                                             include_name_changes=False)
+                for name_set in previous_names:
+                    if ((name in name_set and actual_name in name_set)
+                        or name == actual_name):
+                        return self.seat_by_name(actual_name,
+                                                include_name_changes=False)
+        else:
+            return next((a for a in self.seat_results
+                    if a.name == name), None)
+    
+    # return total count of fp votes in this election
+    def total_fp_votes(self):
+        return self.total_votes
+    
+    # return total count of fp votes in this election
+    def total_fp_votes_party(self, party):
+        if party not in self.fp_by_party:
+            return 0
+        return self.fp_by_party[party]
+    
+    # return total percentage of fp votes in this election
+    # going to the given party
+    def total_fp_percentage_party(self, party):
+        return self.total_fp_votes_party(party) / self.total_fp_votes() * 100
+    
+    def calculate_totals_by_party(self):
+        self.fp_by_party = {}
+        self.candidates_by_party = {}
+        self.total_votes = 0
+        for seat in self.seat_results:
+            for candidate in seat.fp:
+                self.total_votes += candidate.votes
+                if candidate.party in self.fp_by_party:
+                    self.fp_by_party[candidate.party] += candidate.votes
+                    self.candidates_by_party[candidate.party] += 1
+                else:
+                    self.fp_by_party[candidate.party] = candidate.votes
+                    self.candidates_by_party[candidate.party] = 1
+
+
+class SavedResults:
+    def __init__(self):
+        self.results = []
+
+
+class SeatResults:
+    def __init__(self, name):
+        self.name = name
+        self.tcp = []
+        self.fp = []
+
+    def order(self, tcp_by_percent=False):
+        self.fp.sort(key=lambda x: x.votes, reverse=True)
+        if not tcp_by_percent:
+            self.tcp.sort(key=lambda x: x.votes, reverse=True)
+        else:
+            self.tcp.sort(key=lambda x: x.percent, reverse=True)
+
+    def __repr__(self):
+        repr = f'{self.name}\n Two-candidate preferred votes:\n'
+        for tcp in self.tcp:
+            repr += f'  {tcp}\n'
+        repr += f'\n First preference votes:\n'
+        for fp in self.fp:
+            repr += f'  {fp}\n'
+        return repr
+
+    def party_percent(self, party):
+        return sum(x.percent for x in self.fp
+                   if x.party == party)
+
+    def party_votes(self, party):
+        return sum(x.votes for x in self.fp
+                   if x.party == party)
+
+    def party_swing(self, party):
+        # This is more complicated because there is potential
+        # for two categorised parties to have different swings -
+        # so take the average weighted by the number of votes
+        return (sum(x.swing * x.votes for x in self.fp
+                if x.party == party and x.swing is not None) / 
+                sum(x.votes for x in self.fp
+                if x.party == party and x.swing is not None))
+
+
+class CandidateResult:
+    def __init__(self, name, party, votes, percent, swing):
+        self.name = name
+        self.party = party
+        self.votes = votes
+        self.percent = percent
+        self.swing = swing
+    
+    def __repr__(self):
+        return (f'{self.name} ({self.party}) - Votes: {self.votes},'
+               f' Vote %: {self.percent}, Swing: {self.swing}')
+
+
+class AllElections:
+    def __init__(self, allow_download=True):
+        self.elections = {}
+        fed_years = [2025, 2022, 2019, 2016, 2013, 2010, 2007, 2004, 2001, 1998, 1996,
+                    1993, 1990, 1987, 1984, 1983, 1980]
+        self.elections.update({
+            ElectionCode(year=year, region='fed'): 
+            ElectionResults(f'{year} Federal Election',
+            lambda year=year: generic_download(
+                'fed', year, allow_download=allow_download))
+            for year in fed_years})
+        nsw_years = [2023, 2019, 2015, 2011, 2007, 2003, 1999, 1995, 1991, 1988,
+                    1984, 1981]
+        self.elections.update({
+            ElectionCode(year=year, region='nsw'): 
+            ElectionResults(f'{year} NSW Election',
+            lambda year=year: generic_download(
+                'nsw', year, allow_download=allow_download))
+            for year in nsw_years})
+        vic_years = [2022, 2018, 2014, 2010, 2006, 2002, 1999, 1996, 1992]
+        self.elections.update({
+            ElectionCode(year=year, region='vic'): 
+            ElectionResults(f'{year} VIC Election',
+            lambda year=year: generic_download(
+                'vic', year, allow_download=allow_download))
+            for year in vic_years})
+        qld_years = [2024, 2020, 2017, 2015, 2012, 2009, 2006, 2004, 2001, 1998,
+                    1995, 1992, 1989, 1986, 1983, 1980]
+        self.elections.update({
+            ElectionCode(year=year, region='qld'): 
+            ElectionResults(f'{year} QLD Election',
+            lambda year=year: generic_download(
+                'qld', year, allow_download=allow_download))
+            for year in qld_years})
+        sa_years = [2022, 2018, 2014, 2010, 2006, 2002, 1997]
+        self.elections.update({
+            ElectionCode(year=year, region='sa'): 
+            ElectionResults(f'{year} SA Election',
+            lambda year=year: generic_download(
+                'sa', year, allow_download=allow_download))
+            for year in sa_years})
+        wa_years = [2025, 2021, 2017, 2013, 2008, 2005, 2001, 1996, 1993, 1989,
+                    1986, 1983, 1980]
+        self.elections.update({
+            ElectionCode(year=year, region='wa'): 
+            ElectionResults(f'{year} WA Election',
+            lambda year=year: generic_download(
+                'wa', year, allow_download=allow_download))
+            for year in wa_years})
+    
+    def __getitem__(self, key):
+        return self.elections[key]
+
+    def items(self):
+        return self.elections.items()
+
+    def keys(self):
+        return self.elections.keys()
+
+    # return an ordered list of election codes for
+    # elections following the given one
+    def next_elections(self, current_election):
+        return sorted([a for a in self.elections.keys()
+                       if a.region() == current_election.region() and
+                       a.year() > current_election.year()],
+                      key=lambda x: x.year())
+
+    # return an ordered list of election codes for
+    # elections preceding the given one
+    def previous_elections(self, current_election):
+        return sorted([a for a in self.elections.keys()
+                       if a.region() == current_election.region() and
+                       a.year() < current_election.year()],
+                      key=lambda x: x.year())
+
+
+# Source parsing and election-result acquisition
+
+def collect_seat_urls(seat_url_dict, url, pattern):
+    content_category = _download_page(url, default_headers)
+    try:
+        content_category = content_category.split(
+            'div class="mw-category mw-category-columns"', 1
+        )[1].split('<noscript>', 1)[0]
+    except IndexError as error:
+        raise ValueError(
+            f'Could not locate the seat list in Wikipedia category {url}'
+        ) from error
+    matches_category = re.findall(pattern, content_category)
+    for match in matches_category:
+        name = match[1].split(" (")[0].replace('&#039;', "'")
+        if name == 'Maneroo':
+            continue
+        url = match[0]
+        if name in seat_url_dict:
+            seat_url_dict[name].add(url)
+        else:
+            seat_url_dict[name] = {url}
+
+
+def fetch_seat_urls_state(state):
+    seat_urls = {}  # key is seat name, value is url
+    state_pattern = r'<a href="([^"?]*)"[^>]*>[^>]*district of ([^<]*)<'
+    if state == 'fed':
+        federal_pattern = r'<a href="([^"?]*)"[^>]*>[^>]*Division of ([^<]*)<'
+        # As Namadgi was only contested for one election, it doesn't have a
+        # dedicated results page, so add it separately
+        seat_urls['Namadgi'] = {'/wiki/Division_of_Namadgi'}
+        collect_seat_urls(seat_urls,
+                          f'https://en.wikipedia.org/wiki/Category:Australian_federal_electoral_results_by_division',
+                          federal_pattern)
+        collect_seat_urls(seat_urls,
+                          f'https://en.wikipedia.org/w/index.php?title=Category:Australian_federal_electoral_results_by_division&pagefrom=Perth%0AElectoral+results+for+the+Division+of+Perth#mw-pages',
+                          federal_pattern)
+    elif state == 'nsw':
+        collect_seat_urls(seat_urls,
+                          f'https://en.wikipedia.org/w/index.php?title=Category:New_South_Wales_state_electoral_results_by_district',
+                          state_pattern)
+        collect_seat_urls(seat_urls,
+                          f'https://en.wikipedia.org/w/index.php?title=Category:New_South_Wales_state_electoral_results_by_district&pagefrom=Marrickville',
+                          state_pattern)
+        for seat_name in ['Kellyville', 'Leppington', 'Wahroonga', 'Winston Hills']:
+            seat_urls[seat_name] = {
+                f'wiki/Electoral_district_of_{seat_name.replace(" ", "_")}'
+            }
+    elif state == 'vic':
+        collect_seat_urls(seat_urls,
+                          f'https://en.wikipedia.org/w/index.php?title=Category:Victoria_(state)_state_electoral_results_by_district',
+                          state_pattern)
+        collect_seat_urls(seat_urls,
+                          f'https://en.wikipedia.org/w/index.php?title=Category:Victoria_(state)_state_electoral_results_by_district&pagefrom=Rainbow%0AElectoral+results+for+the+district+of+Rainbow#mw-pages',
+                          state_pattern)
+    else:
+        collect_seat_urls(seat_urls,
+                          f'https://en.wikipedia.org/wiki/Category:{state_page[state]}_state_electoral_results_by_district',
+                          state_pattern)
+    return seat_urls
+
+
+def generic_download(state, year, allow_download=True):
+    filename = ELECTION_CACHE_DIRECTORY / f'{year}{state}_results.pkl'
+    try:
+        with open(filename, 'rb') as pkl:
+            all_results = _ElectionCacheUnpickler(pkl).load()
+        return all_results.results
+    except FileNotFoundError:
+        if not allow_download:
+            raise FileNotFoundError(
+                f'Required cached election results are missing: {filename}. '
+                'Run election_data.py when the source results are available.'
+            )
+    ELECTION_CACHE_DIRECTORY.mkdir(parents=True, exist_ok=True)
+    all_results = SavedResults()
+    seat_urls = fetch_seat_urls_state(state)
+    for seat_name, url_list in seat_urls.items():
+        # A seat can have several historical page aliases. Sorting makes a
+        # clean cache rebuild reproducible when only one alias contains the
+        # requested election.
+        for url in sorted(url_list):
+            seat_results = SeatResults(seat_name)
+            full_url = f'https://en.wikipedia.org/{url}'
+            # Avoid a cached page when acquiring a newly completed election.
+            headers = {
+                'User-Agent' : default_headers['User-Agent'],
+                'Cache-Control': 'no-cache'
+            }
+            content = _download_page(full_url, headers)
+            content = content.replace('\\r','\r').replace('\\n','\n').replace("\\'","'")
+            content = content.replace('&amp;','&').replace('\\xe2\\x88\\x92', '-')
+            content = content.replace('\\xe2\\x80\\x93', '-')
+            content = content.replace('&#039;', "'")
+            election_marker = f'>{year} {state_election_name[state]}<'
+            if seat_name == 'Narracan' and year == 2022:
+                # Non-standard marker for this as it's an unusual supplementary election
+                election_marker = 'wikitable plainrowheaders'
+            if seat_name in ['Kellyville', 'Leppington', 'Wahroonga', 'Winston Hills']:
+                election_marker = f'election_(Legislative_Assembly)#{seat_name.replace(" ", "_")}'
+            if election_marker not in content:
+                print(f'Seat not present in election: {seat_name}')
+                continue
+            print(f'Seat results found: {seat_name}')
+            election_content = content.split(election_marker)[1].split('</table>')[0]
+            if '>Two-' in election_content:
+                fp_content = election_content.split('>Two-')[0]
+                tcp_content = election_content.split('>Two-')[-1]
+            else:
+                fp_content = election_content
+                tcp_content = None
+            fp_content = fp_content.split('Notional')[0]
+            pattern = (r'<tr class="vcard"[\s\S]*?class="org"[\s\S]*?>([^<]+)<'
+                        + r'[\s\S]*?class="fn"[\s\S]*?>([^<]+)<'
+                        + r'[\s\S]*?<td[\s\S]*?>([^<]+)<' * 3)
+            fp_matches = re.findall(pattern, fp_content)
+            for match in fp_matches:
+                if len(match[3].strip()) == 0:
+                    continue
+                if len(match[4].strip()) > 0:
+                    swing = float(match[4].strip())
+                else:
+                    swing = None
+                seat_results.fp.append(CandidateResult(
+                    name=match[1].strip(),
+                    party=match[0].strip(),
+                    votes=int('0'+match[2].replace(',','').replace('.','').strip()),
+                    percent=float(match[3].replace(',','.').strip()),
+                    swing=swing))
+            if seat_name == 'Clarence' and year == 2023:
+                # Formatting is currently messed up for this candidate
+                seat_results.fp.append(CandidateResult(
+                    name='Brett Duroux',
+                    party='Independent Indigenous',
+                    votes=725,
+                    percent=1.5,
+                    swing=1.5))
+            if seat_name == 'Pascoe Vale' and year == 2022:
+                # For some reason it doesn't pick up this line of the table
+                seat_results.fp.append(CandidateResult(
+                    name='Sue Bolton',
+                    party='Ind. (',
+                    votes=1689,
+                    percent=4.2,
+                    swing=4.2))
+            if tcp_content is not None:
+                tcp_matches = re.findall(pattern, tcp_content)
+                for match in tcp_matches:
+                    swing_str = match[4].replace('N/A','').strip()
+                    if len(swing_str) > 0:
+                        swing = float(swing_str)
+                    else:
+                        swing = None
+                    seat_results.tcp.append(CandidateResult(
+                        name=match[1].strip(),
+                        party=match[0].strip(),
+                        votes=int('0'+match[2].replace(',','').replace('.','').strip()),
+                        percent=float(match[3].strip()),
+                        swing=swing))
+                if len(seat_results.tcp) < 2:
+                    raise ValueError(
+                        f'Could not parse two TCP candidates for '
+                        f'{year}{state} seat {seat_name}'
+                    )
+                if seat_name == 'Barambah' and year == 1989:
+                    seat_results.tcp[0].votes = 8497
+                    seat_results.tcp[1].votes = 3404
+                elif seat_name == 'Bowen' and year == 1989:
+                    seat_results.tcp[0].votes = 7524
+                    seat_results.tcp[1].votes = 3134
+                elif ((state == 'nsw' and year <= 1984 and seat_results.tcp[0].votes == 0) or 
+                    (state == 'fed' and year <= 1983 and seat_results.tcp[0].votes == 0) or 
+                    (seat_name == 'Pearce' and year == 2001) or
+                    (seat_name == 'Newcastle' and year == 1987)):
+                    total_votes = sum(x.votes for x in seat_results.fp)
+                    seat_results.tcp[0].votes = round(seat_results.tcp[0].percent * 0.01 * total_votes)
+                    seat_results.tcp[1].votes = round(seat_results.tcp[1].percent * 0.01 * total_votes)
+                elif seat_name == 'Hammond' and year == 2006:
+                    seat_results.tcp[0].swing = -4.2
+                elif seat_results.tcp[0].votes == 0:
+                    print(seat_results)
+                    raise ValueError('Missing votes data - needs attention')
+                try:
+                    # If one of the swing values is equal to the vote percent,
+                    # then it's not actually a legitimate swing and the
+                    # swing values should be set to "None" to represent this
+                    if (abs(seat_results.tcp[0].swing - seat_results.tcp[0].percent) < 0.06
+                        or abs(seat_results.tcp[1].swing - seat_results.tcp[1].percent) < 0.06):
+                        seat_results.tcp[0].swing = None
+                        seat_results.tcp[1].swing = None
+                except TypeError:
+                    pass  # If one of the above values is none,
+                        # it's fine to just skip the check altogether
+            else:
+                # In a two-candidate contest with no separate TCP table, the
+                # FP rows are also the best available TCP result.
+                seat_results.tcp = seat_results.fp
+                if all(x.swing is not None for x in seat_results.tcp):
+                    # Remove swing where the tcp swing isn't the same
+                    # as fp swing (evidenced by it not adding to 0)
+                    if sum(x.swing for x in seat_results.tcp) != 0:
+                        for x in seat_results.tcp:
+                            x.swing = None
+            seat_results.order()
+            if any(
+                existing.name == seat_results.name
+                for existing in all_results.results
+            ):
+                raise ValueError(
+                    f'Duplicate result found for {year}{state} seat '
+                    f'{seat_results.name}'
+                )
+            all_results.results.append(seat_results)
+    _write_pickle_atomically(filename, all_results)
+    print(f'Downloaded election from Wikipedia: {year}{state}')
+    return all_results.results
+
+
+# Command-line cache refresh
+
+def main():
+    # When this file is executed directly, classes defined in it would normally
+    # be pickled as ``__main__.SavedResults`` etc. Importing the collection via
+    # its stable module name keeps new caches readable by later processes.
+    from lib.elections.election_data import AllElections as ImportableAllElections
+
+    ImportableAllElections()
+
+
+if __name__ == '__main__':
+    main()

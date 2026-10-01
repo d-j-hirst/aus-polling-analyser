@@ -15,8 +15,8 @@ Main functions:
 import copy
 from pathlib import Path
 
-import generated_provenance
-import source_provenance
+from lib.provenance import generated_provenance
+from lib.provenance import source_provenance
 
 
 # Registered metadata-upgrade implementations
@@ -36,7 +36,7 @@ def _refresh_source_dependency(record, context):
 def _refresh_pollster_calibration_dependencies(record, context):
     """Prune calibration parties the pollster reducers cannot consume."""
 
-    import pollster_analysis_provenance
+    from lib.provenance import pollster_analysis_provenance
 
     pollster_analysis_provenance.refresh_calibration_dependencies(
         record, context["base_directory"]

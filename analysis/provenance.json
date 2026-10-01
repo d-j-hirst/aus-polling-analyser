@@ -4,20 +4,20 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-10-01T03:45:52Z",
+  "updated_at_utc": "2026-10-01T05:04:10Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
       "file_patterns": [
-        "election_store.py"
+        "lib/elections/election_store.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "election_store.py": {
-          "sha256": "0473ac2aa8bd3e59d64335a92c3f338cf3253020a69776916ce02b1fa2bcfb7e",
-          "size_bytes": 5887,
-          "recorded_mtime_utc": "2026-08-02T08:09:04.014460Z"
+        "lib/elections/election_store.py": {
+          "sha256": "9e4e8fd8561d210260034078297160ddf01134cf754e73eb7dc48409a4dfe43d",
+          "size_bytes": 5909,
+          "recorded_mtime_utc": "2026-10-01T05:03:09.045112Z"
         }
       },
       "events": [
@@ -167,6 +167,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050409Z-formatting-election-store-script-fc686690",
+          "recorded_at_utc": "2026-10-01T05:04:09Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "election_store.py",
+            "lib/elections/election_store.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -174,15 +194,15 @@
     "election_check_script": {
       "description": "Election-result validation and party simplification.",
       "file_patterns": [
-        "election_check.py"
+        "lib/elections/election_check.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "election_check.py": {
-          "sha256": "a8b574f90fec3f04374bab77b6f9f692451485e9aea91fd020316696a6402a60",
-          "size_bytes": 10024,
-          "recorded_mtime_utc": "2026-08-02T08:07:22.210807Z"
+        "lib/elections/election_check.py": {
+          "sha256": "f5faf4139a6db83e1c87d35eb40601ad428330ec65e040fb72a15f5ed6f9c0a3",
+          "size_bytes": 10026,
+          "recorded_mtime_utc": "2026-10-01T04:50:15.495222Z"
         }
       },
       "events": [
@@ -241,6 +261,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050409Z-formatting-election-check-script-b4a3fda4",
+          "recorded_at_utc": "2026-10-01T05:04:09Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "election_check.py",
+            "lib/elections/election_check.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -248,15 +288,15 @@
     "election_data_script": {
       "description": "Election-result acquisition, parsing, source corrections and internal pickle handling.",
       "file_patterns": [
-        "election_data.py"
+        "lib/elections/election_data.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "election_data.py": {
-          "sha256": "d1b6e920bc4dcadc75a3ba32d2845b3c1518048b7ba291f60803ab84186e4749",
-          "size_bytes": 23255,
-          "recorded_mtime_utc": "2026-10-01T03:40:32.309662Z"
+        "lib/elections/election_data.py": {
+          "sha256": "a6ca67615b1fd733d95720bcdda56a3cfeb22882af863ff89a6113dfb5a49eb2",
+          "size_bytes": 23469,
+          "recorded_mtime_utc": "2026-10-01T04:50:15.499222Z"
         }
       },
       "events": [
@@ -370,6 +410,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050409Z-formatting-election-data-script-6a6d04dd",
+          "recorded_at_utc": "2026-10-01T05:04:09Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "election_data.py",
+            "lib/elections/election_data.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -452,7 +512,7 @@
     "election_analysis_script": {
       "description": "Historical seat, regional and Coalition-allocation analysis.",
       "file_patterns": [
-        "election_analysis.py",
+        "scripts/pipeline/election_analysis.py",
         "lib/election_analysis/election_analysis_common.py",
         "lib/election_analysis/election_analysis_parties.py",
         "lib/election_analysis/election_analysis_regions.py",
@@ -461,11 +521,6 @@
       "exclude_patterns": [],
       "semantic_revision": 5,
       "files": {
-        "election_analysis.py": {
-          "sha256": "952148f45a66a5b640bbc89f57afe8436ec2933755000a84070fac38a41da270",
-          "size_bytes": 7984,
-          "recorded_mtime_utc": "2026-10-01T03:42:17.564507Z"
-        },
         "lib/election_analysis/election_analysis_common.py": {
           "sha256": "73592677cc34c03e24f7235fe8858fb04d967201fe287e1abfdf2629bc1b4a94",
           "size_bytes": 11467,
@@ -485,6 +540,11 @@
           "sha256": "504c743bd20dff8256b95bb13eaa0b83c61fe59cbc27167681d8dab5a4fe51e4",
           "size_bytes": 32672,
           "recorded_mtime_utc": "2026-10-01T03:39:14.331758Z"
+        },
+        "scripts/pipeline/election_analysis.py": {
+          "sha256": "51abeb4a6bfe3a05fcb1509e4c97d3b8ef9c8edc587276c07bd78ac07ecb4b0d",
+          "size_bytes": 8019,
+          "recorded_mtime_utc": "2026-10-01T05:03:09.046112Z"
         }
       },
       "events": [
@@ -745,6 +805,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050409Z-formatting-election-analysis-script-1fdf08fc",
+          "recorded_at_utc": "2026-10-01T05:04:09Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 6,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "election_analysis.py",
+            "scripts/pipeline/election_analysis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 6
@@ -959,7 +1039,7 @@
     "fp_model_script": {
       "description": "Poll-trend data preparation, Stan execution and output serialization.",
       "file_patterns": [
-        "fp_model.py",
+        "scripts/pipeline/fp_model.py",
         "lib/poll_models/fp_model_constants.py",
         "lib/poll_models/fp_model_data.py",
         "lib/poll_models/fp_model_prepare.py",
@@ -970,25 +1050,20 @@
       "exclude_patterns": [],
       "semantic_revision": 14,
       "files": {
-        "fp_model.py": {
-          "sha256": "c4a97ce3001f40d452f38dcfc22f3d34efd70e8ba2ebc323e4f760f7dfe12a19",
-          "size_bytes": 906,
-          "recorded_mtime_utc": "2026-10-01T03:39:14.387851Z"
-        },
         "lib/poll_models/fp_model_constants.py": {
-          "sha256": "b939e8f4be6c9f5dae2ba5e23ba3700d15c884e92e356c23f36e0c7590337120",
-          "size_bytes": 3778,
-          "recorded_mtime_utc": "2026-10-01T03:39:20.459678Z"
+          "sha256": "9d0eeb1024fe4b4a02a809e664f32ccbaa12842a1d1e48682649df8485f32214",
+          "size_bytes": 3795,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.804855Z"
         },
         "lib/poll_models/fp_model_data.py": {
-          "sha256": "9d4715700fcbf97a126c5d6c587511648af6e37d938d9fc49a58ad8715a8af5c",
-          "size_bytes": 64653,
-          "recorded_mtime_utc": "2026-10-01T03:39:14.414352Z"
+          "sha256": "fb840ba75317cbcd751d1b1b84b80eff6648549d3120ee61ba641dde86969d6d",
+          "size_bytes": 64693,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.816404Z"
         },
         "lib/poll_models/fp_model_outputs.py": {
-          "sha256": "1c9be4eb667f13a55636fa9a4d834ce7c876cf7ff10e732e431b9447ce2be2c0",
-          "size_bytes": 37020,
-          "recorded_mtime_utc": "2026-10-01T03:39:14.426355Z"
+          "sha256": "cef6fd02634d7c348b4765d5888759a9618f9763103df7a93ebf241f3639e51b",
+          "size_bytes": 37062,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.825415Z"
         },
         "lib/poll_models/fp_model_prepare.py": {
           "sha256": "3ee033b4b384dab15e7749f7a2c805f87d61f2f13d3b2fe7015c51fa2ad7f279",
@@ -996,14 +1071,19 @@
           "recorded_mtime_utc": "2026-10-01T03:39:14.434868Z"
         },
         "lib/poll_models/fp_model_runner.py": {
-          "sha256": "419a7507a58e980aacf0e210133a44a557e9b7c342f0712d870a4d96e8fbc922",
-          "size_bytes": 34690,
-          "recorded_mtime_utc": "2026-10-01T03:39:14.459381Z"
+          "sha256": "d77e590d908c1c2b0155392ef037b3080f466eb32bcaaf4cea708c2ef757963b",
+          "size_bytes": 34789,
+          "recorded_mtime_utc": "2026-10-01T05:04:09.659244Z"
         },
         "lib/poll_models/fp_model_stan.py": {
           "sha256": "ba2dee2ef1aefbbb9394bd423c49b9bc08ca020a2894e3c9ab52a7f601765c3a",
           "size_bytes": 5584,
           "recorded_mtime_utc": "2026-10-01T03:39:14.462381Z"
+        },
+        "scripts/pipeline/fp_model.py": {
+          "sha256": "c4a97ce3001f40d452f38dcfc22f3d34efd70e8ba2ebc323e4f760f7dfe12a19",
+          "size_bytes": 906,
+          "recorded_mtime_utc": "2026-10-01T04:50:15.514223Z"
         }
       },
       "events": [
@@ -1969,6 +2049,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050409Z-formatting-fp-model-script-b920ea5f",
+          "recorded_at_utc": "2026-10-01T05:04:09Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 14,
+          "provenance_revision": 20,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "fp_model.py",
+            "lib/poll_models/fp_model_constants.py",
+            "lib/poll_models/fp_model_data.py",
+            "lib/poll_models/fp_model_outputs.py",
+            "lib/poll_models/fp_model_runner.py",
+            "scripts/pipeline/fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 20
@@ -2108,15 +2212,15 @@
     "calibration_provenance_script": {
       "description": "Work-unit seeds, calibration provenance recording and legacy calibration baselining.",
       "file_patterns": [
-        "calibration_provenance.py"
+        "lib/provenance/calibration_provenance.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 5,
       "files": {
-        "calibration_provenance.py": {
-          "sha256": "e7be8e24bcc29793f87716b6af245b85c628ecea80d3d7bc0e0970d8051751c4",
-          "size_bytes": 21355,
-          "recorded_mtime_utc": "2026-10-01T03:42:17.564507Z"
+        "lib/provenance/calibration_provenance.py": {
+          "sha256": "3a24968c4bbc2ed939fe7c3fdb410d107e3896a601e45a79eb0593a3611b9c7b",
+          "size_bytes": 21363,
+          "recorded_mtime_utc": "2026-10-01T05:03:09.041110Z"
         }
       },
       "events": [
@@ -2472,6 +2576,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050409Z-formatting-calibration-provenance-script-43c476a8",
+          "recorded_at_utc": "2026-10-01T05:04:09Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 9,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "calibration_provenance.py",
+            "lib/provenance/calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 9
@@ -2479,7 +2603,7 @@
     "pollster_analysis_script": {
       "description": "Reduction of calibration evidence into compact election-level pollster parameters.",
       "file_patterns": [
-        "pollster_analysis.py",
+        "scripts/pipeline/pollster_analysis.py",
         "lib/pollster_analysis/pollster_analysis_common.py",
         "lib/pollster_analysis/pollster_analysis_evidence.py",
         "lib/pollster_analysis/pollster_analysis_variability.py",
@@ -2500,9 +2624,9 @@
           "recorded_mtime_utc": "2026-10-01T03:39:14.546898Z"
         },
         "lib/pollster_analysis/pollster_analysis_evidence.py": {
-          "sha256": "c9c8f10813f277e3d9fb83f74b82c710c6384bf9c58c4ac9071eaf7ae5e74bf3",
-          "size_bytes": 12591,
-          "recorded_mtime_utc": "2026-10-01T03:39:14.550898Z"
+          "sha256": "31fd9fb1d20cb42b47a5591faec3763f1f47d36c3ca01fc6b9e410383159ec6a",
+          "size_bytes": 12613,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.798855Z"
         },
         "lib/pollster_analysis/pollster_analysis_house_effects.py": {
           "sha256": "d6c219d512239b85382dc2c1f4b3a3089505e8a1c6558a3d928c87e0e408733e",
@@ -2514,10 +2638,10 @@
           "size_bytes": 4391,
           "recorded_mtime_utc": "2026-10-01T03:39:14.561894Z"
         },
-        "pollster_analysis.py": {
-          "sha256": "361fe633285aad02b88fc44e72e2d7fad5b82bd013c278de1f2fb5496e40ce27",
-          "size_bytes": 4464,
-          "recorded_mtime_utc": "2026-10-01T03:39:14.541904Z"
+        "scripts/pipeline/pollster_analysis.py": {
+          "sha256": "a6181790fc3d6afe9dc5ad4834da778e132af0753ee31673acd7981ea71b5654",
+          "size_bytes": 4595,
+          "recorded_mtime_utc": "2026-10-01T05:03:05.859920Z"
         }
       },
       "events": [
@@ -2778,6 +2902,27 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050409Z-formatting-pollster-analysis-script-f9953c1d",
+          "recorded_at_utc": "2026-10-01T05:04:09Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 6,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "lib/pollster_analysis/pollster_analysis_evidence.py",
+            "pollster_analysis.py",
+            "scripts/pipeline/pollster_analysis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 6
@@ -2785,15 +2930,15 @@
     "pollster_analysis_provenance_script": {
       "description": "Dependency selection and bundled provenance recording for pollster-analysis outputs.",
       "file_patterns": [
-        "pollster_analysis_provenance.py"
+        "lib/provenance/pollster_analysis_provenance.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 2,
       "files": {
-        "pollster_analysis_provenance.py": {
-          "sha256": "9c6a893581d45f7f56c70fa9e8a40844f75636b5d646c5d67e47e93af608af41",
-          "size_bytes": 18082,
-          "recorded_mtime_utc": "2026-08-02T23:52:38.641430Z"
+        "lib/provenance/pollster_analysis_provenance.py": {
+          "sha256": "9332dc8457f4cbfac77cacf6332f9dea27a0f941755a4ed198a132e95a805e36",
+          "size_bytes": 18090,
+          "recorded_mtime_utc": "2026-10-01T05:03:09.043111Z"
         }
       },
       "events": [
@@ -2990,6 +3135,26 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20261001T050409Z-formatting-pollster-analysis-provenance-script-74af8b89",
+          "recorded_at_utc": "2026-10-01T05:04:09Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 6,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "lib/provenance/pollster_analysis_provenance.py",
+            "pollster_analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 6
@@ -2997,15 +3162,15 @@
     "fp_model_provenance_script": {
       "description": "Dependency selection and bundled provenance recording for voting-intention-only poll trends.",
       "file_patterns": [
-        "fp_model_provenance.py"
+        "lib/provenance/fp_model_provenance.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 5,
       "files": {
-        "fp_model_provenance.py": {
-          "sha256": "2ea775be4fc8edba1c120f0d94091c6d6ed6053164554d80f290e2e4f275b9cb",
-          "size_bytes": 53373,
-          "recorded_mtime_utc": "2026-10-01T03:42:17.566011Z"
+        "lib/provenance/fp_model_provenance.py": {
+          "sha256": "6cae0086a1b03560e1408ba2e0b80f65b19fe820729d4ec63f490e1131b353c8",
+          "size_bytes": 53401,
+          "recorded_mtime_utc": "2026-10-01T05:03:09.042110Z"
         }
       },
       "events": [
@@ -3494,6 +3659,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050409Z-formatting-fp-model-provenance-script-8b47cc10",
+          "recorded_at_utc": "2026-10-01T05:04:09Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 6,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "fp_model_provenance.py",
+            "lib/provenance/fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 6
@@ -3501,15 +3686,15 @@
     "approvals_script": {
       "description": "Synthetic TPP regression from leader approval observations and pure TPP trends.",
       "file_patterns": [
-        "approvals.py"
+        "scripts/pipeline/approvals.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 2,
       "files": {
-        "approvals.py": {
-          "sha256": "f789d3c01cd18cf2f762f9705a27a2485baa9c8b7314bf0fbcf5cf641ee94356",
-          "size_bytes": 19742,
-          "recorded_mtime_utc": "2026-08-02T08:09:06.469041Z"
+        "scripts/pipeline/approvals.py": {
+          "sha256": "08703f8976ce0589badc9bdbfe1c40705695a31afa3f2cb2408aae3f9cf46dec",
+          "size_bytes": 19803,
+          "recorded_mtime_utc": "2026-10-01T05:03:09.045112Z"
         }
       },
       "events": [
@@ -3660,6 +3845,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-approvals-script-4ddc5c8d",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "approvals.py",
+            "scripts/pipeline/approvals.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 2
@@ -3667,15 +3872,15 @@
     "approvals_provenance_script": {
       "description": "Synthetic-TPP dependency selection, bundled provenance recording and legacy baselining.",
       "file_patterns": [
-        "approvals_provenance.py"
+        "lib/provenance/approvals_provenance.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 2,
       "files": {
-        "approvals_provenance.py": {
-          "sha256": "f0ff50aad7e7fa568d815c729b2aeb14b1f0cb064ee1b9971ce33c6102b6bb5f",
-          "size_bytes": 14096,
-          "recorded_mtime_utc": "2026-10-01T03:42:17.563507Z"
+        "lib/provenance/approvals_provenance.py": {
+          "sha256": "3ce18083e25462f82f1c93912b0704c67607070b3a09da641064bff1303e4609",
+          "size_bytes": 14104,
+          "recorded_mtime_utc": "2026-10-01T05:03:08.961390Z"
         }
       },
       "events": [
@@ -3844,6 +4049,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-approvals-provenance-script-9fbe4568",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "approvals_provenance.py",
+            "lib/provenance/approvals_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 2
@@ -3851,7 +4076,7 @@
     "region_model_script": {
       "description": "Election-specific regional poll preparation, Stan execution and swing-deviation output.",
       "file_patterns": [
-        "region_model.py",
+        "scripts/pipeline/region_model.py",
         "lib/regional_models/region_model_common.py",
         "lib/regional_models/region_model_stan.py",
         "lib/regional_models/region_model_mappings.py"
@@ -3874,10 +4099,10 @@
           "size_bytes": 3017,
           "recorded_mtime_utc": "2026-10-01T03:39:14.589932Z"
         },
-        "region_model.py": {
-          "sha256": "33e59ef67032648dc27f33f8fc3a90c3a696cc55ebdbf8b57275c7bff4c040f2",
-          "size_bytes": 3727,
-          "recorded_mtime_utc": "2026-10-01T03:39:14.574930Z"
+        "scripts/pipeline/region_model.py": {
+          "sha256": "97febc6f92f12bdea90ac6a092c520fb886d6fa46866d2b71c1666ad988eed2c",
+          "size_bytes": 3806,
+          "recorded_mtime_utc": "2026-10-01T05:03:35.232845Z"
         }
       },
       "events": [
@@ -4068,6 +4293,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-region-model-script-b4ba893f",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "region_model.py",
+            "scripts/pipeline/region_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 3
@@ -4075,15 +4320,15 @@
     "region_model_provenance_script": {
       "description": "Work-unit discovery and bundled provenance recording for regional swing models.",
       "file_patterns": [
-        "region_model_provenance.py"
+        "lib/provenance/region_model_provenance.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "region_model_provenance.py": {
-          "sha256": "8a1f293214a49069aee663fbd92797ce802dad8e80f0dfb644d9a5329a11561f",
-          "size_bytes": 9884,
-          "recorded_mtime_utc": "2026-08-02T08:14:05.431834Z"
+        "lib/provenance/region_model_provenance.py": {
+          "sha256": "55de2d3f4432e6c7c05b72112b2b7fd88d423ea2ba70f3529b875b4ec7818281",
+          "size_bytes": 9892,
+          "recorded_mtime_utc": "2026-10-01T05:03:09.043111Z"
         }
       },
       "events": [
@@ -4159,6 +4404,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-region-model-provenance-script-4023bb17",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "lib/provenance/region_model_provenance.py",
+            "region_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -4166,7 +4431,7 @@
     "trend_adjust_script": {
       "description": "Fundamentals regression and historical trend-adjustment calibration.",
       "file_patterns": [
-        "trend_adjust.py",
+        "scripts/pipeline/trend_adjust.py",
         "lib/trend_adjustments/trend_adjust_data.py",
         "lib/trend_adjustments/trend_adjust_fundamentals.py",
         "lib/trend_adjustments/trend_adjust_io.py",
@@ -4195,10 +4460,10 @@
           "size_bytes": 26635,
           "recorded_mtime_utc": "2026-10-01T03:39:14.645977Z"
         },
-        "trend_adjust.py": {
-          "sha256": "e047f3eedf0d9fdd7c78503a9aac596a63db92be34a6a54aa88d0556a847ea67",
-          "size_bytes": 12289,
-          "recorded_mtime_utc": "2026-10-01T03:39:14.616938Z"
+        "scripts/pipeline/trend_adjust.py": {
+          "sha256": "3269f98bd8859761c09b368a45f11bb105670e574f335c25ea7c5963c1837137",
+          "size_bytes": 12400,
+          "recorded_mtime_utc": "2026-10-01T05:03:06.423013Z"
         }
       },
       "events": [
@@ -4495,6 +4760,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-trend-adjust-script-13d462a6",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 8,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "scripts/pipeline/trend_adjust.py",
+            "trend_adjust.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 8
@@ -4502,15 +4787,15 @@
     "trend_adjust_provenance_script": {
       "description": "Dependency selection and bundled provenance recording for fundamentals and trend adjustments.",
       "file_patterns": [
-        "trend_adjust_provenance.py"
+        "lib/provenance/trend_adjust_provenance.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "trend_adjust_provenance.py": {
-          "sha256": "cf8d1e26f1b437e0704ead065938400aed8ea854ceaa8d9f959d3bba3877100a",
-          "size_bytes": 15340,
-          "recorded_mtime_utc": "2026-09-01T10:47:11.832956Z"
+        "lib/provenance/trend_adjust_provenance.py": {
+          "sha256": "d9f4fad807c0e8c5e05695b75037a522fffe5378981d8659e1c5ae1b55139783",
+          "size_bytes": 15348,
+          "recorded_mtime_utc": "2026-10-01T05:03:09.044112Z"
         }
       },
       "events": [
@@ -4680,6 +4965,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-trend-adjust-provenance-script-94181a80",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 2,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "lib/provenance/trend_adjust_provenance.py",
+            "trend_adjust_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 2
@@ -4799,15 +5104,15 @@
     "fp_model_console_wrapper": {
       "description": "Argument-compatible fp_model launcher that filters repetitive Stan timing output.",
       "file_patterns": [
-        "run_fp_model.py"
+        "scripts/pipeline/run_fp_model.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "run_fp_model.py": {
-          "sha256": "64520ca2a5f4a6526d3a7acc4aec76ff4f403145db609a480a9953e8a3ba315f",
-          "size_bytes": 7497,
-          "recorded_mtime_utc": "2026-08-02T08:07:20.448136Z"
+        "scripts/pipeline/run_fp_model.py": {
+          "sha256": "abe6c2400a74e9123252b07adec9dbffa8e3623c357f6080be68df189ce99469",
+          "size_bytes": 7456,
+          "recorded_mtime_utc": "2026-10-01T04:50:15.517222Z"
         }
       },
       "events": [
@@ -4901,6 +5206,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-fp-model-console-wrapper-a0d4044f",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "run_fp_model.py",
+            "scripts/pipeline/run_fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -4910,23 +5235,24 @@
       "file_patterns": [
         "pipeline.py",
         "lib/orchestration/generated_data_archive.py",
-        "pipeline_registry.py",
+        "lib/orchestration/pipeline_registry.py",
         "pipeline_registry.json",
         "analysis_provenance.py",
         "lib/shared/election_catalogue.py",
         "lib/orchestration/provenance_maintenance.py",
         "lib/orchestration/required_work.py",
         "lib/paths.py",
-        "lib/**/__init__.py"
+        "lib/**/__init__.py",
+        "scripts/**/__init__.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 6,
       "provenance_revision": 45,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "4135b5b1cf78ca484ddf1602664bd6b0f46be1e95d7cdd788875549149cfdc15",
-          "size_bytes": 133737,
-          "recorded_mtime_utc": "2026-10-01T03:42:17.562508Z"
+          "sha256": "cd5b715f77cdc389c24eca0306ae052c51925dc0ec6da54fd5d5a4467a0277bc",
+          "size_bytes": 133920,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.731837Z"
         },
         "lib/__init__.py": {
           "sha256": "ee3293d28006d6db658657b690a444ce3e76d244d4cec783a2ee351ca23dd38f",
@@ -4938,20 +5264,30 @@
           "size_bytes": 86,
           "recorded_mtime_utc": "2026-10-01T03:39:15.119357Z"
         },
+        "lib/elections/__init__.py": {
+          "sha256": "d30f97119ad0e36b9f1fd52fcae6097b1b207747d0c17933368fd996ce1f7b8f",
+          "size_bytes": 65,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.671838Z"
+        },
         "lib/orchestration/__init__.py": {
           "sha256": "ee3293d28006d6db658657b690a444ce3e76d244d4cec783a2ee351ca23dd38f",
           "size_bytes": 86,
           "recorded_mtime_utc": "2026-10-01T03:39:15.120363Z"
         },
         "lib/orchestration/generated_data_archive.py": {
-          "sha256": "8e513138eda024fd3d562353983b78cbf12071512d83c121fb47a122bfeca175",
-          "size_bytes": 24422,
-          "recorded_mtime_utc": "2026-09-03T11:43:24.915182Z"
+          "sha256": "3520a91f632332d83b118f9c11707cbafa5647186be64b686e5fb97f8e6891fe",
+          "size_bytes": 24442,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.785839Z"
+        },
+        "lib/orchestration/pipeline_registry.py": {
+          "sha256": "c126daec0ec20445e17c7747462ee991b158fa16f85e7acc9d7ee441e1eb3fff",
+          "size_bytes": 21913,
+          "recorded_mtime_utc": "2026-10-01T04:50:15.493222Z"
         },
         "lib/orchestration/provenance_maintenance.py": {
-          "sha256": "19ec7568a84a20111194886f97512aff926e9141f5b67695f21b202e193ebdc8",
-          "size_bytes": 11539,
-          "recorded_mtime_utc": "2026-10-01T03:42:17.570015Z"
+          "sha256": "f79c56b4b322261ff4c0e9359621ed38bec06f93eec2089798d026577a82e14a",
+          "size_bytes": 11599,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.792855Z"
         },
         "lib/orchestration/required_work.py": {
           "sha256": "0035df24095ebc431df6a00b4f6a3e1550ee19b6d24d9ba4425a67c84a37262e",
@@ -4999,19 +5335,49 @@
           "recorded_mtime_utc": "2026-10-01T03:39:15.122363Z"
         },
         "pipeline.py": {
-          "sha256": "7e9dedfc750ba814c017fa652540890ea7c494e9262faf224d683984954368c3",
-          "size_bytes": 95296,
-          "recorded_mtime_utc": "2026-10-01T03:39:14.530898Z"
+          "sha256": "fd31da7989a5840475b3383821a81f60905ca526b54cb7e5f840914b1bb01121",
+          "size_bytes": 95359,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.749846Z"
         },
         "pipeline_registry.json": {
-          "sha256": "a25e3bcbf93e4b297ab40abc1b5cee051079ee943a3b1d75323faf1ee5e96bbe",
-          "size_bytes": 46545,
-          "recorded_mtime_utc": "2026-10-01T03:40:34.873236Z"
+          "sha256": "9c3c2ef114f8926ed0cd0034b90edff741ec5d37cbb32334bbc15490d5b9bc17",
+          "size_bytes": 47469,
+          "recorded_mtime_utc": "2026-10-01T04:46:47.501500Z"
         },
-        "pipeline_registry.py": {
-          "sha256": "7384ead0eb727880bde6e048eee280344c1ad8e8abc55b2aa235609e4ef81f9b",
-          "size_bytes": 21039,
-          "recorded_mtime_utc": "2026-08-02T08:12:56.808701Z"
+        "scripts/__init__.py": {
+          "sha256": "d30f97119ad0e36b9f1fd52fcae6097b1b207747d0c17933368fd996ce1f7b8f",
+          "size_bytes": 65,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.671838Z"
+        },
+        "scripts/diagnostics/__init__.py": {
+          "sha256": "d30f97119ad0e36b9f1fd52fcae6097b1b207747d0c17933368fd996ce1f7b8f",
+          "size_bytes": 65,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.675838Z"
+        },
+        "scripts/elections/__init__.py": {
+          "sha256": "d30f97119ad0e36b9f1fd52fcae6097b1b207747d0c17933368fd996ce1f7b8f",
+          "size_bytes": 65,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.672838Z"
+        },
+        "scripts/exploratory/__init__.py": {
+          "sha256": "d30f97119ad0e36b9f1fd52fcae6097b1b207747d0c17933368fd996ce1f7b8f",
+          "size_bytes": 65,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.675838Z"
+        },
+        "scripts/maintenance/__init__.py": {
+          "sha256": "d30f97119ad0e36b9f1fd52fcae6097b1b207747d0c17933368fd996ce1f7b8f",
+          "size_bytes": 65,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.674838Z"
+        },
+        "scripts/pipeline/__init__.py": {
+          "sha256": "d30f97119ad0e36b9f1fd52fcae6097b1b207747d0c17933368fd996ce1f7b8f",
+          "size_bytes": 65,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.672838Z"
+        },
+        "scripts/turnout/__init__.py": {
+          "sha256": "d30f97119ad0e36b9f1fd52fcae6097b1b207747d0c17933368fd996ce1f7b8f",
+          "size_bytes": 65,
+          "recorded_mtime_utc": "2026-10-01T04:53:31.092087Z"
         }
       },
       "events": [
@@ -7042,34 +7408,67 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-pipeline-orchestration-tools-d5fb7fb3",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "analysis_provenance.py",
+            "lib/elections/__init__.py",
+            "lib/orchestration/generated_data_archive.py",
+            "lib/orchestration/pipeline_registry.py",
+            "lib/orchestration/provenance_maintenance.py",
+            "pipeline.py",
+            "pipeline_registry.json",
+            "pipeline_registry.py",
+            "scripts/__init__.py",
+            "scripts/diagnostics/__init__.py",
+            "scripts/elections/__init__.py",
+            "scripts/exploratory/__init__.py",
+            "scripts/maintenance/__init__.py",
+            "scripts/pipeline/__init__.py",
+            "scripts/turnout/__init__.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },
     "provenance_core_tools": {
       "description": "Shared source and generated-data fingerprinting, validation and dependency-checking utilities.",
       "file_patterns": [
-        "source_provenance.py",
+        "lib/provenance/source_provenance.py",
         "source_provenance.schema.json",
-        "generated_provenance.py",
+        "lib/provenance/generated_provenance.py",
         "generated_provenance.schema.json"
       ],
       "exclude_patterns": [],
       "semantic_revision": 2,
       "files": {
-        "generated_provenance.py": {
-          "sha256": "cb09271b5caf1496ba592c27fd26fb12e850ae2db8fa96048f081c0791afebcf",
-          "size_bytes": 60425,
-          "recorded_mtime_utc": "2026-08-06T22:50:36.736979Z"
-        },
         "generated_provenance.schema.json": {
           "sha256": "4bfa4612d5cb23717b5da23280e8997bf40ed0182f4c163ac504a41479e8e6b3",
           "size_bytes": 7380,
           "recorded_mtime_utc": "2026-07-27T00:11:25.197301Z"
         },
-        "source_provenance.py": {
-          "sha256": "e128020e25db9df06dfc6a0ecde0a8e7f3333fd6503542ccd597b1260c63bf93",
-          "size_bytes": 45238,
-          "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
+        "lib/provenance/generated_provenance.py": {
+          "sha256": "91ad543f65ce1a289516aa7a56a8664c3d6b243767050fcd24c9140e70f6f7a9",
+          "size_bytes": 61507,
+          "recorded_mtime_utc": "2026-10-01T05:03:05.310632Z"
+        },
+        "lib/provenance/source_provenance.py": {
+          "sha256": "5c49a5b34ffa8709509f5554c0835b898f23f787e20fadcce2390fed4227be1a",
+          "size_bytes": 45274,
+          "recorded_mtime_utc": "2026-10-01T04:50:15.485221Z"
         },
         "source_provenance.schema.json": {
           "sha256": "6d4f145bbc2a23372ec0a692cc202cc9351deb759ce7892549188c16f7a1e2b4",
@@ -7500,6 +7899,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-provenance-core-tools-c3db5329",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 14,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "generated_provenance.py",
+            "lib/provenance/generated_provenance.py",
+            "lib/provenance/source_provenance.py",
+            "source_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 14
@@ -7601,15 +8022,15 @@
     "federal_state_script": {
       "description": "Federal booth-to-state-seat comparison, local exceptions and manual fTransposedFederalSwing diagnostics.",
       "file_patterns": [
-        "federal_state.py"
+        "scripts/elections/federal_state.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 2,
       "files": {
-        "federal_state.py": {
-          "sha256": "82f2873d686c9630809e6068e4741ad1fe66a860a4e902dd1dbf3bbe3c56498e",
-          "size_bytes": 41530,
-          "recorded_mtime_utc": "2026-08-02T08:14:40.338567Z"
+        "scripts/elections/federal_state.py": {
+          "sha256": "52c8bfb2217aeca4d8893ca6e91638140abb31cc5fcfbd8ee673d658e1b5445f",
+          "size_bytes": 42318,
+          "recorded_mtime_utc": "2026-10-01T04:50:15.526222Z"
         }
       },
       "events": [
@@ -7687,6 +8108,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-federal-state-script-740c5518",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "federal_state.py",
+            "scripts/elections/federal_state.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 2
@@ -7694,15 +8135,15 @@
     "calibration_summary_script": {
       "description": "Strict compact CSV generation from detailed calibration outputs.",
       "file_patterns": [
-        "calibration_summary.py"
+        "scripts/pipeline/calibration_summary.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 7,
       "files": {
-        "calibration_summary.py": {
-          "sha256": "ad372cce8d838f7db6a312a25b21de477891921edc92b07d9dc096f99ddf77b3",
-          "size_bytes": 50680,
-          "recorded_mtime_utc": "2026-08-08T07:50:06.739942Z"
+        "scripts/pipeline/calibration_summary.py": {
+          "sha256": "71239575ba3c9abde53d8282354a8a9b5afe46c49d1886903d25811c254831c5",
+          "size_bytes": 50760,
+          "recorded_mtime_utc": "2026-10-01T05:03:09.046112Z"
         }
       },
       "events": [
@@ -7946,6 +8387,26 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20261001T050410Z-formatting-calibration-summary-script-9fc0d8fe",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 7,
+          "provenance_revision": 9,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "calibration_summary.py",
+            "scripts/pipeline/calibration_summary.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 9
@@ -7953,15 +8414,15 @@
     "calibration_summary_provenance_script": {
       "description": "Generated provenance recording for compact calibration summaries.",
       "file_patterns": [
-        "calibration_summary_provenance.py"
+        "lib/provenance/calibration_summary_provenance.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 3,
       "files": {
-        "calibration_summary_provenance.py": {
-          "sha256": "65f64712eb21ac4a017954dbf62ea4a1227ea52f66dd72758061f0c93f3737f3",
-          "size_bytes": 19167,
-          "recorded_mtime_utc": "2026-08-08T07:47:55.464441Z"
+        "lib/provenance/calibration_summary_provenance.py": {
+          "sha256": "bbf69b7ff79ae9b23df9dfc3831186ed024531a118b1b23b20839d3985df29fb",
+          "size_bytes": 19195,
+          "recorded_mtime_utc": "2026-10-01T05:03:09.042110Z"
         }
       },
       "events": [
@@ -8184,6 +8645,26 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20261001T050410Z-formatting-calibration-summary-provenance-script-12486d7c",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 7,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "calibration_summary_provenance.py",
+            "lib/provenance/calibration_summary_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 7
@@ -8266,21 +8747,21 @@
     "fp_model_diagnostic_tools": {
       "description": "Standalone exact and Stan diagnostics for fp-model prior chains and low-share transforms.",
       "file_patterns": [
-        "prior_chain_diagnostic.py",
-        "low_share_diagnostic.py"
+        "scripts/diagnostics/prior_chain_diagnostic.py",
+        "scripts/diagnostics/low_share_diagnostic.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "low_share_diagnostic.py": {
-          "sha256": "f3c089127bc9365396843293a2dfecf22bed9223b78d54349985194cdcbeaf34",
-          "size_bytes": 17025,
-          "recorded_mtime_utc": "2026-10-01T03:39:14.497894Z"
+        "scripts/diagnostics/low_share_diagnostic.py": {
+          "sha256": "cb82ebc92bb843dd62b7279784d52148243d01a471aba850b95850c71b3b1958",
+          "size_bytes": 17063,
+          "recorded_mtime_utc": "2026-10-01T04:50:15.608945Z"
         },
-        "prior_chain_diagnostic.py": {
-          "sha256": "e1eeafaf25bd8e4fa6badb7e933732db6bfd82c23c675b196638390092d23839",
-          "size_bytes": 21980,
-          "recorded_mtime_utc": "2026-10-01T03:39:14.569895Z"
+        "scripts/diagnostics/prior_chain_diagnostic.py": {
+          "sha256": "77e27942c2eac1790b0164b172a4f534357895517ec775d7df4b95da9b2a0e59",
+          "size_bytes": 22018,
+          "recorded_mtime_utc": "2026-10-01T04:50:15.611945Z"
         }
       },
       "events": [
@@ -8341,6 +8822,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-fp-model-diagnostic-tools-1fb5b8c0",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "low_share_diagnostic.py",
+            "prior_chain_diagnostic.py",
+            "scripts/diagnostics/low_share_diagnostic.py",
+            "scripts/diagnostics/prior_chain_diagnostic.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -8348,15 +8851,15 @@
     "booth_result_dispatcher_script": {
       "description": "Election-scoped booth-result generation dispatcher.",
       "file_patterns": [
-        "fetch_booth_results.py"
+        "scripts/elections/fetch_booth_results.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "fetch_booth_results.py": {
-          "sha256": "a06d58cc392d85aba2e352cf7e90d91d712ada089954380123b23f2edcbe3f7e",
-          "size_bytes": 1471,
-          "recorded_mtime_utc": "2026-10-01T03:39:14.366764Z"
+        "scripts/elections/fetch_booth_results.py": {
+          "sha256": "dcb9d73d99061b95f5432a3b5a74ed2da5aa1055c70225c1131172a1666e3112",
+          "size_bytes": 1556,
+          "recorded_mtime_utc": "2026-10-01T05:03:07.058678Z"
         }
       },
       "events": [
@@ -8396,6 +8899,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-booth-result-dispatcher-script-7b361dde",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "fetch_booth_results.py",
+            "scripts/elections/fetch_booth_results.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -8409,9 +8932,9 @@
       "semantic_revision": 1,
       "files": {
         "lib/provenance/booth_result_provenance.py": {
-          "sha256": "2ade25caa64a8522a38d3583f018ca9bde90563c7765bb6a5e3dfea3d78d48ac",
-          "size_bytes": 4429,
-          "recorded_mtime_utc": "2026-10-01T03:42:17.570015Z"
+          "sha256": "1d5ab839578e62dd6b897e3f6930c473b8dc32f9766fda497c5651f11cbd61a7",
+          "size_bytes": 4449,
+          "recorded_mtime_utc": "2026-10-01T05:03:09.040111Z"
         }
       },
       "events": [
@@ -8452,6 +8975,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-booth-result-provenance-script-ab6e25b1",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "lib/provenance/booth_result_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -8459,15 +9001,15 @@
     "booth_result_nsw_script": {
       "description": "NSW archived booth-result scraper.",
       "file_patterns": [
-        "fetch_election_data_nsw.py"
+        "scripts/elections/fetch_election_data_nsw.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 3,
       "files": {
-        "fetch_election_data_nsw.py": {
+        "scripts/elections/fetch_election_data_nsw.py": {
           "sha256": "cdc06d080886c55f8032aa4a73d08c678deb412e22d72904c73d68f69e81beae",
           "size_bytes": 12010,
-          "recorded_mtime_utc": "2026-09-03T06:04:21.436528Z"
+          "recorded_mtime_utc": "2026-10-01T04:50:15.531222Z"
         }
       },
       "events": [
@@ -8536,6 +9078,26 @@
               "fetch_live_booth_results"
             ]
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-booth-result-nsw-script-d6cc89b4",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "fetch_election_data_nsw.py",
+            "scripts/elections/fetch_election_data_nsw.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 3
@@ -8543,15 +9105,15 @@
     "booth_result_vic_script": {
       "description": "Victorian archived booth-result scraper.",
       "file_patterns": [
-        "fetch_election_data_vic.py"
+        "scripts/elections/fetch_election_data_vic.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 5,
       "files": {
-        "fetch_election_data_vic.py": {
+        "scripts/elections/fetch_election_data_vic.py": {
           "sha256": "5dc2e43ff64c58d5ffe41a299a46c531167cef5dbba7cfdce1a1a78a25994284",
           "size_bytes": 14837,
-          "recorded_mtime_utc": "2026-09-03T06:07:07.270700Z"
+          "recorded_mtime_utc": "2026-10-01T04:50:15.539225Z"
         }
       },
       "events": [
@@ -8664,6 +9226,26 @@
               "fetch_live_booth_results"
             ]
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-booth-result-vic-script-92ed6f7f",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 5,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "fetch_election_data_vic.py",
+            "scripts/elections/fetch_election_data_vic.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 5
@@ -8671,15 +9253,15 @@
     "booth_result_qld_script": {
       "description": "Queensland archived booth-result scraper.",
       "file_patterns": [
-        "fetch_election_data_qld.py"
+        "scripts/elections/fetch_election_data_qld.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 7,
       "files": {
-        "fetch_election_data_qld.py": {
+        "scripts/elections/fetch_election_data_qld.py": {
           "sha256": "2ef2cfacd5d6b6f9795a738fc600aefa5d988952822a200161b48ebba3b7ad16",
           "size_bytes": 7573,
-          "recorded_mtime_utc": "2026-09-03T07:06:03.043081Z"
+          "recorded_mtime_utc": "2026-10-01T04:50:15.533221Z"
         }
       },
       "events": [
@@ -8861,6 +9443,26 @@
               "fetch_live_booth_results"
             ]
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-booth-result-qld-script-c4b19408",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 7,
+          "provenance_revision": 7,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "fetch_election_data_qld.py",
+            "scripts/elections/fetch_election_data_qld.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 7
@@ -8868,15 +9470,15 @@
     "booth_result_sa_script": {
       "description": "South Australian archived booth CSV converter.",
       "file_patterns": [
-        "fetch_election_data_sa.py"
+        "scripts/elections/fetch_election_data_sa.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
       "files": {
-        "fetch_election_data_sa.py": {
-          "sha256": "ee5606216c4eff12477478b84fe20c71b89c1a2fdacd06c1cd9f01151331301e",
-          "size_bytes": 9127,
-          "recorded_mtime_utc": "2026-09-03T05:50:31.264158Z"
+        "scripts/elections/fetch_election_data_sa.py": {
+          "sha256": "6c2f1333fb6120c1bfdbbb24524d03e572632850f62f11a4a460ff36c9aec316",
+          "size_bytes": 9115,
+          "recorded_mtime_utc": "2026-10-01T04:50:15.535222Z"
         }
       },
       "events": [
@@ -8897,8 +9499,29 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261001T050410Z-formatting-booth-result-sa-script-6a8a6b66",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
+            "fetch_election_data_sa.py",
+            "scripts/elections/fetch_election_data_sa.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     },
     "federal_regional_provenance_script": {
       "description": "Supported federal regional-statistics work units and output definitions.",
@@ -8909,9 +9532,9 @@
       "semantic_revision": 1,
       "files": {
         "lib/provenance/federal_regional_provenance.py": {
-          "sha256": "adbdd70fbb962c3a049e96068505a798dbda002b86a220ad2ebb133401ccf3c8",
-          "size_bytes": 1304,
-          "recorded_mtime_utc": "2026-10-01T03:39:19.763048Z"
+          "sha256": "7b22243138e208201afb6fe2e7da413d1dc3f977552de1136328bf94f8e2e254",
+          "size_bytes": 1324,
+          "recorded_mtime_utc": "2026-10-01T04:46:46.850925Z"
         }
       },
       "events": [
@@ -8944,6 +9567,25 @@
           "summary": "Relocate 36 internal modules into analysis/lib feature packages; update imports, fingerprint paths and analysis-root anchors, and retain legacy ElectionCode cache loading. Numerical algorithms, source semantic revisions and generated content are unchanged.",
           "files": [
             "federal_regional_provenance.py",
+            "lib/provenance/federal_regional_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261001T050410Z-formatting-federal-regional-provenance-script-b7b8947e",
+          "recorded_at_utc": "2026-10-01T05:04:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
+          "files": [
             "lib/provenance/federal_regional_provenance.py"
           ],
           "scope": {

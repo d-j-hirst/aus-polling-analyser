@@ -26,15 +26,16 @@ stderr so stdout stays machine-readable.
 Run these commands from `analysis/`:
 
 ```bash
-python3 pipeline_registry.py
-python3 pipeline_registry.py --check-paths
+python3 -m lib.orchestration.pipeline_registry
+python3 -m lib.orchestration.pipeline_registry --check-paths
 ```
 
 The first command validates category references, producers and the strict
 dependency graph. The second also checks that every authored input pattern
 currently matches at least one file.
 
-Runnable stages contain an `execution` object with a script, argument array,
+Runnable stages contain an `execution` object with a module (or a standalone
+script), argument array,
 working directory, task scope and run class. The orchestrator prepends the
 active Python interpreter and invokes the array without a shell.
 Placeholders such as `{election_cli}` are validated before execution. A null
@@ -104,7 +105,7 @@ All required generated categories + forecast seat files
 ```
 
 The live booth-result scrapers are recorded separately because they are not
-required for an ordinary forecast. `federal_state.py` is also outside routine
+required for an ordinary forecast. `scripts/elections/federal_state.py` is also outside routine
 forecast execution, but its results feed authored state seat configuration.
 
 ## Strict Regeneration Sequence
@@ -112,28 +113,28 @@ forecast execution, but its results feed authored state seat configuration.
 Independent stages in this list may run concurrently. The registry validator is
 the authoritative source if this order changes.
 
-1. Cache historical election results with `election_data.py`.
-2. Export checked election-result CSVs with `election_store.py`.
+1. Cache historical election results with `lib/elections/election_data.py`.
+2. Export checked election-result CSVs with `lib/elections/election_store.py`.
 3. Generate seat, Coalition-allocation and federal regional statistics with
-   `election_analysis.py`.
+   `scripts/pipeline/election_analysis.py`.
 4. Run leave-one-pollster-out calibration with
-   `fp_model.py --calibrate`; this writes a durable abridged leave-one-out
+   `scripts/pipeline/fp_model.py --calibrate`; this writes a durable abridged leave-one-out
    component under `Outputs/Calibration/Components/`.
-5. Run bias calibration with `fp_model.py --bias`; this writes a durable
+5. Run bias calibration with `scripts/pipeline/fp_model.py --bias`; this writes a durable
    abridged bias component. It does not publish Summaries.
-6. Merge Components into election Summaries with `calibration_summary.py`
+6. Merge Components into election Summaries with `scripts/pipeline/calibration_summary.py`
    (also used to compact retained detailed archives without rerunning Stan).
-7. Reduce calibration output with `pollster_analysis.py`.
-8. Generate voting-intention-only trends with `fp_model.py --pure`.
-9. Generate normal poll trends with `fp_model.py`; this invokes the approval
+7. Reduce calibration output with `scripts/pipeline/pollster_analysis.py`.
+8. Generate voting-intention-only trends with `scripts/pipeline/fp_model.py --pure`.
+9. Generate normal poll trends with `scripts/pipeline/fp_model.py`; this invokes the approval
    analysis and passes synthetic TPP observations directly to the model.
 10. Generate historical point-in-time fits with
-    `fp_model.py --cutoff`.
-11. Generate adjustments and fundamentals with `trend_adjust.py`.
+    `scripts/pipeline/fp_model.py --cutoff`.
+11. Generate adjustments and fundamentals with `scripts/pipeline/trend_adjust.py`.
 12. Generate election-specific regional swing deviations with
-    `region_model.py`.
+    `scripts/pipeline/region_model.py`.
 
-`fp_model.py` remains the CLI entry point; implementation is split across
+`scripts/pipeline/fp_model.py` remains the CLI entry point; implementation is split across
 `fp_model_constants.py`, `fp_model_data.py`, `fp_model_prepare.py`,
 `fp_model_stan.py`, `fp_model_outputs.py` and `fp_model_runner.py`. The
 unnamed-Others soft-tail adjustment is applied during output reduction only.
@@ -239,7 +240,7 @@ python3 pipeline.py run --profile all
   metadata maintenance. It does not accept `--election` and requires typing
   `RUN ALL GENERATION` exactly before execution.
 
-`fp_model.py --cutoff` keeps the previously certified consolidated election
+`scripts/pipeline/fp_model.py --cutoff` keeps the previously certified consolidated election
 file untouched while writing a `.in-progress` draft. A JSON sidecar binds that
 draft to the model/input fingerprints, seed namespace, expected endpoints,
 party layout and percentile schema. A new process resumes matching complete
@@ -380,7 +381,7 @@ metadata upgrades and writes a complete current record.
 Detailed calibration trends currently dominate analysis storage. Compact
 election summaries now preserve the leave-one-out errors, bias-trend medians,
 house effects and recent poll counts needed for a later reducer migration.
-`pollster_analysis.py` now loads typed calibration evidence. It prefers a
+`scripts/pipeline/pollster_analysis.py` now loads typed calibration evidence. It prefers a
 complete `Summaries/<election>.csv` unit where available and reads the detailed
 compatibility files only for elections without a compact unit. Detailed traces
 remain necessary as the legacy fallback until the historical archive has been
@@ -432,7 +433,7 @@ supported work unit until a reproducible generator is added.
 ## Source Provenance
 
 `source_provenance.schema.json` defines the versioned format for authored
-source manifests. `source_provenance.py` validates and updates those manifests
+source manifests. `lib/provenance/source_provenance.py` validates and updates those manifests
 using only the Python standard library.
 
 Source manifests are intended to be committed to Git, with one manifest per
@@ -465,10 +466,10 @@ introduced.
 Create a manifest and record a category baseline:
 
 ```bash
-python3 source_provenance.py init Data/provenance.json \
+python3 -m lib.provenance.source_provenance init Data/provenance.json \
   --description "Authored polling and election inputs."
 
-python3 source_provenance.py add-category Data/provenance.json raw_poll_data \
+python3 -m lib.provenance.source_provenance add-category Data/provenance.json raw_poll_data \
   --description "Raw polling observations." \
   --pattern "poll-data-*.csv" \
   --summary "Initial repository provenance baseline."
@@ -477,7 +478,7 @@ python3 source_provenance.py add-category Data/provenance.json raw_poll_data \
 Check recorded files against the filesystem:
 
 ```bash
-python3 source_provenance.py check \
+python3 -m lib.provenance.source_provenance check \
   Data/provenance.json \
   Regional/provenance.json \
   Models/provenance.json \
@@ -492,7 +493,7 @@ reported but does not fail the check.
 Record an output-affecting correction with explicit scope:
 
 ```bash
-python3 source_provenance.py record Data/provenance.json raw_poll_data \
+python3 -m lib.provenance.source_provenance record Data/provenance.json raw_poll_data \
   --summary "Corrected one poll in the 2019 federal cycle." \
   --change-type correction \
   --magnitude minor \
@@ -515,7 +516,7 @@ A future generated-data manifest will record the source category revision used
 for each work unit. Later events can then be matched against that work unit:
 
 ```bash
-python3 source_provenance.py impact Data/provenance.json raw_poll_data \
+python3 -m lib.provenance.source_provenance impact Data/provenance.json raw_poll_data \
   --after-revision 1 \
   --election 2028fed \
   --party "ONP FP" \
@@ -561,21 +562,21 @@ or different elections. This makes the scope a dependency closure rather than
 a simple filename filter. Unregistered authored-source changes remain visible
 in every scope because their impact has not yet been assessed.
 
-The currently monitored code path covers `election_store.py`,
-`election_check.py`, `election_data.py`, `election_code.py`,
-`election_analysis.py`, `poll_transform.py`, `sample_kurtosis.py`,
-`fp_model.py`, `fp_model_constants.py`, `fp_model_data.py`,
+The currently monitored code path covers `lib/elections/election_store.py`,
+`lib/elections/election_check.py`, `lib/elections/election_data.py`, `election_code.py`,
+`scripts/pipeline/election_analysis.py`, `poll_transform.py`, `sample_kurtosis.py`,
+`scripts/pipeline/fp_model.py`, `fp_model_constants.py`, `fp_model_data.py`,
 `fp_model_prepare.py`, `fp_model_stan.py`, `fp_model_outputs.py`,
-`fp_model_runner.py`, `stan_cache.py`, `calibration_provenance.py`,
-`fp_model_provenance.py`, `pollster_analysis.py` and
-`pollster_analysis_provenance.py`, `trend_adjust.py` and
-`trend_adjust_provenance.py`. Each script has its own category so that
+`fp_model_runner.py`, `stan_cache.py`, `lib/provenance/calibration_provenance.py`,
+`lib/provenance/fp_model_provenance.py`, `scripts/pipeline/pollster_analysis.py` and
+`lib/provenance/pollster_analysis_provenance.py`, `scripts/pipeline/trend_adjust.py` and
+`lib/provenance/trend_adjust_provenance.py`. Each script has its own category so that
 assessing one edit cannot silently accept changes to another.
 
 Register an assessed script or source-file change with:
 
 ```bash
-python3 analysis_provenance.py register-change election_store.py \
+python3 analysis_provenance.py register-change lib/elections/election_store.py \
   --summary "Added comments without changing export behaviour." \
   --impact negligible
 ```
@@ -603,7 +604,7 @@ prompts for that confirmation, and `register-change` accepts
 
 ## Generated Provenance
 
-`generated_provenance.schema.json` and `generated_provenance.py` define bundled
+`generated_provenance.schema.json` and `lib/provenance/generated_provenance.py` define bundled
 metadata for generated files. A bundle contains:
 
 * shared run records containing UTC time, command, Git revision, working-tree
@@ -637,19 +638,19 @@ The first two integrated stages are the checked election-result export and
 historical election analysis:
 
 ```bash
-python3 election_store.py
-python3 election_analysis.py
-python3 generated_provenance.py check \
+python3 -m lib.elections.election_store
+python3 -m scripts.pipeline.election_analysis
+python3 -m lib.provenance.generated_provenance check \
   elections/generated-provenance.json
-python3 generated_provenance.py check \
+python3 -m lib.provenance.generated_provenance check \
   "Seat Statistics/generated-provenance.json"
 ```
 
-`election_store.py` now requires every configured
+`lib/elections/election_store.py` now requires every configured
 `elections/<term>_results.pkl` cache to exist. It never downloads source data;
-`election_data.py` remains the separate acquisition stage. The configured
+`lib/elections/election_data.py` remains the separate acquisition stage. The configured
 elections and source-specific corrections are intentionally maintained in
-`election_data.py`, since new elections commonly require manual source
+`lib/elections/election_data.py`, since new elections commonly require manual source
 overrides.
 
 Only after all election CSVs are written successfully does the exporter update
@@ -662,7 +663,7 @@ output-affecting code change invalidates the work unit. A failed or interrupted
 export leaves the previous manifest in place, allowing changed output hashes
 to be detected rather than incorrectly certifying a partial run.
 
-`election_analysis.py` records one global seat-statistics work unit, one
+`scripts/pipeline/election_analysis.py` records one global seat-statistics work unit, one
 Nationals-allocation work unit per configured election and one current federal
 regional-statistics work unit. These records depend on the checked election
 exports as generated inputs, as well as the relevant source-data and script
@@ -680,7 +681,7 @@ or random seeds are known.
 Create or refresh that local baseline without running Stan:
 
 ```bash
-python3 calibration_provenance.py baseline
+python3 -m lib.provenance.calibration_provenance baseline
 ```
 
 The resulting ignored bundle is
@@ -696,7 +697,7 @@ CSVs into work units rather than creating one sidecar per file:
   `Outputs/Calibration/Summaries/<election>.csv` and the exact compatibility
   records used to build it.
 
-Future `fp_model.py --calibrate` and `--bias` runs replace successfully
+Future `scripts/pipeline/fp_model.py --calibrate` and `--bias` runs replace successfully
 completed legacy work units with certified `generated` records. Each record
 contains the semantic revisions of the `fp_model*.py` modules, `stan_cache.py`,
 `election_code.py`, the provenance helper, the configured data inputs and the
@@ -759,7 +760,7 @@ seed availability is informational and does not by itself make an output stale.
 
 ### Pollster-Parameter Provenance
 
-`pollster_analysis.py` reduces the calibration archive into three compact
+`scripts/pipeline/pollster_analysis.py` reduces the calibration archive into three compact
 files per target election:
 
 * `variability-<term>.csv`;
@@ -781,7 +782,7 @@ significant parties, linked-pollster relationships and eventual results.
 Existing outputs can be fingerprinted without rerunning the analysis:
 
 ```bash
-python3 pollster_analysis_provenance.py baseline
+python3 -m lib.provenance.pollster_analysis_provenance baseline
 ```
 
 The ignored `Outputs/Calibration/pollster-generated-provenance.json` bundle
@@ -789,7 +790,7 @@ contains one election-level work unit holding all three files. Only canonical
 filenames are included, so manually retained files such as `BASELINE CHECK`
 copies are not treated as generated outputs.
 
-A normal `pollster_analysis.py` run validates its authored dependencies before
+A normal `scripts/pipeline/pollster_analysis.py` run validates its authored dependencies before
 writing any CSV. It is intentionally allowed to use legacy or stale
 calibration records because recalibrating the full archive can take weeks.
 Those exact record dependencies remain attached to the new work unit, so the
@@ -802,7 +803,7 @@ succeed.
 
 ### Pure Poll-Trend Provenance
 
-`fp_model.py --pure` writes three files for each election and modelled party:
+`scripts/pipeline/fp_model.py --pure` writes three files for each election and modelled party:
 the voting-intention-only trend, adjusted polls and house effects. A completed
 party fit is recorded immediately as one work unit in the ignored
 `Outputs/pure-generated-provenance.json` bundle, including its Stan seed.
@@ -824,13 +825,13 @@ Existing canonical `_pure.csv` triplets can be fingerprinted without claiming
 that their inputs or random seeds are known:
 
 ```bash
-python3 fp_model_provenance.py baseline
+python3 -m lib.provenance.fp_model_provenance baseline
 ```
 
 Backup filenames such as `fp_polls#_...` are excluded. An incomplete canonical
 triplet is rejected rather than being certified as a valid work unit.
 
-`approvals.py` currently loads the pure TPP trend and adjusted polls from every
+`scripts/pipeline/approvals.py` currently loads the pure TPP trend and adjusted polls from every
 configured election term containing valid leader approval observations and
 for which those files exist. Terms without approval polls are excluded before
 their pure outputs are opened. A formally complete synthetic TPP refresh
@@ -842,7 +843,7 @@ legacy or generated diagnostic work unit for each jurisdiction CSV. Each
 record is scoped to approval-bearing terms in that jurisdiction, while its
 dependency set contains every available approval-bearing pure TPP work unit
 because each regression can draw historical evidence from every jurisdiction.
-`fp_model.py` passes the same generated observations directly to final-trend
+`scripts/pipeline/fp_model.py` passes the same generated observations directly to final-trend
 models, so those CSV files are not an execution boundary.
 
 Synthetic-TPP-path staleness is non-blocking during routine updates because
@@ -855,12 +856,12 @@ Existing jurisdiction CSVs can be fingerprinted without claiming their
 original inputs are known:
 
 ```bash
-python3 approvals_provenance.py baseline
+python3 -m lib.provenance.approvals_provenance baseline
 ```
 
 ### Final Poll-Trend Provenance
 
-A normal `fp_model.py` run records each completed election-party triplet in
+A normal `scripts/pipeline/fp_model.py` run records each completed election-party triplet in
 the ignored `Outputs/poll-trend-generated-provenance.json` bundle. These are
 the final trend, adjusted-poll and house-effect files consumed by trend
 adjustment and the C++ model. Each record includes the Stan seed and is written
@@ -880,7 +881,7 @@ Existing canonical final-output triplets can be fingerprinted without
 claiming their original source versions or Stan seeds:
 
 ```bash
-python3 fp_model_provenance.py baseline-final
+python3 -m lib.provenance.fp_model_provenance baseline-final
 ```
 
 Discovery is limited to election-party combinations currently listed in
@@ -889,7 +890,7 @@ filename fragments that happen to resemble model outputs.
 
 ## Existing Feedback Dependency
 
-For state elections, `fp_model.py` loads existing federal trend files from
+For state elections, `scripts/pipeline/fp_model.py` loads existing federal trend files from
 overlapping election cycles when constructing prior series for selected minor
 parties. Pure runs load federal pure trends. Calibration and normal runs still
 load normal federal trends, and missing files are silently replaced by
@@ -910,7 +911,7 @@ Consequently:
   generation exactly.
 
 The registry marks this as a feedback dependency. It should be examined during
-the review of `fp_model.py`; until then, existing federal trends should be kept
+the review of `scripts/pipeline/fp_model.py`; until then, existing federal trends should be kept
 available when reproducing the established incremental workflow.
 
 Pure state generation now consumes federal pure output. The remaining intended
@@ -955,7 +956,7 @@ or state normal trends. The future freshness system should show the age and
 generation of those retained dependencies rather than classifying the federal
 output as invalid.
 
-During the `fp_model.py` review, the state-pure dependency should be measured
+During the `scripts/pipeline/fp_model.py` review, the state-pure dependency should be measured
 and either:
 
 * removed by constructing pure TPP without federal-prior-sensitive minor-party
@@ -989,9 +990,9 @@ more precisely as each generator and consumer is reviewed.
 
 ## Point-In-Time Trend Calibration
 
-`fp_model.py --cutoff` excludes later polls in turn and generates every
+`scripts/pipeline/fp_model.py --cutoff` excludes later polls in turn and generates every
 historical information cutoff in a single invocation. It uses the same 46
-triangular day points as `trend_adjust.py`: 0, 1, 3, 6, 10, through 1035 days
+triangular day points as `scripts/pipeline/trend_adjust.py`: 0, 1, 3, 6, 10, through 1035 days
 before election day. A scheduled point is fitted only when it contains a new
 poll information set. Both the scheduled day and the actual latest poll date
 are retained: a fit requested at 276 days whose latest poll was 300 days out
@@ -1030,7 +1031,7 @@ stale. Historical pure-trend dependencies remain strict. A scoped
 `raw_poll_data` change invalidates only cutoff records for the election or
 elections named when that change is registered.
 
-`trend_adjust.py` loads these files instead of complete-cycle historical
+`scripts/pipeline/trend_adjust.py` loads these files instead of complete-cycle historical
 trends. Exact actual endpoints are used directly. Missing interior days are
 interpolated percentile-by-percentile after mapping days through the inverse
 triangular-number function. This gives equal weight to endpoints 15 and 28
@@ -1041,7 +1042,7 @@ trend.
 
 ## Trend Adjustments And Fundamentals
 
-`trend_adjust.py` writes seven party-group adjustment files and one
+`scripts/pipeline/trend_adjust.py` writes seven party-group adjustment files and one
 fundamentals file for each requested target. Provenance is recorded only after
 the complete target has been written. A failed run can therefore leave
 partially updated CSVs for diagnosis, but cannot certify them as a successful
@@ -1058,7 +1059,7 @@ Existing files can be fingerprinted without claiming that their original
 inputs are known:
 
 ```bash
-python3 trend_adjust_provenance.py baseline
+python3 -m lib.provenance.trend_adjust_provenance baseline
 ```
 
 Files containing ` BASELINE CHECK` are comparison artifacts and are excluded
@@ -1066,7 +1067,7 @@ from both the generated category and the legacy baseline.
 
 ## Regional Swing Models
 
-`region_model.py --election <election>` fits election-specific regional TPP
+`scripts/pipeline/region_model.py --election <election>` fits election-specific regional TPP
 deviations. Adding `--party ON` runs the corresponding One Nation model where
 that input is available. The stage reads
 `Regional/<election>-polls[-ON].csv`, an election-specific Stan model under
@@ -1093,7 +1094,7 @@ so a newly populated regional polling file cannot silently lack an output.
 ## Federal/State Seat Inputs
 
 `Federal-State/booths-*.txt` contains authored mappings from federal booths to
-state seats. `federal_state.py` combines those mappings with downloaded federal
+state seats. `scripts/elections/federal_state.py` combines those mappings with downloaded federal
 booth results cached in `Federal-State/*.pkl`, then prints seat-level federal
 TPP and Greens deviations.
 

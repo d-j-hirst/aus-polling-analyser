@@ -4,7 +4,7 @@ from dataclasses import replace
 import unittest
 
 from lib.shared import turnout_data
-import turnout_nsw_operational as operational
+from scripts.turnout import turnout_nsw_operational as operational
 
 
 class NswOperationalTurnoutTests(unittest.TestCase):

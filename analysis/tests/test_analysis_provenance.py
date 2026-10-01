@@ -7,15 +7,16 @@ from pathlib import Path
 from unittest import mock
 
 import analysis_provenance
-import generated_provenance
-import source_provenance
+from lib.provenance import generated_provenance
+from lib.provenance import source_provenance
 
 
 class AnalysisProvenanceTests(unittest.TestCase):
     def setUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.base = Path(self.temporary_directory.name)
-        self.script_path = self.base / "election_store.py"
+        self.script_path = self.base / 'lib/elections/election_store.py'
+        self.script_path.parent.mkdir(parents=True)
         self.script_path.write_text("print('original')\n", encoding="utf-8")
         self.source_manifest_path = self.base / "provenance.json"
         source_provenance.initialize_manifest(
@@ -25,7 +26,7 @@ class AnalysisProvenanceTests(unittest.TestCase):
             self.source_manifest_path,
             "election_store_script",
             "Test election export script.",
-            ["election_store.py"],
+            ['lib/elections/election_store.py'],
         )
 
         self.output_directory = self.base / "elections"
@@ -59,7 +60,7 @@ class AnalysisProvenanceTests(unittest.TestCase):
             {
                 "test-run": {
                     "generated_at_utc": "2026-01-01T00:00:00Z",
-                    "command": ["python3", "election_store.py"],
+                    "command": ["python3", 'lib/elections/election_store.py'],
                     "source_revision": {
                         "system": "git",
                         "revision": "a" * 40,
@@ -1969,7 +1970,7 @@ class AnalysisProvenanceTests(unittest.TestCase):
             {
                 "test-run": {
                     "generated_at_utc": "2026-01-01T00:00:00Z",
-                    "command": ["python3", "pollster_analysis.py"],
+                    "command": ["python3", 'scripts/pipeline/pollster_analysis.py'],
                     "source_revision": {
                         "system": "git",
                         "revision": "a" * 40,
@@ -2292,7 +2293,7 @@ class AnalysisProvenanceTests(unittest.TestCase):
         changes = [
             {
                 "path": self.script_path,
-                "relative_path": "election_store.py",
+                "relative_path": 'lib/elections/election_store.py',
                 "category": "election_store_script",
                 "change_kind": "modified",
             }
@@ -2377,7 +2378,7 @@ class AnalysisProvenanceTests(unittest.TestCase):
         changes = [
             {
                 "path": self.script_path,
-                "relative_path": "election_store.py",
+                "relative_path": 'lib/elections/election_store.py',
                 "category": "election_store_script",
                 "change_kind": "modified",
             }
@@ -2662,19 +2663,19 @@ class AnalysisProvenanceTests(unittest.TestCase):
             return_value={"fp_model_provenance_script"},
         ):
             risk = analysis_provenance.cutoff_invalidation_risk(
-                ["fp_model_provenance.py"],
+                ['lib/provenance/fp_model_provenance.py'],
                 "minor",
                 all_scopes,
                 registry=registry,
             )
             negligible_risk = analysis_provenance.cutoff_invalidation_risk(
-                ["fp_model_provenance.py"],
+                ['lib/provenance/fp_model_provenance.py'],
                 "negligible",
                 all_scopes,
                 registry=registry,
             )
             pure_only_risk = analysis_provenance.cutoff_invalidation_risk(
-                ["fp_model_provenance.py"],
+                ['lib/provenance/fp_model_provenance.py'],
                 "minor",
                 {"all": False, "stages": ["generate_pure_poll_trends"]},
                 registry=registry,

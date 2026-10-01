@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import calibration_summary_provenance
-import generated_provenance
+from lib.provenance import calibration_summary_provenance
+from lib.provenance import generated_provenance
 
 
 class CalibrationSummaryProvenanceTests(unittest.TestCase):
@@ -72,7 +72,7 @@ class CalibrationSummaryProvenanceTests(unittest.TestCase):
             return_value={},
         ):
             recorder = calibration_summary_provenance.CalibrationSummaryRecorder(
-                ["python3", "calibration_summary.py"]
+                ["python3", 'scripts/pipeline/calibration_summary.py']
             )
             recorder.record("2028fed", output)
             recorder.flush()
@@ -142,7 +142,7 @@ class CalibrationSummaryProvenanceTests(unittest.TestCase):
             return_value={},
         ):
             calibration_summary_provenance.record_direct_summary(
-                "2028fed", output, ["python3", "fp_model.py", "--bias"]
+                "2028fed", output, ["python3", 'scripts/pipeline/fp_model.py', "--bias"]
             )
 
         manifest = generated_provenance.load_manifest(self.manifest_path)
@@ -176,7 +176,7 @@ class CalibrationSummaryProvenanceTests(unittest.TestCase):
         ) as recorder_class:
             calibration_summary_provenance.record_summaries(
                 ["2028fed", "2026vic"],
-                ["python3", "calibration_summary.py"],
+                ["python3", 'scripts/pipeline/calibration_summary.py'],
                 input_paths_for_election=lambda _election: set(),
             )
 

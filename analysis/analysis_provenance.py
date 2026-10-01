@@ -23,19 +23,19 @@ import time
 from collections import Counter, defaultdict, deque
 from pathlib import Path
 
-import generated_provenance
-import approvals_provenance
+from lib.provenance import generated_provenance
+from lib.provenance import approvals_provenance
 from lib.provenance import booth_result_provenance
 from lib.orchestration import required_work
-import calibration_provenance
-import calibration_summary_provenance
+from lib.provenance import calibration_provenance
+from lib.provenance import calibration_summary_provenance
 from lib.provenance import federal_regional_provenance
-import pipeline_registry
-import pollster_analysis_provenance
+from lib.orchestration import pipeline_registry
+from lib.provenance import pollster_analysis_provenance
 from lib.orchestration import provenance_maintenance
-import region_model_provenance
-import source_provenance
-import trend_adjust_provenance
+from lib.provenance import region_model_provenance
+from lib.provenance import source_provenance
+from lib.provenance import trend_adjust_provenance
 
 try:
     from InquirerPy import inquirer

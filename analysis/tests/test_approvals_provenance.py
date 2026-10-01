@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import approvals_provenance
-import generated_provenance
+from lib.provenance import approvals_provenance
+from lib.provenance import generated_provenance
 
 
 class ApprovalsProvenanceTests(unittest.TestCase):

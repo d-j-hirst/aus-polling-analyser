@@ -5,7 +5,7 @@ import math
 import unittest
 
 from tests.test_turnout_changes import election
-import turnout_priors as priors
+from scripts.turnout import turnout_priors as priors
 
 
 class TurnoutPriorTests(unittest.TestCase):

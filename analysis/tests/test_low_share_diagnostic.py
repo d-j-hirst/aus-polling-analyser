@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-import low_share_diagnostic as diagnostic
+from scripts.diagnostics import low_share_diagnostic as diagnostic
 
 
 class ExponentialTailTransformTests(unittest.TestCase):

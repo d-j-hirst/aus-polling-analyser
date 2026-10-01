@@ -1,10 +1,10 @@
 """Configuration, election loading and typed model data for fp_model."""
 
 import argparse
-import calibration_provenance
+from lib.provenance import calibration_provenance
 import csv
 from lib.poll_models import fp_model_checkpoints
-import fp_model_provenance
+from lib.provenance import fp_model_provenance
 import math
 import numpy as np
 import os

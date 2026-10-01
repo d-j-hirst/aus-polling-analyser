@@ -1,6 +1,6 @@
 import unittest
 
-import pipeline_registry
+from lib.orchestration import pipeline_registry
 from lib.orchestration import required_work
 
 

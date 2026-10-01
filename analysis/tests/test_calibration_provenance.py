@@ -3,9 +3,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import calibration_provenance
+from lib.provenance import calibration_provenance
 from lib.poll_models import fp_model_constants
-import generated_provenance
+from lib.provenance import generated_provenance
 
 
 class CalibrationProvenanceTests(unittest.TestCase):
@@ -160,7 +160,7 @@ class CalibrationProvenanceTests(unittest.TestCase):
                 return_value={},
             ):
                 recorder = calibration_provenance.CalibrationRecorder(
-                    ["python3", "fp_model.py", "--calibrate"]
+                    ["python3", 'scripts/pipeline/fp_model.py', "--calibrate"]
                 )
                 recorder.record_model_outputs(
                     election="2028fed",
@@ -274,7 +274,7 @@ class CalibrationProvenanceTests(unittest.TestCase):
                 return_value={},
             ):
                 recorder = calibration_provenance.CalibrationRecorder(
-                    ["python3", "fp_model.py", "--calibrate"]
+                    ["python3", 'scripts/pipeline/fp_model.py', "--calibrate"]
                 )
                 recorder.record_federal_priors("2028fed", prior)
                 recorder.flush()
@@ -369,7 +369,7 @@ class CalibrationProvenanceTests(unittest.TestCase):
                 return_value={},
             ):
                 recorder = calibration_provenance.CalibrationRecorder(
-                    ["python3", "fp_model.py", "--calibrate"]
+                    ["python3", 'scripts/pipeline/fp_model.py', "--calibrate"]
                 )
                 recorder.record_summaries(
                     "2028fed",
@@ -419,7 +419,7 @@ class CalibrationProvenanceTests(unittest.TestCase):
                 return_value={},
             ):
                 recorder = calibration_provenance.CalibrationRecorder(
-                    ["python3", "fp_model.py", "--calibrate"]
+                    ["python3", 'scripts/pipeline/fp_model.py', "--calibrate"]
                 )
                 recorder.record_summaries(
                     "2028fed",
@@ -428,7 +428,7 @@ class CalibrationProvenanceTests(unittest.TestCase):
                 )
                 recorder.flush()
                 recorder = calibration_provenance.CalibrationRecorder(
-                    ["python3", "fp_model.py", "--calibrate"]
+                    ["python3", 'scripts/pipeline/fp_model.py', "--calibrate"]
                 )
                 recorder.record_summaries(
                     "2028fed",
@@ -481,7 +481,7 @@ class CalibrationProvenanceTests(unittest.TestCase):
                 return_value={},
             ):
                 recorder = calibration_provenance.CalibrationRecorder(
-                    ["python3", "fp_model.py", "--calibrate"]
+                    ["python3", 'scripts/pipeline/fp_model.py', "--calibrate"]
                 )
                 recorder.record_seed_manifest(
                     "2028fed", "calibration", output

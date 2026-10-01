@@ -44,7 +44,7 @@ def _load_trend_adjust_without_optional_dependencies():
         "lib.shared.sample_kurtosis": fake_kurtosis,
     }
 
-    module_path = ANALYSIS_DIRECTORY / "trend_adjust.py"
+    module_path = ANALYSIS_DIRECTORY / 'scripts/pipeline/trend_adjust.py'
     spec = importlib.util.spec_from_file_location(
         "_trend_adjust_under_test", module_path
     )
@@ -197,7 +197,7 @@ class TrendAdjustmentTests(unittest.TestCase):
 
     def test_none_instruction_selects_only_generic_adjustment(self):
         with mock.patch.object(
-            sys, "argv", ["trend_adjust.py", "--election", "none"]
+            sys, "argv", ['scripts/pipeline/trend_adjust.py', "--election", "none"]
         ):
             config = self.trend_adjust.Config(self.party_groups)
 

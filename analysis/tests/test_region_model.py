@@ -24,7 +24,7 @@ def load_region_model():
     stan_cache = types.ModuleType("lib.shared.stan_cache")
     stan_cache.stan_cache = object
 
-    module_path = ANALYSIS_DIRECTORY / "region_model.py"
+    module_path = ANALYSIS_DIRECTORY / 'scripts/pipeline/region_model.py'
     spec = importlib.util.spec_from_file_location(
         "region_model_under_test", module_path
     )

@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-import election_store
+from lib.elections import election_store
 
 
 class FakeElectionCode:

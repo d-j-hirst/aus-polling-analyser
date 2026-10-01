@@ -7,19 +7,40 @@ The corresponding machine-readable registry is
 
 Internal modules live under `lib/`, grouped into `poll_models`,
 `election_analysis`, `pollster_analysis`, `regional_models`,
-`trend_adjustments`, `shared`, `provenance` and `orchestration` packages.
-Import them by their package-qualified names; they are not standalone commands.
+`trend_adjustments`, `elections`, `shared`, `provenance` and `orchestration` packages.
+Import shared code by its package-qualified name. Some backends retain existing
+module commands for pipeline stages or occasional metadata maintenance, as
+documented below; there is no general direct-file execution support.
 Package initializers do not import implementation modules, so pipeline status
 and planning retain their non-Stan dependency boundary.
 
 `pipeline.py` and `analysis_provenance.py` remain the daily command interfaces.
-Other existing command entry points stay at the analysis root for now. Durable
-inputs, models and generated outputs remain in their established directories;
+Other runnable scripts are grouped by purpose under `scripts/`:
+
+```text
+scripts/                 # Runnable script packages
+  pipeline/              # Stages normally invoked by the pipeline
+  elections/             # Booth acquisition and federal/state utilities
+  turnout/               # Turnout acquisition and research reports
+  maintenance/           # Occasional live-snapshot maintenance
+  diagnostics/           # Explicit model diagnostics; fitting requires Stan
+  exploratory/           # Historical exploratory analyses
+lib/                     # Shared implementation and provenance backends
+tests/                   # Automated tests and their runner
+```
+
+The pipeline invokes packaged commands with `python -m`, using `analysis/`
+as its working directory. Use the documented module commands for occasional
+manual operations; do not execute relocated files by filesystem path. Durable
+inputs, models and generated outputs remain in their established directories.
 `lib/paths.py` anchors internal file-relative lookups to that analysis root.
 
-The internal-module relocation is registered as **negligible** in source
+The script and internal-module relocations are registered as **negligible** in source
 provenance. Source category IDs and semantic revisions are preserved, and
 existing generated records and outputs require no metadata upgrade or refitting.
+Historical election and federal/state pickle caches retain their old class-name
+resolution. Timestamp-only audit notices are informational: unchanged contents
+do not invalidate generated work.
 
 Python tests are kept in [`tests/`](tests/README.md). From the repository root,
 run the shared Linux/Windows CI selection with:
@@ -190,7 +211,7 @@ maintenance skips it because regeneration will replace its metadata.
 For example:
 
 ```bash
-python3 analysis_provenance.py register-change fp_model_provenance.py \
+python3 analysis_provenance.py register-change lib/provenance/fp_model_provenance.py \
   --summary "Updated dependency bookkeeping without changing trends." \
   --impact provenance-only \
   --provenance-upgrade refresh-source-dependency-v1 \
@@ -224,7 +245,7 @@ Run routine checks and read-only pipeline inspection from `analysis/`:
 
 ```powershell
 .\.venv-win\Scripts\python.exe -B tests\run_tests.py
-.\.venv-win\Scripts\python.exe -B pipeline_registry.py --check-paths
+.\.venv-win\Scripts\python.exe -B -m lib.orchestration.pipeline_registry --check-paths
 .\.venv-win\Scripts\python.exe -B pipeline.py status --election 2026vic
 .\.venv-win\Scripts\python.exe -B pipeline.py plan --election 2026vic --profile regular
 ```
@@ -248,7 +269,7 @@ registration or metadata upgrade is needed.
 
 ### Linux/WSL: full analysis and Stan fitting
 
-Run these commands from the `analysis/` directory. `fp_model.py` is unlikely to
+Run these commands from the `analysis/` directory. `scripts/pipeline/fp_model.py` is unlikely to
 work natively on Windows because it depends on pystan; WSL is recommended.
 
 Create the virtual environment once:
@@ -266,7 +287,7 @@ source env/bin/activate
 
 ## Poll Trends
 
-`fp_model.py` is the command-line entry point; implementation lives in
+`scripts/pipeline/fp_model.py` is the command-line entry point; implementation lives in
 `fp_model_constants.py`, `fp_model_data.py`, `fp_model_prepare.py`,
 `fp_model_stan.py`, `fp_model_outputs.py` and `fp_model_runner.py`. It
 generates poll trends from poll data and supporting inputs. A run can take one
@@ -278,7 +299,7 @@ serialization only and does not change Stan sampling.
 Generate one election:
 
 ```bash
-python3 fp_model.py --election 2022-fed
+python3 -m scripts.pipeline.fp_model --election 2022-fed
 ```
 
 To retain progress output while hiding Stan's repetitive per-chain gradient
@@ -287,13 +308,13 @@ timing estimates, use the argument-compatible wrapper. It also limits
 batch and condenses each three-line elapsed-time summary to one line:
 
 ```bash
-python3 run_fp_model.py --election 2022-fed
+python3 -m scripts.pipeline.run_fp_model --election 2022-fed
 ```
 
 Generate every configured election:
 
 ```bash
-python3 fp_model.py --election all
+python3 -m scripts.pipeline.fp_model --election all
 ```
 
 Generating every configured election is likely to take multiple days.
@@ -303,7 +324,7 @@ including the named election. This is useful for resuming an interrupted
 multi-election run:
 
 ```bash
-python3 fp_model.py --election 2016-fed-onwards
+python3 -m scripts.pipeline.fp_model --election 2016-fed-onwards
 ```
 
 Multi-election runs preserve the configured order where possible, but move
@@ -316,7 +337,7 @@ them.
 Generate consolidated historical poll-endpoint fits with:
 
 ```bash
-python3 fp_model.py --election 2025-fed --cutoff
+python3 -m scripts.pipeline.fp_model --election 2025-fed --cutoff
 ```
 
 Cutoff generation keeps the certified output untouched while writing a
@@ -331,13 +352,13 @@ come from the selected current generated inputs.
 Generate leave-one-pollster-out calibration data for one election:
 
 ```bash
-python3 fp_model.py --election 2025-fed --calibrate
+python3 -m scripts.pipeline.fp_model --election 2025-fed --calibrate
 ```
 
 Generate its pollster-bias calibration:
 
 ```bash
-python3 fp_model.py --election 2025-fed --bias
+python3 -m scripts.pipeline.fp_model --election 2025-fed --bias
 ```
 
 These stages can be very slow. Runs use a versioned default base seed and derive
@@ -362,7 +383,7 @@ the ignored generated-provenance bundle. Existing pre-provenance calibration
 files can be fingerprinted, without claiming they were reproduced, using:
 
 ```bash
-python3 calibration_provenance.py baseline
+python3 -m lib.provenance.calibration_provenance baseline
 ```
 
 The production daily-prior strength and scaling are unchanged. Inspect its
@@ -370,11 +391,11 @@ finite-chain endpoint behavior with the exact Gaussian solver, optionally
 cross-checked against a configurable standalone Stan model:
 
 ```bash
-python3 prior_chain_diagnostic.py --chain-lengths 15,31,91,181,365
-python3 prior_chain_diagnostic.py --chain-lengths 31,181 --stan
+python3 -m scripts.diagnostics.prior_chain_diagnostic --chain-lengths 15,31,91,181,365
+python3 -m scripts.diagnostics.prior_chain_diagnostic --chain-lengths 31,181 --stan
 ```
 
-`low_share_diagnostic.py` compares the current raw Gaussian inference plus
+`scripts/diagnostics/low_share_diagnostic.py` compares the current raw Gaussian inference plus
 the production smooth soft-tail reported-output mapping (identity on
 ``[0.5, 99.5]`` with a narrow blend into the legacy exponential tails) with
 bounded exponential-inference and smooth-logit alternatives. Inference
@@ -387,7 +408,7 @@ Reduce the calibration evidence into the compact parameters used by normal
 poll-trend runs:
 
 ```bash
-python3 pollster_analysis.py --election 2028-fed
+python3 -m scripts.pipeline.pollster_analysis --election 2028-fed
 ```
 
 This records the election's `variability`, `he_weighting` and `biases` files
@@ -395,14 +416,14 @@ as one generated work unit. Existing parameter files can be fingerprinted as
 legacy outputs without rerunning the analysis:
 
 ```bash
-python3 pollster_analysis_provenance.py baseline
+python3 -m lib.provenance.pollster_analysis_provenance baseline
 ```
 
 Generate voting-intention-only trends, excluding approval and TPP-only
 observations:
 
 ```bash
-python3 fp_model.py --election 2028-fed --pure
+python3 -m scripts.pipeline.fp_model --election 2028-fed --pure
 ```
 
 Each completed election-party fit records its trend, adjusted-poll and
@@ -410,12 +431,12 @@ house-effect files in `Outputs/pure-generated-provenance.json`. Existing pure
 outputs can be fingerprinted as legacy work units without rerunning Stan:
 
 ```bash
-python3 fp_model_provenance.py baseline
+python3 -m lib.provenance.fp_model_provenance baseline
 ```
 
 ## Trend Adjustments
 
-`trend_adjust.py` compares generated trends with historical results. It writes
+`scripts/pipeline/trend_adjust.py` compares generated trends with historical results. It writes
 time-dependent parameters to `Adjustments/` and fundamentals estimates to
 `Fundamentals/`. Targeting a past election excludes its result from training,
 which prevents look-ahead when hindcasting.
@@ -427,13 +448,13 @@ records retain only their authored election and context dependencies. Existing
 files can be fingerprinted as legacy outputs without rerunning the analysis:
 
 ```bash
-python3 trend_adjust_provenance.py baseline
+python3 -m lib.provenance.trend_adjust_provenance baseline
 ```
 
 Generate adjustments for one hindcast:
 
 ```bash
-python3 trend_adjust.py --election 2022-fed
+python3 -m scripts.pipeline.trend_adjust --election 2022-fed
 ```
 
 Use `--election none` for current forecasts, or `--election all` to regenerate
@@ -450,24 +471,24 @@ Legacy eight-row files remain supported as unconditioned adjustments.
 
 Historical lower-house results pass through three separate stages:
 
-1. `election_data.py` downloads missing elections from Wikipedia and stores the
+1. `lib/elections/election_data.py` downloads missing elections from Wikipedia and stores the
    parsed objects in `elections/<term>_results.pkl`. Existing caches are reused;
    move or delete a cache only when that election needs to be downloaded again.
    The downloader contains explicit corrections for unusual source tables and
    may need another correction when a newly completed election is added.
-2. `election_store.py` loads the caches without network access, reports
+2. `lib/elections/election_store.py` loads the caches without network access, reports
    consistency diagnostics, applies common historical party categories and
    writes `elections/results_<term>.csv` for the C++ simulation.
-3. `election_analysis.py` uses the same checked cache objects to calculate
+3. `scripts/pipeline/election_analysis.py` uses the same checked cache objects to calculate
    seat-level inputs. These cover minor parties and independents, federal
    regional effects, TPP seat variation, incumbency and Coalition allocation.
 
 Run the complete branch from `analysis/` with:
 
 ```bash
-python3 election_data.py
-python3 election_store.py
-python3 election_analysis.py
+python3 -m lib.elections.election_data
+python3 -m lib.elections.election_store
+python3 -m scripts.pipeline.election_analysis
 ```
 
 Wikipedia is used because its historical tables are relatively consistent and

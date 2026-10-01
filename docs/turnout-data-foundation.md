@@ -1,5 +1,9 @@
 # Turnout Data Foundation
 
+Run Python command examples from `analysis/`. Commands using `env/bin/python`
+refer to the Linux/WSL environment; Windows uses `.venv-win/Scripts/python.exe`.
+Turnout scripts now live in the `scripts.turnout` package and use `python -m`.
+
 This dataset is intended to support a general live-turnout model. It must not
 encode the one-off conversion between the combined 2022 SA declaration total
 and the separate 2026 SA declaration categories as if that conversion were an
@@ -120,7 +124,7 @@ the existing 2010 through 2025 federal JSON files:
 
 ```bash
 cd analysis
-./env/bin/python -B turnout_aec_operational.py --election all
+./env/bin/python -B -m scripts.turnout.turnout_aec_operational --election all
 ```
 
 The adapter records cumulative daily pre-poll votes issued and postal vote
@@ -144,7 +148,7 @@ page:
 
 ```bash
 cd analysis
-./env/bin/python -B turnout_sa_operational.py --election 2026sa
+./env/bin/python -B -m scripts.turnout.turnout_sa_operational --election 2026sa
 ```
 
 It reconciles every district's daily cells to its published total and all 47
@@ -158,7 +162,7 @@ with ECSA; the normalized exact records therefore use ECSA's own table.
 
 ```bash
 cd analysis
-./env/bin/python -B turnout_nsw_operational.py --election 2015nsw
+./env/bin/python -B -m scripts.turnout.turnout_nsw_operational --election 2015nsw
 ```
 
 The source covers 16-27 March and therefore directly reconstructs the final
@@ -178,7 +182,7 @@ not retained:
 
 ```bash
 cd analysis
-./env/bin/python -B turnout_published_operational.py --election all
+./env/bin/python -B -m scripts.turnout.turnout_published_operational --election all
 ```
 
 The adapter covers federal elections in 2004 and 2007, Queensland 2006, 2009,
@@ -277,7 +281,7 @@ adjustments.
 Regenerate the report from the normalized final-result files with:
 
 ```bash
-python3 -B analysis/turnout_changes.py
+python3 -B -m scripts.turnout.turnout_changes
 ```
 
 This is descriptive evidence for developing the turnout model. Seat comparisons
@@ -293,7 +297,7 @@ successor transition, which would otherwise leak the held result through its
 previous-election baseline. Enrolment is treated as a known exposure.
 
 ```bash
-python3 -B analysis/turnout_expectations.py
+python3 -B -m scripts.turnout.turnout_expectations
 ```
 
 This remains a research report: it does not change live turnout assumptions.
@@ -310,7 +314,7 @@ persistent differences and unusually volatile seats without fitting separate
 coefficients to small seat/state histories.
 
 ```bash
-python3 -B analysis/turnout_priors.py
+python3 -B -m scripts.turnout.turnout_priors
 ```
 
 This is still offline research, not a change to the live forecasting model.
@@ -322,7 +326,7 @@ workbooks to the existing final Queensland dataset:
 
 ```bash
 cd analysis
-./env/bin/python -B turnout_qld_operational.py --election 2024qld
+./env/bin/python -B -m scripts.turnout.turnout_qld_operational --election 2024qld
 ```
 
 The daily in-person attendance workbook identifies the electorate in which a

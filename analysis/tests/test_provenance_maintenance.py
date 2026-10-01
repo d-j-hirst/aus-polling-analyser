@@ -3,9 +3,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import generated_provenance
+from lib.provenance import generated_provenance
 from lib.orchestration import provenance_maintenance
-import source_provenance
+from lib.provenance import source_provenance
 
 
 class ProvenanceMaintenanceTests(unittest.TestCase):

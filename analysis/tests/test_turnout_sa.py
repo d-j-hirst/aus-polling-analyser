@@ -1,7 +1,7 @@
 import unittest
 
 from lib.shared import turnout_data
-import turnout_sa
+from scripts.turnout import turnout_sa
 
 
 def election(expected_districts=2, expected_totals=None, source_format='pdf'):

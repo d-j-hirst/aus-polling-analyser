@@ -8,13 +8,13 @@ from unittest import mock
 
 import pandas as pd
 
-import calibration_provenance
+from lib.provenance import calibration_provenance
 from lib.poll_models import fp_model_checkpoints
 from lib.poll_models import fp_model_constants
 from lib.poll_models import fp_model_data
 from lib.poll_models import fp_model_outputs
 from lib.poll_models import fp_model_prepare
-import fp_model_provenance
+from lib.provenance import fp_model_provenance
 from lib.poll_models import fp_model_runner
 from lib.poll_models import fp_model_stan
 from lib.shared.election_code import ElectionCode
@@ -120,7 +120,7 @@ class ConfigValidationTests(unittest.TestCase):
             fp_model.sys,
             'argv',
             [
-                'fp_model.py',
+                'scripts/pipeline/fp_model.py',
                 '--election',
                 '2025-fed',
                 '--pure',
@@ -138,7 +138,7 @@ class ConfigValidationTests(unittest.TestCase):
             fp_model.sys,
             'argv',
             [
-                'fp_model.py',
+                'scripts/pipeline/fp_model.py',
                 '--election',
                 '2025-fed',
                 '--bias',
@@ -357,7 +357,7 @@ class CutoffElectionSelectionTests(unittest.TestCase):
             fp_model.ElectionCode('2027', 'nsw'),
         ]
         with mock.patch('sys.argv', [
-                'fp_model.py',
+                'scripts/pipeline/fp_model.py',
                 '--election',
                 election_instruction,
                 '--cutoff',

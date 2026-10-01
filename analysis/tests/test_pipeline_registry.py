@@ -1,6 +1,6 @@
 import copy
 import unittest
-import pipeline_registry
+from lib.orchestration import pipeline_registry
 from tests import ANALYSIS_DIRECTORY
 
 
@@ -78,7 +78,7 @@ class PipelineRegistryTests(unittest.TestCase):
             command,
             [
                 "/test/python",
-                "run_fp_model.py",
+                "-m", 'scripts.pipeline.run_fp_model',
                 "--pure",
                 "--election",
                 "2028-fed",
@@ -93,6 +93,30 @@ class PipelineRegistryTests(unittest.TestCase):
             pipeline_registry.RegistryError, "election_cli"
         ):
             pipeline_registry.stage_command(stage, {})
+
+    def test_execution_rejects_ambiguous_or_invalid_module_entry(self):
+        for fields in (
+            {"module": "scripts.pipeline.fp_model", "script": "fp_model.py"},
+            {"module": "../scripts/pipeline/fp_model.py"},
+        ):
+            registry = copy.deepcopy(self.registry)
+            execution = registry["stages"][0]["execution"]
+            execution.pop("module", None)
+            execution.update(fields)
+            with self.subTest(fields=fields), self.assertRaises(
+                pipeline_registry.RegistryError
+            ):
+                pipeline_registry.validate_registry(registry)
+
+    def test_script_execution_templates_remain_supported(self):
+        stage = copy.deepcopy(self.registry["stages"][0])
+        stage["execution"].pop("module")
+        stage["execution"]["script"] = "standalone.py"
+        pipeline_registry._validate_stage_execution(stage)
+        self.assertEqual(
+            pipeline_registry.stage_command(stage, python_executable="python"),
+            ["python", "standalone.py"],
+        )
 
     def test_unknown_dependency_is_rejected(self):
         registry = copy.deepcopy(self.registry)

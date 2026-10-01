@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-import generated_provenance
+from lib.provenance import generated_provenance
 
 from lib.paths import ANALYSIS_DIRECTORY
 

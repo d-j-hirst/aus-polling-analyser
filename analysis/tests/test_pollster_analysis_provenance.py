@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import generated_provenance
-import pollster_analysis_provenance
+from lib.provenance import generated_provenance
+from lib.provenance import pollster_analysis_provenance
 
 
 class PollsterAnalysisProvenanceTests(unittest.TestCase):
@@ -352,7 +352,7 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
             ):
                 recorder = (
                     pollster_analysis_provenance.PollsterAnalysisRecorder(
-                        ["python3", "pollster_analysis.py"]
+                        ["python3", 'scripts/pipeline/pollster_analysis.py']
                     )
                 )
                 recorder.record(
@@ -392,7 +392,7 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
             },
         ):
             recorder = pollster_analysis_provenance.PollsterAnalysisRecorder(
-                ["python3", "pollster_analysis.py"]
+                ["python3", 'scripts/pipeline/pollster_analysis.py']
             )
             with self.assertRaisesRegex(
                 generated_provenance.GeneratedProvenanceError,
@@ -417,7 +417,7 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
             },
         ):
             recorder = pollster_analysis_provenance.PollsterAnalysisRecorder(
-                ["python3", "pollster_analysis.py"]
+                ["python3", 'scripts/pipeline/pollster_analysis.py']
             )
             with self.assertRaisesRegex(
                 generated_provenance.GeneratedProvenanceError,

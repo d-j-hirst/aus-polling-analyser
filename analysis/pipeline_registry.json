@@ -118,7 +118,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "election_store.py"
+        "lib/elections/election_store.py"
       ],
       "description": "Election-result export orchestration and serialization."
     },
@@ -127,7 +127,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "election_check.py"
+        "lib/elections/election_check.py"
       ],
       "description": "Election-result validation and party simplification."
     },
@@ -136,7 +136,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "election_data.py"
+        "lib/elections/election_data.py"
       ],
       "description": "Election-result acquisition, parsing, source corrections and internal pickle handling."
     },
@@ -154,7 +154,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "election_analysis.py",
+        "scripts/pipeline/election_analysis.py",
         "lib/election_analysis/election_analysis_common.py",
         "lib/election_analysis/election_analysis_parties.py",
         "lib/election_analysis/election_analysis_regions.py",
@@ -185,7 +185,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "trend_adjust.py",
+        "scripts/pipeline/trend_adjust.py",
         "lib/trend_adjustments/trend_adjust_data.py",
         "lib/trend_adjustments/trend_adjust_fundamentals.py",
         "lib/trend_adjustments/trend_adjust_io.py",
@@ -207,7 +207,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "trend_adjust_provenance.py"
+        "lib/provenance/trend_adjust_provenance.py"
       ],
       "description": "Dependency selection and bundled provenance recording for fundamentals and trend adjustments."
     },
@@ -225,7 +225,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "fp_model.py",
+        "scripts/pipeline/fp_model.py",
         "lib/poll_models/fp_model_constants.py",
         "lib/poll_models/fp_model_data.py",
         "lib/poll_models/fp_model_prepare.py",
@@ -240,7 +240,7 @@
       "scope": "global",
       "core": false,
       "paths": [
-        "run_fp_model.py"
+        "scripts/pipeline/run_fp_model.py"
       ],
       "description": "Argument-compatible fp_model launcher that filters repetitive Stan timing output."
     },
@@ -250,11 +250,12 @@
       "core": false,
       "paths": [
         "pipeline.py",
-        "pipeline_registry.py",
+        "lib/orchestration/pipeline_registry.py",
         "pipeline_registry.json",
         "analysis_provenance.py",
         "lib/paths.py",
-        "lib/**/__init__.py"
+        "lib/**/__init__.py",
+        "scripts/**/__init__.py"
       ],
       "description": "Read-only dependency inspection, freshness status and regeneration planning tools."
     },
@@ -263,8 +264,8 @@
       "scope": "global",
       "core": false,
       "paths": [
-        "source_provenance.py",
-        "generated_provenance.py",
+        "lib/provenance/source_provenance.py",
+        "lib/provenance/generated_provenance.py",
         "generated_provenance.schema.json"
       ],
       "description": "Shared source and generated-data fingerprinting, validation and dependency-checking utilities."
@@ -292,8 +293,8 @@
       "scope": "global",
       "core": false,
       "paths": [
-        "prior_chain_diagnostic.py",
-        "low_share_diagnostic.py"
+        "scripts/diagnostics/prior_chain_diagnostic.py",
+        "scripts/diagnostics/low_share_diagnostic.py"
       ],
       "description": "Standalone exact and Stan diagnostics for prior-chain boundaries and low-share transforms."
     },
@@ -302,7 +303,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "calibration_provenance.py"
+        "lib/provenance/calibration_provenance.py"
       ],
       "description": "Work-unit seeds, calibration provenance recording and legacy calibration baselining."
     },
@@ -311,7 +312,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "calibration_summary.py"
+        "scripts/pipeline/calibration_summary.py"
       ],
       "description": "Strict consolidation of detailed calibration data into one compact CSV per election."
     },
@@ -320,7 +321,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "calibration_summary_provenance.py"
+        "lib/provenance/calibration_summary_provenance.py"
       ],
       "description": "Generated-provenance recording and legacy baselining for compact calibration summaries."
     },
@@ -329,7 +330,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "fp_model_provenance.py"
+        "lib/provenance/fp_model_provenance.py"
       ],
       "description": "Dependency selection and bundled provenance recording for voting-intention-only poll trends."
     },
@@ -338,7 +339,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "region_model.py",
+        "scripts/pipeline/region_model.py",
         "lib/regional_models/region_model_common.py",
         "lib/regional_models/region_model_stan.py",
         "lib/regional_models/region_model_mappings.py"
@@ -350,7 +351,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "region_model_provenance.py"
+        "lib/provenance/region_model_provenance.py"
       ],
       "description": "Work-unit discovery and bundled provenance recording for regional swing models."
     },
@@ -359,7 +360,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "approvals.py"
+        "scripts/pipeline/approvals.py"
       ],
       "description": "Regression of leader approval observations against pure TPP trends to produce synthetic TPP polls."
     },
@@ -368,7 +369,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "approvals_provenance.py"
+        "lib/provenance/approvals_provenance.py"
       ],
       "description": "Approval-term selection and bundled provenance recording for synthetic TPP outputs."
     },
@@ -377,7 +378,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "pollster_analysis.py",
+        "scripts/pipeline/pollster_analysis.py",
         "lib/pollster_analysis/pollster_analysis_common.py",
         "lib/pollster_analysis/pollster_analysis_evidence.py",
         "lib/pollster_analysis/pollster_analysis_variability.py",
@@ -391,7 +392,7 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "pollster_analysis_provenance.py"
+        "lib/provenance/pollster_analysis_provenance.py"
       ],
       "description": "Dependency selection and bundled provenance recording for pollster-analysis outputs."
     },
@@ -720,7 +721,7 @@
       "scope": "global",
       "core": false,
       "paths": [
-        "fetch_booth_results.py"
+        "scripts/elections/fetch_booth_results.py"
       ],
       "description": "Election-scoped dispatcher for historical booth-result generators."
     },
@@ -738,7 +739,7 @@
       "scope": "election",
       "core": false,
       "paths": [
-        "fetch_election_data_nsw.py"
+        "scripts/elections/fetch_election_data_nsw.py"
       ],
       "description": "NSW historical booth-result scraper."
     },
@@ -747,7 +748,7 @@
       "scope": "election",
       "core": false,
       "paths": [
-        "fetch_election_data_vic.py"
+        "scripts/elections/fetch_election_data_vic.py"
       ],
       "description": "Victorian historical booth-result scraper."
     },
@@ -756,7 +757,7 @@
       "scope": "election",
       "core": false,
       "paths": [
-        "fetch_election_data_qld.py"
+        "scripts/elections/fetch_election_data_qld.py"
       ],
       "description": "Queensland historical booth-result scraper."
     },
@@ -765,7 +766,7 @@
       "scope": "election",
       "core": false,
       "paths": [
-        "fetch_election_data_sa.py"
+        "scripts/elections/fetch_election_data_sa.py"
       ],
       "description": "South Australian archived-CSV booth-result converter."
     },
@@ -793,7 +794,7 @@
       "scope": "global",
       "core": false,
       "paths": [
-        "federal_state.py"
+        "scripts/elections/federal_state.py"
       ],
       "description": "Federal booth-to-state-seat comparison and manual fTransposedFederalSwing diagnostics."
     },
@@ -820,13 +821,13 @@
     {
       "id": "cache_election_results",
       "description": "Download and cache historical election results when the corresponding pickle is absent.",
-      "command": "python3 election_data.py",
+      "command": "python3 -m lib.elections.election_data",
       "execution": {
-        "script": "election_data.py",
         "arguments": [],
         "working_directory": ".",
         "task_scope": "global",
-        "run_class": "acquisition"
+        "run_class": "acquisition",
+        "module": "lib.elections.election_data"
       },
       "inputs": [
         "election_data_script",
@@ -844,13 +845,13 @@
     {
       "id": "export_election_results",
       "description": "Validate cached results, simplify party names and export the CSVs consumed by C++.",
-      "command": "python3 election_store.py",
+      "command": "python3 -m lib.elections.election_store",
       "execution": {
-        "script": "election_store.py",
         "arguments": [],
         "working_directory": ".",
         "task_scope": "global",
-        "run_class": "source"
+        "run_class": "source",
+        "module": "lib.elections.election_store"
       },
       "inputs": [
         "election_result_rules",
@@ -871,13 +872,13 @@
     {
       "id": "analyse_elections",
       "description": "Fit historical seat, regional and Coalition-allocation models.",
-      "command": "python3 election_analysis.py",
+      "command": "python3 -m scripts.pipeline.election_analysis",
       "execution": {
-        "script": "election_analysis.py",
         "arguments": [],
         "working_directory": ".",
         "task_scope": "global",
-        "run_class": "analysis"
+        "run_class": "analysis",
+        "module": "scripts.pipeline.election_analysis"
       },
       "inputs": [
         "election_catalogue",
@@ -905,9 +906,8 @@
     {
       "id": "calibrate_pollsters",
       "description": "Run leave-one-pollster-out trend models and write durable abridged leave-one-out components.",
-      "command": "python3 fp_model.py --calibrate --election <election>",
+      "command": "python3 -m scripts.pipeline.fp_model --calibrate --election <election>",
       "execution": {
-        "script": "run_fp_model.py",
         "arguments": [
           "--calibrate",
           "--election",
@@ -915,7 +915,8 @@
         ],
         "working_directory": ".",
         "task_scope": "election",
-        "run_class": "calibration"
+        "run_class": "calibration",
+        "module": "scripts.pipeline.run_fp_model"
       },
       "inputs": [
         "election_catalogue",
@@ -949,9 +950,8 @@
     {
       "id": "calibrate_pollster_bias",
       "description": "Generate durable abridged bias-calibration components for compact summary publication.",
-      "command": "python3 fp_model.py --bias --election <election>",
+      "command": "python3 -m scripts.pipeline.fp_model --bias --election <election>",
       "execution": {
-        "script": "run_fp_model.py",
         "arguments": [
           "--bias",
           "--election",
@@ -959,7 +959,8 @@
         ],
         "working_directory": ".",
         "task_scope": "election",
-        "run_class": "calibration"
+        "run_class": "calibration",
+        "module": "scripts.pipeline.run_fp_model"
       },
       "inputs": [
         "election_catalogue",
@@ -990,16 +991,16 @@
     {
       "id": "compact_calibration_summaries",
       "description": "Merge durable calibrate and bias components into one election Summary CSV.",
-      "command": "python3 calibration_summary.py --election <election>",
+      "command": "python3 -m scripts.pipeline.calibration_summary --election <election>",
       "execution": {
-        "script": "calibration_summary.py",
         "arguments": [
           "--election",
           "{election_cli}"
         ],
         "working_directory": ".",
         "task_scope": "election",
-        "run_class": "calibration_summary"
+        "run_class": "calibration_summary",
+        "module": "scripts.pipeline.calibration_summary"
       },
       "inputs": [
         "poll_calibration_compatibility_inputs",
@@ -1019,16 +1020,16 @@
     {
       "id": "analyse_pollsters",
       "description": "Reduce calibration output into per-election pollster parameters.",
-      "command": "python3 pollster_analysis.py --election <election>",
+      "command": "python3 -m scripts.pipeline.pollster_analysis --election <election>",
       "execution": {
-        "script": "pollster_analysis.py",
         "arguments": [
           "--election",
           "{election_cli}"
         ],
         "working_directory": ".",
         "task_scope": "election",
-        "run_class": "pollster_analysis"
+        "run_class": "pollster_analysis",
+        "module": "scripts.pipeline.pollster_analysis"
       },
       "inputs": [
         "election_catalogue",
@@ -1056,9 +1057,8 @@
     {
       "id": "generate_pure_poll_trends",
       "description": "Generate voting-intention-only trends used by approval analysis.",
-      "command": "python3 fp_model.py --pure --election <election>",
+      "command": "python3 -m scripts.pipeline.fp_model --pure --election <election>",
       "execution": {
-        "script": "run_fp_model.py",
         "arguments": [
           "--pure",
           "--election",
@@ -1066,7 +1066,8 @@
         ],
         "working_directory": ".",
         "task_scope": "election",
-        "run_class": "regular_with_approvals"
+        "run_class": "regular_with_approvals",
+        "module": "scripts.pipeline.run_fp_model"
       },
       "inputs": [
         "election_catalogue",
@@ -1095,16 +1096,16 @@
     {
       "id": "generate_poll_trends",
       "description": "Generate approval-derived observations and the normal trends, adjusted polls and house effects used by forecasts.",
-      "command": "python3 fp_model.py --election <election>",
+      "command": "python3 -m scripts.pipeline.fp_model --election <election>",
       "execution": {
-        "script": "run_fp_model.py",
         "arguments": [
           "--election",
           "{election_cli}"
         ],
         "working_directory": ".",
         "task_scope": "election",
-        "run_class": "regular"
+        "run_class": "regular",
+        "module": "scripts.pipeline.run_fp_model"
       },
       "inputs": [
         "election_catalogue",
@@ -1146,9 +1147,8 @@
     {
       "id": "generate_cutoff_poll_trends",
       "description": "Generate consolidated point-in-time historical trend fits at the triangular cutoff schedule used by trend adjustment.",
-      "command": "python3 fp_model.py --election <election> --cutoff",
+      "command": "python3 -m scripts.pipeline.fp_model --election <election> --cutoff",
       "execution": {
-        "script": "run_fp_model.py",
         "arguments": [
           "--election",
           "{election_cli}",
@@ -1156,7 +1156,8 @@
         ],
         "working_directory": ".",
         "task_scope": "election",
-        "run_class": "cutoffs"
+        "run_class": "cutoffs",
+        "module": "scripts.pipeline.run_fp_model"
       },
       "inputs": [
         "election_catalogue",
@@ -1188,16 +1189,16 @@
     {
       "id": "generate_trend_adjustments",
       "description": "Estimate fundamentals and trend-adjustment parameters from historical trends and election results.",
-      "command": "python3 trend_adjust.py --election <election-or-none>",
+      "command": "python3 -m scripts.pipeline.trend_adjust --election <election-or-none>",
       "execution": {
-        "script": "trend_adjust.py",
         "arguments": [
           "--election",
           "{election_cli}"
         ],
         "working_directory": ".",
         "task_scope": "election",
-        "run_class": "adjustments"
+        "run_class": "adjustments",
+        "module": "scripts.pipeline.trend_adjust"
       },
       "inputs": [
         "election_catalogue",
@@ -1227,9 +1228,8 @@
     {
       "id": "generate_regional_swings",
       "description": "Fit election-specific regional swing deviations.",
-      "command": "python3 region_model.py --election <election> [--party ON]",
+      "command": "python3 -m scripts.pipeline.region_model --election <election> [--party ON]",
       "execution": {
-        "script": "region_model.py",
         "arguments": [
           "--election",
           "{election_cli}",
@@ -1238,7 +1238,8 @@
         ],
         "working_directory": ".",
         "task_scope": "election-party",
-        "run_class": "regional"
+        "run_class": "regional",
+        "module": "scripts.pipeline.region_model"
       },
       "inputs": [
         "election_catalogue",
@@ -1262,16 +1263,16 @@
     {
       "id": "fetch_live_booth_results",
       "description": "Run the jurisdiction-specific scraper needed to archive historical booth results for live analysis.",
-      "command": "python3 fetch_booth_results.py --election <election>",
+      "command": "python3 -m scripts.elections.fetch_booth_results --election <election>",
       "execution": {
-        "script": "fetch_booth_results.py",
         "arguments": [
           "--election",
           "{election_cli}"
         ],
         "working_directory": ".",
         "task_scope": "election",
-        "run_class": "acquisition"
+        "run_class": "acquisition",
+        "module": "scripts.elections.fetch_booth_results"
       },
       "inputs": [
         "election_catalogue",
@@ -1297,7 +1298,7 @@
     {
       "id": "analyse_federal_state_relationships",
       "description": "Download/cache federal booth results and calculate federal swing deviations for manual transfer into state forecast seat files.",
-      "command": "python3 federal_state.py --election <election>",
+      "command": "python3 -m scripts.elections.federal_state --election <election>",
       "execution": null,
       "inputs": [
         "election_catalogue",

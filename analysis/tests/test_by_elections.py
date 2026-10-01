@@ -6,7 +6,7 @@ import warnings
 from pathlib import Path
 
 try:
-    import by_elections
+    from scripts.exploratory import by_elections
 except ModuleNotFoundError as error:
     OPTIONAL_IMPORT_ERROR = error
 else:

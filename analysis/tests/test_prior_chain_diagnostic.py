@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-import prior_chain_diagnostic as diagnostic
+from scripts.diagnostics import prior_chain_diagnostic as diagnostic
 
 
 class ExactGaussianPosteriorTests(unittest.TestCase):

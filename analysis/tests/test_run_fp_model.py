@@ -1,10 +1,25 @@
 import io
+import sys
 import unittest
+from unittest import mock
 
-from run_fp_model import StanOutputFilter
+from scripts.pipeline import run_fp_model
+from scripts.pipeline.run_fp_model import StanOutputFilter
 
 
 class StanOutputFilterTests(unittest.TestCase):
+    def test_wrapper_launches_packaged_model_without_running_stan(self):
+        # Verify the real subprocess argv and exit forwarding while replacing
+        # the child process, since model fitting is outside routine validation.
+        process = mock.Mock(stdout=io.StringIO(''))
+        process.wait.return_value = 7
+        with mock.patch.object(run_fp_model.subprocess, 'Popen', return_value=process) as launch:
+            self.assertEqual(run_fp_model.run(['--election', '2028-fed']), 7)
+        self.assertEqual(
+            launch.call_args.args[0],
+            [sys.executable, '-m', 'scripts.pipeline.fp_model', '--election', '2028-fed'],
+        )
+
     def filter(self, text):
         output = io.StringIO()
         output_filter = StanOutputFilter(output)

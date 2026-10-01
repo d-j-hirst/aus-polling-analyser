@@ -26,7 +26,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
-import generated_provenance
+from lib.provenance import generated_provenance
 import analysis_provenance
 
 

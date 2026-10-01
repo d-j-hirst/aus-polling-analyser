@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import fetch_election_data_sa as sa
+from scripts.elections import fetch_election_data_sa as sa
 
 
 FIXTURE_FP = """\

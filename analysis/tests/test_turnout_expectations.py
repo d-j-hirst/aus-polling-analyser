@@ -4,7 +4,7 @@ import unittest
 from dataclasses import replace
 
 from tests.test_turnout_changes import election
-import turnout_expectations as expectations
+from scripts.turnout import turnout_expectations as expectations
 
 
 class TurnoutExpectationTests(unittest.TestCase):

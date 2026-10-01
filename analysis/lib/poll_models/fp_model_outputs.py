@@ -1,6 +1,6 @@
 """Trend output serialization and calibration evidence for fp_model."""
 
-import calibration_summary
+from scripts.pipeline import calibration_summary
 import csv
 import math
 import os
@@ -10,7 +10,7 @@ import tempfile
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-import fp_model_provenance
+from lib.provenance import fp_model_provenance
 
 from lib.poll_models.fp_model_data import (
     Config,

@@ -53,7 +53,7 @@ unnamed_others_diagnostic_threshold = 1.0
 unnamed_others_diagnostic_limit = 10
 
 FP_MODEL_MODULE_PATHS = (
-    'fp_model.py',
+    'scripts/pipeline/fp_model.py',
     "lib/poll_models/fp_model_constants.py",
     "lib/poll_models/fp_model_data.py",
     "lib/poll_models/fp_model_prepare.py",

@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest import mock
 
 from lib.provenance import booth_result_provenance
-import fetch_booth_results
+from scripts.elections import fetch_booth_results
 
 
 class BoothResultProvenanceTests(unittest.TestCase):
@@ -72,9 +72,9 @@ class BoothResultProvenanceTests(unittest.TestCase):
 
     def test_legacy_scrapers_are_import_safe(self):
         for module_name in (
-            "fetch_election_data_nsw",
-            "fetch_election_data_qld",
-            "fetch_election_data_vic",
+            'scripts.elections.fetch_election_data_nsw',
+            'scripts.elections.fetch_election_data_qld',
+            'scripts.elections.fetch_election_data_vic',
         ):
             with self.subTest(module=module_name):
                 module = importlib.import_module(module_name)
