@@ -39,6 +39,12 @@ source evidence and consolidated findings for observers and contributors.
 Start each public document with its purpose, then explain its function in
 plain language before giving commands or technical details.
 
+For public and internal reports, explain the question and purpose of each
+analysis before presenting its results. Define terms, comparison units,
+model names, columns and denominators; use a small example when helpful.
+Group like measurements and comparisons together, and prefer plain descriptions
+such as "test election" to opaque terminology such as "fold".
+
 Keep internal plans, priorities, delivery sequences and proposed work under
 the gitignored `docs/planning/` directory. Public documents and generated
 public reports must not link to or reproduce that planning material.

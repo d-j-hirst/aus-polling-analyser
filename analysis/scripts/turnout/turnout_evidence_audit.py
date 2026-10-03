@@ -18,6 +18,7 @@ import re
 
 from lib.paths import ANALYSIS_DIRECTORY, REPOSITORY_DIRECTORY
 from lib.shared import turnout_data
+from lib.turnout import category_policy as policy
 
 
 INPUT_DIRECTORY = ANALYSIS_DIRECTORY / 'Data/Turnout'
@@ -135,6 +136,11 @@ def target_definition(observation, jurisdiction, categories):
             return ['early_combined'], '', 'supported', (
                 'Empirical conversion to the published combined early pool; '
                 'not a pure in-person acceptance/formality rate.')
+        if jurisdiction == 'wa' and observation.election_code == '2025wa':
+            return ['early_in_person'], '', 'needs_definition_review', (
+                'The named early-polling-place split does not identify early absent votes. '
+                'The final absent pool has no early/polling-day split, so it cannot yet '
+                'be matched to the complete operational early-vote count.')
         if jurisdiction == 'wa' and 'early_in_person' in categories:
             return ['early_in_person'], '', 'supported', 'Final in-person early pool.'
         if jurisdiction == 'qld':
@@ -165,6 +171,9 @@ def final_target(dataset, observation, categories, source_category):
     # Missing rows under partial partitions cannot stand for observed zeros.
     if {row.seat_name for row in selected} != expected_seats:
         return None, 'Target category coverage is incomplete across final districts.'
+    unreliable = {r['seat'] for r in policy.missing_count_review(dataset)}
+    if any(row.seat_name in unreliable for row in selected):
+        return None, 'Target belongs to a reviewed unreliable district category split.'
     counts = {}
     for field in ('formal_votes', 'informal_votes', 'total_ballots'):
         values = [getattr(row, field) for row in selected]
@@ -184,7 +193,7 @@ def source_fingerprint(paths, payloads=None):
         payloads[path.name] if payloads is not None else json.loads(path.read_text(encoding='utf-8')), sort_keys=True,
         separators=(',', ':'), ensure_ascii=False).encode('utf-8')).hexdigest()
               for path in paths}
-    code_paths = [Path(__file__), Path(turnout_data.__file__)]
+    code_paths = [Path(__file__), Path(turnout_data.__file__), Path(policy.__file__)]
     code = {path.name: hashlib.sha256(path.read_text(encoding='utf-8').encode('utf-8')).hexdigest()
             for path in code_paths}
     return dict(inputs=inputs, code=code)
@@ -192,6 +201,8 @@ def source_fingerprint(paths, payloads=None):
 
 def audit_election(dataset):
     """Build the availability/category manifest for one validated election."""
+    missing_review = policy.missing_count_review(dataset)
+    dataset = policy.apply_missing_count_policy(dataset)
     election = dataset.elections[0]
     final_sources = {source.source_id for source in dataset.sources if source.status == 'final'}
     final_rows = [row for row in dataset.vote_types if row.source_id in final_sources]
@@ -248,6 +259,7 @@ def audit_election(dataset):
                 math.ceil(reference * quantum / 200 + 0.5) if reference is not None else None)
         controls.append(record)
     return dict(asdict(election), sources=[asdict(source) for source in dataset.sources],
+                reviewed_missing_counts=missing_review,
                 final_seats=len(totals), final_categories=sorted(categories),
                 final_totals={field: sum(getattr(row, field) for row in totals)
                               if totals and all(getattr(row, field) is not None for row in totals) else None
@@ -387,6 +399,10 @@ def render_report(audit):
                   'Early-vote comparisons include named early-voting centres, early absent-ordinary '
                   'votes and the separate early declaration category. Postal votes have their own '
                   'observed final category. Older SA declaration totals remain combined.', '',
+                  'Reviewed implausible zeros leave category counts missing in some districts. '
+                  'Those district splits are excluded from final-category comparisons because '
+                  'the votes may have been recorded elsewhere. District totals remain usable; '
+                  'the local manifest records the affected groups and their published source labels.', '',
                   'ECSA acknowledges residual differences between some count stages in its '
                   '[results-review statement](https://ecsa.sa.gov.au/se2026news/se2026-results-review-complete). '
                   'This dataset uses first preferences; TCP and preference-distribution counts are '

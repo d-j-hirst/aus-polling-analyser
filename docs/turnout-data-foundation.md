@@ -70,8 +70,14 @@ may be used when an official source exposes only some categories. Different
 partitions must not be added together unless an adapter explicitly establishes
 that they are mutually exclusive.
 
-Unavailable values are `null`, never zero. A zero is accepted only when the
-official source actually reports zero.
+Unreported measurements are `null`, never zero. A zero is accepted only when
+the official source actually reports zero. It records the observed count,
+without implying that the vote category or service was unavailable. A small
+possible category can happen to receive no votes, while a service known not
+to operate requires a separate explanation. Empty batches or venue rows are
+added with the other rows in their category; they do not establish that the
+whole category was empty. A category reported inside a combined total has
+an unknown separate count, rather than a zero count.
 
 ## Canonical Category Policy
 
@@ -113,7 +119,9 @@ level, but ingestion never fabricates detail in older elections.
 5. `analysis/scripts/turnout/turnout_wa.py` acquires 2005 through 2025 Western Australian
    Legislative Assembly evidence from WAEC final results and statistics
    reports. For 2025, final verbose XML polling-place names split the report's
-   combined ordinary/early/mobile figure into exact reconciled categories.
+    combined ordinary/early/mobile figure into exact reconciled categories.
+    The named early-polling-place count does not identify early absent votes;
+    matching the 2025 statewide early-voting operation remains unresolved.
 6. `analysis/scripts/turnout/turnout_sa.py` acquires 2006 through 2022 South Australian House
    of Assembly evidence from ECSA's final statistics reports and CSVs. It
    retains ordinary votes separately and preserves all other modes as the
@@ -381,8 +389,10 @@ gap, with publication availability marked unknown where it is unverified.
 Final-reconciled controls are distinguished from contemporary evidence.
 QLD 2024's detailed final postal workbook is dated after polling and therefore
 does not supply election-eve district controls. SA 2026 has detailed reviewed
-final counts. Federal early counts from 2010 lack a final ordinary/early split;
-SA's older combined declarations remain combined.
+final counts. The main federal category files combine ordinary early and
+election-day votes from 2010; the separate federal supplement described below
+recovers their early component from polling-place results. SA's older combined
+declarations remain combined.
 
 For source updates during or after an election, refresh the relevant
 ingestion adapter and regenerate the audit. The manifest records source URLs,
@@ -432,3 +442,228 @@ recorded in the normalized source notes. A later source revision receives a
 separate snapshot directory, including corrections without a version-number
 change. To reproduce an import from retained files, add
 `--source-directory <snapshot-directory>` to the command.
+
+## Operational Count Calibration
+
+The [operational calibration report](turnout-operational-calibration/report.md)
+compares published early-voting and postal counts with the corresponding final
+formal vote categories. It describes how much information the controls supply
+about final category sizes and how much conversion error remains.
+
+`analysis/scripts/turnout/turnout_operational_calibration.py` reuses the audit's
+exact/closely approximate selection and supported target definitions. It keeps
+one control series per election and measure, preferring contemporary evidence
+and district controls over retrospective series and duplicate parent totals.
+One matched observation is a district count paired with its final category
+count, or a total observation where only an aggregate is usable. A conversion
+multiplier is final matched formal votes divided by the operational count.
+The estimated multiplier is shared across districts rather than fitted
+separately for each one; each training election contributes equally to its mean.
+
+The analysis module calculates predictions, grouped errors, rounding
+sensitivity and outlier diagnostics. The separate
+`analysis/scripts/turnout/turnout_operational_report.py` module explains and
+formats those completed results as the public report. The command below
+continues to produce both the analytical output and the report.
+
+Run from `analysis/`:
+
+```powershell
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_operational_calibration --dry-run
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_operational_calibration
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_operational_calibration --check
+```
+
+Both predictions trained on all other elections and predictions trained only
+on earlier elections are computed, with their training sample sizes retained.
+The models compare one multiplier across elections, separate multipliers for
+federal and state elections, the previous compatible election's multiplier,
+and a same-name previous-category count scaled by current enrolment. NSW controls
+are diagnostic-only by default; `--include-nsw` adds them to fitting and testing.
+One-sided source bounds remain excluded. Publication rounding receives a
+simple endpoint sensitivity check.
+
+The generated local `calibration.json` records matched comparisons, held-election
+predictions, training identities, pooled factor candidates, descriptive common
+and local error scales, and conservative common error allowances based on both
+validation schemes. Nominal intervals are diagnostics; small samples and
+unverified publication times limit claims about predictive coverage and
+historical availability. The report is public documentation, while the detailed
+JSON is ignored. Neither output changes live forecast behaviour.
+
+The report also investigates whether federal pre-poll counts reported under
+the electorate administering a voting centre help predict final early votes
+belonging to that electorate's residents. These are different voter groups,
+so this is a separate test of an informative indicator, rather than a change
+to the main audit's matching rules. Both electorate and national comparisons
+are reported.
+
+`analysis/scripts/turnout/turnout_federal_prepoll.py` recovers the final federal
+early target for 2010–2025 using AEC polling-place classifications and
+first-preference CSVs. It sums formal ordinary votes at pre-poll voting centres,
+excludes informal votes, and adds final declaration pre-poll formal votes once.
+All polling-place ordinary formal counts must reproduce the existing normalized
+ordinary category before the supplement is written. The original category
+partitions remain unchanged.
+
+```powershell
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_federal_prepoll
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_federal_prepoll --refresh
+```
+
+The first command reuses retained raw files where present; `--refresh` fetches
+current AEC files. The public `Data/Turnout/FederalPrepoll/final.json` records
+the reconstructed counts, source URLs and hashes, and the normalized dataset
+version used. Raw CSV revisions are retained in separate content-hash
+directories under the ignored `downloads/turnout/federal-prepoll/` cache.
+Regenerate the supplement when its normalized federal inputs change, then rerun
+calibration. Its input and adapter hashes are included in the calibration
+freshness check.
+
+Refresh source data through the relevant ingestion adapter and rerun calibration
+after a source revision. The local input/code fingerprints and options are
+checked by `--check`, using the same semantic-input hashing as the evidence audit.
+
+## Category Allocation Analysis
+
+The [category allocation report](turnout-category-dynamics/report.md) assesses
+how calibrated early-voting and postal counts help allocate a formal-vote
+budget across voting categories. It compares previous category shares,
+proportional allocation of the uncontrolled remainder, and an alternative
+that retains smaller-category counts per enrolled elector and assigns most
+adjustment to ordinary voting.
+
+`analysis/scripts/turnout/turnout_category_dynamics.py` computes these
+comparisons and the separate `turnout_category_report.py` formats the public
+report. Each comparison uses the same election/district observations across
+the three rules. Supplying the actual final total isolates allocation error;
+predicted totals test the combined effect of allocation and total-size error.
+Both training on other elections and training only on earlier elections are
+reported. Turnout-change training also excludes successor transitions that
+contain the test election. Zero, half and full historical turnout change, and
+training without specified COVID-period endpoints, are fixed sensitivity checks.
+
+Historical categories are grouped only where their published definitions are
+compatible. Federal national early controls are distributed by previous
+resident-electorate early counts per enrolled elector and current enrolment.
+Issuing-centre electorate counts are not used as resident controls. Older SA
+declarations remain combined; SA 2026 instead receives an early/postal budget
+diagnostic. WA 2025's unresolved early/absent distinction is preserved in a
+broad grouping. NSW is shown descriptively and excluded from training and
+prediction by default.
+
+The report explains category changes, individual-election results, conversion
+training sample sizes, and common and district errors that move together.
+Joint error matrices describe historical patterns with category errors summing
+to zero when the total is supplied; they are not fitted district parameters
+or calibrated probability intervals. The local `analysis.json` is ignored,
+while the consolidated report is public. Neither changes the live forecast.
+
+Run from `analysis/`:
+
+```powershell
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_category_dynamics --dry-run
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_category_dynamics
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_category_dynamics --check
+```
+
+The command reuses audited exact or closely approximate controls and the
+normalized final results. Refresh the relevant source adapter and federal
+supplement after source revisions, then regenerate the report. `--check`
+detects changes to the local inputs, relevant code and command options;
+it does not fetch remote updates. Add `--include-nsw` to include NSW in training
+and prediction tests.
+
+## Initial Vote-Count Distributions
+
+The [initial-distribution report](turnout-prior-prototype/report.md) examines
+how useful uncertainty ranges can be constructed around total and category
+expectations before live results are counted. It compares prediction intervals
+with a previous-category-share baseline and exports reduced-sample local
+statistics and distinct shared count responses.
+
+`analysis/lib/turnout/prior.py` constructs bounded counts, distinct uncertainty
+responses and reduced-sample local count statistics. The analysis command
+`analysis/scripts/turnout/turnout_prior_prototype.py` fits parameters separately
+for each test election and scores predictions; `turnout_prior_report.py`
+formats the public report. Turnout, formality, early conversion, postal
+conversion and category composition retain distinct responses. Every outcome
+has nonnegative categories adding to its district total, and geographic totals
+are sums of districts. Historical combined categories remain combined.
+Turnout changes and turnout/formality uncertainty are fitted and applied in
+natural log odds, tapering toward the endpoints without rate caps. Both count
+interfaces retain the inexpensive turnout-times-formality product, so formal
+votes stay below the drawn ballot count. The preparation export retains local
+summaries and separate shared responses; rate responses and covariances are
+labelled in log-odds units rather than percentage points.
+Combined early/postal shares and the federal declaration anchor also use
+smooth transformed changes during draws. Extreme requests leave a continuous
+positive remainder rather than a fixed negligible reserve. This reconciliation
+can change requested national controls; the numerical diagnostics record it.
+Incompatible starting controls are reported as errors rather than silently capped.
+
+Both training on other elections and training only on earlier elections are
+reported. Parameters exclude the test election and transitions involving it;
+final votes enter scoring separately from prediction inputs. Some interval
+comparisons miss more often than their stated coverage would suggest, so the
+reported widths remain provisional. Category proportions use a logarithmic
+transformation so positive categories stay positive. For a controlled federal
+early total, the declaration expectation retains its previous percentage of
+all formal votes and ordinary pre-polls receive the balance. The report
+compares national declaration counts and district interval coverage against
+final results. Federal early counts are used nationally,
+with resident allocation uncertainty, rather than as issuing-centre district
+controls. NSW is excluded from this prototype.
+Detailed Queensland uncertainty keeps the 2015/2017 and 2020-onward reporting
+regimes separate. Where comparable training is unavailable, the report labels
+the assumed widths. Zero observations retain their published values. Possible
+zeros in available categories receive a half-vote equivalent for transformed
+starting weights and uncertainty fitting. The input floor is the smaller of
+0.1% and half a vote divided by the observed group total, so large groups retain
+genuine smaller positive shares. Unknown components are not assigned zeros,
+and whole empty groups do not establish an internal division.
+
+Reviewed implausible reporting zeros are represented as unknown in the
+analytical view. The underlying published records remain unchanged. Where
+votes may have been classified elsewhere, the whole district category split
+is excluded from allocation training and scoring; district totals remain
+usable. Missing earlier partitions receive the labelled aggregate baseline.
+Final targets that depend on an unreliable split cannot train conversion
+factors, but the published pre-election controls remain available for prediction.
+The shared policy records these decisions and releases an exclusion when a
+refreshed source supplies a positive count for the reviewed group.
+
+The shared `analysis/lib/turnout/category_policy.py` records known category
+definition, eligibility and service changes. The affected category's separate
+change is excluded from behavioural training; comparisons use a broader
+observed group where one is available. VIC 2006–2010 and WA 2021–2025 use this
+mechanism. QLD 2020 cancelled declared-institution placeholders are suppressed
+within-election, while the separately reported remote-mobile votes remain.
+The local output lists aggregated empty groups for individual review, final
+controls with zero counts, and relationships involving different parent
+denominators. Postal application conversion remains a linear multiplier;
+subset rates and category proportions use bounded transformations.
+
+Run from `analysis/`:
+
+```powershell
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_prior_prototype --dry-run
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_prior_prototype
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_prior_prototype --check
+```
+
+Defaults use 1,024 evaluation outcomes and 288 local preparation outcomes.
+The ignored `analysis.json` records scores, training parameters, endpoint and
+control-adjustment diagnostics, and agreement between the count interfaces.
+The ignored `fixtures-v3.json`
+exports versioned inputs, distinct count responses, preparation statistics and
+three reproducible outcomes for each representation of VIC 2022, WA 2025,
+Federal 2025 and SA 2026. These are count examples, not prepared party-share
+sensitivities. Neither output changes the live forecast or measures the full
+application's runtime.
+
+Refresh source adapters and the federal supplement after source corrections,
+then regenerate. The freshness check includes local input/code fingerprints,
+sample options and the NumPy version; it does not poll remote sources. The
+consolidated report is public documentation, while the numerical outputs are
+reproduced locally.

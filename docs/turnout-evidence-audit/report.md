@@ -4,7 +4,7 @@ This report describes the published vote and application counts available for tu
 
 The audit reads the normalized election datasets, selects exact counts and closely approximate counts, and checks their category and geographic coverage. It records the latest eligible count from each source and the final-result quantities that describe the same voting pool. Reproduction commands appear below.
 
-Generated 2026-10-01T22:55:08.555611+00:00.
+Generated 2026-10-02T23:57:50.553809+00:00.
 
 35 datasets; 35 elections with final seat evidence; 49996 operational rows; 3038 latest precise controls.
 
@@ -40,12 +40,12 @@ Exact/close-rate row counts above include superseded daily observations. Control
 | 2009qld | 89 (89) | 535 | 0 / 0 | 0 (0) | absent, early_in_person, election_day_ordinary, mobile_or_institution, postal |
 | 2010fed | 150 (150) | 750 | 0 / 0 | 300 (0) | absent, declaration_early, ordinary_combined, postal, provisional |
 | 2010sa | 47 (47) | 94 | 0 / 0 | 0 (0) | declaration_combined, election_day_ordinary |
-| 2010vic | 88 (88) | 528 | 0 / 0 | 1 (0) | absent, early_combined, election_day_ordinary, marked_as_voted, postal, provisional |
+| 2010vic | 88 (88) | 528 | 1 / 0 | 1 (0) | absent, early_combined, election_day_ordinary, marked_as_voted, postal, provisional |
 | 2012qld | 89 (89) | 535 | 0 / 0 | 0 (0) | absent, early_in_person, election_day_ordinary, mobile_or_institution, postal |
 | 2013fed | 150 (150) | 750 | 0 / 0 | 300 (0) | absent, declaration_early, ordinary_combined, postal, provisional |
 | 2013wa | 59 (59) | 295 | 0 / 0 | 2 (0) | absent, early_in_person, election_day_ordinary, postal, provisional |
 | 2014sa | 47 (47) | 94 | 0 / 0 | 1 (0) | declaration_combined, election_day_ordinary |
-| 2014vic | 88 (88) | 522 | 0 / 1 | 88 (88) | absent, early_combined, election_day_ordinary, marked_as_voted, postal, provisional |
+| 2014vic | 88 (88) | 522 | 2 / 1 | 88 (88) | absent, early_combined, election_day_ordinary, marked_as_voted, postal, provisional |
 | 2015nsw | 93 (93) | 651 | 0 / 0 | 94 (0) | absent, early_combined, election_day_ordinary, enrolment, postal, provisional, remote_electronic |
 | 2015qld | 89 (89) | 980 | 0 / 0 | 1 (0) | absent, declaration_early, early_in_person, election_day_ordinary, enrolment, mobile_or_institution, postal, provisional, remote_electronic, telephone |
 | 2016fed | 150 (150) | 750 | 0 / 0 | 300 (0) | absent, declaration_early, ordinary_combined, postal, provisional |
@@ -64,7 +64,7 @@ Exact/close-rate row counts above include superseded daily observations. Control
 | 2024qld | 93 (93) | 838 | 0 / 0 | 96 (1) | absent, declaration_combined, declaration_early, early_in_person, election_day_ordinary, mobile_or_institution, postal, telephone |
 | 2025fed | 150 (150) | 750 | 0 / 0 | 450 (0) | absent, declaration_early, ordinary_combined, postal, provisional |
 | 2025wa | 59 (59) | 354 | 0 / 0 | 1 (0) | absent, early_in_person, election_day_ordinary, mobile_or_institution, postal, provisional |
-| 2026sa | 47 (47) | 796 | 0 / 0 | 96 (0) | absent, declaration_early, early_in_person, election_day_ordinary, mobile_or_institution, other, postal, provisional |
+| 2026sa | 47 (47) | 796 | 9 / 0 | 96 (0) | absent, declaration_early, early_in_person, election_day_ordinary, mobile_or_institution, other, postal, provisional |
 
 Districts with final totals but no category partition:
 - 2006vic: Ferntree Gully District.
@@ -141,7 +141,8 @@ Each row groups controls with the same comparison definition. District counts in
 | 2013wa / antony-green-2013wa-election-eve | prepoll_votes_ready_for_election_night_count | state / contemporaneous | 2013-03-08 | 1 | different_stage: Scrutiny-ready or other operational quantity has no reviewed final-category target. |
 | 2014sa / antony-green-2014sa-retrospective | prepoll_votes_cast_cumulative | state / final_reconciled | 2014-03-14 | 1 | combined_only: Early votes are inside an unsplit declaration pool. |
 | 2014vic / antony-green-2014vic-election-eve | early_and_postal_votes_recorded_cumulative | elector_division / contemporaneous | 2014-11-28T18:00:00+11:00 | 1 | missing_target: No matching final category rows for this geography. |
-| 2014vic / antony-green-2014vic-election-eve | early_and_postal_votes_recorded_cumulative | elector_division / contemporaneous | 2014-11-28T18:00:00+11:00 | 87 | supported: Combined early/postal conversion only; do not split the control. |
+| 2014vic / antony-green-2014vic-election-eve | early_and_postal_votes_recorded_cumulative | elector_division / contemporaneous | 2014-11-28T18:00:00+11:00 | 2 | missing_target: Target belongs to a reviewed unreliable district category split. |
+| 2014vic / antony-green-2014vic-election-eve | early_and_postal_votes_recorded_cumulative | elector_division / contemporaneous | 2014-11-28T18:00:00+11:00 | 85 | supported: Combined early/postal conversion only; do not split the control. |
 | 2015nsw / nswec-2015nsw-prepoll-transactions | prepoll_votes_cast_cumulative | elector_division / contemporaneous | 2015-03-27 | 93 | supported: Match the named pre-poll ordinary source rows; exclude other early modes. |
 | 2015nsw / nswec-2015nsw-prepoll-transactions | prepoll_votes_cast_cumulative | state / contemporaneous | 2015-03-27 | 1 | supported: Match the named pre-poll ordinary source rows; exclude other early modes. |
 | 2015qld / ecq-2014-15-annual-report | postal_ballots_issued_cumulative | state / final_reconciled | 2015-01-28 | 1 | supported: Final postal pool; applications/issues/returns/accepted votes remain separate stages. A formal-count ratio is a combined conversion, not a pure acceptance probability. |
@@ -192,11 +193,13 @@ Each row groups controls with the same comparison definition. District counts in
 | 2025fed / aec-2025-postal-operational | postal_applications_cumulative | elector_division / contemporaneous | 2025-05-03 | 150 | supported: Final postal pool; applications/issues/returns/accepted votes remain separate stages. A formal-count ratio is a combined conversion, not a pure acceptance probability. |
 | 2025fed / aec-2025-postal-operational | postal_votes_returned_cumulative | elector_division / contemporaneous | 2025-05-03 | 150 | supported: Final postal pool; applications/issues/returns/accepted votes remain separate stages. A formal-count ratio is a combined conversion, not a pure acceptance probability. |
 | 2025fed / aec-2025-prepoll-operational | prepoll_votes_issued_cumulative | administering_division / final_reconciled | 2025-05-03 | 150 | aggregate_only: Attendance belongs to the administering district. Aggregate at the election level; elector-seat conversion needs a crosswalk. |
-| 2025wa / antony-green-2025wa-election-eve | prepoll_votes_cast_cumulative | state / contemporaneous | 2025-03-07 | 1 | supported: Final in-person early pool. |
-| 2026sa / ecsa-2026sa-daily-tally | postal_applications_cumulative | elector_division / contemporaneous | 2026-03-16 | 47 | supported: Final postal pool; applications/issues/returns/accepted votes remain separate stages. A formal-count ratio is a combined conversion, not a pure acceptance probability. |
-| 2026sa / ecsa-2026sa-daily-tally | postal_applications_cumulative | state / contemporaneous | 2026-03-16 | 1 | supported: Final postal pool; applications/issues/returns/accepted votes remain separate stages. A formal-count ratio is a combined conversion, not a pure acceptance probability. |
-| 2026sa / ecsa-2026sa-daily-tally | prepoll_votes_cast_cumulative | elector_division / contemporaneous | 2026-03-20 | 47 | supported: Final early pool includes named EVCs, early absent-ordinary votes and separate early declarations. |
-| 2026sa / ecsa-2026sa-daily-tally | prepoll_votes_cast_cumulative | state / contemporaneous | 2026-03-20 | 1 | supported: Final early pool includes named EVCs, early absent-ordinary votes and separate early declarations. |
+| 2025wa / antony-green-2025wa-election-eve | prepoll_votes_cast_cumulative | state / contemporaneous | 2025-03-07 | 1 | needs_definition_review: The named early-polling-place split does not identify early absent votes. The final absent pool has no early/polling-day split, so it cannot yet be matched to the complete operational early-vote count. |
+| 2026sa / ecsa-2026sa-daily-tally | postal_applications_cumulative | elector_division / contemporaneous | 2026-03-16 | 9 | missing_target: Target belongs to a reviewed unreliable district category split. |
+| 2026sa / ecsa-2026sa-daily-tally | postal_applications_cumulative | elector_division / contemporaneous | 2026-03-16 | 38 | supported: Final postal pool; applications/issues/returns/accepted votes remain separate stages. A formal-count ratio is a combined conversion, not a pure acceptance probability. |
+| 2026sa / ecsa-2026sa-daily-tally | postal_applications_cumulative | state / contemporaneous | 2026-03-16 | 1 | missing_target: Target belongs to a reviewed unreliable district category split. |
+| 2026sa / ecsa-2026sa-daily-tally | prepoll_votes_cast_cumulative | elector_division / contemporaneous | 2026-03-20 | 9 | missing_target: Target belongs to a reviewed unreliable district category split. |
+| 2026sa / ecsa-2026sa-daily-tally | prepoll_votes_cast_cumulative | elector_division / contemporaneous | 2026-03-20 | 38 | supported: Final early pool includes named EVCs, early absent-ordinary votes and separate early declarations. |
+| 2026sa / ecsa-2026sa-daily-tally | prepoll_votes_cast_cumulative | state / contemporaneous | 2026-03-20 | 1 | missing_target: Target belongs to a reviewed unreliable district category split. |
 
 ## Independent conversion evidence
 
@@ -207,7 +210,7 @@ Counts below count elections once per measure/geography, regardless of district 
 | early_and_postal_votes_recorded_cumulative | elector_division | 1 | 2014vic |
 | postal_applications_cumulative | elector_division | 8 | 2010fed, 2013fed, 2016fed, 2019fed, 2021wa, 2022vic, 2025fed, 2026sa |
 | postal_applications_cumulative | national | 2 | 2007fed, 2022fed |
-| postal_applications_cumulative | state | 4 | 2005wa, 2017wa, 2021wa, 2026sa |
+| postal_applications_cumulative | state | 3 | 2005wa, 2017wa, 2021wa |
 | postal_ballots_issued_cumulative | elector_division | 2 | 2020qld, 2023nsw |
 | postal_ballots_issued_cumulative | national | 1 | 2007fed |
 | postal_ballots_issued_cumulative | state | 5 | 2008wa, 2015qld, 2020qld, 2023nsw, 2024qld |
@@ -216,7 +219,7 @@ Counts below count elections once per measure/geography, regardless of district 
 | postal_votes_returned_cumulative | national | 1 | 2022fed |
 | postal_votes_returned_cumulative | state | 4 | 2020qld, 2021wa, 2023nsw, 2024qld |
 | prepoll_votes_cast_cumulative | elector_division | 5 | 2015nsw, 2021wa, 2022vic, 2023nsw, 2026sa |
-| prepoll_votes_cast_cumulative | state | 6 | 2005wa, 2015nsw, 2021wa, 2023nsw, 2025wa, 2026sa |
+| prepoll_votes_cast_cumulative | state | 4 | 2005wa, 2015nsw, 2021wa, 2023nsw |
 
 ## Overlap and aggregate residuals
 
@@ -245,6 +248,8 @@ VIC 2022’s final district sample excludes Narracan; its statewide operational 
 The dataset contains reviewed final first-preference counts for all 47 districts from the [ECSA results website](https://result.ecsa.sa.gov.au/). District totals combine polling places, declaration batches and absent-ordinary batches once each. They total 1,317,186 enrolled electors, 1,115,864 formal votes, 50,332 informal votes and 1,166,196 ballots.
 
 Early-vote comparisons include named early-voting centres, early absent-ordinary votes and the separate early declaration category. Postal votes have their own observed final category. Older SA declaration totals remain combined.
+
+Reviewed implausible zeros leave category counts missing in some districts. Those district splits are excluded from final-category comparisons because the votes may have been recorded elsewhere. District totals remain usable; the local manifest records the affected groups and their published source labels.
 
 ECSA acknowledges residual differences between some count stages in its [results-review statement](https://ecsa.sa.gov.au/se2026news/se2026-results-review-complete). This dataset uses first preferences; TCP and preference-distribution counts are separate stages and do not replace its turnout totals. The source revision and raw-source hashes are recorded in the normalized dataset.
 

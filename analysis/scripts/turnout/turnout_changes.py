@@ -21,6 +21,7 @@ from lib.paths import REPOSITORY_DIRECTORY
 import statistics
 
 from lib.shared.turnout_data import load_dataset
+from lib.turnout import category_policy as policy
 
 
 ROOT = REPOSITORY_DIRECTORY
@@ -46,7 +47,7 @@ class Election:
 
 
 def percent(numerator, denominator):
-    return 100.0 * numerator / denominator if denominator else None
+    return 100.0 * numerator / denominator if numerator is not None and denominator else None
 
 
 def rates(counts):
@@ -61,7 +62,7 @@ def load_elections(directory):
     """Require known final counts; incomplete category coverage is handled separately."""
     elections, excluded = [], []
     for path in sorted(directory.glob('*.json')):
-        dataset = load_dataset(path)
+        dataset = policy.apply_missing_count_policy(load_dataset(path))
         if len(dataset.elections) != 1:
             raise ValueError('{} must describe one election'.format(path))
         definition = dataset.elections[0]
@@ -121,6 +122,8 @@ def category_counts(election, seat, native=False):
         return None
     groups = defaultdict(list)
     for record in records:
+        if policy.suppressed_record(election.code, record):
+            continue
         key = record.canonical_category if native else comparison_group(
             election.jurisdiction, record.canonical_category)
         groups[key].append(record)
@@ -172,6 +175,13 @@ def change_row(previous, current, level, geography, old_names, new_names):
             new - old if old is not None and new is not None else None)
     for key in COUNTS:
         row[key + '_growth_pct'] = percent(new_counts[key] - old_counts[key], old_counts[key])
+    for metric, numerator, denominator in (
+            ('turnout_pct', 'total_ballots', 'enrolment'),
+            ('formality_pct', 'formal_votes', 'total_ballots'),
+            ('formal_per_enrolled_pct', 'formal_votes', 'enrolment')):
+        for prefix, counts in (('previous_', old_counts), ('current_', new_counts)):
+            row[prefix + metric + '_log_odds'] = policy.subset_log_odds(counts[numerator], counts[denominator])
+        row[metric + '_change_log_odds'] = row['current_' + metric + '_log_odds'] - row['previous_' + metric + '_log_odds']
     # The multiplicative identity distinguishes more enrolled electors from
     # changes in voting participation and ballot formality.
     if all(old_rates[key] and new_rates[key] for key in ('turnout_pct', 'formality_pct')):
@@ -192,16 +202,17 @@ def category_rows(previous, current, level, geography, old_names, new_names, nat
     new_by_seat = {name: category_counts(current, name, native) for name in new_covered}
     old_keys = {key for groups in old_by_seat.values() for key in groups}
     new_keys = {key for groups in new_by_seat.values() for key in groups}
-    # Native rows are comparable only where the exact category set survives.
-    # Broad partitions remain exhaustive: an absent grouped mode is a zero
-    # contribution to that partition, never a fabricated missing observation.
-    keys = old_keys & new_keys if native else old_keys | new_keys
+    # A missing category is unknown, not an observed zero. Definition and
+    # service changes are excluded even where the source reuses the same label.
+    keys = old_keys & new_keys
     if native and old_keys != new_keys:
         return []
     if native and previous.jurisdiction == 'fed' and previous.code == '2007fed':
         return []
     output = []
     for key in sorted(keys):
+        if policy.comparison_exclusion(previous.code, current.code, key):
+            continue
         row = dict(jurisdiction=current.jurisdiction, previous=previous.code, current=current.code,
                    level=level, geography=geography, category=key,
                    view='native' if native else 'comparison',
@@ -216,13 +227,13 @@ def category_rows(previous, current, level, geography, old_names, new_names, nat
         ):
             counts = []
             for name in names:
-                # No row is an observed zero in the exhaustive comparison
-                # grouping; native export omits these newly introduced modes.
-                counts.append(groups[name].get(key, dict(formal_votes=0, total_ballots=0, informal_votes=0)))
+                counts.append(groups[name].get(key, dict(formal_votes=None, total_ballots=None, informal_votes=None)))
             for field in ('formal_votes', 'total_ballots', 'informal_votes'):
                 values = [record[field] for record in counts]
                 row[prefix + field] = sum(values) if all(v is not None for v in values) else None
             totals = total_counts(election, names)
+            row[prefix + 'parent_formal_votes'] = totals['formal_votes']
+            row[prefix + 'parent_total_ballots'] = totals['total_ballots']
             row[prefix + 'formal_share_pct'] = percent(row[prefix + 'formal_votes'], totals['formal_votes'])
             row[prefix + 'ballot_share_pct'] = (
                 percent(row[prefix + 'total_ballots'], totals['total_ballots'])
@@ -233,8 +244,18 @@ def category_rows(previous, current, level, geography, old_names, new_names, nat
         for metric in ('formal_share_pct', 'ballot_share_pct', 'formality_pct'):
             a, b = row['previous_' + metric], row['current_' + metric]
             row[metric + '_change_pp'] = b - a if a is not None and b is not None else None
+        # Keep counts and percentage changes as readable descriptive output,
+        # while providing transformed changes for modelling and relationships.
+        for metric, numerator, denominator in (
+                ('formal_share', 'formal_votes', 'parent_formal_votes'),
+                ('ballot_share', 'total_ballots', 'parent_total_ballots'),
+                ('formality', 'formal_votes', 'total_ballots')):
+            a = policy.subset_log_odds(row['previous_' + numerator], row['previous_' + denominator])
+            b = policy.subset_log_odds(row['current_' + numerator], row['current_' + denominator])
+            row[metric + '_change_log_odds'] = b - a if a is not None and b is not None else None
         row['formal_votes_growth_pct'] = percent(
-            row['current_formal_votes'] - row['previous_formal_votes'], row['previous_formal_votes'])
+            row['current_formal_votes'] - row['previous_formal_votes'], row['previous_formal_votes']) if (
+                row['current_formal_votes'] is not None and row['previous_formal_votes'] is not None) else None
         output.append(row)
     return output
 
@@ -293,8 +314,13 @@ def build_tables(elections):
             key = metric + '_change_pp'
             row[metric + '_change_minus_election_pp'] = row[key] - national[key]
             row[metric + '_change_minus_state_pp'] = row[key] - state[key] if state else None
+            key = metric + '_change_log_odds'
+            row[metric + '_change_minus_election_log_odds'] = row[key] - national[key]
+            row[metric + '_change_minus_state_log_odds'] = row[key] - state[key] if state else None
     return dict(levels=snapshots, changes=changes, category_changes=categories,
-                matching=matches, native_categories=native)
+                matching=matches, native_categories=native,
+                empty_group_review=policy.empty_groups({e.code: e for e in elections}),
+                parent_denominator_review=list(policy.PARENT_REVIEWS))
 
 
 def geographies(election):
@@ -380,6 +406,14 @@ def render_report(elections, excluded, tables):
         'Coverage is shown; changing missing-seat coverage can affect aggregate shares.',
         '* Category correlations describe compositional changes, not causal substitution. '
         'Seats from the same election are not independent calibration trials.',
+        '* Subset rates and category shares are transformed to natural log odds for '
+        'relationship analysis: log(share / (1 − share)). This expresses change relative '
+        'to the room available on each side of a bounded share. Counts and pp tables '
+        'remain readable descriptions of the actual observations, not modelling coordinates.',
+        '* Possible zero counts receive a half-vote equivalent for transformation. '
+        'The input share floor is min(0.1%, half a vote / parent count); unknowns '
+        'remain unknown. Known definition and service changes are excluded from '
+        'individual-category comparisons through a shared category policy.',
         '* Operational pre-election observations are reserved for the next analysis: '
         'this report establishes final-result dynamics first.',
         '* Excluded operational-only elections: {}.'.format(', '.join(excluded) or 'none'), '',
@@ -463,7 +497,7 @@ def render_report(elections, excluded, tables):
     lines += ['## Matched-seat changes and persistence', '',
               'Each row summarises same-named seats in one consecutive-election pair. '
               'P10/P90 bracket the middle 80% of changes. Persistence r correlates '
-              'previous and current seat levels within that pair; it is descriptive '
+              'previous and current seat log odds within that pair; it is descriptive '
               'and can include redistribution effects.', '']
     pair_keys = sorted({(r['previous'], r['current']) for r in changes if r['level'] == 'seat'})
     for metric in RATE_METRICS + ('enrolment_growth_pct', 'formal_votes_growth_pct'):
@@ -473,7 +507,7 @@ def render_report(elections, excluded, tables):
             selected = [r for r in changes if r['previous'] == old and r['current'] == new and r['level'] == 'seat']
             key = metric + '_change_pp' if metric in RATE_METRICS else metric
             summary = distribution([r[key] for r in selected])
-            persistence = correlation([(r['previous_' + metric], r['current_' + metric]) for r in selected]) if metric in RATE_METRICS else None
+            persistence = correlation([(r['previous_' + metric + '_log_odds'], r['current_' + metric + '_log_odds']) for r in selected]) if metric in RATE_METRICS else None
             rows.append([old + ' -> ' + new] + summary + [persistence])
         lines += table(['Elections', 'N', 'Mean', 'Median', 'P10', 'P90', 'SD', 'Persistence r'], rows) + ['']
     lines += ['### Largest seat rate changes', '',
@@ -505,29 +539,40 @@ def render_report(elections, excluded, tables):
     lines += table(['Elections', 'Category', 'N', 'Mean delta pp', 'Median', 'P10', 'P90', 'SD',
                     'Formality N', 'Formality mean delta pp'], rows) + ['']
     lines += ['### Early/postal versus ordinary substitution', '',
-              'Within each election pair, correlate matched-seat share changes. '
+              'Within each election pair, correlate matched-seat changes in log odds. '
               'Negative r is compatible with substitution, but also follows from '
               'the fixed-sum nature of shares. Use counts, enrolment and whole-election '
               'holdouts before assigning a predictive coefficient. Queensland category '
-              'breaks are excluded here.', '']
+              'breaks are excluded here. Early/ordinary and postal/ordinary shares '
+              'have the same formal-vote parent. Early/turnout and postal/turnout '
+              'compare formal-vote shares with ballots/enrolment: these different '
+              'parents are explicitly flagged for human review in '
+              '`parent_denominator_review.csv`. These correlations are report-only '
+              'diagnostics: neither the category allocation nor the prior prototype '
+              'uses them to predict turnout or category changes. A category share '
+              'can rise simply because the formal-vote total falls, even if that '
+              'category contains the same number of votes.', '']
     lines += table(['Elections', 'N', 'Early vs ordinary r', 'Postal vs ordinary r',
                     'Early vs turnout r', 'Postal vs turnout r'], substitution_table(changes, categories)) + ['']
     lines += ['## Other relationships relevant to vote-count expectations', '',
               'Within-pair seat correlations help identify predictors for later testing. '
               'Roll growth versus turnout can also reflect redistribution or enrolment '
               'composition. The federal residual SDs compare removing the national '
-              'turnout shift with removing each state/territory shift.', '']
+              'turnout shift with removing each state/territory shift. Rate changes '
+              'and residual spreads in this relationship table use natural log odds. '
+              'Turnout/formality combines enrolment and ballot parents and is '
+              'flagged for human review; it is not a direct substitution measurement.', '']
     rows = []
     for old, new in pair_keys:
         selected = [r for r in changes if r['previous'] == old and r['current'] == new and r['level'] == 'seat']
-        national_residual = distribution([r['turnout_pct_change_minus_election_pp'] for r in selected])
-        state_residual = distribution([r['turnout_pct_change_minus_state_pp'] for r in selected])
+        national_residual = distribution([r['turnout_pct_change_minus_election_log_odds'] for r in selected])
+        state_residual = distribution([r['turnout_pct_change_minus_state_log_odds'] for r in selected])
         rows.append([old + ' -> ' + new, len(selected),
-                     correlation([(r['enrolment_growth_pct'], r['turnout_pct_change_pp']) for r in selected]),
-                     correlation([(r['turnout_pct_change_pp'], r['formality_pct_change_pp']) for r in selected]),
+                     correlation([(r['enrolment_growth_pct'], r['turnout_pct_change_log_odds']) for r in selected]),
+                     correlation([(r['turnout_pct_change_log_odds'], r['formality_pct_change_log_odds']) for r in selected]),
                      national_residual[-1], state_residual[-1] if state_residual else None])
     lines += table(['Elections', 'N', 'Roll growth vs turnout r', 'Turnout vs formality r',
-                    'Turnout residual SD (national)', 'Turnout residual SD (state)'], rows) + ['']
+                    'Turnout residual SD (national, log odds)', 'Turnout residual SD (state, log odds)'], rows) + ['']
     lines += ['## Coverage and modelling implications', '',
               '* Total formal votes should be decomposed into enrolment, turnout and '
               'formality. A category decline alone does not establish lost turnout.',
@@ -623,12 +668,20 @@ def state_category_table(categories):
 
 
 def substitution_table(changes, categories):
+    """Describe historical co-movement for the report, without fitting a predictor.
+
+    Category shares use formal votes as their denominator, whereas turnout uses
+    enrolment. Their correlation can partly reflect a changing denominator rather
+    than a transfer of voters between categories. The allocation and prior modules
+    do not consume these coefficients; they use counts, compatible category
+    proportions and separately estimated turnout/formality errors.
+    """
     seat_changes = {(r['previous'], r['current'], r['geography']): r
                     for r in changes if r['level'] == 'seat'}
     grouped = defaultdict(dict)
     for r in categories:
         if r['level'] == 'seat' and r['view'] == 'comparison':
-            grouped[r['previous'], r['current'], r['geography']][r['category']] = r['formal_share_pct_change_pp']
+            grouped[r['previous'], r['current'], r['geography']][r['category']] = r['formal_share_change_log_odds']
     output = []
     for old, new in sorted({(a, b) for a, b, name in grouped}):
         names = [name for a, b, name in grouped if (a, b) == (old, new)]
@@ -641,7 +694,7 @@ def substitution_table(changes, categories):
             early.append(next((values[k] for k in ('early_combined', 'early_in_person', 'all_early_in_person') if k in values), None))
             ordinary.append(next((values[k] for k in ('election_day_ordinary', 'ordinary_including_mobile', 'ordinary_and_all_prepoll') if k in values), None))
             postal.append(values.get('postal'))
-            turnout.append(seat_changes[old, new, name]['turnout_pct_change_pp'])
+            turnout.append(seat_changes[old, new, name]['turnout_pct_change_log_odds'])
         output.append([old + ' -> ' + new, len(names), correlation(zip(early, ordinary)),
                        correlation(zip(postal, ordinary)), correlation(zip(early, turnout)),
                        correlation(zip(postal, turnout))])

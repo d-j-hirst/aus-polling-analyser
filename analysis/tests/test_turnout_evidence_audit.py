@@ -61,6 +61,8 @@ class TurnoutEvidenceAuditTests(unittest.TestCase):
                                                'qld', {'early_in_person'})[2], 'aggregate_only')
         self.assertEqual(audit.target_definition(replace(row, election_code='2015nsw'),
                                                'nsw', {'early_combined'})[1], 'Total Pre-Poll Ordinary Votes')
+        self.assertEqual(audit.target_definition(replace(row, election_code='2025wa'),
+                                               'wa', {'early_in_person', 'absent'})[2], 'needs_definition_review')
 
     def test_source_updates_change_fingerprint_but_formatting_does_not(self):
         with tempfile.TemporaryDirectory() as directory:

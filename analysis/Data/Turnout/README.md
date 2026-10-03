@@ -13,6 +13,7 @@ Regenerate the normalized files from the commissions' official material with:
 cd analysis
 ./env/bin/python -B -m scripts.turnout.turnout_aec --election all
 ./env/bin/python -B -m scripts.turnout.turnout_aec_operational --election all
+./env/bin/python -B -m scripts.turnout.turnout_federal_prepoll
 
 ./env/bin/python -B -m scripts.turnout.turnout_nsw_operational --election 2015nsw
 ./env/bin/python -B -m scripts.turnout.turnout_nsw --election all
@@ -36,6 +37,17 @@ AEC ordinary votes are classified as election-day votes before 2010 and as a
 combined election-day/early category from 2010. NSW 2015 retains separate
 enrolment and provisional categories; later combined categories remain
 combined, and no inferred split is stored.
+
+The separate `FederalPrepoll/final.json` supplement recovers final federal early
+formal counts for 2010–2025 from official polling-place classifications and
+first-preference results. It adds formal ordinary votes at pre-poll centres
+(AEC type 5) to final declaration pre-poll formal votes once, excluding informal
+rows. All polling-place ordinary votes must reconcile to each district's
+existing ordinary category. This does not alter the original category
+partition. The supplement records source URLs and hashes; add `--refresh` to
+its command to fetch current AEC files while retaining prior raw revisions.
+Operational pre-poll counts still describe administering divisions, so the
+calibration report assesses them separately as indicators of resident votes.
 VEC early votes remain combined and its small Marked As Voted category remains
 separate from 2010 onward; the 2006 Declaration Votes aggregate remains
 combined. VEC did not publish voting-centre figures for the 2014 Prahran and
@@ -100,3 +112,52 @@ pre-election observations.
 
 See [`docs/turnout-data-foundation.md`](../../../docs/turnout-data-foundation.md)
 for the shared schema, category policy, available sources and reproduction commands.
+
+The [category allocation report](../../../docs/turnout-category-dynamics/report.md)
+uses these final partitions and independently calibrated early/postal counts
+to compare three ways of distributing a formal-vote budget. It records
+compatible historical groupings, separates allocation from total-size error,
+and describes common and district errors without inventing missing historical
+category splits. Its detailed local output is ignored; the consolidated report
+and reproduction instructions are public.
+
+The [initial-distribution report](../../../docs/turnout-prior-prototype/report.md)
+uses the same evidence to assess uncertainty around initial total and category
+estimates. It rebuilds parameters without each test election, compares
+previous-share and controlled proportional allocations, and exports local
+preparation summaries with distinct shared responses. Categories add to district
+totals, and geographic totals add from districts. Its interval widths remain
+provisional where observed coverage falls short. Logarithmic category changes
+keep positive categories positive. Controlled federal declaration pre-polls
+retain their previous percentage of all formal votes; ordinary pre-polls
+receive the balance of the combined early estimate. The report compares
+national declaration counts and district interval coverage against final
+results; agreement between representations alone does not establish calibration.
+Turnout and formality changes use natural log odds in both fitting and drawing,
+so movements taper near 0% and 100% without endpoint caps. Both count interfaces
+retain the inexpensive rate product and smooth reconciliation of combined
+early/postal shares; extreme requests leave a continuous positive remainder.
+Published zeros remain unchanged in the data. Available categories with
+observed zero counts receive half-vote equivalents before transformation;
+unknown counts do not become zeros or fabricated internal divisions. The
+modelling input floor is the smaller of 0.1% and half a vote divided by the
+observed parent count, preserving genuine smaller positive shares in large
+groups. The shared `analysis/lib/turnout/category_policy.py` lists known
+definition, eligibility and service changes. Affected individual comparisons
+are excluded from behavioural training; broader observed pools remain usable.
+Aggregated empty groups and relationships with different parent denominators
+are listed for human review in the ignored analytical output. Only selected
+final pre-election early/postal records enter calibration; proportional postal
+application conversion remains a linear multiplier.
+Reviewed implausible reporting zeros become unknown in the analytical view,
+while the source JSON retains the published count. Affected district splits
+cannot train or score category allocations because votes may have been
+misclassified. District totals and published operational controls remain
+usable; unknown final category targets cannot train conversion multipliers.
+Rate responses and covariances use labelled log-odds units. The schema 3 fixtures
+in `fixtures-v3.json` distinguish these units from earlier exports.
+Detailed Queensland uncertainty
+does not transfer category changes across the 2017–2020 reporting break.
+Versioned count fixtures and
+training-specific numerical output are regenerated locally and ignored; the
+public report explains the methods, results and reproduction commands.

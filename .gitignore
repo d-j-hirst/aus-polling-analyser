@@ -384,3 +384,10 @@ analysis/betting_odds/tab-current.json
 /docs/planning/
 /docs/*-plan.md
 /downloads/turnout/
+/docs/turnout-operational-calibration/*
+!/docs/turnout-operational-calibration/report.md
+/docs/turnout-category-dynamics/*
+!/docs/turnout-category-dynamics/report.md
+
+/docs/turnout-prior-prototype/*
+!/docs/turnout-prior-prototype/report.md
