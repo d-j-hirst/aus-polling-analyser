@@ -391,3 +391,9 @@ analysis/betting_odds/tab-current.json
 
 /docs/turnout-prior-prototype/*
 !/docs/turnout-prior-prototype/report.md
+
+/docs/turnout-live-prototype/*
+!/docs/turnout-live-prototype/report.md
+
+/docs/turnout-federal-live-prototype/*
+!/docs/turnout-federal-live-prototype/report.md

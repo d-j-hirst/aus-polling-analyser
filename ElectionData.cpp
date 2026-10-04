@@ -281,6 +281,26 @@ bool isKnownCancelledEcsaBooth(
   return cancelledBooths.contains(boothName);
 }
 
+int correctedEcsaUpdateBoothId(
+  Results2::Election const& election,
+  Results2::Seat const& seat,
+  std::string const& boothName,
+  int sourceBoothId)
+{
+  // The SA 2026 feed exchanges the IDs of Torrensville and Torrensville East
+  // after the initial preload. Their names still agree with the final source.
+  // Keep each current FP/TCP account attached to its named historical booth:
+  // swapping both accounts preserves district totals but distorts booth swings
+  // and the evidence used to estimate results at other booths.
+  if (election.termCode == "2026sa" && seat.name == "West Torrens"
+    && (boothName == "Torrensville" || boothName == "Torrensville East")) {
+    for (auto const& [id, booth] : election.booths) {
+      if (booth.parentSeat == seat.id && booth.name == boothName) return id;
+    }
+  }
+  return sourceBoothId;
+}
+
 }
 
 Results2::Election Results2::Election::createAec(tinyxml2::XMLDocument const& xml, std::string const& termCode)
@@ -2059,6 +2079,10 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
   if (!documentRoot) throwInvalidXml(feedContext, "document contains no root element");
   PA_LOG_VAR(documentRoot->Name());
   auto const& mediaFeed = requiredChild(xml, "MediaFeed", feedContext);
+  sourceTime.clear();
+  if (format == Format::AEC) {
+    if (auto stamp = mediaFeed.Attribute("Created")) sourceTime = stamp;
+  }
   auto resultsFinder = [&]() -> tinyxml2::XMLElement const* {
     switch (format) {
     case Format::AEC: return &requiredChild(mediaFeed, "Results", feedContext + "/MediaFeed");
@@ -2790,6 +2814,11 @@ void Results2::Election::updateEcsa(tinyxml2::XMLDocument const& xml)
   // This is a pure update, assumes the preload has already been used
 
   auto const& detail = requiredChild(xml, "HouseOfAssemblyDetail", "ECSA results");
+  sourceTime.clear();
+  if (auto stamp = detail.FirstChildElement("last_updated"); stamp && stamp->GetText()) {
+    sourceTime = stamp->GetText();
+    if (sourceTime.size() > 10 && sourceTime[10] == ' ') sourceTime[10] = 'T';
+  }
   auto const& districts = requiredChild(detail, "districts", "ECSA results/HouseOfAssemblyDetail");
   auto currentDistrict = districts.FirstChildElement("district");
   if (!currentDistrict) {
@@ -2805,6 +2834,9 @@ void Results2::Election::updateEcsa(tinyxml2::XMLDocument const& xml)
     }
     Seat& seat = seats[seatId]; // maintain already existing data
     auto const seatContext = "ECSA results/district[" + seat.name + "]";
+    auto const* finalised = currentDistrict->FirstChildElement("first_preferences_finalised");
+    seat.fpFinalised = finalised && finalised->GetText()
+      && std::string_view(finalised->GetText()) == "true";
 
     auto const& firstPreferences = requiredChild(*currentDistrict, "first_preferences", seatContext);
     auto currentCandidate = firstPreferences.FirstChildElement("candidate");
@@ -2840,6 +2872,7 @@ void Results2::Election::updateEcsa(tinyxml2::XMLDocument const& xml)
           continue; // Don't actually create booths for declaration votes
         }
         if (boothId == 0) boothId = generateBoothIdEcsa(seatId, boothName);
+        boothId = correctedEcsaUpdateBoothId(*this, seat, boothName, boothId);
         if (!booths.contains(boothId)) {
           currentBooth = currentBooth->NextSiblingElement("polling_place");
           continue; // ignore booths not in preload
@@ -2891,6 +2924,7 @@ void Results2::Election::updateEcsa(tinyxml2::XMLDocument const& xml)
           continue; // Don't actually create booths for declaration votes
         }
         if (boothId == 0) boothId = generateBoothIdEcsa(seatId, boothName);
+        boothId = correctedEcsaUpdateBoothId(*this, seat, boothName, boothId);
         if (!booths.contains(boothId)) {
           currentBooth = currentBooth->NextSiblingElement("PreferredPollingPlace");
           continue; // ignore booths not in preload

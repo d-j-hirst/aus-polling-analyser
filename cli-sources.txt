@@ -37,4 +37,6 @@ SimulationPreparation.cpp
 SimulationRun.cpp
 StanModel.cpp
 TerminalMacroFeedback.cpp
+TurnoutModel.cpp
+TurnoutModelIO.cpp
 WorkspacePaths.cpp

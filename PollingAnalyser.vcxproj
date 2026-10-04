@@ -311,6 +311,9 @@
     <ClCompile Include="LivePreparationBridge.cpp" />
     <ClCompile Include="LiveBoothFrame.cpp" />
     <ClCompile Include="LiveV2.cpp" />
+    <ClCompile Include="LiveTurnoutShadow.cpp" />
+    <ClCompile Include="TurnoutModel.cpp" />
+    <ClCompile Include="TurnoutModelIO.cpp" />
     <ClCompile Include="LiveRunExport.cpp" />
     <ClCompile Include="LiveSnapshotData.cpp" />
     <ClCompile Include="LiveSnapshotGraph.cpp" />
@@ -415,6 +418,8 @@
     <ClInclude Include="LivePreparation.h" />
     <ClInclude Include="LiveBoothFrame.h" />
     <ClInclude Include="LiveV2.h" />
+    <ClInclude Include="TurnoutModel.h" />
+    <ClInclude Include="TurnoutModelIO.h" />
     <ClInclude Include="LiveRunExport.h" />
     <ClInclude Include="LiveSnapshotData.h" />
     <ClInclude Include="LiveSnapshotGraph.h" />

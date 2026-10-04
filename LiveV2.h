@@ -4,9 +4,11 @@
 #include "General.h"
 #include "Log.h"
 #include "SpecialPartyCodes.h"
+#include "TurnoutModel.h"
 
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
 
@@ -563,6 +565,11 @@ private:
 
   void prepareVariability();
 
+  // Prepare the optional independent count account once. Scenario copies
+  // share its frozen outcomes; the shadow calculation never recursively
+  // updates a posterior or changes the legacy forecast's size assumptions.
+  void prepareTurnoutShadow(Results2::Election const& currentElection);
+
   void generateVariability(int iterationIndex);
 
   // map AEC candidate IDs to internal party IDs
@@ -638,6 +645,9 @@ private:
 
   int variabilitySampleIndex = 0;
   std::uint64_t variabilityBaseSeed = 0x9e3779b97f4a7c15ULL;
+
+  std::shared_ptr<TurnoutModel::Result const> turnoutShadow;
+  std::shared_ptr<nlohmann::json const> turnoutShadowDiagnostic;
 
 	PollingProject& project;
 	Simulation& sim;

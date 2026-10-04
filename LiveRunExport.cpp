@@ -870,6 +870,7 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 	liveAnalysis["regions"] = std::move(regions);
 	liveAnalysis["seats"] = std::move(seatsJson);
 	liveAnalysis["booths"] = std::move(boothsJson);
+	if (turnoutShadowDiagnostic) liveAnalysis["turnout_shadow"] = *turnoutShadowDiagnostic;
 
 	json tppBiases;
 	tppBiases["booth_type"] = categoryEvidenceArray(

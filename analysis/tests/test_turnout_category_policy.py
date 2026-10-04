@@ -77,6 +77,18 @@ class CategoryPolicyTests(unittest.TestCase):
                                               replace(provisional, formal_votes=30, total_ballots=30)])
         self.assertIs(policy.apply_missing_count_policy(revised), revised)
 
+    def test_missing_early_absent_subcategory_does_not_erase_ppvc_count(self):
+        absent = data.VoteTypeRecord('2026sa','Flinders','source','final',
+            'Early Voting - Absent Declaration 1','early_in_person',0,0,0,'complete')
+        ppvc = replace(absent,source_category='Early Voting Centre',formal_votes=8506,total_ballots=9168)
+        dataset = data.TurnoutDataset(elections=[data.ElectionDefinition('2026sa','2026-03-21','sa')],
+            vote_types=[absent,ppvc])
+        analytical = policy.apply_missing_count_policy(dataset)
+        self.assertIsNone(analytical.vote_types[0].formal_votes)
+        self.assertEqual(analytical.vote_types[1].formal_votes,8506)
+        self.assertTrue(all(r.coverage == 'partial' for r in analytical.vote_types))
+        self.assertEqual(dataset.vote_types[0].formal_votes,0)
+
 
 if __name__ == '__main__':
     unittest.main()

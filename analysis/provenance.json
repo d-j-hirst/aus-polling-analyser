@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-10-01T05:04:10Z",
+  "updated_at_utc": "2026-10-03T06:21:47Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -5334,6 +5334,11 @@
           "size_bytes": 86,
           "recorded_mtime_utc": "2026-10-01T03:39:15.122363Z"
         },
+        "lib/turnout/__init__.py": {
+          "sha256": "ad339558667f37230e934e63043e0fbdd01a9cbf31ae33da2b061d05f22f6d86",
+          "size_bytes": 84,
+          "recorded_mtime_utc": "2026-10-02T10:57:03.181178Z"
+        },
         "pipeline.py": {
           "sha256": "fd31da7989a5840475b3383821a81f60905ca526b54cb7e5f840914b1bb01121",
           "size_bytes": 95359,
@@ -7434,6 +7439,25 @@
             "scripts/maintenance/__init__.py",
             "scripts/pipeline/__init__.py",
             "scripts/turnout/__init__.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261003T062147Z-coverage_extension-pipeline-orchestration-tools-6ee9db69",
+          "recorded_at_utc": "2026-10-03T06:21:47Z",
+          "change_type": "coverage_extension",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Register the turnout package initializer; it contains a docstring only and imports no numerical or pipeline implementations.",
+          "files": [
+            "lib/turnout/__init__.py"
           ],
           "scope": {
             "all": true,

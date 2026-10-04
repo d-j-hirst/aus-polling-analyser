@@ -810,6 +810,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   calculateNationalsProportions();
   calculateTcpPreferenceFlows();
   recomposeVoteCounts();
+  prepareTurnoutShadow(currentElection);
   calculateLivePreferenceFlowDeviations();
   prepareVariability();
   log(true, true, true);

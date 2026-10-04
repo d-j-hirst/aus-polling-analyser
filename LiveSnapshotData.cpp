@@ -1098,9 +1098,9 @@ std::string formatSnapshotTimestamp(std::string_view snapshotCode)
 {
 	auto const parts = parseSnapshotCode(snapshotCode);
 	if (!parts) return std::string(snapshotCode);
-	return formatYmdHms(
-		parts->year, parts->month, parts->day,
-		parts->hour, parts->minute, parts->second);
+	return twoDigits(parts->year % 100) + "-" + twoDigits(parts->month) + "-" +
+		twoDigits(parts->day) + " " + twoDigits(parts->hour) + ":" +
+		twoDigits(parts->minute) + ":" + twoDigits(parts->second);
 }
 
 std::optional<std::int64_t> snapshotCodeTimeSeconds(std::string_view snapshotCode)

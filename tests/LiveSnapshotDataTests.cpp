@@ -139,7 +139,7 @@ int main()
 	using namespace LiveSnapshot;
 	auto const root = makeTempRoot();
 
-	assert(formatSnapshotTimestamp("20260402143211") == "02-04-26 14:32:11");
+	assert(formatSnapshotTimestamp("20260402143211") == "26-04-02 14:32:11");
 	assert(formatCompletedAt("2026-09-04T19:48:52+10:00") == "04-09-26 19:48:52");
 	assert(formatPercent(34.019) == "34.02%");
 	assert(formatNonFiniteMarker("nan") == "nan");
@@ -284,7 +284,7 @@ int main()
 	assert(view.rows[1].duplicate == false);
 	assert(view.rows[2].duplicate);
 	assert(view.rows[2].timestampLabel.ends_with("*"));
-	assert(view.rows[2].timestampLabel.find("02-04-26 14:32:11") == 0);
+	assert(view.rows[2].timestampLabel.find("26-04-02 14:32:11") == 0);
 	assert(view.rows[2].selectedFilename.find("194852") != std::string::npos);
 
 	assert(view.columns.size() == 1 + 3 * 2 + 1);

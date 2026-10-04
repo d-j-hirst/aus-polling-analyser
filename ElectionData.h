@@ -182,6 +182,9 @@ namespace Results2 {
 		int32_t id;
 		std::string name;
 		int32_t enrolment = 0;
+		// Only an explicit first-preference flag may close the turnout account.
+		// Winner declarations and TCP completion do not imply FP finalisation.
+		bool fpFinalised = false;
 		std::vector<int32_t> booths;
 		VotesByType fpVotes; // map candidate id -> (vote type -> vote count)
 		VotesByType tcpVotes; // map party id -> (vote type -> vote count)
@@ -249,6 +252,9 @@ namespace Results2 {
 	};
 
 	struct Election {
+		// Clock supplied by the result source. Archive capture/file timestamps
+		// can differ and are unsuitable for measuring pauses in counting.
+		std::string sourceTime;
 		typedef int32_t Id;
 		std::string name;
 		Id id = 0;

@@ -7,6 +7,7 @@ when an election introduces or changes a category.
 """
 
 import math
+from dataclasses import replace
 
 
 # Effective elections identify changes to particular categories, rather than
@@ -35,6 +36,68 @@ SERVICE_EXCLUSIONS = (
          source_category='EV Early Voting Centre (mobile polling)',
          reason='Declared-institution polling was cancelled; empty service placeholders are not behavioural zeros.'),
 )
+
+# These zeros were reviewed against other districts and the published results.
+# They describe incomplete reporting, not an unavailable voting service or
+# voter behaviour. A later positive source revision automatically releases the
+# exception; the unmodified source dataset always remains available for audit.
+MISSING_COUNT_REVIEWS = (
+    dict(election='2010vic', seat='Oakleigh District', category='provisional'),
+    dict(election='2014vic', seat='Croydon District', category='provisional'),
+    dict(election='2014vic', seat='Ringwood District', category='provisional'),
+    *(dict(election='2026sa', seat=seat, category='declaration_early')
+      for seat in ('Black', 'Croydon', 'Davenport', 'Hammond', 'Light', 'Ngadjuri', 'Taylor')),
+    dict(election='2026sa', seat='Enfield', category='mobile_or_institution'),
+    dict(election='2026sa', seat='Hammond', category='mobile_or_institution'),
+    dict(election='2026sa', seat='Black', category='provisional'),
+    dict(election='2026sa', seat='MacKillop', category='other'),
+    *(dict(election='2026sa', seat=seat, category='early_in_person',
+           source_category_prefix='Early Voting - Absent Declaration')
+      for seat in ('Flinders', 'Kavel')),
+)
+
+
+def missing_count_review(dataset):
+    """Identify reviewed empty groups still present in this source revision."""
+    election = dataset.elections[0].election_code
+    result = []
+    for rule in MISSING_COUNT_REVIEWS:
+        rows = [r for r in dataset.vote_types if election == rule['election']
+                and r.seat_name == rule['seat'] and r.canonical_category == rule['category']
+                and r.source_category.startswith(rule.get('source_category_prefix', ''))]
+        if rows and all(r.formal_votes in (0, None) for r in rows):
+            result.append(dict(rule, reason='Reviewed reporting anomaly: the category count is missing.',
+                               source_categories=sorted({r.source_category for r in rows})))
+    return result
+
+
+def apply_missing_count_policy(dataset):
+    """Omit unreliable category partitions while retaining district totals.
+
+    An unrecorded component may have been included in another category. Mark
+    the whole affected district partition partial rather than trusting the
+    other components as a complete division. Replace the missing counts with
+    None only in the analytical copy; source zeros remain untouched.
+    """
+    reviews = missing_count_review(dataset)
+    if not reviews:
+        return dataset
+    affected = {r['seat'] for r in reviews}
+    # Some canonical groups contain both a sound booth total and a missing
+    # declaration subcategory. Only erase the specifically reviewed source
+    # rows; the broader partition is still partial because its split is unknown.
+    missing = {(r['seat'], r['category'], source)
+               for r in reviews for source in r['source_categories']}
+    rows = []
+    for row in dataset.vote_types:
+        if row.seat_name not in affected:
+            rows.append(row)
+        elif (row.seat_name, row.canonical_category, row.source_category) in missing:
+            rows.append(replace(row, formal_votes=None, informal_votes=None,
+                                total_ballots=None, coverage='partial'))
+        else:
+            rows.append(replace(row, coverage='partial'))
+    return replace(dataset, vote_types=rows)
 
 
 def suppressed_record(election, record):
@@ -140,6 +203,7 @@ def empty_groups(datasets):
     """
     result = []
     for election, dataset in sorted(datasets.items()):
+        reviewed = {(r['seat'], r['category']) for r in missing_count_review(dataset)} if hasattr(dataset, 'elections') else set()
         grouped = {}
         seats = ({row.seat_name: row for row in dataset.seat_totals}
                  if hasattr(dataset, 'seat_totals') else getattr(dataset, 'seats', {}))
@@ -157,6 +221,8 @@ def empty_groups(datasets):
                 if any(value is not None and value > 0 for value in ballots):
                     continue
                 status = 'recorded_empty' if all(value == 0 for value in ballots) else 'formal_zero_ballots_unknown'
+                if (seat, category) in reviewed:
+                    status = 'reviewed_missing_count'
                 result.append(dict(election=election, seat=seat, category=category,
                     status=status,
                     formal_votes=0,

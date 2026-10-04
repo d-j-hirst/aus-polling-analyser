@@ -20,6 +20,9 @@ live-run JSON exports.
 .PARAMETER Interactive
 List matching archives and prompt for a selection.
 
+.PARAMETER List
+Return available archives without prompting, installing a feed or changing state.
+
 .PARAMETER ResultsDirectory
 Directory that contains the archives and receives el2026_ha_detail.xml.
 Must match the simulation's Current results directory. Defaults to Downloads.
@@ -42,6 +45,8 @@ param(
     [string]$Timestamp,
 
     [switch]$Interactive,
+
+    [switch]$List,
 
     [string]$ResultsDirectory = (Join-Path $HOME 'Downloads'),
 
@@ -68,6 +73,9 @@ Usage:
 
   .\Replay-Sa2026LiveSnapshot.ps1 -Interactive
       List archives and choose one.
+
+  .\Replay-Sa2026LiveSnapshot.ps1 -List
+      Return archive objects without installing anything or changing state.
 
   .\Replay-Sa2026LiveSnapshot.ps1
       Advance one snapshot from the last selection (requires a prior run).
@@ -214,6 +222,9 @@ function Select-InteractiveSnapshot {
 if ($Timestamp -and $Interactive) {
     throw 'Specify either a timestamp or -Interactive, not both.'
 }
+if ($List -and ($Timestamp -or $Interactive)) {
+    throw 'Use -List by itself, with an optional -ResultsDirectory.'
+}
 if ($Timestamp -and $Timestamp -notmatch '^\d{12}$') {
     throw 'Timestamp must contain exactly 12 digits, for example 260315004007.'
 }
@@ -222,6 +233,13 @@ if ($Timestamp -and $Timestamp -notmatch '^\d{12}$') {
 $snapshots = @(Get-Snapshots)
 if ($snapshots.Count -eq 0) {
     throw "No archived snapshots matching el2026<timestamp>.xml were found in $ResultsDirectory."
+}
+
+# Read-only inventory for analysis tools. Return before reading or writing the
+# selected-feed state; listing archives must never advance an interactive replay.
+if ($List) {
+    $snapshots
+    return
 }
 
 if ($Interactive) {

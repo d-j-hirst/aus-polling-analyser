@@ -11,4 +11,5 @@ LiveSnapshotDataTests
 MacroTargetResolverTests
 RandomGeneratorTests
 TerminalMacroFeedbackTests
+TurnoutModelTests
 WorkspacePathsTests
