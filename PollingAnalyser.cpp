@@ -23,6 +23,10 @@
 
 #include "ParentFrame.h"
 #include "QuickTest.h"
+#include "Log.h"
+
+#include <exception>
+#include <string>
 
 // Switch true/false depending on whether we want to run the actual program or just a quick test of the mechanics
 constexpr bool DoQuickTest = false;
@@ -34,15 +38,24 @@ class MyApp : public wxApp
 public:
 	virtual bool OnInit();
 
-  // Rethrow event-handler exceptions instead of showing wxWidgets' default
-  // Abort/Retry/Ignore dialog, allowing the debugger to break on them.
+  // Record exceptions escaping event handlers before wxWidgets can replace
+  // them with its generic fatal-error message, then stop in the debugger.
   // Keep wxAppBase::OnRun(): it enables exit when the last frame is destroyed.
   virtual bool OnExceptionInMainLoop() override
   {
+    // The original handler's stack has already unwound at this point. Keep
+    // the exception message in the log and in a local variable at the stop;
+    // enable "Break When Thrown" to inspect the original throwing function.
+    std::string exceptionMessage = "Exception without a std::exception message";
+    try {
+      throw;
+    }
+    catch (std::exception const& error) {
+      exceptionMessage = error.what();
+    }
+    catch (...) {}
+    logger << "Unhandled event-handler exception: " << exceptionMessage << "\n";
 #ifdef _MSC_VER
-    // wxWidgets catches exceptions escaping event handlers. Break while the
-    // exception is still active, before wxWidgets replaces it with a generic
-    // fatal-error message.
     if (wxIsDebuggerRunning()) {
       __debugbreak();
       return false;

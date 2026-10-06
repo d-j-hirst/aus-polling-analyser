@@ -3040,7 +3040,13 @@ void Results2::Election::updateAecPollingPlaces(tinyxml2::XMLDocument const& xml
       auto coordsEl = addressEl ? addressEl->FirstChildElement("xal:PostalServiceElements") : nullptr;
       auto latitudeEl = coordsEl ? coordsEl->FirstChildElement("xal:AddressLatitude") : nullptr;
       auto longitudeEl = coordsEl ? coordsEl->FirstChildElement("xal:AddressLongitude") : nullptr;
-      if (locationId && latitudeEl && longitudeEl) {
+      // The AEC includes empty coordinate elements for mobile teams and other
+      // services without one published location. Coordinates are optional
+      // metadata, so retain an unknown location for these records. Nonempty
+      // values still need to be valid before geographic booth matching uses
+      // them; substituting (0, 0) would invent a location and distort matching.
+      if (locationId && latitudeEl && latitudeEl->GetText() &&
+          longitudeEl && longitudeEl->GetText()) {
         int boothId = requiredIntAttribute(*locationEl, "Id",
           "AEC polling-place data/PollingDistrict/PollingPlaces/PollingPlace/eml:PhysicalLocation", 0);
         if (booths.contains(boothId)) {
