@@ -14,6 +14,8 @@ import copy
 from datetime import datetime
 import json
 from pathlib import Path
+
+from lib.turnout.paths import archive_directory, download_directory
 import re
 import time
 import zipfile
@@ -321,8 +323,8 @@ def run(code,args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--elections',nargs='+',choices=tuple(DIRECTORIES),default=list(DIRECTORIES))
-    parser.add_argument('--archive',type=Path,default=Path('F:/Election Data/AEC media feed archive'))
-    parser.add_argument('--downloads',type=Path,default=Path.home()/'Downloads')
+    parser.add_argument('--archive',type=Path,default=archive_directory())
+    parser.add_argument('--downloads',type=Path,default=download_directory())
     parser.add_argument('--samples',type=int,default=256)
     parser.add_argument('--count-draws',type=int,default=8)
     parser.add_argument('--seed',type=int,default=20261002)

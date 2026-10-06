@@ -384,6 +384,15 @@ analysis/betting_odds/tab-current.json
 /docs/planning/
 /docs/*-plan.md
 /downloads/turnout/
+# Authorised live feeds and their close derivatives remain operator-local.
+/downloads/**/*.xml
+/downloads/**/*.XML
+/tests/fixtures/turnout/[0-9]*-turnout-*.json
+aec-mediafeed*.xml
+el20*.xml
+/Federal Election 2025 turnout replay.pol2
+/dependencies/
+/LocalBuildPaths.props
 /docs/turnout-operational-calibration/*
 !/docs/turnout-operational-calibration/report.md
 /docs/turnout-category-dynamics/*
@@ -393,7 +402,5 @@ analysis/betting_odds/tab-current.json
 !/docs/turnout-prior-prototype/report.md
 
 /docs/turnout-live-prototype/*
-!/docs/turnout-live-prototype/report.md
 
 /docs/turnout-federal-live-prototype/*
-!/docs/turnout-federal-live-prototype/report.md

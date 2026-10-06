@@ -1,0 +1,612 @@
+{
+  "schema_version": 1,
+  "parameter_version": "live-count-tuning-1",
+  "prior_model": "proportional-prior-6",
+  "description": "Maintained operating parameters. Contains fitted coefficients and aggregate sizing assumptions, not feed records. Private experiments do not update this file automatically.",
+  "prior_presets": {
+    "2022vic/earlier_only": {
+      "schema_version": 3,
+      "model_version": "proportional-prior-6",
+      "rates": {
+        "drift_log_odds": -0.04612106430275946,
+        "units": "natural log odds",
+        "common_covariance": [
+          [
+            0.030109991068693574,
+            -0.0002854584609853411
+          ],
+          [
+            -0.0002854584609853411,
+            0.02877443109561968
+          ]
+        ],
+        "local_covariance": [
+          [
+            0.009281308326740472,
+            0.0023522416638208548
+          ],
+          [
+            0.0023522416638208548,
+            0.03450616691396975
+          ]
+        ],
+        "training_elections": [
+          "2007fed",
+          "2008wa",
+          "2009qld",
+          "2010fed",
+          "2010sa",
+          "2010vic",
+          "2012qld",
+          "2013fed",
+          "2013wa",
+          "2014sa",
+          "2014vic",
+          "2015qld",
+          "2016fed",
+          "2017qld",
+          "2017wa",
+          "2018sa",
+          "2018vic",
+          "2019fed",
+          "2020qld",
+          "2021wa",
+          "2022fed",
+          "2022sa"
+        ],
+        "stable_formality_elections": 19,
+        "broad_default": false
+      },
+      "controls": {
+        "early": {
+          "factor": 0.951721435987569,
+          "common_sd": 0.023942588045552382,
+          "local_sd": 0.020923774769233818,
+          "training_elections": [
+            "2005wa",
+            "2021wa"
+          ],
+          "fallback": "",
+          "broad_default": false,
+          "measure": "prepoll_votes_cast_cumulative"
+        },
+        "postal": {
+          "factor": 0.6967835230535857,
+          "common_sd": 0.0609013193469348,
+          "local_sd": 0.03210345580350995,
+          "training_elections": [
+            "2005wa",
+            "2017wa",
+            "2021wa"
+          ],
+          "fallback": "",
+          "broad_default": false,
+          "measure": "postal_applications_cumulative"
+        }
+      },
+      "compositions": {
+        "early": {
+          "common_covariance": [
+            [
+              0
+            ]
+          ],
+          "local_covariance": [
+            [
+              0
+            ]
+          ],
+          "training_elections": [],
+          "support": "single category identity"
+        },
+        "postal": {
+          "common_covariance": [
+            [
+              0
+            ]
+          ],
+          "local_covariance": [
+            [
+              0
+            ]
+          ],
+          "training_elections": [],
+          "support": "single category identity"
+        },
+        "remainder": {
+          "common_covariance": [
+            [
+              0.08453929996648703,
+              0.014939564483847144,
+              -0.09947886445033412
+            ],
+            [
+              0.014939564483847144,
+              0.03263580387398882,
+              -0.04757536835783595
+            ],
+            [
+              -0.09947886445033412,
+              -0.04757536835783595,
+              0.14705423280816998
+            ]
+          ],
+          "local_covariance": [
+            [
+              0.09690417208172994,
+              0.010541136826069235,
+              -0.10744530890779916
+            ],
+            [
+              0.01054113682606923,
+              0.028859955872722456,
+              -0.03940109269879166
+            ],
+            [
+              -0.10744530890779916,
+              -0.03940109269879166,
+              0.1468464016065908
+            ]
+          ],
+          "units": "centred natural log proportions",
+          "total_anchor": null,
+          "training_elections": [
+            "2014vic",
+            "2018vic"
+          ],
+          "support": "historical moments"
+        }
+      }
+    },
+    "2025wa/earlier_only": {
+      "schema_version": 3,
+      "model_version": "proportional-prior-6",
+      "rates": {
+        "drift_log_odds": -0.04696557967883598,
+        "units": "natural log odds",
+        "common_covariance": [
+          [
+            0.028738170811308833,
+            -0.0008694267423125762
+          ],
+          [
+            -0.0008694267423125762,
+            0.02715528195125603
+          ]
+        ],
+        "local_covariance": [
+          [
+            0.009271573690825338,
+            0.0025219889919905806
+          ],
+          [
+            0.0025219889919905806,
+            0.035092162642648396
+          ]
+        ],
+        "training_elections": [
+          "2007fed",
+          "2008wa",
+          "2009qld",
+          "2010fed",
+          "2010sa",
+          "2010vic",
+          "2012qld",
+          "2013fed",
+          "2013wa",
+          "2014sa",
+          "2014vic",
+          "2015qld",
+          "2016fed",
+          "2017qld",
+          "2017wa",
+          "2018sa",
+          "2018vic",
+          "2019fed",
+          "2020qld",
+          "2021wa",
+          "2022fed",
+          "2022sa",
+          "2022vic",
+          "2024qld"
+        ],
+        "stable_formality_elections": 21,
+        "broad_default": false
+      },
+      "controls": {},
+      "compositions": {
+        "remainder": {
+          "common_covariance": [
+            [
+              0.059078967648811,
+              -0.059078967648811
+            ],
+            [
+              -0.059078967648811,
+              0.059078967648811
+            ]
+          ],
+          "local_covariance": [
+            [
+              0.01451321863603194,
+              -0.014513218636031944
+            ],
+            [
+              -0.014513218636031944,
+              0.014513218636031944
+            ]
+          ],
+          "units": "centred natural log proportions",
+          "total_anchor": null,
+          "training_elections": [
+            "2008wa",
+            "2013wa",
+            "2017wa",
+            "2021wa"
+          ],
+          "support": "historical moments"
+        }
+      }
+    },
+    "2025fed/earlier_only": {
+      "schema_version": 3,
+      "model_version": "proportional-prior-6",
+      "rates": {
+        "drift_log_odds": -0.046031532313122195,
+        "units": "natural log odds",
+        "common_covariance": [
+          [
+            0.027642447590914502,
+            -0.0008659191670739772
+          ],
+          [
+            -0.0008659191670739772,
+            0.02715528195125603
+          ]
+        ],
+        "local_covariance": [
+          [
+            0.009318960426334809,
+            0.002528425683148888
+          ],
+          [
+            0.002528425683148888,
+            0.035092162642648396
+          ]
+        ],
+        "training_elections": [
+          "2007fed",
+          "2008wa",
+          "2009qld",
+          "2010fed",
+          "2010sa",
+          "2010vic",
+          "2012qld",
+          "2013fed",
+          "2013wa",
+          "2014sa",
+          "2014vic",
+          "2015qld",
+          "2016fed",
+          "2017qld",
+          "2017wa",
+          "2018sa",
+          "2018vic",
+          "2019fed",
+          "2020qld",
+          "2021wa",
+          "2022fed",
+          "2022sa",
+          "2022vic",
+          "2024qld",
+          "2025wa"
+        ],
+        "stable_formality_elections": 21,
+        "broad_default": false
+      },
+      "controls": {
+        "early": {
+          "factor": 0.9878112817713898,
+          "common_sd": 0.02857467222278983,
+          "local_sd": null,
+          "training_elections": [
+            "2013fed",
+            "2016fed",
+            "2019fed",
+            "2022fed"
+          ],
+          "fallback": "",
+          "broad_default": false,
+          "resident_distribution": {
+            "relative_sd": 0.14491012733617148,
+            "fitted_units": "centered logarithms of resident shares of the national count",
+            "training_elections": [
+              "2013fed",
+              "2016fed",
+              "2019fed",
+              "2022fed"
+            ],
+            "broad_default": false
+          },
+          "measure": "federal_prepoll_national"
+        },
+        "postal": {
+          "factor": 0.8072572711815378,
+          "common_sd": 0.022863083306579112,
+          "local_sd": 0.02820920295267858,
+          "training_elections": [
+            "2007fed",
+            "2010fed",
+            "2013fed",
+            "2016fed",
+            "2019fed",
+            "2022fed"
+          ],
+          "fallback": "",
+          "broad_default": false,
+          "measure": "postal_applications_cumulative"
+        }
+      },
+      "compositions": {
+        "early": {
+          "common_covariance": [
+            [
+              0.004102528493396663,
+              -0.004102528493396663
+            ],
+            [
+              -0.004102528493396663,
+              0.004102528493396663
+            ]
+          ],
+          "local_covariance": [
+            [
+              0.015022625946523156,
+              -0.015022625946523156
+            ],
+            [
+              -0.015022625946523156,
+              0.015022625946523156
+            ]
+          ],
+          "units": "centred natural log proportions",
+          "total_anchor": "early_declaration",
+          "training_elections": [
+            "2013fed",
+            "2016fed",
+            "2019fed",
+            "2022fed"
+          ],
+          "support": "historical moments"
+        },
+        "postal": {
+          "common_covariance": [
+            [
+              0
+            ]
+          ],
+          "local_covariance": [
+            [
+              0
+            ]
+          ],
+          "training_elections": [],
+          "support": "single category identity"
+        },
+        "remainder": {
+          "common_covariance": [
+            [
+              0.010461079419849282,
+              0.006230646532944702,
+              -0.016691725952793984
+            ],
+            [
+              0.006230646532944702,
+              0.005246426527894097,
+              -0.011477073060838798
+            ],
+            [
+              -0.016691725952793984,
+              -0.011477073060838798,
+              0.028168799013632777
+            ]
+          ],
+          "local_covariance": [
+            [
+              0.01578326474055772,
+              0.005429947966538266,
+              -0.021213212707095985
+            ],
+            [
+              0.005429947966538265,
+              0.010511615311925258,
+              -0.015941563278463525
+            ],
+            [
+              -0.021213212707095985,
+              -0.015941563278463522,
+              0.03715477598555951
+            ]
+          ],
+          "units": "centred natural log proportions",
+          "total_anchor": null,
+          "training_elections": [
+            "2013fed",
+            "2016fed",
+            "2019fed",
+            "2022fed"
+          ],
+          "support": "historical moments"
+        }
+      }
+    },
+    "2026sa/earlier_only": {
+      "schema_version": 3,
+      "model_version": "proportional-prior-6",
+      "rates": {
+        "drift_log_odds": -0.042329763581735555,
+        "units": "natural log odds",
+        "common_covariance": [
+          [
+            0.027682576587169435,
+            -0.0014466724137161887
+          ],
+          [
+            -0.0014466724137161887,
+            0.026220371087976483
+          ]
+        ],
+        "local_covariance": [
+          [
+            0.009412944272890057,
+            0.0026627821680501817
+          ],
+          [
+            0.0026627821680501817,
+            0.04033580119144001
+          ]
+        ],
+        "training_elections": [
+          "2007fed",
+          "2008wa",
+          "2009qld",
+          "2010fed",
+          "2010sa",
+          "2010vic",
+          "2012qld",
+          "2013fed",
+          "2013wa",
+          "2014sa",
+          "2014vic",
+          "2015qld",
+          "2016fed",
+          "2017qld",
+          "2017wa",
+          "2018sa",
+          "2018vic",
+          "2019fed",
+          "2020qld",
+          "2021wa",
+          "2022fed",
+          "2022sa",
+          "2022vic",
+          "2024qld",
+          "2025fed",
+          "2025wa"
+        ],
+        "stable_formality_elections": 22,
+        "broad_default": false
+      },
+      "controls": {
+        "early": {
+          "factor": 0.9507109047887652,
+          "common_sd": 0.014817661783713954,
+          "local_sd": 0.020730038598617984,
+          "training_elections": [
+            "2005wa",
+            "2021wa",
+            "2022vic"
+          ],
+          "fallback": "",
+          "broad_default": false,
+          "measure": "prepoll_votes_cast_cumulative"
+        },
+        "postal": {
+          "factor": 0.6907200637515986,
+          "common_sd": 0.04892843176516025,
+          "local_sd": 0.029671304218895436,
+          "training_elections": [
+            "2005wa",
+            "2017wa",
+            "2021wa",
+            "2022vic"
+          ],
+          "fallback": "",
+          "broad_default": false,
+          "measure": "postal_applications_cumulative"
+        }
+      },
+      "compositions": {
+        "early": {
+          "common_covariance": [
+            [
+              0
+            ]
+          ],
+          "local_covariance": [
+            [
+              0
+            ]
+          ],
+          "training_elections": [],
+          "support": "single category identity"
+        },
+        "postal": {
+          "common_covariance": [
+            [
+              0
+            ]
+          ],
+          "local_covariance": [
+            [
+              0
+            ]
+          ],
+          "training_elections": [],
+          "support": "single category identity"
+        },
+        "remainder": {
+          "common_covariance": [
+            [
+              0
+            ]
+          ],
+          "local_covariance": [
+            [
+              0
+            ]
+          ],
+          "training_elections": [],
+          "support": "single category identity"
+        }
+      }
+    }
+  },
+  "ppvc_starting_sizes": {
+    "election": "2022fed",
+    "comparison_election": "2019fed",
+    "centres": 148,
+    "mean": 7764.391891891892,
+    "median": 7404.0,
+    "by_seat_type": {
+      "0": {
+        "name": "Inner metropolitan",
+        "centres": 41,
+        "districts": 28,
+        "mean": 8439.0,
+        "median": 8078.0
+      },
+      "1": {
+        "name": "Outer metropolitan",
+        "centres": 40,
+        "districts": 27,
+        "mean": 8852.325,
+        "median": 8127.0
+      },
+      "2": {
+        "name": "Provincial",
+        "centres": 31,
+        "districts": 19,
+        "mean": 9512.935483870968,
+        "median": 8557.0
+      },
+      "3": {
+        "name": "Rural",
+        "centres": 36,
+        "districts": 21,
+        "mean": 4281.583333333333,
+        "median": 3760.0
+      }
+    }
+  }
+}

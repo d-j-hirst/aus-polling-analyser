@@ -435,7 +435,7 @@ def render(result):
         'and retains downloaded bytes by SHA256. Later runs reuse them; '
         '`--refresh` retrieves revisions without deleting older source bytes. '
         'The script also uses retained preloads and final feeds under '
-        '`F:/Election Data/AEC media feed archive` and `downloads`, plus earlier '
+        '`downloads/turnout/feed-archive` (or `POLLING_ANALYSER_FEED_ARCHIVE`) and `downloads`, plus earlier '
         'official CSV revisions selected by `downloads/turnout/federal-prepoll`. '
         'Use `--archive` for a different local archive location. '
         '`--reporting-history` includes the resulting JSON in this report only, '

@@ -12,6 +12,7 @@ ForecastSpecificationProjectAdapter.cpp
 General.cpp
 Log.cpp
 LiveResultsInput.cpp
+LivePreferenceCorrections.cpp
 LiveSnapshotData.cpp
 LiveSnapshotGraph.cpp
 LiveSnapshotTable.cpp

@@ -15,6 +15,8 @@ import hashlib
 import io
 import json
 from pathlib import Path
+
+from lib.turnout.paths import archive_directory, download_directory
 import re
 import xml.etree.ElementTree as ET
 
@@ -267,7 +269,7 @@ def analyse_election(code, archive, seat_types):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--archive', type=Path, default=Path('F:/Election Data/AEC media feed archive'))
+    parser.add_argument('--archive', type=Path, default=archive_directory())
     parser.add_argument('--output', type=Path, default=REPOSITORY_DIRECTORY/'docs/turnout-federal-live-prototype/ppvc-reporting-history.json')
     parser.add_argument('--fetch', action='store_true', help='Acquire selected official FTP checkpoints before analysing.')
     parser.add_argument('--refresh', action='store_true', help='Acquire new source revisions, retaining the previous bytes.')

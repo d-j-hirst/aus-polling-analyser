@@ -92,7 +92,7 @@
       "id": "standard-simulation",
       "mode": "projection",
       "name": "Standard Simulation",
-      "num_iterations": 200000,
+      "num_iterations": 100000,
       "report_mode": "regular_forecast"
     },
     {
@@ -108,7 +108,7 @@
       "id": "live-simulation",
       "mode": "live_automatic",
       "name": "Live Simulation",
-      "num_iterations": 200000,
+      "num_iterations": 100000,
       "report_mode": "live_forecast"
     }
   ]

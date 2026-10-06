@@ -52,7 +52,7 @@ public:
 	// Gets the name of the project.
 	std::string getName() const { return name; }
 
-	// Gets the file name that the project was last saved under.
+	// Gets the last opened/saved project path, or the initial name for a new project.
 	std::string getLastFileName() { return lastFileName; }
 
 	// Gets the full text string for the last macro to be run.

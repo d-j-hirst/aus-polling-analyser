@@ -29,6 +29,23 @@ for the Python environment and data-generation workflow.
 Instructions for supplying and replaying automatic live-election result feeds
 are in [live_scripts/README.md](live_scripts/README.md).
 
+Live/media-feed snapshots and close derivatives are operator-local inputs and
+are not distributed in this repository. Their calibration requires an
+authorised private archive. Installed live-count and preference-rechecking
+parameters are maintained in source so the method can be applied to other
+authorised feeds without the original fitting archive. See
+[the live turnout documentation](docs/turnout-cpp-shadow.md) for parameter
+locations, private storage and optional archive environment variables.
+
+The Visual Studio GUI project defaults to third-party libraries under the
+ignored `dependencies/` directory. External locations can be supplied through
+`POLLING_ANALYSER_DLIB`, `POLLING_ANALYSER_TINYXML2`, `POLLING_ANALYSER_CURL`,
+`POLLING_ANALYSER_WX`, `POLLING_ANALYSER_WX_LEGACY` and
+`POLLING_ANALYSER_PYTHON`. Each value is its dependency's root directory.
+An optional ignored `LocalBuildPaths.props` sheet can retain local values;
+environment values take precedence. These GUI dependencies are unnecessary
+for the portable command-line build.
+
 ## Generated Data Archive
 
 The repository does not contain every generated analysis output required for a

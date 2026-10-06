@@ -12,7 +12,7 @@ import numpy as np
 from scipy.special import expit, logsumexp, ndtr, ndtri
 
 
-MODEL_VERSION = 'live-late-counts-3'
+MODEL_VERSION = 'live-late-counts-4'
 DEFAULTS = dict(activity_decay_hours=24., coverage_hours=48., activity_scale=.1,
                 magnitude_scale=.005, unstarted_scale=.1, state_equivalent_districts=20.,
                 evidence_scale=.3, batch_probability=.02, small_median_votes=.25,
@@ -55,7 +55,8 @@ def shared_measurements(rows):
                 volume=float(np.mean(central([r['volume']/(r['current']+.5) for r in rows]))))
 
 
-def progress_evidence(history, units, subdivisions=None, options=None, *, postal_deadline=None):
+def progress_evidence(history, units, subdivisions=None, options=None, *, postal_deadline=None,
+                      counting_clock=None, event_scale=.001, shared_deadline=None):
     """Measure counting activity with decaying memory and continuous support.
 
     Absolute changes include reversals and rechecks. A large change contributes
@@ -68,8 +69,13 @@ def progress_evidence(history, units, subdivisions=None, options=None, *, postal
     postal receipt deadline discounts local quietness while returns can still
     arrive from voters, and then releases that discount gradually. It is not a
     completion date: ongoing activity still argues against finalisation.
+    An optional counting clock reduces weekend elapsed time. The event scale
+    specifies the fraction of the current category used to judge change size.
+    A shared deadline discounts late activity's influence elsewhere while
+    preserving its local evidence and recording support from small late batches.
     """
     config = configuration(options)
+    elapsed = counting_clock or (lambda before,after: (after-before).total_seconds()/3600)
     by_time = {datetime.fromisoformat(s['source_time']): s for s in history}
     ordered = sorted(by_time.items())
     if not ordered:
@@ -87,31 +93,44 @@ def progress_evidence(history, units, subdivisions=None, options=None, *, postal
                 raise ValueError('Progress history contains a negative category count.')
             observations = [(stamp, snap['seats'].get(name, {}).get('vote_types', {}).get(category))
                             for stamp, snap in ordered]
-            activity = volume = coverage = 0.
-            tolerance = np.hypot(10., .001*value)
+            activity = volume = coverage = shared_activity = shared_volume = small_support = changed_support = 0.
+            tolerance = np.hypot(10., event_scale*value)
             for (before, old), (after, new) in zip(observations, observations[1:]):
                 if old is None or new is None:
                     continue
-                hours = (after-before).total_seconds()/3600
-                age = (now-after).total_seconds()/3600
+                hours = elapsed(before,after)
+                age = elapsed(after,now)
                 decay = np.exp(-age/config['activity_decay_hours'])
                 change = abs(new-old)
                 ratio = change/tolerance
                 activity += ratio*ratio/(1+ratio*ratio)*decay
                 volume += change*decay
+                # A backlog after receipt closes remains local evidence, while
+                # its influence on other seats' progress recedes continuously.
+                shared = 1. if shared_deadline is None else expit(-(after-datetime.fromisoformat(shared_deadline)).total_seconds()/3600/24.)
+                shared_activity += ratio*ratio/(1+ratio*ratio)*decay*shared
+                shared_volume += change*decay*shared
+                if shared_deadline is not None:
+                    post = expit((before-datetime.fromisoformat(shared_deadline)).total_seconds()/3600/12.)
+                    event = post*np.exp(-age/72.)*change**2/(change**2+50.**2)
+                    changed_support += event
+                    if new>old:
+                        small_support += event/(1+(change/(.05*(value+.5)))**2)
                 # Integrate covered time with fading memory. An isolated pair
                 # a week apart supplies much less support than daily returns.
                 covered = np.exp(-age/config['coverage_hours'])*(-np.expm1(-hours/config['coverage_hours']))
                 coverage += covered/(1+(hours/config['coverage_hours'])**2)
             measured[name, category] = dict(current=value, activity=-np.expm1(-activity),
                 volume=volume, coverage=coverage, started=value/(value+10.),
+                shared_activity=-np.expm1(-shared_activity),shared_volume=shared_volume,
+                small_batch_support=small_support/(1+changed_support),
                 state=current.get('state', states.get(name)))
 
     pools = {}
     for category in categories:
         rows = [r for (name, c), r in measured.items() if c == category]
         if rows:
-            pools[category] = shared_measurements(rows)
+            pools[category] = shared_measurements([dict(r,activity=r['shared_activity'],volume=r['shared_volume']) for r in rows])
     # Aggregate multiple reporting batches before attaching category evidence
     # to individual units. No final-category data enters this reconciliation.
     current_units = {}
@@ -132,7 +151,7 @@ def progress_evidence(history, units, subdivisions=None, options=None, *, postal
         region = [r for (name,c),r in measured.items() if c == key[1] and r['state'] == local['state']]
         region_weight = len(region)/(len(region)+config['state_equivalent_districts']) if local['state'] else 0.
         if region_weight:
-            regional = shared_measurements(region)
+            regional = shared_measurements([dict(r,activity=r['shared_activity'],volume=r['shared_volume']) for r in region])
             pooled = {k:(1-region_weight)*v+region_weight*regional[k] for k,v in pooled.items()}
         own_quiet = 1/(1+(local['activity']/config['activity_scale'])**2)
         broad_quiet = 1/(1+(pooled['activity']/config['activity_scale'])**2)
@@ -149,14 +168,26 @@ def progress_evidence(history, units, subdivisions=None, options=None, *, postal
     return result
 
 
-def component_probabilities(weight, zero_probability, config):
+def component_probabilities(weight, zero_probability, config, schedule=None):
     """Transfer non-batch probability to a shared finished-count outcome.
 
     A seat-wide zero event replaces part of the previous and small-addition
     branches. Preserve each category's unconditional late-batch probability:
     admitting a finished count must not also make exceptional batches vanish.
+    With a receipt schedule, blend towards a separately fading batch chance;
+    only the routine amount recedes rapidly after the processing allowance.
     """
     batch = weight*config['batch_probability']
+    if schedule is not None:
+        positive = 1-np.asarray(zero_probability)
+        requested = config['batch_probability']*schedule['batch_survival']
+        ratio = np.divide(requested,positive,out=np.zeros_like(positive,dtype=float),where=positive>0)
+        possible = positive*(-np.expm1(-ratio))
+        phase = schedule['processing_phase']
+        batch = (1-phase)*batch+phase*possible
+        small_share = weight*(1-config['batch_probability'])/(1-weight*config['batch_probability'])
+        remaining = positive-batch
+        return (1-small_share)*remaining,small_share*remaining,batch
     retained = (1-zero_probability-batch)/(1-batch)
     return (1-weight)*retained, weight*(1-config['batch_probability'])*retained, batch
 
@@ -218,7 +249,7 @@ def prediction_quantiles(result, probabilities, field='totals'):
     return output
 
 
-def mixture_log_odds(reference, small, batch, weight, uniforms, config, zero_probability=0.):
+def mixture_log_odds(reference, small, batch, weight, uniforms, config, zero_probability=0., schedule=None):
     """Invert the explicit mixture without switching predictions at a score.
 
     Conditional on one preparation outcome, its broad reference is a point;
@@ -227,7 +258,7 @@ def mixture_log_odds(reference, small, batch, weight, uniforms, config, zero_pro
     Crossing the reference's probability mass approaches that same reference
     value continuously. A fixed bisection count bounds cost and precision.
     """
-    previous, small_weight, batch_weight = component_probabilities(weight,zero_probability,config)
+    previous, small_weight, batch_weight = component_probabilities(weight,zero_probability,config,schedule)
     positive = 1-zero_probability
     previous, small_weight, batch_weight = previous/positive, small_weight/positive, batch_weight/positive
     def continuous_cdf(value):
@@ -263,7 +294,7 @@ def mixture_log_odds(reference, small, batch, weight, uniforms, config, zero_pro
     return result
 
 
-def update(prepared, inputs, units, evidence, count_draws=8, seed=20261002, options=None, *, uniforms=None):
+def update(prepared, inputs, units, evidence, count_draws=8, seed=20261002, options=None, *, uniforms=None, schedule=None):
     """Reweight declarations while preserving counted votes and booth estimates.
 
     Each expensive/pre-existing preparation outcome supplies several cheap count
@@ -304,9 +335,16 @@ def update(prepared, inputs, units, evidence, count_draws=8, seed=20261002, opti
         # count equivalent as the small-addition component when both its
         # starting estimate and current count are negligible.
         reference = np.log((base+np.finfo(float).eps)/slack[:,indexes])
+        normal_shifts = np.zeros(len(columns)) if schedule is None else np.asarray(schedule['usual_log_shifts'])[columns]
+        phase = 0. if schedule is None else schedule['processing_phase']
+        reference += normal_shifts[None,:]
         small = np.log(config['small_median_votes']/slack[:,indexes])
         batch = np.log((base+config['small_median_votes']+config['batch_current_fraction']*
                         np.array([units[j]['counted'] for j in columns]))/slack[:,indexes])
+        if phase:
+            own_batch = np.log((prepared['own_remaining'][:,columns]+config['small_median_votes']+config['batch_current_fraction']*
+                              np.array([units[j]['counted'] for j in columns]))/slack[:,indexes])
+            batch = (1-phase)*batch+phase*own_batch
         # Keep conditional distributions separate from the mixed samples.
         # A subsequent party-composition preparation can evaluate a rare batch
         # deliberately, rather than depending on whether that branch happened
@@ -324,7 +362,7 @@ def update(prepared, inputs, units, evidence, count_draws=8, seed=20261002, opti
             uniforms = np.asarray(uniforms, dtype=float)
             if uniforms.shape != (len(outer), len(columns)) or not np.isfinite(uniforms).all() or ((uniforms <= 0) | (uniforms >= 1)).any():
                 raise ValueError('Supply one interior quantile per outcome and open declaration unit.')
-        varied = mixture_log_odds(reference[outer], small[outer], batch[outer], weights, uniforms, config,no_addition[indexes])
+        varied = mixture_log_odds(reference[outer], small[outer], batch[outer], weights, uniforms, config,no_addition[indexes],schedule)
         # Evaluate both conditional distributions explicitly at a fixed set of
         # quantiles. This is preparation of a rare branch, not Bernoulli selection.
         quantiles = ndtri((np.arange(count_draws)+.5)/count_draws)
@@ -335,15 +373,16 @@ def update(prepared, inputs, units, evidence, count_draws=8, seed=20261002, opti
                                       ('batch',batch[:,k],config['batch_log_odds_sd'])):
                 values = parent[:,None]*expit(location[:,None]+sd*quantiles)
                 conditional[name+'_mean_if_other_counts_fixed'] = float(values.mean())
-            previous, small_probability, batch_probability = component_probabilities(weights[k],no_addition[indexes[k]],config)
+            previous, small_probability, batch_probability = component_probabilities(weights[k],no_addition[indexes[k]],config,schedule)
             details.append(dict(unit=int(j), seat=units[j]['seat_name'], category=category_key(units[j]),
                 evidence=evidence[j], weight=float(weights[k]),
+                usual_log_shift=float(normal_shifts[k]),
                 probabilities=dict(no_additions=float(no_addition[indexes[k]]),previous=float(previous),
                                    small=float(small_probability),batch=float(batch_probability)),
                 reference_mean=float(base[:,k].mean()), **conditional))
         for seat in range(seats):
             local = np.flatnonzero(indexes == seat)
-            if not len(local) or not np.any(weights[local]):
+            if not len(local) or (not np.any(weights[local]) and not np.any(normal_shifts[local]) and not phase):
                 continue
             parent = slack[:,seat]+base[:,local].sum(axis=1)
             odds = varied[:,local]

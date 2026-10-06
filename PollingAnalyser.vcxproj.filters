@@ -206,7 +206,7 @@
     <ClCompile Include="PartySettingsFrame.cpp">
       <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
-    <ClCompile Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.cpp">
+    <ClCompile Include="$(POLLING_ANALYSER_TINYXML2)\tinyxml2.cpp">
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
     <ClCompile Include="AnalysisFrame.cpp">
@@ -275,7 +275,7 @@
     <ClCompile Include="LivePreparationBridge.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
-    <ClCompile Include="C:\C++ Libraries\dlib-19.24\dlib\all\source.cpp">
+    <ClCompile Include="$(POLLING_ANALYSER_DLIB)\dlib\all\source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="GeneralSettingsFrame.cpp">
@@ -285,6 +285,12 @@
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
     <ClCompile Include="LiveTurnoutShadow.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="LivePreferenceCorrections.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="LivePreferencePreparation.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
     <ClCompile Include="TurnoutModel.cpp">
@@ -630,7 +636,7 @@
     <ClInclude Include="SaveIO.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
-    <ClInclude Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.h">
+    <ClInclude Include="$(POLLING_ANALYSER_TINYXML2)\tinyxml2.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
     <ClInclude Include="ElectionCollection.h">
@@ -709,6 +715,12 @@
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
     <ClInclude Include="LiveV2.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveTurnoutMath.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="LivePreferenceCorrections.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
     <ClInclude Include="TurnoutModel.h">

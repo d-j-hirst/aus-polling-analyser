@@ -20,7 +20,8 @@ import numpy as np
 import scipy
 
 from lib.paths import ANALYSIS_DIRECTORY, REPOSITORY_DIRECTORY
-from lib.turnout import category_policy, live, prior
+from lib.turnout import category_policy, live, prior, maintained_parameters
+from lib.turnout.paths import download_directory
 from scripts.turnout import turnout_live_report
 
 
@@ -70,7 +71,11 @@ def load_fixture(path, election_code='2026sa'):
     sampler = Path(prior.__file__)
     if hashlib.sha256(sampler.read_text(encoding='utf-8').encode()).hexdigest() != payload['fingerprint']['code']['prior.py']:
         raise ValueError('Prior sampler changed; regenerate the fixture.')
-    return next(f for f in payload['fixtures'] if f['inputs']['identity'] == election_code + '/earlier_only')
+    fixture = next(f for f in payload['fixtures'] if f['inputs']['identity'] == election_code + '/earlier_only')
+    # The private fixture supplies election inputs. Installed tuning is read
+    # from maintained source so an experimental export cannot choose it.
+    fixture['parameters'] = maintained_parameters.prior_parameters(election_code + '/earlier_only')
+    return fixture
 
 
 def source_index(directory):
@@ -448,7 +453,7 @@ def run(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--archive', type=Path, default=DEFAULT_ARCHIVE)
-    parser.add_argument('--sources', type=Path, default=Path.home() / 'Downloads')
+    parser.add_argument('--sources', type=Path, default=download_directory())
     parser.add_argument('--fixture', type=Path, default=DEFAULT_FIXTURE)
     parser.add_argument('--final-counts', type=Path, default=ANALYSIS_DIRECTORY / 'Data/Turnout/2026sa.json')
     parser.add_argument('--output-directory', type=Path, default=DEFAULT_OUTPUT)

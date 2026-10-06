@@ -18,7 +18,8 @@ import numpy as np
 import scipy
 
 from lib.paths import ANALYSIS_DIRECTORY, REPOSITORY_DIRECTORY
-from lib.turnout import aec_live, live, prior, ppvc_sizes
+from lib.turnout import aec_live, live, prior, ppvc_sizes, maintained_parameters
+from lib.turnout.paths import archive_directory, download_directory
 from scripts.turnout import turnout_federal_live_report
 from scripts.turnout.turnout_federal_prepoll import csv_rows
 from scripts.turnout.turnout_live_prototype import digest, read_json, load_fixture, interval_summary
@@ -34,31 +35,24 @@ def retained_input(explicit, pattern):
     """Find the known retained input; ambiguous revisions require an explicit path."""
     if explicit:
         return explicit
-    paths = list((REPOSITORY_DIRECTORY / 'downloads').glob(pattern))
+    directories = [REPOSITORY_DIRECTORY / 'downloads', archive_directory(), download_directory()]
+    paths = list(dict.fromkeys(p for directory in directories for p in directory.glob(pattern)))
     if len(paths) != 1:
         raise ValueError('Provide an explicit path; expected one retained input for ' + pattern)
     return paths[0]
 
 
-def starting_size_calibration(previous):
-    """Load retained pre-2025 evidence for new/changed public-centre weights.
+def starting_size_calibration(_previous=None):
+    """Use maintained new-centre tuning without requiring older fitting feeds.
 
-    The 2019 feed identifies the centres changed by 2022. The 2022 polling-place
-    CSV supplies geography for screening, and its manifest selects the exact
-    retained revision. No 2025 final count or location enters this calibration.
+    The installed aggregate sizes were learned from the retained 2019/2022
+    comparison. Only the current authored seat classifications are added here;
+    recalibrating historical_sizes remains an explicitly run offline experiment.
     """
-    older_path = retained_input(None, '*Verbose*24310*.xml')
-    older = aec_live.read_house(older_path, event_id='24310')
-    directory = REPOSITORY_DIRECTORY / 'downloads/turnout/federal-prepoll/2022fed'
-    manifest_path = directory / 'latest.json'
-    entry = read_json(manifest_path)['places']
-    places_path = directory / entry['sha256'] / entry['url'].rsplit('/', 1)[-1]
-    if digest(places_path) != entry['sha256']:
-        raise ValueError('Historical PPVC location CSV differs from its retained hash.')
     types_path = ANALYSIS_DIRECTORY / 'Data/seat-types.csv'
-    calibration = ppvc_sizes.historical_sizes(previous, older, csv_rows(places_path.read_bytes()),
-                                             ppvc_sizes.read_seat_types(types_path))
-    return calibration, [older_path, manifest_path, places_path, types_path, Path(ppvc_sizes.__file__)]
+    calibration = maintained_parameters.ppvc_size_parameters()
+    calibration['seat_types'] = ppvc_sizes.read_seat_types(types_path)
+    return calibration, [maintained_parameters.PARAMETER_PATH, types_path, Path(ppvc_sizes.__file__)]
 
 
 def select_snapshots(directory, through):
@@ -362,7 +356,7 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--sources', type=Path, default=Path.home() / 'Downloads')
+    parser.add_argument('--sources', type=Path, default=download_directory())
     parser.add_argument('--preload', type=Path)
     parser.add_argument('--previous', type=Path)
     parser.add_argument('--seat-aliases', type=Path, help='JSON mapping current seats to previousName/useFpResults settings.')

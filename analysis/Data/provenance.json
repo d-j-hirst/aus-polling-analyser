@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-10-04T09:48:42Z",
+  "updated_at_utc": "2026-10-06T10:26:50Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -88,12 +88,12 @@
         "poll-data-*.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 66,
+      "semantic_revision": 67,
       "files": {
         "poll-data-fed.csv": {
-          "sha256": "9ec196bc73eb9239b3cab9da2044e3497817ee52db36ddf894c8718270dda4c8",
-          "size_bytes": 286400,
-          "recorded_mtime_utc": "2026-10-04T09:48:11.816759Z"
+          "sha256": "6ea39edec9d164a85c4e733034867e414845e3e2afd7c551bdbd459d525b0392",
+          "size_bytes": 286461,
+          "recorded_mtime_utc": "2026-10-06T10:18:59.816455Z"
         },
         "poll-data-nsw.csv": {
           "sha256": "ae8c780dce86256fe1095b6471f48cceaa1b4b65d18a1bd452d7f0562060beab",
@@ -1673,9 +1673,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261006T102650Z-new_polling-raw-poll-data-ca3ec723",
+          "recorded_at_utc": "2026-10-06T10:26:50Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 67,
+          "provenance_revision": 67,
+          "summary": "YouGov poll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 66
+      "provenance_revision": 67
     },
     "poll_model_configuration": {
       "description": "Party coverage, discontinuities and sampling settings used by fp_model.py.",

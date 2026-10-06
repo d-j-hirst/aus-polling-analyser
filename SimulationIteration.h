@@ -75,7 +75,7 @@ private:
 	void solveTerminalFpReconciliation();
 	void incorporateLiveResults();
 	void determineSeatFinalResult(int seatIndex);
-	void assignNationalsVotes(int seatIndex, bool updateFromLive = true);
+	void assignNationalsVotes(int seatIndex, bool updateFromLive = true, bool finalSplit = false);
 	void applyLiveManualOverrides(int seatIndex);
 	void recordSeatResult(int seatIndex);
 	void assignDirectWins();

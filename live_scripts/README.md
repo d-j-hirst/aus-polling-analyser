@@ -36,6 +36,13 @@ Version-65 projects that already contain an absolute path beneath the current
 home directory are normalized to `<HOME>/...` when they are loaded and next
 saved.
 
+Live/media-feed snapshots and close derivatives are private operator inputs.
+Do not commit retained XML/ZIP files, per-booth exports or replay comparisons.
+Public final-result downloads and published statistics can still support the
+historical workflow. Installed live parameters are maintained in source; see
+[the turnout documentation](../docs/turnout-cpp-shadow.md) for their locations
+and the distinction between applying the model and reproducing its calibration.
+
 ## Common workflow
 
 1. Confirm the forecast or `.pol2` project has an automatic live simulation
@@ -62,6 +69,10 @@ machine-specific setup and are deliberately not archived.
 extracted current-result XML from `downloads/<filename>`. This bypasses the
 configured-directory scan. Federal `current_test_url` supports the same form.
 
+The Federal and SA replay scripts advance one snapshot when run without
+arguments. At the final snapshot, they report that the end has been reached
+and return successfully, leaving the installed feed and replay state unchanged.
+
 ## Federal (AEC)
 
 Covered automatic-live specifications: `2022fed`, `2025fed` and `2028fed`.
@@ -86,6 +97,107 @@ path.
 For historical replay, either configure a direct archived ZIP as
 `current_test_url`, or place extracted XML in `downloads` and use
 `local:<filename>`.
+
+### Replaying Federal 2025 snapshots
+
+`Replay-Federal2025LiveSnapshot.ps1` selects nine retained AEC result updates
+and extracts the selected XML to `downloads/fed2025-replay.xml`. This lets
+the GUI compare its existing vote-size rules with the turnout calculation
+using the same counted votes and saved forecast settings. It does not run
+the application or download feeds.
+
+The checkpoint timestamps below are the AEC XML's `Created` times. They span
+different amounts of counting and a prolonged postal counting period; the
+last entry is the final retained feed, not an instruction to force completion.
+
+| Timestamp argument | AEC source time | Count stage |
+| --- | --- | --- |
+| `20250503171746` | 3 May 17:17:46 | No results |
+| `20250503195947` | 3 May 19:59:47 | Early ordinary and PPVC results |
+| `20250504010119` | 4 May 01:01:19 | Later election-night results |
+| `20250511215001` | 11 May 21:50:01 | Postal pause before the receipt deadline |
+| `20250516214931` | 16 May 21:49:31 | Receipt deadline day |
+| `20250518214938` | 18 May 21:49:38 | Processing after the receipt deadline |
+| `20250519214849` | 19 May 21:48:49 | Continuing local late batches |
+| `20250520214756` | 20 May 21:47:56 | Late declaration counting |
+| `20250531210545` | 31 May 21:05:45 | Final retained count |
+
+Run from the repository root:
+
+```powershell
+.\live_scripts\Replay-Federal2025LiveSnapshot.ps1 -List
+.\live_scripts\Replay-Federal2025LiveSnapshot.ps1 20250503171746
+.\live_scripts\Replay-Federal2025LiveSnapshot.ps1 -Interactive
+.\live_scripts\Replay-Federal2025LiveSnapshot.ps1
+```
+
+`-List` returns the checkpoints and source availability without changing
+the selection. An explicit timestamp or `-Interactive` chooses a checkpoint;
+no argument advances to the next of these nine after the previous selection.
+`-WhatIf` checks the selected ZIP and its header without installing anything.
+The script searches ignored `downloads/turnout/feed-archive/` storage (or the
+optional `POLLING_ANALYSER_FEED_DOWNLOADS`/`POLLING_ANALYSER_FEED_ARCHIVE` location) and existing repository
+turnout caches. Use `-ArchiveDirectory` for another directory of retained
+ZIPs. When a turnout artifact is present, its recorded ZIP hash must match.
+The selection and source/XML hashes are stored under the ignored
+`downloads/turnout/federal-gui-replay/` directory.
+
+Use a separate copy of the Federal 2025 live project. In **Edit Simulation**,
+set **Current Real URL** to `local:fed2025-replay.xml` and clear
+**Current Test URL**. The state-election **Current results directory**
+setting does not select AEC feeds. Keep the previous-results and preload URLs
+unchanged if their corresponding cached XML files are available, including
+the preload's polling-place file. Reports use the XML's source timestamp,
+even though this working filename stays the same between selections.
+
+Opening a saved project imports `forecasts/2025fed/forecast.json`, whose
+settings take precedence over saved model, projection and live-source
+settings. This package selects the replay XML, the 2025 preload, final 2022
+previous results and the known 3 May 2025 election date. The live simulation
+uses 20,000 iterations. Change the package if these settings need to persist
+across reopening a project; editing only the `.pol2` does not change the
+imported settings. The diagnostic output folder remains a saved-project
+setting. Empty AEC location fields leave booth coordinates unknown, including
+mobile services operating at multiple sites; nonempty coordinates are checked
+before they are used for geographic matching.
+
+For paired turnout comparisons, retain the same model, projection, iteration
+count and other simulation settings. The application automatically selects
+`downloads/turnout/cpp-shadow/<election>-shadow.json` for each live election and
+uses counts mode when that file exists. No turnout environment variables are
+needed for normal replay, and switching between SA and Federal does not require
+changing settings or restarting the application. An election without a prepared
+file keeps the existing live vote-size rules, with a message in `PALog.log`.
+
+For a comparison using the existing size rules alongside turnout diagnostics,
+set the optional mode in Visual Studio's **Debugging > Environment**:
+
+```text
+POLLING_ANALYSER_TURNOUT_MODE=shadow
+```
+
+Changing the mode requires an application restart; changing elections does not.
+Set the mode to `off` to omit turnout diagnostics as well. Remove the mode
+override to restore automatic counts mode. An explicit custom file can still
+be supplied through `POLLING_ANALYSER_TURNOUT_SHADOW`; it must match the live
+election. Remove any old fixed file override, or set it to `auto`, when using
+automatic selection. Diagnostics record the chosen path and selection policy.
+
+With `counts`, the forecast uses the turnout estimates and remaining-count
+distribution. With `shadow`, it uses the existing live size rules while
+still exporting the turnout diagnostics. Restart the application after
+changing this environment setting. Set **Live output folder** to separate
+names such as `fed2025-turnout1` and `fed2025-legacy1` for the two modes.
+These names designate folders under `live_runs/`; they are not paths.
+Run both modes for a checkpoint before advancing, or explicitly select
+the same nine timestamps again for the second pass. The SA Shift-click batch
+advance does not support this Federal replay.
+
+The comparison establishes how turnout integration changes a particular
+saved forecast. Its broader forecast accuracy also depends on the saved
+model, projection and candidate/preference settings being suitable for
+Federal 2025. A result-feed replay by itself does not establish that those
+other inputs are suitable for a historical forecast.
 
 ## Victoria (VEC)
 

@@ -6,7 +6,8 @@ Installs an archived 2026 SA ECSA snapshot as el2026_ha_detail.xml.
 The polling application looks for el2026_ha_detail.xml in the current-results
 directory configured for the simulation. This script copies one timestamped
 archive (el2026<12-digit stamp>.xml) to that name, then remembers the
-selection so a later run without arguments moves to the next snapshot.
+selection so a later run without arguments moves to the next snapshot,
+or reports that the final available snapshot is already selected.
 
 Source archives are left unchanged. The script does not write into the
 repository downloads folder; LivePreparation copies the selected feed to
@@ -267,7 +268,9 @@ else {
         throw "The remembered snapshot $($state.timestamp) is no longer available. Use a timestamp or -Interactive to choose a new starting point."
     }
     if ($currentIndex -eq $snapshots.Count - 1) {
-        throw 'The remembered snapshot is already the latest available snapshot.'
+        # End-of-list calls leave the selected feed and replay state intact.
+        Write-Host "Already at the final available snapshot: $($snapshots[$currentIndex].Filename). No snapshot changed."
+        return
     }
     $selectedSnapshot = $snapshots[$currentIndex + 1]
 }

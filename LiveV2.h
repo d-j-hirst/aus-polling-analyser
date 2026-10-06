@@ -5,6 +5,7 @@
 #include "Log.h"
 #include "SpecialPartyCodes.h"
 #include "TurnoutModel.h"
+#include "LivePreferenceCorrections.h"
 
 #include <cstdint>
 #include <map>
@@ -431,6 +432,9 @@ public:
   // significant parties, along with independents who don't make the threshold for significance
   FloatInformation getSeatOthersInformation(std::string const& seatName, std::map<int, float> const& representedParties) const override;
 
+  std::optional<LiveData::VoteCountAccount> getSeatVoteCountAccount(
+    std::string const& seatName, LiveData::CountKind kind) const override;
+
   // Expose some internals for diagnostics/analysis
   Internals getInternals() const override {
     Internals internals;
@@ -531,7 +535,17 @@ private:
 
   float expectedPpvcSize(int boothIndex) const;
 
-  int generateDeclarationVoteExpectedSize(int boothIndex);
+  float generateDeclarationVoteExpectedSize(int boothIndex);
+
+  // These totals replace legacy sizes only in the selected count-integration
+  // mode. TCP/TPP retain their counted account and share the FP addition pool.
+  float turnoutFpTarget(int boothIndex, float legacyTarget) const;
+  float turnoutPairTarget(int boothIndex, float legacyTarget) const;
+  void refreshTurnoutPairProgress();
+  void recordTurnoutIntegrationDiagnostic();
+  void prepareTurnoutCountComposition();
+  void drawTurnoutCounts(int iterationIndex);
+  void refreshTurnoutScenarioProgress();
 
   void refreshFpProgressForExpectedSizes();
 
@@ -564,6 +578,11 @@ private:
   void calculateLivePreferenceFlowDeviations();
 
   void prepareVariability();
+
+  // Rechecking is independent of additions. Prepare its distributions once
+  // from current comparable booths, then change only scenario pair accounts.
+  void preparePreferenceCorrections();
+  void applyPreferenceCorrections(int iterationIndex);
 
   // Prepare the optional independent count account once. Scenario copies
   // share its frozen outcomes; the shadow calculation never recursively
@@ -648,6 +667,49 @@ private:
 
   std::shared_ptr<TurnoutModel::Result const> turnoutShadow;
   std::shared_ptr<nlohmann::json const> turnoutShadowDiagnostic;
+  // Scenario and preparation copies share immutable means. An election with
+  // no FP counts keeps the existing baseline path exactly, even in count mode.
+  std::shared_ptr<std::vector<double> const> turnoutMeanFpTotals;
+  bool turnoutCountsActive = false;
+  struct TurnoutCountedParties {
+    std::vector<std::map<int, double>> fp, tpp, tcp;
+    std::map<std::string,std::size_t> seatIndexes;
+  };
+  std::shared_ptr<TurnoutCountedParties const> turnoutCountedParties;
+  struct TurnoutCountComposition {
+    struct Response {
+      std::size_t unit, seat;
+      std::vector<std::pair<int,double>> fp, tpp, tcp;
+    };
+    TurnoutModel::DrawPlan drawPlan;
+    std::vector<int> boothIndexes;
+    std::vector<std::map<int,double>> baseFp, baseTpp, baseTcp;
+    std::vector<std::map<int,float>> meanFp, meanTpp, meanTcp;
+    std::vector<float> fpConfidence, tppConfidence, tcpConfidence;
+    std::vector<Response> responses;
+  };
+  // The prior, composition responses and measured constraints are prepared
+  // once and shared by all main-iteration copies; only their draws are mutable.
+  std::shared_ptr<TurnoutCountComposition const> turnoutCountComposition;
+
+  struct PreferenceCorrectionSeat {
+    int partyA = InvalidPartyIndex, partyB = InvalidPartyIndex;
+    bool classic = false;
+    LivePreferenceCorrections::SeatDistribution distribution;
+  };
+  struct PreferenceCorrectionPreparation {
+    std::vector<PreferenceCorrectionSeat> seats;
+    std::vector<std::map<int, double>> countedTpp, countedTcp;
+  };
+  struct PreferenceScenarioCounts {
+    std::vector<std::map<int, double>> tpp, tcp;
+  };
+  // Raw counts and prepared distributions are immutable and shared. Adjusted
+  // counted pairs belong to one scenario, allowing the main simulator's finite
+  // account handoff to retain a recheck even when no votes remain outstanding.
+  std::shared_ptr<PreferenceCorrectionPreparation const> preferenceCorrections;
+  std::shared_ptr<PreferenceScenarioCounts const> preferenceScenarioCounts;
+  std::shared_ptr<nlohmann::json const> preferenceCorrectionDiagnostic;
 
 	PollingProject& project;
 	Simulation& sim;

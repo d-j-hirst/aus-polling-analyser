@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -69,13 +69,26 @@
     <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <!-- Private local settings and optional environment variables keep developer
+       directory layouts out of the public project. A clone defaults to ignored
+       dependencies beneath the project directory. -->
+  <Import Project="$(ProjectDir)LocalBuildPaths.props" Condition="Exists('$(ProjectDir)LocalBuildPaths.props')" />
+  <PropertyGroup>
+    <POLLING_ANALYSER_DLIB Condition="'$(POLLING_ANALYSER_DLIB)'==''">$(ProjectDir)dependencies\dlib-19.24</POLLING_ANALYSER_DLIB>
+    <POLLING_ANALYSER_TINYXML2 Condition="'$(POLLING_ANALYSER_TINYXML2)'==''">$(ProjectDir)dependencies\tinyxml2</POLLING_ANALYSER_TINYXML2>
+    <POLLING_ANALYSER_CURL Condition="'$(POLLING_ANALYSER_CURL)'==''">$(ProjectDir)dependencies\libcurl</POLLING_ANALYSER_CURL>
+    <POLLING_ANALYSER_WX Condition="'$(POLLING_ANALYSER_WX)'==''">$(ProjectDir)dependencies\wxWidgets-3.1.1</POLLING_ANALYSER_WX>
+    <POLLING_ANALYSER_WX_LEGACY Condition="'$(POLLING_ANALYSER_WX_LEGACY)'==''">$(ProjectDir)dependencies\wxWidgets-3.0.2</POLLING_ANALYSER_WX_LEGACY>
+    <POLLING_ANALYSER_PYTHON Condition="'$(POLLING_ANALYSER_PYTHON)'==''">$(ProjectDir)dependencies\python</POLLING_ANALYSER_PYTHON>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>.\vc_mswu\</OutDir>
     <IntDir>.\vc_mswu\PollingAnalyser\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\C++ Libraries\dlib-19.24;C:\C++ Libraries\TinyXml2\tinyxml2-master;C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\lib;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
-    <SourcePath>C:\C++ Libraries\dlib-19.24;C:\C++ Libraries\TinyXml2\tinyxml2-master;$(SourcePath)</SourcePath>
+    <IncludePath>$(POLLING_ANALYSER_DLIB);$(POLLING_ANALYSER_TINYXML2);$(POLLING_ANALYSER_CURL)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(POLLING_ANALYSER_CURL)\lib;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
+    <SourcePath>$(POLLING_ANALYSER_DLIB);$(POLLING_ANALYSER_TINYXML2);$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DLL Debug|Win32'">
     <OutDir>.\vc_mswuddll\</OutDir>
@@ -91,9 +104,9 @@
     <OutDir>.\vc_mswud\</OutDir>
     <IntDir>.\vc_mswud\PollingAnalyser\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\C++ Libraries\dlib-19.24;C:\C++ Libraries\TinyXml2\tinyxml2-master;C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;E:\Anaconda\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\lib;E:\Anaconda\libs;$(LibraryPath)</LibraryPath>
-    <SourcePath>C:\C++ Libraries\dlib-19.24;C:\C++ Libraries\TinyXml2\tinyxml2-master;$(SourcePath)</SourcePath>
+    <IncludePath>$(POLLING_ANALYSER_DLIB);$(POLLING_ANALYSER_TINYXML2);$(POLLING_ANALYSER_CURL)\include;$(POLLING_ANALYSER_PYTHON)\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(POLLING_ANALYSER_CURL)\lib;$(POLLING_ANALYSER_PYTHON)\libs;$(LibraryPath)</LibraryPath>
+    <SourcePath>$(POLLING_ANALYSER_DLIB);$(POLLING_ANALYSER_TINYXML2);$(SourcePath)</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -105,7 +118,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <WarningLevel>Level4</WarningLevel>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <AdditionalIncludeDirectories>C:\wxWidgets-3.1.1\lib\vc_lib\mswu;C:\wxWidgets-3.1.1\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(POLLING_ANALYSER_WX)\lib\vc_lib\mswu;$(POLLING_ANALYSER_WX)\include;.;$(POLLING_ANALYSER_WX_LEGACY)\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>CURL_STATICLIB;WIN32;__WXMSW__;NDEBUG;_WINDOWS;NOPCH;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderOutputFile>.\vc_mswu\PollingAnalyser\PollingAnalyser.pch</PrecompiledHeaderOutputFile>
       <AdditionalOptions> /EHsc</AdditionalOptions>
@@ -125,7 +138,7 @@
     </Midl>
     <ResourceCompile>
       <Culture>0x0409</Culture>
-      <AdditionalIncludeDirectories>C:\wxWidgets-3.0.2\lib\vc_lib\mswu;C:\wxWidgets-3.0.2\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(POLLING_ANALYSER_WX_LEGACY)\lib\vc_lib\mswu;$(POLLING_ANALYSER_WX_LEGACY)\include;.;$(POLLING_ANALYSER_WX_LEGACY)\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>__WXMSW__;NDEBUG;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Bscmake>
@@ -137,7 +150,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OutputFile>vc_mswu\PollingAnalyser.exe</OutputFile>
-      <AdditionalLibraryDirectories>C:\wxWidgets-3.1.1\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(POLLING_ANALYSER_WX)\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libcurl_a.lib;wxmsw31u_core.lib;wxbase31u.lib;wxtiff.lib;wxjpeg.lib;wxpng.lib;wxzlib.lib;wxregexu.lib;wxexpat.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;wxmsw31u_adv.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       <LargeAddressAware>true</LargeAddressAware>
@@ -155,7 +168,7 @@
       <WarningLevel>Level4</WarningLevel>
       <PollingAnalyserRebuild>true</PollingAnalyserRebuild>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <AdditionalIncludeDirectories>C:\wxWidgets-3.0.2\lib\vc_dll\mswud;C:\wxWidgets-3.0.2\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(POLLING_ANALYSER_WX_LEGACY)\lib\vc_dll\mswud;$(POLLING_ANALYSER_WX_LEGACY)\include;.;$(POLLING_ANALYSER_WX_LEGACY)\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;__WXMSW__;WXUSINGDLL;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>.\vc_mswuddll\PollingAnalyser\</AssemblerListingLocation>
       <PrecompiledHeaderOutputFile>.\vc_mswuddll\PollingAnalyser\PollingAnalyser.pch</PrecompiledHeaderOutputFile>
@@ -172,7 +185,7 @@
     </Midl>
     <ResourceCompile>
       <Culture>0x0409</Culture>
-      <AdditionalIncludeDirectories>C:\wxWidgets-3.0.2\lib\vc_dll\mswud;C:\wxWidgets-3.0.2\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(POLLING_ANALYSER_WX_LEGACY)\lib\vc_dll\mswud;$(POLLING_ANALYSER_WX_LEGACY)\include;.;$(POLLING_ANALYSER_WX_LEGACY)\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;__WXMSW__;_UNICODE;WXUSINGDLL;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Bscmake>
@@ -184,7 +197,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OutputFile>vc_mswuddll\PollingAnalyser.exe</OutputFile>
-      <AdditionalLibraryDirectories>C:\wxWidgets-3.0.2\lib\vc_dll;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(POLLING_ANALYSER_WX_LEGACY)\lib\vc_dll;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>wxmsw30ud_core.lib;wxbase30ud.lib;wxtiffd.lib;wxjpegd.lib;wxpngd.lib;wxzlibd.lib;wxregexud.lib;wxexpatd.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -198,7 +211,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <WarningLevel>Level4</WarningLevel>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <AdditionalIncludeDirectories>C:\wxWidgets-3.0.2\lib\vc_dll\mswu;C:\wxWidgets-3.0.2\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(POLLING_ANALYSER_WX_LEGACY)\lib\vc_dll\mswu;$(POLLING_ANALYSER_WX_LEGACY)\include;.;$(POLLING_ANALYSER_WX_LEGACY)\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;__WXMSW__;NDEBUG;WXUSINGDLL;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>.\vc_mswudll\PollingAnalyser\</AssemblerListingLocation>
       <PrecompiledHeaderOutputFile>.\vc_mswudll\PollingAnalyser\PollingAnalyser.pch</PrecompiledHeaderOutputFile>
@@ -215,7 +228,7 @@
     </Midl>
     <ResourceCompile>
       <Culture>0x0409</Culture>
-      <AdditionalIncludeDirectories>C:\wxWidgets-3.0.2\lib\vc_dll\mswu;C:\wxWidgets-3.0.2\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(POLLING_ANALYSER_WX_LEGACY)\lib\vc_dll\mswu;$(POLLING_ANALYSER_WX_LEGACY)\include;.;$(POLLING_ANALYSER_WX_LEGACY)\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>__WXMSW__;NDEBUG;_UNICODE;WXUSINGDLL;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Bscmake>
@@ -227,7 +240,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OutputFile>vc_mswudll\PollingAnalyser.exe</OutputFile>
-      <AdditionalLibraryDirectories>C:\wxWidgets-3.0.2\lib\vc_dll;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(POLLING_ANALYSER_WX_LEGACY)\lib\vc_dll;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>wxmsw30u_core.lib;wxbase30u.lib;wxtiff.lib;wxjpeg.lib;wxpng.lib;wxzlib.lib;wxregexu.lib;wxexpat.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -243,7 +256,7 @@
       <WarningLevel>Level4</WarningLevel>
       <PollingAnalyserRebuild>true</PollingAnalyserRebuild>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <AdditionalIncludeDirectories>C:\wxWidgets-3.1.1\lib\vc_lib\mswud;C:\wxWidgets-3.1.1\include;.;C:\wxWidgets-3.1.1\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(POLLING_ANALYSER_WX)\lib\vc_lib\mswud;$(POLLING_ANALYSER_WX)\include;.;$(POLLING_ANALYSER_WX)\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>CURL_STATICLIB;WIN32;_DEBUG;__WXMSW__;_WINDOWS;NOPCH;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>.\vc_mswud\PollingAnalyser\</AssemblerListingLocation>
       <PrecompiledHeaderOutputFile>.\vc_mswud\PollingAnalyser\PollingAnalyser.pch</PrecompiledHeaderOutputFile>
@@ -263,7 +276,7 @@
     </Midl>
     <ResourceCompile>
       <Culture>0x0409</Culture>
-      <AdditionalIncludeDirectories>C:\wxWidgets-3.0.2\lib\vc_lib\mswud;C:\wxWidgets-3.0.2\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(POLLING_ANALYSER_WX_LEGACY)\lib\vc_lib\mswud;$(POLLING_ANALYSER_WX_LEGACY)\include;.;$(POLLING_ANALYSER_WX_LEGACY)\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;__WXMSW__;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Bscmake>
@@ -275,7 +288,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OutputFile>vc_mswud\PollingAnalyser.exe</OutputFile>
-      <AdditionalLibraryDirectories>C:\wxWidgets-3.1.1\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(POLLING_ANALYSER_WX)\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libcurl_a.lib;wxmsw31ud_core.lib;wxbase31ud.lib;wxtiffd.lib;wxjpegd.lib;wxpngd.lib;wxzlibd.lib;wxregexud.lib;wxexpatd.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;wxmsw31ud_adv.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LargeAddressAware>true</LargeAddressAware>
     </Link>
@@ -283,8 +296,8 @@
   <ItemGroup>
     <ClCompile Include="AnalysisFrame.cpp" />
     <ClCompile Include="AnalysisFrameRenderer.cpp" />
-    <ClCompile Include="C:\C++ Libraries\dlib-19.24\dlib\all\source.cpp" />
-    <ClCompile Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.cpp" />
+    <ClCompile Include="$(POLLING_ANALYSER_DLIB)\dlib\all\source.cpp" />
+    <ClCompile Include="$(POLLING_ANALYSER_TINYXML2)\tinyxml2.cpp" />
     <ClCompile Include="CheckInput.cpp" />
     <ClCompile Include="ChoiceInput.cpp" />
     <ClCompile Include="ClusterAnalyser.cpp" />
@@ -312,6 +325,8 @@
     <ClCompile Include="LiveBoothFrame.cpp" />
     <ClCompile Include="LiveV2.cpp" />
     <ClCompile Include="LiveTurnoutShadow.cpp" />
+    <ClCompile Include="LivePreferenceCorrections.cpp" />
+    <ClCompile Include="LivePreferencePreparation.cpp" />
     <ClCompile Include="TurnoutModel.cpp" />
     <ClCompile Include="TurnoutModelIO.cpp" />
     <ClCompile Include="LiveRunExport.cpp" />
@@ -393,7 +408,7 @@
     <ClInclude Include="AnalysisFrame.h" />
     <ClInclude Include="AnalysisFrameRenderer.h" />
     <ClInclude Include="Beep.h" />
-    <ClInclude Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.h" />
+    <ClInclude Include="$(POLLING_ANALYSER_TINYXML2)\tinyxml2.h" />
     <ClInclude Include="CheckInput.h" />
     <ClInclude Include="ChoiceInput.h" />
     <ClInclude Include="ClusterAnalyser.h" />
@@ -418,6 +433,8 @@
     <ClInclude Include="LivePreparation.h" />
     <ClInclude Include="LiveBoothFrame.h" />
     <ClInclude Include="LiveV2.h" />
+    <ClInclude Include="LiveTurnoutMath.h" />
+    <ClInclude Include="LivePreferenceCorrections.h" />
     <ClInclude Include="TurnoutModel.h" />
     <ClInclude Include="TurnoutModelIO.h" />
     <ClInclude Include="LiveRunExport.h" />

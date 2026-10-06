@@ -2,6 +2,7 @@
 
 #include "CountProgress.h"
 #include "LiveSimulationMath.h"
+#include "LiveTurnoutMath.h"
 #include "SpecialPartyCodes.h"
 #include "PollingProject.h"
 #include "RandomGenerator.h"
@@ -3362,6 +3363,14 @@ void SimulationIteration::incorporateLiveResults()
 			partyOneNewTppMargin[seatIndex] =
 				detransformVoteShare(transformedTpp) - 50.0f;
 		}
+		if (auto account = liveElection->getSeatVoteCountAccount(seat.name, LiveData::CountKind::Tpp)) {
+			// The baseline blend can otherwise change published classic TPP votes.
+			// Inferred TPP is deliberately absent from the fixed counted account.
+			auto partition = LiveTurnoutMath::partitionAccount(*account, [](int party) { return party; });
+			float alp = partyOneNewTppMargin[seatIndex] + 50.f;
+			auto shares = LiveTurnoutMath::reconcileForecast(std::move(partition), {{0, alp}, {1, 100.f - alp}});
+			partyOneNewTppMargin[seatIndex] = shares.at(0) - 50.f;
+		}
 	}
 
 	auto const electionFpDeviations =
@@ -3635,6 +3644,10 @@ void SimulationIteration::incorporateLiveResults()
 			representedParties[run.indPartyIndex] =
 				representedParties.at(EmergingIndIndex);
 		}
+		// The Coalition is combined here. National votes already represented
+		// within that share must not also enter the anonymous Others group.
+		if (run.natPartyIndex >= 0 && representedParties.contains(Mp::Two))
+			representedParties[run.natPartyIndex] = representedParties.at(Mp::Two);
 		auto seatOthersInformation = liveElection->getSeatOthersInformation(
 			seat.name, representedParties);
 		if (!std::isfinite(seatOthersInformation.value) ||
@@ -3705,6 +3718,20 @@ void SimulationIteration::incorporateLiveResults()
 				}
 			}
 		}
+		if (auto account = liveElection->getSeatVoteCountAccount(seat.name, LiveData::CountKind::Fp)) {
+			// Apply the same candidate partition to both parts of the account.
+			// Coalition votes are combined at this point, and the principal
+			// independent may be represented by the existing emerging proxy.
+			auto classify = [&](int party) {
+				if (party == run.natPartyIndex) return int(Mp::Two);
+				int effective = effectivePartyIndex(party);
+				return partyHasPositiveShare(effective) ? effective : OthersIndex;
+			};
+			auto partition = LiveTurnoutMath::partitionAccount(*account, classify);
+			seatFpVoteShare[seatIndex].erase(CoalitionPartnerIndex);
+			seatFpVoteShare[seatIndex] = LiveTurnoutMath::reconcileForecast(
+				std::move(partition), seatFpVoteShare[seatIndex], true);
+		}
 	}
 }
 
@@ -3722,7 +3749,17 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	std::vector<PartyVotes> excludedVoteShares;
 	std::vector<PartyVotes> accumulatedVoteShares;
 	seatFpVoteShare[seatIndex].erase(CoalitionPartnerIndex);
-	if (seatFpVoteShare[seatIndex].contains(EmergingIndIndex) &&
+	// A live principal independent using the existing proxy is a known
+	// candidate. Its small size does not make those counted votes anonymous.
+	// Keep the legacy small-proxy grouping for simulations without this account.
+	bool livePrincipalProxy = false;
+	if (liveElection) {
+		if (auto account = liveElection->getSeatVoteCountAccount(seat.name, LiveData::CountKind::Fp)) {
+			livePrincipalProxy = account->projected->contains(run.indPartyIndex)
+				&& getAt(seatFpVoteShare[seatIndex], run.indPartyIndex, 0.f) <= LiveSimulationMath::EvidenceEpsilon;
+		}
+	}
+	if (!livePrincipalProxy && seatFpVoteShare[seatIndex].contains(EmergingIndIndex) &&
 		seatFpVoteShare[seatIndex][EmergingIndIndex] <
 			detransformVoteShare(run.indEmergence.fpThreshold)) {
 		seatFpVoteShare[seatIndex][OthersIndex] += seatFpVoteShare[seatIndex][EmergingIndIndex];
@@ -4033,11 +4070,16 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		topTwo.second.first = Mp::Two;
 	}
 
-	if (run.natPartyIndex >= 0 && nationalsShare[seatIndex] > 0) {
+	bool countedNationals = false;
+	if (liveElection && run.natPartyIndex >= 0) {
+		if (auto account = liveElection->getSeatVoteCountAccount(seat.name, LiveData::CountKind::Fp))
+			countedNationals = getAt(*account->counted, run.natPartyIndex, 0.) > 0;
+	}
+	if (run.natPartyIndex >= 0 && (nationalsShare[seatIndex] > 0 || countedNationals)) {
 		// Live runs have already blended the National proportion in
 		// incorporateLiveResults(); non-live runs have no update to apply.
 		// In either case, only split the stored Coalition share here.
-		assignNationalsVotes(seatIndex, false);
+		assignNationalsVotes(seatIndex, false, true);
 		float natShare = seatFpVoteShare[seatIndex][run.natPartyIndex];
 		float libShare = seatFpVoteShare[seatIndex][Mp::Two];
 		float const coalitionShare = natShare + libShare;
@@ -4068,6 +4110,11 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	// incorporate non-classic live 2cp results
 	if (run.isLiveAutomatic() && !(isMajor(topTwo.first.first, run.natPartyIndex) && isMajor(topTwo.second.first, run.natPartyIndex))) {
 		auto tcpInfo = liveElection->getSeatTcpInformation(project.seats().viewByIndex(seatIndex).name);
+		// The principal independent's proxy carries the same live identity.
+		if (livePrincipalProxy && tcpInfo.shares.contains(run.indPartyIndex)) {
+			tcpInfo.shares[EmergingIndIndex] = tcpInfo.shares.at(run.indPartyIndex);
+			tcpInfo.shares.erase(run.indPartyIndex);
+		}
 		if (tcpInfo.shares.contains(topTwo.first.first) && tcpInfo.shares.contains(topTwo.second.first)) {
 			float liveShare = tcpInfo.shares.at(topTwo.first.first);
 			if (!std::isfinite(liveShare)) {
@@ -4095,6 +4142,21 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				if (topTwo.first.second > topTwo.second.second) {
 					std::swap(topTwo.first, topTwo.second);
 				}
+			}
+		}
+		if (auto account = liveElection->getSeatVoteCountAccount(seat.name, LiveData::CountKind::Tcp)) {
+			auto partition = LiveTurnoutMath::partitionAccount(*account, [&](int party) {
+				return livePrincipalProxy && party == run.indPartyIndex ? EmergingIndIndex : party;
+			});
+			// The measured account constrains this published pair only. Do not
+			// fabricate counted preference totals for a different finalist pair.
+			if (partition.projected.size() == 2 && partition.projected.contains(topTwo.first.first)
+				&& partition.projected.contains(topTwo.second.first)) {
+				auto shares = LiveTurnoutMath::reconcileForecast(std::move(partition),
+					{{topTwo.first.first, topTwo.first.second}, {topTwo.second.first, topTwo.second.second}});
+				topTwo.first.second = shares.at(topTwo.first.first);
+				topTwo.second.second = shares.at(topTwo.second.first);
+				if (topTwo.first.second > topTwo.second.second) std::swap(topTwo.first, topTwo.second);
 			}
 		}
 	}
@@ -4126,7 +4188,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 }
 
 void SimulationIteration::assignNationalsVotes(
-	int seatIndex, bool updateFromLive) {
+	int seatIndex, bool updateFromLive, bool finalSplit) {
 	if (run.natPartyIndex < 0) return;
 	if (!seatFpVoteShare[seatIndex].contains(Mp::Two) ||
 		!std::isfinite(nationalsShare[seatIndex]) ||
@@ -4159,6 +4221,25 @@ void SimulationIteration::assignNationalsVotes(
 	}
 	float const coalitionVote = seatFpVoteShare[seatIndex].at(Mp::Two);
 	float nationalsVote = coalitionVote * nationalsShare[seatIndex];
+	if (finalSplit && liveElection && coalitionVote > 0) {
+		if (auto account = liveElection->getSeatVoteCountAccount(seat.name, LiveData::CountKind::Fp)) {
+			// The combined Coalition was already reconciled with counted FP.
+			// Split only its outstanding pool, so a prior National proportion
+			// cannot subsequently erase counted Liberal or National votes.
+			LiveTurnoutMath::PartyAccount coalition;
+			for (int party : {int(Mp::Two), run.natPartyIndex}) {
+				coalition.projected[party] = getAt(*account->projected, party, 0.f);
+				coalition.counted[party] = getAt(*account->counted, party, 0.);
+			}
+			double total = 0;
+			for (auto const& [party, votes] : *account->projected) total += votes;
+			coalition = LiveTurnoutMath::resizeAccount(std::move(coalition), total * coalitionVote / 100);
+			auto shares = LiveTurnoutMath::reconcileForecast(std::move(coalition),
+				{{int(Mp::Two), 100.f * (1 - nationalsShare[seatIndex])},
+				{run.natPartyIndex, 100.f * nationalsShare[seatIndex]}});
+			nationalsVote = coalitionVote * shares.at(run.natPartyIndex) / 100.f;
+		}
+	}
 	seatFpVoteShare[seatIndex][run.natPartyIndex] = nationalsVote;
 	seatFpVoteShare[seatIndex][Mp::Two] = coalitionVote - nationalsVote;
 }

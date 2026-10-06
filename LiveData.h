@@ -94,6 +94,18 @@ struct TcpShareInformation {
 	float confidence = 0.0f;
 };
 
+// A scenario's finite vote account. References remain valid while its provider
+// is alive. The main simulator may blend the estimated remainder with its
+// prior, but cannot change this scenario's counted candidate allocation. It
+// equals published counts except for a provider's separate simulated preference
+// rechecking path; FP counts and pair totals stay fixed there. Providers without
+// integrated turnout counts leave this optional boundary unavailable.
+struct VoteCountAccount {
+	std::map<int, double> const* counted = nullptr;
+	std::map<int, float> const* projected = nullptr;
+};
+enum class CountKind { Fp, Tpp, Tcp };
+
 // Diagnostic values used by the live summary export. They remain DTOs rather
 // than exposing the live analyser's internal node hierarchy.
 struct Internals {
@@ -143,6 +155,10 @@ public:
 		std::map<int, float> const& representedParties) const = 0;
 	virtual TcpShareInformation getSeatTcpInformation(
 		std::string const& seatName) const = 0;
+	// Providers without turnout integration return no account. Leave these
+	// intentionally unused parameters unnamed in the default implementation.
+	virtual std::optional<VoteCountAccount> getSeatVoteCountAccount(
+		std::string const&, CountKind) const { return {}; }
 	virtual std::optional<ValueInformation> getSeatNationalsProportion(
 		std::string const& seatName) const = 0;
 

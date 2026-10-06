@@ -9,7 +9,11 @@ namespace {
 		try {
 			operation();
 		}
-		catch (LivePreparation::Exception const& error) {
+		// File acquisition, election XML validation and turnout input checks
+		// report runtime errors. Translate them at this boundary so preparation
+		// can display the specific input problem instead of escaping through the
+		// wxWidgets event loop. Logic errors retain their debugger/error path.
+		catch (std::runtime_error const& error) {
 			throw LivePreparationBridge::Exception(error.what());
 		}
 	}

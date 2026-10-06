@@ -31,9 +31,12 @@ PollingProject::PollingProject(NewProjectData& newProjectData)
 PollingProject::PollingProject(std::string pathName)
 	: PollingProject(WorkspacePaths::discover(pathName))
 {
-	lastFileName = std::filesystem::path(pathName).filename().string();
+	// Save must return to the file that was opened, even when it lives below
+	// the working directory. Remembering only the basename would silently save
+	// a different copy and leave the original unchanged on the next reload.
+	lastFileName = std::filesystem::absolute(pathName).lexically_normal().string();
 	logger << "Loading project from: " << lastFileName << "\n";
-	open(pathName);
+	open(lastFileName);
 }
 
 ResultCoordinator& PollingProject::results()
@@ -93,6 +96,9 @@ void PollingProject::updateMacro(std::string macro)
 
 PollingProject::SaveResult PollingProject::save(std::string filename)
 {
+	// Resolve Save As destinations once, so later ordinary saves also keep
+	// targeting this file if the process's working directory changes.
+	filename = std::filesystem::absolute(filename).lexically_normal().string();
 	SaveResult result;
 	std::string termCode;
 	if (models().count() > 0) {

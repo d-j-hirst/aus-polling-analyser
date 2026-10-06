@@ -15,12 +15,14 @@ import numpy as np
 
 from lib.paths import REPOSITORY_DIRECTORY
 from lib.turnout import aec_live, allocation, cpp_contract, ppvc_sizes, prior
+from lib.turnout import late_schedule, maintained_parameters
+from lib.turnout.paths import archive_directory, download_directory
 from scripts.turnout import turnout_declaration_progress as progress
 from scripts.turnout import turnout_late_batch as replay
 from scripts.turnout import turnout_live_prototype as sa
 
 SELECTED = {'2026sa':['Croydon','Flinders','Giles','Stuart','Taylor','Kavel'],
-            '2025fed':['Gilmore','Watson','Bullwinkel','Leichhardt','Kennedy','Boothby','Brand','Calwell']}
+            '2025fed':['Gilmore','Watson','Bullwinkel','Leichhardt','Kennedy','Boothby','Brand','Calwell','Flynn','Forde','Mayo']}
 
 
 def write(path, payload):
@@ -83,8 +85,9 @@ def export(code,args):
                                                    for name,seat in current['seats'].items()}))
         observations.append((stamp,path,current))
     fingerprints = dict(origin_sha256=sa.digest(origin_path),prior_fixture_sha256=sa.digest(fixture_path),
+        maintained_parameters_sha256=sa.digest(maintained_parameters.PARAMETER_PATH),
         inputs={Path(p).name:digest for p,digest in origin['provenance']['inputs'].items()},sources={stamp:dict(file=path.name,sha256=sa.digest(path)) for stamp,path,_ in observations},
-        code={Path(p).name:sa.digest(Path(p)) for p in (cpp_contract.__file__,prior.__file__,replay.live.__file__,replay.late_counts.__file__,allocation.__file__)},
+        code={Path(p).name:sa.digest(Path(p)) for p in (cpp_contract.__file__,prior.__file__,replay.live.__file__,replay.late_counts.__file__,allocation.__file__,late_schedule.__file__)},
         input_treatment='Raw live feed; no final-derived SA category repairs.')
     decay = code == '2025fed' and origin['config']['ppvc_reporting_decay']
     poll_close = '2025-05-03T18:00:00' if code == '2025fed' else None
@@ -113,7 +116,8 @@ def export(code,args):
         # Retain the two checkpoints that exposed the original PPVC/EAV
         # allocation failure and the long pre-deadline postal pause. Repeating
         # two empty early feeds would not exercise those important paths.
-        targets = ('2025-05-03T19:59:47','2025-05-04T01:01:19','2025-05-11T21:50:01')
+        targets = ('2025-05-03T19:59:47','2025-05-04T01:01:19','2025-05-11T21:50:01',
+                   '2025-05-18T21:49:38','2025-05-20T21:47:56')
         selected = [next(i for i,(stamp,_,_) in enumerate(observations) if stamp == target) for target in targets]
         selected.append(len(observations)-1)
     cases = []
@@ -153,10 +157,11 @@ def main():
     parser.add_argument('--samples',type=int,default=256)
     parser.add_argument('--count-draws',type=int,default=8)
     parser.add_argument('--seed',type=int,default=20261002)
-    parser.add_argument('--archive',type=Path,default=Path('F:/Election Data/AEC media feed archive'))
-    parser.add_argument('--downloads',type=Path,default=Path.home()/'Downloads')
+    parser.add_argument('--archive',type=Path,default=archive_directory())
+    parser.add_argument('--downloads',type=Path,default=download_directory())
     parser.add_argument('--output',type=Path,default=REPOSITORY_DIRECTORY/'downloads/turnout/cpp-shadow')
-    parser.add_argument('--fixtures',type=Path,default=REPOSITORY_DIRECTORY/'tests/fixtures/turnout')
+    parser.add_argument('--fixtures',type=Path,default=REPOSITORY_DIRECTORY/'downloads/turnout/source-backed-fixtures',
+                        help='Private feed-derived comparison files; never publish these fixtures.')
     args = parser.parse_args()
     if args.samples < 8:
         parser.error('At least eight preparation samples are needed for comparison fixtures.')

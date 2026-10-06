@@ -6,10 +6,10 @@
   "election_name": "2025 Federal Election",
   "election_settings": {
     "live_sources": {
-      "current_real_url": "ftp://mediafeed.aec.gov.au/27966/Detailed/Light/",
+      "current_real_url": "local:fed2025-replay.xml",
       "current_test_url": "",
-      "preload_url": "ftp://mediafeedarchive.aec.gov.au/27966/Detailed/Preload/aec-mediafeed-Detailed-Preload-27966-20220503123540.zip",
-      "previous_results_url": "ftp://mediafeedarchive.aec.gov.au/24310/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-24310-20190729153147.zip"
+      "preload_url": "ftp://mediafeed.aec.gov.au/31496/Detailed/Preload/aec-mediafeed-Detailed-Preload-31496-20250501101148.zip",
+      "previous_results_url": "ftp://mediafeedarchive.aec.gov.au/27966/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-27966-20220719103300.zip"
     },
     "previous_election_tpp": 52.130001068115234,
     "previous_term_codes": [
@@ -79,16 +79,7 @@
       "id": "projection-2025-election-projection",
       "name": "2025 Election Projection",
       "num_iterations": 20000,
-      "possible_dates": [
-        {
-          "date": "2022-05-14",
-          "weight": 1.850000023841858
-        },
-        {
-          "date": "2022-05-21",
-          "weight": 1.850000023841858
-        }
-      ]
+      "possible_dates": []
     },
     {
       "base_model_id": "standard-model",
@@ -106,7 +97,7 @@
       "id": "standard-simulation",
       "mode": "projection",
       "name": "Standard Simulation",
-      "num_iterations": 200000,
+      "num_iterations": 25000,
       "report_mode": "regular_forecast"
     },
     {

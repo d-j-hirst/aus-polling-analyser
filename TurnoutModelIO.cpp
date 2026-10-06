@@ -8,6 +8,21 @@
 
 namespace TurnoutModelIO {
 using json = nlohmann::json;
+Selection select(std::filesystem::path const& workspaceRoot, std::string const& election,
+    std::string const& mode, std::optional<std::filesystem::path> const& overridePath) {
+    Selection selected;
+    selected.mode = mode.empty() ? "counts" : mode;
+    if (selected.mode != "counts" && selected.mode != "shadow" && selected.mode != "off")
+        throw std::runtime_error("Turnout mode must be counts, shadow or off.");
+    if (selected.mode == "off") return selected;
+    selected.automatic = !overridePath;
+    selected.path = overridePath ? *overridePath : workspaceRoot/"downloads"/"turnout"/"cpp-shadow"/(election+"-shadow.json");
+    // Absence is expected for elections whose prior has not been prepared.
+    // An explicit override remains strict: missing/invalid files must surface
+    // as errors, rather than quietly selecting a different model.
+    selected.enabled = !selected.automatic || std::filesystem::is_regular_file(selected.path);
+    return selected;
+}
 // Unit identity and availability are static model inputs. A null counted
 // value is deliberately rejected here; missing measurements must be omitted
 // by their reader rather than converted to a fabricated zero.
@@ -66,6 +81,11 @@ Artifact read(json const& value) {
     a.options.countDraws = options.at("count_draws"); a.options.seed = options.at("seed");
     if (!a.options.countDraws || a.options.countDraws > 64) throw std::runtime_error("Unsupported turnout count draw count.");
     if (!options.at("postal_deadline").is_null()) a.options.postalDeadline = TurnoutModel::sourceHour(options.at("postal_deadline"));
+    if (!options.at("receipt_deadline").is_null()) {
+        if (options.at("declaration_schedule_model") != TurnoutModel::ScheduleVersion)
+            throw std::runtime_error("Unsupported declaration schedule; regenerate the turnout artifact.");
+        a.options.receiptDeadline = TurnoutModel::sourceHour(options.at("receipt_deadline"));
+    }
     if (!options.at("poll_close").is_null()) a.pollClose = TurnoutModel::sourceHour(options.at("poll_close"));
     a.decayPpvc = options.at("ppvc_reporting_decay");
     if (a.decayPpvc && !a.pollClose) throw std::runtime_error("PPVC decay needs an explicit polling close time.");
@@ -91,7 +111,28 @@ json diagnostic(Artifact const& a, std::vector<TurnoutModel::Unit> const& units,
         {"source_time",sourceTime},{"provenance",a.provenance},
         {"preparation_samples",r.broad.totals.size()},{"count_draws",a.options.countDraws},
         {"frozen_prior_count_sensitivities",a.sensitivities}};
+    value["declaration_schedule"] = {{"model",TurnoutModel::ScheduleVersion},
+        {"active",bool(a.options.receiptDeadline)},
+        {"receipt_deadline",a.options.receiptDeadline ? json(*a.options.receiptDeadline) : json(nullptr)},
+        {"deadline_units","Hours since the epoch on the feed's local source clock"},
+        {"counting_hours_after_deadline",r.countingHoursAfterDeadline},
+        {"processing_phase",r.processingPhase},{"batch_survival",r.batchSurvival},
+        {"processing_allowance_hours",48},{"transition_hours",12},
+        {"sunday_counting_fraction",.5},{"exceptional_starting_probability",.02},
+        {"exceptional_decay_counting_days",14},{"routine_activity_retention_scale",.05}};
     auto n = a.prior.seats.size(), g = a.prior.groups.size();
+    // Count percentiles at the website's colour breakpoints complement the
+    // central 95% interval. A rare batch can lie beyond 97.5% yet still be
+    // represented at 99/99.9%. These are count diagnostics, not party-share
+    // display bands; the full simulator supplies the latter.
+    auto labelledPercentiles = [](auto quantile) {
+        json rows = json::object();
+        for (auto const& [label,probability] : std::vector<std::pair<std::string,double>>{
+            {"0.1",.001},{"1",.01},{"5",.05},{"25",.25},{"50",.5},
+            {"75",.75},{"95",.95},{"97.5",.975},{"99",.99},{"99.9",.999}})
+            rows[label] = quantile(probability);
+        return rows;
+    };
     double maximumError = 0, minimumAddition = std::numeric_limits<double>::infinity();
     value["seats"] = json::array();
     for (std::size_t s = 0; s < n; ++s) {
@@ -109,13 +150,25 @@ json diagnostic(Artifact const& a, std::vector<TurnoutModel::Unit> const& units,
         json seat{{"name",a.prior.seats[s]},{"counted",r.broad.counted[s]},
             {"broad_mean_total",broad},{"no_addition_probability",zero},{"mean_total",total},{"mean_remaining",total-r.broad.counted[s]},
             {"total_95_lower",quantile(.025)},{"total_95_upper",quantile(.975)}};
+        seat["total_count_percentiles"] = labelledPercentiles(quantile);
         seat["groups"] = json::array();
         for (std::size_t k = 0; k < g; ++k) {
             double count = 0, observed = 0;
+            std::vector<double> groupOutcomes;
             for (auto const& u : units) if (u.seat == s && u.group == k) observed += u.counted;
-            for (auto const& row : r.counts) { count += row[s*g+k]/r.counts.size(); minimumAddition = std::min(minimumAddition,row[s*g+k]-observed); }
+            for (auto const& row : r.counts) {
+                count += row[s*g+k]/r.counts.size(); minimumAddition = std::min(minimumAddition,row[s*g+k]-observed);
+                groupOutcomes.push_back(row[s*g+k]);
+            }
             count = observed+(1-zero)*(count-observed);
-            seat["groups"].push_back({{"name",a.prior.groups[k]},{"counted",observed},{"mean_total",count}});
+            std::sort(groupOutcomes.begin(),groupOutcomes.end());
+            auto groupQuantile = [&](double p) {
+                if (p <= zero || zero == 1) return observed;
+                double index = (p-zero)/(1-zero)*(groupOutcomes.size()-1); auto low = std::size_t(index);
+                return groupOutcomes[low]+(index-low)*(groupOutcomes[std::min(low+1,groupOutcomes.size()-1)]-groupOutcomes[low]);
+            };
+            seat["groups"].push_back({{"name",a.prior.groups[k]},{"counted",observed},{"mean_total",count},
+                {"count_percentiles",labelledPercentiles(groupQuantile)}});
         }
         value["seats"].push_back(std::move(seat));
         for (std::size_t sample = 0; sample < r.totals.size(); ++sample) {
@@ -146,6 +199,7 @@ json diagnostic(Artifact const& a, std::vector<TurnoutModel::Unit> const& units,
             {"probabilities",{{"no_additions",r.noAdditionProbability[units[c.unit].seat]},
                 {"previous",c.previousProbability},{"small",c.smallProbability},{"batch",c.batchProbability}}},
             {"small_mean_if_other_counts_fixed",c.smallMean},{"batch_mean_if_other_counts_fixed",c.batchMean},
+            {"usual_size_factor",std::exp(c.usualLogShift)},
             {"postal_receipt_support",e.postalReceiptSupport}});
     }
     value["maximum_accounting_error"] = maximumError; value["minimum_category_addition"] = minimumAddition;

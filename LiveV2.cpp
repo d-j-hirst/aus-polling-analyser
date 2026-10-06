@@ -4,6 +4,7 @@
 #include "PollingProject.h"
 #include "RandomGenerator.h"
 #include "SpecialPartyCodes.h"
+#include "LiveTurnoutMath.h"
 
 #include <algorithm>
 #include <cctype>
@@ -741,6 +742,7 @@ std::unique_ptr<LiveData::Provider> LiveV2::Election::generateScenario(
   int iterationIndex) const {
   auto newElection = std::make_unique<LiveV2::Election>(*this);
 
+  if (turnoutCountsActive) newElection->drawTurnoutCounts(iterationIndex);
   newElection->generateVariability(iterationIndex);
 
   return newElection;
@@ -756,11 +758,12 @@ LiveV2::Election::FloatInformation LiveV2::Election::getSeatOthersInformation(st
         seats[seatIndex].node.fpConfidence};
     }
     for (auto [partyIndex, votes] : seats[seatIndex].node.fpVotesProjected) {
-      bool isIndependent = partyIndex == run.indPartyIndex;
       bool isRepresented = representedParties.contains(partyIndex);
-      bool isOthers = (partyIndex >= project.parties().count() || !isRepresented) && !isIndependent;
-      float voteShare = votes / totalVotes * 100.0f;
-      isOthers = isOthers || ( isIndependent && transformVoteShare(voteShare) < run.indEmergence.fpThreshold);
+      // This is a partition of the current scenario, not a decision about
+      // which independent was large enough to model before results arrived.
+      // An explicitly represented candidate cannot also be inside Others.
+      // Unrepresented candidates belong there even when their share is large.
+      bool isOthers = !isRepresented;
       if (isOthers && votes > 0.0f) {
         othersVotes += votes;
       }
@@ -811,8 +814,15 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   calculateTcpPreferenceFlows();
   recomposeVoteCounts();
   prepareTurnoutShadow(currentElection);
+  if (turnoutCountsActive) {
+    // The first pass supplies the legacy comparison. Rebuild the blind offsets,
+    // current projections and completion weights together using the new means.
+    recomposeVoteCounts();
+  }
   calculateLivePreferenceFlowDeviations();
+  preparePreferenceCorrections();
   prepareVariability();
+  recordTurnoutIntegrationDiagnostic();
   log(true, true, true);
 }
 
@@ -2203,6 +2213,15 @@ void Election::recomposeVoteCounts() {
   //    and perhaps also be compensated for by higher turnout in other booths, might need to look at both turnout and formality)
 
   if (!createRandomVariation) {
+    // Recomposition can run again after attaching the turnout account. These
+    // sensitivities describe the present outstanding composition, so rebuilding
+    // them must replace the first pass rather than accumulate it a second time.
+    for (auto& seat : seats) {
+      seat.fpBoothTypeSensitivity.clear();
+      seat.fpVoteTypeSensitivity.clear();
+      seat.tppBoothTypeSensitivity.clear();
+      seat.tppVoteTypeSensitivity.clear();
+    }
     refreshFpProgressForExpectedSizes();
 
     for (int boothIndex : std::ranges::views::iota(0, int(booths.size()))) {
@@ -2241,6 +2260,7 @@ void Election::recomposeVoteCounts() {
   // Need this to use actual election data, but don't want to recalculate it every
   // time we generate random variation
   if (!createRandomVariation) {
+    if (turnoutCountsActive) refreshTurnoutPairProgress();
     calculateTppEstimateBias();
   }
 
@@ -2310,14 +2330,18 @@ float Election::expectedPpvcSize(int boothIndex) const {
   float const previousVotes = booth.node.totalVotesPrevious() > 0
     ? float(booth.node.totalVotesPrevious())
     : PreviousTotalVotesGuess;
-  return previousVotes * ppvcSizeMultiplier;
+  return turnoutFpTarget(boothIndex, previousVotes * ppvcSizeMultiplier);
 }
 
 // Temporary declaration-size model used to prevent partial counts becoming
 // prematurely certain. These constants should eventually be calibrated from
 // historical declaration-count progression, enrolment and turnout data rather
 // than maintained as election-specific estimates.
-int Election::generateDeclarationVoteExpectedSize(int boothIndex) {
+float Election::generateDeclarationVoteExpectedSize(int boothIndex) {
+  // This checkpoint installs means, not the turnout uncertainty sampler. In
+  // this mode the legacy 12% size draw would undo the coherent count account;
+  // composition and preference-flow draws remain in reduced preparation.
+  if (turnoutCountsActive) return turnoutFpTarget(boothIndex, 0);
   constexpr int MinimumDeclarationVoteExpectationBase = 30;
   auto const& booth = booths.at(boothIndex);
   int expectationBase = std::max(booth.node.totalVotesPrevious(), MinimumDeclarationVoteExpectationBase);
@@ -2345,7 +2369,7 @@ int Election::generateDeclarationVoteExpectedSize(int boothIndex) {
         uint32_t(VariabilityTag::DeclarationVoteSizeVariability)));
   }
 
-  return static_cast<int>(baseExpectation);
+  return float(static_cast<int>(baseExpectation));
 }
 
 void Election::refreshFpProgressForExpectedSizes() {
@@ -2353,9 +2377,9 @@ void Election::refreshFpProgressForExpectedSizes() {
   // booths, including PPVCs, are complete batches; unreported PPVCs use the
   // election-wide size estimate. Declaration counts have no reliable completion
   // marker, so they continue to use their expected final size.
-  // These category estimates are not yet reconciled to a seat/election turnout
-  // target. Any future reconciliation should allow substitution between vote
-  // categories rather than interpreting a PPVC decline as lost turnout.
+  // Count-integration mode instead uses the prepared turnout account for every
+  // booth, including ordinary booths and explicitly unavailable services. The
+  // legacy category estimates below are used only when that mode is inactive.
   //
   // Propagate only FP progress: calling aggregate() here would also recompute
   // deviations and other already-derived hierarchy state.
@@ -2363,7 +2387,16 @@ void Election::refreshFpProgressForExpectedSizes() {
   for (int boothIndex : std::ranges::views::iota(0, int(booths.size()))) {
     auto& booth = booths[boothIndex];
     float expectedVotes = expectedVotesForAggregation(booth.node);
-    if (booth.voteType == Results2::VoteType::Ordinary
+    if (turnoutCountsActive) {
+      expectedVotes = turnoutFpTarget(boothIndex, expectedVotes);
+      booth.node.fpCompletion = float(LiveTurnoutMath::completion(
+        booth.node.totalFpVotesCurrent(), expectedVotes));
+      if (booth.voteType != Results2::VoteType::Ordinary) {
+        booth.node.fpConfidence = booth.node.fpCompletion;
+      }
+      if (expectedVotes == 0) booth.node.fpConfidence = 0;
+    }
+    else if (booth.voteType == Results2::VoteType::Ordinary
       && booth.boothType == Results2::Booth::Type::Ppvc) {
       expectedVotes = booth.node.totalFpVotesCurrent() > 0
         ? float(booth.node.totalFpVotesCurrent())
@@ -2381,7 +2414,7 @@ void Election::refreshFpProgressForExpectedSizes() {
         booth.node.fpConfidence = progress;
       }
     }
-    if (expectedVotes <= 0.0f) {
+    if (expectedVotes <= 0.0f && !turnoutCountsActive) {
       expectedVotes = booth.boothType == Results2::Booth::Type::Hospital
         ? HospitalBoothVotesGuess
         : PreviousTotalVotesGuess;
@@ -2466,6 +2499,13 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
   auto& booth = booths.at(boothIndex);
   auto const& seat = seats.at(booth.parentSeatId);
   int projectSeatIndex = project.seats().indexByName(seats[booth.parentSeatId].name);
+  if (turnoutCountsActive && turnoutFpTarget(boothIndex, 0) == 0) {
+    // A known unavailable service has no count pool. Do not let the generic
+    // new-booth fallback recreate votes in either the blind or current pass.
+    if (createRandomVariation) booth.node.tempFpVotesProjected.clear();
+    else booth.node.fpVotesProjected.clear();
+    return;
+  }
   if (allowCurrentData && booth.node.totalFpVotesCurrent()) {
     // map from party index to vote count (as a float)
     auto fpVotesProjected = std::map<int, float>();
@@ -2534,6 +2574,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
     else if (booth.boothType == Results2::Booth::Type::Ppvc) {
       currentVotesEstimate = expectedPpvcSize(boothIndex);
     }
+    currentVotesEstimate = turnoutFpTarget(boothIndex, currentVotesEstimate);
     float currentVoteTarget = fpTotalCurrent ? fpTotalCurrent : currentVotesEstimate;
     std::map<int, float> tempFpVotesProjected;
     float othersAccountedFor = 0.0f;
@@ -2670,6 +2711,11 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
 void Election::recomposeBoothTcpVotes(int boothIndex) {
   auto& booth = booths.at(boothIndex);
   auto const& seat = seats.at(booth.parentSeatId);
+  if (turnoutCountsActive && turnoutFpTarget(boothIndex, 0) == 0) {
+    if (createRandomVariation) booth.node.tempTcpVotesProjected.clear();
+    else booth.node.tcpVotesProjected.clear();
+    return;
+  }
   // Not the expected TCP vote structure
   if (seat.node.tcpVotesCurrent.size() != 2) return;
   // This is for non-classic TCPs, if we have a classic TPP for the seat then we don't need to project anything
@@ -2720,15 +2766,22 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
         "Current TCP does not contain two distinct mapped candidates for booth "
         + booth.name + ".");
     }
-    if (booth.voteType != Results2::VoteType::Ordinary) {
+    // Ordinary results are usually complete, but an accepted partial TCP still
+    // needs preferences on the FP votes already reported. Complete ordinary
+    // pairs keep the existing cheap path during reduced preparation.
+    if (booth.voteType != Results2::VoteType::Ordinary
+      || (turnoutCountsActive && booth.node.totalTcpVotesCurrent() < booth.node.totalFpVotesCurrent())) {
+      float const confidenceScale = booth.voteType == Results2::VoteType::Ordinary
+        ? std::max(fullComparisonAvailable ? 1.0f : 0.2f, booth.node.tcpConfidence) : 1.0f;
       float currentTotalVotesProjected = std::accumulate(tcpVotesProjected.begin(), tcpVotesProjected.end(), 0.0f,
         [](float sum, const auto& pair) { return sum + pair.second; });
       float expectedTotalVotes = std::max(
         float(generateDeclarationVoteExpectedSize(boothIndex)),
         currentTotalVotesProjected);
-      // This assumes the final TCP total is close to the expected FP total.
-      // Savings provisions can make it slightly lower; retain this simple
-      // approximation unless a concrete election shows a material effect.
+      expectedTotalVotes = turnoutPairTarget(boothIndex, expectedTotalVotes);
+      // The turnout target includes missing preferences on counted FP as well
+      // as genuinely new FP votes. Allocate their estimates without changing
+      // either candidate's published TCP count.
       float totalAdditionalVotes = std::max(0.0f, expectedTotalVotes - currentTotalVotesProjected);
       float stdDev = 7.0f + 12.0f * std::exp(-static_cast<float>(currentTotalVotesProjected) * 0.0001f);
 
@@ -2758,7 +2811,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
       tcpVotesProjected[firstPartyId] += additionalPartyOneVotes;
       tcpVotesProjected[secondPartyId] += totalAdditionalVotes - additionalPartyOneVotes;
       booth.node.tcpCompletion = std::clamp(currentTotalVotesProjected / expectedTotalVotes, 0.0f, 1.0f);
-      booth.node.tcpConfidence = booth.node.tcpCompletion;
+      booth.node.tcpConfidence = booth.node.tcpCompletion * confidenceScale;
     }
     else {
       booth.node.tcpConfidence = std::max(fullComparisonAvailable ? 1.0f : 0.2f, booth.node.tcpConfidence);
@@ -2791,6 +2844,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
     float currentVoteTarget = fpTotalProjected > 0.0f
       ? fpTotalProjected
       : currentVotesEstimate;
+    currentVoteTarget = turnoutFpTarget(boothIndex, currentVoteTarget);
     bool const currentFpPairAvailable = fpTotalCurrent > 0.0f
       && booth.node.fpVotesCurrent.contains(firstPartyId)
       && booth.node.fpVotesCurrent.contains(secondPartyId);
@@ -3076,6 +3130,14 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
 
 void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
   auto& booth = booths.at(boothIndex);
+  if (turnoutCountsActive && turnoutFpTarget(boothIndex, 0) == 0) {
+    if (createRandomVariation) booth.node.tempTppVotesProjected = {{0, 0.0f}, {1, 0.0f}};
+    else {
+      booth.node.tppVotesProjected = {{0, 0.0f}, {1, 0.0f}};
+      booth.tppVotesEstimated = {{0, 0.0f}, {1, 0.0f}};
+    }
+    return;
+  }
   bool dataExists = allowCurrentData && booth.node.totalTcpVotesCurrent() && isTppSet(booth.node.tcpVotesCurrent, natPartyIndex);
   if (dataExists) {
     // map from party index to vote count (as a float)
@@ -3090,15 +3152,18 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
         "Current TPP does not contain exactly one Labor and one Coalition count for booth "
         + booth.name + ".");
     }
-    if (booth.voteType != Results2::VoteType::Ordinary) {
+    // In turnout mode, a small ordinary FP/TCP shortfall is also outstanding
+    // preference work. Fully reported ordinary pairs need no extra projection.
+    if (booth.voteType != Results2::VoteType::Ordinary
+      || (turnoutCountsActive && booth.node.totalTcpVotesCurrent() < booth.node.totalFpVotesCurrent())) {
       float currentTotalVotesProjected = std::accumulate(tppVotesProjected.begin(), tppVotesProjected.end(), 0.0f,
         [](float sum, const auto& pair) { return sum + pair.second; });
       float expectedTotalVotes = std::max(
         float(generateDeclarationVoteExpectedSize(boothIndex)),
         currentTotalVotesProjected);
-      // This assumes the final TPP count is close to the expected FP total.
-      // Savings provisions can make it slightly lower; retain this simple
-      // approximation unless a concrete election shows a material effect.
+      expectedTotalVotes = turnoutPairTarget(boothIndex, expectedTotalVotes);
+      // Missing preferences belong to votes already in the FP account; filling
+      // this pair-count gap must not create additional FP turnout.
       float totalAdditionalVotes = expectedTotalVotes - currentTotalVotesProjected;
       float stdDev = 4.5f + 7.0f * std::exp(-static_cast<float>(booth.node.totalVotesPrevious()) * 0.0001f);
       float random = variabilityNormal(0.0f, stdDev, boothIndex, 0, uint32_t(VariabilityTag::NonOrdinaryTpp));
@@ -3143,6 +3208,7 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
   float currentVoteTarget = fpTotalProjected > 0.0f
     ? fpTotalProjected
     : std::max(fpTotalCurrent, currentVotesEstimate);
+  currentVoteTarget = turnoutFpTarget(boothIndex, currentVoteTarget);
   std::map<int, float> tempTppVotesProjected;
   std::optional<float> prevAlpShare;
   float const previousTcpTotal = float(booth.node.totalTcpVotesPrevious());
@@ -3205,9 +3271,10 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
     deviation += voteTypeTppBiases.at(booth.voteType);
   }
   float newAlpShare = existingAlpShare + deviation;
-  // If we know how many FP votes there are, and we know that the booth is ~complete, then that's a better estimate
-  // of eventual TPP votes than the previous election, so use that instead
-  float totalEstimate = allowCurrentData && booth.node.totalFpVotesCurrent() > 0 && booth.node.fpCompletion > 0.99f ?
+  // Legacy estimates switch to counted FP near completion. Turnout mode uses
+  // its continuously updated target throughout; reaching 99% must not erase
+  // its remaining allowance or change an FP-derived TPP estimate abruptly.
+  float totalEstimate = !turnoutCountsActive && allowCurrentData && booth.node.totalFpVotesCurrent() > 0 && booth.node.fpCompletion > 0.99f ?
     booth.node.totalFpVotesCurrent() : currentVoteTarget;
   // Even if booth isn't complete, allow increased vote count if there are more fp votes than previous
   if (allowCurrentData && booth.node.totalFpVotesCurrent() > totalEstimate) totalEstimate = booth.node.totalFpVotesCurrent();
@@ -4011,7 +4078,9 @@ void Election::generateVariability(int iterationIndex) {
 
     // Start with every current party so parties without a prepared variance
     // remain in the normalization rather than silently increasing the total.
-    std::map<int, float> newFpVotesProjected = seat.node.fpVotesProjected;
+    std::map<int, float> newFpVotesProjected = turnoutCountsActive
+      ? std::map<int, float>{} : seat.node.fpVotesProjected;
+    std::map<int, double> remainingFpChanges;
     std::set<int> adjustedPartyIds;
     bool fpProjectionChanged = false;
     for (auto const& [partyId, stdDev] : seat.fpAllBoothsStdDev) {
@@ -4039,8 +4108,10 @@ void Election::generateVariability(int iterationIndex) {
           seatContext + " maps multiple FP variability sources to party "
           + std::to_string(usePartyId) + ".");
       }
+      auto const& compositionFp = turnoutCountsActive ? turnoutCountComposition->meanFp[seatIndex] : seat.node.fpVotesProjected;
+      float const compositionFpTotal = turnoutCountsActive ? positiveVoteTotal(compositionFp,seatContext) : totalFpProjectedVotes;
       float const transformedCurrentFpProjection = transformedPartyShare(
-        seat.node.fpVotesProjected, usePartyId, totalFpProjectedVotes,
+        compositionFp, usePartyId, compositionFpTotal,
         seatContext + " FP projection");
       float transformedNewFpProjection = transformedCurrentFpProjection + randomVariation;
       bool partyProjectionChanged = randomVariation != 0.0f;
@@ -4076,19 +4147,34 @@ void Election::generateVariability(int iterationIndex) {
       // Transforming and normalizing an unchanged share can otherwise introduce
       // rounding effects even though every variability weight is zero.
       if (!partyProjectionChanged) continue;
+      if (turnoutCountsActive) {
+        remainingFpChanges[usePartyId] = withVoteTypeBias - transformedCurrentFpProjection;
+        fpProjectionChanged = true;
+        continue;
+      }
       float newFpProjection = detransformVoteShare(withVoteTypeBias) * 0.01f * totalFpProjectedVotes;
       newFpVotesProjected[usePartyId] = newFpProjection;
       fpProjectionChanged = true;
     }
     if (fpProjectionChanged) {
-      float const totalNewFpProjectedVotes = positiveVoteTotal(
-        newFpVotesProjected, seatContext + " varied FP projection");
-      float const normalisationFactor =
-        totalFpProjectedVotes / totalNewFpProjectedVotes;
-      for (auto& [partyId, newFpProjection] : newFpVotesProjected) {
-        newFpProjection *= normalisationFactor;
+      if (turnoutCountsActive) {
+        // The preparation still supplies composition errors on the full-seat
+        // transformed scale. Apply them within the finite remaining pool so
+        // every scenario preserves each already-counted candidate total.
+        seat.node.fpVotesProjected = LiveTurnoutMath::varySampledRemaining(
+          seat.node.fpVotesProjected, turnoutCountComposition->meanFp[seatIndex],
+          turnoutCountedParties->fp[seatIndex], remainingFpChanges, true);
       }
-      seat.node.fpVotesProjected = std::move(newFpVotesProjected);
+      else {
+        float const totalNewFpProjectedVotes = positiveVoteTotal(
+          newFpVotesProjected, seatContext + " varied FP projection");
+        float const normalisationFactor =
+          totalFpProjectedVotes / totalNewFpProjectedVotes;
+        for (auto& [partyId, newFpProjection] : newFpVotesProjected) {
+          newFpProjection *= normalisationFactor;
+        }
+        seat.node.fpVotesProjected = std::move(newFpVotesProjected);
+      }
     }
 
     if (seat.node.tppVotesProjected.size() != 2
@@ -4103,8 +4189,10 @@ void Election::generateVariability(int iterationIndex) {
       0.0f, seat.tppAllBoothsStdDev, seatIndex, 0, uint32_t(VariabilityTag::GenerateTppVariability)
     );
     randomTppVariation *= variabilityProgressWeight(seat.node.tppCompletion);
+    auto const& compositionTpp = turnoutCountsActive ? turnoutCountComposition->meanTpp[seatIndex] : seat.node.tppVotesProjected;
+    float const compositionTppTotal = turnoutCountsActive ? positiveVoteTotal(compositionTpp,seatContext) : totalTppProjectedVotes;
     float const transformedCurrentTppProjection = transformedPartyShare(
-      seat.node.tppVotesProjected, 0, totalTppProjectedVotes,
+      compositionTpp, 0, compositionTppTotal,
       seatContext + " TPP projection");
     float transformedNewTppProjection = transformedCurrentTppProjection + randomTppVariation;
     bool tppProjectionChanged = randomTppVariation != 0.0f;
@@ -4159,10 +4247,17 @@ void Election::generateVariability(int iterationIndex) {
       }
     }
     if (tppProjectionChanged) {
-      float newTppProjection = detransformVoteShare(withNonClassicVariability) * 0.01f * totalTppProjectedVotes;
-      seat.node.tppVotesProjected[0] = newTppProjection;
-      for (auto const& [partyId, votes] : seat.node.tppVotesProjected) {
-        if (partyId != 0)  seat.node.tppVotesProjected[partyId] = totalTppProjectedVotes - newTppProjection;
+      if (turnoutCountsActive) {
+        seat.node.tppVotesProjected = LiveTurnoutMath::varySampledRemaining(
+          seat.node.tppVotesProjected, turnoutCountComposition->meanTpp[seatIndex], turnoutCountedParties->tpp[seatIndex],
+          {{0, withNonClassicVariability - transformedCurrentTppProjection}});
+      }
+      else {
+        float newTppProjection = detransformVoteShare(withNonClassicVariability) * 0.01f * totalTppProjectedVotes;
+        seat.node.tppVotesProjected[0] = newTppProjection;
+        for (auto const& [partyId, votes] : seat.node.tppVotesProjected) {
+          if (partyId != 0) seat.node.tppVotesProjected[partyId] = totalTppProjectedVotes - newTppProjection;
+        }
       }
     }
 
@@ -4179,10 +4274,20 @@ void Election::generateVariability(int iterationIndex) {
       randomTcpVariation *= variabilityProgressWeight(seat.node.tcpCompletion);
       if (randomTcpVariation == 0.0f) continue;
       int const arbitraryPartyId = seat.node.tcpVotesProjected.begin()->first;
+      auto const& compositionTcp = turnoutCountsActive ? turnoutCountComposition->meanTcp[seatIndex] : seat.node.tcpVotesProjected;
+      float const compositionTcpTotal = turnoutCountsActive ? positiveVoteTotal(compositionTcp,seatContext) : totalTcpProjectedVotes;
       float const transformedCurrentTcpProjection = transformedPartyShare(
-        seat.node.tcpVotesProjected, arbitraryPartyId,
-        totalTcpProjectedVotes, seatContext + " TCP projection");
+        compositionTcp, arbitraryPartyId,
+        compositionTcpTotal, seatContext + " TCP projection");
       float transformedNewTcpProjection = transformedCurrentTcpProjection + randomTcpVariation;
+      if (turnoutCountsActive) {
+        seat.node.tcpVotesProjected = LiveTurnoutMath::varySampledRemaining(
+          seat.node.tcpVotesProjected, turnoutCountComposition->meanTcp[seatIndex], turnoutCountedParties->tcp[seatIndex],
+          {{arbitraryPartyId, randomTcpVariation}});
+        for (auto const& [partyId, votes] : seat.node.tcpVotesProjected)
+          seat.node.tcpShares[partyId] = float(25*std::log((double(votes)+.25)/(double(totalTcpProjectedVotes)-votes+.25)));
+        continue;
+      }
       float newTcpProjection = detransformVoteShare(transformedNewTcpProjection) * 0.01f * totalTcpProjectedVotes;
       seat.node.tcpVotesProjected[arbitraryPartyId] = newTcpProjection;
       seat.node.tcpShares[arbitraryPartyId] = transformVoteShare(newTcpProjection / totalTcpProjectedVotes * 100.0f);
@@ -4193,6 +4298,16 @@ void Election::generateVariability(int iterationIndex) {
       }
     }
   }
+
+  // Rechecking transfers existing preferences, after the separate variations
+  // in future-voter composition. It is not attenuated by votes remaining: a
+  // completed count can still contain a substantial erroneous TCP allocation.
+  applyPreferenceCorrections(iterationIndex);
+
+  // Composition errors above use the mean preparation's evidence weights.
+  // Now expose each sampled count's progress to the forecast handoff, so a
+  // no-addition draw is complete and a large batch carries less confidence.
+  if (turnoutCountsActive) refreshTurnoutScenarioProgress();
 
   // Recompose large-scale results
   for (int largeRegionIndex : std::ranges::views::iota(0, int(largeRegions.size()))) {

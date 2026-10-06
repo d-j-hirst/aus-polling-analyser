@@ -15,6 +15,8 @@ import hashlib
 import io
 import json
 from pathlib import Path
+
+from lib.turnout.paths import archive_directory, download_directory
 import re
 import xml.etree.ElementTree as ET
 
@@ -442,8 +444,8 @@ def federal_share_effect(source_path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--archive', type=Path, default=Path('F:/Election Data/AEC media feed archive'))
-    parser.add_argument('--downloads', type=Path, default=Path.home()/'Downloads')
+    parser.add_argument('--archive', type=Path, default=archive_directory())
+    parser.add_argument('--downloads', type=Path, default=download_directory())
     parser.add_argument('--fetch', action='store_true', help='Acquire selected later 2019/2022 FTP snapshots.')
     parser.add_argument('--refresh', action='store_true')
     parser.add_argument('--output', type=Path, default=DIRECTORY/'declaration-progress.json')

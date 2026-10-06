@@ -14,6 +14,8 @@ import copy
 from datetime import datetime
 import json
 from pathlib import Path
+
+from lib.turnout.paths import archive_directory, download_directory
 import time
 
 import numpy as np
@@ -215,8 +217,8 @@ def main():
     parser.add_argument('--experiment',choices=('release','directional'),default='release')
     parser.add_argument('--dates',nargs='+',help='Evaluate only these YYYY-MM-DD dates; retain earlier source history.')
     parser.add_argument('--history-artifact',type=Path,help='Reuse verified raw history from a Federal 2025 shadow artifact.')
-    parser.add_argument('--archive',type=Path,default=Path('F:/Election Data/AEC media feed archive'))
-    parser.add_argument('--downloads',type=Path,default=Path.home()/'Downloads')
+    parser.add_argument('--archive',type=Path,default=archive_directory())
+    parser.add_argument('--downloads',type=Path,default=download_directory())
     parser.add_argument('--output',type=Path,default=REPOSITORY_DIRECTORY/'downloads/turnout/allocation-experiment')
     parser.add_argument('--dry-run',action='store_true')
     args = parser.parse_args()

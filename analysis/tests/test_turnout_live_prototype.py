@@ -1,11 +1,14 @@
 """Check counted-vote preservation and snapshot independence in the prototype."""
 
 import copy
+import hashlib
+from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
-from lib.turnout import live, prior
+from lib.turnout import live, prior, maintained_parameters
 from scripts.turnout import turnout_live_prototype as prototype
 from tests.test_turnout_prior_prototype import small_case
 
@@ -24,6 +27,19 @@ def live_case():
 
 
 class LivePrototypeTests(unittest.TestCase):
+    def test_experimental_fixture_cannot_replace_installed_parameters(self):
+        # A private experiment may supply election inputs, but its fitted
+        # coefficients cannot silently replace deliberately installed tuning.
+        payload = dict(schema_version=prior.SCHEMA_VERSION, model_version=prior.MODEL_VERSION,
+                       fingerprint=dict(inputs={}, code={'prior.py': hashlib.sha256(
+                           Path(prior.__file__).read_text(encoding='utf-8').encode()).hexdigest()}),
+                       fixtures=[dict(inputs={'identity': '2026sa/earlier_only'},
+                                      parameters={'uninstalled_experimental_value': 999})])
+        with patch.object(prototype, 'read_json', return_value=payload):
+            fixture = prototype.load_fixture('private-experiment.json')
+        self.assertEqual(fixture['parameters'], maintained_parameters.prior_parameters('2026sa/earlier_only'))
+        self.assertNotIn('uninstalled_experimental_value', fixture['parameters'])
+
     def test_no_counts_reproduces_prior_and_accounting(self):
         inputs, draws, units = live_case()
         result = live.update(draws, inputs, units)

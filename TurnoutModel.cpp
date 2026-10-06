@@ -12,6 +12,7 @@
 namespace TurnoutModel {
 namespace {
 double logistic(double x) { return x >= 0 ? 1 / (1 + std::exp(-x)) : std::exp(x) / (1 + std::exp(x)); }
+double softplus(double x) { return std::max(x,0.)+std::log1p(std::exp(-std::abs(x))); }
 double odds(double x) {
     if (!(x > 0 && x < 1)) throw std::runtime_error("Turnout share must be inside its parent.");
     return std::log(x) - std::log1p(-x);
@@ -251,13 +252,14 @@ Broad update(Prior const& p, std::vector<Unit> const& units, std::vector<bool> c
 }
 
 std::vector<Evidence> progress(Prior const& p, std::vector<Unit> const& units,
-    std::vector<Observation> const& history, std::optional<double> deadline) {
+    std::vector<Observation> const& history, std::optional<double> deadline,
+    bool scheduleAware, double eventScale) {
     std::vector<Evidence> result(units.size());
     if (history.empty()) return result;
     std::map<double, Observation const*> ordered;
     for (auto const& h : history) ordered[h.hour] = &h;
     double now = ordered.rbegin()->first;
-    struct Row { Evidence e; double current = 0; std::string state; };
+    struct Row { Evidence e; double current = 0, sharedActivity = 0, sharedVolume = 0; std::string state; };
     std::map<std::pair<std::string,std::string>, Row> rows;
     std::set<std::string> categories;
     for (auto const& u : units) if (u.kind == "declaration") categories.insert(u.category);
@@ -267,18 +269,37 @@ std::vector<Evidence> progress(Prior const& p, std::vector<Unit> const& units,
         Row row; row.current = value;
         auto seat = std::find(p.seats.begin(),p.seats.end(),key.first);
         if (seat != p.seats.end()) row.state = p.subdivisions[seat-p.seats.begin()];
-        double activity = 0, coverage = 0, volume = 0, tolerance = std::hypot(10.,.001*value);
+        double activity = 0, coverage = 0, volume = 0, sharedActivity = 0, sharedVolume = 0;
+        double smallSupport = 0, changedSupport = 0, tolerance = std::hypot(10.,eventScale*value);
         for (auto it = ordered.begin(); it != ordered.end(); ++it) {
             auto next = std::next(it); if (next == ordered.end()) break;
             auto old = it->second->counts.find(key), current = next->second->counts.find(key);
             if (old == it->second->counts.end() || current == next->second->counts.end()) continue;
             if (old->second < 0 || current->second < 0 || !std::isfinite(old->second) || !std::isfinite(current->second)) throw std::runtime_error("Invalid turnout history count.");
-            double hours = next->first-it->first, age = now-next->first, decay = std::exp(-age/24);
+            double hours = scheduleAware ? countingHours(it->first,next->first) : next->first-it->first;
+            double age = scheduleAware ? countingHours(next->first,now) : now-next->first, decay = std::exp(-age/24);
             double delta = std::abs(current->second-old->second), ratio = delta/tolerance;
             activity += ratio*ratio/(1+ratio*ratio)*decay; volume += delta*decay;
+            // A late backlog is strong evidence about this seat, but weaker
+            // evidence that another seat still has routine counting to do.
+            double shared = scheduleAware && deadline ? logistic(-((next->first-*deadline)/24)) : 1;
+            sharedActivity += ratio*ratio/(1+ratio*ratio)*decay*shared;
+            sharedVolume += delta*decay*shared;
             coverage += std::exp(-age/48)*(-std::expm1(-hours/48))/(1+(hours/48)*(hours/48));
+            if (scheduleAware && deadline) {
+                // Small positive batches after receipt closes support an end
+                // to routine processing. Large batches and downward rechecks
+                // provide less support, without declaring any batch final.
+                double post = logistic((it->first-*deadline)/12);
+                double event = post*std::exp(-age/72)*delta*delta/(delta*delta+50*50);
+                changedSupport += event;
+                if (current->second > old->second)
+                    smallSupport += event/(1+std::pow(delta/(.05*(value+.5)),2));
+            }
         }
         row.e.activity = -std::expm1(-activity); row.e.volume = volume; row.e.coverage = coverage; row.e.started = value/(value+10);
+        row.e.smallBatchSupport = smallSupport/(1+changedSupport);
+        row.sharedActivity = -std::expm1(-sharedActivity); row.sharedVolume = sharedVolume;
         rows[key] = row;
     }
     auto pooled = [](std::vector<Row const*> const& pool) {
@@ -288,9 +309,9 @@ std::vector<Evidence> progress(Prior const& p, std::vector<Unit> const& units,
             std::sort(values.begin(),values.end()); std::size_t trim = std::min<std::size_t>(2,values.size()/10);
             return std::accumulate(values.begin()+trim,values.end()-trim,0.)/(values.size()-2*trim);
         };
-        e.pooledActivity = central([](Row const& r) { return r.e.activity; });
+        e.pooledActivity = central([](Row const& r) { return r.sharedActivity; });
         e.pooledStarted = central([](Row const& r) { return r.e.started; });
-        e.pooledVolume = central([](Row const& r) { return r.e.volume/(r.current+.5); });
+        e.pooledVolume = central([](Row const& r) { return r.sharedVolume/(r.current+.5); });
         return e;
     };
     std::map<std::pair<std::string,std::string>,double> currentUnits;
@@ -321,12 +342,58 @@ std::vector<Evidence> progress(Prior const& p, std::vector<Unit> const& units,
     return result;
 }
 
+// Expected booth sizes, rather than the number of reporting booths, determine
+// how much independent evidence the completed ordinary/PPVC account supplies.
+// Known closures contribute no voter-behaviour evidence. Match the EAV origin
+// treatment before weighting, so an unmatched tiny service cannot dominate.
+std::vector<double> boothCompletion(Prior const& p, std::vector<Unit> const& units) {
+    std::vector<double> total(p.seats.size()), reported(p.seats.size());
+    for (std::size_t r = 0; r < p.counts.size(); ++r) {
+        std::vector<double> references;
+        for (auto const& u : units) if (eav(u) && u.matched && !u.closed)
+            references.push_back(p.counts[r][u.seat*p.groups.size()+u.group]*u.weight);
+        std::sort(references.begin(),references.end()); auto z = references.size();
+        double replacement = z ? (references[(z-1)/2]+references[z/2])/2 : 25;
+        for (auto const& u : units) if (u.kind != "declaration" && !u.closed) {
+            double expected = eav(u) && !u.matched ? replacement : p.counts[r][u.seat*p.groups.size()+u.group]*u.weight;
+            total[u.seat] += expected/p.counts.size();
+            if (u.counted > 0) reported[u.seat] += expected/p.counts.size();
+        }
+    }
+    for (std::size_t s = 0; s < total.size(); ++s) total[s] = total[s] > 0 ? reported[s]/total[s] : 0;
+    return total;
+}
+
+// Blend the earlier sensitive activity measurement with a more conservative
+// two-percent measurement in probability space. This retains caution during
+// pauses while recognising small late batches after most booths have reported.
+std::vector<Evidence> scheduledEvidence(Prior const& p, std::vector<Unit> const& units,
+    std::vector<Observation> const& history, double deadline, std::vector<double> const& completed) {
+    auto original = progress(p,units,history,deadline,true,.001);
+    auto result = progress(p,units,history,deadline,true,.02);
+    auto quiet = [](double value,double scale) { return 1/(1+std::pow(value/scale,2)); };
+    for (std::size_t j = 0; j < units.size(); ++j) {
+        auto& e = result[j];
+        double shared = quiet(e.pooledActivity,.3);
+        double strength = e.coverage*e.started*quiet(1-e.pooledStarted,.1)*quiet(e.activity,.3)
+            *(.5+.5*shared)*e.postalReceiptSupport;
+        double oldWeight = -std::expm1(-std::pow(original[j].strength/.3,2));
+        double proposedWeight = -std::expm1(-std::pow(strength/.3,2))*shared;
+        double weight = .5*(oldWeight+proposedWeight);
+        double extra = .8*e.smallBatchSupport*std::pow(completed[units[j].seat],2)*e.started;
+        weight += (1-weight)*extra;
+        e.strength = .3*std::sqrt(-std::log1p(-weight));
+    }
+    return result;
+}
+
 // An allowance can remain large when the larger booths in its group have
 // finished but a small declaration category is still open. Measure progress
 // on the entire supported group, then gradually relax that imposed allowance.
 // Category-specific completion and exceptional batches remain a separate step.
 void releaseAllocation(Prior const& p, std::vector<Unit> const& units,
-    std::vector<Observation> const& history, std::optional<double> deadline, Result& result) {
+    std::vector<Observation> const& history, std::optional<double> deadline, Result& result,
+    std::vector<double> const& completed = {}) {
     auto& broad = result.broad;
     auto m = p.totals.size(), n = p.seats.size(), g = p.groups.size();
     std::vector<Unit> groups(n*g);
@@ -346,8 +413,24 @@ void releaseAllocation(Prior const& p, std::vector<Unit> const& units,
         for (auto const& row : broad.remaining) result.balancedRemainingMeans[j] += row[j]/m;
         if (units[j].kind != "declaration" || broad.complete[j]) continue;
         double strength = evidence[units[j].seat*g+units[j].group].strength;
+        double weight = -std::expm1(-std::pow(strength/AllocationProgressScale,2));
+        if (!completed.empty()) {
+            // Completed booths can help release an old total allowance only
+            // where the historical group supports one actual declaration
+            // category. Mixed SA groups retain their existing evidence rule.
+            auto const& unit = units[j]; bool compatible = true; double counted = 0, own = 0;
+            for (std::size_t k = 0; k < units.size(); ++k) if (units[k].seat == unit.seat && units[k].group == unit.group) {
+                compatible = compatible && units[k].kind == "declaration" && units[k].category == unit.category;
+                counted += units[k].counted;
+                for (auto const& row : broad.ownRemaining) own += row[k]/m;
+            }
+            double maturity = counted+own > 0 ? counted/(counted+own) : 0;
+            double extra = compatible ? .5*std::pow(completed[unit.seat]*maturity,2) : 0;
+            weight += (1-weight)*extra;
+            strength = AllocationProgressScale*std::sqrt(-std::log1p(-weight));
+        }
         result.allocationStrength[j] = strength;
-        result.allocationWeight[j] = -std::expm1(-std::pow(strength/AllocationProgressScale,2));
+        result.allocationWeight[j] = weight;
         active = active || result.allocationWeight[j] != 0;
     }
     // No group history, or no slowing evidence, retains the original account
@@ -406,10 +489,25 @@ Result prepare(Prior const& p, std::vector<Unit> const& units, std::vector<bool>
     if (!options.countDraws) throw std::runtime_error("Turnout preparation needs at least one cheap count draw.");
     Result result;
     result.broad = update(p,units,finalised,options.ppvcFactor);
-    result.evidence = progress(p,units,history,options.postalDeadline);
-    releaseAllocation(p,units,history,options.postalDeadline,result);
+    auto completed = options.receiptDeadline ? boothCompletion(p,units) : std::vector<double>{};
+    result.evidence = options.receiptDeadline ? scheduledEvidence(p,units,history,*options.receiptDeadline,completed)
+        : progress(p,units,history,options.postalDeadline);
+    releaseAllocation(p,units,history,options.receiptDeadline ? options.receiptDeadline : options.postalDeadline,result,completed);
     auto m = p.totals.size(), n = p.seats.size(), g = p.groups.size(), count = m*options.countDraws;
     auto const& broad = result.broad;
+    // Routine expected additions recede after the receipt cutoff and a two-day
+    // processing allowance. The separately possible batch fades much more
+    // slowly. Source observations determine the clock; rerunning a forecast
+    // later in real time cannot make the same source appear more complete.
+    bool scheduled = options.receiptDeadline && !history.empty()
+        && std::accumulate(broad.counted.begin(),broad.counted.end(),0.) > 0;
+    if (scheduled) {
+        double now = std::max_element(history.begin(),history.end(),[](auto const& a,auto const& b) { return a.hour < b.hour; })->hour;
+        result.countingHoursAfterDeadline = countingHours(*options.receiptDeadline,now);
+        double age = 12*softplus((result.countingHoursAfterDeadline-48)/12);
+        result.processingPhase = logistic((result.countingHoursAfterDeadline-48)/12);
+        result.batchSurvival = std::exp(-age/(14*24));
+    }
     // Conditional branches use the same short quantile grid for every unit
     // and preparation. Calculate that grid once; repeatedly inverting the
     // normal CDF would make these intended cheap evaluations unnecessarily slow.
@@ -420,13 +518,25 @@ Result prepare(Prior const& p, std::vector<Unit> const& units, std::vector<bool>
     for (std::size_t j = 0; j < units.size(); ++j) for (std::size_t r = 0; r < m; ++r) result.unitMeans[j] += broad.unitCounts[r][j]/m;
     for (std::size_t j = 0; j < units.size(); ++j) if (units[j].kind == "declaration" && !broad.complete[j]) {
         Component c; c.unit = j; c.weight = -std::expm1(-std::pow(result.evidence[j].strength/.3,2));
+        if (scheduled) {
+            double currentCategory = 0;
+            for (auto const& u : units) if (u.seat == units[j].seat && u.kind == "declaration" && u.category == units[j].category)
+                currentCategory += u.counted;
+            double relative = result.evidence[j].volume/(currentCategory+.5);
+            double delay = 24*relative*relative/(relative*relative+.02*.02);
+            double routine = logistic(-(result.countingHoursAfterDeadline-48-delay)/12);
+            double active = relative*relative/(relative*relative+.05*.05);
+            c.usualLogShift = std::log(routine+(1-routine)*active);
+        }
         for (std::size_t r = 0; r < m; ++r) {
             double base = broad.remaining[r][j], slack = p.enrolment[units[j].seat]-broad.totals[r][units[j].seat];
             if (base < 0 || slack <= 0) throw std::runtime_error("Invalid remaining turnout capacity.");
             c.capacity.push_back(slack); c.reference.push_back(base);
-            c.referenceOdds.push_back(std::log((base+std::numeric_limits<double>::epsilon())/slack));
+            c.referenceOdds.push_back(std::log((base+std::numeric_limits<double>::epsilon())/slack)+c.usualLogShift);
             c.smallOdds.push_back(std::log(.25/slack));
-            c.batchOdds.push_back(std::log((base+.25+.05*units[j].counted)/slack));
+            double oldBatch = std::log((base+.25+.05*units[j].counted)/slack);
+            double lateBatch = std::log((broad.ownRemaining[r][j]+.25+.05*units[j].counted)/slack);
+            c.batchOdds.push_back((1-result.processingPhase)*oldBatch+result.processingPhase*lateBatch);
             for (std::size_t k = 0; k < options.countDraws; ++k) {
                 double z = normalQuantiles[k];
                 c.smallMean += (slack+base)*logistic(c.smallOdds.back()+z)/count;
@@ -441,7 +551,8 @@ Result prepare(Prior const& p, std::vector<Unit> const& units, std::vector<bool>
     for (std::size_t k = 0; k < c; ++k) {
         auto s = units[result.components[k].unit].seat;
         localColumns[s].push_back(k);
-        activeSeats[s] = activeSeats[s] || result.components[k].weight != 0;
+        activeSeats[s] = activeSeats[s] || result.components[k].weight != 0
+            || result.components[k].usualLogShift != 0 || result.processingPhase != 0;
     }
     // Keep the probability of no further votes explicitly, rather than hoping
     // independent tiny positive category draws happen to approximate it. Count
@@ -467,15 +578,19 @@ Result prepare(Prior const& p, std::vector<Unit> const& units, std::vector<bool>
         double coverage = counted/(counted+remaining);
         result.noAdditionProbability[s] = .95*support/counted*coverage*coverage*nonbatch*receipt;
     }
-    // Preserve the unconditional batch probability while transferring some
-    // previous/small-addition probability to the shared zero event. The count
-    // sampler below evaluates the remaining positive branch conditionally.
+    // Keep the exact no-addition event paired with the tested progress rule.
+    // Separately retain a low chance of a late batch even after routine size
+    // has receded. Compress that chance smoothly if very little probability
+    // remains outside the shared zero outcome; it never becomes a hard floor.
     for (auto& component : result.components) {
         double zero = result.noAdditionProbability[units[component.unit].seat];
-        component.batchProbability = .02*component.weight;
-        double retained = (1-zero-component.batchProbability)/(1-component.batchProbability);
-        component.previousProbability = (1-component.weight)*retained;
-        component.smallProbability = .98*component.weight*retained;
+        double positive = 1-zero, requested = .02*result.batchSurvival;
+        double possible = positive > 0 ? positive*(-std::expm1(-requested/positive)) : 0;
+        component.batchProbability = (1-result.processingPhase)*.02*component.weight+result.processingPhase*possible;
+        double smallShare = .98*component.weight/(1-.02*component.weight);
+        double remaining = positive-component.batchProbability;
+        component.previousProbability = (1-smallShare)*remaining;
+        component.smallProbability = smallShare*remaining;
     }
     if (!suppliedUniforms.empty()) {
         if (suppliedUniforms.size() != count) throw std::runtime_error("Invalid supplied turnout quantile count.");
@@ -521,6 +636,78 @@ Result prepare(Prior const& p, std::vector<Unit> const& units, std::vector<bool>
     return result;
 }
 
+DrawPlan makeDrawPlan(Result const& result, std::vector<Unit> const& units,
+    std::vector<double> const& enrolment) {
+    DrawPlan plan; plan.enrolment = enrolment;
+    plan.componentsBySeat.resize(enrolment.size()); plan.active.resize(enrolment.size());
+    for (auto const& u : units) { plan.counted.push_back(u.counted); plan.seats.push_back(u.seat); }
+    for (std::size_t k = 0; k < result.components.size(); ++k) {
+        auto s = units.at(result.components[k].unit).seat;
+        plan.componentsBySeat.at(s).push_back(k);
+        plan.active[s] = plan.active[s] || result.components[k].weight != 0
+            || result.components[k].usualLogShift != 0 || result.processingPhase != 0;
+    }
+    if (result.broad.unitCounts.empty() || result.broad.unitCounts.front().size() != units.size()
+        || result.noAdditionProbability.size() != enrolment.size())
+        throw std::runtime_error("Invalid turnout draw plan.");
+    return plan;
+}
+
+std::vector<double> drawUnitCounts(Result const& result, DrawPlan const& plan,
+    unsigned long long seed) {
+    // Draw a single shared prior row, retaining its relationships between seats
+    // and between turnout, formality, early voting and postal applications.
+    // Late progress is a separate seat event: exactly no additions, or a
+    // positive outcome with previous expectations, tiny additions or a batch.
+    auto state = seed;
+    auto outer = step(state) % result.broad.unitCounts.size();
+    auto counts = result.broad.unitCounts[outer];
+    auto uniform = [](unsigned long long& key) {
+        // Midpoints of a 52-bit grid never reach a logarithm's endpoints.
+        return (double(step(key) >> 12) + .5) / 4503599627370496.;
+    };
+    std::vector<bool> zero(plan.enrolment.size());
+    for (std::size_t s = 0; s < zero.size(); ++s) {
+        // Seat keys keep other seats' random draws unchanged if this seat
+        // selects its no-addition branch or acquires another reporting unit.
+        auto seatKey = seed ^ ((s+1)*0x9e3779b97f4a7c15ULL);
+        zero[s] = uniform(seatKey) < result.noAdditionProbability[s];
+        if (zero[s] || !plan.active[s]) continue;
+        auto const& local = plan.componentsBySeat[s];
+        std::vector<double> odds; odds.reserve(local.size());
+        double parent = plan.enrolment[s]-result.broad.totals[outer][s], maximum = 0;
+        for (auto k : local) {
+            auto const& c = result.components[k];
+            auto unitKey = seed ^ ((c.unit+1)*0xd1b54a32d192ed03ULL);
+            double selector = uniform(unitKey)*(1-result.noAdditionProbability[s]);
+            double value = c.referenceOdds[outer];
+            if (selector >= c.previousProbability) {
+                // Direct mixture sampling avoids solving an inverse mixture
+                // CDF in every iteration, while preserving the same component
+                // distributions used by the offline prototype.
+                double z = std::sqrt(-2*std::log(uniform(unitKey)))
+                    * std::cos(6.2831853071795864769*uniform(unitKey));
+                bool small = selector < c.previousProbability+c.smallProbability;
+                value = small ? c.smallOdds[outer]+z : c.batchOdds[outer]+1.5*z;
+            }
+            odds.push_back(value); maximum = std::max(maximum,value);
+            parent += c.reference[outer];
+        }
+        // All unfinished categories share a finite parent and leave a slack
+        // component for non-voters/informal votes. Joint log weights prevent
+        // endpoint caps and preserve the enrolment account in a large batch.
+        double denominator = std::exp(-maximum);
+        for (double value : odds) denominator += std::exp(value-maximum);
+        for (std::size_t k = 0; k < local.size(); ++k) {
+            auto j = result.components[local[k]].unit;
+            counts[j] = plan.counted[j]+parent*std::exp(odds[k]-maximum)/denominator;
+        }
+    }
+    for (std::size_t j = 0; j < counts.size(); ++j)
+        if (zero[plan.seats[j]]) counts[j] = plan.counted[j];
+    return counts;
+}
+
 std::vector<double> meanTotals(Result const& result) {
     // Consumers must include the exact counted branch when reporting means;
     // the stored sample matrix intentionally retains positive outcomes only.
@@ -539,6 +726,20 @@ double reportingFactor(double hours) {
         return std::exp((1-weight)*std::log(factors[k-1])+weight*std::log(factors[k]));
     }
     return factors[3];
+}
+double countingHours(double before, double after) {
+    if (!std::isfinite(before) || !std::isfinite(after)) throw std::runtime_error("Invalid turnout counting clock.");
+    if (after < before) return -countingHours(after,before);
+    double total = 0;
+    while (before < after) {
+        double day = std::floor(before/24), boundary = std::min(after,(day+1)*24);
+        // Unix day zero was Thursday. Sunday contributes twelve equivalent
+        // hours, with no jump in accumulated time when midnight is crossed.
+        int weekday = (static_cast<int>(day)%7+11)%7;
+        total += (boundary-before)*(weekday == 0 ? .5 : 1);
+        before = boundary;
+    }
+    return total;
 }
 double sourceHour(std::string const& stamp) {
     // Match the prototype's local source clock. Zoned or incomplete strings

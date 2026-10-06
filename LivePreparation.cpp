@@ -622,6 +622,21 @@ void LivePreparation::parseCurrentResults()
 	else if (run.regionCode == "sa") format = Results2::Election::Format::ECSA;
 	else format = Results2::Election::Format::AEC;
 	currentElection.update(xml, format);
+	// A fixed local AEC replay filename has no capture timestamp. Label the
+	// report with the parsed feed's own clock, including when a cached report
+	// already contains a date from a different snapshot. This also makes live
+	// AEC report labels agree with the source time used by the turnout updater.
+	if (run.regionCode == "fed" && !currentElection.sourceTime.empty()) {
+		std::string sourceCode;
+		for (unsigned char character : currentElection.sourceTime.substr(0, 19)) {
+			if (std::isdigit(character)) sourceCode.push_back(char(character));
+		}
+		if (!Timestamp::parseCompactLocal(sourceCode)) {
+			throw Exception("The AEC feed has an invalid Created timestamp: " +
+				currentElection.sourceTime);
+		}
+		sim.latestReport.dateCode = sourceCode;
+	}
 }
 
 std::string LivePreparation::getTermCode() const

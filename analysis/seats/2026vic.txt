@@ -60,7 +60,7 @@ bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
 sCoalitionCandidates=LNP;NAT,0.075
 fNationalsCoalitionShare=0.28
-sBettingOdds=IND,7.25
+sBettingOdds=IND,7.125
 sCandidateNames=Steve Martin,LNP;Graham Parton,GRN;Lachie McKeeman,IND;Kellie Sheppard,ONP
 #Bendigo East
 sIncumbent=ALP
@@ -133,7 +133,7 @@ fTppMargin=34.1
 fPreviousTppSwing=0.5
 fTransposedFederalSwing=2.3
 bRetirement=1
-sBettingOdds=GRN,1.08
+sBettingOdds=GRN,1.215
 sCandidateNames=Gabe Steger,ALP;Adam Pulford,GRN;Adam Helman,ONP
 #Bulleen
 sIncumbent=LNP
@@ -193,6 +193,7 @@ fTransposedFederalSwing=1.8
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
+sBettingOdds=IND,26.00
 sCandidateNames=Richard Farr,ALP;Grant Hutchinson,LNP;Lini Fernando,GRN;Glenn Brindley,ONP;David Vanderwolf,IND
 #Dandenong
 sIncumbent=ALP
@@ -229,7 +230,7 @@ fTransposedFederalSwing=0.8
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,1
-sBettingOdds=IND,4.00
+sBettingOdds=IND,4.25
 sCandidateNames=Kat Theodosis,ALP;Tommy Le Deux,LNP;James Williams,GRN;John Barnes,ONP;Oscar Yildiz,IND
 #Eureka
 sIncumbent=ALP
@@ -268,7 +269,7 @@ fPreviousTppSwing=-3.0
 fTransposedFederalSwing=3.9
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
-sBettingOdds=GRN,3.60;IND,11.00
+sBettingOdds=GRN,3.30;IND,18.50
 sCandidateNames=Katie Hall,ALP;Elena Pereyra,GRN;Alexander Lopez,ONP;Jess Marsh,IND;Tim Chang,LNP
 #Frankston
 sIncumbent=ALP

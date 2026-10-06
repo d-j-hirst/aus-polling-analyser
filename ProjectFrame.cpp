@@ -180,12 +180,14 @@ bool ProjectFrame::save()
 bool ProjectFrame::saveAs() {
 	if (!project.get()) return false; // There is no project to save.
 
-								// initialize the save dialog
+	// The remembered destination includes its directory. Give the dialog that
+	// directory and the basename separately so Save As starts beside this project.
+	auto const savedPath = std::filesystem::path(project->getLastFileName());
 	wxFileDialog* saveFileDialog = new wxFileDialog(
 		this,
 		"Save Project As",
-		wxEmptyString,
-		project->getLastFileName(),
+		savedPath.parent_path().string(),
+		savedPath.filename().string(),
 		"Detailed Polling Analysis files (*.pol2)|*.pol2|Polling Analysis files (*.pol)|*.pol",
 		wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
