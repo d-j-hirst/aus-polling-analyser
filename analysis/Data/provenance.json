@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-10-06T10:26:50Z",
+  "updated_at_utc": "2026-10-06T21:28:57Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -1816,9 +1816,9 @@
       "semantic_revision": 1,
       "files": {
         "preference-estimates.csv": {
-          "sha256": "66cab0693399c5cbdd4a0e934ba1f773ad4e5ee30f7abaf58a8fda11f8bd5bbb",
-          "size_bytes": 5687,
-          "recorded_mtime_utc": "2026-02-14T11:42:01.042550Z"
+          "sha256": "5cce771de8ba655b078a92e11f48929c87c229e31413b9b3f5c8e7e480a94a57",
+          "size_bytes": 5695,
+          "recorded_mtime_utc": "2026-10-06T14:06:53.273807Z"
         }
       },
       "events": [
@@ -1839,8 +1839,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261006T212857Z-methodology-preference-estimates-98754e49",
+          "recorded_at_utc": "2026-10-06T21:28:57Z",
+          "change_type": "methodology",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Move previous-election booth calculated preference flow directly into file",
+          "files": [
+            "preference-estimates.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2025fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     },
     "prior_result_inputs": {
       "description": "Summarised previous-election results used as polling and regional-model priors.",
