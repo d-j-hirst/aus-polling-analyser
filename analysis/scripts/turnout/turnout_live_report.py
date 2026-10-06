@@ -27,8 +27,8 @@ def render(result):
         'SA 2026 counts, preserves the votes already counted, and compares estimated final '
         'counts with the reviewed final results.', '',
         'The prototype estimates vote counts only. It does not update party projections, '
-        'winner probabilities. An optional C++ shadow calculation reproduces the count '
-        'updater alongside the existing forecast; see [its reproduction instructions](../turnout-cpp-shadow.md). '
+        'winner probabilities. The C++ live model uses this count approach; '
+        'see [the live model instructions](../live-turnout.md). '
         'An outcome is one possible set '
         'of final counts across all 47 districts; the replay uses ' + str(config['samples']) +
         ' such outcomes at each snapshot in the initial comparisons. The counting-progress '

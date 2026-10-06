@@ -284,7 +284,10 @@
     <ClCompile Include="LiveV2.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
-    <ClCompile Include="LiveTurnoutShadow.cpp">
+    <ClCompile Include="LiveTurnoutPreparation.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="LiveTurnout.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
     <ClCompile Include="LivePreferenceCorrections.cpp">
@@ -718,6 +721,9 @@
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
     <ClInclude Include="LiveTurnoutMath.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveTurnout.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
     <ClInclude Include="LivePreferenceCorrections.h">

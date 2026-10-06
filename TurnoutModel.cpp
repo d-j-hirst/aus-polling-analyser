@@ -684,7 +684,7 @@ std::vector<double> drawUnitCounts(Result const& result, DrawPlan const& plan,
             if (selector >= c.previousProbability) {
                 // Direct mixture sampling avoids solving an inverse mixture
                 // CDF in every iteration, while preserving the same component
-                // distributions used by the offline prototype.
+                // distributions used by the offline count calibration.
                 double z = std::sqrt(-2*std::log(uniform(unitKey)))
                     * std::cos(6.2831853071795864769*uniform(unitKey));
                 bool small = selector < c.previousProbability+c.smallProbability;
@@ -742,9 +742,9 @@ double countingHours(double before, double after) {
     return total;
 }
 double sourceHour(std::string const& stamp) {
-    // Match the prototype's local source clock. Zoned or incomplete strings
+    // Use the feed's local source clock. Zoned or incomplete strings
     // require an explicit convention rather than silently mixing clock bases.
-    if (stamp.size() != 19 || stamp[4] != '-' || stamp[7] != '-' || stamp[10] != 'T' || stamp[13] != ':' || stamp[16] != ':')
+    if (stamp.size() < 19 || stamp[4] != '-' || stamp[7] != '-' || stamp[10] != 'T' || stamp[13] != ':' || stamp[16] != ':')
         throw std::runtime_error("Unsupported turnout source timestamp: "+stamp);
     auto number = [&](std::size_t start,std::size_t length) {
         int value = 0;
@@ -756,8 +756,18 @@ double sourceHour(std::string const& stamp) {
     int y = number(0,4), mo = number(5,2), d = number(8,2), h = number(11,2), mi = number(14,2), s = number(17,2);
     auto date = Date::fromYmd(y,mo,d);
     if (!date || h < 0 || h > 23 || mi < 0 || mi > 59 || s < 0 || s > 59) throw std::runtime_error("Invalid turnout source timestamp.");
+    // Some sources publish fractions of a second. Keep that precision while
+    // rejecting offsets: model deadlines use the same explicit local clock.
+    double fraction = 0, place = .1;
+    if (stamp.size() > 19) {
+        if (stamp[19] != '.' || stamp.size() == 20) throw std::runtime_error("Invalid turnout source timestamp.");
+        for (std::size_t i = 20; i < stamp.size(); ++i) {
+            if (stamp[i] < '0' || stamp[i] > '9') throw std::runtime_error("Invalid turnout source timestamp.");
+            fraction += (stamp[i]-'0') * place; place *= .1;
+        }
+    }
     // Reuse the repository's calendar arithmetic. Avoid local timezone APIs:
     // the Python replay measures differences on the feed's own local clock.
-    return double(date->modifiedJulianDay()-40587)*24+h+mi/60.+s/3600.;
+    return double(date->modifiedJulianDay()-40587)*24+h+mi/60.+(s+fraction)/3600.;
 }
 }

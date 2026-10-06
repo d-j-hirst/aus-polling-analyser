@@ -10,19 +10,22 @@ struct Artifact {
     TurnoutModel::Options options;
     std::optional<double> pollClose;
     bool decayPpvc = false;
-    std::vector<TurnoutModel::Observation> history;
     nlohmann::json provenance, sensitivities;
 };
-struct Selection {
-    std::filesystem::path path;
-    std::string mode;
-    bool automatic = true, enabled = false;
-};
-// Select afresh for each live election. Prepared elections use counts mode by
-// default; an absent automatic file retains the existing live-size calculation.
-// An explicitly selected file is always required and checked by the loader.
-Selection select(std::filesystem::path const& workspaceRoot, std::string const& election,
-    std::string const& mode = {}, std::optional<std::filesystem::path> const& overridePath = {});
+// Every live election has an explicit count prior. Missing inputs are an input
+// error, rather than a request to select a different vote-size model.
+std::filesystem::path priorPath(std::filesystem::path const& workspaceRoot, std::string const& election);
+std::filesystem::path historyDirectory(std::filesystem::path const& workspaceRoot, std::string const& election);
+Artifact loadForElection(std::filesystem::path const& workspaceRoot, std::string const& election);
+// Identify how service counts are grouped. Changed definitions must not turn
+// an older cached allocation into apparent voter/counting behaviour.
+std::string observationMapping(TurnoutModel::Prior const& prior);
+// Retained observations are a cache of feeds already received, not posterior
+// forecasts. Replay reads only observations strictly earlier than its source.
+std::vector<TurnoutModel::Observation> loadHistory(std::filesystem::path const& directory,
+    std::string const& election, std::string const& sourceTime, std::string const& mapping);
+void recordObservation(std::filesystem::path const& directory, std::string const& election,
+    std::string const& sourceTime, TurnoutModel::Observation const& observation, std::string const& mapping);
 Artifact read(nlohmann::json const& value);
 Artifact load(std::filesystem::path const& path);
 std::vector<TurnoutModel::Unit> units(nlohmann::json const& rows);

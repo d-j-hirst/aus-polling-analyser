@@ -8,6 +8,7 @@
 #include "ResultsDownloader.h"
 #include "Simulation.h"
 #include "SimulationRun.h"
+#include "TurnoutModelIO.h"
 #include "Utf16ToUtf8.h"
 
 // This file owns automatic-live setup and file acquisition only:
@@ -186,6 +187,9 @@ void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simu
 	std::string const regionCode = termCode.substr(4);
 	std::string const previousTermCode = settings.prevTermCodes.front();
 	std::vector<std::string> missingFiles;
+	// The count prior is a normal live-election input. Report a missing one in
+	// setup validation, before downloading feeds or constructing the live model.
+	requireLiveInputFile(TurnoutModelIO::priorPath(project.paths().root(), termCode), missingFiles);
 	if (regionCode == "vic") {
 		requireLiveInputFile("downloads/" + termCode + "_candidates.xml", missingFiles);
 		requireLiveInputFile("downloads/" + termCode + "_booths.xml", missingFiles);

@@ -404,3 +404,7 @@ el20*.xml
 /docs/turnout-live-prototype/*
 
 /docs/turnout-federal-live-prototype/*
+
+# Operational live input priors and received-feed count history remain private.
+/forecasts/*/live-inputs/
+/forecasts/*/live-snapshots/

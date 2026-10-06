@@ -1,5 +1,6 @@
 #include "../TurnoutModelIO.h"
 #include "../LiveTurnoutMath.h"
+#include "../LiveTurnout.h"
 #include <cassert>
 #include <chrono>
 #include <cmath>
@@ -25,38 +26,143 @@ template<class F> void rejects(F action) {
     bool threw = false; try { action(); } catch (std::exception const&) { threw = true; }
     assert(threw);
 }
-void checkElectionSelection(std::filesystem::path const& root) {
-    // Reproduce switching projects within one GUI process, using loaded
-    // synthetic prior files rather than only checking their names. No previous
-    // selection may carry into the next election. Unsupported elections retain
-    // the existing model; explicit experimental overrides remain strict.
+void checkOperationalInputs(std::filesystem::path const& root) {
+    // Switching projects selects only that project's required prior. There is
+    // no cached selection, optional mode or legacy sizing fallback.
     auto workspace = std::filesystem::temp_directory_path()/
-        ("turnout-selection-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
-    auto directory = workspace/"downloads"/"turnout"/"cpp-shadow";
-    std::filesystem::create_directories(directory);
+        ("turnout-inputs-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     std::ifstream fixture(root/"tests/fixtures/turnout/synthetic-turnout-v1.json");
     json value; fixture >> value;
     for (std::string code : {"2026sa","2025fed"}) {
         value["election"] = code;
-        std::ofstream output(directory/(code+"-shadow.json")); output << value;
+        auto path = TurnoutModelIO::priorPath(workspace,code);
+        std::filesystem::create_directories(path.parent_path());
+        std::ofstream output(path); output << value;
     }
-    for (std::string code : {"2025fed","2026sa","2025fed"}) {
-        auto selected = TurnoutModelIO::select(workspace,code);
-        assert(selected.automatic && selected.enabled && selected.mode == "counts");
-        assert(TurnoutModelIO::load(selected.path).prior.election == code);
+    for (std::string code : {"2025fed","2026sa","2025fed"})
+        assert(TurnoutModelIO::loadForElection(workspace,code).prior.election == code);
+    rejects([&] { TurnoutModelIO::loadForElection(workspace,"2026vic"); });
+    value["election"] = "2025fed";
+    { std::ofstream output(TurnoutModelIO::priorPath(workspace,"2026sa")); output << value; }
+    rejects([&] { TurnoutModelIO::loadForElection(workspace,"2026sa"); });
+
+    // This cache starts empty during a real election, retains source-time
+    // revisions and hides later sources when replaying an earlier snapshot.
+    auto directory = TurnoutModelIO::historyDirectory(workspace,"2025fed");
+    assert(TurnoutModelIO::loadHistory(directory,"2025fed","2025-05-04T10:00:00","example-mapping").empty());
+    auto record = [&](std::string stamp, double count) {
+        TurnoutModel::Observation observation;
+        observation.hour = TurnoutModel::sourceHour(stamp);
+        observation.counts[{"Example East","Postal"}] = count;
+        TurnoutModelIO::recordObservation(directory,"2025fed",stamp,observation,"example-mapping");
+    };
+    record("2025-05-05T10:00:00",500);
+    record("2025-05-03T20:00:00",200);
+    record("2025-05-04T10:00:00",300);
+    record("2025-05-03T20:00:00",190);
+    auto earlier = TurnoutModelIO::loadHistory(directory,"2025fed","2025-05-04T10:00:00","example-mapping");
+    assert(earlier.size() == 1 && earlier.front().counts.at({"Example East","Postal"}) == 190);
+    auto all = TurnoutModelIO::loadHistory(directory,"2025fed","2025-05-06T10:00:00","example-mapping");
+    assert(all.size() == 3 && all[0].hour < all[1].hour && all[1].hour < all[2].hour);
+    rejects([&] { TurnoutModelIO::loadHistory(directory,"2026sa","2025-05-06T10:00:00","example-mapping"); });
+    rejects([&] { TurnoutModelIO::loadHistory(directory,"2025fed","2025-05-06T10:00:00","changed-mapping"); });
+    auto prior = TurnoutModelIO::read(value).prior;
+    auto mapping = TurnoutModelIO::observationMapping(prior);
+    std::reverse(prior.units.begin(),prior.units.end());
+    assert(TurnoutModelIO::observationMapping(prior) == mapping);
+    prior.units.front().group = (prior.units.front().group+1)%prior.groups.size();
+    assert(TurnoutModelIO::observationMapping(prior) != mapping);
+    // Remove only files created by this test, inside its unique workspace.
+    for (auto const& entry : std::filesystem::directory_iterator(directory)) std::filesystem::remove(entry.path());
+    for (auto path : {directory,directory.parent_path()}) std::filesystem::remove(path);
+    for (std::string code : {"2026sa","2025fed"}) {
+        auto path = TurnoutModelIO::priorPath(workspace,code);
+        std::filesystem::remove(path); std::filesystem::remove(path.parent_path());
+        std::filesystem::remove(path.parent_path().parent_path());
     }
-    assert(!TurnoutModelIO::select(workspace,"2026vic").enabled);
-    assert(!TurnoutModelIO::select(workspace,"2025fed","off").enabled);
-    assert(TurnoutModelIO::select(workspace,"2026sa","shadow").mode == "shadow");
-    auto overridden = TurnoutModelIO::select(workspace,"2026sa",{},directory/"2025fed-shadow.json");
-    assert(!overridden.automatic && TurnoutModelIO::load(overridden.path).prior.election == "2025fed");
-    auto missing = TurnoutModelIO::select(workspace,"2026sa",{},directory/"missing.json");
-    assert(missing.enabled);
-    rejects([&] { TurnoutModelIO::load(missing.path); });
-    rejects([&] { TurnoutModelIO::select(workspace,"2025fed","invalid"); });
-    for (std::string code : {"2026sa","2025fed"}) std::filesystem::remove(directory/(code+"-shadow.json"));
-    for (auto path : {directory,directory.parent_path(),directory.parent_path().parent_path(),workspace}) std::filesystem::remove(path);
-    std::cout << "Automatic election selection and explicit override checks passed.\n";
+    std::filesystem::remove(workspace/"forecasts"); std::filesystem::remove(workspace);
+    std::cout << "Required election input and received-history checks passed.\n";
+}
+
+void checkPreparedComponent(std::filesystem::path const& root) {
+    // Exercise the production count/composition boundary through every synthetic
+    // progression case. Live seats deliberately use a different order from the
+    // prior; missing preferences and genuine future voters remain separate.
+    std::ifstream stream(root/"tests/fixtures/turnout/synthetic-turnout-v1.json");
+    json fixture; stream >> fixture;
+    auto artifact = TurnoutModelIO::read(fixture);
+    auto n = artifact.prior.seats.size();
+    for (auto const& test : fixture.at("cases")) {
+        auto units = TurnoutModelIO::units(test.at("units"));
+        auto history = TurnoutModelIO::history(test.at("history"));
+        std::vector<bool> finalised(n);
+        for (auto const& name : test.at("finalised"))
+            for (std::size_t s = 0; s < n; ++s) finalised[s] = finalised[s] || name == artifact.prior.seats[s];
+        auto options = artifact.options; options.ppvcFactor = test.at("ppvc_factor");
+        auto input = artifact; input.options = options; input.decayPpvc = false;
+        auto expected = TurnoutModel::prepare(input.prior,units,finalised,history,options);
+        auto plan = TurnoutModel::makeDrawPlan(expected,units,input.prior.enrolment);
+        std::vector<int> indexes;
+        for (std::size_t j = 0; j < units.size(); ++j) indexes.push_back(int(j));
+        auto prepared = LiveTurnout::Prepared::prepare(input,units,indexes,units.size(),finalised,history,test.at("source_time"));
+        std::vector<LiveTurnout::UnitComposition> compositions;
+        std::vector<LiveTurnout::SeatComposition> seats(n);
+        for (std::size_t s = 0; s < n; ++s) seats[n-1-s].name = input.prior.seats[s];
+        for (std::size_t j = 0; j < units.size(); ++j) {
+            compare(expected.unitMeans[j],prepared->fpTarget(j),"component count mean");
+            auto s = n-1-units[j].seat;
+            double counted = units[j].counted, addition = expected.unitMeans[j]-counted;
+            LiveTurnout::UnitComposition u; u.booth = j; u.seat = s;
+            u.fp = {{0,.6*counted},{1,.4*counted}};
+            u.tpp = {{0,.54*counted},{1,.36*counted}}; // 10% preferences not yet reported.
+            u.tcp = {{10,.54*counted},{11,.36*counted}};
+            u.projectedFp = {{0,float(.6*counted+.55*addition)},{1,float(.4*counted+.45*addition)}};
+            u.projectedTpp = {{0,float(.6*counted+.55*addition)},{1,float(.4*counted+.45*addition)}};
+            u.projectedTcp = {{10,float(.6*counted+.55*addition)},{11,float(.4*counted+.45*addition)}};
+            auto add = [](auto const& from, auto& to) { for (auto const& [p,v] : from) to[p] += v; };
+            add(u.fp,seats[s].fp); add(u.tpp,seats[s].tpp); add(u.tcp,seats[s].tcp);
+            add(u.projectedFp,seats[s].projectedFp); add(u.projectedTpp,seats[s].projectedTpp); add(u.projectedTcp,seats[s].projectedTcp);
+            compositions.push_back(u);
+        }
+        auto ready = prepared->withComposition(compositions,seats);
+        for (std::size_t s = 0; s < n; ++s) assert(ready->seatIndex(seats[s].name) == s);
+        for (unsigned long long seed = 0; seed < 64; ++seed) {
+            auto sampled = ready->draw(seed);
+            auto counts = TurnoutModel::drawUnitCounts(expected,plan,seed);
+            std::vector<double> totals(n);
+            for (std::size_t j = 0; j < units.size(); ++j) totals[n-1-units[j].seat] += counts[j];
+            for (std::size_t s = 0; s < n; ++s) for (auto kind : {LiveData::CountKind::Fp,LiveData::CountKind::Tpp,LiveData::CountKind::Tcp}) {
+                auto const& votes = kind == LiveData::CountKind::Fp ? sampled[s].fp : kind == LiveData::CountKind::Tpp ? sampled[s].tpp : sampled[s].tcp;
+                double sum = 0;
+                for (auto const& [p,v] : votes) { sum += v; assert(v >= ready->counted(kind,s).at(p)-.002); }
+                assert(std::abs(sum-totals[s]) < .01);
+                auto varied = ready->vary(kind,s,votes,{{votes.begin()->first,1.}});
+                double variedSum = 0;
+                for (auto const& [p,v] : varied) { variedSum += v; assert(v >= ready->counted(kind,s).at(p)-.002); }
+                assert(std::abs(variedSum-sum) < .01);
+            }
+        }
+        // Finalisation removes additional voters, not pending preferences.
+        std::fill(finalised.begin(),finalised.end(),true);
+        auto final = LiveTurnout::Prepared::prepare(input,units,indexes,units.size(),finalised,history,test.at("source_time"));
+        for (auto& seat : seats) { seat.projectedFp.clear(); seat.projectedTpp.clear(); seat.projectedTcp.clear(); }
+        for (auto& u : compositions) {
+            double counted = units[u.booth].counted;
+            u.projectedFp = {{0,float(.6*counted)},{1,float(.4*counted)}};
+            u.projectedTpp = u.projectedFp; u.projectedTcp = {{10,float(.6*counted)},{11,float(.4*counted)}};
+            for (auto const& [p,v] : u.projectedFp) seats[u.seat].projectedFp[p] += v;
+            for (auto const& [p,v] : u.projectedTpp) seats[u.seat].projectedTpp[p] += v;
+            for (auto const& [p,v] : u.projectedTcp) seats[u.seat].projectedTcp[p] += v;
+        }
+        auto finished = final->withComposition(compositions,seats)->draw(7);
+        for (std::size_t s = 0; s < n; ++s) {
+            double expectedCount = 0, pairCount = 0;
+            for (auto const& [p,v] : seats[s].fp) expectedCount += v;
+            for (auto const& [p,v] : finished[s].tpp) pairCount += v;
+            assert(std::abs(pairCount-expectedCount) < .01);
+        }
+    }
+    std::cout << "Production count/composition component checks passed.\n";
 }
 void checkLiveAccounts() {
     // A fractional FP remainder is shared by all projections. Preferences on
@@ -314,7 +420,8 @@ int main(int argc, char** argv) {
     try {
         auto start = std::chrono::steady_clock::now();
         auto root = argc > 1 ? std::filesystem::path(argv[1]) : std::filesystem::path(".");
-        checkElectionSelection(root);
+        checkOperationalInputs(root);
+        checkPreparedComponent(root);
         checkLiveAccounts();
         checkCountDraws();
         check(root/"tests/fixtures/turnout/synthetic-turnout-v1.json");
@@ -323,6 +430,9 @@ int main(int argc, char** argv) {
         if (argc == 3) check(argv[2]);
         rejects([] { TurnoutModel::sourceHour("2025-02-30T12:00:00"); });
         rejects([] { TurnoutModel::sourceHour("2025-05-03T18:00:00+10:00"); });
+        rejects([] { TurnoutModel::sourceHour("2025-05-03T18:00:00."); });
+        compare(.885163/3600,TurnoutModel::sourceHour("2024-10-26T21:15:59.885163")
+            -TurnoutModel::sourceHour("2024-10-26T21:15:59"),"fractional feed clock");
         compare(.1,TurnoutModel::reportingFactor(78),"PPVC delay");
         // Processing time progresses at half speed on Sunday, without moving
         // the legal receipt date or jumping at midnight. Reverse replay clocks
@@ -336,13 +446,17 @@ int main(int argc, char** argv) {
         if (argc >= 4) {
             auto loadStarted = std::chrono::steady_clock::now();
             auto a = TurnoutModelIO::load(argv[2]);
+            // Historical comparison artifacts may carry their observations,
+            // but the operational prior reader does not load history at all.
+            std::ifstream archiveInput(argv[2]); json archive; archiveInput >> archive;
+            auto archivedHistory = TurnoutModelIO::history(archive.at("history"));
             std::ifstream input(argv[3]); json checkpoint; input >> checkpoint;
             auto units = TurnoutModelIO::units(checkpoint.at("units"));
             std::vector<bool> finalised(a.prior.seats.size());
             for (auto const& name : checkpoint.at("finalised")) for (std::size_t s = 0; s < finalised.size(); ++s) finalised[s] = finalised[s] || name == a.prior.seats[s];
             auto options = a.options; options.ppvcFactor = checkpoint.at("ppvc_factor");
             auto preparationStarted = std::chrono::steady_clock::now();
-            auto result = TurnoutModel::prepare(a.prior,units,finalised,a.history,options);
+            auto result = TurnoutModel::prepare(a.prior,units,finalised,archivedHistory,options);
             double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now()-preparationStarted).count();
             auto means = TurnoutModel::meanTotals(result);
             compare(checkpoint.at("expected_mean_totals"),means,"full-election mean totals");
@@ -351,7 +465,7 @@ int main(int argc, char** argv) {
             auto drawStarted = std::chrono::steady_clock::now();
             double checksum = 0; int draws = 200000, narunggaZero = 0, narunggaLarge = 0;
             std::vector<double> drawnMeans(a.prior.seats.size());
-            auto narungga = std::find(a.prior.seats.begin(),a.prior.seats.end(),"Narungga")-a.prior.seats.begin();
+            auto narungga = std::size_t(std::find(a.prior.seats.begin(),a.prior.seats.end(),"Narungga")-a.prior.seats.begin());
             for (int k = 0; k < draws; ++k) {
                 auto sampled = TurnoutModel::drawUnitCounts(result,plan,k); checksum += sampled.front();
                 for (std::size_t j = 0; j < units.size(); ++j) drawnMeans[units[j].seat] += sampled[j]/draws;

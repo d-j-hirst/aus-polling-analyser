@@ -775,13 +775,6 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 		parties.values(offsetSpecificFpDeviations);
 	electionJson["offset_specific_tpp_deviation"] =
 		optionalNumber(offsetSpecificTppDeviation);
-	electionJson["ppvc_size_multiplier"] = number(ppvcSizeMultiplier);
-	electionJson["ppvc_size_evidence_source_count"] =
-		ppvcSizeEvidenceSourceCount;
-	electionJson["ppvc_size_evidence_previous_votes"] =
-		number(ppvcSizeEvidencePreviousVotes);
-	electionJson["ppvc_size_evidence_current_votes"] =
-		number(ppvcSizeEvidenceCurrentVotes);
 	electionJson["node"] = serializeNode(node, parties);
 
 	json regions = json::array();
@@ -870,7 +863,7 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 	liveAnalysis["regions"] = std::move(regions);
 	liveAnalysis["seats"] = std::move(seatsJson);
 	liveAnalysis["booths"] = std::move(boothsJson);
-	if (turnoutShadowDiagnostic) liveAnalysis["turnout_shadow"] = *turnoutShadowDiagnostic;
+	if (turnoutDiagnostic) liveAnalysis["turnout"] = *turnoutDiagnostic;
 	if (preferenceCorrectionDiagnostic) liveAnalysis["preference_rechecking"] = *preferenceCorrectionDiagnostic;
 
 	json tppBiases;

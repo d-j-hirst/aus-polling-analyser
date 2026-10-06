@@ -42,7 +42,7 @@ inline double pairTarget(double expectedFp, double countedFp, double countedPair
     double addition = remaining(expectedFp, countedFp);
     if (!std::isfinite(countedPair) || countedPair < 0)
         throw std::runtime_error("Invalid counted TCP/TPP total.");
-    // In this compulsory-preferential prototype, counted formal FP votes still
+    // In a compulsory-preferential count, counted formal FP votes still
     // need a final-pair count when only some preferences have been published.
     // That outstanding work is separate from future FP additions: a zero-
     // addition draw must not erase it. Preserve an observed TCP excess as well,

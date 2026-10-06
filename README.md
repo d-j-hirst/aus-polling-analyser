@@ -34,7 +34,7 @@ are not distributed in this repository. Their calibration requires an
 authorised private archive. Installed live-count and preference-rechecking
 parameters are maintained in source so the method can be applied to other
 authorised feeds without the original fitting archive. See
-[the live turnout documentation](docs/turnout-cpp-shadow.md) for parameter
+[the live turnout documentation](docs/live-turnout.md) for parameter
 locations, private storage and optional archive environment variables.
 
 The Visual Studio GUI project defaults to third-party libraries under the

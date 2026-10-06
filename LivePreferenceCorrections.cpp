@@ -18,7 +18,7 @@ using Matrix = std::array<Vector, 4>;
 // The stronger directed response is retained; separate background rechecks
 // restore uncertainty near the regression without imposing a movement towards
 // it. These values are fixed in live operation, and the regression itself uses
-// only current counts. See docs/turnout-cpp-shadow.md for the four components.
+// only current counts. See docs/live-turnout.md for the four components.
 constexpr double RoutineChance = .5327639742322045;
 constexpr double LogRoutineScale = .08737413053901756;
 constexpr double RoutineSizePower = .339131984114037;

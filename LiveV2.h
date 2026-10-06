@@ -4,7 +4,7 @@
 #include "General.h"
 #include "Log.h"
 #include "SpecialPartyCodes.h"
-#include "TurnoutModel.h"
+#include "LiveTurnout.h"
 #include "LivePreferenceCorrections.h"
 
 #include <cstdint>
@@ -531,23 +531,18 @@ private:
 
   void calculateNationalsProportions();
 
-  void estimatePpvcSizeMultiplier();
-
-  float expectedPpvcSize(int boothIndex) const;
-
-  float generateDeclarationVoteExpectedSize(int boothIndex);
-
-  // These totals replace legacy sizes only in the selected count-integration
-  // mode. TCP/TPP retain their counted account and share the FP addition pool.
-  float turnoutFpTarget(int boothIndex, float legacyTarget) const;
-  float turnoutPairTarget(int boothIndex, float legacyTarget) const;
+  // The turnout component supplies one finite count account to every live
+  // projection. Prepare counts, refresh progress, then attach party composition.
+  // Pair targets include preferences missing on already-counted FP votes.
+  void prepareTurnout(Results2::Election const& currentElection);
+  float turnoutFpTarget(int boothIndex) const;
+  float turnoutPairTarget(int boothIndex) const;
   void refreshTurnoutPairProgress();
-  void recordTurnoutIntegrationDiagnostic();
-  void prepareTurnoutCountComposition();
+  void prepareTurnoutComposition();
   void drawTurnoutCounts(int iterationIndex);
   void refreshTurnoutScenarioProgress();
 
-  void refreshFpProgressForExpectedSizes();
+  void refreshTurnoutFpProgress();
 
   void recomposeBoothFpVotes(bool allowCurrentData, int boothIndex);
   // recomposing 2CP votes is only ever done with current data
@@ -583,11 +578,6 @@ private:
   // from current comparable booths, then change only scenario pair accounts.
   void preparePreferenceCorrections();
   void applyPreferenceCorrections(int iterationIndex);
-
-  // Prepare the optional independent count account once. Scenario copies
-  // share its frozen outcomes; the shadow calculation never recursively
-  // updates a posterior or changes the legacy forecast's size assumptions.
-  void prepareTurnoutShadow(Results2::Election const& currentElection);
 
   void generateVariability(int iterationIndex);
 
@@ -657,40 +647,12 @@ private:
   float nonClassicTppBiasPercentagePoints = 0.0f;
   float nonClassicTppBiasConfidence = 0.0f;
 
-  float ppvcSizeMultiplier = 1.0f;
-  int ppvcSizeEvidenceSourceCount = 0;
-  float ppvcSizeEvidencePreviousVotes = 0.0f;
-  float ppvcSizeEvidenceCurrentVotes = 0.0f;
-
   int variabilitySampleIndex = 0;
   std::uint64_t variabilityBaseSeed = 0x9e3779b97f4a7c15ULL;
 
-  std::shared_ptr<TurnoutModel::Result const> turnoutShadow;
-  std::shared_ptr<nlohmann::json const> turnoutShadowDiagnostic;
-  // Scenario and preparation copies share immutable means. An election with
-  // no FP counts keeps the existing baseline path exactly, even in count mode.
-  std::shared_ptr<std::vector<double> const> turnoutMeanFpTotals;
-  bool turnoutCountsActive = false;
-  struct TurnoutCountedParties {
-    std::vector<std::map<int, double>> fp, tpp, tcp;
-    std::map<std::string,std::size_t> seatIndexes;
-  };
-  std::shared_ptr<TurnoutCountedParties const> turnoutCountedParties;
-  struct TurnoutCountComposition {
-    struct Response {
-      std::size_t unit, seat;
-      std::vector<std::pair<int,double>> fp, tpp, tcp;
-    };
-    TurnoutModel::DrawPlan drawPlan;
-    std::vector<int> boothIndexes;
-    std::vector<std::map<int,double>> baseFp, baseTpp, baseTcp;
-    std::vector<std::map<int,float>> meanFp, meanTpp, meanTcp;
-    std::vector<float> fpConfidence, tppConfidence, tcpConfidence;
-    std::vector<Response> responses;
-  };
-  // The prior, composition responses and measured constraints are prepared
-  // once and shared by all main-iteration copies; only their draws are mutable.
-  std::shared_ptr<TurnoutCountComposition const> turnoutCountComposition;
+  // Shared immutable preparation; each scenario owns only its projected votes.
+  std::shared_ptr<LiveTurnout::Prepared const> turnout;
+  std::shared_ptr<nlohmann::json const> turnoutDiagnostic;
 
   struct PreferenceCorrectionSeat {
     int partyA = InvalidPartyIndex, partyB = InvalidPartyIndex;

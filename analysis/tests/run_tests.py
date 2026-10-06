@@ -70,6 +70,7 @@ CI_TEST_MODULES = (
     'test_turnout_sa',
     'test_turnout_sa_operational',
     'test_turnout_published_operational',
+    'test_turnout_prepare_live',
 )
 
 

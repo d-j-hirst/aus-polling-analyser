@@ -1,27 +1,98 @@
 #include "TurnoutModelIO.h"
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <fstream>
 #include <limits>
 #include <numeric>
 #include <stdexcept>
+#include <tuple>
 
 namespace TurnoutModelIO {
 using json = nlohmann::json;
-Selection select(std::filesystem::path const& workspaceRoot, std::string const& election,
-    std::string const& mode, std::optional<std::filesystem::path> const& overridePath) {
-    Selection selected;
-    selected.mode = mode.empty() ? "counts" : mode;
-    if (selected.mode != "counts" && selected.mode != "shadow" && selected.mode != "off")
-        throw std::runtime_error("Turnout mode must be counts, shadow or off.");
-    if (selected.mode == "off") return selected;
-    selected.automatic = !overridePath;
-    selected.path = overridePath ? *overridePath : workspaceRoot/"downloads"/"turnout"/"cpp-shadow"/(election+"-shadow.json");
-    // Absence is expected for elections whose prior has not been prepared.
-    // An explicit override remains strict: missing/invalid files must surface
-    // as errors, rather than quietly selecting a different model.
-    selected.enabled = !selected.automatic || std::filesystem::is_regular_file(selected.path);
-    return selected;
+std::filesystem::path priorPath(std::filesystem::path const& root, std::string const& election) {
+    return root/"forecasts"/election/"live-inputs"/"turnout-prior.json";
+}
+std::filesystem::path historyDirectory(std::filesystem::path const& root, std::string const& election) {
+    return root/"forecasts"/election/"live-snapshots"/"turnout";
+}
+Artifact loadForElection(std::filesystem::path const& root, std::string const& election) {
+    auto path = priorPath(root, election);
+    auto input = load(path);
+    if (input.prior.election != election)
+        throw std::runtime_error("Turnout prior is for " + input.prior.election + ", but the live run is " + election + ". File: " + path.string());
+    return input;
+}
+
+std::string observationMapping(TurnoutModel::Prior const& prior) {
+    // This is an interpretation marker, not a cryptographic source hash.
+    // Sorting names makes array reordering harmless. Expected sizes and fitted
+    // parameters do not change the meaning of the retained measured counts.
+    std::vector<std::tuple<std::string,std::string,std::string,std::string,std::string>> rows;
+    for (auto const& u : prior.units)
+        rows.emplace_back(prior.seats.at(u.seat),u.name,prior.groups.at(u.group),u.kind,u.category);
+    std::sort(rows.begin(),rows.end());
+    std::uint64_t hash = 14695981039346656037ULL;
+    auto add = [&](std::string const& text) {
+        for (unsigned char c : text) { hash ^= c; hash *= 1099511628211ULL; }
+        hash ^= '\n'; hash *= 1099511628211ULL;
+    };
+    add(prior.election);
+    for (auto const& [seat,name,group,kind,category] : rows) {
+        add(seat); add(name); add(group); add(kind); add(category);
+    }
+    return std::to_string(hash);
+}
+
+std::vector<TurnoutModel::Observation> loadHistory(std::filesystem::path const& directory,
+    std::string const& election, std::string const& sourceTime, std::string const& mapping) {
+    // Filtering by source time is essential when rerunning an earlier feed:
+    // a cache can contain later observations that were unavailable then.
+    double now = TurnoutModel::sourceHour(sourceTime);
+    std::vector<TurnoutModel::Observation> observations;
+    if (!std::filesystem::exists(directory)) return observations;
+    for (auto const& entry : std::filesystem::directory_iterator(directory)) {
+        if (!entry.is_regular_file() || entry.path().extension() != ".json") continue;
+        std::ifstream stream(entry.path());
+        json row; stream >> row;
+        if (row.at("election") != election || row.at("schema_version") != 1)
+            throw std::runtime_error("Incompatible turnout observation: " + entry.path().string());
+        if (TurnoutModel::sourceHour(row.at("source_time")) >= now) continue;
+        if (row.value("mapping",std::string{}) != mapping)
+            throw std::runtime_error("Turnout observation category mapping changed: " + entry.path().string()
+                + ". Rebuild the count history from retained sources using the current mapping.");
+        observations.push_back(history(json::array({row})).front());
+    }
+    std::sort(observations.begin(), observations.end(), [](auto const& a, auto const& b) { return a.hour < b.hour; });
+    return observations;
+}
+
+void recordObservation(std::filesystem::path const& directory, std::string const& election,
+    std::string const& sourceTime, TurnoutModel::Observation const& observation, std::string const& mapping) {
+    // Record the checked measured counts, independently of forecast outputs.
+    // Revisiting a source replaces that observation, including downward count
+    // corrections. A temporary file avoids retaining a half-written JSON file.
+    if (TurnoutModel::sourceHour(sourceTime) != observation.hour)
+        throw std::runtime_error("Turnout observation source time differs from its timestamp.");
+    json row{{"schema_version",1},{"election",election},{"source_time",sourceTime},{"mapping",mapping},{"seats",json::object()}};
+    for (auto const& [identity, count] : observation.counts) {
+        if (!std::isfinite(count) || count < 0) throw std::runtime_error("Invalid turnout observation count.");
+        row["seats"][identity.first]["vote_types"][identity.second] = count;
+    }
+    auto filename = sourceTime;
+    std::replace(filename.begin(), filename.end(), ':', '-');
+    auto path = directory/(filename + ".json"), temporary = directory/(filename + ".tmp");
+    std::filesystem::create_directories(directory);
+    {
+        std::ofstream stream(temporary);
+        if (!stream || !(stream << row.dump())) throw std::runtime_error("Cannot write turnout observation: " + temporary.string());
+        stream.close();
+        if (!stream) throw std::runtime_error("Cannot finish turnout observation: " + temporary.string());
+    }
+    // Windows rename does not replace an existing file. Only this exact source
+    // observation is replaced; original prior inputs and other sources remain.
+    std::filesystem::remove(path);
+    std::filesystem::rename(temporary, path);
 }
 // Unit identity and availability are static model inputs. A null counted
 // value is deliberately rejected here; missing measurements must be omitted
@@ -65,7 +136,7 @@ Artifact read(json const& value) {
     if (value.at("schema_version") != SchemaVersion || value.at("prior_model") != "proportional-prior-6"
         || value.at("count_model") != TurnoutModel::CountVersion || value.at("progress_model") != TurnoutModel::ProgressVersion
         || value.value("allocation_model",std::string{}) != TurnoutModel::AllocationVersion)
-        throw std::runtime_error("Unsupported turnout artifact version; regenerate the shadow artifact.");
+        throw std::runtime_error("Unsupported turnout prior version; regenerate the count prior.");
     Artifact a;
     auto const& prior = value.at("prior");
     a.prior.election = value.at("election"); a.prior.seats = prior.at("seats").get<std::vector<std::string>>();
@@ -89,22 +160,22 @@ Artifact read(json const& value) {
     if (!options.at("poll_close").is_null()) a.pollClose = TurnoutModel::sourceHour(options.at("poll_close"));
     a.decayPpvc = options.at("ppvc_reporting_decay");
     if (a.decayPpvc && !a.pollClose) throw std::runtime_error("PPVC decay needs an explicit polling close time.");
-    a.history = history(value.at("history"));
     a.provenance = value.at("provenance"); a.sensitivities = value.at("sensitivities");
     return a;
 }
 Artifact load(std::filesystem::path const& path) {
     std::ifstream stream(path);
-    if (!stream) throw std::runtime_error("Cannot open turnout shadow artifact: "+path.string());
+    if (!stream) throw std::runtime_error("Cannot open required turnout prior: " + path.string()
+        + ". Prepare this election's live count inputs before running the live simulation.");
     json value; stream >> value; return read(value);
 }
 
-// The diagnostic is a compact comparison account, not an implicit change to
-// forecast votes. Totals and categories use the same count outcomes. Conditional
+// The diagnostic describes the installed count account. Totals and categories
+// use the same count outcomes. Conditional
 // late-batch means are labelled as such, rather than mistaken for predictions.
 json diagnostic(Artifact const& a, std::vector<TurnoutModel::Unit> const& units,
     TurnoutModel::Result const& r, std::string const& sourceTime) {
-    json value{{"schema_version",SchemaVersion},{"mode","shadow"},{"election",a.prior.election},
+    json value{{"schema_version",SchemaVersion},{"election",a.prior.election},
         {"count_model",TurnoutModel::CountVersion},{"progress_model",TurnoutModel::ProgressVersion},
         {"allocation_model",TurnoutModel::AllocationVersion},
         {"allocation_parameters",{{"progress_scale",TurnoutModel::AllocationProgressScale},{"direction_scale",TurnoutModel::AllocationDirectionScale}}},

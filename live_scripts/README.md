@@ -40,7 +40,7 @@ Live/media-feed snapshots and close derivatives are private operator inputs.
 Do not commit retained XML/ZIP files, per-booth exports or replay comparisons.
 Public final-result downloads and published statistics can still support the
 historical workflow. Installed live parameters are maintained in source; see
-[the turnout documentation](../docs/turnout-cpp-shadow.md) for their locations
+[the turnout documentation](../docs/live-turnout.md) for their locations
 and the distinction between applying the model and reproducing its calibration.
 
 ## Common workflow
@@ -161,40 +161,20 @@ setting. Empty AEC location fields leave booth coordinates unknown, including
 mobile services operating at multiple sites; nonempty coordinates are checked
 before they are used for geographic matching.
 
-For paired turnout comparisons, retain the same model, projection, iteration
-count and other simulation settings. The application automatically selects
-`downloads/turnout/cpp-shadow/<election>-shadow.json` for each live election and
-uses counts mode when that file exists. No turnout environment variables are
-needed for normal replay, and switching between SA and Federal does not require
-changing settings or restarting the application. An election without a prepared
-file keeps the existing live vote-size rules, with a message in `PALog.log`.
+The live application reads `forecasts/<election>/live-inputs/turnout-prior.json`
+for the election being simulated. Prepare that required private input using
+[the live turnout instructions](../docs/live-turnout.md). No turnout environment
+variables or application restart are needed when switching elections.
+Received count history accumulates under that election's `live-snapshots/`
+directory; an earlier replay ignores later source times already stored there.
 
-For a comparison using the existing size rules alongside turnout diagnostics,
-set the optional mode in Visual Studio's **Debugging > Environment**:
+Set **Live output folder** to a diagnostic series name such as
+`2025fed-turnout4`. This is a folder name under `live_runs/`, rather than a path.
+Keep model, projection, iteration count and other simulation settings consistent
+when comparing snapshot series. The SA Shift-click batch advance does not
+support the Federal replay.
 
-```text
-POLLING_ANALYSER_TURNOUT_MODE=shadow
-```
-
-Changing the mode requires an application restart; changing elections does not.
-Set the mode to `off` to omit turnout diagnostics as well. Remove the mode
-override to restore automatic counts mode. An explicit custom file can still
-be supplied through `POLLING_ANALYSER_TURNOUT_SHADOW`; it must match the live
-election. Remove any old fixed file override, or set it to `auto`, when using
-automatic selection. Diagnostics record the chosen path and selection policy.
-
-With `counts`, the forecast uses the turnout estimates and remaining-count
-distribution. With `shadow`, it uses the existing live size rules while
-still exporting the turnout diagnostics. Restart the application after
-changing this environment setting. Set **Live output folder** to separate
-names such as `fed2025-turnout1` and `fed2025-legacy1` for the two modes.
-These names designate folders under `live_runs/`; they are not paths.
-Run both modes for a checkpoint before advancing, or explicitly select
-the same nine timestamps again for the second pass. The SA Shift-click batch
-advance does not support this Federal replay.
-
-The comparison establishes how turnout integration changes a particular
-saved forecast. Its broader forecast accuracy also depends on the saved
+The replay shows how the live model behaves for a particular saved forecast. Its broader forecast accuracy also depends on the saved
 model, projection and candidate/preference settings being suitable for
 Federal 2025. A result-feed replay by itself does not establish that those
 other inputs are suitable for a historical forecast.

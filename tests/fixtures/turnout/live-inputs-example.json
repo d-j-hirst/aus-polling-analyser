@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "election": "example",
+  "parameter_preset": "2026sa/earlier_only",
+  "preparation_samples": 8,
+  "count_draws": 8,
+  "seed": 20261002,
+  "schedule": {
+    "postal_deadline": null,
+    "receipt_deadline": null,
+    "poll_close": null,
+    "ppvc_reporting_decay": false
+  },
+  "inputs": {
+    "identity": "example/operational",
+    "election_code": "example",
+    "seat_names": [
+      "Example East",
+      "Example West"
+    ],
+    "categories": [
+      "early",
+      "postal",
+      "remaining"
+    ],
+    "subdivisions": [
+      "Example region",
+      "Example region"
+    ],
+    "enrolment": [
+      28000,
+      30000
+    ],
+    "previous_turnout_pct": [
+      90,
+      91
+    ],
+    "previous_formality_pct": [
+      97,
+      96
+    ],
+    "local_scale": [
+      1,
+      1
+    ],
+    "controls": [
+      {
+        "name": "early",
+        "indices": [
+          0
+        ],
+        "weights": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "amount": [
+          7000,
+          8000
+        ],
+        "common_sd": [
+          300,
+          340
+        ],
+        "local_sd": [
+          600,
+          680
+        ],
+        "aggregate": false
+      },
+      {
+        "name": "postal",
+        "indices": [
+          1
+        ],
+        "weights": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "amount": [
+          2500,
+          2700
+        ],
+        "common_sd": [
+          100,
+          110
+        ],
+        "local_sd": [
+          200,
+          220
+        ],
+        "aggregate": false
+      }
+    ],
+    "remainder": {
+      "name": "remainder",
+      "indices": [
+        2
+      ],
+      "weights": [
+        [
+          1
+        ],
+        [
+          1
+        ]
+      ]
+    }
+  },
+  "units": [
+    {
+      "seat": 0,
+      "group": 0,
+      "name": "Early centre",
+      "kind": "ppvc",
+      "category": "early",
+      "weight": 1,
+      "counted": 0,
+      "matched": true,
+      "eav": false,
+      "closed": false,
+      "excluded": false,
+      "closure_reason": "",
+      "exclusion_reason": ""
+    },
+    {
+      "seat": 0,
+      "group": 1,
+      "name": "Postal votes",
+      "kind": "declaration",
+      "category": "Postal",
+      "weight": 1,
+      "counted": 0,
+      "matched": true,
+      "eav": false,
+      "closed": false,
+      "excluded": false,
+      "closure_reason": "",
+      "exclusion_reason": ""
+    },
+    {
+      "seat": 0,
+      "group": 2,
+      "name": "Ordinary booth",
+      "kind": "ordinary",
+      "category": "ordinary",
+      "weight": 1,
+      "counted": 0,
+      "matched": true,
+      "eav": false,
+      "closed": false,
+      "excluded": false,
+      "closure_reason": "",
+      "exclusion_reason": ""
+    },
+    {
+      "seat": 1,
+      "group": 0,
+      "name": "Early centre",
+      "kind": "ppvc",
+      "category": "early",
+      "weight": 1,
+      "counted": 0,
+      "matched": true,
+      "eav": false,
+      "closed": false,
+      "excluded": false,
+      "closure_reason": "",
+      "exclusion_reason": ""
+    },
+    {
+      "seat": 1,
+      "group": 1,
+      "name": "Postal votes",
+      "kind": "declaration",
+      "category": "Postal",
+      "weight": 1,
+      "counted": 0,
+      "matched": true,
+      "eav": false,
+      "closed": false,
+      "excluded": false,
+      "closure_reason": "",
+      "exclusion_reason": ""
+    },
+    {
+      "seat": 1,
+      "group": 2,
+      "name": "Ordinary booth",
+      "kind": "ordinary",
+      "category": "ordinary",
+      "weight": 1,
+      "counted": 0,
+      "matched": true,
+      "eav": false,
+      "closed": false,
+      "excluded": false,
+      "closure_reason": "",
+      "exclusion_reason": ""
+    }
+  ]
+}

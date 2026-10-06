@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-// This portable count model consumes frozen Python prior outcomes. It has no
+// This portable count model consumes immutable pre-election count outcomes. It has no
 // party model or GUI dependency: the same immutable input is updated afresh
 // for each snapshot, including when counted votes have been revised downwards.
 namespace TurnoutModel {
@@ -15,8 +15,8 @@ inline constexpr char CountVersion[] = "live-counts-6";
 inline constexpr char ProgressVersion[] = "live-late-counts-4";
 inline constexpr char ScheduleVersion[] = "live-declaration-schedule-1";
 inline constexpr char AllocationVersion[] = "live-allocation-1";
-// These conservative response scales are experiment assumptions, shared with
-// Python. They govern continuous influence, not completion thresholds.
+// Maintained conservative response scales, shared with the offline calibration.
+// They govern continuous influence, not completion thresholds.
 inline constexpr double AllocationProgressScale = .5;
 inline constexpr double AllocationDirectionScale = .5;
 

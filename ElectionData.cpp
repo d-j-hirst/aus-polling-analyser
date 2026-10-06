@@ -2080,9 +2080,9 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
   PA_LOG_VAR(documentRoot->Name());
   auto const& mediaFeed = requiredChild(xml, "MediaFeed", feedContext);
   sourceTime.clear();
-  if (format == Format::AEC) {
-    if (auto stamp = mediaFeed.Attribute("Created")) sourceTime = stamp;
-  }
+  // All MediaFeed variants carry their source clock here, including VEC and
+  // NSWEC. Retain it independently of the jurisdiction's results layout.
+  if (auto stamp = mediaFeed.Attribute("Created")) sourceTime = stamp;
   auto resultsFinder = [&]() -> tinyxml2::XMLElement const* {
     switch (format) {
     case Format::AEC: return &requiredChild(mediaFeed, "Results", feedContext + "/MediaFeed");
@@ -2459,6 +2459,9 @@ void Results2::Election::updateQec(tinyxml2::XMLDocument const& xml)
   };
 
   auto const& ecq = requiredChild(xml, "ecq", "QEC results");
+  sourceTime.clear();
+  if (auto stamp = ecq.FirstChildElement("generationDateTime"); stamp && stamp->GetText())
+    sourceTime = stamp->GetText();
   auto const& election = requiredChild(ecq, "election", "QEC results/ecq");
   id = requiredIntAttribute(election, "id", "QEC results/ecq/election", 0);
   auto const* electionName = election.Attribute("electionName");

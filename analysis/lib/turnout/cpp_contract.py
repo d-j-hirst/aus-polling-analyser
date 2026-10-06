@@ -1,6 +1,6 @@
-"""Translate frozen count inputs into the portable C++ shadow contract.
+"""Translate frozen count inputs into the portable C++ count contract.
 
-Fitting remains in Python. The contract carries immutable count outcomes,
+Prior preparation remains in Python. The contract carries immutable count outcomes,
 separate shared count sensitivities, source identities and exact unit metadata.
 Current counts and source history are separate from the frozen prior account.
 """

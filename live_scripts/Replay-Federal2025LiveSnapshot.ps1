@@ -46,12 +46,15 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $TargetPath = [System.IO.Path]::GetFullPath($TargetPath)
 $statePath = Join-Path $repositoryRoot 'downloads\turnout\federal-gui-replay\selection.json'
-$artifactPath = Join-Path $repositoryRoot 'downloads\turnout\cpp-shadow\2025fed-shadow.json'
-$artifact = if (Test-Path -LiteralPath $artifactPath) {
-    Get-Content -LiteralPath $artifactPath -Raw | ConvertFrom-Json
+# Archive source identities belong to replay input storage, independently of
+# turnout priors and their regeneration. This optional private manifest retains
+# hashes for sources held in the existing content-addressed cache directories.
+$manifestPath = Join-Path $repositoryRoot 'forecasts\2025fed\live-snapshots\feed-sources.json'
+$sourceManifest = if (Test-Path -LiteralPath $manifestPath) {
+    Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 }
 
-# These source times also occur in the retained artifact history. The selection
+# These source times also occur in the retained received-feed history. The selection
 # spans sparse booths, settled election-night counts, a postal pause and late
 # counting, without making the user step through every 90-second AEC release.
 $checkpoints = @(
@@ -71,8 +74,8 @@ function Get-Checkpoint {
     $sourceTime = [DateTime]::ParseExact($Stamp, 'yyyyMMddHHmmss', $null).ToString('yyyy-MM-ddTHH:mm:ss')
     $filename = "aec-mediafeed-Detailed-Light-31496-$Stamp.zip"
     $expectedHash = $null
-    if ($artifact) {
-        $source = $artifact.provenance.sources.PSObject.Properties[$sourceTime]
+    if ($sourceManifest) {
+        $source = $sourceManifest.PSObject.Properties[$sourceTime]
         if ($source) { $expectedHash = $source.Value.sha256 }
     }
     $paths = @((Join-Path $ArchiveDirectory $filename))
