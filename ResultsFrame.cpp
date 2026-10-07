@@ -20,6 +20,26 @@
 #include <optional>
 #include <set>
 
+namespace {
+
+// Reloaded projects can contain counted results before a live simulation has
+// produced a report. Forecast cells stay blank until that seat's data exists.
+bool hasProjectedMargin(Simulation::Report const* report, int seat)
+{
+	return report && seat >= 0 &&
+		std::size_t(seat) < report->seatPartyOneMarginAverage.size();
+}
+
+bool hasWinProbabilities(Simulation::Report const* report, int seat)
+{
+	return report && seat >= 0 &&
+		std::size_t(seat) < report->partyOneWinProportion.size() &&
+		std::size_t(seat) < report->partyTwoWinProportion.size() &&
+		std::size_t(seat) < report->othersWinProportion.size();
+}
+
+}
+
 // IDs for the controls and the menu commands
 enum ControlId {
 	Base = 700, // To avoid mixing events with other frames.
@@ -500,7 +520,7 @@ void ResultsFrame::addResultToResultData(Outcome result)
 		row, 4, result.updateTime.formatIsoTimeLocal());
 	resultsData->SetCellValue(row, 5, projectedMarginString);
 	resultsData->SetCellBackgroundColour(row, 5, projectedMarginColour);
-	if (report && report->partyOneWinProportion.size()) {
+	if (hasWinProbabilities(report, result.seat)) {
 		resultsData->SetCellValue(row, 6, formatFloat(report->partyOneWinProportion[result.seat] * 100.0f, 2));
 		resultsData->SetCellValue(row, 7, formatFloat(report->partyTwoWinProportion[result.seat] * 100.0f, 2));
 		resultsData->SetCellValue(row, 8, formatFloat(report->othersWinProportion[result.seat] * 100.0f, 2));
@@ -610,6 +630,10 @@ void ResultsFrame::refreshTable()
 
 bool ResultsFrame::resultPassesFilter(Outcome const& thisResult)
 {
+	if (thisResult.seat < 0 || thisResult.seat >= project->seats().count()) {
+		logger << "Warning: A seat number was invalid in ResultsFrame::resultPassesFilter\n";
+		return false;
+	}
 	if (filter == Filter::AllResults) return true;
 	Seat const& seat = project->seats().viewByIndex(thisResult.seat);
 	if (filter == Filter::LatestResults) return true;
@@ -617,18 +641,18 @@ bool ResultsFrame::resultPassesFilter(Outcome const& thisResult)
 	float significance = 0.0f;
 	significance += std::max(0.0f, 3.0f / (1.0f + std::max(2.0f, abs(seat.tppMargin))));
 	auto const* report = latestReport();
-	if (report && report->seatPartyOneMarginAverage.size()) {
+	// Significance can use the previous election's margin without a forecast.
+	// Add forecast evidence only after a simulation has supplied it for this seat.
+	if (hasProjectedMargin(report, thisResult.seat)) {
 		double simulatedMarginAverage = report->seatPartyOneMarginAverage[thisResult.seat];
 		significance += std::max(0.0f, 10.0f / (1.0f + std::max(1.0f, abs(float(simulatedMarginAverage)))));
 		// automatically treat seats expected to change hands as significant
 		// this can be detected by the simulated tpp average and previous margin having opposite signs
 		if (simulatedMarginAverage * seat.tppMargin < 0.0f) significance += 5.0f;
 	}
-	if (thisResult.seat < 0 || thisResult.seat >= project->seats().count()) {
-		logger << "Warning: A seat number was invalid in ResultsFrame::resultPassesFilter\n";
-		return false;
+	if (hasWinProbabilities(report, thisResult.seat)) {
+		significance += std::max(0.0f, (0.5f - abs(0.5f - report->othersWinProportion[thisResult.seat])) * 30.0f);
 	}
-	significance += std::max(0.0f, (0.5f - abs(0.5f - report->othersWinProportion[thisResult.seat])) * 30.0f);
 
 	if (filter == Filter::SignificantResults) return significance > 1.5f;
 	if (filter == Filter::KeyResults) return significance > 5.0f;
@@ -657,7 +681,7 @@ std::string ResultsFrame::decideProjectedMarginString(Outcome const& thisResult)
 	// *** Currently messed up because of changing margins from incumbent-relative to party-one-relative
 	//     Fix later once reporting of non-classic results is properly sorted
 	auto const* report = latestReport();
-	if (!report || !report->seatPartyOneMarginAverage.size()) return "";
+	if (!hasProjectedMargin(report, thisResult.seat)) return "";
 	double simulatedMarginAverage = report->seatPartyOneMarginAverage[thisResult.seat];
 	Seat const& seat = project->seats().viewByIndex(thisResult.seat);
 	float projectedSwing = simulatedMarginAverage - seat.tppMargin;
@@ -670,7 +694,7 @@ wxColour ResultsFrame::decideProjectedMarginColour(Outcome const& thisResult)
 	// *** Currently messed up because of changing margins from incumbent-relative to party-one-relative
 	//     Fix later once reporting of non-classic results is properly sorted
 	auto const* report = latestReport();
-	if (report) {
+	if (hasProjectedMargin(report, thisResult.seat)) {
 		double simulatedMarginAverage = report->seatPartyOneMarginAverage[thisResult.seat];
 		float margin = abs(simulatedMarginAverage);
 		float marginSignificance = (margin ? 1.0f / (1.0f + margin) : 0.0f);
@@ -683,7 +707,7 @@ wxColour ResultsFrame::decideProjectedMarginColour(Outcome const& thisResult)
 std::string ResultsFrame::decideLeadingPartyName(Outcome const& thisResult)
 {
 	auto const* report = latestReport();
-	if (!report || !report->partyOneWinProportion.size()) return "";
+	if (!hasWinProbabilities(report, thisResult.seat)) return "";
 	float p1 = float(report->partyOneWinProportion[thisResult.seat]);
 	float p2 = float(report->partyTwoWinProportion[thisResult.seat]);
 	float p3 = float(report->othersWinProportion[thisResult.seat]);
@@ -695,7 +719,7 @@ std::string ResultsFrame::decideLeadingPartyName(Outcome const& thisResult)
 float ResultsFrame::decideLeaderProbability(Outcome const& thisResult)
 {
 	auto const* report = latestReport();
-	if (!report || !report->partyOneWinProportion.size()) return 0.0f;
+	if (!hasWinProbabilities(report, thisResult.seat)) return 0.0f;
 	float p1 = float(report->partyOneWinProportion[thisResult.seat]);
 	float p2 = float(report->partyTwoWinProportion[thisResult.seat]);
 	float p3 = float(report->othersWinProportion[thisResult.seat]);
@@ -716,6 +740,7 @@ std::string ResultsFrame::decideLikelihoodString(Outcome const& thisResult)
 
 std::string ResultsFrame::decideStatusString(Outcome const& thisResult)
 {
+	if (!hasWinProbabilities(latestReport(), thisResult.seat)) return "";
 	return decideLikelihoodString(thisResult) + " (" +
 		formatFloat(decideLeaderProbability(thisResult), 2) + "%) " + 
 		decideLeadingPartyName(thisResult);
@@ -724,7 +749,7 @@ std::string ResultsFrame::decideStatusString(Outcome const& thisResult)
 wxColour ResultsFrame::decideStatusColour(Outcome const& thisResult)
 {
 	auto const* report = latestReport();
-	if (!report || !report->partyOneWinProportion.size()) return *wxWHITE;
+	if (!hasWinProbabilities(report, thisResult.seat)) return *wxWHITE;
 	float p1 = float(report->partyOneWinProportion[thisResult.seat]);
 	float p2 = float(report->partyTwoWinProportion[thisResult.seat]);
 	float p3 = float(report->othersWinProportion[thisResult.seat]);
@@ -835,7 +860,9 @@ void ResultsFrame::addTableData()
 	constexpr int MaxResultsShown = 1000;
 	for (int i = 0; i < project->outcomes().count(); ++i) {
 		Outcome thisResult = project->outcomes().get(i);
-		if (thisResult.seat == -1) continue;
+		// Saved results can refer to seats that are not loaded yet. Reject those
+		// before either accessing the seat or tracking which seats were displayed.
+		if (thisResult.seat < 0 || thisResult.seat >= project->seats().count()) continue;
 		if (filter != Filter::AllResults) {
 			if (seenSeat[thisResult.seat]) continue;
 			seenSeat[thisResult.seat] = true;
