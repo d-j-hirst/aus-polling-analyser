@@ -171,8 +171,8 @@ directory; an earlier replay ignores later source times already stored there.
 Set **Live output folder** to a diagnostic series name such as
 `2025fed-turnout4`. This is a folder name under `live_runs/`, rather than a path.
 Keep model, projection, iteration count and other simulation settings consistent
-when comparing snapshot series. The SA Shift-click batch advance does not
-support the Federal replay.
+when comparing snapshot series. The GUI also supports saved SA and Federal snapshot sequences; see
+[Live snapshot sequences](../docs/live-snapshot-sequences.md).
 
 The replay shows how the live model behaves for a particular saved forecast. Its broader forecast accuracy also depends on the saved
 model, projection and candidate/preference settings being suitable for
@@ -301,23 +301,12 @@ Use `-WhatIf` to validate a selection without replacing the Downloads file:
 
 The replay tool does not download data or alter timestamped source archives.
 
-After selecting and running an initial snapshot manually, hold **Shift** while
-clicking **Run Live Simulations** on the Results screen to run a sequence. The
-dialog asks how many subsequent snapshots to process. Before each run, the
-application installs the next timestamped archive, updates the same replay
-state used by the PowerShell script, and runs every configured automatic-live
-simulation. All such simulations must use the same SA election and current-
-results directory. A failed simulation stops the sequence with that snapshot
-left selected for inspection or a manual retry.
-
-Routine feedback such as the live seat-change summary is written to `PALog.log`
-during a batch rather than opening a dialog after every run. Conditions that
-explicitly require action, such as an output file that cannot be replaced,
-still open a dialog.
-
-Explicit initial selection and out-of-sequence movement remain PowerShell
-operations. If the installed XML and replay state disagree, select the desired
-snapshot with the script again before starting a batch.
+The Results tab can now configure and save an explicit sequence of SA or Federal
+snapshot codes, then run it without the selection script. Shift-clicking **Run
+Live Simulations** runs that saved sequence. See [Live snapshot
+sequences](../docs/live-snapshot-sequences.md) for the default private input
+folder, selection controls and retained results in Live Booths. The PowerShell
+script remains useful for selecting a single feed for an ordinary manual run.
 
 ## Troubleshooting
 

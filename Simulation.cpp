@@ -103,7 +103,8 @@ const std::vector<float> Simulation::Report::CurrentlyUsedProbabilityBands = {
 bool Simulation::run(
 	PollingProject& project,
 	SimulationRun::FeedbackFunc feedback,
-	SimulationRun::ActionRequiredFunc actionRequired)
+	SimulationRun::ActionRequiredFunc actionRequired,
+	std::optional<LiveResultsInput::CurrentFile> snapshot)
 {
 	if (!actionRequired) actionRequired = feedback;
 	if (project.projections().idToIndex(settings.baseProjection) ==
@@ -117,7 +118,7 @@ bool Simulation::run(
 		feedback("The base model (" + baseModel.getName() + ") is not ready for projecting. Please run the base model once before running projections it is based on.");
 		return false;
 	}
-	auto nextRun = std::make_shared<SimulationRun>(project, *this);
+	auto nextRun = std::make_shared<SimulationRun>(project, *this, false, false, std::move(snapshot));
 	if (!nextRun->run(feedback, actionRequired)) return false;
 	latestRun = std::move(nextRun);
 	PA_LOG_VAR(latestReport.getCoalitionFpSampleMedian());

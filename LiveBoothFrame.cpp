@@ -36,6 +36,7 @@ enum ControlId {
 	Frame,
 	DcPanel,
 	PrimaryView,
+	SnapshotSimulation,
 	SecondaryView,
 	ViewMode,
 	ThresholdParty,
@@ -75,17 +76,28 @@ void LiveBoothFrame::paint()
 
 void LiveBoothFrame::refreshData()
 {
-	loadResult = LiveSnapshot::loadFromProject(*project);
-	parliamentView = LiveSnapshot::buildParliamentView(loadResult.records);
-	seatView = LiveSnapshot::buildSeatExpectationView(loadResult.records);
-	tppView = LiveSnapshot::buildTppView(loadResult.records);
-	voteShareView = LiveSnapshot::buildVoteShareView(loadResult.records);
-	syncThresholdView();
-	syncSeatWinViews();
-	syncSeatFpViews();
-	syncCompletionViews();
-	syncCategoryStatViews();
-	internal2ppView = LiveSnapshot::buildInternal2ppView(loadResult.records);
+	// Each simulation has its own retained output series. Rebuild the selector
+	// after new replay defaults are assigned without mixing different forecasts.
+	updatingControls = true;
+	simulationComboBox->Clear();
+	snapshotSimulationIds.clear();
+	int selected = wxNOT_FOUND;
+	for (auto const& [id, simulation] : project->simulations()) {
+		if (!simulation.isLive() || simulation.getSettings().liveOutputFolder.empty()) continue;
+		if (id == snapshotSimulationId) selected = int(snapshotSimulationIds.size());
+		snapshotSimulationIds.push_back(id);
+		simulationComboBox->Append(wxString::FromUTF8(simulation.getSettings().name));
+	}
+	if (selected == wxNOT_FOUND && !snapshotSimulationIds.empty()) selected = 0;
+	simulationComboBox->SetSelection(selected);
+	snapshotSimulationId = selected == wxNOT_FOUND ? Simulation::InvalidId : snapshotSimulationIds.at(std::size_t(selected));
+	updatingControls = false;
+	// Release the old series before loading its replacement. Loading the full
+	// directory while the previous history remained alive doubled its peak
+	// memory use during long replays, including when this tab was hidden.
+	clearCachedViews();
+	loadResult = {};
+	loadResult = LiveSnapshot::loadFromProject(*project, snapshotSimulationId);
 	rebuildPresentation();
 	lastTooltipRow = -1;
 	lastTooltipColumn = -1;
@@ -221,12 +233,20 @@ void LiveBoothFrame::OnModeSelected(wxCommandEvent&)
 	else if (selection == 2) mode = Mode::SeatExpectations;
 	else if (selection == 1) mode = Mode::Parliament;
 	else mode = Mode::NodeInspector;
-	if (isCompletionMode()) syncCompletionViews();
-	else if (isCategoryStatMode()) syncCategoryStatViews();
 	rebuildPresentation();
 	updateToolbar();
 	layoutContents();
 	paint();
+}
+
+void LiveBoothFrame::OnSimulationSelected(wxCommandEvent&)
+{
+	if (updatingControls) return;
+	int selected = simulationComboBox->GetSelection();
+	if (selected == wxNOT_FOUND) return;
+	snapshotSimulationId = snapshotSimulationIds.at(std::size_t(selected));
+	selectedFilename.clear();
+	refreshData();
 }
 
 void LiveBoothFrame::OnRunSelected(wxCommandEvent&)
@@ -255,7 +275,6 @@ void LiveBoothFrame::OnPartySelected(wxCommandEvent&)
 		if (selection >= 0 && selection < int(thresholdParties.size())) {
 			selectedThresholdPartyIndex = thresholdParties[selection].partyIndex;
 		}
-		syncThresholdView();
 	}
 	else if (mode == Mode::SeatWinChance || mode == Mode::SeatFp) {
 		auto const& parties = mode == Mode::SeatFp ? seatFpParties : seatWinParties;
@@ -277,8 +296,6 @@ void LiveBoothFrame::OnPartySelected(wxCommandEvent&)
 		else if (selection >= 0 && selection < int(parties.size())) {
 			tableParty = parties[selection].partyIndex;
 		}
-		if (mode == Mode::SeatFp) syncSeatFpViews();
-		else syncSeatWinViews();
 	}
 	rebuildPresentation();
 	layoutContents();
@@ -292,9 +309,6 @@ void LiveBoothFrame::OnSeatSelected(wxCommandEvent&)
 	if (selection >= 0 && selection < int(seatWinSeats.size())) {
 		selectedSeatWinSeatName = seatWinSeats[selection];
 	}
-	if (isCompletionMode()) syncCompletionViews();
-	else if (mode == Mode::SeatFp) syncSeatFpViews();
-	else if (mode == Mode::SeatWinChance) syncSeatWinViews();
 	rebuildPresentation();
 	layoutContents();
 	paint();
@@ -319,7 +333,6 @@ void LiveBoothFrame::OnLayoutSelected(wxCommandEvent&)
 	else {
 		categoryGroupByType = selection <= 0;
 	}
-	syncCategoryStatViews();
 	rebuildPresentation();
 	layoutContents();
 	paint();
@@ -341,6 +354,7 @@ void LiveBoothFrame::bindEventHandlers()
 {
 	Bind(wxEVT_SIZE, &LiveBoothFrame::OnResize, this, ControlId::Frame);
 	Bind(wxEVT_COMBOBOX, &LiveBoothFrame::OnModeSelected, this, ControlId::PrimaryView);
+	Bind(wxEVT_COMBOBOX, &LiveBoothFrame::OnSimulationSelected, this, ControlId::SnapshotSimulation);
 	Bind(wxEVT_COMBOBOX, &LiveBoothFrame::OnRunSelected, this, ControlId::SecondaryView);
 	Bind(wxEVT_COMBOBOX, &LiveBoothFrame::OnViewSelected, this, ControlId::ViewMode);
 	Bind(wxEVT_COMBOBOX, &LiveBoothFrame::OnPartySelected, this, ControlId::ThresholdParty);
@@ -399,6 +413,8 @@ void LiveBoothFrame::createChrome()
 	modeChoices.push_back("Vote Type Bias");
 	modeChoices.push_back("Internal 2PP Metrics");
 
+	simulationComboBox = new wxComboBox(chrome, ControlId::SnapshotSimulation, "",
+		wxDefaultPosition, wxSize(170, 30), wxArrayString(), wxCB_READONLY);
 	modeLabel = new wxStaticText(chrome, wxID_ANY, "Mode:");
 	modeComboBox = new wxComboBox(chrome, ControlId::PrimaryView, "Node Inspector",
 		wxDefaultPosition, wxSize(200, 30), modeChoices, wxCB_READONLY);
@@ -460,6 +476,8 @@ void LiveBoothFrame::createChrome()
 	parliamentBar->SetSizer(parliamentSizer);
 
 	auto* chromeSizer = new wxBoxSizer(wxHORIZONTAL);
+	chromeSizer->Add(new wxStaticText(chrome, wxID_ANY, "Simulation:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 8);
+	chromeSizer->Add(simulationComboBox, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 4);
 	chromeSizer->Add(modeLabel, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 8);
 	chromeSizer->Add(modeComboBox, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 4);
 	chromeSizer->Add(inspectorBar, 0, wxALIGN_CENTER_VERTICAL);
@@ -992,10 +1010,45 @@ int LiveBoothFrame::chromeHeight() const
 	return std::max(ChromeMinHeight, best.GetHeight());
 }
 
+void LiveBoothFrame::clearCachedViews()
+{
+	// Views are derived from history and UI selection. They can always be
+	// rebuilt, so discard their allocations before loading or switching views.
+	parliamentView = {}; seatView = {}; thresholdView = {}; tppView = {};
+	voteShareView = {}; seatWinTableView = {}; seatWinGraphView = {};
+	seatFpTableView = {}; seatFpGraphView = {}; completionTableView = {};
+	completionGraphView = {}; categoryStatTableView = {}; categoryStatGraphView = {};
+	internal2ppView = {}; graphModel = {}; tableLayout = {};
+	thresholdParties = {}; seatWinParties = {}; seatFpParties = {}; seatWinSeats = {};
+}
+
+void LiveBoothFrame::prepareSelectedView()
+{
+	// Retain only the table or graph currently displayed. Node Inspector needs
+	// the compact run metadata and builds none of the election-wide views.
+	clearCachedViews();
+	if (mode == Mode::Parliament) parliamentView = LiveSnapshot::buildParliamentView(loadResult.records);
+	else if (mode == Mode::SeatExpectations) seatView = LiveSnapshot::buildSeatExpectationView(loadResult.records);
+	else if (mode == Mode::Tpp) tppView = LiveSnapshot::buildTppView(loadResult.records);
+	else if (mode == Mode::VoteShares) voteShareView = LiveSnapshot::buildVoteShareView(loadResult.records);
+	else if (mode == Mode::Internal2pp) internal2ppView = LiveSnapshot::buildInternal2ppView(loadResult.records);
+	else if (mode == Mode::SeatThresholds) syncThresholdView();
+	else if (mode == Mode::SeatWinChance) syncSeatWinViews();
+	else if (mode == Mode::SeatFp) syncSeatFpViews();
+	else if (isCompletionMode()) syncCompletionViews();
+	else if (isCategoryStatMode()) syncCategoryStatViews();
+}
+
 void LiveBoothFrame::rebuildPresentation()
 {
+	prepareSelectedView();
+	if (!showingSummaryMode()) return;
 	auto const& view = activeTableView();
-	tableLayout = LiveSnapshot::makeParliamentLayout(view);
+	if (summaryDisplay == SummaryDisplay::Table) {
+		tableLayout = LiveSnapshot::makeParliamentLayout(view);
+		if (isWideSeatTableMode()) tableLayout.frozenColumns = 1;
+		return;
+	}
 	if (isCompletionMode()) {
 		tableLayout.frozenColumns = 1;
 		graphModel = LiveSnapshot::makeCompletionGraph(completionGraphView);
@@ -1098,12 +1151,11 @@ void LiveBoothFrame::syncSeatWinViews()
 		selectedSeatWinSeatName = seatWinSeats.empty() ? "" : seatWinSeats.front();
 	}
 
-	seatWinTableView = LiveSnapshot::buildSeatWinChanceView(
-		loadResult.records, selectedSeatWinTablePartyIndex);
 	std::optional<int> graphParty;
 	if (!seatWinGraphAllParties) graphParty = selectedSeatWinGraphPartyIndex;
-	seatWinGraphView = LiveSnapshot::buildSeatWinChanceGraphView(
-		loadResult.records, selectedSeatWinSeatName, graphParty);
+	if (summaryDisplay == SummaryDisplay::Table)
+		seatWinTableView = LiveSnapshot::buildSeatWinChanceView(loadResult.records, selectedSeatWinTablePartyIndex);
+	else seatWinGraphView = LiveSnapshot::buildSeatWinChanceGraphView(loadResult.records, selectedSeatWinSeatName, graphParty);
 }
 
 void LiveBoothFrame::syncSeatFpViews()
@@ -1141,12 +1193,11 @@ void LiveBoothFrame::syncSeatFpViews()
 		selectedSeatWinSeatName = seatWinSeats.empty() ? "" : seatWinSeats.front();
 	}
 
-	seatFpTableView = LiveSnapshot::buildSeatFpView(
-		loadResult.records, selectedSeatFpTablePartyIndex);
 	std::optional<int> graphParty;
 	if (!seatFpGraphAllParties) graphParty = selectedSeatFpGraphPartyIndex;
-	seatFpGraphView = LiveSnapshot::buildSeatFpGraphView(
-		loadResult.records, selectedSeatWinSeatName, graphParty);
+	if (summaryDisplay == SummaryDisplay::Table)
+		seatFpTableView = LiveSnapshot::buildSeatFpView(loadResult.records, selectedSeatFpTablePartyIndex);
+	else seatFpGraphView = LiveSnapshot::buildSeatFpGraphView(loadResult.records, selectedSeatWinSeatName, graphParty);
 }
 
 void LiveBoothFrame::syncCompletionViews()
@@ -1165,9 +1216,9 @@ void LiveBoothFrame::syncCompletionViews()
 	}
 
 	char const* const key = completionValueKey();
-	completionTableView = LiveSnapshot::buildSeatCompletionView(loadResult.records, key);
-	completionGraphView = LiveSnapshot::buildSeatCompletionGraphView(
-		loadResult.records, selectedSeatWinSeatName, key);
+	if (summaryDisplay == SummaryDisplay::Table)
+		completionTableView = LiveSnapshot::buildSeatCompletionView(loadResult.records, key);
+	else completionGraphView = LiveSnapshot::buildSeatCompletionGraphView(loadResult.records, selectedSeatWinSeatName, key);
 }
 
 void LiveBoothFrame::syncCategoryStatViews()
@@ -1176,10 +1227,9 @@ void LiveBoothFrame::syncCategoryStatViews()
 	auto const grouping = categoryGroupByType ?
 		LiveSnapshot::CategoryStatGrouping::ByCategory :
 		LiveSnapshot::CategoryStatGrouping::ByStatistic;
-	categoryStatTableView = LiveSnapshot::buildCategoryStatTableView(
-		loadResult.records, key, grouping);
-	categoryStatGraphView = LiveSnapshot::buildCategoryStatGraphView(
-		loadResult.records, key, categoryGraphStatistic);
+	if (summaryDisplay == SummaryDisplay::Table)
+		categoryStatTableView = LiveSnapshot::buildCategoryStatTableView(loadResult.records, key, grouping);
+	else categoryStatGraphView = LiveSnapshot::buildCategoryStatGraphView(loadResult.records, key, categoryGraphStatistic);
 }
 
 bool LiveBoothFrame::isSeatMetricMode() const
@@ -1219,10 +1269,11 @@ char const* LiveBoothFrame::categoryStatArrayKey() const
 LiveSnapshot::ParliamentView const& LiveBoothFrame::activeTableView() const
 {
 	if (mode == Mode::Internal2pp) return internal2ppView;
-	if (isCategoryStatMode()) return categoryStatTableView;
-	if (isCompletionMode()) return completionTableView;
-	if (mode == Mode::SeatFp) return seatFpTableView;
-	if (mode == Mode::SeatWinChance) return seatWinTableView;
+	bool const graph = summaryDisplay == SummaryDisplay::Graph;
+	if (isCategoryStatMode()) return graph ? categoryStatGraphView : categoryStatTableView;
+	if (isCompletionMode()) return graph ? completionGraphView : completionTableView;
+	if (mode == Mode::SeatFp) return graph ? seatFpGraphView : seatFpTableView;
+	if (mode == Mode::SeatWinChance) return graph ? seatWinGraphView : seatWinTableView;
 	if (mode == Mode::VoteShares) return voteShareView;
 	if (mode == Mode::Tpp) return tppView;
 	if (mode == Mode::SeatThresholds) return thresholdView;

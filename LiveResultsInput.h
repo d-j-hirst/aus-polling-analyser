@@ -40,6 +40,10 @@ std::string portableDirectory(std::string_view setting);
 
 bool supportsDirectoryFeed(std::string const& regionCode);
 
+// Replay streams only the jurisdiction's detailed results XML from a ZIP.
+// Aggregate-only and upper-house VEC members cannot provide booth observations.
+bool isSnapshotResultsXml(std::string_view memberName, std::string_view regionCode);
+
 // Selects the current jurisdiction feed, preferring the greatest timestamp
 // where the official filename contains one.
 std::optional<CurrentFile> findCurrentFile(

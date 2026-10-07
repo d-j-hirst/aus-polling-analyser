@@ -1411,11 +1411,35 @@ int main()
 		0.0);
 	compactDoc.erase("live_analysis");
 	compactDoc["simulation_report"]["seat_name"] = json::array({"Adelaide"});
+	// The retained viewer summary must not grow with fields used only by
+	// external diagnostics. Seat metrics preserve zeros, omissions and errors
+	// while dropping their source JSON and repeated party labels.
+	compactDoc["simulation_report"]["modelled_polls"] = std::string(100000, 'x');
+	compactDoc["simulation_report"]["seat_party_win_percent"] = json::array({json::array({
+		outcome(0, 0.0), outcome(1, json{{"non_finite", "nan"}}),
+		outcome(2, nullptr), outcome(3, json{{"non_finite", "custom_marker"}}),
+		outcome(4, "malformed")
+	})});
+	compactDoc["simulation_report"]["seat_party_mean_fp_share"] = json::array({
+		json::array({outcome(0, 42.1234567890123)})
+	});
 	writeJson(compactDir / "snapshot_20260402143211__run_a.json", compactDoc);
 	auto compactLoaded = loadDirectory(
 		compactDir, "Live Simulation", "compact-summary");
 	assert(compactLoaded.records.size() == 1);
 	assert(!compactLoaded.records[0].document.contains("live_analysis"));
+	auto const& compactRecord = compactLoaded.records[0];
+	auto const& compactReport = compactRecord.document["simulation_report"];
+	assert(!compactReport.contains("modelled_polls"));
+	assert(!compactReport.contains("seat_party_win_percent"));
+	assert(!compactReport.contains("seat_party_mean_fp_share"));
+	assert(compactRecord.seatWinChances.seats[0].size() == 5);
+	assert(compactRecord.seatFpShares.seats[0][0].value == 42.1234567890123);
+	assert(buildSeatWinChanceView(compactLoaded.records, 0).cells[0][1].text == formatPercent(0.0));
+	assert(buildSeatWinChanceView(compactLoaded.records, 1).cells[0][1].text == "nan");
+	assert(buildSeatWinChanceView(compactLoaded.records, 2).cells[0][1].text == formatPercent(0.0));
+	assert(buildSeatWinChanceView(compactLoaded.records, 3).cells[0][1].text == "custom_marker");
+	assert(buildSeatWinChanceView(compactLoaded.records, 4).cells[0][1].text == "invalid");
 	auto compactSummary = inspectorSummary(compactLoaded.records[0]);
 	assert(compactSummary);
 	assert(compactSummary->boothCount == 1);

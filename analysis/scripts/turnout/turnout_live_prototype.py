@@ -19,7 +19,9 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import scipy
 
+from lib import live_analysis_archive
 from lib.paths import ANALYSIS_DIRECTORY, REPOSITORY_DIRECTORY
+from lib.live_analysis_archive import analysis_path_for_snapshot, load_json
 from lib.turnout import category_policy, live, prior, maintained_parameters
 from lib.turnout.paths import download_directory
 from scripts.turnout import turnout_live_report
@@ -43,7 +45,7 @@ def digest(path):
 
 
 def read_json(path):
-    return json.loads(Path(path).read_text(encoding='utf-8'))
+    return load_json(path)
 
 
 def vote_sum(node, field):
@@ -363,7 +365,7 @@ def run(args):
     if not by_stamp:
         raise ValueError('No SA replay exports within the requested dates.')
     first = by_stamp[min(by_stamp)]
-    template_path = first.with_suffix('.analysis.json')
+    template_path = analysis_path_for_snapshot(first)
     template = read_json(template_path)
     if any(vote_sum(b['node'], 'fp_votes_current') for b in template['booths']):
         raise ValueError('The earliest export must be a no-results allocation template.')
@@ -380,7 +382,7 @@ def run(args):
     snapshots, provenance = [], {}
     for stamp in selected:
         main_path = by_stamp[stamp]
-        sidecar = main_path.with_suffix('.analysis.json')
+        sidecar = analysis_path_for_snapshot(main_path)
         main, analysis = read_json(main_path), read_json(sidecar)
         if main['run']['term_code'] != '2026sa' or main['run']['snapshot_code'] != stamp:
             raise ValueError('Export run identity disagrees with its filename.')
@@ -439,7 +441,7 @@ def run(args):
         provenance[stamp] = {str(p): digest(p) for p in (main_path, sidecar, source_path)}
     paths = [args.fixture, template_path, previous_path, args.final_counts, final_booth_path,
              Path(__file__), Path(live.__file__), Path(prior.__file__), Path(category_policy.__file__),
-             Path(turnout_live_report.__file__)]
+             Path(turnout_live_report.__file__), Path(live_analysis_archive.__file__)]
     return dict(model_version=live.MODEL_VERSION, prior_model=prior.MODEL_VERSION,
                 compensation=live.compensation_configuration(),
                 config=dict(samples=args.samples, seed=args.seed, prior_equivalent_booths=args.prior_booths,

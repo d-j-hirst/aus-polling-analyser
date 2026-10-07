@@ -11,7 +11,8 @@ namespace {
 
 void LivePreparationBridge::validateAutomaticSetup(
 	PollingProject const&,
-	Simulation const&)
+	Simulation const&,
+	std::optional<LiveResultsInput::CurrentFile> const&)
 {
 	rejectLivePreparation();
 }

@@ -39,12 +39,21 @@ void LiveV2::Election::prepareTurnout(Results2::Election const& currentElection)
     std::vector<int> boothIndexes;
     std::vector<bool> finalised(prior.seats.size());
     std::set<int> matchedBooths;
+    auto enrolmentRevisions = nlohmann::json::array();
     for (std::size_t s = 0; s < prior.seats.size(); ++s) {
         if (!liveSeats.contains(prior.seats[s])) throw std::runtime_error("Turnout district is absent: " + prior.seats[s]);
         auto raw = std::find_if(currentElection.seats.begin(), currentElection.seats.end(), [&](auto const& row) { return row.second.name == prior.seats[s]; });
         if (raw == currentElection.seats.end()) throw std::runtime_error("Turnout has no raw district account.");
-        if (raw->second.enrolment > 0 && raw->second.enrolment != prior.enrolment[s])
-            throw std::runtime_error("Turnout enrolment changed; regenerate the prior: " + prior.seats[s]);
+        // Authorities can revise roll figures after voting has finished. The
+        // prior's count outcomes and turnout rates were prepared against its
+        // original enrolment, so changing that denominator here would alter
+        // expectations without evidence of additional votes. Retain the fixed
+        // prior and record the source revision for inspection instead.
+        if (raw->second.enrolment > 0 && raw->second.enrolment != prior.enrolment[s]) {
+            enrolmentRevisions.push_back({{"seat", prior.seats[s]},
+                {"prior_enrolment", prior.enrolment[s]}, {"source_enrolment", raw->second.enrolment},
+                {"difference", raw->second.enrolment - prior.enrolment[s]}});
+        }
         finalised[s] = raw->second.fpFinalised;
     }
     TurnoutModel::Observation current; current.hour = now;
@@ -84,6 +93,11 @@ void LiveV2::Election::prepareTurnout(Results2::Election const& currentElection)
     diagnostic["history_observations_used"] = history.size();
     diagnostic["observation_mapping"] = mapping;
     diagnostic["history_policy"] = "Earlier received source observations only; current checked counts replace this source time.";
+    diagnostic["enrolment_policy"] = "Use fixed pre-election prior enrolment; source roll revisions do not rescale vote expectations.";
+    if (!enrolmentRevisions.empty())
+        logger << "Turnout retains prior enrolment after source roll revisions in "
+            << enrolmentRevisions.size() << " districts.\n";
+    diagnostic["enrolment_revisions"] = std::move(enrolmentRevisions);
     diagnostic["seconds"] = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
     logger << "Turnout preparation: " << diagnostic["seconds"] << " seconds\n";
     turnoutDiagnostic = std::make_shared<nlohmann::json const>(std::move(diagnostic));

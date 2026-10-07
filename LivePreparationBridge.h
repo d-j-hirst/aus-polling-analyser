@@ -1,5 +1,7 @@
 #pragma once
 
+#include "LiveResultsInput.h"
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -18,7 +20,8 @@ namespace LivePreparationBridge {
 
 	void validateAutomaticSetup(
 		PollingProject const& project,
-		Simulation const& simulation);
+		Simulation const& simulation,
+		std::optional<LiveResultsInput::CurrentFile> const& snapshot = {});
 
 	void prepareAutomatic(
 		PollingProject& project,

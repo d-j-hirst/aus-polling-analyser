@@ -11,6 +11,20 @@
 #include <utility>
 
 namespace LiveResultsInput {
+
+bool isSnapshotResultsXml(std::string_view memberName, std::string_view regionCode)
+{
+	// Match member names without extracting their paths. Case normalization
+	// accommodates the spelling used by different archive collectors.
+	std::string name(memberName);
+	std::transform(name.begin(), name.end(), name.begin(),
+		[](unsigned char c) { return char(std::tolower(c)); });
+	if (name.size() < 4 || name.substr(name.size() - 4) != ".xml") return false;
+	if (regionCode == "fed") return name.find("aec-mediafeed-results-detailed") != std::string::npos;
+	if (regionCode == "vic") return name.find("mediafilelitepplh_") != std::string::npos;
+	return false;
+}
+
 namespace {
 
 constexpr std::string_view HomeTag = "<HOME>";

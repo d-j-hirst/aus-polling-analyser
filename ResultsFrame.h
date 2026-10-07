@@ -14,6 +14,10 @@
 #endif
 
 #include <memory>
+#include <chrono>
+#include <wx/timer.h>
+#include <wx/utils.h>
+#include <wx/gauge.h>
 #include "GenericChildFrame.h"
 #include "PollingProject.h"
 #include "ProjectFrame.h"
@@ -56,14 +60,16 @@ private:
 	// Runs all "live" simulations found
 	void OnRunLiveSimulations(wxCommandEvent& event);
 
-	// Advances archived SA snapshots and runs automatic-live simulations for
-	// each one. Initial and out-of-sequence selection remains manual.
-	void runLiveSnapshotBatch();
-
+	void OnConfigureSnapshotSequence(wxCommandEvent& event);
+	void OnRunSnapshotSequence(wxCommandEvent& event);
+	void OnNextSnapshot(wxTimerEvent& event);
+	void beginSnapshotRuns();
+	std::string snapshotElection() const;
+	void ensureSnapshotOutputFolders(std::string const& election);
+	void finishSnapshotSequence(std::string const& message);
 	bool runLiveSimulations(
-		bool automaticOnly = false,
+		std::optional<LiveResultsInput::CurrentFile> const& snapshot = {},
 		std::string* failureMessage = nullptr);
-
 	void finishLiveSimulationRun();
 
 	// Adds the currently entered result to the records
@@ -131,6 +137,20 @@ private:
 
 	// Allows actions in this frame to trigger refreshes in other frames
 	ProjectFrame::Refresher refresher;
+
+	// Timer-driven replay owns its progress UI and pins a resolved file list.
+	wxTimer snapshotTimer;
+	std::vector<LiveResultsInput::CurrentFile> snapshotFiles;
+	std::size_t snapshotIndex = 0;
+	bool snapshotRunning = false;
+	bool snapshotStopRequested = false;
+	std::optional<std::chrono::steady_clock::time_point> snapshotStartDeadline;
+	wxDialog* snapshotProgress = nullptr;
+	wxTextCtrl* snapshotStatus = nullptr;
+	wxGauge* snapshotGauge = nullptr;
+	wxButton* snapshotStop = nullptr;
+	wxButton* snapshotStartNow = nullptr;
+	std::unique_ptr<wxWindowDisabler> snapshotDisabler;
 
 	// Text box used to enter the name of a seat to input results for
 	wxTextCtrl* seatNameTextCtrl = nullptr;

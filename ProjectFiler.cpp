@@ -76,7 +76,8 @@
 // Version 64: save candidate names in simulation reports
 // Version 65: save each simulation's current-results input directory
 // Version 66: save each simulation's live diagnostic output folder
-constexpr int VersionNum = 66;
+// Version 67: save the project-level live snapshot sequence
+constexpr int VersionNum = 67;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -100,6 +101,8 @@ void ProjectFiler::save(std::string filename)
 	saveSimulations(saveOutput);
 	saveOutcomes(saveOutput);
 	saveElections(saveOutput);
+	// Append replay settings so older project layouts keep their existing fields.
+	LiveSnapshotSequence::saveSettings(saveOutput, project.liveSnapshotSequence);
 }
 
 void ProjectFiler::open(std::string filename)
@@ -122,6 +125,7 @@ void ProjectFiler::open(std::string filename)
 	loadSimulations(saveInput, versionNum);
 	loadOutcomes(saveInput, versionNum);
 	loadElections(saveInput, versionNum);
+	project.liveSnapshotSequence = LiveSnapshotSequence::loadSettings(saveInput, versionNum);
 
 	auto forecastImport =
 		ForecastSpecificationImporter::importForProject(project);

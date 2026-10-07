@@ -467,6 +467,9 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 
 void SimulationIteration::determineFedStateCorrelation()
 {
+	// Federal booth swings mapped onto state seats provide evidence of local
+	// voting trends. Give that evidence less weight when the federal election
+	// is further from the projection date; an unspecified date disables it.
 	auto fedElectionDate = sim.settings.fedElectionDate;
 	if (!fedElectionDate.isValid()) {
 		fedStateCorrelation = 0.0f;

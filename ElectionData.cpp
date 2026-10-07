@@ -19,6 +19,9 @@ std::map<std::string, Results2::VoteType> typeNameToVoteType = {
   {"PrePoll", Results2::VoteType::PrePoll},
   {"Postal", Results2::VoteType::Postal},
   {"Early", Results2::VoteType::Early},
+  // VEC reports this declaration service separately. Preserve its counted
+  // candidate votes rather than silently dropping an unrecognised category.
+  {"MarkedAsVoted", Results2::VoteType::MarkedAsVoted},
   {"iVote", Results2::VoteType::IVote}
 };
 
@@ -362,6 +365,11 @@ void Results2::Election::preload2022Vic(tinyxml2::XMLDocument const& input_candi
   };
   auto const& eml = requiredChild(input_candidates, "EML", "VEC candidate preload");
   auto const& candidateList = requiredChild(eml, "CandidateList", "VEC candidate preload/EML");
+  // The preload owns the election identity used to check replay captures.
+  // Previously VEC retained the default zero until its first results update.
+  id = requiredIntAttribute(requiredChild(candidateList, "EventIdentifier",
+    "VEC candidate preload/EML/CandidateList"), "Id",
+    "VEC candidate preload/EML/CandidateList/EventIdentifier", 0);
   auto const& election = requiredChild(candidateList, "Election", "VEC candidate preload/EML/CandidateList");
   auto currentContest = election.FirstChildElement("Contest");
   if (!currentContest) throwInvalidXml("VEC candidate preload/EML/CandidateList/Election", "missing <Contest>");
@@ -557,6 +565,7 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
         if (boothName == "Absent Votes") voteType = VoteType::Absent;
         if (boothName == "Early Votes") voteType = VoteType::Early;
         if (boothName == "Provisional Votes") voteType = VoteType::Provisional;
+        if (boothName == "Marked As Voted Votes") voteType = VoteType::MarkedAsVoted;
         if (voteType == VoteType::Invalid) continue;
         auto fps = boothValue["fp"];
         for (auto const& [fpCandIndex, fpVotes] : fps.items()) {

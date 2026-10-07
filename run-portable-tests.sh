@@ -71,6 +71,8 @@ run_test LiveDataTests
 run_test LivePreferenceCorrectionTests
 run_test LiveResultsInputTests
 run_test LiveRunExportTests
+run_test LiveAnalysisArchiveTests
+run_test LiveSnapshotSequenceTests
 run_test LiveSnapshotDataTests
 run_test MacroTargetResolverTests
 run_test RandomGeneratorTests

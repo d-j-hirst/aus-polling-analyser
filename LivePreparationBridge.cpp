@@ -21,10 +21,11 @@ namespace {
 
 void LivePreparationBridge::validateAutomaticSetup(
 	PollingProject const& project,
-	Simulation const& simulation)
+	Simulation const& simulation,
+	std::optional<LiveResultsInput::CurrentFile> const& snapshot)
 {
 	translateLivePreparationException([&] {
-		LivePreparation::validateAutomaticSetup(project, simulation);
+		LivePreparation::validateAutomaticSetup(project, simulation, snapshot);
 	});
 }
 

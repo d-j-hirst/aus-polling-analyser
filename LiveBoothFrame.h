@@ -53,6 +53,7 @@ private:
 	void OnResize(wxSizeEvent& event);
 	void OnModeSelected(wxCommandEvent& event);
 	void OnRunSelected(wxCommandEvent& event);
+	void OnSimulationSelected(wxCommandEvent& event);
 	void OnViewSelected(wxCommandEvent& event);
 	void OnPartySelected(wxCommandEvent& event);
 	void OnSeatSelected(wxCommandEvent& event);
@@ -78,6 +79,8 @@ private:
 	void restoreSeatCombo();
 	void restoreShadingCombo();
 	void restoreLayoutCombo();
+	void clearCachedViews();
+	void prepareSelectedView();
 	void rebuildPresentation();
 	void syncThresholdView();
 	void syncSeatWinViews();
@@ -112,6 +115,9 @@ private:
 	wxPanel* inspectorBar = nullptr;
 	wxPanel* parliamentBar = nullptr;
 	wxStaticText* modeLabel = nullptr;
+	wxComboBox* simulationComboBox = nullptr;
+	std::vector<Simulation::Id> snapshotSimulationIds;
+	Simulation::Id snapshotSimulationId = Simulation::InvalidId;
 	wxComboBox* modeComboBox = nullptr;
 	wxStaticText* runLabel = nullptr;
 	wxComboBox* runComboBox = nullptr;

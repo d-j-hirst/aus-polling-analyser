@@ -2,6 +2,8 @@
 
 #include "Date.h"
 #include "LiveData.h"
+#include "LiveResultsInput.h"
+#include <optional>
 #include "Party.h"
 
 #include <array>
@@ -159,8 +161,12 @@ public:
 		DiagnosticTest
 	};
 
-	SimulationRun(PollingProject& project, Simulation& simulation, bool doingBettingOddsCalibrations = false, bool doingLiveBaselineSimulation = false) :
-		project(project), sim(simulation), doingBettingOddsCalibrations(doingBettingOddsCalibrations), doingLiveBaselineSimulation(doingLiveBaselineSimulation) {}
+	SimulationRun(PollingProject& project, Simulation& simulation, bool doingBettingOddsCalibrations = false, bool doingLiveBaselineSimulation = false,
+		std::optional<LiveResultsInput::CurrentFile> snapshot = {}) :
+		snapshotInput(std::move(snapshot)), project(project), sim(simulation), doingBettingOddsCalibrations(doingBettingOddsCalibrations), doingLiveBaselineSimulation(doingLiveBaselineSimulation) {}
+
+	// A replay pins one local source for this run without modifying saved URLs.
+	std::optional<LiveResultsInput::CurrentFile> const& getSnapshotInput() const { return snapshotInput; }
 
 	// A run owns mutex-protected accumulators and must not be copied while
 	// worker threads may be writing to it.
@@ -183,6 +189,7 @@ public:
 	LiveData::Provider const* getLiveElection() const { return liveElection.get(); }
 
 private:
+	std::optional<LiveResultsInput::CurrentFile> snapshotInput;
 
 	bool runIterations(
 		SimulationRun& iterationRun,

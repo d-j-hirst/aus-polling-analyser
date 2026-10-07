@@ -19,6 +19,8 @@ import math
 from pathlib import Path
 import statistics
 
+from lib.live_analysis_archive import analysis_files, loads, main_path_for_analysis
+
 
 def vote_map(rows, independent):
     """Use the forecast's principal-independent identity consistently over time."""
@@ -73,8 +75,8 @@ def log_odds_change(votes, party_a, transfer):
 def load_frame(path):
     """Retain only the identities and counts needed for these comparisons."""
     content = path.read_bytes()
-    analysis = json.loads(content)
-    report = json.loads(path.with_name(path.name.replace('.analysis.json', '.json')).read_text(encoding='utf-8'))
+    analysis = loads(content, compressed=path.suffix == '.gz')
+    report = json.loads(main_path_for_analysis(path).read_text(encoding='utf-8'))
     independent = {s['name']: s['live_independent_party_index'] for s in analysis['seats']}
     seats = {}
     for seat in analysis['seats']:
@@ -170,7 +172,7 @@ def compare_frames(before, after):
 def audit_series(folder):
     """Use the most recent saved run for each source time; do not double-count reruns."""
     paths = {}
-    for path in sorted(folder.glob('*.analysis.json')):
+    for path in analysis_files(folder):
         paths[path.name.split('__')[0]] = path
     frames = [load_frame(path) for _, path in sorted(paths.items())]
     if not frames:

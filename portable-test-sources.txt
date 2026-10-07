@@ -8,6 +8,8 @@ LiveDataTests
 LivePreferenceCorrectionTests
 LiveResultsInputTests
 LiveRunExportTests
+LiveAnalysisArchiveTests
+LiveSnapshotSequenceTests
 LiveSnapshotDataTests
 MacroTargetResolverTests
 RandomGeneratorTests

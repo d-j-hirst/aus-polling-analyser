@@ -28,6 +28,7 @@ enum class VoteType : int {
 	EarlyProvisional = 10,
 	EVM = 11,
 	TIO = 12,
+	MarkedAsVoted = 13,
 };
 
 // Numeric values preserve the existing Results2::Booth::Type representation.
@@ -56,6 +57,7 @@ constexpr std::string_view voteTypeName(VoteType voteType)
 	case VoteType::EarlyProvisional: return "Early Provisional";
 	case VoteType::EVM: return "EVM";
 	case VoteType::TIO: return "TIO";
+	case VoteType::MarkedAsVoted: return "Marked as voted";
 	case VoteType::Invalid: return "Invalid";
 	}
 	return "Invalid";

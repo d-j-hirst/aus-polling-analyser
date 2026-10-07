@@ -7,6 +7,7 @@
 
 static_assert(int(LiveData::VoteType::Invalid) == 0);
 static_assert(int(LiveData::VoteType::TIO) == 12);
+static_assert(int(LiveData::VoteType::MarkedAsVoted) == 13);
 static_assert(int(LiveData::BoothType::Normal) == 0);
 static_assert(int(LiveData::BoothType::Invalid) == 6);
 
@@ -14,6 +15,7 @@ int main()
 {
 	assert(LiveData::voteTypeName(LiveData::VoteType::PrePoll) == "PrePoll");
 	assert(LiveData::voteTypeName(LiveData::VoteType::IVote) == "iVote");
+	assert(LiveData::voteTypeName(LiveData::VoteType::MarkedAsVoted) == "Marked as voted");
 	assert(LiveData::boothTypeName(LiveData::BoothType::Ppvc) == "PPVC");
 
 	LiveData::BoothSnapshot snapshot;

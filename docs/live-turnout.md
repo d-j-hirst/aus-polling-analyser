@@ -10,7 +10,9 @@ A **prior** is the fixed pre-election distribution of possible final formal vote
 
 An input **unit** is an ordinary booth, a pre-poll voting centre (PPVC), or a declaration category such as Postal. Its metadata identifies its district, category group, expected share of that group, historical match, electoral-assistance voting (EAV) service status and any known closure or calibration exclusion. A **category group** is a division supported by historical results; finer splits that were not reported historically must not be invented as observed voter behaviour.
 
-Each election requires `forecasts/<election>/live-inputs/turnout-prior.json`. The live run selects this path using its own election code. A missing prior, incompatible mapping or changed enrolment produces an input error. Election timetables, category definitions and service exceptions are data in this input, rather than election-code branches in the turnout calculation.
+Each election requires `forecasts/<election>/live-inputs/turnout-prior.json`. The live run selects this path using its own election code. A missing prior or incompatible mapping produces an input error. Election timetables, category definitions and service exceptions are data in this input, rather than election-code branches in the turnout calculation.
+
+The prior retains the enrolment used when its vote-count expectations were prepared. Authorities may revise published roll figures during or after counting; those revisions do not themselves report extra ballots and do not rescale the fixed prior. Differences between positive source enrolment and prior enrolment are recorded by district in the turnout diagnostic's `enrolment_revisions`, with a summary in the application log. A missing source figure is not recorded as a zero enrolment. Update the prepared inputs explicitly if their original enrolment was incorrect.
 
 Prepare the prior from a normalized configuration with the maintained parameter preset suited to its category definitions. Run from `analysis/`:
 
@@ -29,6 +31,8 @@ The configuration contains:
 The command draws the distribution without fitting a model or reading retrospective reports, prototype allocations or archived snapshots. Its output records configuration, maintained-parameter and preparation-code hashes. Regeneration is appropriate when the election's input mapping or pre-election evidence changes; live observations never overwrite the prior.
 
 The live source must also supply a timestamp for measuring counting activity. MediaFeed sources retain their `Created` time; Queensland retains `generationDateTime`, including fractional seconds. Zoned timestamps require normalization to the configured local clock before use. A source without a published time needs an explicitly retained collector timestamp; a saved forecast's old display date is not a substitute.
+
+Victorian results retain the VEC's combined Early category rather than inventing individual early-voting centres. The loader also preserves the separately reported `MarkedAsVoted` candidate counts; historical `Marked As Voted Votes` records use the same vote type. These counts enter the normal declaration accounting and remain distinct from Provisional votes.
 
 The fictional configuration in `tests/fixtures/turnout/live-inputs-example.json` demonstrates the format without requiring authorised feeds:
 

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ElectionData.h"
+#include "LiveResultsInput.h"
+#include <optional>
 
 #include "tinyxml2.h"
 
@@ -22,7 +24,8 @@ public:
 	};
 
 	LivePreparation(PollingProject& project, Simulation& sim, SimulationRun& run);
-	static void validateAutomaticSetup(PollingProject const& project, Simulation const& sim);
+	static void validateAutomaticSetup(PollingProject const& project, Simulation const& sim,
+        std::optional<LiveResultsInput::CurrentFile> const& snapshot = {});
 	void prepareLiveAutomatic();
 
 private:
@@ -34,6 +37,7 @@ private:
 	void downloadPollingPlaces();
 	void parsePollingPlaces();
 	void acquireCurrentResults();
+	void acquireSnapshot(LiveResultsInput::CurrentFile const& snapshot);
 	void downloadLatestResults();
 	void parseCurrentResults();
 

@@ -45,9 +45,21 @@ bool isSnapshotFilename(std::string const& filename)
 		!lower.ends_with(".analysis.json");
 }
 
-bool isHeavySnapshotKey(std::string_view key)
+bool isViewerReportKey(std::string_view key)
 {
-	return key == "live_analysis" || key == "live_baseline_report";
+	// The archives retain the complete report. Parsing for the GUI keeps only
+	// fields read by its tables and graphs, plus the two arrays converted to
+	// compact seat histories when a record is loaded.
+	constexpr std::string_view keys[] = {
+		"majority_percent", "minority_percent", "most_seats_percent", "tied_percent",
+		"party_win_expectation", "coalition_win_expectation",
+		"party_win_median", "coalition_win_median",
+		"party_seat_win_frequency", "coalition_seat_win_frequency",
+		"tpp_frequency", "party_primary_frequency", "coalition_fp_frequency",
+		"seat_name", "seat_party_win_percent", "seat_party_mean_fp_share",
+		"seat_fp_completion", "seat_tpp_completion", "seat_tcp_completion"
+	};
+	return std::find(std::begin(keys), std::end(keys), key) != std::end(keys);
 }
 
 std::optional<int> jsonInt(json const& value)
@@ -70,14 +82,20 @@ std::optional<std::string> jsonString(json const& value)
 json parseSnapshotJson(std::istream& stream)
 {
 	bool skipValue = false;
+	bool inReport = false;
 	return json::parse(stream,
 		[&](int depth, json::parse_event_t event, json& parsed) {
 			if (event == json::parse_event_t::key &&
-				depth == 1 &&
-				parsed.is_string() &&
-				isHeavySnapshotKey(parsed.get<std::string>())) {
-				skipValue = true;
-				return false;
+				parsed.is_string()) {
+				auto const key = parsed.get<std::string>();
+				if (depth == 1) inReport = key == "simulation_report";
+				bool const unusedRoot = depth == 1 &&
+					key != "format_version" && key != "run" && key != "parties" &&
+					key != "simulation_report" && key != "live_analysis_summary";
+				if (unusedRoot || (depth == 2 && inReport && !isViewerReportKey(key))) {
+					skipValue = true;
+					return false;
+				}
 			}
 			if (skipValue &&
 				(event == json::parse_event_t::object_start ||
@@ -142,16 +160,30 @@ void applyLiveAnalysisSummary(SnapshotRecord& record, json const& document)
 
 json slimSnapshotDocument(json document)
 {
+	// Identity and run metadata have already been copied into SnapshotRecord.
+	// Small report values remain JSON, while the large seat/party arrays are
+	// extracted into numeric vectors before this summary is retained.
 	json slim = json::object();
-	if (document.contains("format_version")) {
-		slim["format_version"] = std::move(document["format_version"]);
-	}
-	if (document.contains("run")) slim["run"] = std::move(document["run"]);
-	if (document.contains("parties")) {
-		slim["parties"] = std::move(document["parties"]);
-	}
 	if (document.contains("simulation_report")) {
-		slim["simulation_report"] = std::move(document["simulation_report"]);
+		auto& report = document["simulation_report"];
+		if (report.is_object()) {
+			for (auto item = report.begin(); item != report.end();) {
+				if (!isViewerReportKey(item.key()) || item.key() == "seat_party_win_percent" ||
+					item.key() == "seat_party_mean_fp_share") item = report.erase(item);
+				else ++item;
+			}
+			// Small party arrays also repeat labels. The record's party catalog
+			// supplies those labels; only IDs, values and histogram counts matter.
+			for (auto& field : report.items()) {
+				if (!field.value().is_array()) continue;
+				for (auto& value : field.value()) {
+					if (!value.is_object() || !value.contains("party_index")) continue;
+					value.erase("name");
+					value.erase("abbreviation");
+				}
+			}
+		}
+		slim["simulation_report"] = std::move(report);
 	}
 	if (document.contains("live_analysis_summary")) {
 		slim["live_analysis_summary"] =
@@ -242,6 +274,38 @@ ParsedNumber parseNumber(json const& value)
 	parsed.kind = NumberKind::NonFinite;
 	parsed.tag = "invalid";
 	return parsed;
+}
+
+SeatPartyValues parseSeatPartyValues(json const& values)
+{
+	// Convert one source file at a time. Retain array order and distinguish
+	// missing values from diagnostic failures, as the existing display does.
+	SeatPartyValues result;
+	if (!values.is_array()) return result;
+	result.seats.resize(values.size());
+	for (std::size_t seatIndex = 0; seatIndex < values.size(); ++seatIndex) {
+		if (!values[seatIndex].is_array()) continue;
+		auto& seat = result.seats[seatIndex];
+		seat.reserve(values[seatIndex].size());
+		for (auto const& item : values[seatIndex]) {
+			if (!item.is_object() || !item.contains("party_index")) continue;
+			auto const party = jsonInt(item["party_index"]);
+			if (!party) continue;
+			auto const number = item.contains("value") ? parseNumber(item["value"]) : ParsedNumber{};
+			if (number.kind == NumberKind::NonFinite)
+				result.diagnostics.emplace(std::make_pair(seatIndex, seat.size()), number.tag);
+			seat.push_back({*party, number.kind == NumberKind::Finite ? number.value :
+				std::numeric_limits<double>::quiet_NaN()});
+		}
+	}
+	return result;
+}
+
+enum class SeatPartyMetric { WinChance, FpShare };
+
+SeatPartyValues const& seatPartyValues(SnapshotRecord const& record, SeatPartyMetric metric)
+{
+	return metric == SeatPartyMetric::WinChance ? record.seatWinChances : record.seatFpShares;
 }
 
 ParsedNumber outcomeValue(json const& report, char const* key, int partyIndex)
@@ -601,20 +665,14 @@ SeatPartySet collectVoteSharePartySet(std::vector<SnapshotRecord> const& records
 }
 
 void collectNestedSeatParties(
-	json const& report,
-	char const* key,
+	SeatPartyValues const& values,
 	std::vector<int>& partyIndices)
 {
-	if (!report.contains(key) || !report[key].is_array()) return;
-	for (auto const& seat : report[key]) {
-		if (!seat.is_array()) continue;
+	for (auto const& seat : values.seats) {
 		for (auto const& item : seat) {
-			if (!item.is_object() || !item.contains("party_index")) continue;
-			auto const index = jsonInt(item["party_index"]);
-			if (!index) continue;
-			if (std::find(partyIndices.begin(), partyIndices.end(), *index) ==
+			if (std::find(partyIndices.begin(), partyIndices.end(), item.partyIndex) ==
 				partyIndices.end()) {
-				partyIndices.push_back(*index);
+				partyIndices.push_back(item.partyIndex);
 			}
 		}
 	}
@@ -622,7 +680,7 @@ void collectNestedSeatParties(
 
 SeatPartySet collectNestedSeatPartySet(
 	std::vector<SnapshotRecord> const& records,
-	char const* key)
+	SeatPartyMetric metric)
 {
 	SeatPartySet set;
 	std::vector<int> reportOrder;
@@ -632,12 +690,7 @@ SeatPartySet collectNestedSeatPartySet(
 				set.catalog.push_back(party);
 			}
 		}
-		if (!record.document.contains("simulation_report") ||
-			!record.document["simulation_report"].is_object()) {
-			continue;
-		}
-		collectNestedSeatParties(
-			record.document["simulation_report"], key, reportOrder);
+		collectNestedSeatParties(seatPartyValues(record, metric), reportOrder);
 	}
 
 	for (auto const& party : set.catalog) {
@@ -677,26 +730,25 @@ void appendUniqueName(std::vector<std::string>& names, std::string const& name)
 }
 
 ParsedNumber nestedSeatPartyValue(
-	json const& report,
-	char const* key,
+	SnapshotRecord const& record,
+	SeatPartyMetric metric,
 	std::string_view seatName,
 	int partyIndex)
 {
-	auto const names = seatNamesFromReport(report);
+	auto const names = seatNamesFromReport(record.document["simulation_report"]);
 	auto const found = std::find(names.begin(), names.end(), seatName);
 	if (found == names.end()) return {};
 	auto const seatIndex = std::size_t(found - names.begin());
-	if (!report.contains(key) || !report[key].is_array()) return {};
-	auto const& seats = report[key];
-	if (seatIndex >= seats.size()) return {};
-	auto const& seat = seats[seatIndex];
-	if (!seat.is_array()) return {};
-	for (auto const& item : seat) {
-		if (!item.is_object() || !item.contains("party_index")) continue;
-		auto const index = jsonInt(item["party_index"]);
-		if (!index || *index != partyIndex) continue;
-		if (!item.contains("value")) return {};
-		return parseNumber(item["value"]);
+	auto const& values = seatPartyValues(record, metric);
+	if (seatIndex >= values.seats.size()) return {};
+	auto const& seat = values.seats[seatIndex];
+	for (std::size_t index = 0; index < seat.size(); ++index) {
+		if (seat[index].partyIndex != partyIndex) continue;
+		auto const diagnostic = values.diagnostics.find({seatIndex, index});
+		if (diagnostic != values.diagnostics.end())
+			return {NumberKind::NonFinite, 0.0, diagnostic->second};
+		if (!std::isfinite(seat[index].value)) return {};
+		return {NumberKind::Finite, seat[index].value, {}};
 	}
 	return {};
 }
@@ -1060,6 +1112,11 @@ std::optional<SnapshotRecord> parseRecord(
 		run.contains("output_set") ? jsonString(run["output_set"]).value_or("") : "";
 	record.parties = parsePartyCatalog(document);
 	applyLiveAnalysisSummary(record, document);
+	auto const& report = document["simulation_report"];
+	if (report.contains("seat_party_win_percent"))
+		record.seatWinChances = parseSeatPartyValues(report["seat_party_win_percent"]);
+	if (report.contains("seat_party_mean_fp_share"))
+		record.seatFpShares = parseSeatPartyValues(report["seat_party_mean_fp_share"]);
 	record.document = slimSnapshotDocument(std::move(document));
 	return record;
 }
@@ -1263,11 +1320,11 @@ LoadResult loadDirectory(
 	return result;
 }
 
-LoadResult loadFromProject(PollingProject const& project)
+LoadResult loadFromProject(PollingProject const& project, int simulationId)
 {
 	Simulation const* selected = nullptr;
 	for (auto const& [id, simulation] : project.simulations()) {
-		if (simulation.isLive() &&
+		if ((simulationId == -1 || id == simulationId) && simulation.isLive() &&
 			!simulation.getSettings().liveOutputFolder.empty()) {
 			selected = &simulation;
 			break;
@@ -1299,6 +1356,17 @@ LoadResult loadFromProject(PollingProject const& project)
 		std::filesystem::path("live_runs") / nativeFolder);
 	auto result = loadDirectory(directory, settings.name, settings.liveOutputFolder);
 	if (result.status == LoadStatus::Ok) {
+		// Separate forecasts may deliberately share an export folder. Select
+		// their named records rather than treating one forecast as a rerun of
+		// another. A single simulation retains older records after a rename.
+		int sharing = 0;
+		for (auto const& [id, simulation] : project.simulations())
+			if (simulation.isLive() && simulation.getSettings().liveOutputFolder == settings.liveOutputFolder) ++sharing;
+		if (sharing > 1) {
+			result.records.erase(std::remove_if(result.records.begin(), result.records.end(), [&](SnapshotRecord const& record) {
+				return !record.simulationName.empty() && record.simulationName != settings.name;
+			}), result.records.end());
+		}
 		std::map<int, PartyColour> colours;
 		for (int index = 0; index < project.parties().count(); ++index) {
 			auto const& colour = project.parties().viewByIndex(index).colour;
@@ -1830,9 +1898,9 @@ ParliamentView buildVoteShareView(std::vector<SnapshotRecord> const& records)
 
 std::vector<ThresholdPartyOption> listNestedSeatParties(
 	std::vector<SnapshotRecord> const& records,
-	char const* key)
+	SeatPartyMetric metric)
 {
-	auto const parties = collectNestedSeatPartySet(records, key);
+	auto const parties = collectNestedSeatPartySet(records, metric);
 	std::vector<ThresholdPartyOption> options;
 	int independentShade = 0;
 	for (int partyIndex : parties.partyIndices) {
@@ -1849,13 +1917,13 @@ std::vector<ThresholdPartyOption> listNestedSeatParties(
 std::vector<ThresholdPartyOption> listSeatWinChanceParties(
 	std::vector<SnapshotRecord> const& records)
 {
-	return listNestedSeatParties(records, "seat_party_win_percent");
+	return listNestedSeatParties(records, SeatPartyMetric::WinChance);
 }
 
 std::vector<ThresholdPartyOption> listSeatFpParties(
 	std::vector<SnapshotRecord> const& records)
 {
-	return listNestedSeatParties(records, "seat_party_mean_fp_share");
+	return listNestedSeatParties(records, SeatPartyMetric::FpShare);
 }
 
 std::vector<std::string> listSeatWinChanceSeats(
@@ -1884,13 +1952,13 @@ ThresholdPartyOption const* findPartyOption(
 std::optional<PartyColour> nestedSeatPartyColour(
 	std::vector<SnapshotRecord> const& records,
 	int partyIndex,
-	char const* key)
+	SeatPartyMetric metric)
 {
-	auto const options = listNestedSeatParties(records, key);
+	auto const options = listNestedSeatParties(records, metric);
 	if (auto const* selected = findPartyOption(options, partyIndex)) {
 		return selected->colour;
 	}
-	auto const parties = collectNestedSeatPartySet(records, key);
+	auto const parties = collectNestedSeatPartySet(records, metric);
 	auto const* party = findParty(parties.catalog, partyIndex);
 	int independentShade = 0;
 	return resolveSeatPartyColour(party, partyIndex, independentShade);
@@ -1900,11 +1968,11 @@ ParliamentView buildSeatPartyTableView(
 	std::vector<SnapshotRecord> const& records,
 	int partyIndex,
 	ParliamentColumn::Kind kind,
-	char const* valueKey)
+	SeatPartyMetric metric)
 {
 	ParliamentView view;
 	auto const seats = listSeatWinChanceSeats(records);
-	auto const colour = nestedSeatPartyColour(records, partyIndex, valueKey);
+	auto const colour = nestedSeatPartyColour(records, partyIndex, metric);
 
 	ParliamentColumn snapshot;
 	snapshot.kind = ParliamentColumn::Kind::Snapshot;
@@ -1941,7 +2009,7 @@ ParliamentView buildSeatPartyTableView(
 			ParsedNumber number;
 			if (report) {
 				number = nestedSeatPartyValue(
-					*report, valueKey, column.header, column.partyIndex);
+					record, metric, column.header, column.partyIndex);
 			}
 			cells.push_back(cellFromNumber(number));
 		}
@@ -1956,10 +2024,10 @@ ParliamentView buildSeatPartyGraphView(
 	std::string const& seatName,
 	std::optional<int> partyIndex,
 	ParliamentColumn::Kind kind,
-	char const* valueKey)
+	SeatPartyMetric metric)
 {
 	ParliamentView view;
-	auto const parties = listNestedSeatParties(records, valueKey);
+	auto const parties = listNestedSeatParties(records, metric);
 	std::vector<ThresholdPartyOption> series;
 	if (partyIndex) {
 		if (auto const* selected = findPartyOption(parties, *partyIndex)) {
@@ -1968,7 +2036,7 @@ ParliamentView buildSeatPartyGraphView(
 		else {
 			ThresholdPartyOption option;
 			option.partyIndex = *partyIndex;
-			auto const set = collectNestedSeatPartySet(records, valueKey);
+			auto const set = collectNestedSeatPartySet(records, metric);
 			auto const* party = findParty(set.catalog, *partyIndex);
 			option.label = partyLabel(party, *partyIndex);
 			int independentShade = 0;
@@ -2015,7 +2083,7 @@ ParliamentView buildSeatPartyGraphView(
 			ParsedNumber number;
 			if (report && !seatName.empty()) {
 				number = nestedSeatPartyValue(
-					*report, valueKey, seatName, column.partyIndex);
+					record, metric, seatName, column.partyIndex);
 			}
 			cells.push_back(cellFromNumber(number));
 		}
@@ -2032,7 +2100,7 @@ ParliamentView buildSeatWinChanceView(
 	return buildSeatPartyTableView(
 		records, partyIndex,
 		ParliamentColumn::Kind::SeatWinChance,
-		"seat_party_win_percent");
+		SeatPartyMetric::WinChance);
 }
 
 ParliamentView buildSeatWinChanceGraphView(
@@ -2043,7 +2111,7 @@ ParliamentView buildSeatWinChanceGraphView(
 	return buildSeatPartyGraphView(
 		records, seatName, partyIndex,
 		ParliamentColumn::Kind::SeatWinChance,
-		"seat_party_win_percent");
+		SeatPartyMetric::WinChance);
 }
 
 ParliamentView buildSeatFpView(
@@ -2053,7 +2121,7 @@ ParliamentView buildSeatFpView(
 	return buildSeatPartyTableView(
 		records, partyIndex,
 		ParliamentColumn::Kind::SeatFp,
-		"seat_party_mean_fp_share");
+		SeatPartyMetric::FpShare);
 }
 
 ParliamentView buildSeatFpGraphView(
@@ -2064,7 +2132,7 @@ ParliamentView buildSeatFpGraphView(
 	return buildSeatPartyGraphView(
 		records, seatName, partyIndex,
 		ParliamentColumn::Kind::SeatFp,
-		"seat_party_mean_fp_share");
+		SeatPartyMetric::FpShare);
 }
 
 namespace {

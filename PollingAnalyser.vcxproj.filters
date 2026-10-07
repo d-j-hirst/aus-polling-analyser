@@ -305,6 +305,15 @@
     <ClCompile Include="LiveRunExport.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
+    <ClCompile Include="LiveAnalysisArchive.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="LiveSnapshotSequence.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="LiveSnapshotSequenceDialog.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
     <ClCompile Include="LiveSnapshotData.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
@@ -737,6 +746,15 @@
     </ClInclude>
     <ClInclude Include="LiveRunExport.h">
       <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveAnalysisArchive.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveSnapshotSequence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveSnapshotSequenceDialog.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LiveSnapshotData.h">
       <Filter>Header Files\Process Objects</Filter>

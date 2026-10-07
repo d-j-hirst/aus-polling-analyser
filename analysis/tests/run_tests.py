@@ -24,6 +24,8 @@ ANALYSIS_DIRECTORY = TEST_DIRECTORY.parent
 # Keep the established CI order and dependency boundary in one place instead
 # of duplicating the long module list in Linux and Windows workflow steps.
 CI_TEST_MODULES = (
+    'test_live_analysis_archive',
+    'test_backfill_live_snapshot_summary',
     'test_election_data',
     'test_election_store',
     'test_election_analysis',

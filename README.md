@@ -28,6 +28,8 @@ repository root as its working directory. See [analysis/README.md](analysis/READ
 for the Python environment and data-generation workflow.
 Instructions for supplying and replaying automatic live-election result feeds
 are in [live_scripts/README.md](live_scripts/README.md).
+The Results tab can also [save and run snapshot sequences](docs/live-snapshot-sequences.md),
+with retained results available in Live Booths.
 
 Live/media-feed snapshots and close derivatives are operator-local inputs and
 are not distributed in this repository. Their calibration requires an

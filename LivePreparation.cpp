@@ -10,6 +10,8 @@
 #include "SimulationRun.h"
 #include "TurnoutModelIO.h"
 #include "Utf16ToUtf8.h"
+#include <wx/wfstream.h>
+#include <wx/zipstrm.h>
 
 // This file owns automatic-live setup and file acquisition only:
 // - validateAutomaticSetup checks configuration and durable support files;
@@ -172,7 +174,8 @@ LivePreparation::LivePreparation(PollingProject& project, Simulation& sim, Simul
 {
 }
 
-void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simulation const& sim)
+void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simulation const& sim,
+    std::optional<LiveResultsInput::CurrentFile> const& snapshot)
 {
 	auto const& settings = sim.getSettings();
 	auto const& projection = project.projections().view(settings.baseProjection);
@@ -217,7 +220,7 @@ void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simu
 		if (settings.preloadUrl.empty()) {
 			throw Exception("No preload URL has been configured.");
 		}
-		if (settings.currentRealUrl.empty() && settings.currentTestUrl.empty()) {
+		if (!snapshot && settings.currentRealUrl.empty() && settings.currentTestUrl.empty()) {
 			throw Exception("No current-results URL has been configured.");
 		}
 	}
@@ -229,10 +232,12 @@ void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simu
 	if (regionCode == "fed" && settings.currentRealUrl.empty()) {
 		activeCurrentSource = &settings.currentTestUrl;
 	}
-	if (activeCurrentSource->starts_with("local:")) {
+	if (!snapshot && activeCurrentSource->starts_with("local:")) {
 		requireLiveInputFile(
 			"downloads/" + activeCurrentSource->substr(6), missingFiles);
 	}
+
+	if (snapshot) requireLiveInputFile(snapshot->path, missingFiles);
 
 	if (!missingFiles.empty()) {
 		std::string message = "The live simulation is not set up for " + termCode +
@@ -244,7 +249,7 @@ void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simu
 		throw Exception(message);
 	}
 
-	if (regionCode != "fed" && settings.currentRealUrl.empty()) {
+	if (!snapshot && regionCode != "fed" && settings.currentRealUrl.empty()) {
 		auto const inputDirectory = currentResultsDirectory(settings);
 		std::error_code directoryError;
 		if (!std::filesystem::is_directory(inputDirectory, directoryError)) {
@@ -279,7 +284,10 @@ void LivePreparation::prepareLiveAutomatic()
 	parsePreload();
 	downloadPollingPlaces();
 	parsePollingPlaces();
-	if (sim.settings.currentRealUrl.size()) {
+	if (run.getSnapshotInput()) {
+		acquireSnapshot(*run.getSnapshotInput());
+	}
+	else if (sim.settings.currentRealUrl.size()) {
 		downloadLatestResults();
 	}
 	else {
@@ -476,6 +484,50 @@ void LivePreparation::downloadLatestResults()
 		throw Exception("The latest current-results filename does not contain the expected 14-digit timestamp: " + latestFileName);
 	}
 	sim.latestReport.dateCode = *timestamp;
+}
+
+void LivePreparation::acquireSnapshot(LiveResultsInput::CurrentFile const& snapshot)
+{
+	// Replay selects exactly one local capture. Archive members are streamed to
+	// a private working XML, never extracted by their paths or through C:\a.
+	auto working = project.paths().resolve("downloads/snapshot-input-" + run.getTermCode() + ".xml");
+	std::filesystem::create_directories(working.parent_path());
+	auto extension = snapshot.path.extension().string();
+	std::transform(extension.begin(), extension.end(), extension.begin(),
+		[](unsigned char c) { return char(std::tolower(c)); });
+	if (extension == ".zip") {
+		wxFileInputStream input(wxString::FromUTF8(LiveResultsInput::pathToUtf8(snapshot.path)));
+		if (!input.IsOk()) throw Exception("Could not open snapshot archive.");
+		wxZipInputStream zip(input);
+		bool found = false;
+		while (auto entry = std::unique_ptr<wxZipEntry>(zip.GetNextEntry())) {
+			auto name = entry->GetName().ToStdString();
+			if (!LiveResultsInput::isSnapshotResultsXml(name, run.regionCode)) continue;
+			if (found) throw Exception("The snapshot archive contains more than one detailed results XML.");
+			wxFileOutputStream output(wxString::FromUTF8(LiveResultsInput::pathToUtf8(working)));
+			if (!output.IsOk()) throw Exception("Could not write the snapshot working XML.");
+			zip.Read(output);
+			if (zip.GetLastError() != wxSTREAM_EOF || !output.IsOk() || !output.Close())
+				throw Exception("Could not read the snapshot results XML completely.");
+			found = true;
+		}
+		if (!found) throw Exception("The snapshot archive has no detailed results XML.");
+	}
+	else std::filesystem::copy_file(snapshot.path, working, std::filesystem::copy_options::overwrite_existing);
+	xmlFilename = LiveResultsInput::pathToUtf8(working);
+	if (run.regionCode == "sa") loadEcsaXmlDocument(xml, xmlFilename);
+	else {
+		loadLiveXml(xml, xmlFilename);
+		auto root = xml.FirstChildElement("MediaFeed");
+		// Both formats identify the election before counts are parsed, but VEC
+		// places that identifier directly below MediaFeed rather than Results.
+		auto results = run.regionCode == "vic" ? root : (root ? root->FirstChildElement("Results") : nullptr);
+		auto event = results ? results->FirstChildElement("eml:EventIdentifier") : nullptr;
+		if (!event || !event->Attribute("Id") || event->IntAttribute("Id", -1) != currentElection.id)
+			throw Exception("The snapshot election identifier does not match the configured preload.");
+	}
+	if (!snapshot.timestamp) throw Exception("The selected snapshot has no timestamp code.");
+	sim.latestReport.dateCode = snapshot.timestamp->size() == 12 ? "20" + *snapshot.timestamp : *snapshot.timestamp;
 }
 
 void LivePreparation::acquireCurrentResults()

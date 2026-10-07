@@ -63,6 +63,9 @@ public:
 
 		Projection::Id baseProjection = Projection::InvalidId;
 
+		// Date of the federal election supplying the state seats' transposed TPP
+		// swings. Its distance from the projection date controls their influence
+		// on the state forecast; it is independent of the state election date.
 		Date fedElectionDate;
 
 		float prevElection2pp = 50.0f;
@@ -327,7 +330,8 @@ public:
 	bool run(
 		PollingProject& project,
 		SimulationRun::FeedbackFunc feedback = [](std::string) {},
-		SimulationRun::ActionRequiredFunc actionRequired = {});
+		SimulationRun::ActionRequiredFunc actionRequired = {},
+		std::optional<LiveResultsInput::CurrentFile> snapshot = {});
 
 	void checkLiveSeats(PollingProject const& project, SimulationRun::FeedbackFunc feedback = [](std::string) {});
 

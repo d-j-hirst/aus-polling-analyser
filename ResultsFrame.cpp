@@ -4,17 +4,21 @@
 #include "EditPollFrame.h"
 #include "EditSimulationFrame.h"
 #include "LiveResultsInput.h"
+#include "LiveSnapshotSequenceDialog.h"
+#include "LiveRunExport.h"
 #include "Log.h"
 #include "NonClassicFrame.h"
 
 #include <wx/numdlg.h>
-#include <wx/progdlg.h>
+#include <wx/gauge.h>
+#include <wx/utils.h>
 #include <wx/valnum.h>
 
 #include <filesystem>
 #include <exception>
 #include <fstream>
 #include <optional>
+#include <set>
 
 // IDs for the controls and the menu commands
 enum ControlId {
@@ -23,6 +27,8 @@ enum ControlId {
 	SummaryText,
 	DataView,
 	RunLiveSimulations,
+	ConfigureSnapshotSequence,
+	RunSnapshotSequence,
 	SeatName,
 	Swing,
 	PercentCounted,
@@ -38,7 +44,7 @@ enum ControlId {
 // frame constructor
 ResultsFrame::ResultsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
 	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Results", wxPoint(0, 0), project),
-	refresher(refresher)
+	refresher(refresher), snapshotTimer(this)
 {
 	refreshToolbar();
 	createSummaryBar();
@@ -78,6 +84,9 @@ void ResultsFrame::bindEventHandlers()
 
 	// Binding events for the toolbar items.
 	Bind(wxEVT_TOOL, &ResultsFrame::OnRunLiveSimulations, this, ControlId::RunLiveSimulations);
+	Bind(wxEVT_BUTTON, &ResultsFrame::OnConfigureSnapshotSequence, this, ControlId::ConfigureSnapshotSequence);
+	Bind(wxEVT_BUTTON, &ResultsFrame::OnRunSnapshotSequence, this, ControlId::RunSnapshotSequence);
+	Bind(wxEVT_TIMER, &ResultsFrame::OnNextSnapshot, this, snapshotTimer.GetId());
 	Bind(wxEVT_TOOL, &ResultsFrame::OnAddResult, this, ControlId::AddResult);
 	Bind(wxEVT_TOOL, &ResultsFrame::OnAddFromScript, this, ControlId::AddFromScript);
 	Bind(wxEVT_TOOL, &ResultsFrame::OnNonClassic, this, ControlId::NonClassic);
@@ -93,52 +102,46 @@ void ResultsFrame::OnResize(wxSizeEvent & WXUNUSED(event))
 
 void ResultsFrame::OnRunLiveSimulations(wxCommandEvent& WXUNUSED(event))
 {
+	if (snapshotRunning) return;
 	if (wxGetKeyState(WXK_SHIFT)) {
-		runLiveSnapshotBatch();
+		wxCommandEvent command;
+		OnRunSnapshotSequence(command);
 		return;
 	}
-
 	runLiveSimulations();
 	finishLiveSimulationRun();
 	if (project->config().getBeepOnCompletion()) beep();
 }
 
 bool ResultsFrame::runLiveSimulations(
-	bool automaticOnly,
+	std::optional<LiveResultsInput::CurrentFile> const& snapshot,
 	std::string* failureMessage)
 {
+	// Both controls use the same simulation selection and calculation. Only
+	// feedback delivery differs: unattended replay must never open a prompt.
 	bool allSucceeded = true;
 	for (auto& [key, simulation] : project->simulations()) {
-		if ((!automaticOnly && simulation.isLive()) || simulation.isLiveAutomatic()) {
-			bool succeeded = false;
-			std::string feedbackText;
-			if (automaticOnly) {
-				auto const recordFeedback = [&](std::string message) {
-					logger << message << "\n";
-					if (!feedbackText.empty()) feedbackText += "\n\n";
-					feedbackText += std::move(message);
-				};
-				succeeded = simulation.run(
-					*project,
-					recordFeedback,
-					[&](std::string message) {
-						recordFeedback(message);
-						wxMessageBox(
-							message, "Live simulation action required",
-							wxOK | wxICON_WARNING, this);
-					});
-			}
-			else {
-				succeeded = simulation.run(
-					*project,
-					[](std::string message) { wxMessageBox(message); });
-			}
-			if (!succeeded) {
-				if (failureMessage) *failureMessage = std::move(feedbackText);
-				allSucceeded = false;
-				if (automaticOnly) return false;
+		if (!simulation.isLive()) continue;
+		bool succeeded;
+		if (snapshot) {
+			bool actionRequired = false;
+			std::string feedback;
+			auto record = [&](std::string message) {
+				logger << message << "\n";
+				if (!feedback.empty()) feedback += "\n\n";
+				feedback += message;
+			};
+			succeeded = simulation.run(*project, record,
+				[&](std::string message) { actionRequired = true; record(std::move(message)); }, snapshot);
+			// Some exports report an action-required failure after the numerical
+			// run succeeded. Keep that report, but do not silently advance.
+			if (!succeeded || actionRequired) {
+				if (failureMessage) *failureMessage = simulation.getSettings().name + ":\n" + feedback;
+				return false;
 			}
 		}
+		else succeeded = simulation.run(*project, [](std::string message) { wxMessageBox(message); });
+		allSucceeded = allSucceeded && succeeded;
 	}
 	return allSucceeded;
 }
@@ -148,136 +151,214 @@ void ResultsFrame::finishLiveSimulationRun()
 	refreshData();
 	refresher.refreshSeatData();
 	refresher.refreshLiveBooths();
+	refresher.refreshDisplay();
+	refresher.refreshMap();
+	Refresh();
+	Update();
 }
 
-void ResultsFrame::runLiveSnapshotBatch()
+std::string ResultsFrame::snapshotElection() const
 {
-	struct ReplayConfiguration {
-		std::filesystem::path directory;
-		std::string termCode;
-	};
-	std::optional<ReplayConfiguration> configuration;
+	// Resolve the election from the configured automatic simulations before
+	// opening or running a sequence. These settings can legitimately be absent
+	// or inconsistent while the user edits a project, so report a configuration
+	// error that can be excluded from debugger breaks on calculation failures.
+	std::string election;
 	for (auto const& [key, simulation] : project->simulations()) {
 		if (!simulation.isLiveAutomatic()) continue;
-		auto const& settings = simulation.getSettings();
-		if (!settings.currentRealUrl.empty()) {
-			wxMessageBox(
-				"Automatic snapshot replay is unavailable while an automatic-live "
-				"simulation uses a real results URL.",
-				"Cannot replay snapshots", wxOK | wxICON_ERROR, this);
-			return;
-		}
-		if (project->projections().idToIndex(settings.baseProjection) ==
-			ProjectionCollection::InvalidIndex) {
-			wxMessageBox(
-				"An automatic-live simulation has no valid base projection.",
-				"Cannot replay snapshots", wxOK | wxICON_ERROR, this);
-			return;
-		}
-		std::string termCode;
-		try {
-			termCode = project->projections().view(settings.baseProjection)
-				.getBaseModel(project->models()).getTermCode();
-		}
-		catch (std::exception const&) {
-			wxMessageBox(
-				"An automatic-live simulation has no valid base model.",
-				"Cannot replay snapshots", wxOK | wxICON_ERROR, this);
-			return;
-		}
-		auto directory = LiveResultsInput::resolveDirectory(
-			settings.currentResultsDirectory);
-		std::error_code absoluteError;
-		auto absoluteDirectory = std::filesystem::absolute(directory, absoluteError);
-		if (!absoluteError) directory = absoluteDirectory.lexically_normal();
-		if (!configuration) {
-			configuration = ReplayConfiguration{std::move(directory), termCode};
-		}
-		else if (configuration->directory != directory ||
-			configuration->termCode != termCode) {
-			wxMessageBox(
-				"All automatic-live simulations must use the same election and "
-				"current-results directory for batch replay.",
-				"Cannot replay snapshots", wxOK | wxICON_ERROR, this);
-			return;
-		}
+		if (project->projections().idToIndex(simulation.getSettings().baseProjection) == ProjectionCollection::InvalidIndex)
+			throw LiveSnapshotSequence::ConfigurationError("An automatic live simulation has no valid base projection.");
+		auto const& projection = project->projections().view(simulation.getSettings().baseProjection);
+		auto term = projection.getBaseModel(project->models()).getTermCode();
+		if (!election.empty() && election != term)
+			throw LiveSnapshotSequence::ConfigurationError("All automatic live simulations must use the same election for a snapshot sequence.");
+		election = std::move(term);
 	}
-	if (!configuration) {
-		wxMessageBox(
-			"No automatic-live simulation is configured.",
-			"Cannot replay snapshots", wxOK | wxICON_ERROR, this);
-		return;
-	}
+	if (election.empty()) throw LiveSnapshotSequence::ConfigurationError("No automatic live simulation is configured.");
+	return election;
+}
 
-	LiveResultsInput::SaReplaySequence sequence;
+void ResultsFrame::ensureSnapshotOutputFolders(std::string const& election)
+{
+	// Live Booths reads the usual retained diagnostic exports. Give every
+	// participating simulation an independent default when export was disabled.
+	std::set<std::string> used;
+	for (auto const& [key, simulation] : project->simulations())
+		if (!simulation.getSettings().liveOutputFolder.empty()) used.insert(simulation.getSettings().liveOutputFolder);
+	for (auto& [key, simulation] : project->simulations()) {
+		if (!simulation.isLiveAutomatic()) continue;
+		auto settings = simulation.getSettings();
+		if (settings.liveOutputFolder.empty()) {
+			auto base = election + "-snapshot-sequence-" + std::to_string(key);
+			settings.liveOutputFolder = base;
+			for (int suffix = 2; used.contains(settings.liveOutputFolder); ++suffix)
+				settings.liveOutputFolder = base + "-" + std::to_string(suffix);
+			used.insert(settings.liveOutputFolder);
+			simulation.replaceSettings(std::move(settings));
+		}
+	}
+}
+
+void ResultsFrame::OnConfigureSnapshotSequence(wxCommandEvent& WXUNUSED(event))
+{
+	if (snapshotRunning) return;
 	try {
-		sequence = LiveResultsInput::loadSaReplaySequence(
-			configuration->directory,
-			configuration->termCode,
-			"live_scripts/.sa-2026-live-replay-state.json");
+		auto settings = project->snapshotSequence();
+		auto election = snapshotElection();
+		if (!settings.election.empty() && settings.election != election) settings = {};
+		settings.election = election;
+		LiveSnapshotSequenceDialog dialog(this, project->paths().root(), settings);
+		if (dialog.ShowModal() != wxID_OK) return;
+		project->setSnapshotSequence(dialog.selection());
+		ensureSnapshotOutputFolders(election);
+		refresher.refreshLiveBooths();
 	}
 	catch (std::exception const& error) {
-		wxMessageBox(
-			error.what(), "Cannot replay snapshots", wxOK | wxICON_ERROR, this);
+		wxMessageBox(wxString::FromUTF8(error.what()), "Cannot configure snapshot sequence", wxOK | wxICON_ERROR, this);
+	}
+}
+
+void ResultsFrame::OnRunSnapshotSequence(wxCommandEvent& WXUNUSED(event))
+{
+	if (snapshotRunning) return;
+	// This modeless progress window is also the error display: starting or
+	// advancing a sequence never requires dismissing a message box.
+	if (snapshotProgress) snapshotProgress->Destroy();
+	snapshotProgress = new wxDialog(this, wxID_ANY, "Live snapshot sequence", wxDefaultPosition,
+		wxSize(650, 320), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
+	auto layout = new wxBoxSizer(wxVERTICAL);
+	snapshotStatus = new wxTextCtrl(snapshotProgress, wxID_ANY, "Preparing sequence...",
+		wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
+	snapshotGauge = new wxGauge(snapshotProgress, wxID_ANY, 1);
+	snapshotStartNow = new wxButton(snapshotProgress, wxID_ANY, "Start now");
+	snapshotStop = new wxButton(snapshotProgress, wxID_ANY, "Cancel sequence");
+	layout->Add(snapshotStatus, 1, wxEXPAND | wxALL, 10);
+	layout->Add(snapshotGauge, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+	auto buttons = new wxBoxSizer(wxHORIZONTAL);
+	buttons->Add(snapshotStartNow, 0, wxRIGHT, 8);
+	buttons->Add(snapshotStop);
+	layout->Add(buttons, 0, wxALIGN_RIGHT | wxALL, 10);
+	snapshotProgress->SetSizer(layout);
+	snapshotProgress->CentreOnParent();
+	snapshotStartNow->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+		if (snapshotRunning && snapshotStartDeadline) beginSnapshotRuns();
+	});
+	snapshotStop->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+		if (snapshotRunning) {
+			if (snapshotStartDeadline) { finishSnapshotSequence("Cancelled before running any snapshots."); return; }
+			snapshotStopRequested = true;
+			snapshotStop->Disable();
+		}
+		else { snapshotProgress->Destroy(); snapshotProgress = nullptr; }
+	});
+	snapshotProgress->Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& event) {
+		if (snapshotRunning) {
+			if (snapshotStartDeadline) finishSnapshotSequence("Cancelled before running any snapshots.");
+			else snapshotStopRequested = true;
+			event.Veto();
+		}
+		else { snapshotProgress = nullptr; event.Skip(); }
+	});
+	snapshotProgress->Show();
+	try {
+		auto settings = project->snapshotSequence();
+		if (settings.election != snapshotElection())
+			throw LiveSnapshotSequence::ConfigurationError("Configure and save a sequence for this election first.");
+		if (settings.codes.empty()) throw LiveSnapshotSequence::ConfigurationError("No snapshot codes are selected. Use Configure snapshot sequence first.");
+		auto available = LiveSnapshotSequence::discover(LiveSnapshotSequence::directory(project->paths().root(), settings), settings.election);
+		if (!available.error.empty()) { finishSnapshotSequence(available.error); return; }
+		snapshotFiles = LiveSnapshotSequence::resolve(available.files, settings.codes);
+		ensureSnapshotOutputFolders(settings.election);
+		for (auto const& [key, simulation] : project->simulations()) {
+			if (!simulation.isLive()) continue;
+			if (!simulation.isLiveAutomatic()) throw LiveSnapshotSequence::ConfigurationError("Manual live simulations are not supported by the current live pipeline.");
+			if (auto error = LiveRunExport::validateOutputFolder(simulation.getSettings().liveOutputFolder))
+				throw LiveSnapshotSequence::ConfigurationError(*error);
+		}
+		snapshotIndex = 0;
+		snapshotStopRequested = false;
+		snapshotRunning = true;
+		snapshotGauge->SetRange(int(snapshotFiles.size()));
+		// Keep configuration and project lifetime fixed while replay runs. The
+		// progress window remains enabled for stopping between snapshots.
+		snapshotDisabler = std::make_unique<wxWindowDisabler>(snapshotProgress);
+		// The calculation waits for its workers on the GUI thread. Give the
+		// user time to position this window while the event loop is responsive,
+		// without introducing re-entrant event processing during a simulation.
+		snapshotStartDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+		snapshotStatus->ChangeValue("Starting in 10 seconds.\n\nMove or resize this window to keep the results visible, or select Start now.");
+		snapshotTimer.StartOnce(1000);
+	}
+	catch (std::exception const& error) { finishSnapshotSequence(error.what()); }
+}
+
+void ResultsFrame::beginSnapshotRuns()
+{
+	// Both the countdown and Start now use this single transition. Stop the
+	// waiting timer before scheduling the first run, so it can only start once.
+	snapshotTimer.Stop();
+	snapshotStartDeadline.reset();
+	snapshotStartNow->Hide();
+	snapshotStop->SetLabel("Stop after current snapshot");
+	snapshotProgress->Layout();
+	snapshotTimer.StartOnce(100);
+}
+
+void ResultsFrame::OnNextSnapshot(wxTimerEvent& WXUNUSED(event))
+{
+	if (!snapshotRunning) return;
+	if (snapshotStopRequested) { finishSnapshotSequence("Stopped after " + std::to_string(snapshotIndex) + " completed snapshots."); return; }
+	if (snapshotStartDeadline) {
+		// Use elapsed time rather than timer ticks: dragging a native window can
+		// delay a timer event, but should not add extra seconds to the countdown.
+		auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
+			*snapshotStartDeadline - std::chrono::steady_clock::now()).count();
+		if (remaining <= 0) { beginSnapshotRuns(); return; }
+		snapshotStatus->ChangeValue(wxString::FromUTF8("Starting in " + std::to_string((remaining + 999) / 1000) +
+			" seconds.\n\nMove or resize this window to keep the results visible, or select Start now."));
+		snapshotTimer.StartOnce(int(std::min<int64_t>(1000, remaining)));
 		return;
 	}
-	if (!sequence.remaining()) {
-		wxMessageBox(
-			"The selected snapshot is already the latest available.",
-			"No snapshots to run", wxOK | wxICON_INFORMATION, this);
-		return;
+	auto const& selected = snapshotFiles.at(snapshotIndex);
+	snapshotStatus->ChangeValue(wxString::FromUTF8("Running " + *selected.timestamp + " (" +
+		std::to_string(snapshotIndex + 1) + "/" + std::to_string(snapshotFiles.size()) + ")\n" +
+		LiveResultsInput::pathToUtf8(selected.path.filename())));
+	snapshotProgress->Update();
+	try {
+		std::string failure;
+		if (!runLiveSimulations(selected, &failure)) {
+			finishLiveSimulationRun();
+			finishSnapshotSequence("Stopped at " + *selected.timestamp + ".\n" + failure);
+			return;
+		}
+		++snapshotIndex;
+		snapshotGauge->SetValue(int(snapshotIndex));
+		finishLiveSimulationRun();
+		if (snapshotIndex == snapshotFiles.size()) {
+			finishSnapshotSequence("Completed " + std::to_string(snapshotIndex) + " snapshots. Results are available in Live Booths.");
+			if (project->config().getBeepOnCompletion()) beep();
+		}
+		// A fresh event, rather than a synchronous loop or wxYield, allows paint
+		// and stop events to finish before the next expensive simulation starts.
+		else snapshotTimer.StartOnce(100);
 	}
-
-	long const requested = wxGetNumberFromUser(
-		"The current results file will advance once before every live run.\n"
-		"Initial and out-of-sequence snapshot selection remains manual.",
-		"Number of subsequent snapshots:",
-		"Run live snapshot sequence",
-		1, 1, long(sequence.remaining()), this);
-	if (requested < 1) return;
-
-	wxProgressDialog progress(
-		"Running live snapshot sequence",
-		"Preparing the first snapshot...",
-		int(requested), this,
-		wxPD_APP_MODAL | wxPD_AUTO_HIDE | wxPD_ELAPSED_TIME |
-		wxPD_REMAINING_TIME);
-	int completed = 0;
-	for (int index = 0; index < requested; ++index) {
-		LiveResultsInput::CurrentFile selected;
-		try {
-			selected = LiveResultsInput::advanceSaReplaySequence(sequence);
-		}
-		catch (std::exception const& error) {
-			wxMessageBox(
-				error.what(), "Snapshot replay stopped", wxOK | wxICON_ERROR, this);
-			break;
-		}
-		std::string const timestamp = selected.timestamp.value_or("unknown");
-		logger << "Automatic live replay " << index + 1 << "/" << requested
-			<< ": " << LiveResultsInput::pathToUtf8(selected.path.filename())
-			<< "\n";
-		progress.Update(
-			index,
-			wxString("Running snapshot ") + wxString::FromUTF8(timestamp) + "...");
-		std::string failureMessage;
-		if (!runLiveSimulations(true, &failureMessage)) {
-			std::string message =
-				"Snapshot replay stopped after a live simulation failed. The failed "
-				"snapshot remains selected so it can be inspected or run again "
-				"manually.";
-			if (!failureMessage.empty()) message += "\n\n" + failureMessage;
-			wxMessageBox(
-				message,
-				"Snapshot replay stopped", wxOK | wxICON_ERROR, this);
-			break;
-		}
-		++completed;
-		progress.Update(completed);
+	catch (std::exception const& error) {
+		finishSnapshotSequence("Stopped at " + *selected.timestamp + ".\n" + error.what());
 	}
+}
 
-	finishLiveSimulationRun();
-	if (completed == requested && project->config().getBeepOnCompletion()) beep();
+void ResultsFrame::finishSnapshotSequence(std::string const& message)
+{
+	snapshotTimer.Stop();
+	snapshotRunning = false;
+	snapshotStartDeadline.reset();
+	snapshotDisabler.reset();
+	snapshotStatus->ChangeValue(wxString::FromUTF8(message));
+	snapshotStop->SetLabel("Close");
+	snapshotStop->Enable();
+	snapshotStartNow->Hide();
+	snapshotProgress->Layout();
+	logger << "Live snapshot sequence: " << message << "\n";
 }
 
 void ResultsFrame::OnAddResult(wxCommandEvent& WXUNUSED(event))
@@ -486,7 +567,9 @@ void ResultsFrame::refreshToolbar()
 	toolBar->AddTool(
 		ControlId::RunLiveSimulations, "Run Model", toolBarBitmaps[0],
 		wxNullBitmap, wxITEM_NORMAL,
-		"Run Live Simulations (Shift-click to replay subsequent snapshots)");
+		"Run Live Simulations (Shift-click runs the saved snapshot sequence)");
+	toolBar->AddControl(new wxButton(toolBar, ControlId::ConfigureSnapshotSequence, "Configure snapshot sequence..."));
+	toolBar->AddControl(new wxButton(toolBar, ControlId::RunSnapshotSequence, "Run snapshot sequence"));
 	toolBar->AddSeparator();
 	toolBar->AddControl(seatNameStaticText);
 	toolBar->AddControl(seatNameTextCtrl);

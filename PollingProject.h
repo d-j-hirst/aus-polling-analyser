@@ -8,6 +8,7 @@
 
 #include "Config.h"
 #include "MacroFeedback.h"
+#include "LiveSnapshotSequence.h"
 #include "WorkspacePaths.h"
 
 #include "ModelCollection.h"
@@ -71,6 +72,10 @@ public:
 
 	// Update the macro to the given value without running it.
 	void updateMacro(std::string macro);
+
+	// Replay selection is saved project data; feed contents remain private files.
+	LiveSnapshotSequence::Settings const& snapshotSequence() const { return liveSnapshotSequence; }
+	void setSnapshotSequence(LiveSnapshotSequence::Settings settings) { liveSnapshotSequence = std::move(settings); }
 
 	// Refreshes the calculated 2PPs for all polls.
 	void refreshCalc2PP();
@@ -190,6 +195,7 @@ private:
 	
 	// Stores full text of the last macro to be run.
 	std::string lastMacro;
+	LiveSnapshotSequence::Settings liveSnapshotSequence;
 
 	// Populated when a legacy project or its portable forecast package cannot
 	// be loaded. The GUI displays this rather than discarding validation detail.

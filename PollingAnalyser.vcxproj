@@ -331,6 +331,9 @@
     <ClCompile Include="TurnoutModel.cpp" />
     <ClCompile Include="TurnoutModelIO.cpp" />
     <ClCompile Include="LiveRunExport.cpp" />
+    <ClCompile Include="LiveAnalysisArchive.cpp" />
+    <ClCompile Include="LiveSnapshotSequence.cpp" />
+    <ClCompile Include="LiveSnapshotSequenceDialog.cpp" />
     <ClCompile Include="LiveSnapshotData.cpp" />
     <ClCompile Include="LiveSnapshotGraph.cpp" />
     <ClCompile Include="LiveSnapshotTable.cpp" />
@@ -440,6 +443,9 @@
     <ClInclude Include="TurnoutModel.h" />
     <ClInclude Include="TurnoutModelIO.h" />
     <ClInclude Include="LiveRunExport.h" />
+    <ClInclude Include="LiveAnalysisArchive.h" />
+    <ClInclude Include="LiveSnapshotSequence.h" />
+    <ClInclude Include="LiveSnapshotSequenceDialog.h" />
     <ClInclude Include="LiveSnapshotData.h" />
     <ClInclude Include="LiveSnapshotGraph.h" />
     <ClInclude Include="LiveSnapshotTable.h" />

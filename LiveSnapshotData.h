@@ -4,10 +4,12 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <limits>
 #include <map>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 class PollingProject;
@@ -27,6 +29,21 @@ struct PartyIdentity {
 	std::optional<PartyColour> colour;
 };
 
+// Seat histories are the largest inputs used by the viewer. Keep each value
+// with its party ID, instead of retaining repeated JSON objects and identities.
+// NaN without a diagnostic entry represents an omitted value, not a zero.
+struct SeatPartyValue {
+	int partyIndex = 0;
+	double value = std::numeric_limits<double>::quiet_NaN();
+};
+
+struct SeatPartyValues {
+	std::vector<std::vector<SeatPartyValue>> seats;
+	// Exceptional numeric markers are rare; normal values need no tag storage.
+	// The key identifies a seat and its entry within that seat's value array.
+	std::map<std::pair<std::size_t, std::size_t>, std::string> diagnostics;
+};
+
 struct SnapshotRecord {
 	std::string filename;
 	std::string snapshotCode;
@@ -39,6 +56,9 @@ struct SnapshotRecord {
 	int analysisSeatCount = 0;
 	std::optional<std::string> firstBoothSeat;
 	std::optional<std::string> firstBoothName;
+	SeatPartyValues seatWinChances;
+	SeatPartyValues seatFpShares;
+	// Only small fields consumed by the viewer remain in this JSON summary.
 	nlohmann::json document;
 };
 
@@ -139,7 +159,7 @@ LoadResult loadDirectory(
 	std::string simulationName,
 	std::string outputSet);
 
-LoadResult loadFromProject(PollingProject const& project);
+LoadResult loadFromProject(PollingProject const& project, int simulationId = -1);
 
 // Replace catalog colours for parties present in `colours`. Snapshot files keep
 // the colours from the run that produced them; Live Booths should follow the

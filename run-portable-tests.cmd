@@ -67,6 +67,10 @@ call :run LiveResultsInputTests
 if errorlevel 1 goto :failure
 call :run LiveRunExportTests
 if errorlevel 1 goto :failure
+call :run LiveAnalysisArchiveTests
+if errorlevel 1 goto :failure
+call :run LiveSnapshotSequenceTests
+if errorlevel 1 goto :failure
 call :run LiveSnapshotDataTests
 if errorlevel 1 goto :failure
 call :run MacroTargetResolverTests

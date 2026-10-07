@@ -184,7 +184,7 @@ bool SimulationRun::run(
 
 	if (sim.isLiveAutomatic()) {
 		try {
-			LivePreparationBridge::validateAutomaticSetup(project, sim);
+			LivePreparationBridge::validateAutomaticSetup(project, sim, snapshotInput);
 		}
 		catch (LivePreparationBridge::Exception const& e) {
 			feedback("Could not run live simulation because its live data is not set up:\n" +

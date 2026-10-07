@@ -1,7 +1,8 @@
 """Copy compact live-summary fields from analysis sidecars into main snapshots.
 
 Seat completions, TPP booth/vote-type evidence, projected 2PP, and raw 2PP
-deviation already exist on each ``snapshot_*__run_*.analysis.json`` sidecar.
+deviation already exist in each run's analysis sidecar, either the older plain
+``.analysis.json`` or the compressed ``.analysis.json.gz`` archive.
 Live Booths reads the sibling main file, which historically omitted them.
 """
 
@@ -13,6 +14,7 @@ import math
 import sys
 from pathlib import Path
 from lib.paths import REPOSITORY_DIRECTORY
+from lib.live_analysis_archive import analysis_path_for_snapshot, load_json
 
 
 COMPLETION_KEYS = (
@@ -175,10 +177,9 @@ def is_main_snapshot(path):
 
 
 def analysis_for_snapshot(path, document):
-    sidecar = path.with_name(path.stem + ".analysis.json")
+    sidecar = analysis_path_for_snapshot(path)
     if sidecar.is_file():
-        with sidecar.open(encoding="utf-8") as handle:
-            return json.load(handle), sidecar
+        return load_json(sidecar), sidecar
     live_analysis = document.get("live_analysis")
     if isinstance(live_analysis, dict):
         return live_analysis, None

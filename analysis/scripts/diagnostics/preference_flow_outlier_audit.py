@@ -31,6 +31,8 @@ from pathlib import Path
 import numpy as np
 from scipy.special import expit
 
+from lib.live_analysis_archive import analysis_files
+
 from scripts.diagnostics.live_count_revision_audit import load_frame, revision_record
 
 
@@ -177,7 +179,7 @@ def main():
     parser.add_argument('--sources', nargs='*', help='Optional source timestamps; final feed remains the evaluation reference.')
     args = parser.parse_args()
     # Filename order selects the latest GUI rerun for each source timestamp.
-    paths = {p.name.split('__')[0]: p for p in sorted(args.series.glob('*.analysis.json'))}
+    paths = {p.name.split('__')[0]: p for p in analysis_files(args.series)}
     final = load_frame(paths[max(paths)])
     frames = [load_frame(p) for k, p in sorted(paths.items()) if not args.sources or any(t in k for t in args.sources)]
     result = dict(definitions=dict(

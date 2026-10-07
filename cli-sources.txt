@@ -13,6 +13,7 @@ General.cpp
 Log.cpp
 LiveResultsInput.cpp
 LivePreferenceCorrections.cpp
+LiveSnapshotSequence.cpp
 LiveSnapshotData.cpp
 LiveSnapshotGraph.cpp
 LiveSnapshotTable.cpp
@@ -28,6 +29,7 @@ ProjectionCollection.cpp
 RandomGenerator.cpp
 ReportUploader.cpp
 RegionCollection.cpp
+SaveIO.cpp
 SeatCollection.cpp
 Simulation.cpp
 SimulationCollection.cpp
@@ -39,6 +41,7 @@ SimulationRun.cpp
 StanModel.cpp
 TerminalMacroFeedback.cpp
 LiveTurnout.cpp
+LiveAnalysisArchive.cpp
 TurnoutModel.cpp
 TurnoutModelIO.cpp
 WorkspacePaths.cpp

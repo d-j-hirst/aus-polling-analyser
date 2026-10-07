@@ -1,3 +1,4 @@
+import gzip
 import json
 import unittest
 from pathlib import Path
@@ -129,6 +130,22 @@ class BackfillLiveSnapshotSummaryTests(unittest.TestCase):
                 "Postal",
             )
             self.assertEqual(loaded["live_analysis_summary"]["booth_count"], 3)
+
+    def test_compressed_sidecar_supplies_summary_and_takes_precedence(self):
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            main = directory / 'snapshot_1__run_a.json'
+            main.write_text(json.dumps({'simulation_report': {'seat_name': ['Adelaide']}}),
+                            encoding='utf-8')
+            legacy = directory / 'snapshot_1__run_a.analysis.json'
+            legacy.write_text('{}', encoding='utf-8')
+            compressed = directory / 'snapshot_1__run_a.analysis.json.gz'
+            compressed.write_bytes(gzip.compress(json.dumps(sidecar_analysis()).encode()))
+            status, _ = backfill.backfill_snapshot(main)
+            self.assertEqual(status, 'updated')
+            loaded = json.loads(main.read_text(encoding='utf-8'))
+            self.assertEqual(loaded['simulation_report']['seat_fp_completion'], [0.15])
+            self.assertEqual(loaded['live_analysis_summary']['vote_type'][0]['category'], 'Postal')
 
     def test_embedded_live_analysis_fallback(self):
         with TemporaryDirectory() as temporary_directory:

@@ -23,6 +23,15 @@ void write(std::filesystem::path const& path, std::string const& contents)
 
 int main()
 {
+	// ZIP replay must select booth-level lower-house results, not an aggregate
+	// or upper-house file stored alongside them in a VEC collection.
+	assert(LiveResultsInput::isSnapshotResultsXml("Media feed/State2022mediafilelitepplh_20221126_180329.XML", "vic"));
+	assert(!LiveResultsInput::isSnapshotResultsXml("State2022mediafilelitelh_20221126_180329.xml", "vic"));
+	assert(!LiveResultsInput::isSnapshotResultsXml("State2022mediafileliteppuh_20221126_180329.xml", "vic"));
+	assert(!LiveResultsInput::isSnapshotResultsXml("State2022mediafilelitepplh_20221126_180329.zip", "vic"));
+	assert(LiveResultsInput::isSnapshotResultsXml("xml/aec-mediafeed-results-detailed-light-31496.xml", "fed"));
+	assert(!LiveResultsInput::isSnapshotResultsXml("State2022mediafilelitepplh_20221126_180329.xml", "fed"));
+
 	assert(LiveResultsInput::defaultDirectory() == "<HOME>/Downloads");
 	auto const defaultDirectory = LiveResultsInput::resolveDirectory(
 		LiveResultsInput::defaultDirectory());

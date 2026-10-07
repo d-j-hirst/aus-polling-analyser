@@ -177,6 +177,13 @@ election must use the same historical baseline and source data. The date and
 configured but has not yet been prepared. Required files and URLs depend on the
 election authority and are checked when that live simulation is run.
 
+`federal_election_date` identifies the federal election used for the state
+seats' mapped federal TPP swings: how much each area's swing differed from the
+overall federal swing. The simulation gives this evidence less weight as the
+gap between that federal election and the projection date grows. For a state
+forecast, this remains the federal election date, independently of the state
+polling date or live counting schedule. Omitting it disables this influence.
+
 Simulation names, base projections, iteration counts, live modes, and report
 modes remain per-simulation. Iteration counts are committed because they affect
 the statistical resolution and reproducibility of forecast output. A future

@@ -1,6 +1,7 @@
 #include "LiveRunExport.h"
 
 #include "Date.h"
+#include "LiveAnalysisArchive.h"
 #include "LiveResultsInput.h"
 #include "LiveV2.h"
 #include "Log.h"
@@ -9,6 +10,9 @@
 #include "SimulationRun.h"
 #include "SpecialPartyCodes.h"
 #include "json.h"
+
+#include <wx/mstream.h>
+#include <wx/zstream.h>
 
 #include <cctype>
 #include <cmath>
@@ -21,6 +25,7 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -717,7 +722,24 @@ std::string dumpCompactJson(json const& value)
 	return out;
 }
 
-bool writeUtf8FileAtomically(
+std::string gzipAnalysis(std::string const& contents)
+{
+	// Compress only the diagnostic sidecar. The main snapshot remains directly
+	// readable by Live Booths; neither export encoding affects simulation state.
+	wxMemoryOutputStream memory;
+	wxZlibOutputStream compressed(memory, 6, wxZLIB_GZIP);
+	compressed.Write(contents.data(), contents.size());
+	if (!compressed.IsOk() || !compressed.Close() || !memory.IsOk()) {
+		throw std::runtime_error("Could not finish compressing the live analysis archive.");
+	}
+	std::string result(memory.GetSize(), '\0');
+	if (memory.CopyTo(result.data(), result.size()) != result.size()) {
+		throw std::runtime_error("Could not retain the compressed live analysis archive.");
+	}
+	return result;
+}
+
+bool writeFileAtomically(
 	std::filesystem::path const& finalPath,
 	std::string const& relativePath,
 	std::string const& contents,
@@ -984,6 +1006,10 @@ void LiveRunExport::exportCompletedAutomaticLiveRun(
 			{"iterations", iterations},
 			{"output_set", folder}
 		};
+		if (run.getSnapshotInput()) {
+			document["run"]["input_snapshot_code"] = run.getSnapshotInput()->timestamp.value_or("");
+			document["run"]["input_snapshot_file"] = LiveResultsInput::pathToUtf8(run.getSnapshotInput()->path.filename());
+		}
 		document["parties"] = partiesCatalog(report);
 		json reportJson = serializeReport(report, parties);
 		reportJson["seat_fp_completion"] = seatCompletionArray(
@@ -998,7 +1024,7 @@ void LiveRunExport::exportCompletedAutomaticLiveRun(
 
 		std::string analysisSerialised;
 		try {
-			analysisSerialised = analysis.dump();
+			analysisSerialised = gzipAnalysis(LiveAnalysisArchive::serialize(std::move(analysis)));
 		}
 		catch (json::exception const& error) {
 			reportExportFailure(feedback, actionRequired,
@@ -1030,16 +1056,16 @@ void LiveRunExport::exportCompletedAutomaticLiveRun(
 		}
 
 		auto const finalPath = outputDir / filename;
-		if (!writeUtf8FileAtomically(
+		if (!writeFileAtomically(
 			finalPath, relativePath, serialised, feedback, actionRequired)) {
 			return;
 		}
 
 		std::string const analysisFilename =
-			filename.substr(0, filename.size() - 5) + ".analysis.json";
+			filename.substr(0, filename.size() - 5) + ".analysis.json.gz";
 		std::string const analysisRelativePath =
 			relativeDir + "/" + analysisFilename;
-		if (!writeUtf8FileAtomically(
+		if (!writeFileAtomically(
 			outputDir / analysisFilename,
 			analysisRelativePath,
 			analysisSerialised,
