@@ -792,6 +792,7 @@ std::vector<LiveV2::Election::BoothSnapshot> LiveV2::Election::getBoothSnapshots
 LiveV2::Election::Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run)
 	: project(project), sim(sim), run(run)
 {
+  auto turnoutInput = loadTurnoutConfiguration(currentElection);
   getNatPartyIndex();
   loadEstimatedPreferenceFlows();
   initializePartyMappings(previousElection, currentElection);
@@ -809,7 +810,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   measureTppBoothTypeBiases();
   calculateNationalsProportions();
   calculateTcpPreferenceFlows();
-  prepareTurnout(currentElection);
+  prepareTurnout(currentElection, std::move(turnoutInput));
   recomposeVoteCounts();
   calculateLivePreferenceFlowDeviations();
   preparePreferenceCorrections();
@@ -924,6 +925,7 @@ void Election::createNodesFromElectionData(
     largeRegions.push_back(LargeRegion(region));
   }
   for (auto const& [id, seat] : currentElection.seats) {
+    if (inactiveContests.contains(seat.name)) continue;
     int seatIndex = seats.size();
     auto const& projectSeat = project.seats().accessByName(seat.name).second;
     int const parentRegionIndex = project.regions().idToIndex(projectSeat.region);
@@ -1356,6 +1358,7 @@ void Election::includeSeatBaselineResults(
     auto const& name = baseline.seatName.at(i);
     auto seatIt = std::find_if(seats.begin(), seats.end(), [name](Seat const& s) { return s.name == name; });
     if (seatIt == seats.end()) {
+      if (inactiveContests.contains(name)) continue;
       logger << "Warning: Seat " << name << " from baseline report not found in current election results\n";
       continue;
     }

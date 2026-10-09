@@ -114,6 +114,39 @@ class LateCountTests(unittest.TestCase):
         self.assertTrue(all(c['batch_mean_if_other_counts_fixed'] > c['small_mean_if_other_counts_fixed']
                             for c in result['components']))
 
+    def test_closed_services_do_not_supply_local_or_shared_progress_evidence(self):
+        from copy import deepcopy
+        units = [dict(seat_name=name, name='Absent', kind='declaration', counted=count)
+                 for name, count in [('A', 1000), ('B', 0)]]
+        units[1]['closed_reason'] = 'Service unavailable at this election.'
+        history = [dict(source_time=f'2025-05-{day:02d}T18:00:00',
+                        seats={name:dict(vote_types={'Absent':count})
+                               for name, count in [('A', 1000), ('B', 0)]})
+                   for day in range(3, 28)]
+        without_closed = deepcopy(history)
+        for snapshot in without_closed:
+            snapshot['seats'].pop('B')
+        # Check both national and subdivision measurements. Historical zeros
+        # remain in the archive, but an unavailable service cannot delay A.
+        for states in ({}, {'A':'X', 'B':'X'}, {'A':'X', 'B':'Y'}):
+            expected = late_counts.progress_evidence(without_closed, units[:1], states)[0]
+            actual = late_counts.progress_evidence(history, units, states)
+            self.assertEqual(actual[0], expected)
+            self.assertEqual(actual[1]['strength'], 0)
+            # A genuinely open, unstarted service still weakens shared support.
+            open_units = deepcopy(units)
+            open_units[1].pop('closed_reason')
+            self.assertLess(late_counts.progress_evidence(history, open_units, states)[0]['strength'],
+                            expected['strength'])
+        self.assertEqual(late_counts.progress_evidence(history, units[1:])[0]['strength'], 0)
+
+        # A closed reporting batch does not suppress an available sibling in
+        # the same category, and does not itself receive the sibling's evidence.
+        sibling = dict(units[0], counted=0, closed_reason='This batch was cancelled.')
+        actual = late_counts.progress_evidence(history, [units[0], sibling])
+        self.assertEqual(actual[0], late_counts.progress_evidence(history, units[:1])[0])
+        self.assertEqual(actual[1]['strength'], 0)
+
     def test_shared_extremes_do_not_define_typical_reporting_progress(self):
         rows = [dict(activity=.1, started=.9, volume=10., current=1000.) for _ in range(43)]
         rows += [dict(activity=v, started=s, volume=m, current=1000.)

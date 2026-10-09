@@ -37,6 +37,18 @@ class PrepareLiveTests(unittest.TestCase):
         self.assertEqual(result['options']['receipt_deadline'], config['schedule']['receipt_deadline'])
         self.assertTrue(result['options']['ppvc_reporting_decay'])
 
+    def test_postponed_contest_is_explicit_and_outside_count_population(self):
+        contest = dict(seat='Example Postponed', status='postponed', reason='Polling was postponed.')
+        self.config['inactive_contests'] = [contest]
+        result = preparation.prepare(self.config, provenance={})
+        self.assertEqual(result['inactive_contests'], [contest])
+        self.assertNotIn(contest['seat'], result['prior']['seats'])
+        for invalid in (dict(contest, seat='Example East'), dict(contest, status='closed'), dict(contest, reason='')):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                preparation.prepare(dict(self.config, inactive_contests=[invalid]), provenance={})
+        with self.assertRaises(ValueError):
+            preparation.prepare(dict(self.config, inactive_contests=[contest, contest]), provenance={})
+
     def test_mapping_changes_and_embedded_current_counts_are_rejected(self):
         for change in ('identity', 'count', 'closure', 'partition', 'preset'):
             config = copy.deepcopy(self.config)

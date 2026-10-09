@@ -6,6 +6,17 @@
 #include <stdexcept>
 
 namespace LiveTurnout {
+namespace {
+std::map<std::size_t, UnitComposition const*> indexCompositionBooths(std::vector<UnitComposition> const& units) {
+    // LiveV2 supplies one party account per booth. Keep identity checking ahead
+    // of constructing the reusable response cache for simulation iterations.
+    std::map<std::size_t, UnitComposition const*> byBooth;
+    for (auto const& unit : units) if (!byBooth.emplace(unit.booth, &unit).second)
+        throw std::runtime_error("Duplicate live turnout composition booth.");
+    return byBooth;
+}
+}
+
 std::shared_ptr<Prepared const> Prepared::prepare(TurnoutModelIO::Artifact artifact,
     std::vector<TurnoutModel::Unit> units, std::vector<int> boothIndexes,
     std::size_t boothCount, std::vector<bool> const& finalised,
@@ -16,28 +27,41 @@ std::shared_ptr<Prepared const> Prepared::prepare(TurnoutModelIO::Artifact artif
     data->artifact = std::move(artifact);
     data->units = std::move(units);
     data->boothIndexes = std::move(boothIndexes);
-    if (data->units.size() != data->boothIndexes.size())
-        throw std::runtime_error("Turnout unit and booth indexes differ.");
-    auto options = data->artifact.options;
-    if (data->artifact.decayPpvc)
-        options.ppvcFactor = TurnoutModel::reportingFactor(
-            TurnoutModel::sourceHour(sourceTime) - *data->artifact.pollClose);
-    data->result = TurnoutModel::prepare(data->artifact.prior, data->units, finalised, history, options);
-    data->drawPlan = TurnoutModel::makeDrawPlan(data->result, data->units, data->artifact.prior.enrolment);
-    data->boothMeans.assign(boothCount, -1);
-    for (std::size_t j = 0; j < data->units.size(); ++j) {
-        int b = data->boothIndexes[j];
-        if (b < 0) continue; // An explicitly closed service can be absent.
-        auto& amount = data->boothMeans.at(std::size_t(b));
-        if (amount >= 0) throw std::runtime_error("Duplicate turnout booth allocation.");
-        amount = data->result.unitMeans[j];
-    }
-    if (std::find(data->boothMeans.begin(), data->boothMeans.end(), -1) != data->boothMeans.end())
-        throw std::runtime_error("A live booth has no turnout allocation.");
+    data->prepareDistribution(finalised, history, sourceTime);
+    data->indexBoothMeans(boothCount);
     data->sourceTime = sourceTime;
     auto prepared = std::make_shared<Prepared>();
     prepared->counts = std::move(data);
     return prepared;
+}
+
+void Prepared::Counts::prepareDistribution(std::vector<bool> const& finalised,
+    std::vector<TurnoutModel::Observation> const& history, std::string const& sourceTimestamp) {
+    // The portable model supplies the distribution and a reusable draw plan.
+    // PPVC reporting decay depends on the feed clock, never the time of rerun.
+    if (units.size() != boothIndexes.size())
+        throw std::runtime_error("Turnout unit and booth indexes differ.");
+    auto options = artifact.options;
+    if (artifact.decayPpvc)
+        options.ppvcFactor = TurnoutModel::reportingFactor(
+            TurnoutModel::sourceHour(sourceTimestamp) - *artifact.pollClose);
+    result = TurnoutModel::prepare(artifact.prior, units, finalised, history, options);
+    drawPlan = TurnoutModel::makeDrawPlan(result, units, artifact.prior.enrolment);
+}
+
+void Prepared::Counts::indexBoothMeans(std::size_t boothCount) {
+    // LiveV2 addresses targets by its own booth indexes. Every live booth must
+    // receive exactly one mean; an absent closed service needs no live target.
+    boothMeans.assign(boothCount, -1);
+    for (std::size_t j = 0; j < units.size(); ++j) {
+        int b = boothIndexes[j];
+        if (b < 0) continue; // An explicitly closed service can be absent.
+        auto& amount = boothMeans.at(std::size_t(b));
+        if (amount >= 0) throw std::runtime_error("Duplicate turnout booth allocation.");
+        amount = result.unitMeans[j];
+    }
+    if (std::find(boothMeans.begin(), boothMeans.end(), -1) != boothMeans.end())
+        throw std::runtime_error("A live booth has no turnout allocation.");
 }
 
 std::shared_ptr<Prepared const> Prepared::withComposition(std::vector<UnitComposition> const& units,
@@ -47,12 +71,23 @@ std::shared_ptr<Prepared const> Prepared::withComposition(std::vector<UnitCompos
     // a draw with no new voters must still finish an incomplete preference count.
     auto cache = std::make_shared<Composition>();
     cache->seats = seats;
-    cache->baseFp.resize(seats.size()); cache->baseTpp.resize(seats.size()); cache->baseTcp.resize(seats.size());
-    std::map<std::size_t, UnitComposition const*> byBooth;
-    for (auto const& u : units) if (!byBooth.emplace(u.booth, &u).second)
-        throw std::runtime_error("Duplicate live turnout composition booth.");
+    auto byBooth = indexCompositionBooths(units);
+    cache->prepareDistrictAccounts();
+    cache->prepareUnitResponses(*counts, byBooth);
+    cache->validateMeanReconstruction(*counts);
+    auto prepared = std::make_shared<Prepared>(*this);
+    prepared->composition = std::move(cache);
+    return prepared;
+}
+
+void Prepared::Composition::prepareDistrictAccounts() {
+    // Index district identities and check that the prepared party means retain
+    // every counted candidate and at least that candidate's observed votes.
+    baseFp.resize(seats.size());
+    baseTpp.resize(seats.size());
+    baseTcp.resize(seats.size());
     for (std::size_t s = 0; s < seats.size(); ++s) {
-        if (!cache->indexes.emplace(seats[s].name, s).second)
+        if (!indexes.emplace(seats[s].name, s).second)
             throw std::runtime_error("Duplicate live turnout composition district.");
         auto check = [&](auto const& projected, auto const& observed) {
             if (projected.empty()) return; // No usable non-classic pair.
@@ -66,26 +101,35 @@ std::shared_ptr<Prepared const> Prepared::withComposition(std::vector<UnitCompos
         check(seats[s].projectedTpp, seats[s].tpp);
         check(seats[s].projectedTcp, seats[s].tcp);
     }
-    for (std::size_t j = 0; j < counts->boothIndexes.size(); ++j) {
-        int b = counts->boothIndexes[j]; if (b < 0) continue;
+}
+
+void Prepared::Composition::prepareUnitResponses(Counts const& countAccount,
+    std::map<std::size_t, UnitComposition const*> const& byBooth) {
+    // Fixed base votes finish preferences already owed on counted FP votes.
+    // Only unfinished units need party shares for genuinely additional voters.
+    for (std::size_t j = 0; j < countAccount.boothIndexes.size(); ++j) {
+        int b = countAccount.boothIndexes[j]; if (b < 0) continue;
         auto const& u = *byBooth.at(std::size_t(b));
-        auto fp = LiveTurnoutMath::prepareUnitComposition(u.projectedFp, u.fp, counts->drawPlan.counted[j]);
-        auto tpp = LiveTurnoutMath::prepareUnitComposition(u.projectedTpp, u.tpp, counts->drawPlan.counted[j]);
-        auto tcp = LiveTurnoutMath::prepareUnitComposition(u.projectedTcp, u.tcp, counts->drawPlan.counted[j]);
-        for (auto const& [p, v] : fp.base) cache->baseFp.at(u.seat)[p] += v;
-        for (auto const& [p, v] : tpp.base) cache->baseTpp.at(u.seat)[p] += v;
-        for (auto const& [p, v] : tcp.base) cache->baseTcp.at(u.seat)[p] += v;
-        if (!counts->result.broad.complete[j]) {
-            if (fp.additionShares.empty()) throw std::runtime_error("No composition for unfinished turnout unit: " + counts->units[j].name);
-            cache->responses.push_back({j, u.seat, std::move(fp.additionShares), std::move(tpp.additionShares), std::move(tcp.additionShares)});
+        auto fp = LiveTurnoutMath::prepareUnitComposition(u.projectedFp, u.fp, countAccount.drawPlan.counted[j]);
+        auto tpp = LiveTurnoutMath::prepareUnitComposition(u.projectedTpp, u.tpp, countAccount.drawPlan.counted[j]);
+        auto tcp = LiveTurnoutMath::prepareUnitComposition(u.projectedTcp, u.tcp, countAccount.drawPlan.counted[j]);
+        for (auto const& [p, v] : fp.base) baseFp.at(u.seat)[p] += v;
+        for (auto const& [p, v] : tpp.base) baseTpp.at(u.seat)[p] += v;
+        for (auto const& [p, v] : tcp.base) baseTcp.at(u.seat)[p] += v;
+        if (!countAccount.result.broad.complete[j]) {
+            if (fp.additionShares.empty()) throw std::runtime_error("No composition for unfinished turnout unit: " + countAccount.units[j].name);
+            responses.push_back({j, u.seat, std::move(fp.additionShares), std::move(tpp.additionShares), std::move(tcp.additionShares)});
         }
     }
+}
+
+void Prepared::Composition::validateMeanReconstruction(Counts const& countAccount) const {
     // The cached representation must reproduce prepared party counts before
     // it is shared with iterations. This also checks unit/district accounting.
     auto check = [&](auto const& bases, auto member, auto projectedMember) {
         auto rebuilt = bases;
-        for (auto const& r : cache->responses) {
-            double addition = counts->result.unitMeans[r.unit] - counts->drawPlan.counted[r.unit];
+        for (auto const& r : responses) {
+            double addition = countAccount.result.unitMeans[r.unit] - countAccount.drawPlan.counted[r.unit];
             for (auto const& [p, w] : r.*member) rebuilt[r.seat][p] += addition * w;
         }
         for (std::size_t s = 0; s < seats.size(); ++s) {
@@ -97,12 +141,9 @@ std::shared_ptr<Prepared const> Prepared::withComposition(std::vector<UnitCompos
                 throw std::runtime_error("Unexpected party in turnout composition for " + seats[s].name);
         }
     };
-    check(cache->baseFp, &Response::fp, &SeatComposition::projectedFp);
-    check(cache->baseTpp, &Response::tpp, &SeatComposition::projectedTpp);
-    check(cache->baseTcp, &Response::tcp, &SeatComposition::projectedTcp);
-    auto prepared = std::make_shared<Prepared>(*this);
-    prepared->composition = std::move(cache);
-    return prepared;
+    check(baseFp, &Response::fp, &SeatComposition::projectedFp);
+    check(baseTpp, &Response::tpp, &SeatComposition::projectedTpp);
+    check(baseTcp, &Response::tcp, &SeatComposition::projectedTcp);
 }
 
 double Prepared::fpTarget(std::size_t booth) const { return counts->boothMeans.at(booth); }

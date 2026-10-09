@@ -7,6 +7,7 @@ it never uses final results, marks a category closed, or recycles a posterior.
 """
 
 from datetime import datetime
+from types import SimpleNamespace
 
 import numpy as np
 from scipy.special import expit, logsumexp, ndtr, ndtri
@@ -55,37 +56,44 @@ def shared_measurements(rows):
                 volume=float(np.mean(central([r['volume']/(r['current']+.5) for r in rows]))))
 
 
-def progress_evidence(history, units, subdivisions=None, options=None, *, postal_deadline=None,
-                      counting_clock=None, event_scale=.001, shared_deadline=None):
-    """Measure counting activity with decaying memory and continuous support.
+def _prepare_progress_context(history, units, subdivisions, options, counting_clock, event_scale):
+    """Order received counts and identify the available declaration services.
 
-    Absolute changes include reversals and rechecks. A large change contributes
-    at most one activity event, then gradually loses influence with age. Recent
-    vote volume is measured separately. Long gaps discount observation coverage;
-    they are not treated as repeated unchanged measurements. Missing categories
-    are omitted, while explicit unstarted zeros weaken shared starting evidence.
-    Federal state measurements blend gradually with national measurements using
-    their sample size, without a minimum-district switch. An explicitly supplied
-    postal receipt deadline discounts local quietness while returns can still
-    arrive from voters, and then releases that discount gradually. It is not a
-    completion date: ongoing activity still argues against finalisation.
-    An optional counting clock reduces weekend elapsed time. The event scale
-    specifies the fraction of the current category used to judge change size.
-    A shared deadline discounts late activity's influence elsewhere while
-    preserving its local evidence and recording support from small late batches.
+    Reruns use source timestamps, not the order the replay happened to visit.
+    Open zero counts remain observations; known closures cannot describe how
+    counting is progressing in other districts.
     """
     config = configuration(options)
     elapsed = counting_clock or (lambda before,after: (after-before).total_seconds()/3600)
     by_time = {datetime.fromisoformat(s['source_time']): s for s in history}
     ordered = sorted(by_time.items())
     if not ordered:
-        return [dict(strength=0., reason='No source history.') for _ in units]
+        return SimpleNamespace(ordered=ordered)
     now = ordered[-1][0]
-    categories = {category_key(u) for u in units if u['kind'] == 'declaration'}
+    # Match district and category together: admitting every archived district
+    # just because its category exists elsewhere would reintroduce closures.
+    available = {(u['seat_name'], category_key(u)) for u in units
+                 if u['kind'] == 'declaration' and not u.get('closed_reason')}
+    categories = {category for _, category in available}
     states = subdivisions or {}
+    return SimpleNamespace(config=config, elapsed=elapsed, ordered=ordered, now=now,
+        available=available, categories=categories, states=states, event_scale=event_scale)
+
+
+def _measure_progress_categories(context, shared_deadline):
+    """Measure changes, recent volume and observation coverage for each category.
+
+    Normally declaration votes arrive in batches and then quieten. A pause is
+    stronger evidence when several recent observations actually cover it.
+    """
+    config, elapsed, ordered, now = context.config, context.elapsed, context.ordered, context.now
+    categories, available, states = context.categories, context.available, context.states
+    event_scale = context.event_scale
     measured = {}
     for name, current in ordered[-1][1]['seats'].items():
         for category in categories:
+            if (name, category) not in available:
+                continue
             value = current['vote_types'].get(category)
             if value is None:
                 continue
@@ -126,11 +134,30 @@ def progress_evidence(history, units, subdivisions=None, options=None, *, postal
                 small_batch_support=small_support/(1+changed_support),
                 state=current.get('state', states.get(name)))
 
+    return measured
+
+
+def _pool_progress_categories(measured, categories):
+    """Describe typical progress elsewhere without letting extreme seats dominate.
+
+    Districts have equal influence after normalising their recent vote movement
+    by their own current count. This supplies context, not additional voters.
+    """
     pools = {}
     for category in categories:
         rows = [r for (name, c), r in measured.items() if c == category]
         if rows:
             pools[category] = shared_measurements([dict(r,activity=r['shared_activity'],volume=r['shared_volume']) for r in rows])
+    return pools
+
+
+def _attach_progress_evidence(units, measured, pools, context, postal_deadline):
+    """Blend local and shared observations into each service's response score.
+
+    Regional evidence gains influence with sample size. Postal quietness is
+    discounted while voters still have time to return their envelopes.
+    """
+    config, now = context.config, context.now
     # Aggregate multiple reporting batches before attaching category evidence
     # to individual units. No final-category data enters this reconciliation.
     current_units = {}
@@ -142,7 +169,7 @@ def progress_evidence(history, units, subdivisions=None, options=None, *, postal
     for unit in units:
         key = unit['seat_name'], category_key(unit)
         local = measured.get(key)
-        if unit['kind'] != 'declaration' or local is None:
+        if unit['kind'] != 'declaration' or unit.get('closed_reason') or local is None:
             result.append(dict(strength=0., reason='No applicable declaration measurement.'))
             continue
         if current_units[key] != local['current']:
@@ -166,6 +193,35 @@ def progress_evidence(history, units, subdivisions=None, options=None, *, postal
         result.append(dict(strength=float(strength), **local, pooled=pooled,
                            state_weight=region_weight, postal_receipt_support=receipt_support))
     return result
+
+
+def progress_evidence(history, units, subdivisions=None, options=None, *, postal_deadline=None,
+                      counting_clock=None, event_scale=.001, shared_deadline=None):
+    """Measure counting activity with decaying memory and continuous support.
+
+    Absolute changes include reversals and rechecks. A large change contributes
+    at most one activity event, then gradually loses influence with age. Recent
+    vote volume is measured separately. Long gaps discount observation coverage;
+    they are not treated as repeated unchanged measurements. Missing categories
+    are omitted, as are known unavailable services. Explicit unstarted zeros
+    from open services still weaken shared starting evidence. A closed service
+    supplies neither local nor shared evidence, even if its zero was archived.
+    Federal state measurements blend gradually with national measurements using
+    their sample size, without a minimum-district switch. An explicitly supplied
+    postal receipt deadline discounts local quietness while returns can still
+    arrive from voters, and then releases that discount gradually. It is not a
+    completion date: ongoing activity still argues against finalisation.
+    An optional counting clock reduces weekend elapsed time. The event scale
+    specifies the fraction of the current category used to judge change size.
+    A shared deadline discounts late activity's influence elsewhere while
+    preserving its local evidence and recording support from small late batches.
+    """
+    context = _prepare_progress_context(history, units, subdivisions, options, counting_clock, event_scale)
+    if not context.ordered:
+        return [dict(strength=0., reason='No source history.') for _ in units]
+    measured = _measure_progress_categories(context, shared_deadline)
+    pools = _pool_progress_categories(measured, context.categories)
+    return _attach_progress_evidence(units, measured, pools, context, postal_deadline)
 
 
 def component_probabilities(weight, zero_probability, config, schedule=None):
@@ -294,18 +350,11 @@ def mixture_log_odds(reference, small, batch, weight, uniforms, config, zero_pro
     return result
 
 
-def update(prepared, inputs, units, evidence, count_draws=8, seed=20261002, options=None, *, uniforms=None, schedule=None):
-    """Reweight declarations while preserving counted votes and booth estimates.
+def _prepare_late_update(prepared, units, evidence, count_draws, options):
+    """Set up positive count outcomes and the separate chance of no further votes.
 
-    Each expensive/pre-existing preparation outcome supplies several cheap count
-    draws. Explicit component parameters and conditional evaluations retain rare
-    batches even when posterior samples contain few. A shared finite pool of
-    declarations and non-formal/unsubmitted capacity is represented in log odds;
-    normalizing it preserves the enrolment bound without clipping. Ordinary and
-    PPVC additions stay fixed within the positive branch. A separate shared
-    zero-addition probability leaves the entire current account unchanged.
-    Removed declaration votes mostly become unused
-    capacity, rather than being forced into an unchanged formal turnout target.
+    The ordinary updater supplies the broad prior-backed counts. Only unfinished
+    declaration services need the additional late-count distributions.
     """
     config = configuration(options)
     if count_draws < 1 or int(count_draws) != count_draws or len(evidence) != len(units):
@@ -319,81 +368,180 @@ def update(prepared, inputs, units, evidence, count_draws=8, seed=20261002, opti
     columns = np.array([j for j,u in enumerate(units) if u['kind'] == 'declaration' and not prepared['complete'][j]], dtype=int)
     details = []
     component_preparation = None
-    if len(columns):
-        indexes = np.array([units[j]['seat_index'] for j in columns])
-        strengths = np.array([evidence[j]['strength'] for j in columns])
-        weights = -np.expm1(-(strengths/config['evidence_scale'])**2)
-        base = prepared['remaining'][:,columns]
-        slack = np.asarray(inputs['enrolment'])-prepared['totals']
-        if (slack <= 0).any() or (base < 0).any():
-            raise ValueError('Open declarations require nonnegative additions and positive unused capacity.')
-        # A count-conditioned broad estimate can become smaller than the
-        # precision of the subtraction that produced it. Represent its zero
-        # log odds at machine precision; this is not an observed-zero count or
-        # a substantive minimum vote estimate. Neutral evidence still returns
-        # the exact broad account. The conditional batch gets the same small
-        # count equivalent as the small-addition component when both its
-        # starting estimate and current count are negligible.
-        reference = np.log((base+np.finfo(float).eps)/slack[:,indexes])
-        normal_shifts = np.zeros(len(columns)) if schedule is None else np.asarray(schedule['usual_log_shifts'])[columns]
-        phase = 0. if schedule is None else schedule['processing_phase']
-        reference += normal_shifts[None,:]
-        small = np.log(config['small_median_votes']/slack[:,indexes])
-        batch = np.log((base+config['small_median_votes']+config['batch_current_fraction']*
-                        np.array([units[j]['counted'] for j in columns]))/slack[:,indexes])
-        if phase:
-            own_batch = np.log((prepared['own_remaining'][:,columns]+config['small_median_votes']+config['batch_current_fraction']*
-                              np.array([units[j]['counted'] for j in columns]))/slack[:,indexes])
-            batch = (1-phase)*batch+phase*own_batch
-        # Keep conditional distributions separate from the mixed samples.
-        # A subsequent party-composition preparation can evaluate a rare batch
-        # deliberately, rather than depending on whether that branch happened
-        # to occur among the sampled outcomes or replacing it by one deviation.
-        component_preparation = dict(unit_indexes=columns, unused_capacity=slack[:,indexes],
-            reference_additions=base, reference_log_odds=reference, small_log_odds=small,
-            batch_log_odds=batch, slowing_weight=weights)
-        # Cross-language comparison supplies the same interior quantiles to
-        # both implementations. Ordinary Python replays retain their established
-        # generator, so introducing this comparison hook does not alter scores.
-        if uniforms is None:
-            rng = np.random.default_rng(seed)
-            uniforms = np.stack([(rng.permutation(len(outer))+.5)/len(outer) for _ in columns], axis=1)
-        else:
-            uniforms = np.asarray(uniforms, dtype=float)
-            if uniforms.shape != (len(outer), len(columns)) or not np.isfinite(uniforms).all() or ((uniforms <= 0) | (uniforms >= 1)).any():
-                raise ValueError('Supply one interior quantile per outcome and open declaration unit.')
-        varied = mixture_log_odds(reference[outer], small[outer], batch[outer], weights, uniforms, config,no_addition[indexes],schedule)
-        # Evaluate both conditional distributions explicitly at a fixed set of
-        # quantiles. This is preparation of a rare branch, not Bernoulli selection.
-        quantiles = ndtri((np.arange(count_draws)+.5)/count_draws)
-        for k,j in enumerate(columns):
-            parent = slack[:,indexes[k]]+base[:,k]
-            conditional = {}
-            for name, location, sd in (('small',small[:,k],config['small_log_odds_sd']),
-                                      ('batch',batch[:,k],config['batch_log_odds_sd'])):
-                values = parent[:,None]*expit(location[:,None]+sd*quantiles)
-                conditional[name+'_mean_if_other_counts_fixed'] = float(values.mean())
-            previous, small_probability, batch_probability = component_probabilities(weights[k],no_addition[indexes[k]],config,schedule)
-            details.append(dict(unit=int(j), seat=units[j]['seat_name'], category=category_key(units[j]),
-                evidence=evidence[j], weight=float(weights[k]),
-                usual_log_shift=float(normal_shifts[k]),
-                probabilities=dict(no_additions=float(no_addition[indexes[k]]),previous=float(previous),
-                                   small=float(small_probability),batch=float(batch_probability)),
-                reference_mean=float(base[:,k].mean()), **conditional))
-        for seat in range(seats):
-            local = np.flatnonzero(indexes == seat)
-            if not len(local) or (not np.any(weights[local]) and not np.any(normal_shifts[local]) and not phase):
-                continue
-            parent = slack[:,seat]+base[:,local].sum(axis=1)
-            odds = varied[:,local]
-            denominator = logsumexp(np.column_stack([np.zeros(len(outer)),odds]), axis=1)
-            additions = parent[outer,None]*np.exp(odds-denominator[:,None])
-            for k, position in enumerate(local):
-                j = columns[position]
-                group = units[j]['group_index']
-                counts[:,seat,group] += additions[:,k]-base[outer,position]
-                unit_means[j] = units[j]['counted']+additions[:,k].mean()
-            totals[:,seat] = counts[:,seat].sum(axis=1)
+    return SimpleNamespace(config=config, samples=samples, seats=seats, no_addition=no_addition, outer=outer, counts=counts, totals=totals, unit_means=unit_means, columns=columns, details=details, component_preparation=component_preparation)
+
+
+def _prepare_declaration_components(work, prepared, inputs, units, evidence, schedule):
+    """Prepare previous, small-addition and exceptional-batch category distributions.
+
+    Their shares use unused enrolment as the common parent. Reducing an expected
+    declaration allowance therefore does not force those voters into another
+    category; they can remain absent from the formal count.
+    """
+    columns = work.columns
+    config = work.config
+    indexes = np.array([units[j]['seat_index'] for j in columns])
+    strengths = np.array([evidence[j]['strength'] for j in columns])
+    weights = -np.expm1(-(strengths/config['evidence_scale'])**2)
+    base = prepared['remaining'][:,columns]
+    slack = np.asarray(inputs['enrolment'])-prepared['totals']
+    if (slack <= 0).any() or (base < 0).any():
+        raise ValueError('Open declarations require nonnegative additions and positive unused capacity.')
+    # A count-conditioned broad estimate can become smaller than the
+    # precision of the subtraction that produced it. Represent its zero
+    # log odds at machine precision; this is not an observed-zero count or
+    # a substantive minimum vote estimate. Neutral evidence still returns
+    # the exact broad account. The conditional batch gets the same small
+    # count equivalent as the small-addition component when both its
+    # starting estimate and current count are negligible.
+    reference = np.log((base+np.finfo(float).eps)/slack[:,indexes])
+    normal_shifts = np.zeros(len(columns)) if schedule is None else np.asarray(schedule['usual_log_shifts'])[columns]
+    phase = 0. if schedule is None else schedule['processing_phase']
+    reference += normal_shifts[None,:]
+    small = np.log(config['small_median_votes']/slack[:,indexes])
+    batch = np.log((base+config['small_median_votes']+config['batch_current_fraction']*
+                    np.array([units[j]['counted'] for j in columns]))/slack[:,indexes])
+    if phase:
+        own_batch = np.log((prepared['own_remaining'][:,columns]+config['small_median_votes']+config['batch_current_fraction']*
+                          np.array([units[j]['counted'] for j in columns]))/slack[:,indexes])
+        batch = (1-phase)*batch+phase*own_batch
+    # Keep conditional distributions separate from the mixed samples.
+    # A subsequent party-composition preparation can evaluate a rare batch
+    # deliberately, rather than depending on whether that branch happened
+    # to occur among the sampled outcomes or replacing it by one deviation.
+    component_preparation = dict(unit_indexes=columns, unused_capacity=slack[:,indexes],
+        reference_additions=base, reference_log_odds=reference, small_log_odds=small,
+        batch_log_odds=batch, slowing_weight=weights)
+    work.indexes = indexes
+    work.weights = weights
+    work.base = base
+    work.slack = slack
+    work.reference = reference
+    work.normal_shifts = normal_shifts
+    work.phase = phase
+    work.small = small
+    work.batch = batch
+    work.component_preparation = component_preparation
+
+
+def _draw_declaration_components(work, seed, uniforms, schedule):
+    """Sample the prepared positive distributions using reproducible interior draws.
+
+    Explicit quantiles allow Python/C++ comparison. Ordinary Python replays keep
+    the same generator and service order used by the existing calibration.
+    """
+    columns = work.columns
+    outer = work.outer
+    reference = work.reference
+    small = work.small
+    batch = work.batch
+    weights = work.weights
+    config = work.config
+    no_addition = work.no_addition
+    indexes = work.indexes
+    # Cross-language comparison supplies the same interior quantiles to
+    # both implementations. Ordinary Python replays retain their established
+    # generator, so introducing this comparison hook does not alter scores.
+    if uniforms is None:
+        rng = np.random.default_rng(seed)
+        uniforms = np.stack([(rng.permutation(len(outer))+.5)/len(outer) for _ in columns], axis=1)
+    else:
+        uniforms = np.asarray(uniforms, dtype=float)
+        if uniforms.shape != (len(outer), len(columns)) or not np.isfinite(uniforms).all() or ((uniforms <= 0) | (uniforms >= 1)).any():
+            raise ValueError('Supply one interior quantile per outcome and open declaration unit.')
+    varied = mixture_log_odds(reference[outer], small[outer], batch[outer], weights, uniforms, config,no_addition[indexes],schedule)
+    work.varied = varied
+
+
+def _describe_declaration_components(work, units, evidence, count_draws, schedule):
+    """Describe each branch separately so rare batches remain visible in diagnostics.
+
+    A conditional batch mean is its size if selected, not the expected number of
+    new votes. Its unconditional probability determines its overall influence.
+    """
+    columns = work.columns
+    indexes = work.indexes
+    slack = work.slack
+    base = work.base
+    small = work.small
+    batch = work.batch
+    config = work.config
+    weights = work.weights
+    no_addition = work.no_addition
+    normal_shifts = work.normal_shifts
+    details = work.details
+    # Evaluate both conditional distributions explicitly at a fixed set of
+    # quantiles. This is preparation of a rare branch, not Bernoulli selection.
+    quantiles = ndtri((np.arange(count_draws)+.5)/count_draws)
+    for k,j in enumerate(columns):
+        parent = slack[:,indexes[k]]+base[:,k]
+        conditional = {}
+        for name, location, sd in (('small',small[:,k],config['small_log_odds_sd']),
+                                  ('batch',batch[:,k],config['batch_log_odds_sd'])):
+            values = parent[:,None]*expit(location[:,None]+sd*quantiles)
+            conditional[name+'_mean_if_other_counts_fixed'] = float(values.mean())
+        previous, small_probability, batch_probability = component_probabilities(weights[k],no_addition[indexes[k]],config,schedule)
+        details.append(dict(unit=int(j), seat=units[j]['seat_name'], category=category_key(units[j]),
+            evidence=evidence[j], weight=float(weights[k]),
+            usual_log_shift=float(normal_shifts[k]),
+            probabilities=dict(no_additions=float(no_addition[indexes[k]]),previous=float(previous),
+                               small=float(small_probability),batch=float(batch_probability)),
+            reference_mean=float(base[:,k].mean()), **conditional))
+
+
+def _apply_declaration_samples(work, units):
+    """Allocate sampled additions within each district's finite remaining parent.
+
+    Booth additions and counted votes remain fixed in the positive branch. Only
+    declaration additions change, with spare capacity left for non-formal votes
+    or electors who did not vote. Neutral evidence retains the original outcome.
+    """
+    seats = work.seats
+    indexes = work.indexes
+    weights = work.weights
+    normal_shifts = work.normal_shifts
+    phase = work.phase
+    slack = work.slack
+    base = work.base
+    varied = work.varied
+    outer = work.outer
+    columns = work.columns
+    counts = work.counts
+    unit_means = work.unit_means
+    totals = work.totals
+    for seat in range(seats):
+        local = np.flatnonzero(indexes == seat)
+        if not len(local) or (not np.any(weights[local]) and not np.any(normal_shifts[local]) and not phase):
+            continue
+        parent = slack[:,seat]+base[:,local].sum(axis=1)
+        odds = varied[:,local]
+        denominator = logsumexp(np.column_stack([np.zeros(len(outer)),odds]), axis=1)
+        additions = parent[outer,None]*np.exp(odds-denominator[:,None])
+        for k, position in enumerate(local):
+            j = columns[position]
+            group = units[j]['group_index']
+            counts[:,seat,group] += additions[:,k]-base[outer,position]
+            unit_means[j] = units[j]['counted']+additions[:,k].mean()
+        totals[:,seat] = counts[:,seat].sum(axis=1)
+
+
+def _assemble_late_update(work, prepared, inputs, units, count_draws):
+    """Include the no-addition outcome in means and return the count account.
+
+    Positive outcomes remain available for conditional intervals. The explicit
+    finishing probability prevents rare possible batches from becoming a large
+    default expectation for new votes. Accounting checks describe these counts.
+    """
+    config = work.config
+    samples = work.samples
+    no_addition = work.no_addition
+    outer = work.outer
+    counts = work.counts
+    totals = work.totals
+    unit_means = work.unit_means
+    columns = work.columns
+    details = work.details
+    component_preparation = work.component_preparation
     counted_groups = np.zeros(prepared['counts'].shape[1:])
     for u in units:
         counted_groups[u['seat_index'],u['group_index']] += u['counted']
@@ -411,6 +559,29 @@ def update(prepared, inputs, units, evidence, count_draws=8, seed=20261002, opti
                 counted=prepared['counted'],counted_groups=counted_groups,no_addition_probability=no_addition,
                 complete=prepared['complete'], components=details,
                 component_preparation=component_preparation, config=config, diagnostics=diagnostics)
+
+
+
+def update(prepared, inputs, units, evidence, count_draws=8, seed=20261002, options=None, *, uniforms=None, schedule=None):
+    """Reweight declarations while preserving counted votes and booth estimates.
+
+    Each expensive/pre-existing preparation outcome supplies several cheap count
+    draws. Explicit component parameters and conditional evaluations retain rare
+    batches even when posterior samples contain few. A shared finite pool of
+    declarations and non-formal/unsubmitted capacity is represented in log odds;
+    normalizing it preserves the enrolment bound without clipping. Ordinary and
+    PPVC additions stay fixed within the positive branch. A separate shared
+    zero-addition probability leaves the entire current account unchanged.
+    Removed declaration votes mostly become unused
+    capacity, rather than being forced into an unchanged formal turnout target.
+    """
+    work = _prepare_late_update(prepared, units, evidence, count_draws, options)
+    if len(work.columns):
+        _prepare_declaration_components(work, prepared, inputs, units, evidence, schedule)
+        _draw_declaration_components(work, seed, uniforms, schedule)
+        _describe_declaration_components(work, units, evidence, count_draws, schedule)
+        _apply_declaration_samples(work, units)
+    return _assemble_late_update(work, prepared, inputs, units, count_draws)
 
 
 def reweight_shares(counted_by_group, final_group_counts):

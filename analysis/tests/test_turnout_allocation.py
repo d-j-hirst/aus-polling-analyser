@@ -52,6 +52,32 @@ class AllocationTests(unittest.TestCase):
         np.testing.assert_array_equal(weights,0)
         np.testing.assert_array_equal(revised['totals'],prepared['totals'])
 
+    def test_unavailable_groups_do_not_weaken_other_districts_progress(self):
+        from copy import deepcopy
+        inputs, _, units, _, _ = self.case()
+        # B's postal group has no available service. The combined ordinary/early
+        # groups still have open booths and must retain their progress evidence.
+        closed = next(u for u in units if u['seat_name']=='B' and u['group']=='postal')
+        closed['counted'] = 0
+        closed['closed_reason'] = 'Postal service unavailable.'
+        observed = allocation.group_observation(units, inputs)
+        history = [dict(source_time=f'2025-05-{day:02d}T18:00:00', seats=deepcopy(observed))
+                   for day in range(3, 28)]
+        without_closed = deepcopy(history)
+        for snapshot in without_closed:
+            snapshot['seats']['B']['vote_types'].pop('Postal')
+        expected = allocation.group_evidence(without_closed, units, inputs)
+        actual = allocation.group_evidence(history, units, inputs)
+        self.assertEqual(actual, expected)
+        self.assertEqual(actual.get(('B', 'Postal'), 0), 0)
+        self.assertGreater(actual['A', 'Postal'], 0)
+
+        # Availability is a property of the group, not of every child: closing
+        # one batch must not discard observations from another open child.
+        sibling = dict(closed, name='Additional postal batch', closed_reason=None)
+        mixed = allocation.group_evidence(history, [*units, sibling], inputs)
+        self.assertLess(mixed['A', 'Postal'], actual['A', 'Postal'])
+
 
 if __name__ == '__main__':
     unittest.main()

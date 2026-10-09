@@ -534,7 +534,9 @@ private:
   // The turnout component supplies one finite count account to every live
   // projection. Prepare counts, refresh progress, then attach party composition.
   // Pair targets include preferences missing on already-counted FP votes.
-  void prepareTurnout(Results2::Election const& currentElection);
+  TurnoutModelIO::Artifact loadTurnoutConfiguration(Results2::Election const& currentElection);
+  void configureInactiveTurnoutContests(TurnoutModelIO::Artifact const& artifact);
+  void prepareTurnout(Results2::Election const& currentElection, TurnoutModelIO::Artifact artifact);
   float turnoutFpTarget(int boothIndex) const;
   float turnoutPairTarget(int boothIndex) const;
   void refreshTurnoutPairProgress();
@@ -652,6 +654,7 @@ private:
 
   // Shared immutable preparation; each scenario owns only its projected votes.
   std::shared_ptr<LiveTurnout::Prepared const> turnout;
+  std::map<std::string, TurnoutModelIO::InactiveContest> inactiveContests;
   std::shared_ptr<nlohmann::json const> turnoutDiagnostic;
 
   struct PreferenceCorrectionSeat {

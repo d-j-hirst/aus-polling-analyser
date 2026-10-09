@@ -57,6 +57,10 @@ private:
         TurnoutModel::DrawPlan drawPlan;
         std::vector<double> boothMeans;
         std::string sourceTime;
+
+        void prepareDistribution(std::vector<bool> const& finalised,
+            std::vector<TurnoutModel::Observation> const& history, std::string const& sourceTimestamp);
+        void indexBoothMeans(std::size_t boothCount);
     };
     struct Response {
         std::size_t unit, seat;
@@ -67,6 +71,11 @@ private:
         std::map<std::string, std::size_t> indexes;
         std::vector<Counted> baseFp, baseTpp, baseTcp;
         std::vector<Response> responses;
+
+        void prepareDistrictAccounts();
+        void prepareUnitResponses(Counts const& countAccount,
+            std::map<std::size_t, UnitComposition const*> const& byBooth);
+        void validateMeanReconstruction(Counts const& countAccount) const;
     };
     std::shared_ptr<Counts const> counts;
     std::shared_ptr<Composition const> composition;

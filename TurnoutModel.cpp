@@ -18,8 +18,10 @@ double odds(double x) {
     return std::log(x) - std::log1p(-x);
 }
 double cdf(double x) { return .5 * std::erfc(-x / std::sqrt(2.)); }
-// Log survival avoids underflow when current votes are far above the prior.
-// The asymptotic series is used only where erfc loses its double precision range.
+// Count conditioning needs probabilities in a normal distribution's far tail.
+// Usually the standard formula suffices; use log probabilities and a tail
+// approximation when observed counts greatly exceed the starting expectation,
+// so tiny probabilities do not become artificial numerical zeros.
 double logCdf(double x) {
     if (x >= 0) return std::log1p(-cdf(-x));
     if (x > -10) return std::log(cdf(x));
@@ -43,8 +45,11 @@ double inverseLogCdf(double value) {
 double mean(std::vector<double> const& v) { return std::accumulate(v.begin(), v.end(), 0.) / v.size(); }
 Matrix zeros(std::size_t rows, std::size_t columns) { return Matrix(rows, std::vector<double>(columns)); }
 
-// Fit one original marginal in log odds and map each outcome above its current
-// lower bound. The fit is never taken from a previously updated snapshot.
+// Update the original outcomes for one share after some votes have been counted.
+// Shares and counted lower bounds use the same parent count. Fit their original
+// spread on log odds, then retain only possibilities above the counted bound.
+// Each original row keeps its relative position within that remaining spread,
+// preserving its relationships to other counts in the same prior outcome.
 std::vector<double> condition(std::vector<double> const& shares, std::vector<double> const& lower) {
     std::vector<double> transformed;
     for (double x : shares) transformed.push_back(odds(x));
@@ -65,6 +70,11 @@ std::vector<double> condition(std::vector<double> const& shares, std::vector<dou
     }
     return result;
 }
+// Divide a finite remaining vote total between booth and declaration additions.
+// Base is the original booth estimate, requested is its adjusted amount, and
+// declaration is the competing aggregate estimate. Shift the original booth
+// proportion smoothly in log odds: a larger request increases its allocation
+// while preserving a positive declaration remainder when both were possible.
 std::pair<double, double> reserve(double base, double requested, double declaration, double budget) {
     double reference = base+declaration > 0 ? base/(base+declaration) : 0;
     if (reference == 0) return {0, budget};
@@ -95,6 +105,12 @@ std::vector<double> uniforms(std::string const& key, std::size_t count, unsigned
     for (auto p : positions) result.push_back((p+.5)/count);
     return result;
 }
+// Find the addition size at a supplied probability within the positive outcome.
+// Possibilities mix the unchanged previous estimate with small additions and
+// larger batches. Their probabilities sum to one here, after the separate
+// no-addition outcome has been removed. Small/batch spreads are 1/1.5 in the
+// log odds of addition versus unused capacity. Numerical search brackets and
+// 40 bisections limit calculation time without capping possible vote counts.
 double mixture(double ref, double small, double batch, double previous, double smallProbability, double batchProbability, double uniform) {
     auto continuous = [&](double x) { return smallProbability*cdf(x-small)+batchProbability*cdf((x-batch)/1.5); };
     double below = continuous(ref), above = below+previous;
@@ -134,212 +150,451 @@ void validate(Prior const& p) {
     }
 }
 
-Broad update(Prior const& p, std::vector<Unit> const& units, std::vector<bool> const& finalised, double ppvcFactor) {
-    validate(p);
-    auto m = p.totals.size(), n = p.seats.size(), g = p.groups.size(), u = units.size();
-    if (finalised.size() != n || !(ppvcFactor > 0 && ppvcFactor <= 1)) throw std::runtime_error("Invalid turnout snapshot options.");
-    Broad out;
-    out.totals = zeros(m,n); out.counts = zeros(m,n*g); out.unitCounts = zeros(m,u); out.remaining = zeros(m,u);
-    out.counted.assign(n,0); out.complete.resize(u); out.compensation.assign(u,0);
-    Matrix expected = zeros(m,u), original = zeros(m,u), additions = zeros(m,u), aggregate = zeros(m,n*g);
-    std::vector<std::vector<std::size_t>> columns(n*g);
-    std::vector<double> groupCounted(n*g), centre(u);
-    std::vector<bool> pure(n*g,true), open(n*g);
-    for (std::size_t j = 0; j < u; ++j) {
-        auto const& v = units[j];
-        if (v.seat >= n || v.group >= g || !std::isfinite(v.counted) || v.counted < 0 || !std::isfinite(v.weight) || v.weight < 0 || v.weight > 1)
+namespace {
+// Scratch arrays for one immutable-prior update. Unit columns and flattened
+// district/group columns use the same ordering as Broad and Prior respectively.
+// This workspace is discarded after preparation; it is not snapshot history.
+struct CountUpdateWorkspace {
+    Broad result;
+    Matrix adjustedExpected, originalExpected, ownAdditions, groupAdditions;
+    std::vector<std::vector<std::size_t>> unitsByGroup;
+    std::vector<double> groupCounted;
+    std::vector<bool> boothOnlyGroups, openGroups, completeSeats;
+};
+
+// Validate measured units, classify their completion and assemble group lookup
+// tables before any estimates change. Reported ordinary/PPVC counts are final
+// for this count update; declarations remain lower bounds unless closed/final.
+CountUpdateWorkspace classifyCountUnits(Prior const& prior, std::vector<Unit> const& units,
+    std::vector<bool> const& finalised) {
+    auto samples = prior.totals.size(), seats = prior.seats.size(), groups = prior.groups.size();
+    CountUpdateWorkspace work;
+    auto& result = work.result;
+    result.totals = zeros(samples,seats);
+    result.counts = zeros(samples,seats*groups);
+    result.unitCounts = zeros(samples,units.size());
+    result.remaining = zeros(samples,units.size());
+    result.counted.assign(seats,0);
+    result.complete.resize(units.size());
+    result.compensation.assign(units.size(),0);
+    work.adjustedExpected = zeros(samples,units.size());
+    work.originalExpected = zeros(samples,units.size());
+    work.ownAdditions = zeros(samples,units.size());
+    work.groupAdditions = zeros(samples,seats*groups);
+    work.unitsByGroup.resize(seats*groups);
+    work.groupCounted.resize(seats*groups);
+    work.boothOnlyGroups.assign(seats*groups,true);
+    work.openGroups.resize(seats*groups);
+    work.completeSeats = finalised;
+    for (std::size_t j = 0; j < units.size(); ++j) {
+        auto const& unit = units[j];
+        if (unit.seat >= seats || unit.group >= groups || !std::isfinite(unit.counted) || unit.counted < 0
+            || !std::isfinite(unit.weight) || unit.weight < 0 || unit.weight > 1)
             throw std::runtime_error("Invalid current turnout unit.");
-        auto k = v.seat*g+v.group;
-        columns[k].push_back(j); groupCounted[k] += v.counted; out.counted[v.seat] += v.counted;
-        out.complete[j] = (v.kind != "declaration" && v.counted > 0) || v.closed || finalised[v.seat];
-        pure[k] = pure[k] && v.kind != "declaration";
-        open[k] = open[k] || !out.complete[j];
-        for (std::size_t r = 0; r < m; ++r) expected[r][j] = original[r][j] = p.counts[r][k]*v.weight;
+        auto group = unit.seat*groups+unit.group;
+        work.unitsByGroup[group].push_back(j);
+        work.groupCounted[group] += unit.counted;
+        result.counted[unit.seat] += unit.counted;
+        result.complete[j] = (unit.kind != "declaration" && unit.counted > 0) || unit.closed || finalised[unit.seat];
+        work.boothOnlyGroups[group] = work.boothOnlyGroups[group] && unit.kind != "declaration";
+        work.openGroups[group] = work.openGroups[group] || !result.complete[j];
+        for (std::size_t r = 0; r < samples; ++r)
+            work.adjustedExpected[r][j] = work.originalExpected[r][j] = prior.counts[r][group]*unit.weight;
     }
-    for (std::size_t s = 0; s < n; ++s) {
-        std::vector<double> shares(m), bound(m,out.counted[s]/p.enrolment[s]);
-        for (std::size_t r = 0; r < m; ++r) shares[r] = p.totals[r][s]/p.enrolment[s];
-        auto values = condition(shares,bound);
-        for (std::size_t r = 0; r < m; ++r) out.totals[r][s] = finalised[s] ? out.counted[s] : values[r]*p.enrolment[s];
-    }
-    // EAV services have a separate historical size; a generic unmatched PPVC
-    // fallback can be thousands of votes too large even before live reporting.
-    for (std::size_t r = 0; r < m; ++r) {
-        std::vector<double> references;
-        for (std::size_t j = 0; j < u; ++j) if (eav(units[j]) && units[j].matched && !units[j].closed) references.push_back(expected[r][j]);
-        std::sort(references.begin(), references.end());
-        auto z = references.size();
-        double replacement = z ? (references[(z-1)/2]+references[z/2])/2 : 25;
-        for (std::size_t j = 0; j < u; ++j) if (eav(units[j]) && !units[j].matched) expected[r][j] = replacement;
-    }
-    for (std::size_t j = 0; j < u; ++j) for (std::size_t r = 0; r < m; ++r) centre[j] += expected[r][j]/m;
-    // Only reliable, completed public centres supply compensation evidence.
-    // Small and unmatched centres retain their own expectation; the historical
-    // exploratory slope is attenuated by how much of the other vote is observed.
-    for (std::size_t j = 0; j < u; ++j) {
-        auto const& v = units[j];
-        if (out.complete[j] || v.kind != "ppvc" || !v.matched || eav(v) || v.excluded) continue;
-        double coefficient = centre[j] >= 8000 ? .63 : centre[j] >= 4000 ? 1.17 : centre[j] >= 2000 ? .14 : 0;
-        double other = 0, reported = 0, observed = 0;
-        for (std::size_t k = 0; k < u; ++k) {
-            auto const& w = units[k];
-            if (w.kind != "ppvc" || w.seat != v.seat || w.group != v.group) continue;
-            if (k != j) other += centre[k];
-            if (out.complete[k] && w.matched && !eav(w) && w.counted > 0 && !w.closed && !w.excluded) { reported += centre[k]; observed += w.counted; }
-        }
-        if (coefficient && reported > 0 && other > 0)
-            out.compensation[j] = -coefficient*reported/other*(odds(observed/p.enrolment[v.seat])-odds(reported/p.enrolment[v.seat]));
-    }
-    for (std::size_t j = 0; j < u; ++j) {
-        auto const& v = units[j];
-        double shift = out.compensation[j];
-        if (v.kind == "ppvc" && !out.complete[j] && !eav(v)) shift += std::log(ppvcFactor);
-        for (std::size_t r = 0; r < m; ++r) {
-            if (shift != 0) expected[r][j] = p.enrolment[v.seat]*logistic(odds(expected[r][j]/p.enrolment[v.seat])+shift);
-            additions[r][j] = out.complete[j] ? 0 : expected[r][j];
-        }
-        if (!out.complete[j] && v.counted > 0) {
-            std::vector<double> shares(m), bound(m);
-            for (std::size_t r = 0; r < m; ++r) { shares[r] = expected[r][j]/p.totals[r][v.seat]; bound[r] = v.counted/out.totals[r][v.seat]; }
-            auto values = condition(shares,bound);
-            for (std::size_t r = 0; r < m; ++r) additions[r][j] = out.totals[r][v.seat]*values[r]-v.counted;
-        }
-    }
-    // Mixed historical groups keep their supported aggregate expectation.
-    // Groups made exclusively of booths instead use the unfinished booths'
-    // own sizes, avoiding the old forced shortfall allocation to a small EAV.
-    for (std::size_t k = 0; k < n*g; ++k) if (open[k] && !pure[k]) {
-        auto s = k/g;
-        std::vector<double> shares(m), bound(m);
-        for (std::size_t r = 0; r < m; ++r) { shares[r] = p.counts[r][k]/p.totals[r][s]; bound[r] = groupCounted[k]/out.totals[r][s]; }
-        auto values = condition(shares,bound);
-        for (std::size_t r = 0; r < m; ++r) aggregate[r][k] = out.totals[r][s]*values[r]-groupCounted[k];
-    }
-    for (std::size_t s = 0; s < n; ++s) for (std::size_t r = 0; r < m; ++r) {
-        double base = 0, request = 0, combined = 0;
-        for (std::size_t k = s*g; k < (s+1)*g; ++k) {
-            combined += aggregate[r][k];
-            if (pure[k]) for (auto j : columns[k]) if (!out.complete[j]) { base += original[r][j]; request += additions[r][j]; }
-        }
-        if (!finalised[s] && base+combined <= 0) throw std::runtime_error("Unfinished turnout district has no remaining supported units.");
-        auto [boothBudget, aggregateBudget] = reserve(base,request,combined,out.totals[r][s]-out.counted[s]);
-        for (std::size_t k = s*g; k < (s+1)*g; ++k) {
-            if (pure[k]) {
-                for (auto j : columns[k]) if (!out.complete[j]) out.remaining[r][j] = request > 0 ? additions[r][j]*boothBudget/request : 0;
-                continue;
-            }
-            if (!open[k]) continue;
-            double budget = combined > 0 ? aggregateBudget*aggregate[r][k]/combined : 0;
-            double b = 0, d = 0, originalB = 0;
-            for (auto j : columns[k]) if (!out.complete[j]) {
-                if (units[j].kind == "declaration") d += additions[r][j];
-                else { b += additions[r][j]; originalB += original[r][j]; }
-            }
-            auto [bBudget,dBudget] = reserve(originalB,b,d,budget);
-            for (auto j : columns[k]) if (!out.complete[j]) out.remaining[r][j] = units[j].kind == "declaration"
-                ? (d > 0 ? additions[r][j]*dBudget/d : 0) : (b > 0 ? additions[r][j]*bBudget/b : 0);
-        }
-    }
-    for (std::size_t j = 0; j < u; ++j) for (std::size_t r = 0; r < m; ++r) {
-        out.unitCounts[r][j] = units[j].counted+out.remaining[r][j];
-        out.counts[r][units[j].seat*g+units[j].group] += out.unitCounts[r][j];
-    }
-    // Retain each count-conditioned estimate before the aggregate allowances
-    // rescale it. Reusing this calculation avoids repeating marginal fits when
-    // whole-group progress later allows an excessive allowance to recede.
-    out.ownRemaining = std::move(additions);
-    return out;
+    return work;
 }
 
-std::vector<Evidence> progress(Prior const& p, std::vector<Unit> const& units,
-    std::vector<Observation> const& history, std::optional<double> deadline,
-    bool scheduleAware, double eventScale) {
-    std::vector<Evidence> result(units.size());
-    if (history.empty()) return result;
-    std::map<double, Observation const*> ordered;
-    for (auto const& h : history) ordered[h.hour] = &h;
-    double now = ordered.rbegin()->first;
-    struct Row { Evidence e; double current = 0, sharedActivity = 0, sharedVolume = 0; std::string state; };
-    std::map<std::pair<std::string,std::string>, Row> rows;
-    std::set<std::string> categories;
-    for (auto const& u : units) if (u.kind == "declaration") categories.insert(u.category);
-    for (auto const& [key,value] : ordered.rbegin()->second->counts) {
-        if (!categories.count(key.second)) continue;
-        if (value < 0 || !std::isfinite(value)) throw std::runtime_error("Invalid turnout progress count.");
-        Row row; row.current = value;
-        auto seat = std::find(p.seats.begin(),p.seats.end(),key.first);
-        if (seat != p.seats.end()) row.state = p.subdivisions[seat-p.seats.begin()];
-        double activity = 0, coverage = 0, volume = 0, sharedActivity = 0, sharedVolume = 0;
-        double smallSupport = 0, changedSupport = 0, tolerance = std::hypot(10.,eventScale*value);
-        for (auto it = ordered.begin(); it != ordered.end(); ++it) {
-            auto next = std::next(it); if (next == ordered.end()) break;
-            auto old = it->second->counts.find(key), current = next->second->counts.find(key);
-            if (old == it->second->counts.end() || current == next->second->counts.end()) continue;
-            if (old->second < 0 || current->second < 0 || !std::isfinite(old->second) || !std::isfinite(current->second)) throw std::runtime_error("Invalid turnout history count.");
-            double hours = scheduleAware ? countingHours(it->first,next->first) : next->first-it->first;
-            double age = scheduleAware ? countingHours(next->first,now) : now-next->first, decay = std::exp(-age/24);
-            double delta = std::abs(current->second-old->second), ratio = delta/tolerance;
-            activity += ratio*ratio/(1+ratio*ratio)*decay; volume += delta*decay;
-            // A late backlog is strong evidence about this seat, but weaker
-            // evidence that another seat still has routine counting to do.
-            double shared = scheduleAware && deadline ? logistic(-((next->first-*deadline)/24)) : 1;
-            sharedActivity += ratio*ratio/(1+ratio*ratio)*decay*shared;
-            sharedVolume += delta*decay*shared;
-            coverage += std::exp(-age/48)*(-std::expm1(-hours/48))/(1+(hours/48)*(hours/48));
-            if (scheduleAware && deadline) {
-                // Small positive batches after receipt closes support an end
-                // to routine processing. Large batches and downward rechecks
-                // provide less support, without declaring any batch final.
-                double post = logistic((it->first-*deadline)/12);
-                double event = post*std::exp(-age/72)*delta*delta/(delta*delta+50*50);
-                changedSupport += event;
-                if (current->second > old->second)
-                    smallSupport += event/(1+std::pow(delta/(.05*(value+.5)),2));
+// Resolve the formal-total parent first. A completed count is exactly its
+// measured total; otherwise condition the original total/enrolment distribution
+// above that lower bound. An empty configuration does not establish completion.
+void conditionDistrictTotals(Prior const& prior, CountUpdateWorkspace& work) {
+    auto samples = prior.totals.size(), groups = prior.groups.size();
+    auto& result = work.result;
+    for (std::size_t s = 0; s < prior.seats.size(); ++s) {
+        bool hasUnits = false, hasOpenUnits = false;
+        for (std::size_t k = s*groups; k < (s+1)*groups; ++k) {
+            hasUnits = hasUnits || !work.unitsByGroup[k].empty();
+            hasOpenUnits = hasOpenUnits || work.openGroups[k];
+        }
+        work.completeSeats[s] = work.completeSeats[s] || (hasUnits && !hasOpenUnits);
+        if (!(result.counted[s] < prior.enrolment[s])) throw std::runtime_error("Counted votes reach their turnout parent.");
+        if (work.completeSeats[s]) {
+            for (std::size_t r = 0; r < samples; ++r) result.totals[r][s] = result.counted[s];
+            continue;
+        }
+        std::vector<double> shares(samples), lower(samples,result.counted[s]/prior.enrolment[s]);
+        for (std::size_t r = 0; r < samples; ++r) shares[r] = prior.totals[r][s]/prior.enrolment[s];
+        auto conditioned = condition(shares,lower);
+        for (std::size_t r = 0; r < samples; ++r) result.totals[r][s] = conditioned[r]*prior.enrolment[s];
+    }
+}
+
+// Most PPVC starting sizes follow matched historical public centres. EAV
+// services are small assistance services, not ordinary public PPVCs. Replace
+// unmatched starting sizes with the median of available matched EAV services
+// in the same prior outcome, or the maintained 25-vote assumption if none exist.
+void replaceUnmatchedEavSizes(std::vector<Unit> const& units, Matrix& expected) {
+    for (auto& row : expected) {
+        std::vector<double> references;
+        for (std::size_t j = 0; j < units.size(); ++j)
+            if (eav(units[j]) && units[j].matched && !units[j].closed) references.push_back(row[j]);
+        std::sort(references.begin(),references.end());
+        auto count = references.size();
+        double replacement = count ? (references[(count-1)/2]+references[count/2])/2 : 25;
+        for (std::size_t j = 0; j < units.size(); ++j)
+            if (eav(units[j]) && !units[j].matched) row[j] = replacement;
+    }
+}
+
+// Federal 2025 reliable non-EAV matches, excluding Brand's Rockingham reporting
+// consolidation, gave 95% district-bootstrap slope endpoints nearest zero of
+// -0.1443, -1.1731 and -0.6358. Magnitudes are rounded towards zero below; smaller
+// centres' intervals included zero. These are exploratory log-odds slopes, not
+// correlations or fractions of missing votes, and are not independently tested
+// on another election. Selection uses discrete starting-size bands.
+double ppvcCompensationCoefficient(double expectedCount) {
+    return expectedCount >= 8000 ? .63 : expectedCount >= 4000 ? 1.17 : expectedCount >= 2000 ? .14 : 0;
+}
+
+// Only completed, reliably matched public centres supply compensation evidence.
+// The reported/other expected-count ratio attenuates the slope when only a small
+// part of the district's other PPVC vote is observed. A negative observed change
+// therefore raises this centre's expectation, while a positive one lowers it.
+void calculatePpvcCompensation(Prior const& prior, std::vector<Unit> const& units, CountUpdateWorkspace& work) {
+    auto samples = prior.totals.size();
+    std::vector<double> expectedMeans(units.size());
+    for (std::size_t j = 0; j < units.size(); ++j)
+        for (std::size_t r = 0; r < samples; ++r) expectedMeans[j] += work.adjustedExpected[r][j]/samples;
+    for (std::size_t j = 0; j < units.size(); ++j) {
+        auto const& unit = units[j];
+        if (work.result.complete[j] || unit.kind != "ppvc" || !unit.matched || eav(unit) || unit.excluded) continue;
+        double coefficient = ppvcCompensationCoefficient(expectedMeans[j]);
+        double otherExpected = 0, reportedExpected = 0, reportedCount = 0;
+        for (std::size_t k = 0; k < units.size(); ++k) {
+            auto const& other = units[k];
+            if (other.kind != "ppvc" || other.seat != unit.seat || other.group != unit.group) continue;
+            if (k != j) otherExpected += expectedMeans[k];
+            if (work.result.complete[k] && other.matched && !eav(other) && other.counted > 0 && !other.closed && !other.excluded) {
+                reportedExpected += expectedMeans[k];
+                reportedCount += other.counted;
             }
         }
-        row.e.activity = -std::expm1(-activity); row.e.volume = volume; row.e.coverage = coverage; row.e.started = value/(value+10);
-        row.e.smallBatchSupport = smallSupport/(1+changedSupport);
-        row.sharedActivity = -std::expm1(-sharedActivity); row.sharedVolume = sharedVolume;
+        if (coefficient && reportedExpected > 0 && otherExpected > 0)
+            work.result.compensation[j] = -coefficient*reportedExpected/otherExpected
+                *(odds(reportedCount/prior.enrolment[unit.seat])-odds(reportedExpected/prior.enrolment[unit.seat]));
+    }
+}
+
+// Apply size changes on count/enrolment log odds, then condition an unfinished
+// unit's original count/formal-total share above its measured count. Retain this
+// own-unit estimate before allocating any aggregate group allowance.
+void conditionUnitAdditions(Prior const& prior, std::vector<Unit> const& units,
+    double ppvcFactor, CountUpdateWorkspace& work) {
+    auto samples = prior.totals.size();
+    for (std::size_t j = 0; j < units.size(); ++j) {
+        auto const& unit = units[j];
+        double shift = work.result.compensation[j];
+        if (unit.kind == "ppvc" && !work.result.complete[j] && !eav(unit)) shift += std::log(ppvcFactor);
+        for (std::size_t r = 0; r < samples; ++r) {
+            if (shift != 0) work.adjustedExpected[r][j] = prior.enrolment[unit.seat]
+                *logistic(odds(work.adjustedExpected[r][j]/prior.enrolment[unit.seat])+shift);
+            work.ownAdditions[r][j] = work.result.complete[j] ? 0 : work.adjustedExpected[r][j];
+        }
+        if (!work.result.complete[j] && unit.counted > 0) {
+            std::vector<double> shares(samples), lower(samples);
+            for (std::size_t r = 0; r < samples; ++r) {
+                shares[r] = work.adjustedExpected[r][j]/prior.totals[r][unit.seat];
+                lower[r] = unit.counted/work.result.totals[r][unit.seat];
+            }
+            auto conditioned = condition(shares,lower);
+            for (std::size_t r = 0; r < samples; ++r)
+                work.ownAdditions[r][j] = work.result.totals[r][unit.seat]*conditioned[r]-unit.counted;
+        }
+    }
+}
+
+// Historically combined groups retain their supported aggregate distribution.
+// Booth-only groups instead use the unfinished booths' own sizes, so a small
+// service cannot inherit all votes missing from a larger centre's expectation.
+void conditionGroupAdditions(Prior const& prior, CountUpdateWorkspace& work) {
+    auto samples = prior.totals.size(), groups = prior.groups.size();
+    for (std::size_t k = 0; k < work.unitsByGroup.size(); ++k) {
+        if (!work.openGroups[k] || work.boothOnlyGroups[k]) continue;
+        auto seat = k/groups;
+        std::vector<double> shares(samples), lower(samples);
+        for (std::size_t r = 0; r < samples; ++r) {
+            shares[r] = prior.counts[r][k]/prior.totals[r][seat];
+            lower[r] = work.groupCounted[k]/work.result.totals[r][seat];
+        }
+        auto conditioned = condition(shares,lower);
+        for (std::size_t r = 0; r < samples; ++r)
+            work.groupAdditions[r][k] = work.result.totals[r][seat]*conditioned[r]-work.groupCounted[k];
+    }
+}
+
+// Share each district's remaining formal total between booth-only estimates
+// and supported aggregate groups. Within a mixed group, reserve booth sizes
+// first and divide the rest among its unfinished declarations. Counted votes
+// are lower bounds throughout; completed units receive no estimated additions.
+void allocateDistrictRemainders(Prior const& prior, std::vector<Unit> const& units, CountUpdateWorkspace& work) {
+    auto samples = prior.totals.size(), groups = prior.groups.size();
+    for (std::size_t s = 0; s < prior.seats.size(); ++s) for (std::size_t r = 0; r < samples; ++r) {
+        if (work.completeSeats[s]) continue;
+        double originalBooths = 0, requestedBooths = 0, combinedGroups = 0;
+        for (std::size_t k = s*groups; k < (s+1)*groups; ++k) {
+            combinedGroups += work.groupAdditions[r][k];
+            if (work.boothOnlyGroups[k]) for (auto j : work.unitsByGroup[k]) if (!work.result.complete[j]) {
+                originalBooths += work.originalExpected[r][j];
+                requestedBooths += work.ownAdditions[r][j];
+            }
+        }
+        if (originalBooths+combinedGroups <= 0) throw std::runtime_error("Unfinished turnout district has no remaining supported units.");
+        auto [boothBudget, aggregateBudget] = reserve(originalBooths,requestedBooths,combinedGroups,
+            work.result.totals[r][s]-work.result.counted[s]);
+        for (std::size_t k = s*groups; k < (s+1)*groups; ++k) {
+            if (work.boothOnlyGroups[k]) {
+                for (auto j : work.unitsByGroup[k]) if (!work.result.complete[j])
+                    work.result.remaining[r][j] = requestedBooths > 0 ? work.ownAdditions[r][j]*boothBudget/requestedBooths : 0;
+                continue;
+            }
+            if (!work.openGroups[k]) continue;
+            double budget = combinedGroups > 0 ? aggregateBudget*work.groupAdditions[r][k]/combinedGroups : 0;
+            double boothAdditions = 0, declarationAdditions = 0, originalGroupBooths = 0;
+            for (auto j : work.unitsByGroup[k]) if (!work.result.complete[j]) {
+                if (units[j].kind == "declaration") declarationAdditions += work.ownAdditions[r][j];
+                else {
+                    boothAdditions += work.ownAdditions[r][j];
+                    originalGroupBooths += work.originalExpected[r][j];
+                }
+            }
+            auto [groupBoothBudget,declarationBudget] = reserve(originalGroupBooths,boothAdditions,declarationAdditions,budget);
+            for (auto j : work.unitsByGroup[k]) if (!work.result.complete[j])
+                work.result.remaining[r][j] = units[j].kind == "declaration"
+                    ? (declarationAdditions > 0 ? work.ownAdditions[r][j]*declarationBudget/declarationAdditions : 0)
+                    : (boothAdditions > 0 ? work.ownAdditions[r][j]*groupBoothBudget/boothAdditions : 0);
+        }
+    }
+}
+
+// Assemble counts from the exact measured account plus allocated additions.
+// Keep the pre-allocation own estimates for the later whole-group progress
+// adjustment, avoiding a second set of marginal fits.
+Broad assembleUpdatedCounts(Prior const& prior, std::vector<Unit> const& units, CountUpdateWorkspace& work) {
+    auto groups = prior.groups.size();
+    for (std::size_t j = 0; j < units.size(); ++j) for (std::size_t r = 0; r < prior.totals.size(); ++r) {
+        work.result.unitCounts[r][j] = units[j].counted+work.result.remaining[r][j];
+        work.result.counts[r][units[j].seat*groups+units[j].group] += work.result.unitCounts[r][j];
+    }
+    work.result.ownRemaining = std::move(work.ownAdditions);
+    return std::move(work.result);
+}
+}
+
+Broad update(Prior const& prior, std::vector<Unit> const& units, std::vector<bool> const& finalised, double ppvcFactor) {
+    // Establish the counted account, update expectations from its lower bounds,
+    // then allocate only the remaining voters. Reported ordinary/PPVC booths
+    // normally need no additions; declarations can remain open for later batches.
+    validate(prior);
+    if (finalised.size() != prior.seats.size() || !(ppvcFactor > 0 && ppvcFactor <= 1))
+        throw std::runtime_error("Invalid turnout snapshot options.");
+    auto work = classifyCountUnits(prior,units,finalised);
+    conditionDistrictTotals(prior,work);
+    replaceUnmatchedEavSizes(units,work.adjustedExpected);
+    calculatePpvcCompensation(prior,units,work);
+    conditionUnitAdditions(prior,units,ppvcFactor,work);
+    conditionGroupAdditions(prior,work);
+    allocateDistrictRemainders(prior,units,work);
+    return assembleUpdatedCounts(prior,units,work);
+}
+
+namespace {
+using ProgressIdentity = std::pair<std::string, std::string>;
+using ProgressHistory = std::map<double, Observation const*>;
+struct ProgressRow {
+    Evidence e;
+    double current = 0, sharedActivity = 0, sharedVolume = 0;
+    std::string state;
+};
+using ProgressRows = std::map<ProgressIdentity, ProgressRow>;
+
+ProgressHistory orderProgressHistory(std::vector<Observation> const& history) {
+    // A revised source time replaces its earlier record. All changes are then
+    // measured in source order, independently of the order feeds were replayed.
+    ProgressHistory ordered;
+    for (auto const& observation : history) ordered[observation.hour] = &observation;
+    return ordered;
+}
+
+ProgressRow measureLocalProgress(ProgressHistory const& ordered, ProgressIdentity const& key,
+    double value, std::optional<double> deadline, bool scheduleAware, double eventScale) {
+    // Usually declaration counts grow in batches, then become quiet. Measure
+    // both changes and the observation coverage needed to interpret that quiet.
+    // Rechecks still count as activity; they are not additional voters.
+    ProgressRow row;
+    row.current = value;
+    double now = ordered.rbegin()->first;
+    double activity = 0, coverage = 0, volume = 0, sharedActivity = 0, sharedVolume = 0;
+    // A change equal to this tolerance supplies half an activity event.
+    // Combine a 10-vote absolute scale with the supplied relative scale
+    // (.1% ordinarily, 2% in the cautious timetable measurement) in quadrature.
+    double smallSupport = 0, changedSupport = 0, tolerance = std::hypot(10.,eventScale*value);
+    for (auto it = ordered.begin(); it != ordered.end(); ++it) {
+        auto next = std::next(it);
+        if (next == ordered.end()) break;
+        auto old = it->second->counts.find(key), current = next->second->counts.find(key);
+        if (old == it->second->counts.end() || current == next->second->counts.end()) continue;
+        if (old->second < 0 || current->second < 0 || !std::isfinite(old->second) || !std::isfinite(current->second)) throw std::runtime_error("Invalid turnout history count.");
+        double hours = scheduleAware ? countingHours(it->first,next->first) : next->first-it->first;
+        // Activity and absolute vote-volume memory have a 24-hour decay
+        // time. A large revision tends to one event rather than dominating
+        // the event score in proportion to its vote count.
+        double age = scheduleAware ? countingHours(next->first,now) : now-next->first;
+        double decay = std::exp(-age/24);
+        double delta = std::abs(current->second-old->second), ratio = delta/tolerance;
+        activity += ratio*ratio/(1+ratio*ratio)*decay;
+        volume += delta*decay;
+        // A late backlog is strong evidence about this seat, but weaker
+        // evidence that another seat still has routine counting to do.
+        // Its shared influence is half at the receipt deadline, with a
+        // 24-calendar-hour logistic transition around that date.
+        double shared = scheduleAware && deadline ? logistic(-((next->first-*deadline)/24)) : 1;
+        sharedActivity += ratio*ratio/(1+ratio*ratio)*decay*shared;
+        sharedVolume += delta*decay*shared;
+        // Observation coverage has a longer 48-hour memory. Integrate the
+        // observed interval, then discount long gaps (half at 48 hours):
+        // two distant snapshots do not establish repeated quiet counting.
+        coverage += std::exp(-age/48)*(-std::expm1(-hours/48))/(1+(hours/48)*(hours/48));
+        if (scheduleAware && deadline) {
+            // Small positive batches after receipt closes support an end
+            // to routine processing. Large batches and downward rechecks
+            // provide less support, without declaring any batch final.
+            // Deadline influence transitions over 12 calendar hours;
+            // batch memory decays over 72 counting hours. The 50-vote
+            // scale discounts tiny changes; 5% of current count is the
+            // half-support scale for judging a positive batch as small.
+            double post = logistic((it->first-*deadline)/12);
+            double event = post*std::exp(-age/72)*delta*delta/(delta*delta+50*50);
+            changedSupport += event;
+            if (current->second > old->second)
+                smallSupport += event/(1+std::pow(delta/(.05*(value+.5)),2));
+        }
+    }
+    // Map accumulated events to a bounded score. Started is a smooth
+    // count/(count+10) measure, not a binary reported/unreported flag.
+    row.e.activity = -std::expm1(-activity);
+    row.e.volume = volume;
+    row.e.coverage = coverage;
+    row.e.started = value/(value+10);
+    row.e.smallBatchSupport = smallSupport/(1+changedSupport);
+    row.sharedActivity = -std::expm1(-sharedActivity);
+    row.sharedVolume = sharedVolume;
+    return row;
+}
+
+ProgressRows measureAvailableProgress(Prior const& prior, std::vector<Unit> const& units,
+    ProgressHistory const& ordered, std::optional<double> deadline, bool scheduleAware, double eventScale) {
+    // Compare the same available declaration category across districts. An
+    // unstarted open category supplies useful zero evidence; a known closure
+    // supplies none, because that service was never expected to receive votes.
+    std::set<ProgressIdentity> available;
+    for (auto const& unit : units) if (unit.kind == "declaration" && !unit.closed)
+        available.emplace(prior.seats[unit.seat], unit.category);
+    ProgressRows rows;
+    for (auto const& [key, value] : ordered.rbegin()->second->counts) {
+        if (!available.count(key)) continue;
+        if (value < 0 || !std::isfinite(value)) throw std::runtime_error("Invalid turnout progress count.");
+        auto row = measureLocalProgress(ordered, key, value, deadline, scheduleAware, eventScale);
+        auto seat = std::find(prior.seats.begin(), prior.seats.end(), key.first);
+        if (seat != prior.seats.end()) row.state = prior.subdivisions[seat-prior.seats.begin()];
         rows[key] = row;
     }
-    auto pooled = [](std::vector<Row const*> const& pool) {
-        Evidence e;
-        auto central = [&](auto measure) {
-            std::vector<double> values; for (auto r : pool) values.push_back(measure(*r));
-            std::sort(values.begin(),values.end()); std::size_t trim = std::min<std::size_t>(2,values.size()/10);
-            return std::accumulate(values.begin()+trim,values.end()-trim,0.)/(values.size()-2*trim);
-        };
-        e.pooledActivity = central([](Row const& r) { return r.sharedActivity; });
-        e.pooledStarted = central([](Row const& r) { return r.e.started; });
-        e.pooledVolume = central([](Row const& r) { return r.sharedVolume/(r.current+.5); });
-        return e;
+    return rows;
+}
+
+// Pool typical activity across districts, then blend regional evidence where
+// enough observations exist. A few exceptional districts must not determine
+// the expected counting progress of every other district.
+Evidence poolProgressRows(std::vector<ProgressRow const*> const& pool) {
+    Evidence e;
+    auto central = [&](auto measure) {
+        // Districts have equal influence. Trim one extreme at each end
+        // per ten observations, up to two, so a few anomalous categories
+        // cannot define typical progress. Local evidence is never trimmed.
+        std::vector<double> values;
+        for (auto r : pool) values.push_back(measure(*r));
+        std::sort(values.begin(),values.end());
+        std::size_t trim = std::min<std::size_t>(2,values.size()/10);
+        return std::accumulate(values.begin()+trim,values.end()-trim,0.)/(values.size()-2*trim);
     };
+    e.pooledActivity = central([](ProgressRow const& r) { return r.sharedActivity; });
+    e.pooledStarted = central([](ProgressRow const& r) { return r.e.started; });
+    // Normalize volume within each district before averaging; the half-vote
+    // equivalent keeps genuine open-service zeros numerically defined.
+    e.pooledVolume = central([](ProgressRow const& r) { return r.sharedVolume/(r.current+.5); });
+    return e;
+}
+
+std::vector<Evidence> attachProgressEvidence(Prior const& p, std::vector<Unit> const& units,
+    ProgressRows const& rows, double now, std::optional<double> deadline) {
+    // Each service receives its category's local evidence and the typical
+    // progress elsewhere. The resulting strength is a response score: a larger
+    // value means more reason to reduce usual remaining-vote expectations.
+    std::vector<Evidence> result(units.size());
     std::map<std::pair<std::string,std::string>,double> currentUnits;
     for (auto const& u : units) if (u.kind == "declaration") currentUnits[{p.seats[u.seat],u.category}] += u.counted;
     for (std::size_t j = 0; j < units.size(); ++j) {
         auto const& u = units[j]; auto key = std::make_pair(p.seats[u.seat],u.category);
         auto local = rows.find(key);
-        if (u.kind != "declaration" || local == rows.end()) continue;
+        if (u.kind != "declaration" || u.closed || local == rows.end()) continue;
         auto const& row = local->second;
         if (currentUnits.at(key) != row.current) throw std::runtime_error("Turnout history and current category counts differ.");
-        std::vector<Row const*> national, regional;
+        std::vector<ProgressRow const*> national, regional;
         for (auto const& [k,v] : rows) if (k.second == key.second) { national.push_back(&v); if (v.state == row.state) regional.push_back(&v); }
-        Evidence e = row.e, broad = pooled(national);
+        Evidence e = row.e, broad = poolProgressRows(national);
+        // Twenty regional observations give the regional mean half the blend,
+        // with national evidence supplying the rest. No subdivision means a
+        // national-only measurement, not an inferred regional relationship.
         e.stateWeight = row.state.empty() ? 0 : double(regional.size())/(regional.size()+20);
         if (e.stateWeight) {
-            auto state = pooled(regional);
+            auto state = poolProgressRows(regional);
             broad.pooledActivity += e.stateWeight*(state.pooledActivity-broad.pooledActivity);
             broad.pooledStarted += e.stateWeight*(state.pooledStarted-broad.pooledStarted);
             broad.pooledVolume += e.stateWeight*(state.pooledVolume-broad.pooledVolume);
         }
-        e.pooledActivity = broad.pooledActivity; e.pooledStarted = broad.pooledStarted; e.pooledVolume = broad.pooledVolume;
+        e.pooledActivity = broad.pooledActivity;
+        e.pooledStarted = broad.pooledStarted;
+        e.pooledVolume = broad.pooledVolume;
         auto quiet = [](double value,double scale) { return 1/(1+(value/scale)*(value/scale)); };
+        // Each quietness response is half at its scale. The .1 scores govern
+        // activity and lack of shared starting support; .005 is recent volume
+        // equal to .5% of current category counts. Shared quietness gives 75%
+        // weight to event activity and 25% to relative volume. Their product
+        // with local coverage/starting support is a response score, not a
+        // calibrated probability that the category is finished.
         e.strength = e.coverage*e.started*quiet(e.activity,.1)*quiet(1-e.pooledStarted,.1)
             *(.75*quiet(e.pooledActivity,.1)+.25*quiet(e.pooledVolume,.005));
-        if (u.category == "Postal" && deadline) { e.postalReceiptSupport = logistic((now-*deadline)/48); e.strength *= e.postalReceiptSupport; }
+        if (u.category == "Postal" && deadline) {
+            // Postal quietness supplies half its ordinary support at receipt
+            // closure and changes smoothly on a 48-calendar-hour scale.
+            e.postalReceiptSupport = logistic((now-*deadline)/48);
+            e.strength *= e.postalReceiptSupport;
+        }
         result[j] = e;
     }
     return result;
+}
+}
+
+std::vector<Evidence> progress(Prior const& prior, std::vector<Unit> const& units,
+    std::vector<Observation> const& history, std::optional<double> deadline,
+    bool scheduleAware, double eventScale) {
+    // Use received history to measure local counting, compare it with other
+    // districts and attach completion evidence. With no history, retain prior
+    // expectations. Response scales are shared with the Python calibration.
+    if (history.empty()) return std::vector<Evidence>(units.size());
+    auto ordered = orderProgressHistory(history);
+    auto rows = measureAvailableProgress(prior, units, ordered, deadline, scheduleAware, eventScale);
+    return attachProgressEvidence(prior, units, rows, ordered.rbegin()->first, deadline);
 }
 
 // Expected booth sizes, rather than the number of reporting booths, determine
@@ -374,12 +629,18 @@ std::vector<Evidence> scheduledEvidence(Prior const& p, std::vector<Unit> const&
     auto quiet = [](double value,double scale) { return 1/(1+std::pow(value/scale,2)); };
     for (std::size_t j = 0; j < units.size(); ++j) {
         auto& e = result[j];
+        // A .3 activity score halves this more cautious quietness response.
+        // Convert scores to influence with 1-exp(-(score/.3)^2), then average
+        // the original and cautious influence weights.
         double shared = quiet(e.pooledActivity,.3);
         double strength = e.coverage*e.started*quiet(1-e.pooledStarted,.1)*quiet(e.activity,.3)
             *(.5+.5*shared)*e.postalReceiptSupport;
         double oldWeight = -std::expm1(-std::pow(original[j].strength/.3,2));
         double proposedWeight = -std::expm1(-std::pow(strength/.3,2))*shared;
         double weight = .5*(oldWeight+proposedWeight);
+        // Small late batches can close at most 80% of the remaining influence
+        // gap, scaled by expected-size-weighted booth completion squared and
+        // local starting support. This adds evidence, not an extra vote draw.
         double extra = .8*e.smallBatchSupport*std::pow(completed[units[j].seat],2)*e.started;
         weight += (1-weight)*extra;
         e.strength = .3*std::sqrt(-std::log1p(-weight));
@@ -387,24 +648,38 @@ std::vector<Evidence> scheduledEvidence(Prior const& p, std::vector<Unit> const&
     return result;
 }
 
-// An allowance can remain large when the larger booths in its group have
-// finished but a small declaration category is still open. Measure progress
-// on the entire supported group, then gradually relax that imposed allowance.
-// Category-specific completion and exceptional batches remain a separate step.
-void releaseAllocation(Prior const& p, std::vector<Unit> const& units,
-    std::vector<Observation> const& history, std::optional<double> deadline, Result& result,
-    std::vector<double> const& completed = {}) {
-    auto& broad = result.broad;
-    auto m = p.totals.size(), n = p.seats.size(), g = p.groups.size();
+namespace {
+std::vector<Unit> makeAllocationGroups(Prior const& p, std::vector<Unit> const& units) {
+    // Most groups have one supported declaration category or a known combined
+    // historical category. Measure their full observed count, including booths,
+    // while retaining whether any service in the group was actually available.
+    auto n = p.seats.size(), g = p.groups.size();
     std::vector<Unit> groups(n*g);
     for (std::size_t s = 0; s < n; ++s) for (std::size_t k = 0; k < g; ++k) {
         auto& group = groups[s*g+k];
         group.seat = s; group.group = k; group.kind = "declaration";
         group.category = p.groups[k] == "postal" ? "Postal" : "allocation:"+p.groups[k];
         group.name = group.category;
+        group.closed = true;
     }
-    for (auto const& unit : units) groups[unit.seat*g+unit.group].counted += unit.counted;
-    auto evidence = progress(p,groups,history,deadline);
+    // Aggregating services must retain their availability. An entirely closed
+    // or absent group supplies no progress evidence; a group with an open
+    // sibling still does. Preserve all measured counts in either case.
+    for (auto const& unit : units) {
+        auto& group = groups[unit.seat*g+unit.group];
+        group.counted += unit.counted;
+        if (!unit.closed) group.closed = false;
+    }
+    return groups;
+}
+
+bool measureAllocationWeights(Prior const& p, std::vector<Unit> const& units,
+    std::vector<Evidence> const& evidence, std::vector<double> const& completed, Result& result) {
+    // Ordinary progress retains the aggregate allowance. Slowing groups gradually
+    // allow their unfinished declarations to approach their own size estimates.
+    // Completed booths add support only for compatible single-category groups.
+    auto const& broad = result.broad;
+    auto m = p.totals.size(), g = p.groups.size();
     result.balancedRemainingMeans.assign(units.size(),0);
     result.allocationStrength.assign(units.size(),0);
     result.allocationWeight.assign(units.size(),0);
@@ -433,9 +708,15 @@ void releaseAllocation(Prior const& p, std::vector<Unit> const& units,
         result.allocationWeight[j] = weight;
         active = active || result.allocationWeight[j] != 0;
     }
-    // No group history, or no slowing evidence, retains the original account
-    // exactly. In particular the genuine no-results prior is unchanged.
-    if (!active) return;
+    return active;
+}
+
+void releaseDistrictAllowances(Prior const& p, std::vector<Unit> const& units, Result& result) {
+    // Replace only the evidence-supported part of an imposed allowance. Keep
+    // counted votes and booth estimates fixed, and let removed expected voters
+    // become unused capacity instead of pushing them into another category.
+    auto& broad = result.broad;
+    auto m = p.totals.size(), n = p.seats.size();
     for (std::size_t s = 0; s < n; ++s) {
         std::vector<std::size_t> columns;
         bool localActive = false;
@@ -475,6 +756,12 @@ void releaseAllocation(Prior const& p, std::vector<Unit> const& units,
             }
         }
     }
+}
+
+void rebuildReleasedTotals(Prior const& p, std::vector<Unit> const& units, Broad& broad) {
+    // District and group accounts must reflect the same released unit counts.
+    // Summing them again preserves the parent's accounting for the late model.
+    auto m = p.totals.size(), n = p.seats.size(), g = p.groups.size();
     broad.counts = zeros(m,n*g);
     broad.totals = zeros(m,n);
     for (std::size_t r = 0; r < m; ++r) {
@@ -483,24 +770,28 @@ void releaseAllocation(Prior const& p, std::vector<Unit> const& units,
             broad.totals[r][s] = std::accumulate(broad.counts[r].begin()+s*g,broad.counts[r].begin()+(s+1)*g,0.);
     }
 }
+}
 
-Result prepare(Prior const& p, std::vector<Unit> const& units, std::vector<bool> const& finalised,
-    std::vector<Observation> const& history, Options const& options, Matrix const& suppliedUniforms) {
-    if (!options.countDraws) throw std::runtime_error("Turnout preparation needs at least one cheap count draw.");
-    Result result;
-    result.broad = update(p,units,finalised,options.ppvcFactor);
-    auto completed = options.receiptDeadline ? boothCompletion(p,units) : std::vector<double>{};
-    result.evidence = options.receiptDeadline ? scheduledEvidence(p,units,history,*options.receiptDeadline,completed)
-        : progress(p,units,history,options.postalDeadline);
-    releaseAllocation(p,units,history,options.receiptDeadline ? options.receiptDeadline : options.postalDeadline,result,completed);
-    auto m = p.totals.size(), n = p.seats.size(), g = p.groups.size(), count = m*options.countDraws;
-    auto const& broad = result.broad;
-    // Routine expected additions recede after the receipt cutoff and a two-day
-    // processing allowance. The separately possible batch fades much more
-    // slowly. Source observations determine the clock; rerunning a forecast
-    // later in real time cannot make the same source appear more complete.
+void releaseAllocation(Prior const& prior, std::vector<Unit> const& units,
+    std::vector<Observation> const& history, std::optional<double> deadline, Result& result,
+    std::vector<double> const& completed = {}) {
+    // Usually historical group allowances remain useful while counting is
+    // active. As whole-group counting settles, release excessive allocations
+    // before preparing the separate category-level finishing and batch outcomes.
+    auto groups = makeAllocationGroups(prior, units);
+    auto evidence = progress(prior, groups, history, deadline);
+    if (!measureAllocationWeights(prior, units, evidence, completed, result)) return;
+    releaseDistrictAllowances(prior, units, result);
+    rebuildReleasedTotals(prior, units, result.broad);
+}
+
+namespace {
+// Resolve the counting clock from the latest received source, never wall time.
+// Routine processing has a 48-counting-hour allowance and 12-hour transition;
+// exceptional-batch probability decays over 14 counting days after that phase.
+bool applyReceiptTimetable(std::vector<Observation> const& history, Options const& options, Result& result) {
     bool scheduled = options.receiptDeadline && !history.empty()
-        && std::accumulate(broad.counted.begin(),broad.counted.end(),0.) > 0;
+        && std::accumulate(result.broad.counted.begin(),result.broad.counted.end(),0.) > 0;
     if (scheduled) {
         double now = std::max_element(history.begin(),history.end(),[](auto const& a,auto const& b) { return a.hour < b.hour; })->hour;
         result.countingHoursAfterDeadline = countingHours(*options.receiptDeadline,now);
@@ -508,80 +799,126 @@ Result prepare(Prior const& p, std::vector<Unit> const& units, std::vector<bool>
         result.processingPhase = logistic((result.countingHoursAfterDeadline-48)/12);
         result.batchSurvival = std::exp(-age/(14*24));
     }
-    // Conditional branches use the same short quantile grid for every unit
-    // and preparation. Calculate that grid once; repeatedly inverting the
-    // normal CDF would make these intended cheap evaluations unnecessarily slow.
+    return scheduled;
+}
+
+// Retain the previous estimate and the two continuous addition distributions
+// explicitly for every unfinished declaration. This lets party preparation
+// evaluate rare batches deliberately, even if no diagnostic draw selects one.
+void buildLateCountComponents(Prior const& prior, std::vector<Unit> const& units,
+    Options const& options, bool scheduled, Result& result) {
+    auto samples = prior.totals.size(), count = samples*options.countDraws;
+    auto const& broad = result.broad;
+    // All units reuse this small grid of normal quantiles. Its midpoint
+    // probabilities stay inside (0,1) and bound conditional evaluation cost.
     std::vector<double> normalQuantiles;
     for (std::size_t k = 0; k < options.countDraws; ++k)
         normalQuantiles.push_back(inverseLogCdf(std::log((k+.5)/options.countDraws)));
-    result.unitMeans.assign(units.size(),0);
-    for (std::size_t j = 0; j < units.size(); ++j) for (std::size_t r = 0; r < m; ++r) result.unitMeans[j] += broad.unitCounts[r][j]/m;
-    for (std::size_t j = 0; j < units.size(); ++j) if (units[j].kind == "declaration" && !broad.complete[j]) {
-        Component c; c.unit = j; c.weight = -std::expm1(-std::pow(result.evidence[j].strength/.3,2));
+    for (std::size_t j = 0; j < units.size(); ++j) {
+        if (units[j].kind != "declaration" || broad.complete[j]) continue;
+        Component component;
+        component.unit = j;
+        component.weight = -std::expm1(-std::pow(result.evidence[j].strength/.3,2));
         if (scheduled) {
             double currentCategory = 0;
-            for (auto const& u : units) if (u.seat == units[j].seat && u.kind == "declaration" && u.category == units[j].category)
-                currentCategory += u.counted;
+            for (auto const& unit : units)
+                if (unit.seat == units[j].seat && unit.kind == "declaration" && unit.category == units[j].category)
+                    currentCategory += unit.counted;
+            // Recent volume/current count supplies up to 24 extra processing
+            // hours (half at 2%) and retains half the routine amount at 5%.
+            // The half-vote denominator keeps a zero current count well defined.
             double relative = result.evidence[j].volume/(currentCategory+.5);
             double delay = 24*relative*relative/(relative*relative+.02*.02);
             double routine = logistic(-(result.countingHoursAfterDeadline-48-delay)/12);
             double active = relative*relative/(relative*relative+.05*.05);
-            c.usualLogShift = std::log(routine+(1-routine)*active);
+            component.usualLogShift = std::log(routine+(1-routine)*active);
         }
-        for (std::size_t r = 0; r < m; ++r) {
-            double base = broad.remaining[r][j], slack = p.enrolment[units[j].seat]-broad.totals[r][units[j].seat];
+        for (std::size_t r = 0; r < samples; ++r) {
+            double base = broad.remaining[r][j];
+            double slack = prior.enrolment[units[j].seat]-broad.totals[r][units[j].seat];
             if (base < 0 || slack <= 0) throw std::runtime_error("Invalid remaining turnout capacity.");
-            c.capacity.push_back(slack); c.reference.push_back(base);
-            c.referenceOdds.push_back(std::log((base+std::numeric_limits<double>::epsilon())/slack)+c.usualLogShift);
-            c.smallOdds.push_back(std::log(.25/slack));
+            component.capacity.push_back(slack);
+            component.reference.push_back(base);
+            // Epsilon represents subtraction roundoff, not a substantive floor.
+            // Small additions have a .25-vote median on the addition/slack odds
+            // scale and log-odds SD 1. Batches use an added 5% of counted votes
+            // and SD 1.5. After the deadline, their centre moves from the group
+            // allowance towards the unit's own pre-allocation expectation.
+            component.referenceOdds.push_back(std::log((base+std::numeric_limits<double>::epsilon())/slack)+component.usualLogShift);
+            component.smallOdds.push_back(std::log(.25/slack));
             double oldBatch = std::log((base+.25+.05*units[j].counted)/slack);
             double lateBatch = std::log((broad.ownRemaining[r][j]+.25+.05*units[j].counted)/slack);
-            c.batchOdds.push_back((1-result.processingPhase)*oldBatch+result.processingPhase*lateBatch);
+            component.batchOdds.push_back((1-result.processingPhase)*oldBatch+result.processingPhase*lateBatch);
             for (std::size_t k = 0; k < options.countDraws; ++k) {
-                double z = normalQuantiles[k];
-                c.smallMean += (slack+base)*logistic(c.smallOdds.back()+z)/count;
-                c.batchMean += (slack+base)*logistic(c.batchOdds.back()+1.5*z)/count;
+                double quantile = normalQuantiles[k];
+                component.smallMean += (slack+base)*logistic(component.smallOdds.back()+quantile)/count;
+                component.batchMean += (slack+base)*logistic(component.batchOdds.back()+1.5*quantile)/count;
             }
         }
-        result.components.push_back(std::move(c));
+        result.components.push_back(std::move(component));
     }
-    auto c = result.components.size();
-    std::vector<std::vector<std::size_t>> localColumns(n);
-    std::vector<bool> activeSeats(n);
-    for (std::size_t k = 0; k < c; ++k) {
-        auto s = units[result.components[k].unit].seat;
-        localColumns[s].push_back(k);
-        activeSeats[s] = activeSeats[s] || result.components[k].weight != 0
+}
+
+struct LateCountLayout {
+    std::vector<std::vector<std::size_t>> componentsBySeat;
+    std::vector<bool> activeSeats;
+};
+
+// Index the few open declaration components once, keeping neutral districts on
+// their broad reference and grouping the others for finite-parent allocation.
+LateCountLayout indexLateComponents(Result const& result, std::vector<Unit> const& units) {
+    LateCountLayout layout;
+    layout.componentsBySeat.resize(result.broad.counted.size());
+    layout.activeSeats.resize(result.broad.counted.size());
+    for (std::size_t k = 0; k < result.components.size(); ++k) {
+        auto seat = units[result.components[k].unit].seat;
+        layout.componentsBySeat[seat].push_back(k);
+        layout.activeSeats[seat] = layout.activeSeats[seat] || result.components[k].weight != 0
             || result.components[k].usualLogShift != 0 || result.processingPhase != 0;
     }
-    // Keep the probability of no further votes explicitly, rather than hoping
-    // independent tiny positive category draws happen to approximate it. Count
-    // volume weights the slowing evidence; unreported broad estimates weaken
-    // it, and postal receipt support prevents quiet pre-deadline counts from
-    // closing the seat prematurely. This is shared exploratory calibration.
-    result.noAdditionProbability.assign(n,0);
-    for (std::size_t s = 0; s < n; ++s) {
+    return layout;
+}
+
+// Give a district an explicit counted-only outcome. The counted-weighted
+// progress response is weakened by outstanding estimates, the postal receipt
+// window and retained batch probability. The .95 factor preserves residual
+// uncertainty unless its configured units are actually complete.
+void calculateNoAdditionProbabilities(std::vector<Unit> const& units, LateCountLayout const& layout, Result& result) {
+    auto const& broad = result.broad;
+    auto samples = broad.totals.size();
+    result.noAdditionProbability.assign(broad.counted.size(),0);
+    for (std::size_t s = 0; s < broad.counted.size(); ++s) {
         bool allComplete = true, hasUnits = false;
         for (std::size_t j = 0; j < units.size(); ++j) if (units[j].seat == s) {
-            hasUnits = true; allComplete = allComplete && broad.complete[j];
+            hasUnits = true;
+            allComplete = allComplete && broad.complete[j];
         }
-        if (hasUnits && allComplete) { result.noAdditionProbability[s] = 1; continue; }
+        if (hasUnits && allComplete) {
+            result.noAdditionProbability[s] = 1;
+            continue;
+        }
         double counted = 0, support = 0, nonbatch = 1, receipt = 1, remaining = 0;
-        for (auto k : localColumns[s]) {
-            auto const& component = result.components[k]; auto const& unit = units[component.unit];
-            counted += unit.counted; support += unit.counted*component.weight;
+        for (auto k : layout.componentsBySeat[s]) {
+            auto const& component = result.components[k];
+            auto const& unit = units[component.unit];
+            counted += unit.counted;
+            support += unit.counted*component.weight;
             nonbatch *= 1-.02*component.weight;
             if (unit.category == "Postal") receipt = std::min(receipt,result.evidence[component.unit].postalReceiptSupport);
         }
         if (!counted) continue;
-        for (auto const& row : broad.totals) remaining += (row[s]-broad.counted[s])/m;
+        for (auto const& row : broad.totals) remaining += (row[s]-broad.counted[s])/samples;
         double coverage = counted/(counted+remaining);
         result.noAdditionProbability[s] = .95*support/counted*coverage*coverage*nonbatch*receipt;
     }
-    // Keep the exact no-addition event paired with the tested progress rule.
-    // Separately retain a low chance of a late batch even after routine size
-    // has receded. Compress that chance smoothly if very little probability
-    // remains outside the shared zero outcome; it never becomes a hard floor.
+}
+
+// These are unconditional weights for one category: previous + small + batch
+// = 1 - its district's no-addition probability. Preserve a separately fading
+// exceptional chance (starting at .02), while compressing it smoothly when the
+// available positive probability is small. Never transfer it into routine mean
+// votes simply because the counted-only outcome has become likely.
+void assignComponentProbabilities(std::vector<Unit> const& units, Result& result) {
     for (auto& component : result.components) {
         double zero = result.noAdditionProbability[units[component.unit].seat];
         double positive = 1-zero, requested = .02*result.batchSurvival;
@@ -592,18 +929,28 @@ Result prepare(Prior const& p, std::vector<Unit> const& units, std::vector<bool>
         component.previousProbability = (1-smallShare)*remaining;
         component.smallProbability = smallShare*remaining;
     }
+}
+
+// Produce conditional positive-branch log weights for the diagnostic sample.
+// Divide unconditional probabilities by the positive-branch probability here,
+// not when storing them. Explicit quantiles are only a cross-language comparison
+// input; normal preparation uses the unchanged deterministic per-unit streams.
+Matrix sampleLateComponentOdds(Prior const& prior, std::vector<Unit> const& units,
+    Options const& options, Result const& result, Matrix const& suppliedUniforms) {
+    auto count = prior.totals.size()*options.countDraws, components = result.components.size();
     if (!suppliedUniforms.empty()) {
         if (suppliedUniforms.size() != count) throw std::runtime_error("Invalid supplied turnout quantile count.");
         for (auto const& row : suppliedUniforms) {
-            if (row.size() != c) throw std::runtime_error("Invalid supplied turnout quantile columns.");
-            for (double x : row) if (!(x > 0 && x < 1)) throw std::runtime_error("Turnout quantiles must be interior.");
+            if (row.size() != components) throw std::runtime_error("Invalid supplied turnout quantile columns.");
+            for (double value : row) if (!(value > 0 && value < 1)) throw std::runtime_error("Turnout quantiles must be interior.");
         }
     }
-    Matrix varied = zeros(count,c);
-    for (std::size_t k = 0; k < c; ++k) {
-        auto const& component = result.components[k]; auto const& u = units[component.unit];
-        double positive = 1-result.noAdditionProbability[u.seat];
-        auto quantiles = uniforms(p.election+"/"+p.seats[u.seat]+"/"+u.name,count,options.seed);
+    Matrix varied = zeros(count,components);
+    for (std::size_t k = 0; k < components; ++k) {
+        auto const& component = result.components[k];
+        auto const& unit = units[component.unit];
+        double positive = 1-result.noAdditionProbability[unit.seat];
+        auto quantiles = uniforms(prior.election+"/"+prior.seats[unit.seat]+"/"+unit.name,count,options.seed);
         for (std::size_t r = 0; r < count; ++r) {
             auto outer = r/options.countDraws;
             varied[r][k] = mixture(component.referenceOdds[outer],component.smallOdds[outer],component.batchOdds[outer],
@@ -611,28 +958,68 @@ Result prepare(Prior const& p, std::vector<Unit> const& units, std::vector<bool>
                 suppliedUniforms.empty() ? quantiles[r] : suppliedUniforms[r][k]);
         }
     }
-    result.totals = zeros(count,n); result.counts = zeros(count,n*g);
+    return varied;
+}
+
+// Apply sampled category additions jointly inside unused enrolment plus their
+// existing allowance, retaining a slack component for non-voters/informal votes.
+// Store the conditional positive-branch totals; unit means then mix back the
+// district's exact counted-only outcome to provide unconditional count targets.
+void assembleCountSamples(Prior const& prior, std::vector<Unit> const& units, Options const& options,
+    LateCountLayout const& layout, Matrix const& varied, Result& result) {
+    auto samples = prior.totals.size(), seats = prior.seats.size(), groups = prior.groups.size();
+    auto count = samples*options.countDraws;
+    auto const& broad = result.broad;
+    result.unitMeans.assign(units.size(),0);
+    for (std::size_t j = 0; j < units.size(); ++j)
+        for (std::size_t r = 0; r < samples; ++r) result.unitMeans[j] += broad.unitCounts[r][j]/samples;
+    result.totals = zeros(count,seats);
+    result.counts = zeros(count,seats*groups);
     for (std::size_t r = 0; r < count; ++r) {
         auto outer = r/options.countDraws;
-        result.counts[r] = broad.counts[outer]; result.totals[r] = broad.totals[outer];
-        for (std::size_t s = 0; s < n; ++s) {
-            if (!activeSeats[s]) continue;
-            auto const& local = localColumns[s];
-            double parent = p.enrolment[s]-broad.totals[outer][s], maximum = 0;
-            for (auto k : local) { parent += result.components[k].reference[outer]; maximum = std::max(maximum,varied[r][k]); }
+        result.counts[r] = broad.counts[outer];
+        result.totals[r] = broad.totals[outer];
+        for (std::size_t s = 0; s < seats; ++s) {
+            if (!layout.activeSeats[s]) continue;
+            auto const& local = layout.componentsBySeat[s];
+            double parent = prior.enrolment[s]-broad.totals[outer][s], maximum = 0;
+            for (auto k : local) {
+                parent += result.components[k].reference[outer];
+                maximum = std::max(maximum,varied[r][k]);
+            }
             double denominator = std::exp(-maximum);
             for (auto k : local) denominator += std::exp(varied[r][k]-maximum);
             for (auto k : local) {
                 auto j = result.components[k].unit;
                 double addition = parent*std::exp(varied[r][k]-maximum)/denominator;
-                result.counts[r][s*g+units[j].group] += addition-result.components[k].reference[outer];
+                result.counts[r][s*groups+units[j].group] += addition-result.components[k].reference[outer];
                 result.unitMeans[j] += (addition-result.components[k].reference[outer])/count;
             }
-            result.totals[r][s] = std::accumulate(result.counts[r].begin()+s*g,result.counts[r].begin()+(s+1)*g,0.);
+            result.totals[r][s] = std::accumulate(result.counts[r].begin()+s*groups,result.counts[r].begin()+(s+1)*groups,0.);
         }
     }
     for (std::size_t j = 0; j < units.size(); ++j)
         result.unitMeans[j] = units[j].counted+(1-result.noAdditionProbability[units[j].seat])*(result.unitMeans[j]-units[j].counted);
+}
+}
+
+Result prepare(Prior const& prior, std::vector<Unit> const& units, std::vector<bool> const& finalised,
+    std::vector<Observation> const& history, Options const& options, Matrix const& suppliedUniforms) {
+    if (!options.countDraws) throw std::runtime_error("Turnout preparation needs at least one cheap count draw.");
+    Result result;
+    result.broad = update(prior,units,finalised,options.ppvcFactor);
+    auto completed = options.receiptDeadline ? boothCompletion(prior,units) : std::vector<double>{};
+    result.evidence = options.receiptDeadline ? scheduledEvidence(prior,units,history,*options.receiptDeadline,completed)
+        : progress(prior,units,history,options.postalDeadline);
+    releaseAllocation(prior,units,history,options.receiptDeadline ? options.receiptDeadline : options.postalDeadline,result,completed);
+
+    bool scheduled = applyReceiptTimetable(history,options,result);
+    buildLateCountComponents(prior,units,options,scheduled,result);
+    auto layout = indexLateComponents(result,units);
+    calculateNoAdditionProbabilities(units,layout,result);
+    assignComponentProbabilities(units,result);
+    auto sampledOdds = sampleLateComponentOdds(prior,units,options,result,suppliedUniforms);
+    assembleCountSamples(prior,units,options,layout,sampledOdds,result);
     return result;
 }
 
@@ -653,58 +1040,89 @@ DrawPlan makeDrawPlan(Result const& result, std::vector<Unit> const& units,
     return plan;
 }
 
+namespace {
+double interiorDrawUniform(unsigned long long& key) {
+    // A random position strictly inside 0..1 keeps logarithms finite even in
+    // the far tails. Midpoints of a 52-bit grid cannot reach either endpoint.
+    return (double(step(key) >> 12) + .5) / 4503599627370496.;
+}
+
+std::vector<bool> drawNoAdditionSeats(Result const& result, DrawPlan const& plan,
+    unsigned long long seed) {
+    // Finishing is a seat-wide outcome: every unfinished service gets exactly
+    // its current count together. Seat-specific random keys keep other seats'
+    // draws unchanged when this seat finishes or gains another reporting unit.
+    std::vector<bool> zero(plan.enrolment.size());
+    for (std::size_t s = 0; s < zero.size(); ++s) {
+        auto seatKey = seed ^ ((s+1)*0x9e3779b97f4a7c15ULL);
+        zero[s] = interiorDrawUniform(seatKey) < result.noAdditionProbability[s];
+    }
+    return zero;
+}
+
+void drawSeatDeclarationAdditions(Result const& result, DrawPlan const& plan,
+    std::size_t s, std::size_t outer, unsigned long long seed, std::vector<double>& counts) {
+    // In the positive-count outcome, draw each category from its previous,
+    // small-addition or exceptional-batch distribution. Their finite shared
+    // parent prevents new votes from exceeding the number of enrolled electors.
+    auto const& local = plan.componentsBySeat[s];
+    std::vector<double> odds; odds.reserve(local.size());
+    double parent = plan.enrolment[s]-result.broad.totals[outer][s], maximum = 0;
+    for (auto k : local) {
+        auto const& c = result.components[k];
+        auto unitKey = seed ^ ((c.unit+1)*0xd1b54a32d192ed03ULL);
+        double selector = interiorDrawUniform(unitKey)*(1-result.noAdditionProbability[s]);
+        double value = c.referenceOdds[outer];
+        if (selector >= c.previousProbability) {
+            // Direct mixture sampling avoids solving an inverse mixture
+            // CDF in every iteration, while preserving the same component
+            // distributions used by the offline count calibration.
+            double z = std::sqrt(-2*std::log(interiorDrawUniform(unitKey)))
+                * std::cos(6.2831853071795864769*interiorDrawUniform(unitKey));
+            bool small = selector < c.previousProbability+c.smallProbability;
+            value = small ? c.smallOdds[outer]+z : c.batchOdds[outer]+1.5*z;
+        }
+        odds.push_back(value); maximum = std::max(maximum,value);
+        parent += c.reference[outer];
+    }
+    // All unfinished categories share a finite parent and leave a slack
+    // component for non-voters/informal votes. Joint log weights prevent
+    // endpoint caps and preserve the enrolment account in a large batch.
+    double denominator = std::exp(-maximum);
+    for (double value : odds) denominator += std::exp(value-maximum);
+    for (std::size_t k = 0; k < local.size(); ++k) {
+        auto j = result.components[local[k]].unit;
+        counts[j] = plan.counted[j]+parent*std::exp(odds[k]-maximum)/denominator;
+    }
+}
+
+void drawOpenDeclarationSeats(Result const& result, DrawPlan const& plan, std::size_t outer,
+    unsigned long long seed, std::vector<bool> const& zero, std::vector<double>& counts) {
+    // Most seats retain their fixed prior row until progress changes their
+    // remaining-vote distribution. Only active positive outcomes need sampling.
+    for (std::size_t s = 0; s < zero.size(); ++s)
+        if (!zero[s] && plan.active[s]) drawSeatDeclarationAdditions(result, plan, s, outer, seed, counts);
+}
+
+void retainCountedOnlySeats(DrawPlan const& plan, std::vector<bool> const& zero, std::vector<double>& counts) {
+    // A no-addition outcome removes estimates of new voters, while preserving
+    // every already counted vote, including those in completed booths.
+    for (std::size_t j = 0; j < counts.size(); ++j)
+        if (zero[plan.seats[j]]) counts[j] = plan.counted[j];
+}
+}
+
 std::vector<double> drawUnitCounts(Result const& result, DrawPlan const& plan,
     unsigned long long seed) {
-    // Draw a single shared prior row, retaining its relationships between seats
-    // and between turnout, formality, early voting and postal applications.
-    // Late progress is a separate seat event: exactly no additions, or a
-    // positive outcome with previous expectations, tiny additions or a batch.
+    // One shared prior row retains the learnt relationships between districts
+    // and vote categories. Separate local events then represent finishing or
+    // further counting; expensive distribution preparation has already run.
     auto state = seed;
     auto outer = step(state) % result.broad.unitCounts.size();
     auto counts = result.broad.unitCounts[outer];
-    auto uniform = [](unsigned long long& key) {
-        // Midpoints of a 52-bit grid never reach a logarithm's endpoints.
-        return (double(step(key) >> 12) + .5) / 4503599627370496.;
-    };
-    std::vector<bool> zero(plan.enrolment.size());
-    for (std::size_t s = 0; s < zero.size(); ++s) {
-        // Seat keys keep other seats' random draws unchanged if this seat
-        // selects its no-addition branch or acquires another reporting unit.
-        auto seatKey = seed ^ ((s+1)*0x9e3779b97f4a7c15ULL);
-        zero[s] = uniform(seatKey) < result.noAdditionProbability[s];
-        if (zero[s] || !plan.active[s]) continue;
-        auto const& local = plan.componentsBySeat[s];
-        std::vector<double> odds; odds.reserve(local.size());
-        double parent = plan.enrolment[s]-result.broad.totals[outer][s], maximum = 0;
-        for (auto k : local) {
-            auto const& c = result.components[k];
-            auto unitKey = seed ^ ((c.unit+1)*0xd1b54a32d192ed03ULL);
-            double selector = uniform(unitKey)*(1-result.noAdditionProbability[s]);
-            double value = c.referenceOdds[outer];
-            if (selector >= c.previousProbability) {
-                // Direct mixture sampling avoids solving an inverse mixture
-                // CDF in every iteration, while preserving the same component
-                // distributions used by the offline count calibration.
-                double z = std::sqrt(-2*std::log(uniform(unitKey)))
-                    * std::cos(6.2831853071795864769*uniform(unitKey));
-                bool small = selector < c.previousProbability+c.smallProbability;
-                value = small ? c.smallOdds[outer]+z : c.batchOdds[outer]+1.5*z;
-            }
-            odds.push_back(value); maximum = std::max(maximum,value);
-            parent += c.reference[outer];
-        }
-        // All unfinished categories share a finite parent and leave a slack
-        // component for non-voters/informal votes. Joint log weights prevent
-        // endpoint caps and preserve the enrolment account in a large batch.
-        double denominator = std::exp(-maximum);
-        for (double value : odds) denominator += std::exp(value-maximum);
-        for (std::size_t k = 0; k < local.size(); ++k) {
-            auto j = result.components[local[k]].unit;
-            counts[j] = plan.counted[j]+parent*std::exp(odds[k]-maximum)/denominator;
-        }
-    }
-    for (std::size_t j = 0; j < counts.size(); ++j)
-        if (zero[plan.seats[j]]) counts[j] = plan.counted[j];
+    auto zero = drawNoAdditionSeats(result, plan, seed);
+    drawOpenDeclarationSeats(result, plan, outer, seed, zero, counts);
+    retainCountedOnlySeats(plan, zero, counts);
     return counts;
 }
 
@@ -719,6 +1137,10 @@ std::vector<double> meanTotals(Result const& result) {
 }
 
 double reportingFactor(double hours) {
+    // Public PPVC counts normally arrive by the day after polling. For an
+    // unreported centre, interpolate a declining odds multiplier after 48 hours,
+    // retaining a small possible size rather than declaring the service closed.
+    // These delay points/factors are maintained assumptions shared with Python.
     constexpr double times[] = {48,54,78,102}, factors[] = {1,.25,.1,.02};
     if (hours <= times[0]) return factors[0];
     for (int k = 1; k < 4; ++k) if (hours <= times[k]) {

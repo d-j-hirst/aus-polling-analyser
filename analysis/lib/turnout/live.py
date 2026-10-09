@@ -9,6 +9,8 @@ The bounded marginal conditioning below is an approximation, not a fitted
 joint posterior or a calibrated model of declaration counting progress.
 """
 
+from types import SimpleNamespace
+
 import numpy as np
 from scipy.special import log_ndtr, ndtri_exp
 
@@ -231,24 +233,19 @@ def apply_size_changes(expected, units, roll, changes):
     return result
 
 
-def update(draws, inputs, units, finalised_seats=(), changes=None, compensation=True,
-           compensation_order='before_pool', unreported_ppvc_factor=1.):
-    """Rebuild one snapshot from immutable prior draws and cumulative counts.
+class _CountUpdate(SimpleNamespace):
+    """Named arrays for one count update, discarded after returning the result.
 
-    Complete booths and known closures have no estimated additions. Partial
-    declarations retain a positive remaining estimate after their lower bound
-    is applied on the log-odds scale. Estimate unfinished booths from their own
-    sizes, allowing limited PPVC compensation. Groups containing only booths
-    can revise their expectations from that evidence. Mixed aggregate groups
-    retain their supported prior totals: assumed finer weights must not
-    override historical early/postal evidence. Reserve booth sizes smoothly
-    within the appropriate remaining pool; declarations divide the rest. This leaves
-    the district-total rule unchanged, including its implicit assumption that
-    declarations absorb changes in ordinary/PPVC counts.
+    Each helper adds its own stage's arrays. This is temporary preparation state,
+    not snapshot history or a forecast reused as the next election prior.
+    """
 
-    There is no previous-update input: revisiting a snapshot, skipping an
-    intermediate snapshot or receiving a downward revision uses the same path.
-    Finalisation must come from an authoritative FP flag, never elapsed time.
+
+def _observe_count_units(inputs, draws, units, finalised_seats):
+    """Classify measured votes and establish which district accounts are complete.
+
+    Ordinary/PPVC booths normally need no new voters once reported. Declaration
+    counts remain lower bounds until finalised; known closures are separate facts.
     """
     total_prior = np.asarray(draws['totals'])
     group_prior = np.asarray(draws['counts'])
@@ -263,10 +260,49 @@ def update(draws, inputs, units, finalised_seats=(), changes=None, compensation=
         # A conflicting exposure is exceptional input recovery, not a reason
         # to erase counted votes or cap them silently. The archive remains intact.
         raise ValueError('Counted formal votes reach enrolment; review the exposure before updating.')
-    totals = roll * condition_share_above(total_prior / roll, seat_counted / roll)
-    totals[:, finalised] = seat_counted[finalised]
     complete = np.array([u['kind'] != 'declaration' and u['counted'] > 0
                          or bool(u.get('closed_reason')) or finalised[u['seat_index']] for u in units])
+    # Resolve the parent count before allocating additions. A completed account
+    # needs no prior-based remainder and must not reach the unsupported-unit
+    # guard below. Require at least one configured service for this inference.
+    count_complete = finalised.copy()
+    for seat in range(seats):
+        columns = seat_indices == seat
+        count_complete[seat] |= columns.any() and complete[columns].all()
+    return _CountUpdate(total_prior=total_prior, group_prior=group_prior, roll=roll, samples=samples, seats=seats, counted=counted, seat_indices=seat_indices, group_indices=group_indices, seat_counted=seat_counted, finalised=finalised, complete=complete, count_complete=count_complete)
+
+
+def _condition_district_totals(work):
+    """Update original district totals above counted votes, retaining completed totals.
+
+    Enrolment remains their fixed parent. A low early category count alone does
+    not justify a lower turnout expectation for the whole district.
+    """
+    total_prior = work.total_prior
+    roll = work.roll
+    seat_counted = work.seat_counted
+    count_complete = work.count_complete
+    totals = np.empty_like(total_prior, dtype=float)
+    totals[:, count_complete] = seat_counted[count_complete]
+    unfinished = ~count_complete
+    if unfinished.any():
+        totals[:, unfinished] = roll[unfinished] * condition_share_above(
+            total_prior[:, unfinished] / roll[unfinished], seat_counted[unfinished] / roll[unfinished])
+    work.totals = totals
+
+
+def _adjust_expected_sizes(work, units, changes, compensation, compensation_order, unreported_ppvc_factor):
+    """Apply size evidence before distributing a district's remaining votes.
+
+    Begin with historical weights. Matched public PPVCs can partly compensate
+    for other centres; EAV assistance services use a separate small-size rule.
+    The optional order switch supports experiments on shared size changes.
+    """
+    group_prior = work.group_prior
+    roll = work.roll
+    seat_indices = work.seat_indices
+    group_indices = work.group_indices
+    complete = work.complete
     weights = np.array([u['weight'] for u in units])
     expected = group_prior[:, seat_indices, group_indices] * weights
     original_expected = expected.copy()
@@ -299,6 +335,21 @@ def update(draws, inputs, units, finalised_seats=(), changes=None, compensation=
         parent = roll[seat_indices[selected]]
         expected[:, selected] = parent * prior.rate_percent(
             prior.rate_log_odds(100 * expected[:, selected] / parent) + np.log(unreported_ppvc_factor)) / 100
+    work.expected, work.original_expected, work.shifts = expected, original_expected, shifts
+
+
+def _condition_unit_additions(work):
+    """Keep each unfinished service's estimate above its measured votes.
+
+    Retain this estimate before balancing category totals, so subsequent progress
+    can release an imposed allowance without fitting the service a second time.
+    """
+    expected = work.expected
+    counted = work.counted
+    complete = work.complete
+    totals = work.totals
+    total_prior = work.total_prior
+    seat_indices = work.seat_indices
     additions = expected.copy()
     partial = ~complete & (counted > 0)
     if partial.any():
@@ -310,8 +361,23 @@ def update(draws, inputs, units, finalised_seats=(), changes=None, compensation=
         conditional = condition_share_above(share, counted[partial] / parent)
         additions[:, partial] = parent * conditional - counted[partial]
     additions[:, complete] = 0
-    totals_remaining = totals - seat_counted
-    remaining = np.zeros_like(additions)
+    work.additions = additions
+
+
+def _condition_group_additions(work, units):
+    """Condition historically supported combined groups above their current counts.
+
+    Booth-only groups instead use their unfinished booths' own sizes. Combined
+    groups keep aggregate history when no defensible finer division exists.
+    """
+    seats = work.seats
+    group_prior = work.group_prior
+    total_prior = work.total_prior
+    totals = work.totals
+    counted = work.counted
+    complete = work.complete
+    seat_indices = work.seat_indices
+    group_indices = work.group_indices
     booth_kind = np.array([u['kind'] != 'declaration' for u in units])
     group_columns = {}
     group_counted = np.zeros(group_prior.shape[1:])
@@ -335,12 +401,41 @@ def update(draws, inputs, units, finalised_seats=(), changes=None, compensation=
             conditional = condition_share_above(group_prior[:, active, group] / total_prior[:, active],
                                                 group_counted[active, group] / totals[:, active])
             aggregate_additions[:, active, group] = totals[:, active] * conditional - group_counted[active, group]
+    work.booth_kind, work.group_columns = booth_kind, group_columns
+    work.group_open, work.pure_booth_group = group_open, pure_booth_group
+    work.aggregate_additions = aggregate_additions
+
+
+def _allocate_remaining_votes(work, units):
+    """Share the remaining district total between booth and declaration estimates.
+
+    Completed services retain exactly their counted votes. Unfinished services
+    compete for a finite total, using their own size estimates as weights.
+    """
+    samples = work.samples
+    seats = work.seats
+    additions = work.additions
+    original_expected = work.original_expected
+    seat_indices = work.seat_indices
+    group_indices = work.group_indices
+    group_prior = work.group_prior
+    complete = work.complete
+    count_complete = work.count_complete
+    booth_kind = work.booth_kind
+    group_columns = work.group_columns
+    group_open = work.group_open
+    pure_booth_group = work.pure_booth_group
+    aggregate_additions = work.aggregate_additions
+    totals_remaining = work.totals - work.seat_counted
+    remaining = np.zeros_like(additions)
     for seat in range(seats):
+        if count_complete[seat]:
+            continue
         direct = (seat_indices == seat) & ~complete & pure_booth_group[seat, group_indices]
         booth_amount = additions[:, direct].sum(axis=1)
         aggregate_amount = aggregate_additions[:, seat].sum(axis=1)
         base_booth_amount = original_expected[:, direct].sum(axis=1)
-        if not finalised[seat] and ((base_booth_amount + aggregate_amount) <= 0).any():
+        if ((base_booth_amount + aggregate_amount) <= 0).any():
             raise ValueError('An unfinished district has no supported remaining units.')
         booth_budget, aggregate_budget = reserve_booths(base_booth_amount, booth_amount, aggregate_amount,
                                                        totals_remaining[:, seat])
@@ -359,6 +454,28 @@ def update(draws, inputs, units, finalised_seats=(), changes=None, compensation=
             for selected, amount, assigned in ((booths, b, b_budget), (declarations, d, d_budget)):
                 scale = np.divide(assigned, amount, out=np.zeros(samples), where=amount > 0)
                 remaining[:, selected] = additions[:, selected] * scale[:, None]
+    work.remaining = remaining
+
+
+def _assemble_count_update(work, units, compensation_order):
+    """Add new-voter estimates to counted votes and describe the resulting account.
+
+    Diagnostics check that categories add to district totals. They do not assess
+    prediction accuracy or change the outcomes that are being returned.
+    """
+    counted = work.counted
+    remaining = work.remaining
+    additions = work.additions
+    group_prior = work.group_prior
+    total_prior = work.total_prior
+    totals = work.totals
+    seats = work.seats
+    seat_indices = work.seat_indices
+    group_indices = work.group_indices
+    seat_counted = work.seat_counted
+    complete = work.complete
+    finalised = work.finalised
+    shifts = work.shifts
     final_counts = counted + remaining
     groups = np.zeros_like(group_prior)
     for group in range(group_prior.shape[2]):
@@ -379,6 +496,38 @@ def update(draws, inputs, units, finalised_seats=(), changes=None, compensation=
     # every declaration marginal fit during preparation.
     return dict(totals=totals, counts=groups, unit_counts=final_counts, remaining=remaining,own_remaining=additions,
                 counted=seat_counted, complete=complete, diagnostics=diagnostics)
+
+
+
+def update(draws, inputs, units, finalised_seats=(), changes=None, compensation=True,
+           compensation_order='before_pool', unreported_ppvc_factor=1.):
+    """Rebuild one snapshot from immutable prior draws and cumulative counts.
+
+    Complete booths and known closures have no estimated additions. Partial
+    declarations retain a positive remaining estimate after their lower bound
+    is applied on the log-odds scale. Estimate unfinished booths from their own
+    sizes, allowing limited PPVC compensation. Groups containing only booths
+    can revise their expectations from that evidence. Mixed aggregate groups
+    retain their supported prior totals: assumed finer weights must not
+    override historical early/postal evidence. Reserve booth sizes smoothly
+    within the appropriate remaining pool; declarations divide the rest. This leaves
+    the district-total rule unchanged, including its implicit assumption that
+    declarations absorb changes in ordinary/PPVC counts.
+
+    There is no previous-update input: revisiting a snapshot, skipping an
+    intermediate snapshot or receiving a downward revision uses the same path.
+    A district has exactly its counted total once all configured services are
+    complete or explicitly closed, or an authoritative FP flag finalises it.
+    Neither elapsed time nor a district with no configured services establishes
+    completion. The authoritative flag remains separate in the diagnostics.
+    """
+    work = _observe_count_units(inputs, draws, units, finalised_seats)
+    _condition_district_totals(work)
+    _adjust_expected_sizes(work, units, changes, compensation, compensation_order, unreported_ppvc_factor)
+    _condition_unit_additions(work)
+    _condition_group_additions(work, units)
+    _allocate_remaining_votes(work, units)
+    return _assemble_count_update(work, units, compensation_order)
 
 
 def update_with_progress(draws, inputs, units, history, *, count_draws=8, seed=20261002,

@@ -17,6 +17,9 @@
 namespace LiveTurnoutMath {
 
 inline double remaining(double expected, double counted) {
+    // Usually this is simply the expected final count minus votes already
+    // reported. Check the account before returning that outstanding amount;
+    // a substantive shortfall is an input/calculation error, not negative votes.
     if (!std::isfinite(expected) || !std::isfinite(counted) || expected < 0 || counted < 0)
         throw std::runtime_error("Invalid live turnout count account.");
     // Candidate projections are stored as floats, while counted allocations
@@ -32,13 +35,16 @@ inline double remaining(double expected, double counted) {
 }
 
 inline double completion(double counted, double expected) {
-    // A fully counted account rounded slightly down still means 100% complete.
-    // Use the checked remaining pool so accepted rounding cannot produce >100%.
+    // Completion is counted votes as a proportion of the same expected final
+    // count used in the projection. A finished account rounded slightly down
+    // still means 100%; accepted storage rounding cannot produce a value above it.
     double const total = counted + remaining(expected, counted);
     return total > 0 ? counted / total : 0;
 }
 
 inline double pairTarget(double expectedFp, double countedFp, double countedPair) {
+    // FP and final-pair counts normally cover the same formal voters. The pair
+    // target must also cover future voters expected by the turnout model.
     double addition = remaining(expectedFp, countedFp);
     if (!std::isfinite(countedPair) || countedPair < 0)
         throw std::runtime_error("Invalid counted TCP/TPP total.");
@@ -57,6 +63,9 @@ inline std::map<int, float> varyRemaining(
     std::map<int, double> const& counted,
     std::map<int, double> const& transformedChanges,
     bool normaliseFpChanges = false) {
+    // Apply the simulator's share variation to the uncounted voters, retaining
+    // every counted candidate vote. FP changes are normalised across parties;
+    // a TCP/TPP change represents a single movement between the final pair.
     double total = 0, observed = 0;
     for (auto const& [party, votes] : projected) {
         if (!std::isfinite(votes) || votes < 0)
@@ -253,12 +262,18 @@ inline std::map<int, float> reconcileForecast(
         return account.projected;
     }
     std::map<int, double> changes;
+    // FP variation perturbs each party independently before normalising.
+    // A two-party log-odds change already describes movement toward one
+    // candidate and away from the other. Supply it once in pair mode;
+    // opposing changes to both weights would double the intended movement.
+    bool const singlePairChange = !normaliseFpChanges && account.projected.size() == 2;
     for (auto const& [party, votes] : account.projected) {
         double target = proposedShares.count(party) ? total * proposedShares.at(party) / proposedTotal : 0;
         // A quarter-vote equivalent permits a possible zero without clipping
         // its log odds or treating an unobserved party as a counted candidate.
         changes[party] = 25 * (std::log((target + .25) / (total - target + .25))
             - std::log((votes + .25) / (total - votes + .25)));
+        if (singlePairChange) break;
     }
     auto votes = varyRemaining(account.projected, account.counted, changes, normaliseFpChanges);
     for (auto& [party, count] : votes) count = float(100 * double(count) / total);

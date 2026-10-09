@@ -48,3 +48,23 @@ such as "test election" to opaque terminology such as "fold".
 Keep internal plans, priorities, delivery sequences and proposed work under
 the gitignored `docs/planning/` directory. Public documents and generated
 public reports must not link to or reproduce that planning material.
+
+## Code style and structure
+
+Maintain a clear distinction between different levels of abstraction. For any
+given process, a top-level function should indicate an outline of the overall
+flow of the that process without direct manipulation, which should be performed
+in a separate function where possible.
+
+Comments should be used extensively to establish context for a piece of code
+and to explain decisions made. The comments should be stated plainly enough that
+a reader familiar with Australian elections and intermediate-level mathematics
+can understand the general purpose of a section of code - even when they may not
+be able to follow the algorithmic details or language-specific syntax and
+libraries.
+
+When making a fix or adjusting a piece of code to account for an atypical
+situation or specific case, ensure that the more common flow is also mentioned
+among comments so that the atypical situation is not given undue weight. Without
+this, a reader not familiar with the code's broader context and intentions may
+incorrectly conclude that the entire piece of code is about the specific case.

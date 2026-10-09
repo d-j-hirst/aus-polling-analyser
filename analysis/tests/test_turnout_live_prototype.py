@@ -77,6 +77,45 @@ class LivePrototypeTests(unittest.TestCase):
         self.assertTrue((result['totals'][:, 0] < 1000).all())
         self.assertTrue((result['remaining'][:, 1:4] > 0).all())
 
+    def test_completed_services_close_the_count_account_without_a_district_flag(self):
+        # Completion belongs to the configured services. An ordinary-only
+        # district, or reported booths plus unavailable declarations, cannot
+        # receive more votes just because there is no district-level final flag.
+        for configuration in ('reported_booths_closed_declarations', 'ordinary_only', 'all_closed'):
+            with self.subTest(configuration=configuration):
+                inputs, draws, units = live_case()
+                if configuration == 'ordinary_only':
+                    units = [u for u in units if u['seat_name'] != 'A' or u['kind'] == 'ordinary']
+                for u in units:
+                    if u['seat_name'] != 'A':
+                        continue
+                    if configuration == 'all_closed' or u['kind'] == 'declaration':
+                        u['closed_reason'] = 'Service unavailable.'
+                    else:
+                        u['counted'] = 450 if u['kind'] == 'ordinary' else 200
+                counted = sum(u['counted'] for u in units if u['seat_name'] == 'A')
+                columns = [j for j, u in enumerate(units) if u['seat_name'] == 'A']
+                result = live.update_with_progress(draws, inputs, units, [], count_draws=2)
+                broad = result['allocation_prediction']
+                np.testing.assert_array_equal(broad['totals'][:, 0], counted)
+                np.testing.assert_array_equal(broad['counts'][:, 0].sum(axis=1), counted)
+                np.testing.assert_array_equal(broad['remaining'][:, columns], 0)
+                np.testing.assert_array_equal(broad['own_remaining'][:, columns], 0)
+                self.assertTrue(broad['complete'][columns].all())
+                self.assertEqual(broad['diagnostics']['finalised_districts'], 0)
+                self.assertEqual(result['no_addition_probability'][0], 1)
+                self.assertTrue(all(c['seat'] != 'A' for c in result['components']))
+                np.testing.assert_array_equal(result['totals'][:, 0], counted)
+                # B is still unreported and must retain its original uncertainty.
+                np.testing.assert_array_equal(broad['totals'][:, 1], draws['totals'][:, 1])
+                self.assertEqual(result['no_addition_probability'][1], 0)
+
+    def test_no_configured_services_does_not_establish_completion(self):
+        inputs, draws, units = live_case()
+        units = [u for u in units if u['seat_name'] != 'A']
+        with self.assertRaisesRegex(ValueError, 'no supported remaining units'):
+            live.update(draws, inputs, units)
+
     def test_known_closure_preserves_positive_revision_and_flags_it(self):
         inputs, draws, units = live_case()
         units[0].update(closed_reason='Known closure', counted=12)

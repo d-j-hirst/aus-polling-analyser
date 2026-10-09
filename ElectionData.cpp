@@ -535,10 +535,20 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
     {"INDEPENDENT", -1}
   };
   std::set<int> matchedIds;
+  int dummySeatId = -200000;
   for (auto const& [seatName, seatValue] : results.items()) {
     int seatId = -1;
     if (seatNameToId.contains(seatName)) {
       seatId = seatNameToId[seatName];
+    }
+    else {
+      // Redistributed or renamed historical districts still own their results.
+      // Give each a separate identity so LiveV2 can resolve its configured
+      // predecessor name. Reusing -1 merged unrelated districts and lost the
+      // parent name of their matched booths.
+      seatId = dummySeatId--;
+      seats[seatId].id = seatId;
+      seats[seatId].name = seatName;
     }
     std::map<int, int> indexToId;
     for (auto const& [candIndex, candValue] : seatValue["candidates"].items()) {
@@ -553,7 +563,11 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
         Candidate candidate;
         candidate.id = dummyCandidateId;
         candidate.name = candidateName;
-        candidate.party = partyIds.at(party);
+        // Historical datasets can retain parties absent from the current
+        // ballot. Keep their candidate votes using the existing unmapped
+        // minor-candidate treatment rather than requiring a current party ID.
+        auto knownParty = partyIds.find(party.get<std::string>());
+        candidate.party = knownParty != partyIds.end() ? knownParty->second : Candidate::Independent;
         candidates[candidate.id] = candidate;
         --dummyCandidateId;
       }
@@ -632,7 +646,7 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
         int fpCandIndexI = std::stoi(fpCandIndex);
         int fpCandId = indexToId[fpCandIndexI];
         booth.fpVotes[fpCandId] = fpVotes;
-        if (seatId > 0) seats[seatId].fpVotes[fpCandId][VoteType::Ordinary] += fpVotes;
+        seats[seatId].fpVotes[fpCandId][VoteType::Ordinary] += fpVotes;
       }
       auto tcps = boothValue["tcp"];
       for (auto const& [tcpCandIndex, tcpVotes] : tcps.items()) {
@@ -640,11 +654,9 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
         int tcpCandId = indexToId[tcpCandIndexI];
         int tcpAffiliation = candidates[tcpCandId].party;
         booth.tcpVotes[tcpAffiliation] = tcpVotes;
-        if (seatId > 0) seats[seatId].tcpVotes[tcpAffiliation][VoteType::Ordinary] += tcpVotes;
+        seats[seatId].tcpVotes[tcpAffiliation][VoteType::Ordinary] += tcpVotes;
       }
-      if (seatId > 0) {
-        seats[seatId].booths.push_back(booth.id);
-      }
+      seats[seatId].booths.push_back(booth.id);
     }
   }
 
@@ -2390,7 +2402,12 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
     currentContest = currentContest->NextSiblingElement("Contest");
   }
 
-  for (auto& [seatId, seat] : seats) {
+  // VEC omits unreported ordinary booths from early result captures. Its
+  // pre-election polling-place list supplies their identities; omission from
+  // a result capture is not evidence that a service closed. Keep those booths
+  // available for projecting the uncounted vote. Other feed formats retain
+  // their existing source-population reconciliation below.
+  if (format != Format::VEC) for (auto& [seatId, seat] : seats) {
     std::vector<int> boothsToErase;
     for (int boothId : seat.booths) {
       if (!boothIdsPresent.contains(boothId)) {

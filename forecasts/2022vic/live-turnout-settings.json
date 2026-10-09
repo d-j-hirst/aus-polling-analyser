@@ -1,0 +1,21 @@
+{
+  "election": "2022vic",
+  "previous_election": "2018vic",
+  "parameter_preset": "2022vic/earlier_only",
+  "preparation_samples": 256,
+  "count_draws": 8,
+  "seed": 20261002,
+  "schedule": {
+    "poll_close": "2022-11-26T18:00:00",
+    "postal_deadline": "2022-12-02T18:00:00",
+    "receipt_deadline": "2022-12-02T18:00:00",
+    "ppvc_reporting_decay": false
+  },
+  "inactive_contests": [
+    {
+      "seat": "Narracan",
+      "status": "postponed",
+      "reason": "The November contest was postponed. Retain the seat forecast but exclude it from this replay's count population."
+    }
+  ]
+}

@@ -14,6 +14,8 @@ booths or party vote shares, so their cost is only one part of live forecasting.
 """
 
 import hashlib
+from types import SimpleNamespace
+
 import numpy as np
 
 
@@ -227,18 +229,11 @@ def central_counts(inputs, parameters):
     return totals, counts
 
 
-def prepare_responses(inputs, parameters):
-    """Describe how each uncertainty source changes the central category counts.
+def _prepare_response_context(inputs, parameters):
+    """Prepare central counts before measuring each uncertainty source separately.
 
-    Keep turnout, formality, early/postal amounts and changes within category
-    groups separate so shared uncertainty can later be applied through distinct
-    sensitivities. These are linear responses around the central allocation;
-    the sampler retains the nonlinear transformations beyond that centre.
-
-    A response in category votes is not yet a response in party vote shares.
-    First-preference and two-candidate share responses also need the live
-    snapshot's party projections for each category, which are outside this
-    count-only component.
+    A sensitivity is the small change in category counts produced by one source
+    near this central outcome. It does not yet describe a change in party shares.
     """
     totals, counts = central_counts(inputs, parameters)
     roll = np.asarray(inputs['enrolment'])
@@ -246,6 +241,23 @@ def prepare_responses(inputs, parameters):
     free = inputs['remainder']['indices']
     free_weights = np.asarray(inputs['remainder']['weights'])
     responses = {}
+    return SimpleNamespace(totals=totals, counts=counts, roll=roll, turnout=turnout, formality=formality, free=free, free_weights=free_weights, responses=responses)
+
+
+def _add_rate_responses(work, inputs):
+    """Measure count changes from turnout and formality while holding early/postal totals fixed.
+
+    Extra or missing formal votes go to the remaining categories. A supported
+    within-early declaration baseline transfers votes between early categories
+    without altering their combined converted count.
+    """
+    roll = work.roll
+    turnout = work.turnout
+    formality = work.formality
+    counts = work.counts
+    free = work.free
+    free_weights = work.free_weights
+    responses = work.responses
     # Changing total turnout or formality leaves combined controlled amounts
     # fixed. The extra or missing votes go to the remaining categories. Within
     # federal early votes, the declaration-rate anchor also transfers votes
@@ -263,6 +275,18 @@ def prepare_responses(inputs, parameters):
                 value[:, group['indices'][anchor['position']]] += delta
                 value[:, group['indices'][1 - anchor['position']]] -= delta
         responses[name] = dict(units='category votes per natural-log-odds rate change', values=value.tolist())
+
+
+def _add_control_responses(work, inputs):
+    """Measure how an extra controlled early/postal vote moves the category allocation.
+
+    The district total is held fixed, so the same vote is removed from the
+    remaining categories. Recording both sides preserves the total account.
+    """
+    counts = work.counts
+    free = work.free
+    free_weights = work.free_weights
+    responses = work.responses
     # Increasing an early/postal count transfers votes from the remainder;
     # it does not increase the district's overall total. Include both sides
     # of this transfer in each separate response.
@@ -275,6 +299,18 @@ def prepare_responses(inputs, parameters):
         response[:, free] -= free_weights
         responses[group['name'] + '_count'] = dict(units='category votes per extra controlled vote',
                                                   values=response.tolist())
+
+
+def _add_composition_responses(work, inputs, parameters):
+    """Measure transfers within each group while holding its total fixed.
+
+    Convert shared and local uncertainty in relative category weights to count
+    responses near the central allocation. A change in log proportions is not
+    an absolute percentage-point change in the district vote count.
+    """
+    counts = work.counts
+    roll = work.roll
+    responses = work.responses
     # Changes in proportions within a group move votes between its categories.
     # Express the fitted common and local changes as count responses at the
     # central group size, while preserving the fixed group total. Applying the
@@ -298,6 +334,17 @@ def prepare_responses(inputs, parameters):
                 units='category votes per standard-normal composition driver', values=values.tolist(),
                 log_proportion_driver_values=root.tolist(),
                 drivers=[inputs['categories'][i] for i in indices])
+
+
+def _describe_count_responses(work, parameters):
+    """Export count responses and their mathematical units for later preparation.
+
+    Keep the uncertainty sources separate so the live model can add correlated
+    effects across districts without also counting them as independent noise.
+    """
+    totals = work.totals
+    counts = work.counts
+    responses = work.responses
     return dict(schema_version=SCHEMA_VERSION, model_version=MODEL_VERSION,
                 central_totals=totals.tolist(), central_counts=counts.tolist(), responses=responses,
                 rate_common_covariance_log_odds_squared=parameters['rates']['common_covariance'],
@@ -305,19 +352,32 @@ def prepare_responses(inputs, parameters):
                 aggregate_control_local_rule='Normalize positive district weights to the drawn national count, then reconcile combined controls with district totals in log odds.')
 
 
-def draw(inputs, parameters, samples, seed=20261002, representation='reference', common=True, local=True):
-    """Generate possible count outcomes for all districts in one election setup.
 
-    Returned arrays have sample, district and category dimensions. A common
-    change is shared across districts; local changes describe differences
-    between districts. Each outcome has nonnegative category counts adding to
-    its district total. All adjustments take a fixed sequence of calculations.
+def prepare_responses(inputs, parameters):
+    """Describe how each uncertainty source changes the central category counts.
 
-    Both interfaces retain the transformed rates and their inexpensive product.
-    A linear product followed by clipping would undo the endpoint behaviour.
-    The compact export still prepares local summaries and separate responses.
-    The common/local switches also let preparation measure district
-    variation without including election-wide uncertainty a second time.
+    Keep turnout, formality, early/postal amounts and changes within category
+    groups separate so shared uncertainty can later be applied through distinct
+    sensitivities. These are linear responses around the central allocation;
+    the sampler retains the nonlinear transformations beyond that centre.
+
+    A response in category votes is not yet a response in party vote shares.
+    First-preference and two-candidate share responses also need the live
+    snapshot's party projections for each category, which are outside this
+    count-only component.
+    """
+    work = _prepare_response_context(inputs, parameters)
+    _add_rate_responses(work, inputs)
+    _add_control_responses(work, inputs)
+    _add_composition_responses(work, inputs, parameters)
+    return _describe_count_responses(work, parameters)
+
+
+def _prepare_prior_draw(inputs, parameters, samples, representation):
+    """Prepare the unchanged central counts and their turnout/formality rates.
+
+    These anchors give the draws their starting scale; they contain no current
+    election results or previously updated live prediction.
     """
     if representation not in {'reference', 'compact'} or samples < 2:
         raise ValueError('Choose reference/compact and at least two samples.')
@@ -326,6 +386,20 @@ def draw(inputs, parameters, samples, seed=20261002, representation='reference',
     roll = np.asarray(inputs['enrolment'], dtype=float)
     turnout, formality = starting_rates(inputs, parameters)
     centre_total, centre_counts = central_counts(inputs, parameters)
+    return SimpleNamespace(n=n, k=k, identity=identity, roll=roll, turnout=turnout, formality=formality, centre_total=centre_total, centre_counts=centre_counts)
+
+
+def _draw_turnout_rates(work, inputs, parameters, samples, seed, common, local):
+    """Draw turnout and formality changes, retaining their historical relationship.
+
+    Common changes affect districts together. Local changes vary by district,
+    with their first-order election-wide effect removed to avoid double counting.
+    """
+    n = work.n
+    identity = work.identity
+    roll = work.roll
+    turnout = work.turnout
+    formality = work.formality
     # Draw related turnout/formality changes separately for the whole election
     # and for its districts. Their historical relationship is retained within
     # each pair; a new district name can have an enlarged local error scale.
@@ -350,6 +424,17 @@ def draw(inputs, parameters, samples, seed=20261002, representation='reference',
     ballots = roll * drawn_turnout / 100
     totals = ballots * drawn_formality / 100
 
+    work.change, work.drawn_turnout, work.drawn_formality, work.totals = change, drawn_turnout, drawn_formality, totals
+
+
+def _draw_control_amounts(work, inputs, samples, seed, common, local):
+    """Draw converted early/postal totals before splitting them into categories.
+
+    District counts may vary independently. An aggregate count supplies a single
+    combined total, so local changes redistribute it rather than increasing it.
+    """
+    n = work.n
+    identity = work.identity
     amounts = []
     requested_aggregate = {}
     # Draw the error in each converted early/postal amount. Common error changes
@@ -383,6 +468,18 @@ def draw(inputs, parameters, samples, seed=20261002, representation='reference',
         else:
             amount = base * np.exp(shared + individual - .5 * (common_log_sd ** 2 + local_log_sd ** 2))
         amounts.append(amount)
+    work.amounts, work.requested_aggregate = amounts, requested_aggregate
+
+
+def _reconcile_control_draws(work, inputs):
+    """Fit early/postal totals inside each drawn district total with a positive remainder.
+
+    Extreme requested amounts approach the available total gradually. Preserve
+    the difference for diagnostics instead of hiding it behind endpoint caps.
+    """
+    amounts = work.amounts
+    totals = work.totals
+    centre_total = work.centre_total
     # Reconcile the uncertain combined control share continuously. Its local
     # response preserves converted-count uncertainty while extreme requests
     # approach the available pool gradually, leaving a positive remainder.
@@ -390,6 +487,23 @@ def draw(inputs, parameters, samples, seed=20261002, representation='reference',
     conflicts = controlled > totals
     supplied, remaining = reconcile_controls(inputs, totals, amounts, centre_total)
     control_difference = sum((np.abs(a - b) for a, b in zip(amounts, supplied)), np.zeros_like(totals))
+    work.conflicts, work.supplied, work.remaining, work.control_difference = conflicts, supplied, remaining, control_difference
+
+
+def _partition_category_draws(work, inputs, parameters, samples, seed, common, local):
+    """Divide each drawn group amount between its historically supported categories.
+
+    This varies internal proportions while retaining the group total. A group
+    with one category has no uncertain internal division and simply takes its
+    supplied amount; its count still varies through the earlier stages.
+    """
+    n = work.n
+    k = work.k
+    identity = work.identity
+    totals = work.totals
+    centre_counts = work.centre_counts
+    supplied = work.supplied
+    remaining = work.remaining
     counts = np.zeros((samples, n, k))
     # Now divide each supplied amount within its historical category group.
     # This composition uncertainty is conditional on the group's total, so it
@@ -416,6 +530,25 @@ def draw(inputs, parameters, samples, seed=20261002, representation='reference',
         # a fixed absolute count response here would recreate the scale error
         # when the outcome's group amount differs from its central amount.
         counts[:, :, indices] = transformed_partition(amount, weights, error)
+    work.counts = counts
+
+
+def _assemble_prior_draw(work, inputs, samples):
+    """Return the paired count/rate outcomes and explain any reconciliation changes.
+
+    Category sums must equal district totals. Diagnostics distinguish those
+    construction checks from whether predictions match a later election result.
+    """
+    counts = work.counts
+    totals = work.totals
+    requested_aggregate = work.requested_aggregate
+    drawn_turnout = work.drawn_turnout
+    drawn_formality = work.drawn_formality
+    change = work.change
+    conflicts = work.conflicts
+    control_difference = work.control_difference
+    roll = work.roll
+    centre_counts = work.centre_counts
     # Smooth district reconciliation can change a requested national control.
     # Keep that difference visible alongside the basic category-sum check.
     # These diagnostics check the constructed counts, not predictive accuracy.
@@ -439,6 +572,29 @@ def draw(inputs, parameters, samples, seed=20261002, representation='reference',
         positive_category_zero_fraction=float(((counts == 0) & (centre_counts[None, :, :] > 1)).sum()
             / max(1, samples * (centre_counts > 1).sum())),
         aggregate_control_maximum_adjustment_votes=discrepancy))
+
+
+
+def draw(inputs, parameters, samples, seed=20261002, representation='reference', common=True, local=True):
+    """Generate possible count outcomes for all districts in one election setup.
+
+    Returned arrays have sample, district and category dimensions. A common
+    change is shared across districts; local changes describe differences
+    between districts. Each outcome has nonnegative category counts adding to
+    its district total. All adjustments take a fixed sequence of calculations.
+
+    Both interfaces retain the transformed rates and their inexpensive product.
+    A linear product followed by clipping would undo the endpoint behaviour.
+    The compact export still prepares local summaries and separate responses.
+    The common/local switches also let preparation measure district
+    variation without including election-wide uncertainty a second time.
+    """
+    work = _prepare_prior_draw(inputs, parameters, samples, representation)
+    _draw_turnout_rates(work, inputs, parameters, samples, seed, common, local)
+    _draw_control_amounts(work, inputs, samples, seed, common, local)
+    _reconcile_control_draws(work, inputs)
+    _partition_category_draws(work, inputs, parameters, samples, seed, common, local)
+    return _assemble_prior_draw(work, inputs, samples)
 
 
 def preparation_statistics(inputs, parameters, samples=288, seed=20261002):

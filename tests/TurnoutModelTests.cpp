@@ -33,6 +33,25 @@ void checkOperationalInputs(std::filesystem::path const& root) {
         ("turnout-inputs-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     std::ifstream fixture(root/"tests/fixtures/turnout/synthetic-turnout-v1.json");
     json value; fixture >> value;
+    // A postponed contest has no November count account. Its forecast seat
+    // remains available, but even a small reported count requires reviewing
+    // the explicit configuration rather than silently discarding that count.
+    value["inactive_contests"] = {{{"seat","Example Postponed"}, {"status","postponed"}, {"reason","Polling was postponed."}}};
+    auto artifact = TurnoutModelIO::read(value);
+    std::map<std::string,double> population;
+    for (auto const& name : artifact.prior.seats) population[name] = 0;
+    TurnoutModelIO::validateDistrictPopulation(artifact,population);
+    population["Example Postponed"] = 0;
+    TurnoutModelIO::validateDistrictPopulation(artifact,population);
+    population["Example Postponed"] = 1;
+    rejects([&] { TurnoutModelIO::validateDistrictPopulation(artifact,population); });
+    population.erase("Example Postponed");
+    population.erase(artifact.prior.seats.front());
+    rejects([&] { TurnoutModelIO::validateDistrictPopulation(artifact,population); });
+    auto overlapping = value;
+    overlapping["inactive_contests"][0]["seat"] = artifact.prior.seats.front();
+    rejects([&] { TurnoutModelIO::read(overlapping); });
+    value.erase("inactive_contests");
     for (std::string code : {"2026sa","2025fed"}) {
         value["election"] = code;
         auto path = TurnoutModelIO::priorPath(workspace,code);
@@ -203,6 +222,33 @@ void checkLiveAccounts() {
     // than twice that change merely because both parties were perturbed.
     auto opposing = LiveTurnoutMath::varyRemaining({{0,600},{1,400}}, {}, {{0,.01},{1,-.01}}, true);
     assert(std::abs(opposing.at(0)-expected) < .1);
+    // When FP has reported but pair preferences have not, the simulator's
+    // proposed pair share should pass through without magnifying its movement.
+    // Exercise both classic TPP and arbitrary TCP identities, including both
+    // movement directions and a starting pair that is already unequal.
+    for (auto pair : {std::pair{0,1}, std::pair{17,42}}) {
+        for (float start : {50.f,60.f}) for (float target : {40.f,50.f,60.f,75.f}) {
+            auto shares = LiveTurnoutMath::reconcileForecast(
+                {{},{{pair.first,10*start},{pair.second,10*(100-start)}}},
+                {{pair.first,target},{pair.second,100-target}});
+            assert(std::abs(shares.at(pair.first)-target) < .03); // Quarter-vote smoothing only.
+            assert(std::abs(shares.at(pair.first)+shares.at(pair.second)-100) < .00002);
+        }
+    }
+    // Partial counts still constrain both candidates. Compare with the single
+    // pair-change contract and check that relabelling the pair is symmetric.
+    LiveTurnoutMath::PartyAccount partial{{{0,300},{1,200}},{{0,500},{1,500}}};
+    double pairChange = 25*std::log(600.25/400.25);
+    auto expectedPair = LiveTurnoutMath::varyRemaining(partial.projected,partial.counted,{{0,pairChange}});
+    auto partialShares = LiveTurnoutMath::reconcileForecast(partial,{{0,60},{1,40}});
+    auto relabelled = LiveTurnoutMath::reconcileForecast(
+        {{{0,200},{1,300}},{{0,500},{1,500}}},{{0,40},{1,60}});
+    assert(std::abs(partialShares.at(0)-expectedPair.at(0)/10) < .00002);
+    assert(std::abs(partialShares.at(0)-relabelled.at(1)) < .00002);
+    assert(partialShares.at(0)*10 >= 300 && partialShares.at(1)*10 >= 200);
+    auto completePair = LiveTurnoutMath::reconcileForecast(
+        {{{0,600},{1,400}},{{0,600},{1,400}}},{{0,20},{1,80}});
+    assert(completePair.at(0) == 60 && completePair.at(1) == 40);
     rejects([&] { LiveTurnoutMath::varyRemaining(projected,{{0,611}},{{0,1}}); });
     // An invented handoff illustrates a prior below one candidate's counted
     // support. A represented independent must also occupy only one bucket,
@@ -249,6 +295,142 @@ void checkLiveAccounts() {
     assert(LiveTurnoutMath::varySampledRemaining(finished,projected,counted,{{0,100}}) == finished);
     std::cout << "Live count/party account checks passed.\n";
 }
+void checkClosedProgress() {
+    TurnoutModel::Prior prior;
+    prior.seats = {"Active", "Unavailable"};
+    prior.groups = {"ordinary", "absent"};
+    prior.enrolment = {4000, 4000};
+    prior.totals = {{2500, 2500}, {2900, 2900}};
+    prior.counts = {{1400, 1100, 1400, 1100}, {1600, 1300, 1600, 1300}};
+    std::vector<TurnoutModel::Unit> units(2);
+    for (std::size_t s = 0; s < units.size(); ++s) {
+        auto& unit = units[s];
+        unit.seat = s; unit.group = 1; unit.kind = "declaration";
+        unit.name = unit.category = "Absent"; unit.weight = 1;
+    }
+    units[0].counted = 1000;
+    units[1].closed = true; units[1].closureReason = "Service unavailable.";
+    std::vector<TurnoutModel::Observation> history;
+    for (int day = 0; day < 25; ++day) {
+        TurnoutModel::Observation observation; observation.hour = day*24.;
+        observation.counts[{"Active", "Absent"}] = 1000;
+        observation.counts[{"Unavailable", "Absent"}] = 0;
+        history.push_back(observation);
+    }
+    auto withoutClosed = history;
+    for (auto& observation : withoutClosed) observation.counts.erase({"Unavailable", "Absent"});
+    // Archived zeros must not delay another district, either nationally or
+    // within a subdivision. An open service awaiting results still must.
+    for (std::vector<std::string> const& states : std::vector<std::vector<std::string>>{
+            {"", ""}, {"X", "X"}, {"X", "Y"}}) {
+        prior.subdivisions = states;
+        auto expected = TurnoutModel::progress(prior,units,withoutClosed);
+        auto actual = TurnoutModel::progress(prior,units,history);
+        assert(expected[0].strength > .7);
+        assert(actual[0].strength == expected[0].strength);
+        assert(actual[0].pooledStarted == expected[0].pooledStarted);
+        assert(actual[0].stateWeight == expected[0].stateWeight);
+        assert(actual[1].coverage == 0 && actual[1].strength == 0);
+        auto open = units; open[1].closed = false;
+        assert(TurnoutModel::progress(prior,open,history)[0].strength < expected[0].strength);
+    }
+    auto sibling = units[0]; sibling.counted = 0; sibling.closed = true;
+    auto mixed = TurnoutModel::progress(prior,{units[0],sibling},history);
+    auto single = TurnoutModel::progress(prior,{units[0]},history);
+    assert(mixed[0].strength == single[0].strength && mixed[1].strength == 0);
+    assert(TurnoutModel::progress(prior,{units[1]},history)[0].strength == 0);
+
+    // Exercise the production whole-group allowance path too. Its synthetic
+    // group units must carry availability from their real reporting services.
+    // Leaving the closed group's zero in history cannot alter the active seat.
+    for (std::size_t s = 0; s < prior.seats.size(); ++s) {
+        TurnoutModel::Unit ordinary; ordinary.seat = s;
+        ordinary.kind = "ordinary"; ordinary.name = ordinary.category = "Ordinary";
+        ordinary.counted = 1200; ordinary.weight = 1;
+        units.push_back(ordinary);
+    }
+    prior.units = units;
+    for (auto& observation : history) {
+        observation.counts[{"Active", "allocation:absent"}] = 1000;
+        observation.counts[{"Unavailable", "allocation:absent"}] = 0;
+    }
+    withoutClosed = history;
+    for (auto& observation : withoutClosed) {
+        observation.counts.erase({"Unavailable", "Absent"});
+        observation.counts.erase({"Unavailable", "allocation:absent"});
+    }
+    for (bool scheduled : {false, true}) {
+        TurnoutModel::Options options; options.countDraws = 2;
+        if (scheduled) options.receiptDeadline = 24.;
+        // B's ordinary booth is complete and its only declaration service is
+        // unavailable. Unit completion suffices; no district flag is needed.
+        auto expected = TurnoutModel::prepare(prior,units,{false,false},withoutClosed,options);
+        auto actual = TurnoutModel::prepare(prior,units,{false,false},history,options);
+        assert(actual.allocationStrength[0] > 0);
+        assert(actual.allocationStrength == expected.allocationStrength);
+        assert(actual.allocationWeight == expected.allocationWeight);
+        assert(actual.totals == expected.totals);
+        assert(actual.unitMeans == expected.unitMeans);
+        assert(actual.evidence[1].coverage == 0 && actual.evidence[1].strength == 0);
+        assert(actual.unitMeans[1] == units[1].counted);
+    }
+}
+
+void checkCompletedCountAccounts() {
+    TurnoutModel::Prior prior;
+    prior.seats = {"Complete", "Unreported"};
+    prior.groups = {"ordinary", "absent"}; prior.subdivisions = {"X", "X"};
+    prior.enrolment = {4000, 4000};
+    prior.totals = {{2500, 2500}, {2900, 2900}};
+    prior.counts = {{1400, 1100, 1400, 1100}, {1600, 1300, 1600, 1300}};
+    // No district has an authoritative final flag. The first district's
+    // services nevertheless resolve its count completely; the second still
+    // has unreported services and must retain the original prior uncertainty.
+    for (int configuration : {0, 1, 2}) {
+        std::vector<TurnoutModel::Unit> units;
+        for (std::size_t s = 0; s < 2; ++s) {
+            TurnoutModel::Unit booth; booth.seat = s; booth.kind = "ordinary";
+            booth.name = booth.category = "Ordinary"; booth.weight = 1;
+            if (s == 0 && configuration != 2) booth.counted = 1800;
+            if (s == 0 && configuration == 2) { booth.closed = true; booth.closureReason = "Service unavailable."; }
+            units.push_back(booth);
+            if (s == 0 && configuration == 1) continue; // Ordinary-only account.
+            TurnoutModel::Unit declaration; declaration.seat = s; declaration.group = 1;
+            declaration.kind = "declaration"; declaration.name = declaration.category = "Absent";
+            declaration.weight = 1;
+            if (s == 0) { declaration.closed = true; declaration.closureReason = "Service unavailable."; }
+            units.push_back(declaration);
+        }
+        prior.units = units;
+        auto result = TurnoutModel::prepare(prior,units,{false,false},{});
+        double counted = configuration == 2 ? 0 : 1800;
+        for (std::size_t r = 0; r < prior.totals.size(); ++r) {
+            assert(result.broad.totals[r][0] == counted);
+            assert(result.broad.counts[r][0]+result.broad.counts[r][1] == counted);
+            compare(prior.totals[r][1],result.broad.totals[r][1],"unreported district prior");
+            for (std::size_t j = 0; j < units.size(); ++j) if (units[j].seat == 0) {
+                assert(result.broad.complete[j]);
+                assert(result.broad.unitCounts[r][j] == units[j].counted);
+                assert(result.broad.remaining[r][j] == 0 && result.broad.ownRemaining[r][j] == 0);
+            }
+        }
+        for (auto const& component : result.components) assert(units[component.unit].seat == 1);
+        for (auto const& row : result.totals) assert(row[0] == counted);
+        assert(result.noAdditionProbability[0] == 1 && result.noAdditionProbability[1] == 0);
+        auto plan = TurnoutModel::makeDrawPlan(result,units,prior.enrolment);
+        for (unsigned long long seed : {1ULL, 2ULL, 3ULL}) {
+            auto draw = TurnoutModel::drawUnitCounts(result,plan,seed);
+            for (std::size_t j = 0; j < units.size(); ++j) if (units[j].seat == 0)
+                assert(draw[j] == units[j].counted);
+        }
+        // Omission of every service is not completion evidence. Keep the
+        // unsupported-configuration error instead of silently making a zero.
+        auto missing = units;
+        missing.erase(std::remove_if(missing.begin(),missing.end(),[](auto const& u) { return u.seat == 0; }),missing.end());
+        rejects([&] { TurnoutModel::prepare(prior,missing,{false,false},{}); });
+    }
+}
+
 void checkCountDraws() {
     // A close count can have a modest mean remainder while retaining batches
     // larger than its margin. A normal error around the mean or a mean-only
@@ -423,6 +605,8 @@ int main(int argc, char** argv) {
         checkOperationalInputs(root);
         checkPreparedComponent(root);
         checkLiveAccounts();
+        checkClosedProgress();
+        checkCompletedCountAccounts();
         checkCountDraws();
         check(root/"tests/fixtures/turnout/synthetic-turnout-v1.json");
         // Operators can additionally check a private source-backed fixture.

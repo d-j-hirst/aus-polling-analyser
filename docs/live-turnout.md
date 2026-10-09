@@ -6,7 +6,23 @@ The model combines pre-election expectations with reported first-preference coun
 
 ## Inputs and preparation
 
-A **prior** is the fixed pre-election distribution of possible final formal vote counts. Each **prior outcome** contains totals and categories for every district together, preserving relationships between districts. Enrolment, previous turnout and formality, and available early-vote and postal-application counts determine its centre. Turnout and formality use bounded transformations; application-to-vote conversion remains a linear factor. A **control** is a reported early/postal count already converted to expected final formal votes, together with its conversion uncertainty.
+A **prior** is the fixed pre-election distribution of possible final formal vote counts. Each **prior outcome** is one possible set of final counts for all districts and categories together. Keeping those counts together retains their relationships: for example, one outcome can represent unusually high turnout across many districts. Enrolment, previous turnout and **formality** (formal votes as a proportion of turnout), and available early-vote and postal-application counts determine the starting expectations.
+
+The calculation uses several derived quantities with different roles:
+
+| Quantity | Meaning and use |
+| --- | --- |
+| Turnout rate | Turnout divided by enrolment. |
+| Formality rate | Formal votes divided by turnout. Multiplying enrolment by both rates gives the expected formal total. |
+| Conversion factor | A multiplier converting a reported early-vote or postal-application count into expected final formal votes. Its uncertainty describes how reliably that reported count predicts the result. |
+| Control | That converted expected count and its uncertainty. It anchors a category or group of categories before results arrive. |
+| Unit weight | A service's expected fraction of its district/category group. Weights split a group total between services; they are not extra votes. |
+| Pooled measurement | A summary combining evidence from several districts. Shared counting progress is measured separately for each category, excluding unavailable services and limiting exceptional districts' influence. |
+| Response coefficient or weight | A number controlling how strongly one piece of evidence changes an estimate. It is a probability only where explicitly described as one. |
+
+For example, 100,000 enrolled electors, 90% turnout and 97% formality imply 90,000 ballots and 87,300 formal votes. A hypothetical conversion factor of 0.97 applied to 20,000 reported early votes gives a control of 19,400 expected formal early votes. The model retains uncertainty around these expectations rather than treating them as final counts.
+
+Rates and category shares stay within their parent totals using a **bounded transformation**. For a proportion `p`, the calculation works with its log odds, `log(p / (1 - p))`, and converts back afterwards. Thus a change is measured relative to both the included and excluded parts of the parent, and simulated proportions remain between zero and one without endpoint caps. Application-to-vote conversion is a proportional process and retains its linear factor.
 
 An input **unit** is an ordinary booth, a pre-poll voting centre (PPVC), or a declaration category such as Postal. Its metadata identifies its district, category group, expected share of that group, historical match, electoral-assistance voting (EAV) service status and any known closure or calibration exclusion. A **category group** is a division supported by historical results; finer splits that were not reported historically must not be invented as observed voter behaviour.
 
@@ -27,12 +43,35 @@ The configuration contains:
 - `units`: the identities and expected weights of the reporting services. Each weight is a fraction of its district/category group. `matched` records a reliable historical comparison; `eav` identifies the separate small-service treatment. `closed` and `excluded` require explicit reasons. These records contain no current-election counted results.
 - `schedule`: local-source-clock `postal_deadline`, `receipt_deadline` and `poll_close`, and whether delayed reporting should reduce unreported PPVC expectations. Dates use `YYYY-MM-DDTHH:MM:SS`; unavailable deadlines are null. Receipt is the last permitted arrival time, rather than the expected completion of counting.
 - Optional `sources`: source identities and hashes documenting the pre-election inputs.
+- Optional `inactive_contests`: named postponed contests with `status: "postponed"` and a reason. These remain seats in the ordinary forecast, but have no turnout units or weight in counted completion. A feed can omit them or report zero votes; any reported FP or TCP votes require reviewing this configuration before proceeding.
 
 The command draws the distribution without fitting a model or reading retrospective reports, prototype allocations or archived snapshots. Its output records configuration, maintained-parameter and preparation-code hashes. Regeneration is appropriate when the election's input mapping or pre-election evidence changes; live observations never overwrite the prior.
 
 The live source must also supply a timestamp for measuring counting activity. MediaFeed sources retain their `Created` time; Queensland retains `generationDateTime`, including fractional seconds. Zoned timestamps require normalization to the configured local clock before use. A source without a published time needs an explicitly retained collector timestamp; a saved forecast's old display date is not a substitute.
 
 Victorian results retain the VEC's combined Early category rather than inventing individual early-voting centres. The loader also preserves the separately reported `MarkedAsVoted` candidate counts; historical `Marked As Voted Votes` records use the same vote type. These counts enter the normal declaration accounting and remain distinct from Provisional votes.
+
+VEC result captures can omit ordinary booths before any votes report. The loader retains their preloaded identities and leaves their measured vote maps empty; absence from one capture does not establish a closure or a measured final zero.
+
+### Victorian input adapter
+
+The Victorian adapter prepares the normalized configuration from candidate and ordinary-booth preloads, the previous election's public district and booth results, and the current election's recorded pre-election early/postal observations. It does not read current-election final totals or live result snapshots. Election settings are maintained separately in `forecasts/<election>/live-turnout-settings.json`; authorised preloads and generated inputs remain operator-local.
+
+Run from `analysis/`, after installing `downloads/<election>_candidates.xml` and `downloads/<election>_booths.xml`:
+
+```powershell
+.\.venv-win\Scripts\python.exe -B -m scripts.turnout.turnout_prepare_vic 2022vic
+```
+
+`--candidates` and `--booths` can select files in an external operator directory. The command writes `turnout-config.json`, `turnout-input-audit.json` and `turnout-prior.json` under the ignored election `live-inputs/` directory. The audit identifies district baselines, selected operational observations, booth matches and fallback size weights. Source-content hashes record which revisions were used.
+
+District turnout and formality use the same-name previous district or its explicit `sPreviousName` predecessor. A party-share proxy (`sUseFpResults`) does not establish a turnout predecessor. Missing district rates use aggregate historical rates; missing category partitions use complete, reconciled historical partitions. Renamed or missing baselines have 1.5 times the normal local uncertainty. Same-name boundary changes are not reconstructed by this adapter.
+
+Ordinary booth matching follows the C++ loader: globally unique current names can match historical names, repeated names need the same district, and conflicting historical matches are discarded. Matched formal counts provide relative size weights. Unmatched or ambiguous booths use the median matched size in their current district, falling back to the shared median when needed. These weights divide the district's ordinary allowance; they do not add votes to it. A transferred match can still supply starting size information. The audit records whether the match belongs to the district's chosen historical predecessor. The active C++ calculation does not learn a shared ordinary-booth size adjustment from these matches. The loader retains separate identities for historical districts removed by redistribution, so their names and counts remain available for predecessor lookup.
+
+Early and Postal each have a district control. Absent, ordinary and the combined other category share the remaining allowance proportionally. Provisional and Marked as voted remain separate reporting units within the other category, using their previous split. Possible observed zeros receive a half-vote equivalent; unavailable or missing partitions are not filled with invented zero counts.
+
+The 2022 settings exclude Narracan's postponed November contest from counting while retaining its seat forecast. They use the installed `2022vic/earlier_only` coefficients and the postal receipt deadline of 6 pm on 2 December, recorded in the [VEC's submission on the 2022 election](https://vec.vic.gov.au/-/media/2cf4c88beaaf4fcf983743da5ebe9d05.pdf). Receipt closure does not imply counting completion. A replay that ends on 5 December can be compared with reviewed final district totals, but its last captured feed is not treated as final merely because no later capture is available.
 
 The fictional configuration in `tests/fixtures/turnout/live-inputs-example.json` demonstrates the format without requiring authorised feeds:
 
@@ -44,13 +83,28 @@ The fictional configuration in `tests/fixtures/turnout/live-inputs-example.json`
 
 Each received source updates the same immutable prior afresh. Reported ordinary and PPVC booths are approximately complete; declaration counts are lower bounds. The calculation preserves counted first-preference votes, allocates nonnegative additions, and keeps all category and district totals consistent with their parent account. Minor ordinary-booth rechecks do not create a staged-addition expectation.
 
-Unreported matched PPVCs retain their own size expectations with conservative partial compensation for changes in other matched centres. Compensation depends continuously on expected centre size. New or changed centres use their supplied starting weights; EAV services receive their separate small-service treatment. A known closure contributes no expected additions or voter-behaviour evidence. Redistribution effects beyond these input mappings are not inferred by this calculation.
+When every configured service in a district is complete or explicitly closed, its turnout estimate is exactly the counted total, even without a district-level finalisation flag. An open declaration service or unreported booth still allows additions. Missing service records do not establish completion.
 
-When the ordinary/early categories largely finish, an open declaration category does not automatically inherit the whole district shortfall. Evidence about progress in its supported category group gradually releases that imposed allowance. This uses actual group counts, including PPVCs within a historically combined early-vote group. It is distinct from evidence about whether that declaration category itself is slowing.
+Unreported matched PPVCs retain their own size expectations with conservative partial compensation for changes in other matched centres. Here **compensation** means that fewer votes than expected at reported centres can increase expectations at an unfinished centre, and vice versa. The coefficient is selected from the centre's mean starting expected count:
+
+| Expected PPVC count | Compensation coefficient |
+| --- | ---: |
+| Below 2,000 | 0 |
+| 2,000 to below 4,000 | 0.14 |
+| 4,000 to below 8,000 | 1.17 |
+| 8,000 or more | 0.63 |
+
+These are coefficients of changes in log odds, rather than fractions of a vote-count shortfall or correlation measurements. The adjustment is weakened by the expected fraction of the other centres that has reported. The coefficients come from the conservative end of the Federal 2025 reliable-match comparison, excluding Brand's reporting consolidation; they have not been independently validated on another election. Size bands are discrete, while influence within a band changes continuously with the reported evidence. New or changed centres use their supplied starting weights; EAV services receive their separate small-service treatment. Redistribution effects beyond these input mappings are not inferred by this calculation.
+
+A known closure contributes no expected additions or voter-behaviour evidence. In particular, its recorded zero does not suggest that other districts have more counting left. This exclusion also applies when all services in a category group are unavailable; a group with an open service still supplies progress evidence. An open service that has reported zero remains evidence that counting has not started.
+
+When the ordinary/early categories largely finish, an open declaration category can initially receive a large **remaining allowance**: the difference between its group's expected final total and the votes already counted. As the group's counting settles, the model gradually gives more influence to the unfinished category's own size estimate and reduces an excessive group allowance. The district's projected formal total can decrease as a result. This uses actual group counts, including PPVCs within a historically combined early-vote group. Evidence that the whole group is settling is measured separately from evidence that one declaration category is slowing.
+
+For example, a combined early-vote group expected to contain 20,000 formal votes might have 18,000 PPVC votes and 100 early-absent votes counted. Keeping the group expectation fixed would assign all 1,900 remaining votes to early absents. If that category's own expected final count is only 300, its own remaining estimate is 200. Repeated quiet group counts gradually move the remaining estimate towards that smaller amount, while preserving the 18,100 votes already counted. This is a smooth adjustment, not a rule declaring the category finished.
 
 The model keeps two kinds of late-count uncertainty separate. Routine expected additions recede as counting slows and the receipt timetable passes. Exceptional additions remain possible with a low, gradually declining probability. There is also a district-wide outcome with exactly no new first-preference votes. Completion flags make that outcome certain; quietness alone does not.
 
-The count distribution combines previous expectations, small additions and exceptional late batches. Their weights change continuously with the evidence. For example, a 60% probability of no additions and 100 additional votes on average in the other outcomes gives an unconditional expectation of 40. The exceptional component is retained explicitly, including when none of the short diagnostic sample's draws selected it.
+Each unfinished declaration category combines previous expectations, small additions and exceptional late batches. Their probability weights change continuously with the evidence. They are **unconditional weights**: together they sum to one minus the district's no-addition probability. For example, if no additions have probability 60%, that category's other three weights together sum to 40%. When those other outcomes average 100 additional votes, its overall expected addition is 40 votes. Sampling within those outcomes divides each weight by 40%, so their conditional probabilities sum to one. The exceptional component is retained explicitly, including when none of the short diagnostic sample's draws selected it.
 
 After receipt closes, the installed timetable allows 48 counting hours for processing and a smooth 12-hour transition away from routine expectations. Sundays contribute half as much processing time as other days. Recent local activity can extend routine processing; activity after the deadline gradually loses influence on other districts. Unfinished declarations retain a starting exceptional probability of 2%, which declines with time and remaining probability outside the no-addition outcome. This is an operating assumption, rather than an independently established frequency of completion.
 

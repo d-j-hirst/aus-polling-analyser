@@ -391,6 +391,7 @@ analysis/betting_odds/tab-current.json
 aec-mediafeed*.xml
 el20*.xml
 /Federal Election 2025 turnout replay.pol2
+/VIC State Election 2022 turnout replay.pol2
 /dependencies/
 /LocalBuildPaths.props
 /docs/turnout-operational-calibration/*
