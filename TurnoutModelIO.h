@@ -13,6 +13,9 @@ struct Artifact {
     TurnoutModel::Options options;
     std::optional<double> pollClose;
     bool decayPpvc = false;
+    // Counting procedure, not an election-specific recovery exception. Under
+    // optional preferential voting, exhausted ballots legitimately reduce TCP.
+    bool optionalPreferential = false;
     nlohmann::json provenance, sensitivities;
     // A postponed contest remains in the forecast, but has no count account
     // for this election's active counting period.

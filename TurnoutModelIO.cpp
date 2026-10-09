@@ -218,6 +218,7 @@ void readOperationalSettings(json const& value, Artifact& a) {
     }
     if (!options.at("poll_close").is_null()) a.pollClose = TurnoutModel::sourceHour(options.at("poll_close"));
     a.decayPpvc = options.at("ppvc_reporting_decay");
+    a.optionalPreferential = options.value("optional_preferential", false);
     if (a.decayPpvc && !a.pollClose) throw std::runtime_error("PPVC decay needs an explicit polling close time.");
     a.provenance = value.at("provenance"); a.sensitivities = value.at("sensitivities");
 }

@@ -9,6 +9,7 @@
 #include "SimulationCompletion.h"
 #include "SimulationIteration.h"
 #include "SimulationPreparation.h"
+#include "RetainedLiveState.h"
 
 #include <algorithm>
 #include <atomic>
@@ -43,32 +44,6 @@ namespace {
 	private:
 		bool& state;
 		bool previousValue;
-	};
-
-	class LatestReportTransaction {
-	public:
-		explicit LatestReportTransaction(Simulation::Report& report)
-			: report(report), previousReport(report)
-		{
-		}
-
-		~LatestReportTransaction()
-		{
-			if (!committed) report = std::move(previousReport);
-		}
-
-		void commit() noexcept
-		{
-			committed = true;
-		}
-
-		LatestReportTransaction(LatestReportTransaction const&) = delete;
-		LatestReportTransaction& operator=(LatestReportTransaction const&) = delete;
-
-	private:
-		Simulation::Report& report;
-		Simulation::Report previousReport;
-		bool committed = false;
 	};
 
 	// Convert decimal betting odds (for example, $1.65) to an implied chance.
@@ -212,7 +187,8 @@ bool SimulationRun::run(
 	// Calibration and live-baseline sub-runs use latestReport as temporary
 	// workspace. Preserve the last successful report unless the complete main
 	// run reaches the commit point below.
-	LatestReportTransaction reportTransaction(sim.latestReport);
+	RetainedLiveState reportTransaction(sim.latestReport);
+	RetainedLiveState outcomesTransaction(project.outcomes());
 
 	if (!runBettingOddsCalibrations(feedback)) return false;
 
@@ -227,7 +203,7 @@ bool SimulationRun::run(
 		preparations.prepareForIterations();
 	}
 	catch (SimulationPreparation::Exception const& e) {
-
+		inputFailure = e.what();
 		feedback("Could not run simulation due to the following issue: \n" + std::string(e.what()));
 		return false;
 	}
@@ -249,8 +225,33 @@ bool SimulationRun::run(
 	reportWarnings(feedback);
 
 	sim.lastUpdated = Timestamp::now();
+	inputRunCompleted = true;
+	commitLiveHistory();
 	reportTransaction.commit();
+	outcomesTransaction.commit();
 	return true;
+}
+
+nlohmann::json SimulationRun::inputDiagnostic() const
+{
+	return {{"completed",inputRunCompleted}, {"issues",inputIssues.summary()},
+		{"failure",inputRunCompleted ? "" : (inputFailure.empty() ? "The attempted update did not complete; the previous forecast is retained." : inputFailure)}};
+}
+
+void SimulationRun::commitLiveHistory()
+{
+	// These writes are queued by preparation but cannot run on a rejected
+	// source. IO failure after a good forecast is an operator warning rather
+	// than a reason to discard calculated results or advance history silently.
+	for (auto& commit : pendingLiveCommits) {
+		try { commit(); }
+		catch (std::exception const& error) {
+			inputIssues.add({"history_write_failed","history","", "Accepted-count history",
+				error.what(),"Check free space and permissions before the next update.","",0,false,{}, {}});
+			logger << "Live history was not saved: " << error.what() << "\n";
+		}
+	}
+	pendingLiveCommits.clear();
 }
 
 void SimulationRun::recordWarning(

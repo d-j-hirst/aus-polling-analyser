@@ -45,3 +45,5 @@ LiveAnalysisArchive.cpp
 TurnoutModel.cpp
 TurnoutModelIO.cpp
 WorkspacePaths.cpp
+LiveInputRecovery.cpp
+LiveInputRecoveryIO.cpp

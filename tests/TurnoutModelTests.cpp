@@ -431,6 +431,37 @@ void checkCompletedCountAccounts() {
     }
 }
 
+void checkDistrictEnrolmentConflicts() {
+    // A valid completed booth retains every counted vote. A contradictory
+    // input must identify its district and figures, including when the feed
+    // marks the district final; finalisation does not make excess votes valid.
+    TurnoutModel::Prior prior;
+    prior.seats = {"Example"}; prior.groups = {"ordinary"}; prior.subdivisions = {"X"};
+    prior.enrolment = {4000}; prior.totals = {{2500}, {2900}}; prior.counts = prior.totals;
+    TurnoutModel::Unit unit;
+    unit.name = unit.category = "Ordinary"; unit.kind = "ordinary"; unit.weight = 1;
+    prior.units = {unit};
+    unit.counted = 3999;
+    auto valid = TurnoutModel::update(prior,{unit},{false});
+    for (auto const& row : valid.unitCounts) assert(row[0] == unit.counted);
+
+    for (double counted : {4000., 4100.}) for (bool finalised : {false, true}) {
+        unit.counted = counted;
+        bool rejected = false;
+        try {
+            TurnoutModel::update(prior,{unit},{finalised});
+        } catch (std::runtime_error const& error) {
+            rejected = true;
+            auto expected = std::string("Counted formal votes in Example (")
+                + (counted == 4000 ? "4000" : "4100")
+                + ") reach or exceed the prepared enrolment (4000). "
+                + "Check the result feed for duplicate or inconsistent counts, or correct the prepared enrolment if it is wrong.";
+            assert(std::string(error.what()) == expected);
+        }
+        assert(rejected);
+    }
+}
+
 void checkCountDraws() {
     // A close count can have a modest mean remainder while retaining batches
     // larger than its margin. A normal error around the mean or a mean-only
@@ -607,6 +638,7 @@ int main(int argc, char** argv) {
         checkLiveAccounts();
         checkClosedProgress();
         checkCompletedCountAccounts();
+        checkDistrictEnrolmentConflicts();
         checkCountDraws();
         check(root/"tests/fixtures/turnout/synthetic-turnout-v1.json");
         // Operators can additionally check a private source-backed fixture.

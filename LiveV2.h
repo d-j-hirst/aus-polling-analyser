@@ -233,7 +233,7 @@ public:
   using Internals = LiveData::Internals;
   using BoothSnapshot = LiveData::BoothSnapshot;
 
-	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run);
+	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run, TurnoutModelIO::Artifact turnoutInput);
 
   float getTppShareBaseline() const {
     return node.tppShareBaseline.value_or(0.0f);
@@ -534,7 +534,6 @@ private:
   // The turnout component supplies one finite count account to every live
   // projection. Prepare counts, refresh progress, then attach party composition.
   // Pair targets include preferences missing on already-counted FP votes.
-  TurnoutModelIO::Artifact loadTurnoutConfiguration(Results2::Election const& currentElection);
   void configureInactiveTurnoutContests(TurnoutModelIO::Artifact const& artifact);
   void prepareTurnout(Results2::Election const& currentElection, TurnoutModelIO::Artifact artifact);
   float turnoutFpTarget(int boothIndex) const;

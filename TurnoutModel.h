@@ -28,6 +28,11 @@ struct Unit {
     std::string closureReason, exclusionReason;
     double weight = 0, counted = 0; // Starting fraction of its group; measured formal votes.
     bool matched = false, eav = false, closed = false, excluded = false;
+    // Runtime-only checked FP completion. The input boundary supplies this for
+    // live runs so a restored count retains its accepted completion, while an
+    // unavailable count cannot inherit a rejected source's finalisation flag.
+    // Offline fixtures without recovery retain the ordinary counting rules.
+    std::optional<bool> acceptedComplete;
 };
 struct Prior {
     std::string election;

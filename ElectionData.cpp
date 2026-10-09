@@ -4,6 +4,8 @@
 #include "Log.h"
 
 #include <algorithm>
+#include <charconv>
+#include <cctype>
 #include <cmath>
 #include <limits>
 #include <set>
@@ -432,6 +434,7 @@ void Results2::Election::preload2022Vic(tinyxml2::XMLDocument const& input_candi
         parties[Candidate::Independent].name = "Independent";
       }
       candidates[candidate.id] = candidate;
+      liveCandidateRosters[seat.id].insert(candidate.id);
 
       currentCandidate = currentCandidate->NextSiblingElement("Candidate");
     }
@@ -766,6 +769,7 @@ void Results2::Election::preloadNswec([[maybe_unused]] nlohmann::json const& res
         parties[Candidate::Independent].name = "Independent";
       }
       candidates[candidate.id] = candidate;
+      liveCandidateRosters[seat.id].insert(candidate.id);
       candidateNameToId[nswecCandidateKey(seat.id, candidate.name)] = candidate.id;
       candidateIdsByName[candidate.name].push_back(candidate.id);
 
@@ -1090,6 +1094,7 @@ void Results2::Election::preloadQec([[maybe_unused]] nlohmann::json const& resul
         }
       }
       candidates[candidate.id] = candidate;
+      liveCandidateRosters[seat.id].insert(candidate.id);
       if (candidateNameToId.contains(candidate.name)) {
         logger << "WARNING: Identical candidate names found: " << candidate.name << "\n";
       }
@@ -2079,6 +2084,76 @@ void Results2::Election::preloadEcsa([[maybe_unused]] nlohmann::json const& resu
   //logger << "Appeared to successfully load past election data\n";
 }
 
+std::string Results2::Election::countKey(int seatId, int boothId, VoteType type) {
+  return std::to_string(seatId) + "/" + (type == VoteType::Ordinary
+    ? "b:" + std::to_string(boothId) : "d:" + std::to_string(int(type)));
+}
+
+int Results2::Election::readCount(tinyxml2::XMLElement const* element, std::string const& context,
+  int seatId, int boothId, VoteType type, bool tcp, char const* attribute) {
+  // Identifiers and enclosing XML structure are still read strictly. Only a
+  // count in an already identified service can take this local recovery path.
+  if (!readingLiveCounts) {
+    if (!element) throwInvalidXml(context, "missing vote count");
+    return attribute ? requiredIntAttribute(*element, attribute, context, 0) : integerTextOrZero(*element, context);
+  }
+  presentLiveCounts.emplace(countKey(seatId,boothId,type),tcp);
+  int votes = 0;
+  char const* text = element ? (attribute ? element->Attribute(attribute) : element->GetText()) : nullptr;
+  std::string_view value = text ? text : "";
+  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front()))) value.remove_prefix(1);
+  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back()))) value.remove_suffix(1);
+  auto parsed = std::from_chars(value.data(),value.data()+value.size(),votes);
+  if (value.empty() || parsed.ec != std::errc{} || parsed.ptr != value.data()+value.size() || votes < 0) {
+    invalidLiveCounts[{countKey(seatId,boothId,type),tcp}] = context + ": invalid non-negative integer count '" +
+      std::string(value.substr(0,80)) + "'.";
+    return 0; // Placeholder only: recovery discards this entire tagged vector.
+  }
+  return votes;
+}
+
+void Results2::Election::captureLiveCandidateRosters() {
+  // Preload identities define who can stand in each district. Do not infer a
+  // roster from a malformed current candidate vector and thereby legitimize it.
+  // Candidate-only preloads can have no count maps at all, especially before
+  // Victoria's first reported booths. Preserve their declared rosters and
+  // supplement them only for loaders that embed identities in vote records.
+  for (auto const& [districtId,seat] : seats) {
+    auto& roster = liveCandidateRosters[districtId];
+    for (auto const& [candidate,counts] : seat.fpVotes) roster.insert(candidate);
+    for (int boothId : seat.booths) for (auto const& [candidate,count] : booths.at(boothId).fpVotes) roster.insert(candidate);
+  }
+}
+
+void Results2::Election::clearLiveCountRecords() {
+  // Identities come from the preload; measurements belong to this source only.
+  // Clear them before reading so omitted records cannot silently retain preload
+  // counts and repeated updates cannot add to an old district aggregate.
+  for (auto& [districtId,seat] : seats) {
+    seat.fpVotes.clear(); seat.tcpVotes.clear(); seat.tcpVotesCandidate.clear(); seat.tppVotes.clear();
+    seat.fpFinalised = false;
+  }
+  for (auto& [boothId,booth] : booths) {
+    booth.fpVotes.clear(); booth.tcpVotes.clear(); booth.tcpVotesCandidate.clear(); booth.tppVotes.clear();
+  }
+  invalidLiveCounts.clear(); liveCountStatus.clear(); presentLiveCounts.clear();
+  sourceTime.clear();
+}
+
+void Results2::Election::beginLiveCountRead() {
+  captureLiveCandidateRosters();
+  clearLiveCountRecords();
+  liveCountsRead = true;
+  readingLiveCounts = true;
+}
+
+void Results2::Election::updateLive(tinyxml2::XMLDocument const& xml, Format format) {
+  beginLiveCountRead();
+  try { update(xml,format); }
+  catch (...) { readingLiveCounts = false; throw; }
+  readingLiveCounts = false;
+}
+
 void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 {
   if (format == Format::QEC) {
@@ -2256,8 +2331,9 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
       while (fpVoteType) {
         std::string typeName = requiredAttribute(*fpVoteType, "Type",
           seatContext + "/FirstPreferences/Candidate/VotesByType/Votes");
-        int fpCount = integerTextOrZero(*fpVoteType,
-          seatContext + "/FirstPreferences/Candidate/VotesByType/Votes");
+        int fpCount = readCount(fpVoteType,
+          seatContext + "/FirstPreferences/Candidate/VotesByType/Votes", seat.id, 0,
+          typeNameToVoteType.contains(typeName) ? typeNameToVoteType.at(typeName) : VoteType::Invalid, false);
         if (typeNameToVoteType.contains(typeName)) seat.fpVotes[candidate.id][typeNameToVoteType[typeName]] += fpCount;
         fpVoteType = fpVoteType->NextSiblingElement("Votes");
       }
@@ -2304,8 +2380,9 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
         while (tcpVoteType) {
           std::string typeName = requiredAttribute(*tcpVoteType, "Type",
             seatContext + "/TwoCandidatePreferred/Candidate/VotesByType/Votes");
-          int tcpCount = integerTextOrZero(*tcpVoteType,
-            seatContext + "/TwoCandidatePreferred/Candidate/VotesByType/Votes");
+          int tcpCount = readCount(tcpVoteType,
+            seatContext + "/TwoCandidatePreferred/Candidate/VotesByType/Votes", seat.id, 0,
+            typeNameToVoteType.contains(typeName) ? typeNameToVoteType.at(typeName) : VoteType::Invalid, true);
           // Note: for NSWEC the PP/PR categories are always zero - will need to extract them from the booth data
           if (typeNameToVoteType.contains(typeName)) seat.tcpVotes[partyId][typeNameToVoteType[typeName]] = tcpCount;
           if (typeNameToVoteType.contains(typeName)) seat.tcpVotesCandidate[candidateId][typeNameToVoteType[typeName]] = tcpCount;
@@ -2366,10 +2443,9 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
       currentCandidate = fps.FirstChildElement("Candidate");
       while (currentCandidate) {
         int candidateId = candidateIdFinder();
-        int votes = integerTextOrZero(
-          requiredChild(*currentCandidate, "Votes",
-            seatContext + "/PollingPlaces/PollingPlace/FirstPreferences/Candidate"),
-          seatContext + "/PollingPlaces/PollingPlace/FirstPreferences/Candidate/Votes");
+        int votes = readCount(currentCandidate->FirstChildElement("Votes"),
+          seatContext + "/PollingPlaces/PollingPlace/FirstPreferences/Candidate/Votes",
+          seat.id, booth.id, VoteType::Ordinary, false);
         booth.fpVotes[candidateId] = votes;
 
         currentCandidate = currentCandidate->NextSiblingElement("Candidate");
@@ -2381,10 +2457,9 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
         while (currentCandidate) {
           int candidateId = candidateIdFinder();
           int partyId = candidates.at(candidateId).party;
-          int votes = integerTextOrZero(
-            requiredChild(*currentCandidate, "Votes",
-              seatContext + "/PollingPlaces/PollingPlace/TwoCandidatePreferred/Candidate"),
-            seatContext + "/PollingPlaces/PollingPlace/TwoCandidatePreferred/Candidate/Votes");
+          int votes = readCount(currentCandidate->FirstChildElement("Votes"),
+            seatContext + "/PollingPlaces/PollingPlace/TwoCandidatePreferred/Candidate/Votes",
+            seat.id, booth.id, VoteType::Ordinary, true);
           booth.tcpVotes[partyId] = votes;
           booth.tcpVotesCandidate[candidateId] = votes;
 
@@ -2402,12 +2477,12 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
     currentContest = currentContest->NextSiblingElement("Contest");
   }
 
-  // VEC omits unreported ordinary booths from early result captures. Its
-  // pre-election polling-place list supplies their identities; omission from
-  // a result capture is not evidence that a service closed. Keep those booths
-  // available for projecting the uncounted vote. Other feed formats retain
-  // their existing source-population reconciliation below.
-  if (format != Format::VEC) for (auto& [seatId, seat] : seats) {
+  // A live preload supplies known service identities. Omission from a received
+  // capture is not a closure: recovery marks its counts unavailable or restores
+  // them, and the prior still needs the booth for projecting remaining votes.
+  // Historical imports retain their population reconciliation; VEC already
+  // retains unreported ordinary booths in that path too.
+  if (!readingLiveCounts && format != Format::VEC) for (auto& [seatId, seat] : seats) {
     std::vector<int> boothsToErase;
     for (int boothId : seat.booths) {
       if (!boothIdsPresent.contains(boothId)) {
@@ -2544,10 +2619,9 @@ void Results2::Election::updateQec(tinyxml2::XMLDocument const& xml)
           auto const candidateKey = qecCandidateKey(seat.id, candidateName);
           if (!candidateNameToId.contains(candidateKey)) continue;
           auto candidateId = candidateNameToId[candidateKey];
-          auto votes = requiredIntText(
-            requiredChild(*currentCandidate, "count",
-              seatContext + "/preliminary/booths/booth/primaryVoteResults/candidate"),
-            seatContext + "/preliminary/booths/booth/primaryVoteResults/candidate/count", 0);
+          auto votes = readCount(currentCandidate->FirstChildElement("count"),
+            seatContext + "/preliminary/booths/booth/primaryVoteResults/candidate/count",
+            seat.id, booth.id, getBoothVoteType(booth.name), false);
           booth.fpVotes[candidateId] = votes;
           seat.fpVotes[candidateId][getBoothVoteType(booth.name)] += votes;
         }
@@ -2572,12 +2646,15 @@ void Results2::Election::updateQec(tinyxml2::XMLDocument const& xml)
           if (!candidateNameToId.contains(candidateKey)) continue;
           auto candidateId = candidateNameToId[candidateKey];
           int partyId = candidates.at(candidateId).party;
-          auto votes = requiredIntText(
-            requiredChild(*currentCandidate, "count",
-              seatContext + "/indicative/booths/booth/twoCandidateVotes/candidate"),
-            seatContext + "/indicative/booths/booth/twoCandidateVotes/candidate/count", 0);
+          auto votes = readCount(currentCandidate->FirstChildElement("count"),
+            seatContext + "/indicative/booths/booth/twoCandidateVotes/candidate/count",
+            seat.id, booth.id, getBoothVoteType(booth.name), true);
           booth.tcpVotes[partyId] = votes;
+          // Recovery and later party mapping share candidate-level accounts.
+          // Keep these alongside the older party totals in the QEC adapter.
+          booth.tcpVotesCandidate[candidateId] = votes;
           seat.tcpVotes[partyId][getBoothVoteType(booth.name)] += votes;
+          seat.tcpVotesCandidate[candidateId][getBoothVoteType(booth.name)] += votes;
         }
       }
     }
@@ -2640,20 +2717,28 @@ void Results2::Election::updateWaec(tinyxml2::XMLDocument const& xml)
     return VoteType::Invalid;
   };
 
-  auto currentRegion = xml.FirstChildElement()->FirstChildElement("ElectionRegion");
+  // A readable update normally has a root, regions and district FP accounts.
+  // Missing structure is a failed source, not an empty count or a pointer to
+  // dereference. Numerical values inside identified accounts recover separately.
+  auto root = xml.FirstChildElement();
+  if (!root) throwInvalidXml("WAEC results", "missing root element");
+  auto currentRegion = root->FirstChildElement("ElectionRegion");
+  if (!currentRegion) throwInvalidXml("WAEC results", "missing ElectionRegion");
   while (currentRegion) {
     auto currentDistrict = currentRegion->FirstChildElement("ElectionDistrict");
     while (currentDistrict) {
-      int seatId = hashName(currentDistrict->Attribute("Name"));
+      int seatId = hashName(requiredAttribute(*currentDistrict,"Name","WAEC results/ElectionDistrict"));
+      if (!seats.contains(seatId)) throwInvalidXml("WAEC results/ElectionDistrict", "unknown district identity");
       Seat& seat = seats.at(seatId);
 
-      auto districtVotes = currentDistrict->FirstChildElement("LA")->FirstChildElement("DistrictVotes");
+      auto const& assembly = requiredChild(*currentDistrict,"LA","WAEC results/ElectionDistrict");
+      auto districtVotes = &requiredChild(assembly,"DistrictVotes","WAEC results/ElectionDistrict/LA");
 
       // We need to know all the candidate ids for this seat to establish zeros for other vote types
       std::vector<int> candidateIds;
       auto currentCandidate = districtVotes->FirstChildElement("CandidateVotes");
       while (currentCandidate) {
-        auto candidateName = currentCandidate->Attribute("CandidateBallotPaperName");
+        auto candidateName = requiredAttribute(*currentCandidate,"CandidateBallotPaperName","WAEC results/CandidateVotes");
         if (!candidateNameToId.contains(candidateName)) {
           currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
           continue;
@@ -2665,18 +2750,18 @@ void Results2::Election::updateWaec(tinyxml2::XMLDocument const& xml)
       auto currentBooth = districtVotes->FirstChildElement("OrdinaryPollingPlaceVotes");
       while (currentBooth) {
 
-        int boothId = currentBooth->IntAttribute("VenueId");
+        int boothId = requiredIntAttribute(*currentBooth,"VenueId","WAEC results/OrdinaryPollingPlaceVotes",0);
         if (booths.contains(boothId)) {
           Booth& booth = booths[boothId];
           currentCandidate = currentBooth->FirstChildElement("CandidateVotes");
           while (currentCandidate) {
-            auto candidateName = currentCandidate->Attribute("CandidateBallotPaperName");
+            auto candidateName = requiredAttribute(*currentCandidate,"CandidateBallotPaperName","WAEC results/CandidateVotes");
             if (!candidateNameToId.contains(candidateName)) {
               currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
               continue;
             }
             auto candidateId = candidateNameToId[candidateName];
-            auto votes = currentCandidate->IntAttribute("Votes");
+            auto votes = readCount(currentCandidate, "WAEC ordinary FP Votes", seat.id, boothId, VoteType::Ordinary, false, "Votes");
             booth.fpVotes[candidateId] = votes;
             currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
           }
@@ -2687,7 +2772,7 @@ void Results2::Election::updateWaec(tinyxml2::XMLDocument const& xml)
 
       auto currentCategory = districtVotes->FirstChildElement("CategoryVotes");
       while (currentCategory) {
-        auto categoryName = currentCategory->Attribute("CategoryName");
+        auto categoryName = requiredAttribute(*currentCategory,"CategoryName","WAEC results/CategoryVotes");
         auto categoryType = VoteTypeCategory(categoryName);
         if (categoryType == VoteType::Invalid) {
           currentCategory = currentCategory->NextSiblingElement("CategoryVotes");
@@ -2695,13 +2780,13 @@ void Results2::Election::updateWaec(tinyxml2::XMLDocument const& xml)
         }
         currentCandidate = currentCategory->FirstChildElement("CandidateVotes");
         while (currentCandidate) {
-          auto candidateName = currentCandidate->Attribute("CandidateBallotPaperName");
+          auto candidateName = requiredAttribute(*currentCandidate,"CandidateBallotPaperName","WAEC results/CandidateVotes");
           if (!candidateNameToId.contains(candidateName)) {
             currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
             continue;
           }
           auto candidateId = candidateNameToId[candidateName];
-          auto votes = currentCandidate->IntAttribute("Votes");
+          auto votes = readCount(currentCandidate, "WAEC category FP Votes", seat.id, 0, categoryType, false, "Votes");
           seat.fpVotes[candidateId][categoryType] = votes;
           currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
         }
@@ -2714,18 +2799,18 @@ void Results2::Election::updateWaec(tinyxml2::XMLDocument const& xml)
         currentBooth = districtVotes->FirstChildElement("OrdinaryPollingPlaceVotes");
         while (currentBooth) {
 
-          int boothId = currentBooth->IntAttribute("VenueId");
+          int boothId = requiredIntAttribute(*currentBooth,"VenueId","WAEC results/OrdinaryPollingPlaceVotes",0);
           if (booths.contains(boothId)) {
             Booth& booth = booths[boothId];
             currentCandidate = currentBooth->FirstChildElement("CandidateVotes");
             while (currentCandidate) {
-              auto candidateName = currentCandidate->Attribute("CandidateBallotPaperName");
+              auto candidateName = requiredAttribute(*currentCandidate,"CandidateBallotPaperName","WAEC results/CandidateVotes");
               if (!candidateNameToId.contains(candidateName)) {
                 currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
                 continue;
               }
               auto candidateId = candidateNameToId[candidateName];
-              auto votes = currentCandidate->IntAttribute("Votes");
+              auto votes = readCount(currentCandidate, "WAEC ordinary TCP Votes", seat.id, boothId, VoteType::Ordinary, true, "Votes");
               booth.tcpVotesCandidate[candidateId] = votes;
               auto partyId = candidates.at(candidateId).party;
               booth.tcpVotes[partyId] = votes;
@@ -2737,7 +2822,7 @@ void Results2::Election::updateWaec(tinyxml2::XMLDocument const& xml)
 
         currentCategory = districtVotes->FirstChildElement("CategoryVotes");
         while (currentCategory) {
-          auto categoryName = currentCategory->Attribute("CategoryName");
+          auto categoryName = requiredAttribute(*currentCategory,"CategoryName","WAEC results/CategoryVotes");
           auto categoryType = VoteTypeCategory(categoryName);
           if (categoryType == VoteType::Invalid) {
             currentCategory = currentCategory->NextSiblingElement("CategoryVotes");
@@ -2745,13 +2830,13 @@ void Results2::Election::updateWaec(tinyxml2::XMLDocument const& xml)
           }
           currentCandidate = currentCategory->FirstChildElement("CandidateVotes");
           while (currentCandidate) {
-            auto candidateName = currentCandidate->Attribute("CandidateBallotPaperName");
+            auto candidateName = requiredAttribute(*currentCandidate,"CandidateBallotPaperName","WAEC results/CandidateVotes");
             if (!candidateNameToId.contains(candidateName)) {
               currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
               continue;
             }
             auto candidateId = candidateNameToId[candidateName];
-            auto votes = currentCandidate->IntAttribute("Votes");
+            auto votes = readCount(currentCandidate, "WAEC category TCP Votes", seat.id, 0, categoryType, true, "Votes");
             seat.tcpVotesCandidate[candidateId][categoryType] = votes;
             auto partyId = candidates.at(candidateId).party;
             seat.tcpVotes[partyId][categoryType] = votes;
@@ -2858,6 +2943,7 @@ void Results2::Election::updateEcsa(tinyxml2::XMLDocument const& xml)
       requiredChild(*currentDistrict, "district_id", "ECSA results/district"),
       "ECSA results/district/district_id", 0);
     if (!seats.contains(seatId)) {
+      if (readingLiveCounts) throwInvalidXml("ECSA results/district", "district identity is absent from the preload");
       currentDistrict = currentDistrict->NextSiblingElement("district");
       continue;
     }
@@ -2891,17 +2977,18 @@ void Results2::Election::updateEcsa(tinyxml2::XMLDocument const& xml)
             seatContext + "/first_preferences/candidate/polling_places/polling_place"),
           seatContext + "/first_preferences/candidate/polling_places/polling_place/polling_place_name");
         auto voteType = getBoothVoteTypeEcsa(boothName);
-        int votes = integerTextOrZero(
-          requiredChild(*currentBooth, "ballot_papers",
-            seatContext + "/first_preferences/candidate/polling_places/polling_place"),
-          seatContext + "/first_preferences/candidate/polling_places/polling_place/ballot_papers");
+        if (voteType == VoteType::Ordinary) {
+          if (boothId == 0) boothId = generateBoothIdEcsa(seatId, boothName);
+          boothId = correctedEcsaUpdateBoothId(*this, seat, boothName, boothId);
+        }
+        int votes = readCount(currentBooth->FirstChildElement("ballot_papers"),
+          seatContext + "/first_preferences/candidate/polling_places/polling_place/ballot_papers",
+          seat.id, boothId, voteType, false);
         if (voteType != VoteType::Ordinary) {
           seat.fpVotes[candidateId][getBoothVoteTypeEcsa(boothName)] += votes;
           currentBooth = currentBooth->NextSiblingElement("polling_place");
           continue; // Don't actually create booths for declaration votes
         }
-        if (boothId == 0) boothId = generateBoothIdEcsa(seatId, boothName);
-        boothId = correctedEcsaUpdateBoothId(*this, seat, boothName, boothId);
         if (!booths.contains(boothId)) {
           currentBooth = currentBooth->NextSiblingElement("polling_place");
           continue; // ignore booths not in preload
@@ -2942,18 +3029,19 @@ void Results2::Election::updateEcsa(tinyxml2::XMLDocument const& xml)
             seatContext + "/two_candidate_preferred/preferred_candidate/polling_places/PreferredPollingPlace"),
           seatContext + "/two_candidate_preferred/preferred_candidate/polling_places/PreferredPollingPlace/polling_place_name");
         auto voteType = getBoothVoteTypeEcsa(boothName);
-        int votes = integerTextOrZero(
-          requiredChild(*currentBooth, "ballot_papers",
-            seatContext + "/two_candidate_preferred/preferred_candidate/polling_places/PreferredPollingPlace"),
-          seatContext + "/two_candidate_preferred/preferred_candidate/polling_places/PreferredPollingPlace/ballot_papers");
+        if (voteType == VoteType::Ordinary) {
+          if (boothId == 0) boothId = generateBoothIdEcsa(seatId, boothName);
+          boothId = correctedEcsaUpdateBoothId(*this, seat, boothName, boothId);
+        }
+        int votes = readCount(currentBooth->FirstChildElement("ballot_papers"),
+          seatContext + "/two_candidate_preferred/preferred_candidate/polling_places/PreferredPollingPlace/ballot_papers",
+          seat.id, boothId, voteType, true);
         if (voteType != VoteType::Ordinary) {
           seat.tcpVotes[partyId][getBoothVoteTypeEcsa(boothName)] += votes;
           seat.tcpVotesCandidate[candidateId][getBoothVoteTypeEcsa(boothName)] += votes;
           currentBooth = currentBooth->NextSiblingElement("PreferredPollingPlace");
           continue; // Don't actually create booths for declaration votes
         }
-        if (boothId == 0) boothId = generateBoothIdEcsa(seatId, boothName);
-        boothId = correctedEcsaUpdateBoothId(*this, seat, boothName, boothId);
         if (!booths.contains(boothId)) {
           currentBooth = currentBooth->NextSiblingElement("PreferredPollingPlace");
           continue; // ignore booths not in preload

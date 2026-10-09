@@ -1410,6 +1410,8 @@ int main()
 		json::array({outcome(0, 80.0)}),
 		0.0);
 	compactDoc.erase("live_analysis");
+	compactDoc["input_issues"] = {{"completed",true},{"failure",""},
+		{"issues",json::array({{{"type","invalid_tcp"},{"affected_records",2},{"routine",false}}})}};
 	compactDoc["simulation_report"]["seat_name"] = json::array({"Adelaide"});
 	// The retained viewer summary must not grow with fields used only by
 	// external diagnostics. Seat metrics preserve zeros, omissions and errors
@@ -1429,6 +1431,7 @@ int main()
 	assert(compactLoaded.records.size() == 1);
 	assert(!compactLoaded.records[0].document.contains("live_analysis"));
 	auto const& compactRecord = compactLoaded.records[0];
+	assert(compactRecord.document.at("input_issues").at("issues").at(0).at("affected_records") == 2);
 	auto const& compactReport = compactRecord.document["simulation_report"];
 	assert(!compactReport.contains("modelled_polls"));
 	assert(!compactReport.contains("seat_party_win_percent"));

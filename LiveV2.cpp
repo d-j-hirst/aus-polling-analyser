@@ -417,8 +417,6 @@ Booth::Booth(
 
     if (isTcp) {
       rejectTcpWithoutFpCandidates(
-        currentMap, node.fpVotesCurrent, name, "current-election");
-      rejectTcpWithoutFpCandidates(
         previousMap, node.fpVotesPrevious, name, "previous-election");
     }
 
@@ -426,33 +424,11 @@ Booth::Booth(
       node.runningParties.insert(partyId);
     }
 
-    if (node.totalFpVotesCurrent() == 0 && isTcp) {
-      // If there are no fp votes, we can't process the tcp votes
-      // So clear the current map so that we don't have any votes in it
-      // This is because it is likely an error, or even if it isn't, having 2CP votes without FP votes may cause errors
-      // So just clear it and pretend there are no votes reported at all.
-      // We do need to keep the previous map so that we can project the votes
-      for (auto& [partyId, votes] : currentMap) {
-        votes = 0;
-      }
-      return;
-    }
-
+    // Current records were validated and recovered before party mapping.
+    // Keep historical comparability checks above, but do not silently alter
+    // this shared effective account or omit its operator warning here.
     int totalCurrentVotesCounted = std::accumulate(currentMap.begin(), currentMap.end(), 0,
       [](int sum, const auto& pair) { return sum + pair.second; });
-
-    // A partial TCP count cannot be compared reliably with a complete booth FP
-    // count. Keep this guard separate from the denominator used for TCP shares:
-    // FP and TCP totals can legitimately differ slightly.
-    if (isTcp && totalCurrentVotesCounted > 0
-      && float(totalCurrentVotesCounted) < float(node.totalFpVotesCurrent()) * 0.95f) {
-      logger << "Warning: Only " << float(totalCurrentVotesCounted) / float(node.totalFpVotesCurrent()) * 100.0f << "% of current votes were counted in " << name << "\n";
-      logger << "Resetting votes as they are not reliable\n";
-      for (auto& [partyId, votes] : currentMap) {
-        votes = 0;
-      }
-      return;
-    }
 
     // FP and TCP shares must each use the total from their own count. In
     // particular, savings provisions can make the two totals differ.
@@ -549,8 +525,6 @@ Booth::Booth(
 
       if (isTcp) {
         rejectTcpWithoutFpCandidates(
-          currentMap, node.fpVotesCurrent, name, "current-election");
-        rejectTcpWithoutFpCandidates(
           previousMap, node.fpVotesPrevious, name, "previous-election");
       }
 
@@ -558,18 +532,8 @@ Booth::Booth(
         node.runningParties.insert(partyId);
       }
 
-      if (node.totalFpVotesCurrent() == 0 && isTcp) {
-        // If there are no fp votes, we can't process the tcp votes
-        // So clear the current map so that we don't have any votes in it
-        // This is because it is likely an error, or even if it isn't, having 2CP votes without FP votes may cause errors
-        // So just clear it and pretend there are no votes reported at all.
-        // We do need to keep the previous map so that we can project the votes
-        for (auto& [partyId, votes] : currentMap) {
-          votes = 0;
-        }
-        return;
-      }
-
+      // Partial declaration preferences remain valid measured counts. Current
+      // contradictions have already been handled by the shared input boundary.
       // Calculate total votes for percentages
       // Need to actually calculate this because the fp and tcp can be legitimately different for incremental booths
       float totalCurrentVotes = static_cast<float>(std::accumulate(currentMap.begin(), currentMap.end(), 0,
@@ -789,10 +753,10 @@ std::vector<LiveV2::Election::BoothSnapshot> LiveV2::Election::getBoothSnapshots
   return snapshots;
 }
 
-LiveV2::Election::Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run)
+LiveV2::Election::Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run, TurnoutModelIO::Artifact turnoutInput)
 	: project(project), sim(sim), run(run)
 {
-  auto turnoutInput = loadTurnoutConfiguration(currentElection);
+  configureInactiveTurnoutContests(turnoutInput);
   getNatPartyIndex();
   loadEstimatedPreferenceFlows();
   initializePartyMappings(previousElection, currentElection);

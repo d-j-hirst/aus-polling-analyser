@@ -2,6 +2,7 @@
 
 #include "ElectionData.h"
 #include "LiveResultsInput.h"
+#include "TurnoutModelIO.h"
 #include <optional>
 
 #include "tinyxml2.h"
@@ -40,6 +41,8 @@ private:
 	void acquireSnapshot(LiveResultsInput::CurrentFile const& snapshot);
 	void downloadLatestResults();
 	void parseCurrentResults();
+	TurnoutModelIO::Artifact prepareCurrentInput();
+	void recordCountedOutcomes();
 
 	std::string getTermCode() const;
 	void loadEcsaXmlDocument(tinyxml2::XMLDocument& document, std::string const& filename) const;

@@ -16,3 +16,4 @@ RandomGeneratorTests
 TerminalMacroFeedbackTests
 TurnoutModelTests
 WorkspacePathsTests
+LiveInputRecoveryTests

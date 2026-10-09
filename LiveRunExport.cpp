@@ -1020,6 +1020,12 @@ void LiveRunExport::exportCompletedAutomaticLiveRun(
 			*election, report.seatName, &LiveData::Provider::getSeatTcpCompletion);
 		document["simulation_report"] = std::move(reportJson);
 		json analysis = election->getDiagnosticSnapshot();
+		// The compact summary is available without loading the large sidecar.
+		// Detailed candidate vectors remain private analysis material.
+		document["input_issues"] = run.inputDiagnostic();
+		document["input_issues"]["completed"] = true;
+		document["input_issues"]["failure"] = "";
+		analysis["input_recovery"] = run.inputRecoveryDetails();
 		document["live_analysis_summary"] = liveAnalysisSummaryFrom(analysis);
 
 		std::string analysisSerialised;

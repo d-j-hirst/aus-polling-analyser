@@ -680,6 +680,16 @@ void LiveBoothFrame::renderNodeInspector(wxDC& dc, int y) const
 	dc.DrawText(wxString::FromUTF8("Seats: " + std::to_string(summary->seatCount) +
 		"    Booths: " + std::to_string(summary->boothCount)), wxPoint(8, y));
 	y += 28;
+	if (selected->document.contains("input_issues")) {
+		auto const& issues = selected->document.at("input_issues").at("issues");
+		for (auto const& issue : issues) if (!issue.value("routine",false)) {
+			dc.SetTextForeground(wxColour(145,40,0));
+			dc.DrawText(wxString::FromUTF8("Input recovery: " + issue.at("explanation").get<std::string>() +
+				" (" + std::to_string(issue.at("affected_records").get<int>()) + " records)"),wxPoint(8,y));
+			y += 22;
+		}
+		dc.SetTextForeground(*wxBLACK);
+	}
 	if (!summary->firstBoothName && !summary->firstBoothSeat) {
 		dc.DrawText("No booth snapshots in live_analysis.", wxPoint(8, y));
 		return;

@@ -284,6 +284,18 @@
     <ClCompile Include="LiveV2.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
+    <ClCompile Include="LiveInputRecovery.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="LiveInputRecoveryIO.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="LiveInputAdapter.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="LiveInputWarningPanel.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
     <ClCompile Include="LiveTurnoutPreparation.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
@@ -740,6 +752,18 @@
     </ClInclude>
     <ClInclude Include="TurnoutModel.h">
       <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveInputRecovery.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveInputAdapter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveInputWarningPanel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RetainedLiveState.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TurnoutModelIO.h">
       <Filter>Header Files\Process Objects</Filter>

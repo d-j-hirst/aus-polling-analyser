@@ -28,6 +28,35 @@ An input **unit** is an ordinary booth, a pre-poll voting centre (PPVC), or a de
 
 Each election requires `forecasts/<election>/live-inputs/turnout-prior.json`. The live run selects this path using its own election code. A missing prior or incompatible mapping produces an input error. Election timetables, category definitions and service exceptions are data in this input, rather than election-code branches in the turnout calculation.
 
+## Recovering erroneous live counts
+
+Recovery lets a forecast update when a clearly invalid booth or category record appears in an otherwise readable feed. The program identifies and checks the candidate counts before constructing the live model. Turnout estimates, party composition and completion percentages then use the same effective records, with district summaries rebuilt from them.
+
+FP (first preferences) and TCP (two-candidate preferred) are checked independently. An invalid count is replaced as an entire candidate-count vector: the program uses the most recent compatible accepted record from an earlier source time, or treats the count as unreported if none exists. It never repairs just one candidate's count. A restored TCP must also be compatible with the effective FP record.
+
+| Count status | Effect on the forecast and counting history |
+| --- | --- |
+| Current | A valid measured record supplies counted votes and a current observation of counting progress. Explicit zero counts remain genuine zeros. |
+| Restored | An earlier accepted record supplies counted votes and keeps its original observation time. It supplies no fresh evidence of activity or a pause. |
+| Unavailable | The record supplies no counted lower bound. Its service retains its prior estimate and is not assumed closed. |
+| Explicitly closed service | The configured service exception remains separate from measurement availability; it contributes no behavioural progression evidence. |
+
+For example, if a booth previously reported 300 FP votes and now contains a malformed candidate count, all its FP counts revert to the earlier 300-vote record. Other booths can still update. If the sum of a district's FP records reaches or exceeds enrolment without identifying a particular invalid record, its whole FP account reverts to the earlier consistent account. With no compatible previous account, district FP is unreported. Current TCP is rechecked against that account. A rejected FP source cannot supply a new finalisation flag; whole-district restoration can retain the earlier account's validated flag.
+
+Small FP/TCP differences and incomplete declaration batches are normal. For compulsory preferential counts, TCP exceeding FP by **more than the larger of 10 votes or 5% of FP** is a clear overcount and triggers recovery. Ordinary/PPVC TCP below 95% of FP retains the existing rule that it cannot supply comparable preference evidence. Declaration TCP can legitimately lag FP. For optional preferential voting, exhausted ballots must not be mistaken for missing TCP; set `options.optional_preferential` to `true` in the election's input prior. It defaults to `false` for existing compulsory-preferential inputs. These comparison allowances are named beside the validation rules in `LiveInputRecovery.h`.
+
+The small comparison allowances cannot authorize a district TCP total at or above enrolment. That independent parent contradiction also restores compatible earlier preferences or treats them as unreported, while preserving valid current FP.
+
+The private cache at `forecasts/<election>/live-snapshots/accepted-counts/` stores integer candidate counts, identities, status, completion information and original observation times. It starts empty for a real election. Matching uses election, district, booth/category role and candidate identities, rather than array positions. Earlier forecast exports and aggregate turnout history cannot supply accepted candidate-count fallbacks. Repeated source times replace their cache record atomically; a content fingerprint distinguishes source revisions. Recovery reads only earlier sources and keeps only the needed count state in memory.
+
+Fresh counting history omits restored or unavailable records. A category-group observation is also omitted if any of its available services needed recovery, so restored counts do not manufacture counting events or pauses locally or in measurements shared across districts. Restored FP retains its earlier validated completion status; an unavailable count cannot acquire completion from the rejected source. Accepted-count and turnout-history writes are queued during preparation and performed only after a successful main calculation.
+
+The **Results** tab retains a non-modal warning panel, with one row per issue type and a worst example measured in votes. Selecting a row opens affected-record details, including rejected/effective counts and any restored source time. Routine incomplete counting is hidden behind an informational checkbox. Private snapshot metadata contains compact summaries for **Live Booths**; the analysis sidecar contains the detailed recovery records. Count history is never embedded in `.pol2` projects.
+
+Unreadable XML, missing essential identities or required source-time metadata, and uninterpretable source structure stop the update. There is no numerical percentage cutoff for rejecting a source. The previous forecast and counted outcomes remain intact, and that attempt writes no new accepted history or snapshot exports. A replay continues after recoverable errors and stops after a failed update. Configuration errors and internal calculation failures keep their normal failure paths. Statistical detection of unusual but possible results is separate from this recovery mechanism.
+
+Portable fictional fixtures exercise recovery, identity compatibility, count procedures, chronological history and failed-update rollback in `tests/LiveInputRecoveryTests.cpp`. Run the repository's portable test script to check them. The optional `LIVE_INPUT_PARSER_TESTS` build also exercises the commission parser when TinyXML is available; licensed feed replay checks remain private.
+
 The prior retains the enrolment used when its vote-count expectations were prepared. Authorities may revise published roll figures during or after counting; those revisions do not themselves report extra ballots and do not rescale the fixed prior. Differences between positive source enrolment and prior enrolment are recorded by district in the turnout diagnostic's `enrolment_revisions`, with a summary in the application log. A missing source figure is not recorded as a zero enrolment. Update the prepared inputs explicitly if their original enrolment was incorrect.
 
 Prepare the prior from a normalized configuration with the maintained parameter preset suited to its category definitions. Run from `analysis/`:

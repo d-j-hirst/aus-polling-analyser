@@ -325,6 +325,10 @@
     <ClCompile Include="LiveBoothFrame.cpp" />
     <ClCompile Include="LiveV2.cpp" />
     <ClCompile Include="LiveTurnoutPreparation.cpp" />
+    <ClCompile Include="LiveInputWarningPanel.cpp" />
+    <ClCompile Include="LiveInputAdapter.cpp" />
+    <ClCompile Include="LiveInputRecoveryIO.cpp" />
+    <ClCompile Include="LiveInputRecovery.cpp" />
     <ClCompile Include="LiveTurnout.cpp" />
     <ClCompile Include="LivePreferenceCorrections.cpp" />
     <ClCompile Include="LivePreferencePreparation.cpp" />
@@ -442,6 +446,10 @@
     <ClInclude Include="LivePreferenceCorrections.h" />
     <ClInclude Include="TurnoutModel.h" />
     <ClInclude Include="TurnoutModelIO.h" />
+    <ClInclude Include="RetainedLiveState.h" />
+    <ClInclude Include="LiveInputWarningPanel.h" />
+    <ClInclude Include="LiveInputAdapter.h" />
+    <ClInclude Include="LiveInputRecovery.h" />
     <ClInclude Include="LiveRunExport.h" />
     <ClInclude Include="LiveAnalysisArchive.h" />
     <ClInclude Include="LiveSnapshotSequence.h" />

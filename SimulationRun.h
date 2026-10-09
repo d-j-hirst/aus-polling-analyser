@@ -3,6 +3,7 @@
 #include "Date.h"
 #include "LiveData.h"
 #include "LiveResultsInput.h"
+#include "LiveInputRecovery.h"
 #include <optional>
 #include "Party.h"
 
@@ -187,8 +188,18 @@ public:
 	bool isLiveManual() const;
 	bool isLive() const { return isLiveManual() || isLiveAutomatic(); }
 	LiveData::Provider const* getLiveElection() const { return liveElection.get(); }
+	// Input warnings describe a received feed, independently of warnings drawn
+	// from simulation iterations. Failed attempts expose diagnostics without
+	// replacing the previous successful report or retaining the failed model.
+	nlohmann::json inputDiagnostic() const;
+	nlohmann::json inputRecoveryDetails() const { return inputIssues.details(); }
 
 private:
+	LiveInputRecovery::Registry inputIssues;
+	std::vector<std::function<void()>> pendingLiveCommits;
+	bool inputRunCompleted = false;
+	std::string inputFailure;
+	void commitLiveHistory();
 	std::optional<LiveResultsInput::CurrentFile> snapshotInput;
 
 	bool runIterations(

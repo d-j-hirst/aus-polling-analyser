@@ -59,6 +59,7 @@ std::map<std::string, std::size_t> inspectTurnoutDistricts(TurnoutModel::Prior c
 }
 
 void matchTurnoutBooths(TurnoutModel::Prior const& prior,
+    LiveInputRecovery::RecordStatuses const& statuses,
     std::vector<LiveV2::Seat> const& seats, std::vector<LiveV2::Booth> const& booths,
     std::map<std::string, std::size_t> const& liveSeats, TurnoutObservations& observations) {
     // Match each prior service exactly once and collect only measured FP votes.
@@ -81,11 +82,11 @@ void matchTurnoutBooths(TurnoutModel::Prior const& prior,
         // permits its identity to be absent from the current feed.
         if (match == -1 && !unit.closed) throw std::runtime_error("Missing turnout unit: " + seat.name + "/" + unit.name);
         unit.counted = match >= 0 ? booths[match].node.totalFpVotesCurrent() : 0;
+        auto status = statuses.find(seat.name + "/" + unit.kind + "/" + unit.name);
+        if (status == statuses.end()) throw std::logic_error("Turnout has no validated count status: " + seat.name + "/" + unit.name);
+        unit.acceptedComplete = status->second.first.complete;
         observations.boothIndexes.push_back(match);
         if (match >= 0 && !matchedBooths.insert(match).second) throw std::runtime_error("Duplicate turnout booth match.");
-        if (unit.kind == "declaration") observations.current.counts[{seat.name, unit.category}] += unit.counted;
-        if (prior.groups[unit.group] != "postal")
-            observations.current.counts[{seat.name, "allocation:" + prior.groups[unit.group]}] += unit.counted;
     }
 }
 
@@ -100,7 +101,9 @@ TurnoutObservations collectTurnoutObservations(TurnoutModel::Prior const& prior,
     observations.current.hour = TurnoutModel::sourceHour(currentElection.sourceTime);
     auto liveSeats = inspectTurnoutDistricts(prior, currentElection, seats, observations);
     observations.units = prior.units;
-    matchTurnoutBooths(prior, seats, booths, liveSeats, observations);
+    matchTurnoutBooths(prior, currentElection.liveCountStatus, seats, booths, liveSeats, observations);
+    observations.current = LiveInputRecovery::freshObservation(prior,observations.units,
+        currentElection.liveCountStatus,currentElection.sourceTime);
     return observations;
 }
 
@@ -121,15 +124,6 @@ nlohmann::json describeTurnoutPreparation(LiveTurnout::Prepared const& turnout,
     diagnostic["seconds"] = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
     logger << "Turnout preparation: " << diagnostic["seconds"] << " seconds\n";
     return diagnostic;
-}
-
-std::map<std::string, double> reportedDistrictCounts(Results2::Election const& currentElection) {
-    // Availability validation must consider either reported count. A postponed
-    // contest cannot silently discard FP or TCP votes already present in a feed.
-    std::map<std::string, double> counts;
-    for (auto const& [id, seat] : currentElection.seats)
-        counts.emplace(seat.name, double(seat.totalVotesFp()) + seat.totalVotesTcp({}));
-    return counts;
 }
 
 std::vector<TurnoutModel::Observation> loadReceivedTurnoutHistory(std::filesystem::path const& directory,
@@ -342,16 +336,6 @@ void aggregatePairProgress(LiveV2::Node& node, std::vector<LiveV2::Seat>& seats,
 }
 }
 
-TurnoutModelIO::Artifact LiveV2::Election::loadTurnoutConfiguration(Results2::Election const& currentElection) {
-    // Identify the count population before building the live hierarchy. Normal
-    // contests participate; explicitly postponed contests retain forecast seats
-    // without entering election-wide count evidence or completion weights.
-    auto artifact = TurnoutModelIO::loadForElection(project.paths().root(), run.getTermCode());
-    TurnoutModelIO::validateDistrictPopulation(artifact, reportedDistrictCounts(currentElection));
-    configureInactiveTurnoutContests(artifact);
-    return artifact;
-}
-
 void LiveV2::Election::configureInactiveTurnoutContests(TurnoutModelIO::Artifact const& artifact) {
     // The configuration records an exceptional status separately from voter
     // behaviour. Check that each named contest still has a standard forecast seat.
@@ -375,7 +359,10 @@ void LiveV2::Election::prepareTurnout(Results2::Election const& currentElection,
         std::move(observations.boothIndexes), booths.size(), observations.finalised, history, currentElection.sourceTime);
     // Persist only received measured counts. It is safe to start with an empty
     // directory during a live election; future replay sources are filtered out.
-    TurnoutModelIO::recordObservation(directory, run.getTermCode(), currentElection.sourceTime, observations.current, mapping);
+    run.pendingLiveCommits.push_back([directory, election = run.getTermCode(), time = currentElection.sourceTime,
+        observation = observations.current, mapping] {
+        TurnoutModelIO::recordObservation(directory, election, time, observation, mapping);
+    });
     auto diagnostic = describeTurnoutPreparation(*turnout, std::move(observations.enrolmentRevisions), history.size(), mapping, started);
     turnoutDiagnostic = std::make_shared<nlohmann::json const>(std::move(diagnostic));
 }

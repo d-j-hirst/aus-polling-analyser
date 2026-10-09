@@ -25,6 +25,7 @@
 
 class ProjectFrame;
 class GenericChildFrame;
+class LiveInputWarningPanel;
 
 // *** ResultsFrame ***
 // Frame that allows the user to input real election data that can then be used in simulations
@@ -98,6 +99,8 @@ private:
 	void refreshToolbar();
 
 	void refreshSummaryBar();
+	void refreshInputWarnings();
+	void layoutResultPanels();
 
 	void refreshTable();
 
@@ -176,6 +179,7 @@ private:
 
 	// Static text showing overall statistics (projected 2pp, seat count, overall % counted)
 	wxStaticText* summaryText = nullptr;
+	LiveInputWarningPanel* inputWarnings = nullptr;
 
 	// Panel containing seat count data.
 	wxPanel* dataPanel = nullptr;

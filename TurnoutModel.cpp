@@ -7,6 +7,7 @@
 #include <limits>
 #include <numeric>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 
 namespace TurnoutModel {
@@ -195,13 +196,29 @@ CountUpdateWorkspace classifyCountUnits(Prior const& prior, std::vector<Unit> co
         work.unitsByGroup[group].push_back(j);
         work.groupCounted[group] += unit.counted;
         result.counted[unit.seat] += unit.counted;
-        result.complete[j] = (unit.kind != "declaration" && unit.counted > 0) || unit.closed || finalised[unit.seat];
+        result.complete[j] = unit.closed || unit.acceptedComplete.value_or(
+            (unit.kind != "declaration" && unit.counted > 0) || finalised[unit.seat]);
         work.boothOnlyGroups[group] = work.boothOnlyGroups[group] && unit.kind != "declaration";
         work.openGroups[group] = work.openGroups[group] || !result.complete[j];
         for (std::size_t r = 0; r < samples; ++r)
             work.adjustedExpected[r][j] = work.originalExpected[r][j] = prior.counts[r][group]*unit.weight;
     }
     return work;
+}
+
+void requireCountedVotesBelowEnrolment(std::string const& district, double counted, double enrolment) {
+    // Normally the formal count is below the registered-elector total, even
+    // when counting has finished. An impossible feed total cannot be repaired
+    // by discarding counted votes or increasing the model's enrolment. Stop
+    // with the district and both figures so the input can be reviewed directly.
+    // Live source recovery runs before this model; this remains the final
+    // defence against an inconsistent prepared account or configuration.
+    if (counted < enrolment) return;
+    std::ostringstream message;
+    message << "Counted formal votes in " << district << " (" << counted
+        << ") reach or exceed the prepared enrolment (" << enrolment << "). "
+        << "Check the result feed for duplicate or inconsistent counts, or correct the prepared enrolment if it is wrong.";
+    throw std::runtime_error(message.str());
 }
 
 // Resolve the formal-total parent first. A completed count is exactly its
@@ -217,7 +234,7 @@ void conditionDistrictTotals(Prior const& prior, CountUpdateWorkspace& work) {
             hasOpenUnits = hasOpenUnits || work.openGroups[k];
         }
         work.completeSeats[s] = work.completeSeats[s] || (hasUnits && !hasOpenUnits);
-        if (!(result.counted[s] < prior.enrolment[s])) throw std::runtime_error("Counted votes reach their turnout parent.");
+        requireCountedVotesBelowEnrolment(prior.seats[s],result.counted[s],prior.enrolment[s]);
         if (work.completeSeats[s]) {
             for (std::size_t r = 0; r < samples; ++r) result.totals[r][s] = result.counted[s];
             continue;

@@ -119,7 +119,12 @@ bool Simulation::run(
 		return false;
 	}
 	auto nextRun = std::make_shared<SimulationRun>(project, *this, false, false, std::move(snapshot));
-	if (!nextRun->run(feedback, actionRequired)) return false;
+	bool succeeded = nextRun->run(feedback, actionRequired);
+	if (isLiveAutomatic()) {
+		liveInputDiagnostic = nextRun->inputDiagnostic();
+		liveInputDetails = nextRun->inputRecoveryDetails();
+	}
+	if (!succeeded) return false;
 	latestRun = std::move(nextRun);
 	PA_LOG_VAR(latestReport.getCoalitionFpSampleMedian());
 	if (isLive()) checkLiveSeats(project, feedback);

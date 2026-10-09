@@ -1,4 +1,5 @@
 #include "LivePreparation.h"
+#include "LiveInputAdapter.h"
 
 #include "Date.h"
 #include "LatestResultsDataRetriever.h"
@@ -294,21 +295,27 @@ void LivePreparation::prepareLiveAutomatic()
 		acquireCurrentResults();
 	}
 	parseCurrentResults();
+	auto turnoutInput = prepareCurrentInput();
+	run.liveElection = std::make_unique<LiveV2::Election>(previousElection, currentElection, project, sim, run, std::move(turnoutInput));
+	recordCountedOutcomes();
+}
 
-	run.liveElection = std::make_unique<LiveV2::Election>(previousElection, currentElection, project, sim, run);
-
+void LivePreparation::recordCountedOutcomes()
+{
+	// Usually each seat supplies a positive measured completion percentage. An
+	// unreported/recovered-to-unavailable account must also replace its displayed
+	// current outcome, rather than leaving a stale earlier percentage on screen.
+	// The run transaction retains the entire old outcome list if calculation fails.
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		auto seat = project.seats().viewByIndex(seatIndex);
-		if (run.liveElection->getSeatFpCompletion(seat.name) > 0) {
-			project.outcomes().add(Outcome(
-				seatIndex,
-				run.liveElection->getSeatRawTppSwing(seat.name),
-				run.liveElection->getSeatFpCompletion(seat.name) * 100.0f,
-				run.liveElection->getSeatTcpCompletion(seat.name) * 100.0f,
-				0,
-				40
-			));
-		}
+		project.outcomes().add(Outcome(
+			seatIndex,
+			run.liveElection->getSeatRawTppSwing(seat.name),
+			run.liveElection->getSeatFpCompletion(seat.name) * 100.0f,
+			run.liveElection->getSeatTcpCompletion(seat.name) * 100.0f,
+			0,
+			40
+		));
 	}
 }
 
@@ -677,7 +684,10 @@ void LivePreparation::parseCurrentResults()
 	else if (run.regionCode == "wa") format = Results2::Election::Format::WAEC;
 	else if (run.regionCode == "sa") format = Results2::Election::Format::ECSA;
 	else format = Results2::Election::Format::AEC;
-	currentElection.update(xml, format);
+	auto const expectedEvent = currentElection.id;
+	currentElection.updateLive(xml, format);
+	if (expectedEvent && currentElection.id != expectedEvent)
+		throw Exception("The current feed identifies a different election from its preload.");
 	// A fixed local AEC replay filename has no capture timestamp. Label the
 	// report with the parsed feed's own clock, including when a cached report
 	// already contains a date from a different snapshot. This also makes live
@@ -698,4 +708,19 @@ void LivePreparation::parseCurrentResults()
 std::string LivePreparation::getTermCode() const
 {
 	return run.yearCode + run.regionCode;
+}
+
+TurnoutModelIO::Artifact LivePreparation::prepareCurrentInput()
+{
+	// Ordinary valid feeds pass through unchanged. Clear contradictions are
+	// resolved here, once, before any model or completion statistic sees them.
+	auto artifact = TurnoutModelIO::loadForElection(project.paths().root(), run.getTermCode());
+	auto recovered = LiveInputAdapter::prepare(currentElection, artifact,
+		project.paths().root(), LiveResultsInput::pathFromUtf8(xmlFilename));
+	auto folder = LiveInputRecovery::directory(project.paths().root(), run.getTermCode());
+	run.inputIssues = std::move(recovered.issues);
+	run.pendingLiveCommits.push_back([folder, counts = std::move(recovered.snapshot)] {
+		LiveInputRecovery::commit(folder, counts);
+	});
+	return artifact;
 }

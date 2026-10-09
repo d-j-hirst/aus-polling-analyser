@@ -6,6 +6,7 @@
 #include "LiveResultsInput.h"
 #include "LiveSnapshotSequenceDialog.h"
 #include "LiveRunExport.h"
+#include "LiveInputWarningPanel.h"
 #include "Log.h"
 #include "NonClassicFrame.h"
 
@@ -76,6 +77,7 @@ ResultsFrame::ResultsFrame(ProjectFrame::Refresher refresher, PollingProject* pr
 void ResultsFrame::refreshData()
 {
 	refreshSummaryBar();
+	refreshInputWarnings();
 	refreshTable();
 }
 
@@ -88,6 +90,7 @@ void ResultsFrame::createSummaryBar()
 
 	summaryText = new wxStaticText(summaryPanel, ControlId::SummaryText, "", wxPoint(0, 0), summaryPanel->GetClientSize());
 	summaryText->SetBackgroundColour(wxColour(237, 237, 237));
+	inputWarnings = new LiveInputWarningPanel(this);
 
 	dataPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight + SummaryPanelHeight), GetClientSize() - wxSize(0, toolBarHeight + SummaryPanelHeight));
 }
@@ -116,8 +119,32 @@ void ResultsFrame::bindEventHandlers()
 
 void ResultsFrame::OnResize(wxSizeEvent & WXUNUSED(event))
 {
-	// Set the pollster data table to the entire client size.
-	resultsData->SetSize(dataPanel->GetClientSize() + wxSize(0, 1));
+	layoutResultPanels();
+}
+
+void ResultsFrame::layoutResultPanels()
+{
+	if (!dataPanel || !resultsData) return;
+	int width = GetClientSize().GetWidth(), top = toolBar->GetSize().GetHeight();
+	summaryPanel->SetSize(0,top,width,40); summaryText->SetSize(summaryPanel->GetClientSize());
+	top += 40;
+	int warningHeight = inputWarnings->IsShown() ? 170 : 0;
+	inputWarnings->SetSize(0,top,width,warningHeight); top += warningHeight;
+	dataPanel->SetSize(0,top,width,std::max(0,GetClientSize().GetHeight()-top));
+	resultsData->SetSize(dataPanel->GetClientSize() + wxSize(0,1));
+}
+
+void ResultsFrame::refreshInputWarnings()
+{
+	// Each attempt retains its own structured diagnostics even if it fails.
+	// The usual project has one automatic live simulation; its latest attempt
+	// remains visible while the previous numerical forecast stays on screen.
+	for (auto const& [id,simulation] : project->simulations()) {
+		if (!simulation.isLiveAutomatic() || !simulation.getLiveInputDiagnostic().is_object()) continue;
+		inputWarnings->setDiagnostic(simulation.getLiveInputDiagnostic(),simulation.getLiveInputDetails());
+		layoutResultPanels(); return;
+	}
+	inputWarnings->setDiagnostic({},{}); layoutResultPanels();
 }
 
 void ResultsFrame::OnRunLiveSimulations(wxCommandEvent& WXUNUSED(event))

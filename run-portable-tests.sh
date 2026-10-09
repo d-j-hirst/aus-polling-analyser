@@ -77,6 +77,7 @@ run_test LiveSnapshotDataTests
 run_test MacroTargetResolverTests
 run_test RandomGeneratorTests
 run_test TerminalMacroFeedbackTests
+run_test LiveInputRecoveryTests "$ROOT_DIRECTORY"
 run_test TurnoutModelTests
 run_test WorkspacePathsTests "$ROOT_DIRECTORY"
 run_test CoreReportSummaryTests

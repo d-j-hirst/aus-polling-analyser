@@ -91,7 +91,7 @@ json parseSnapshotJson(std::istream& stream)
 				if (depth == 1) inReport = key == "simulation_report";
 				bool const unusedRoot = depth == 1 &&
 					key != "format_version" && key != "run" && key != "parties" &&
-					key != "simulation_report" && key != "live_analysis_summary";
+					key != "simulation_report" && key != "live_analysis_summary" && key != "input_issues";
 				if (unusedRoot || (depth == 2 && inReport && !isViewerReportKey(key))) {
 					skipValue = true;
 					return false;
@@ -189,6 +189,7 @@ json slimSnapshotDocument(json document)
 		slim["live_analysis_summary"] =
 			std::move(document["live_analysis_summary"]);
 	}
+	if (document.contains("input_issues")) slim["input_issues"] = std::move(document["input_issues"]);
 	return slim;
 }
 

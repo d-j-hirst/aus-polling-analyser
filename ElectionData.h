@@ -3,10 +3,12 @@
 #include "LiveData.h"
 #include "tinyxml2.h"
 #include "json.h"
+#include "LiveInputRecovery.h"
 
 #include <array>
 #include <numeric>
 #include <optional>
+#include <set>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -267,6 +269,15 @@ namespace Results2 {
 
 		std::unordered_map<std::string, int> candidateNameToId; // for QEC as they don't have candidate identifiers
 
+		// Current live counts can be individually unreadable while the enclosing
+		// election remains valid. These tags refer to whole FP/TCP records; the
+		// temporary parser zero is never accepted as a measured zero downstream.
+		std::map<std::pair<std::string, bool>, std::string> invalidLiveCounts;
+		LiveInputRecovery::RecordStatuses liveCountStatus;
+		std::map<int, std::set<int>> liveCandidateRosters;
+		std::set<std::pair<std::string,bool>> presentLiveCounts;
+		bool liveCountsRead = false;
+
 		enum class Format {
 			AEC,
 			VEC,
@@ -296,6 +307,10 @@ namespace Results2 {
 		static Election createEcsa(nlohmann::json const& results, tinyxml2::XMLDocument const& xml, std::string const& termCode);
 
 		void update(tinyxml2::XMLDocument const& xml, Format format = Format::AEC);
+		void updateLive(tinyxml2::XMLDocument const& xml, Format format);
+		int readCount(tinyxml2::XMLElement const* element, std::string const& context,
+			int seatId, int boothId, VoteType type, bool tcp, char const* attribute = nullptr);
+		static std::string countKey(int seatId, int boothId, VoteType type);
 		void updateQec(tinyxml2::XMLDocument const& xml);
 		void updateWaec(tinyxml2::XMLDocument const& xml);
 		void updateEcsa(tinyxml2::XMLDocument const& xml);
@@ -317,5 +332,12 @@ namespace Results2 {
 		void updateAecPollingPlaces(tinyxml2::XMLDocument const& xml);
 
 		void applyResultOverrides();
+	private:
+		void beginLiveCountRead();
+		void captureLiveCandidateRosters();
+		void clearLiveCountRecords();
+		// Set only during the current-feed reading entry point. Historical
+		// loaders remain strict and never create recovery/history state.
+		bool readingLiveCounts = false;
 	};
 }

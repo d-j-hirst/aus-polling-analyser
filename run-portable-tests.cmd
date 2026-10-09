@@ -79,6 +79,8 @@ call :run RandomGeneratorTests
 if errorlevel 1 goto :failure
 call :run TerminalMacroFeedbackTests
 if errorlevel 1 goto :failure
+call :run LiveInputRecoveryTests "%~dp0"
+if errorlevel 1 goto :failure
 call :run TurnoutModelTests
 if errorlevel 1 goto :failure
 call :run WorkspacePathsTests

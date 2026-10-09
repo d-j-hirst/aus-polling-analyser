@@ -346,6 +346,8 @@ public:
 	std::optional<Report> const& getLiveBaselineReport() const;
 
 	std::vector<LiveData::BoothSnapshot> getLiveBoothSnapshots() const;
+	nlohmann::json const& getLiveInputDiagnostic() const { return liveInputDiagnostic; }
+	nlohmann::json const& getLiveInputDetails() const { return liveInputDetails; }
 
 	SavedReports const& viewSavedReports() const;
 
@@ -396,6 +398,9 @@ private:
 	int cachedOddsIterations = 0;
 
 	std::shared_ptr<SimulationRun> latestRun;
+	// Transient operator diagnostics are not serialized in the project. Private
+	// snapshot exports carry the summary for later Live Booths inspection.
+	nlohmann::json liveInputDiagnostic, liveInputDetails;
 
 	// An invalid timestamp indicates that the simulation has not been run, or
 	// that its latest report is stale relative to upstream configuration.
