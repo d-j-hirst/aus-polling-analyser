@@ -837,6 +837,22 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 		seatJson["offset_specific_tpp_deviation"] =
 			optionalNumber(seat.offsetSpecificTppDeviation);
 		seatJson["fp_all_booths_std_dev"] = parties.values(seat.fpAllBoothsStdDev);
+		if (fpEvidence) {
+			auto const& evidence = fpEvidence->at(&seat-seats.data());
+			LiveFpEvidence::Shares extraVariance;
+			for (auto const& [candidate,share] : evidence.future)
+				extraVariance[candidate] = LiveFpEvidence::additionalVariance(evidence,candidate);
+			seatJson["fp_evidence"] = {
+				{"completion",number(evidence.evidence.completion)},
+				{"reporting_breadth",number(evidence.evidence.breadth)},
+				{"prior_replacement_weight",number(LiveFpEvidence::replacementWeight(evidence.evidence))},
+				{"absolute_weights",parties.values(evidence.weight)},
+				{"historical_remaining",parties.values(evidence.evidence.historical)},
+				{"absolute_remaining",parties.values(evidence.evidence.absolute)},
+				{"additional_log_odds_variance",parties.values(extraVariance)},
+				{"combined_remaining_shares",parties.values(evidence.future)}
+			};
+		}
 		seatJson["tpp_all_booths_std_dev"] = number(seat.tppAllBoothsStdDev);
 		seatJson["tcp_all_booths_std_dev"] = optionalNumber(seat.tcpAllBoothsStdDev);
 		seatJson["live_preference_flow_deviation"] =

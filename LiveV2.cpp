@@ -792,6 +792,8 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   prepareTurnout(currentElection, std::move(turnoutInput));
   prepareNewVoteContexts();
   recomposeVoteCounts();
+  prepareFpEvidence();
+  refreshFpEvidenceProjections();
   calculateLivePreferenceFlowDeviations();
   preparePreferenceCorrections();
   prepareVariability();
@@ -2331,6 +2333,10 @@ void Election::recomposeVoteCounts() {
     calculateTppEstimateBias();
   }
 
+  refreshProjectedVoteAggregates();
+}
+
+void Election::refreshProjectedVoteAggregates() {
   for (int seatIndex : std::ranges::views::iota(0, int(seats.size()))) {
     recomposeSeatFpVotes(seatIndex);
     recomposeSeatTppVotes(seatIndex);
@@ -2370,6 +2376,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
     storeFpProjection(boothIndex,projectUnreportedFp(allowCurrentData,boothIndex));
     if (allowCurrentData) recordFpProjectionSensitivity(boothIndex,turnoutFpTarget(boothIndex));
   }
+  if (allowCurrentData) applyFpEvidence(boothIndex);
 }
 
 void Election::clearFpProjection(int boothIndex) {
@@ -4009,7 +4016,7 @@ void Election::generateVariability(int iterationIndex) {
     bool fpProjectionChanged = false;
     for (auto const& [partyId, stdDev] : seat.fpAllBoothsStdDev) {
       float randomVariation = variabilityNormal(
-        0.0f, stdDev, seatIndex, partyId, uint32_t(VariabilityTag::GenerateFpVariability)
+        0.0f, fpEvidenceStdDev(seatIndex,partyId,stdDev), seatIndex, partyId, uint32_t(VariabilityTag::GenerateFpVariability)
       );
       // Random variability can be not-quite-symmetric due to the complexity of the simulation,
       // so this (and similar lines elsewhere) ensures that the variation is zero when completion is zero,

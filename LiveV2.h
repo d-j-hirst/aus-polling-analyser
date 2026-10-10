@@ -1,6 +1,7 @@
 #pragma once
 #include "LivePartialCount.h"
 #include "LiveNewVotes.h"
+#include "LiveFpEvidence.h"
 
 #include "ElectionData.h"
 #include "General.h"
@@ -312,6 +313,8 @@ public:
     return {};
   }
 
+  float getSeatFpEvidenceWeight(std::string const& seatName) const override;
+
   std::map<int, float> getSeatOverallFpDeviations(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
@@ -566,6 +569,12 @@ private:
   void measureTppBoothTypeBiases();
 
   void recomposeVoteCounts();
+  void refreshProjectedVoteAggregates();
+  void prepareFpEvidence();
+  LiveFpEvidence::Unit fpEvidenceUnit(int boothIndex, bool varied = false) const;
+  void applyFpEvidence(int boothIndex);
+  void refreshFpEvidenceProjections();
+  float fpEvidenceStdDev(int seatIndex, int partyId, float localStdDev) const;
 
   void calculateTcpPreferenceFlows();
 
@@ -719,6 +728,7 @@ private:
   // One immutable ordinary-based prior per declaration service. Scenarios
   // share these compact maps and own only their varied future compositions.
   std::shared_ptr<std::vector<LiveNewVotes::Shares> const> newVoteContexts;
+  std::shared_ptr<std::vector<LiveFpEvidence::Prepared> const> fpEvidence;
   std::map<std::string, TurnoutModelIO::InactiveContest> inactiveContests;
   std::shared_ptr<nlohmann::json const> turnoutDiagnostic;
 

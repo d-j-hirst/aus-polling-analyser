@@ -3,6 +3,8 @@
 #include "../LivePartyMapping.h"
 #include "../LivePartialCount.h"
 #include "../LiveNewVotes.h"
+#include "../LiveFpEvidence.h"
+#include "../LiveTurnoutMath.h"
 
 #include <cassert>
 #include <cmath>
@@ -83,8 +85,74 @@ void testNewVoteComposition() {
     assert(std::abs(parent.specific.at(1)-parent.deviations.at(1)*.5) < 1e-7);
 }
 
+void testCompetingFpEvidence() {
+    using namespace LiveFpEvidence;
+    Unit ordinary{{{0,400},{1,350},{900,250}},{{0,400},{1,350},{900,250}},{0,1},.1,0,true,false};
+    Unit unreported{{},{{0,5000},{1,4000},{900,1000}},{0,1},1,0,true,false};
+    Unit early{{{0,10},{1,80},{900,10}},{{0,1400},{1,1300},{900,300}},{0,1},1,1,false,true};
+    std::vector<Unit> units{ordinary,unreported,early};
+    auto weak = prepare(units,.01);
+    auto strong = prepare(units,.8);
+    // Another candidate's valid swing cannot give a newly appearing candidate
+    // historical confidence. Completion and breadth remain distinct evidence.
+    assert(value(weak.evidence.historicalConfidence,900) == 0);
+    assert(weak.weight.at(900) > weak.weight.at(0));
+    assert(weak.weight.at(0) > strong.weight.at(0));
+    assert(weak.future.at(900) > .1);
+    assert(weak.future.at(1) < .5); // tiny, one-sided early batch is not extrapolated
+    Shares combined;
+    for (auto const& unit : units) {
+        auto projected = adjusted(unit,weak.factors);
+        assert(std::abs(total(projected)-total(unit.projected)) < 1e-8);
+        for (auto const& [id,v] : projected) assert(v >= value(unit.counted,id)-1e-9);
+        add(combined,projected);
+    }
+    double pool = total(weak.evidence.historical);
+    for (auto const& [id,share] : weak.future)
+        assert(std::abs(combined.at(id)-value(weak.evidence.counted,id)-pool*share)<.002);
+    assert(adjusted(ordinary,weak.factors) == ordinary.projected);
+    auto none = prepare({unreported},0);
+    assert(none.factors.empty());
+    assert(replacementWeight(none.evidence) == 0);
+    assert(adjusted(unreported,none.factors) == unreported.projected);
+    assert(prepare({ordinary},.1).factors.empty());
+    assert(prepare({},0).factors.empty());
+    assert(additionalVariance(none,900) == 0);
+    assert(additionalVariance(weak,900) > disagreementVariance(weak,900));
+    auto agreement = weak;
+    agreement.evidence.absolute = agreement.evidence.historical;
+    assert(disagreementVariance(agreement,900) == 0);
+    // Evidence arrives gradually, including a genuine candidate zero. The
+    // first vote is not a reason to replace the whole unreported account.
+    auto tiny = early;
+    tiny.counted={{0,1},{1,0},{900,0}};
+    auto first = prepare({unreported,tiny},0);
+    auto initialComposition = LiveNewVotes::normalize(first.evidence.historical);
+    for (auto const& [id,share] : initialComposition)
+        assert(std::abs(first.future.at(id)-share)<.001);
+    assert(replacementWeight(first.evidence)<.001);
+
+    // A new seat with broad 15%-complete counts should not inherit an extreme
+    // independent prior just because it lacks a historical seat-wide swing.
+    Evidence broad;
+    broad.completion=.15; broad.observed=6000; broad.breadth=6;
+    double replacement=replacementWeight(broad);
+    assert(replacement>.99);
+    auto narrow=broad; narrow.breadth=1;
+    assert(replacementWeight(narrow)<replacement);
+    LiveTurnoutMath::PartyAccount account{{{0,2400},{1,3000},{9,600}},{{0,19000.f},{1,17000.f},{9,4000.f}}};
+    for (float prior : {1.f,30.f,60.f}) {
+        auto live=LiveTurnoutMath::reconcileForecast(account,{{0,(100-prior)/2},{1,(100-prior)/2},{9,prior}},true,1-replacement);
+        assert(live.at(9)>9 && live.at(9)<11);
+        assert(std::abs(live.at(0)+live.at(1)+live.at(9)-100)<.0001);
+    }
+    auto exact=LiveTurnoutMath::reconcileForecast(account,{{0,20.f},{1,20.f},{9,60.f}},true,0);
+    assert(exact.at(9)==10);
+}
+
 int main()
 {
+    testCompetingFpEvidence();
     testNewVoteComposition();
     // Fictional batches: earlier urban primaries favour the first finalist;
     // later rural primaries favour the second. Transfer only the measured

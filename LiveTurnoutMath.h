@@ -237,11 +237,14 @@ inline PartyAccount resizeAccount(PartyAccount account, double target) {
 }
 
 inline std::map<int, float> reconcileForecast(
-    PartyAccount account, std::map<int, float> const& proposedShares, bool normaliseFpChanges = false) {
+    PartyAccount account, std::map<int, float> const& proposedShares, bool normaliseFpChanges = false,
+    double residualPriorWeight = 1) {
     // Called after the main simulator has blended its prior and live evidence.
     // Interpret that blend as a preference for the outstanding pool, relative
     // to the live scenario's composition. Reallocate that finite pool on the
     // transformed scale instead of rescaling already counted candidate votes.
+    if (!std::isfinite(residualPriorWeight) || residualPriorWeight < 0 || residualPriorWeight > 1)
+        throw std::runtime_error("Invalid residual live prior weight.");
     double total = 0, proposedTotal = 0;
     for (auto const& [party, votes] : account.projected) total += votes;
     for (auto const& [party, share] : proposedShares) {
@@ -271,7 +274,11 @@ inline std::map<int, float> reconcileForecast(
         double target = proposedShares.count(party) ? total * proposedShares.at(party) / proposedTotal : 0;
         // A quarter-vote equivalent permits a possible zero without clipping
         // its log odds or treating an unobserved party as a counted candidate.
-        changes[party] = 25 * (std::log((target + .25) / (total - target + .25))
+        // Historical comparability and reliability of absolute FP counts are
+        // different. Once broad live counts constrain the candidate, remove
+        // the residual pre-election tail rather than adding live uncertainty
+        // on top of it. Pair callers retain the original weighting.
+        changes[party] = residualPriorWeight * 25 * (std::log((target + .25) / (total - target + .25))
             - std::log((votes + .25) / (total - votes + .25)));
         if (singlePairChange) break;
     }

@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-10-06T10:28:24Z",
+  "updated_at_utc": "2026-10-10T14:10:07Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 24,
+      "semantic_revision": 25,
       "files": {
         "2019fed.txt": {
           "sha256": "014946dc77548034140f78ad66a062f1c59a6d070122cea4c7dcb8bd4525b321",
@@ -35,9 +35,9 @@
           "recorded_mtime_utc": "2023-03-08T11:39:51.540035Z"
         },
         "2022vic.txt": {
-          "sha256": "13f00c5ab196f427bc34573077b0b8c1a3067ab4009e123b4df6b913a036b886",
-          "size_bytes": 28422,
-          "recorded_mtime_utc": "2023-03-08T11:37:48.072649Z"
+          "sha256": "e4726597ac47076ac872b48e19ffa176b4531c6e705b56c700913d5dc1c56d92",
+          "size_bytes": 28910,
+          "recorded_mtime_utc": "2026-10-10T14:10:06.757549Z"
         },
         "2023nsw.txt": {
           "sha256": "a324cacfaf45789638764a8870e0425d31e504f802f35abe58db4d809dcd9133",
@@ -593,9 +593,34 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261010T141007Z-correction-forecast-seats-818e7e81",
+          "recorded_at_utc": "2026-10-10T14:10:07Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 25,
+          "provenance_revision": 25,
+          "summary": "Correct OTH and IND candidate multiplicities in all 88 2022vic seat entries, using the public VEC 2022 district result candidate lists for the 87 active contests. Preserve separate Liberal/National groupings. For postponed Narracan, use the original November ballot list documented by ABC (https://www.abc.net.au/news/elections/vic/2022/guide/narr), retaining its existing exclusion of the deceased Nationals candidate and not importing January 2023 nominations. This also registers the previously unrecorded 2022vic seat configuration changes, including the separate National candidacies and incumbents used by the replay.",
+          "files": [
+            "2022vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2022vic"
+            ],
+            "parties": [],
+            "stages": []
+          },
+          "source": {
+            "description": "Public VEC first-preference candidate tables for all 87 active 2022 districts; original November Narracan nominations from the ABC election guide as noted in the summary. Minor registered parties without their own model grouping count as OTH; candidates without a party endorsement count as IND. Each asterisk denotes one additional candidate.",
+            "uri": "https://vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district"
+          }
         }
       ],
-      "provenance_revision": 24
+      "provenance_revision": 25
     }
   }
 }

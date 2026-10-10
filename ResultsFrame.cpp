@@ -662,6 +662,13 @@ bool ResultsFrame::resultPassesFilter(Outcome const& thisResult)
 		logger << "Warning: A seat number was invalid in ResultsFrame::resultPassesFilter\n";
 		return false;
 	}
+	// Show seats once counting has supplied some data, including an FP-only
+	// result or a manually entered booth count. Zero-count outcomes still mark
+	// the latest state, so recovery to unavailable data hides an older result
+	// rather than leaving its stale progress on screen. Swing may legitimately
+	// be zero and is not evidence that any votes have reported.
+	if (!(thisResult.percentCounted > 0.0 || thisResult.tcpSwingBasis > 0.0
+		|| thisResult.boothsIn > 0)) return false;
 	if (filter == Filter::AllResults) return true;
 	Seat const& seat = project->seats().viewByIndex(thisResult.seat);
 	if (filter == Filter::LatestResults) return true;

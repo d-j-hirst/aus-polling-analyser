@@ -324,6 +324,7 @@
     <ClCompile Include="LivePreparationBridge.cpp" />
     <ClCompile Include="LiveBoothFrame.cpp" />
     <ClCompile Include="LiveV2.cpp" />
+    <ClCompile Include="LiveFpPreparation.cpp" />
     <ClCompile Include="LiveTurnoutPreparation.cpp" />
     <ClCompile Include="LiveInputWarningPanel.cpp" />
     <ClCompile Include="LiveInputAdapter.cpp" />
@@ -443,6 +444,7 @@
     <ClInclude Include="LiveV2.h" />
     <ClInclude Include="LiveTurnoutMath.h" />
     <ClInclude Include="LivePartialCount.h" />
+    <ClInclude Include="LiveFpEvidence.h" />
     <ClInclude Include="LiveNewVotes.h" />
     <ClInclude Include="LivePartyMapping.h" />
     <ClInclude Include="LiveTurnout.h" />

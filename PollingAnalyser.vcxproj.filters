@@ -296,6 +296,9 @@
     <ClCompile Include="LiveInputWarningPanel.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
+    <ClCompile Include="LiveFpPreparation.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
     <ClCompile Include="LiveTurnoutPreparation.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
@@ -748,6 +751,9 @@
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
     <ClInclude Include="LivePartialCount.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveFpEvidence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LiveNewVotes.h">

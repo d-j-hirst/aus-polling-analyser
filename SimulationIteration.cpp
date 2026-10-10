@@ -3764,7 +3764,8 @@ void SimulationIteration::incorporateLiveResults()
 			auto partition = LiveTurnoutMath::partitionAccount(*account, classify);
 			seatFpVoteShare[seatIndex].erase(CoalitionPartnerIndex);
 			seatFpVoteShare[seatIndex] = LiveTurnoutMath::reconcileForecast(
-				std::move(partition), seatFpVoteShare[seatIndex], true);
+				std::move(partition), seatFpVoteShare[seatIndex], true,
+				1.0-liveElection->getSeatFpEvidenceWeight(seat.name));
 		}
 	}
 }

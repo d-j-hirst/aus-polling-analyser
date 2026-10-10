@@ -161,6 +161,10 @@ public:
 	// intentionally unused parameters unnamed in the default implementation.
 	virtual std::optional<VoteCountAccount> getSeatVoteCountAccount(
 		std::string const&, CountKind) const { return {}; }
+	// Absolute-count evidence can replace the residual pre-election FP tail even
+	// when historical swings are poorly comparable. This is separate from TPP
+	// confidence and from the choice of historical/absolute FP central estimate.
+	virtual float getSeatFpEvidenceWeight(std::string const&) const { return 0; }
 	virtual std::optional<ValueInformation> getSeatNationalsProportion(
 		std::string const& seatName) const = 0;
 
