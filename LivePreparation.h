@@ -55,4 +55,5 @@ private:
 	tinyxml2::XMLDocument xml;
 	Results2::Election previousElection;
 	Results2::Election currentElection;
+	LiveInputRecovery::PreferenceHistories preferenceHistory;
 };

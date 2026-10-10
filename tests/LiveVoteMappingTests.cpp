@@ -65,6 +65,31 @@ void checkHistoricalCandidateCounts()
     assert(ordinaryTcp == 200);
 }
 
+void checkTinyPrimaryProportions()
+{
+    // A four-vote first record is a plausible partial ordinary or declaration
+    // batch. Keep its integers and TCP proportions exact, while analytical FP
+    // zeros receive only the small finite count equivalent used by the model.
+    Results2::Booth current;
+    current.name = "Small partial batch";
+    current.fpVotes = {{0,1},{1,0},{2,1},{3,2}};
+    current.tcpVotesCandidate = {{0,3},{1,1}};
+    auto mapper = [](int candidate,bool) { return candidate; };
+    LiveV2::Booth ordinary(current,std::nullopt,mapper,0,7,true);
+    assert(ordinary.node.totalFpVotesCurrent() == 4);
+    assert(ordinary.node.fpVotesCurrent.at(1) == 0);
+    assert(std::abs(detransformVoteShare(ordinary.node.fpShares.at(1))-100.0/12) < .0001);
+    assert(std::abs(detransformVoteShare(ordinary.node.tcpShares.at(0))-75) < .0001);
+    Results2::Seat::VotesByType fp,tcp;
+    for (auto const& [candidate,votes] : current.fpVotes) fp[candidate][Results2::VoteType::Absent] = votes;
+    for (auto const& [candidate,votes] : current.tcpVotesCandidate) tcp[candidate][Results2::VoteType::Absent] = votes;
+    LiveV2::Booth absent(fp,tcp,std::nullopt,std::nullopt,Results2::VoteType::Absent,mapper,0,7,true);
+    assert(absent.node.totalFpVotesCurrent() == 4);
+    assert(absent.node.fpVotesCurrent.at(1) == 0);
+    assert(std::abs(detransformVoteShare(absent.node.fpShares.at(1))-100.0/12) < .0001);
+    assert(std::abs(detransformVoteShare(absent.node.tcpShares.at(0))-75) < .0001);
+}
+
 void checkMappedBoothCounts(bool separateNationals)
 {
     // Most candidates have distinct party entries. An intentional coalition
@@ -121,6 +146,7 @@ void checkMappedBoothCounts(bool separateNationals)
 int main()
 {
     checkHistoricalCandidateCounts();
+    checkTinyPrimaryProportions();
     checkMappedBoothCounts(false);
     checkMappedBoothCounts(true);
     std::cout << "Live reader and booth mapping checks passed.\n";

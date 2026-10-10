@@ -747,6 +747,12 @@
     <ClInclude Include="LiveTurnoutMath.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
+    <ClInclude Include="LivePartialCount.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveNewVotes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="LivePartyMapping.h">
       <Filter>Header Files</Filter>
     </ClInclude>

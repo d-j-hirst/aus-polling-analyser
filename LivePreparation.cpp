@@ -296,7 +296,8 @@ void LivePreparation::prepareLiveAutomatic()
 	}
 	parseCurrentResults();
 	auto turnoutInput = prepareCurrentInput();
-	run.liveElection = std::make_unique<LiveV2::Election>(previousElection, currentElection, project, sim, run, std::move(turnoutInput));
+	run.liveElection = std::make_unique<LiveV2::Election>(previousElection, currentElection, project, sim, run,
+		std::move(turnoutInput), std::move(preferenceHistory));
 	recordCountedOutcomes();
 }
 
@@ -718,6 +719,8 @@ TurnoutModelIO::Artifact LivePreparation::prepareCurrentInput()
 	auto recovered = LiveInputAdapter::prepare(currentElection, artifact,
 		project.paths().root(), LiveResultsInput::pathFromUtf8(xmlFilename));
 	auto folder = LiveInputRecovery::directory(project.paths().root(), run.getTermCode());
+	preferenceHistory = LiveInputRecovery::loadPreferenceHistory(folder,recovered.snapshot);
+	LiveInputRecovery::retainPreferenceHistory(recovered.snapshot,preferenceHistory);
 	run.inputIssues = std::move(recovered.issues);
 	run.pendingLiveCommits.push_back([folder, counts = std::move(recovered.snapshot)] {
 		LiveInputRecovery::commit(folder, counts);

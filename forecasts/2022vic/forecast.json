@@ -92,7 +92,7 @@
       "id": "standard-simulation",
       "mode": "projection",
       "name": "Standard Simulation",
-      "num_iterations": 250000,
+      "num_iterations": 10000,
       "report_mode": "regular_forecast"
     },
     {

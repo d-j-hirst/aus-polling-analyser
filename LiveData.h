@@ -164,6 +164,8 @@ public:
 	virtual std::optional<ValueInformation> getSeatNationalsProportion(
 		std::string const& seatName) const = 0;
 
+	// Prepared seat-wide TPP estimate (counted plus outstanding votes), relative
+	// to the configured previous margin. Returns NaN before live evidence exists.
 	virtual float getSeatRawTppSwing(std::string const& seatName) const = 0;
 	virtual float getSeatFpCompletion(std::string const& seatName) const = 0;
 	virtual float getSeatTppCompletion(std::string const& seatName) const = 0;

@@ -1,4 +1,5 @@
 #include "LiveInputRecovery.h"
+#include "LivePartialCount.h"
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
@@ -53,10 +54,22 @@ json encode(Snapshot const& snapshot) {
         value["districts"][name] = {district.enrolment,district.finalised};
     // Each record identity is written once; candidate values are integer pairs.
     // Restored observations keep their original times when this state is saved.
-    for (auto const& record : snapshot.records)
-        value["records"].push_back({{"k",record.key},{"d",record.district},{"n",record.name},
+    for (auto const& record : snapshot.records) {
+        json row{{"k",record.key},{"d",record.district},{"n",record.name},
             {"r",record.role},{"i",record.identity},{"c",record.candidates},{"e",record.expected},
-            {"closed",record.closed},{"fp",encodeCount(record.fp)},{"tcp",encodeCount(record.tcp)}});
+            {"closed",record.closed},{"fp",encodeCount(record.fp)},{"tcp",encodeCount(record.tcp)}};
+        // Most records already contain their matched pair as the latest FP
+        // and TCP, so do not duplicate it. Preserve extra vectors only when
+        // one of those counts has moved beyond the selected measured cohort.
+        if (record.matchedPreferences && (!record.fp.votes || !record.tcp.votes ||
+            record.matchedPreferences->fp != *record.fp.votes || record.matchedPreferences->tcp != *record.tcp.votes)) {
+            auto const& cohort = *record.matchedPreferences;
+            row["matched_preferences"] = {
+                {"fp",encodeCount(Count{cohort.fp,Status::Current,cohort.fpTime})},
+                {"tcp",encodeCount(Count{cohort.tcp,Status::Current,cohort.tcpTime})}};
+        }
+        value["records"].push_back(std::move(row));
+    }
     return value;
 }
 Snapshot decode(json const& value) {
@@ -73,6 +86,16 @@ Snapshot decode(json const& value) {
         record.role = row.at("r"); record.identity = row.at("i"); record.candidates = row.at("c").get<std::vector<int>>();
         record.expected = row.at("e"); record.closed = row.at("closed");
         record.fp = decodeCount(row.at("fp")); record.tcp = decodeCount(row.at("tcp"));
+        // Older caches have only their two latest count vectors. New entries
+        // also preserve the last identified pair when those counts diverge.
+        if (row.contains("matched_preferences")) {
+            auto const& pair = row.at("matched_preferences");
+            auto fp = decodeCount(pair.at("fp")), tcp = decodeCount(pair.at("tcp"));
+            if (!fp.votes || !tcp.votes || fp.observedAt.empty() || tcp.observedAt.empty() ||
+                fp.observedAt > snapshot.sourceTime || tcp.observedAt > snapshot.sourceTime)
+                throw std::runtime_error("Invalid accepted preference-cohort observation.");
+            record.matchedPreferences = PreferenceCohort{*fp.votes,*tcp.votes,fp.observedAt,tcp.observedAt};
+        }
         for (auto const* count : {&record.fp,&record.tcp})
             if (count->votes && (count->observedAt.empty() || count->observedAt > snapshot.sourceTime))
                 throw std::runtime_error("Accepted count has an observation outside its source time.");
@@ -108,6 +131,46 @@ std::vector<std::filesystem::path> earlierFiles(std::filesystem::path const& fol
 bool sameRecord(Record const& current, Record const& previous) {
     return current.identity == previous.identity && current.district == previous.district &&
         current.role == previous.role && current.candidates == previous.candidates && current.closed == previous.closed;
+}
+
+bool comparablePreferenceAccount(Counts const& fp, Counts const& tcp) {
+    double ft = double(total(fp)), tt = double(total(tcp));
+    if (ft <= 0 || tt <= 0 || tcp.size() != 2 ||
+        std::abs(ft-tt)/ft > LivePartialCount::ComparableTotalFraction) return false;
+    // A total match alone is insufficient: each finalist must retain their
+    // primaries, and transferred votes must fit inside the non-finalist pool.
+    double preferences = ft;
+    for (auto const& [candidate,votes] : tcp) {
+        auto primary = fp.find(candidate);
+        if (primary == fp.end() || votes*ft/tt < primary->second) return false;
+        preferences -= primary->second;
+    }
+    return preferences > 0;
+}
+
+bool samePreferencePair(Counts const& first, Counts const& second) {
+    if (first.size() != 2 || second.size() != 2) return false;
+    for (auto const& [candidate,votes] : first) if (!second.count(candidate)) return false;
+    return true;
+}
+
+bool containedFpCohort(Counts const& older, Counts const& current) {
+    for (auto const& [candidate,votes] : older) {
+        auto found = current.find(candidate);
+        if (found == current.end() || votes > found->second) return false;
+    }
+    return true;
+}
+
+bool compatiblePreferenceCohort(PreferenceCohort const& cohort, Record const& current) {
+    // Retained cohorts have already been matched, but current identities and
+    // downward count revisions still govern whether they remain usable. Do
+    // not subtract an account larger than either currently accepted count.
+    return !current.closed && current.fp.votes && current.tcp.votes &&
+        samePreferencePair(cohort.tcp,*current.tcp.votes) &&
+        comparablePreferenceAccount(cohort.fp,cohort.tcp) &&
+        total(cohort.tcp) <= total(current.tcp.votes) &&
+        containedFpCohort(cohort.fp,*current.fp.votes);
 }
 
 using RecordIndex = std::map<std::string,Record const*>;
@@ -279,6 +342,73 @@ std::optional<Snapshot> loadCompatiblePrevious(std::filesystem::path const& fold
     }
     if (result.districts.empty()) return {};
     return result;
+}
+
+PreferenceHistories loadPreferenceHistory(std::filesystem::path const& folder,
+    Snapshot const& effective) {
+    // This count-total match currently describes compulsory preferences only.
+    // OPV's smaller pair total can mean exhaustion rather than an earlier FP
+    // cohort, so it retains its existing handling instead of inventing a match.
+    PreferenceHistories result;
+    if (effective.optionalPreferential) return result;
+    RecordIndex needed;
+    for (auto const& record : effective.records) {
+        if (record.closed || !record.fp.votes || !record.tcp.votes ||
+            total(record.tcp.votes) <= 0 || record.tcp.votes->size() != 2) continue;
+        auto& history = result[record.key];
+        if (total(record.fp.votes) == total(record.tcp.votes) &&
+            comparablePreferenceAccount(*record.fp.votes,*record.tcp.votes))
+            history.matchingCurrentTcp = PreferenceCohort{*record.fp.votes,*record.tcp.votes,
+                record.fp.observedAt,record.tcp.observedAt};
+        // A current complete pair already supplies the best local evidence.
+        // Do not scan older files just to attach an unused second measurement.
+        if (!history.matchingCurrentTcp) needed.emplace(record.key,&record);
+    }
+    // Read strictly earlier accepted sources one at a time, newest first. At most two
+    // selected count vectors per affected service survive preparation. Future
+    // replay files and same-clock revisions cannot supply preference evidence.
+    for (auto const& path : earlierFiles(folder,effective.sourceTime)) {
+        if (needed.empty()) break;
+        std::ifstream stream(path); json value; stream >> value;
+        auto old = decode(value);
+        if (old.election != effective.election || old.optionalPreferential != effective.optionalPreferential ||
+            old.sourceTime >= effective.sourceTime) continue;
+        for (auto const& record : old.records) {
+            auto requested = needed.find(record.key);
+            if (requested == needed.end() || !sameRecord(*requested->second,record) || !record.fp.votes) continue;
+            auto const& current = *requested->second;
+            auto& history = result.at(record.key);
+            if (!history.matchingCurrentTcp && record.fp.observedAt < current.tcp.observedAt &&
+                total(record.fp.votes) == total(current.tcp.votes) &&
+                containedFpCohort(*record.fp.votes,*current.fp.votes) &&
+                comparablePreferenceAccount(*record.fp.votes,*current.tcp.votes))
+                history.matchingCurrentTcp = PreferenceCohort{*record.fp.votes,*current.tcp.votes,
+                    record.fp.observedAt,current.tcp.observedAt};
+            if (!history.previousAligned && record.tcp.votes &&
+                samePreferencePair(*record.tcp.votes,*current.tcp.votes) &&
+                comparablePreferenceAccount(*record.fp.votes,*record.tcp.votes))
+                history.previousAligned = PreferenceCohort{*record.fp.votes,*record.tcp.votes,
+                    record.fp.observedAt,record.tcp.observedAt};
+            // The normal successful-run commit preserves an asynchronous
+            // match too. Reading that one selected integer pair avoids
+            // repeatedly reconstructing older FP/TCP matches during a replay.
+            if (record.matchedPreferences && compatiblePreferenceCohort(*record.matchedPreferences,current) &&
+                (!history.previousAligned || record.matchedPreferences->tcpTime > history.previousAligned->tcpTime))
+                history.previousAligned = record.matchedPreferences;
+            if (history.matchingCurrentTcp && history.previousAligned) needed.erase(requested);
+        }
+    }
+    return result;
+}
+
+void retainPreferenceHistory(Snapshot& effective, PreferenceHistories const& history) {
+    for (auto& record : effective.records) {
+        record.matchedPreferences.reset();
+        auto found = history.find(record.key);
+        if (found == history.end()) continue;
+        auto const& selected = found->second.matchingCurrentTcp ? found->second.matchingCurrentTcp : found->second.previousAligned;
+        if (selected && compatiblePreferenceCohort(*selected,record)) record.matchedPreferences = selected;
+    }
 }
 
 std::optional<Snapshot> loadEarlierCounts(std::filesystem::path const& folder,

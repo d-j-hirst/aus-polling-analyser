@@ -442,6 +442,8 @@
     <ClInclude Include="LiveBoothFrame.h" />
     <ClInclude Include="LiveV2.h" />
     <ClInclude Include="LiveTurnoutMath.h" />
+    <ClInclude Include="LivePartialCount.h" />
+    <ClInclude Include="LiveNewVotes.h" />
     <ClInclude Include="LivePartyMapping.h" />
     <ClInclude Include="LiveTurnout.h" />
     <ClInclude Include="LivePreferenceCorrections.h" />

@@ -1,6 +1,8 @@
 #include "../LiveData.h"
 #include "../LiveSimulationMath.h"
 #include "../LivePartyMapping.h"
+#include "../LivePartialCount.h"
+#include "../LiveNewVotes.h"
 
 #include <cassert>
 #include <cmath>
@@ -12,8 +14,122 @@ static_assert(int(LiveData::VoteType::MarkedAsVoted) == 13);
 static_assert(int(LiveData::BoothType::Normal) == 0);
 static_assert(int(LiveData::BoothType::Invalid) == 6);
 
+void testNewVoteComposition() {
+    using namespace LiveNewVotes;
+    using LivePartialCount::Counts;
+    Shares context{{0,.4},{1,.4},{2,.2}};
+    Counts tiny{{0,20},{1,20},{2,5}};
+    assert(std::abs(smoothedShare(0,4,4)-1.0/12) < 1e-12);
+    assert(smoothedShare(0,1000,4) < .0005);
+    auto unreported = composition({},context,2700,Category::General);
+    for (auto const& [p,v] : context) assert(std::abs(unreported.at(p)-v) < 1e-12);
+    auto blended = composition(tiny,context,2700,Category::General);
+    assert(std::abs(blended.at(0)-context.at(0)) < .01);
+    assert(blended.at(2) > .19);
+    assert(!blended.contains(42)); // A candidate absent from this ballot stays absent.
+    assert(observedWeight(0,2700,Category::General) == 0);
+    assert(observedWeight(2700,2700,Category::General) == 1);
+    assert(std::abs(observedWeight(45,2700,Category::General)-45.0/2700) < 1e-12);
+    assert(observedWeight(1000,2000,Category::AggregatedEarly) < .2);
+
+    // Integer observations remain exact, including genuine zeros. All new
+    // allocations are nonnegative and share the turnout account's finite total.
+    for (int n : {1,4,45,500,2700}) {
+        Counts votes{{0,n},{1,0},{2,0}};
+        auto future = composition(votes,context,2700,Category::General);
+        auto projected = project(votes,future,2700);
+        double total = 0;
+        for (auto const& [p,v] : projected) {
+            assert(std::isfinite(v) && v >= votes.at(p));
+            total += v;
+        }
+        assert(std::abs(total-2700) < 1e-9);
+        assert(votes.at(1) == 0);
+        if (n < 45) assert(future.at(1) > .38);
+        if (n == 2700) assert(projected.at(1) == 0);
+    }
+    // Postal adjustment belongs to the observed FP side. Its influence fades
+    // continuously at zero observations, and TPP uses the adjusted mix itself.
+    Shares postalShift{{1,PostalCoalitionLogOddsShift}};
+    auto postal = composition(tiny,context,2700,Category::General,postalShift);
+    assert(postal.at(1) < blended.at(1));
+    auto emptyPostal = composition({},context,2700,Category::General,postalShift);
+    assert(std::abs(emptyPostal.at(1)-context.at(1)) < 1e-12);
+    LivePartialCount::Flows flows{{0,1},{1,0},{2,.8}};
+    double tpp = firstShare(blended,flows,0);
+    assert(std::abs(tpp-blended.at(0)-.8*blended.at(2)) < 1e-12);
+    assert(tpp >= blended.at(0) && tpp <= 1-blended.at(1));
+    // The measured flow uses the same evidence weight for future voters and
+    // pending cohorts, while changed finalists cannot inherit that measurement.
+    LivePartialCount::Evidence measured; measured.first = 0; measured.second = 1;
+    measured.offset = 1; measured.preferenceVotes = 500;
+    assert(LivePartialCount::evidenceOffset(0,measured,0,1) == .5);
+    assert(LivePartialCount::evidenceOffset(.2,measured,0,7) == .2);
+    assert(firstShare(blended,flows,.5) > tpp);
+
+    // A four-vote ordinary record must not impersonate its historical size.
+    // Complete ordinary counts retain their usual full observed evidence.
+    FpEvidence partial{700,4,1,1,{{1,-100.0f}},{}}, complete{700,700,1,1,{{1,0.0f}},{}};
+    assert(evidenceWeight(partial) == 4);
+    assert(evidenceWeight(complete) == 700);
+    auto parent = aggregate({partial,complete},1400);
+    assert(std::abs(parent.deviations.at(1)+400.0/704) < 1e-6);
+    assert(std::abs(parent.confidence-704.0/1400) < 1e-12);
+    FpEvidence declaration{3000,1000,0,1,{{1,100.0f}},{}};
+    auto ordinaryOnly = aggregate({complete,declaration},3700);
+    assert(ordinaryOnly.deviations.at(1) == 0);
+    assert(std::abs(ordinaryOnly.confidence-700.0/3700) < 1e-12);
+    condition(parent,{},.5);
+    assert(std::abs(parent.specific.at(1)-parent.deviations.at(1)*.5) < 1e-7);
+}
+
 int main()
 {
+    testNewVoteComposition();
+    // Fictional batches: earlier urban primaries favour the first finalist;
+    // later rural primaries favour the second. Transfer only the measured
+    // preference relationship, retaining each later candidate's own primaries.
+    using namespace LivePartialCount;
+    Counts oldFp{{0,400},{1,300},{2,300}}, pair{{0,640},{1,360}};
+    Counts currentFp{{0,600},{1,1000},{2,400}};
+    Flows flows{{0,1},{1,0},{2,.8}};
+    auto evidence = measure(oldFp,pair,flows,0,1,true);
+    assert(evidence && evidence->matchingCurrentTcp);
+    auto remaining = remainingCohort(currentFp,*evidence);
+    assert(remaining && total(*remaining) == 1000);
+    double inferred = pendingFirst(currentFp,pair,flows,0,evidence,0,1);
+    assert(inferred > 275 && inferred < 285); // ~200 primaries + 80 preferences.
+    assert(std::abs(pendingFirst(currentFp,pair,flows,0,{},0,1)-460) < 1e-9);
+    // A small later TCP release must not discard the earlier matched primary
+    // cohort. Only its counted votes and the size of the unfinished pool move;
+    // the estimate of that pool's composition remains the same.
+    auto retained = evidence; retained->matchingCurrentTcp = false;
+    Counts laterPair{{0,645},{1,375}};
+    double laterPending = pendingFirst(currentFp,laterPair,flows,0,retained,0,1);
+    assert(std::abs(laterPending-inferred*.98) < 1e-9);
+    assert(std::abs(pendingFirst(currentFp,pair,flows,0,retained,0,1)-inferred) < 1e-9);
+    // In a near-complete count the whole-FP estimate may fall below the TCP
+    // already received. That is not evidence that the unfinished voters all
+    // favour the other finalist: their own estimate remains well inside [0,1].
+    Counts latePair{{0,1100},{1,850}};
+    double late = pendingFirst(currentFp,latePair,flows,0,{},0,1);
+    assert(std::abs(late-23) < 1e-9);
+    Counts revised = currentFp; revised[0] = 399;
+    assert(!remainingCohort(revised,*evidence));
+    assert(pendingFirst(oldFp,pair,flows,0,evidence,0,1) == 0);
+    assert(!measure(oldFp,Counts{{0,900},{1,100}},flows,0,1));
+    assert(!measure(oldFp,Counts{{0,300},{1,700}},flows,0,1));
+    assert(!measure(oldFp,Counts{{0,320},{1,180}},flows,0,1));
+    // The same accounting applies to a non-classic finalist pair. Its seat
+    // preference assumption supplies the non-finalist flow instead of TPP's
+    // party-specific flows; no Labor/Coalition identities are required.
+    Counts otherFp{{4,40},{1,50},{2,10}}, otherPair{{4,46},{1,54}};
+    Counts otherCurrent{{4,70},{1,90},{2,40}};
+    Flows otherFlows{{4,1},{1,0},{2,.6}};
+    auto otherEvidence = measure(otherFp,otherPair,otherFlows,4,1,true);
+    assert(otherEvidence);
+    double otherPending = pendingFirst(otherCurrent,otherPair,otherFlows,0,otherEvidence,4,1);
+    assert(otherPending > 47.9 && otherPending < 48.1);
 	assert(LiveData::voteTypeName(LiveData::VoteType::PrePoll) == "PrePoll");
 	assert(LiveData::voteTypeName(LiveData::VoteType::IVote) == "iVote");
 	assert(LiveData::voteTypeName(LiveData::VoteType::MarkedAsVoted) == "Marked as voted");

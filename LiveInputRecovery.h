@@ -41,12 +41,19 @@ struct Count {
     bool fresh() const { return status == Status::Current && votes.has_value(); }
     CountMetadata metadata() const { return {status,observedAt,votes.has_value(),complete}; }
 };
+// A matched preference batch retains measured integer accounts and their
+// original observation times. It contains no fitted flow or forecast values.
+struct PreferenceCohort {
+    Counts fp, tcp;
+    std::string fpTime, tcpTime;
+};
 struct Record {
     std::string key, district, name, role, identity;
     std::vector<int> candidates;
     Count fp, tcp;
     double expected = 0;
     bool closed = false;
+    std::optional<PreferenceCohort> matchedPreferences;
 };
 struct District {
     double enrolment = 0;
@@ -67,6 +74,19 @@ struct Snapshot {
     // transient lookup is never serialized as part of a received source.
     std::map<std::string,DistrictAccount> wholeDistricts;
 };
+
+// A completed preference batch may describe an older FP batch while new first
+// preferences have already arrived. Retain only that cohort and the latest
+// comparable earlier account, not the sequence of parsed source documents.
+struct PreferenceHistory {
+    std::optional<PreferenceCohort> matchingCurrentTcp, previousAligned;
+};
+using PreferenceHistories = std::map<std::string,PreferenceHistory>;
+PreferenceHistories loadPreferenceHistory(std::filesystem::path const& folder,
+    Snapshot const& effective);
+// Stage the selected measured pair with the accepted count state. It is saved
+// only by the normal successful-run commit, so later TCP does not erase it.
+void retainPreferenceHistory(Snapshot& effective, PreferenceHistories const& history);
 
 struct Issue {
     std::string type, key, district, name, explanation, action, observedAt;

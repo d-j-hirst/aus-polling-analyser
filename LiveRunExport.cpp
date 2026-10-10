@@ -875,6 +875,28 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 			boothJson["same_seat"] = booth.sameSeat;
 			boothJson["tpp_votes_estimated"] =
 				parties.values(booth.tppVotesEstimated);
+			if (newVoteContexts && !booth.futureFpShares.empty()) {
+				// Keep the two primary compositions and their influence available
+				// for replay inspection without recording draws or extra identities.
+				auto category = booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll
+					? LiveNewVotes::Category::AggregatedEarly : LiveNewVotes::Category::General;
+				boothJson["new_vote_composition"] = {
+					{"observed_weight",number(LiveNewVotes::observedWeight(booth.node.totalFpVotesCurrent(),turnoutFpTarget(boothIndex),category))},
+					{"context_shares",parties.values(newVoteContexts->at(boothIndex))},
+					{"future_shares",parties.values(booth.futureFpShares)}};
+			}
+			// Keep the local batch explanation beside its projection so replay
+			// analysis can distinguish an identified older FP cohort from an
+			// unmatched allocation. Fully counted booths need no extra audit row.
+			if (booth.preferenceEvidence && (booth.voteType != Results2::VoteType::Ordinary ||
+				booth.node.totalFpVotesCurrent() > booth.node.totalTcpVotesCurrent())) {
+				auto const& evidence = *booth.preferenceEvidence;
+				boothJson["preference_batch"] = {{"exact_current_tcp",evidence.matchingCurrentTcp},
+					{"fp_source_time",evidence.fpSourceTime},{"tcp_source_time",evidence.tcpSourceTime},
+					{"nonfinalist_votes",number(evidence.preferenceVotes)},
+					{"flow_log_odds_offset",number(evidence.offset)},
+					{"fp_votes",parties.values(evidence.fp)}};
+			}
 			boothJson["node"] = serializeNode(booth.node, parties);
 			boothsJson.push_back(std::move(boothJson));
 		}

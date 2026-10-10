@@ -1,4 +1,6 @@
 #pragma once
+#include "LivePartialCount.h"
+#include "LiveNewVotes.h"
 
 #include "ElectionData.h"
 #include "General.h"
@@ -142,6 +144,13 @@ public:
   std::optional<std::pair<float, float>> coords; // latitude, longitude; unset if the source booth has none
   std::map<int, float> tppVotesEstimated; // estimate-only count for tpp votes, used for calculating general bias in TPP estimates
 
+  // Prepared once from compatible accepted counts. Scenarios copy only this
+  // small cohort/flow measurement, never the source documents or disk history.
+  std::optional<LivePartialCount::Evidence> preferenceEvidence;
+  // Scenario-owned shares of genuinely new voters, with raw ballot identities.
+  // FP and pair projection consume this same composition; counts stay separate.
+  LiveNewVotes::Shares futureFpShares;
+
   // Booths from a different seat are much less reliable for extrapolation
   // so we use this to make sure they're treated differently
   bool sameSeat = false; 
@@ -234,7 +243,8 @@ public:
   using Internals = LiveData::Internals;
   using BoothSnapshot = LiveData::BoothSnapshot;
 
-	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run, TurnoutModelIO::Artifact turnoutInput);
+	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run, TurnoutModelIO::Artifact turnoutInput,
+    LiveInputRecovery::PreferenceHistories preferenceHistory = {});
 
   float getTppShareBaseline() const {
     return node.tppShareBaseline.value_or(0.0f);
@@ -324,15 +334,27 @@ public:
   float getSeatRawTppSwing(std::string const& seatName) const override {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
-			// This column describes live evidence. An unavailable comparison must
-			// not silently present the pre-count forecast swing as an observed one.
-			if (!seats[seatIndex].node.tppShareBaseline
-          || !seats[seatIndex].node.tppSwingBaseline
-          || !seats[seatIndex].node.tppDeviation) {
+      auto const& seatNode = seats[seatIndex].node;
+      // The Results column describes the prepared, seat-wide live estimate:
+      // counted votes plus the expected composition of outstanding votes. The
+      // historical booth comparisons still train the model, but their weighted
+      // swing is not a seat-wide result, particularly after redistribution.
+      // With no current evidence, leave the column blank rather than presenting
+      // the pre-count forecast as a live swing.
+      if (!seatNode.tppShareBaseline || !seatNode.tppSwingBaseline
+          || (!seatNode.totalFpVotesCurrent() && !seatNode.totalTcpVotesCurrent())
+          || !seatNode.tppVotesProjected.contains(0)
+          || !seatNode.tppVotesProjected.contains(1)) {
         return std::numeric_limits<float>::quiet_NaN();
       }
-      float originalTpp = detransformVoteShare(seats[seatIndex].node.tppShareBaseline.value() - seats[seatIndex].node.tppSwingBaseline.value_or(0.0f));
-      float currentTpp = detransformVoteShare(seats[seatIndex].node.tppShareBaseline.value() + seats[seatIndex].node.tppDeviation.value_or(0.0f));
+      float const pairTotal = seatNode.tppVotesProjected.at(0)
+        + seatNode.tppVotesProjected.at(1);
+      if (!std::isfinite(pairTotal) || pairTotal <= 0.0f) {
+        return std::numeric_limits<float>::quiet_NaN();
+      }
+      float const originalTpp = detransformVoteShare(
+        *seatNode.tppShareBaseline - *seatNode.tppSwingBaseline);
+      float const currentTpp = seatNode.tppVotesProjected.at(0) / pairTotal * 100.0f;
       return currentTpp - originalTpp;
 		}
     return std::numeric_limits<float>::quiet_NaN();
@@ -495,6 +517,17 @@ private:
 
   void calculateTppEstimates(bool withTpp);
 
+  void preparePreferenceCohorts(Results2::Election const& previousElection,
+    Results2::Election const& currentElection, LiveInputRecovery::PreferenceHistories const& history);
+  LivePartialCount::Flows classicPreferenceFlows(Booth const& booth, int coalitionParty, bool previous = false) const;
+  LivePartialCount::Flows pairPreferenceFlows(Booth const& booth, int first, int second) const;
+  std::optional<float> preferenceRateOffset(Booth const& booth, bool current) const;
+  double preferencePriorOffset(Booth const& booth, bool includeLocal = true) const;
+  std::map<int,float> projectCountedTpp(int boothIndex, double contextShare);
+  std::map<int,float> projectDeclarationTpp(int boothIndex);
+  int coalitionFinalist(Booth const& booth) const;
+  double futurePreferenceOffset(Booth const& booth, int first, int second) const;
+
   void calculatePreferenceFlowDeviations();
 
   void determineElectionPreferenceFlowDeviations();
@@ -553,6 +586,27 @@ private:
   void refreshTurnoutFpProgress();
 
   void recomposeBoothFpVotes(bool allowCurrentData, int boothIndex);
+  struct OrdinaryFpHierarchy {
+    LiveNewVotes::FpEvidence election;
+    std::vector<LiveNewVotes::FpEvidence> regions, seats;
+  };
+  OrdinaryFpHierarchy collectOrdinaryFpEvidence() const;
+  void aggregateOrdinaryFpEvidence(OrdinaryFpHierarchy& hierarchy) const;
+  void conditionOrdinaryFpEvidence(OrdinaryFpHierarchy& hierarchy) const;
+  void prepareNewVoteContexts();
+  std::vector<LiveNewVotes::Shares> declarationFpContexts(OrdinaryFpHierarchy const& hierarchy) const;
+  std::map<int,float> projectUnreportedFp(bool allowCurrentData, int boothIndex,
+    OrdinaryFpHierarchy const* hierarchy = nullptr) const;
+  void assignBlindFpOthers(std::map<int,float>& projection, std::set<int> const& candidates,
+    int projectSeatIndex, float target, float accounted) const;
+  void projectDeclarationFp(int boothIndex);
+  LiveNewVotes::Shares composeDeclarationFp(int boothIndex) const;
+  void updateDeclarationFpProgress(int boothIndex);
+  void projectCountedOrdinaryFp(int boothIndex);
+  void clearFpProjection(int boothIndex);
+  std::map<int,float> mapFpProjection(int boothIndex, LiveNewVotes::Shares const& raw) const;
+  void storeFpProjection(int boothIndex, std::map<int,float> projection);
+  void recordFpProjectionSensitivity(int boothIndex, float additions);
   // recomposing 2CP votes is only ever done with current data
   // as there is no useful offset to calculate
   void recomposeBoothTcpVotes(int boothIndex);
@@ -601,6 +655,8 @@ private:
   void log(bool includeLargeRegions = false, bool includeSeats = false, bool includeBooths = false) const;
 
   Node node;
+
+  bool optionalPreferential = false;
 
   bool createRandomVariation = false;
 
@@ -660,6 +716,9 @@ private:
 
   // Shared immutable preparation; each scenario owns only its projected votes.
   std::shared_ptr<LiveTurnout::Prepared const> turnout;
+  // One immutable ordinary-based prior per declaration service. Scenarios
+  // share these compact maps and own only their varied future compositions.
+  std::shared_ptr<std::vector<LiveNewVotes::Shares> const> newVoteContexts;
   std::map<std::string, TurnoutModelIO::InactiveContest> inactiveContests;
   std::shared_ptr<nlohmann::json const> turnoutDiagnostic;
 

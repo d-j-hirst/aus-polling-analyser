@@ -73,6 +73,72 @@ void checkLocalRecovery() {
     assert(total(recover(now,old).snapshot.records[0].fp.votes) == 300);
 }
 
+void checkPreferenceHistory(std::filesystem::path const& folder) {
+    // Received count history starts with a batch's FP. A later TCP describes
+    // that batch after additional primaries have already appeared. Same-time
+    // revisions and future feeds cannot help identify it in a live forecast.
+    auto first = example("2026-03-30T08:00:00");
+    for (auto& service : first.records)
+        for (auto count : {&service.fp,&service.tcp}) count->observedAt = first.sourceTime;
+    auto& record = first.records.front();
+    record.candidates = {11,12,13};
+    record.fp = {Counts{{11,100},{12,80},{13,20}},Status::Current,first.sourceTime};
+    record.tcp = {};
+    commit(folder,first);
+    auto current = first; current.sourceTime = "2026-03-30T09:00:00";
+    current.records.front().fp = {Counts{{11,150},{12,160},{13,40}},Status::Current,current.sourceTime};
+    current.records.front().tcp = {Counts{{11,116},{12,84}},Status::Current,current.sourceTime};
+    assert(!loadPreferenceHistory(folder/"empty",current).at(record.key).matchingCurrentTcp);
+    auto selected = loadPreferenceHistory(folder,current).at(record.key);
+    assert(selected.matchingCurrentTcp && !selected.previousAligned);
+    assert(selected.matchingCurrentTcp->fp.at(11) == 100);
+    assert(selected.matchingCurrentTcp->fpTime == first.sourceTime);
+    auto changed = current; changed.records.front().identity += "/replacement";
+    assert(!loadPreferenceHistory(folder,changed).at(record.key).matchingCurrentTcp);
+    changed = current; changed.records.front().fp.votes->at(11) = 99;
+    assert(!loadPreferenceHistory(folder,changed).at(record.key).matchingCurrentTcp);
+    changed = current; changed.optionalPreferential = true;
+    assert(loadPreferenceHistory(folder,changed).empty());
+    auto aligned = first; aligned.sourceTime = "2026-03-30T08:30:00";
+    aligned.records.front().tcp = current.records.front().tcp;
+    aligned.records.front().tcp.observedAt = aligned.sourceTime;
+    commit(folder,aligned);
+    selected = loadPreferenceHistory(folder,current).at(record.key);
+    assert(selected.previousAligned && selected.previousAligned->tcpTime == aligned.sourceTime);
+    auto future = current; future.sourceTime = "2026-03-30T10:00:00";
+    future.records.front().fp.votes = Counts{{11,90},{12,90},{13,20}};
+    commit(folder,future);
+    retainPreferenceHistory(current,loadPreferenceHistory(folder,current));
+    commit(folder,current);
+    selected = loadPreferenceHistory(folder,current).at(record.key);
+    assert(selected.matchingCurrentTcp->fp.at(11) == 100);
+    // The 09:00 TCP matched an older FP batch even though that source's FP
+    // was already ahead. A later unmatched TCP must retain the 09:00 pair,
+    // rather than falling all the way back to the 08:30 aligned account.
+    auto later = current; later.sourceTime = "2026-03-30T09:15:00";
+    later.records.front().tcp = {Counts{{11,125},{12,95}},Status::Current,later.sourceTime};
+    selected = loadPreferenceHistory(folder,later).at(record.key);
+    assert(!selected.matchingCurrentTcp && selected.previousAligned);
+    assert(selected.previousAligned->tcpTime == current.sourceTime);
+    assert(selected.previousAligned->fpTime == first.sourceTime);
+    assert(selected.previousAligned->fp.at(11) == 100);
+    assert(selected.previousAligned->tcp.at(11) == 116);
+    // These retained observations belong to the count cache, not a fresh
+    // counting event. They keep both original clocks through serialization.
+    auto retained = loadPrevious(folder,"fictional",later.sourceTime);
+    assert(retained && retained->records.front().matchedPreferences);
+    assert(retained->records.front().matchedPreferences->fpTime == first.sourceTime);
+    assert(retained->records.front().matchedPreferences->tcpTime == current.sourceTime);
+    auto missing = later;
+    missing.records.front().fp.votes.reset();
+    retainPreferenceHistory(missing,loadPreferenceHistory(folder,later));
+    assert(!missing.records.front().matchedPreferences);
+    // A pair change cannot borrow the older pair's preference calibration.
+    // Its FP cohort can still be useful if the new pair is itself feasible.
+    changed = current; changed.records.front().tcp.votes = Counts{{11,110},{13,90}};
+    assert(!loadPreferenceHistory(folder,changed).at(record.key).previousAligned);
+}
+
 void checkDistrictRecoveryAndProcedures() {
     auto old = recover(example(),{}).snapshot;
     old.districts["North"].finalised = true;
@@ -590,6 +656,7 @@ int main(int argc, char** argv) {
     checkHistory(folder); checkFailedUpdateTransaction(folder);
     checkOlderCompatibleCounts(folder/"older-compatible");
     checkReconciliationHistory(folder/"reconciliation");
+    checkPreferenceHistory(folder/"preferences");
 #ifdef LIVE_INPUT_PARSER_TESTS
     checkParserAndAdapter();
 #endif
