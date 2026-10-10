@@ -442,6 +442,7 @@
     <ClInclude Include="LiveBoothFrame.h" />
     <ClInclude Include="LiveV2.h" />
     <ClInclude Include="LiveTurnoutMath.h" />
+    <ClInclude Include="LivePartyMapping.h" />
     <ClInclude Include="LiveTurnout.h" />
     <ClInclude Include="LivePreferenceCorrections.h" />
     <ClInclude Include="TurnoutModel.h" />
@@ -512,6 +513,7 @@
 	<ClInclude Include="LiveData.h" />
 	<ClInclude Include="LiveResultsInput.h" />
 	<ClInclude Include="LiveSimulationMath.h" />
+	<ClInclude Include="MajorPartyFpMath.h" />
 	<ClInclude Include="LivePreparationBridge.h" />
 	<ClInclude Include="WorkspacePaths.h" />
     <ClInclude Include="General.h" />

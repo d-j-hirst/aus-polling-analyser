@@ -82,6 +82,11 @@ public:
 	// Returns the party with the given short code. Returns -1 if no such party exists.
 	int indexByShortCode(std::string shortCode) const;
 
+	// Separate Nationals calculations split the combined Coalition projection
+	// between two parties. A NAT alias on a major party already belongs to that
+	// projection and must not be added or split a second time.
+	Index separateNationalsIndex() const;
+
 	Index idToIndex(Party::Id id) const;
 	Party::Id indexToId(Index id) const;
 

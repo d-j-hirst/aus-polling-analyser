@@ -537,7 +537,8 @@ void ResultsFrame::addResultToResultData(Outcome result)
 	resultsData->AppendRows(1);
 	int row = resultsData->GetNumberRows() - 1;
 	resultsData->SetCellValue(row, 0, seat.name);
-	resultsData->SetCellValue(row, 1, formatFloat(result.partyOneSwing, 1));
+	resultsData->SetCellValue(row, 1,
+        std::isfinite(result.partyOneSwing) ? formatFloat(result.partyOneSwing, 1) : "");
 	resultsData->SetCellBackgroundColour(row, 1, swingColour);
 	resultsData->SetCellValue(row, 2, formatFloat(percentCounted, 1));
 	resultsData->SetCellBackgroundColour(row, 2, percentCountedColour);

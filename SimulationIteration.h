@@ -109,7 +109,13 @@ private:
 
 	PollingProject & project;
 	Simulation& sim;
-	SimulationRun& run;
+	// Workers share prepared inputs, but calculate each scenario in their own
+	// local state. A const view prevents a missing map key from being silently
+	// inserted by operator[] while other workers are reading the same inputs.
+	SimulationRun const& run;
+	// Shared output changes belong only in the mutex-protected recording stage,
+	// or in recordWarning(), which provides its own synchronization.
+	SimulationRun& recordedRun;
 
 	typedef std::map<int, float> FloatByPartyIndex;
 

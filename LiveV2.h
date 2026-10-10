@@ -8,6 +8,7 @@
 #include "LivePreferenceCorrections.h"
 
 #include <cstdint>
+#include <limits>
 #include <map>
 #include <memory>
 #include <optional>
@@ -323,12 +324,18 @@ public:
   float getSeatRawTppSwing(std::string const& seatName) const override {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
-      if (!seats[seatIndex].node.tppShareBaseline.has_value()) return 0.0f;
+			// This column describes live evidence. An unavailable comparison must
+			// not silently present the pre-count forecast swing as an observed one.
+			if (!seats[seatIndex].node.tppShareBaseline
+          || !seats[seatIndex].node.tppSwingBaseline
+          || !seats[seatIndex].node.tppDeviation) {
+        return std::numeric_limits<float>::quiet_NaN();
+      }
       float originalTpp = detransformVoteShare(seats[seatIndex].node.tppShareBaseline.value() - seats[seatIndex].node.tppSwingBaseline.value_or(0.0f));
       float currentTpp = detransformVoteShare(seats[seatIndex].node.tppShareBaseline.value() + seats[seatIndex].node.tppDeviation.value_or(0.0f));
       return currentTpp - originalTpp;
 		}
-    return 0.0f;
+    return std::numeric_limits<float>::quiet_NaN();
   }
 
   float getSeatFpCompletion(std::string const& seatName) const override {

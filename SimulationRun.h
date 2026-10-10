@@ -159,7 +159,10 @@ public:
 	enum class WarningCategory : std::uint8_t {
 		FpReconciliation,
 		FrequentTerminalFpReconciliation,
-		DiagnosticTest
+		DiagnosticTest,
+		// Internal retry evidence; reported in the phase log rather than the
+		// successful forecast's operator-warning list.
+		DiscardedIteration
 	};
 
 	SimulationRun(PollingProject& project, Simulation& simulation, bool doingBettingOddsCalibrations = false, bool doingLiveBaselineSimulation = false,

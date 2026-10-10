@@ -260,16 +260,17 @@ void SimulationRun::recordWarning(
 	std::string description)
 {
 	std::lock_guard<std::mutex> lock(warningMutex);
-	auto [warningIt, inserted] = warnings.try_emplace(
-		category,
-		Warning{iterationIndex, std::move(description)});
+	auto const warningIt = warnings.find(category);
+	if (warningIt == warnings.end()) {
+		warnings.emplace(category, Warning{iterationIndex, std::move(description)});
+		return;
+	}
 	// Worker completion order is nondeterministic, so retain the lowest
 	// iteration index rather than whichever thread reached the mutex first.
-	if (!inserted) {
-		++warningIt->second.occurrenceCount;
-		if (iterationIndex < warningIt->second.iterationIndex) {
-			warningIt->second.iterationIndex = iterationIndex;
-		}
+	++warningIt->second.occurrenceCount;
+	if (iterationIndex < warningIt->second.iterationIndex) {
+		warningIt->second.iterationIndex = iterationIndex;
+		warningIt->second.description = std::move(description);
 	}
 }
 
@@ -281,6 +282,7 @@ void SimulationRun::reportWarnings(FeedbackFunc feedback) const
 		if (warnings.empty()) return;
 
 		for (auto const& [category, warning] : warnings) {
+			if (category == WarningCategory::DiscardedIteration) continue;
 			if (category ==
 					WarningCategory::FrequentTerminalFpReconciliation &&
 				int64_t(warning.occurrenceCount) * 100 <=
@@ -395,6 +397,21 @@ bool SimulationRun::runIterations(
 	}
 	for (std::thread& thread : threads) {
 		if (thread.joinable()) thread.join();
+	}
+
+	// Recovered retries used to lose their reason unless a single iteration
+	// exhausted every attempt. Record one representative failure after workers
+	// finish, including when the phase's stricter aggregate limit stops the run.
+	{
+		std::lock_guard<std::mutex> lock(iterationRun.warningMutex);
+		auto const discarded = iterationRun.warnings.find(
+			WarningCategory::DiscardedIteration);
+		if (discarded != iterationRun.warnings.end()) {
+			auto const& warning = discarded->second;
+			logger << "Discarded attempts in " << phase << ": " <<
+				warning.occurrenceCount << "; first at iteration " <<
+				warning.iterationIndex << ": " << warning.description << "\n";
+		}
 	}
 
 	if (!failure) {

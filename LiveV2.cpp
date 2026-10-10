@@ -5,6 +5,7 @@
 #include "RandomGenerator.h"
 #include "SpecialPartyCodes.h"
 #include "LiveTurnoutMath.h"
+#include "LivePartyMapping.h"
 
 #include <algorithm>
 #include <cctype>
@@ -401,17 +402,19 @@ Booth::Booth(
   auto processVotes = [this, &currentBooth, &partyMapper](
       const auto& currentVotes, const auto& previousVotes, 
       auto& currentMap, auto& previousMap, auto& sharesMap, auto& swingsMap, bool isTcp = false) {
-    // Extract votes from current booth
+    // Usually each candidate maps to a different modelling party. Configured
+    // aliases can combine parties, so add their counts rather than allowing
+    // the last candidate to replace votes already assigned to that group.
     for (auto const& [id, votes] : currentVotes) {
       int mappedPartyId = partyMapper(id, false);
-      currentMap[mappedPartyId] = votes;
+      currentMap[mappedPartyId] += votes;
     }
 
     // Extract votes from previous booth if available
     if (previousVotes) {
       for (auto const& [id, votes] : *previousVotes) {
         int mappedPartyId = partyMapper(id, true);
-        previousMap[mappedPartyId] = votes;
+        previousMap[mappedPartyId] += votes;
       }
     }
 
@@ -507,19 +510,20 @@ Booth::Booth(
     std::optional<Results2::Seat::VotesByType const*> previousVotes,
     auto& currentMap, auto& previousMap, auto& sharesMap, auto& swingsMap, bool isTcp = false)
     {
-      // Extract votes from current booth
+      // Incremental categories use the same grouping as ordinary booths:
+      // preserve all candidate votes when configured aliases share a party.
       for (auto const& [partyId, votes] : currentVotes) {
         auto const voteIt = votes.find(voteType);
         if (voteIt == votes.end()) continue;
         int mappedPartyId = partyMapper(partyId, false);
-        currentMap[mappedPartyId] = voteIt->second;
+        currentMap[mappedPartyId] += voteIt->second;
       }
       // Extract votes from previous booth if available
       if (previousVotes) {
         for (auto const& [partyId, votes] : *(previousVotes.value())) {
           if (!votes.contains(voteType)) continue;
           int mappedPartyId = partyMapper(partyId, true);
-          previousMap[mappedPartyId] = votes.at(voteType);
+          previousMap[mappedPartyId] += votes.at(voteType);
         }
       }
 
@@ -784,7 +788,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
 }
 
 void Election::getNatPartyIndex() {
-	natPartyIndex = project.parties().indexByShortCode("NAT");
+	natPartyIndex = project.parties().separateNationalsIndex();
 	if (natPartyIndex == -1) natPartyIndex = InvalidPartyIndex;
 }
 
@@ -866,6 +870,7 @@ void Election::initializePartyMappings(
   Results2::Election const& previousElection,
   Results2::Election const& currentElection) {
   for (auto const& [id, party] : currentElection.parties) {
+    if (party.shortCode.empty()) continue;
     int simIndex = project.parties().indexByShortCode(party.shortCode);
     if (simIndex != -1) {
       ecPartyToInternalParty[id] = simIndex;
@@ -874,6 +879,7 @@ void Election::initializePartyMappings(
   }
 
   for (auto const& [id, party] : previousElection.parties) {
+    if (party.shortCode.empty()) continue;
     int simIndex = project.parties().indexByShortCode(party.shortCode);
     if (simIndex != -1) {
       ecPartyToInternalParty[id] = simIndex;
@@ -1243,7 +1249,6 @@ void Election::calculateTppEstimates(bool withTpp) {
           // as soon as their first batch arrives.
           booth.node.preferenceFlowConfidence = std::min(
             booth.node.fpConfidence, booth.node.tppCompletion);
-          booth.calculateTppSwing(natPartyIndex);
         }
       }
       if (!withTpp) {
@@ -1251,8 +1256,19 @@ void Election::calculateTppEstimates(bool withTpp) {
         // An FP-derived TPP estimate is less informative than a direct count,
         // while still respecting how much of an incremental category exists.
         booth.node.tppConfidence = booth.node.fpConfidence * 0.5f;
-        booth.calculateTppSwing(natPartyIndex);
       }
+    }
+    // A TPP comparison needs current and previous shares, independently of
+    // whether this booth can also train the preference-flow estimate. Normally
+    // both are directly counted; a historical FP estimate can supply the older
+    // share when its TCP is absent. Incomplete or differing FP/TCP accounts can
+    // prevent preference-rate estimation without invalidating the TPP swing.
+    booth.calculateTppSwing(natPartyIndex);
+    if (withTpp && booth.node.tppSwing && booth.voteType == Results2::VoteType::Ordinary) {
+      // Ordinary TCP is a completed booth count. If its earlier TPP comparison
+      // was supplied above from historical FP, it now has the same count
+      // coverage as a booth whose historical TCP was available at creation.
+      booth.node.tppConfidence = 1.0f;
     }
   }
 }
@@ -4014,37 +4030,12 @@ int Election::mapPartyId(
   // Note: only used when initially loading data from EC files
   // so not a bottleneck
 
-  // Helper function to get next available ID
-  auto getNextId = [this]() {
-    // Dynamic live-only parties must not collide with configured project
-    // parties that happen to be absent from both election result files.
-    int maxId = project.parties().count() - 1;
-    for (auto const& [_, mappedId] : ecPartyToInternalParty) {
-      maxId = std::max(maxId, mappedId);
-    }
-    if (maxId + 1 >= IndependentPartyIdOffset) {
-      throw std::runtime_error(
-        "No internal party IDs remain below the independent-candidate range.");
-    }
-    return maxId + 1;
-  };
-
-  // Helper function to process a party from any election
-  auto processParty = [this, &getNextId]
-    (const Results2::Party& party, int ecPartyId) -> std::optional<int> {
-    // Check if we've seen this abbreviation before
-    auto abbrevIt = ecAbbreviationToInternalParty.find(party.shortCode);
-    if (abbrevIt != ecAbbreviationToInternalParty.end()) {
-      // Reuse the same internal ID for parties with same short code
-      ecPartyToInternalParty[ecPartyId] = abbrevIt->second;
-      return abbrevIt->second;
-    }
-    
-    // New party abbreviation - assign a new internal ID
-    int newId = getNextId();
-    ecPartyToInternalParty[ecPartyId] = newId;
-    ecAbbreviationToInternalParty[party.shortCode] = newId;
-    return newId;
+  // Candidate identity comes from the appropriate election below; registered
+  // party aliases and unconfigured-party allocation use one shared policy.
+  auto processParty = [this](int ecPartyId, std::string const& abbreviation) {
+    return LivePartyMapping::mapParty(ecPartyId, abbreviation,
+      project.parties().count(), IndependentPartyIdOffset,
+      ecPartyToInternalParty, ecAbbreviationToInternalParty);
   };
 
   int ecPartyId = ecCandidateId;
@@ -4085,19 +4076,17 @@ int Election::mapPartyId(
   
   // Check if party is in the current election data
   if (currentElection.parties.contains(ecPartyId)) {
-    return processParty(currentElection.parties.at(ecPartyId), ecPartyId).value();
+    return processParty(ecPartyId, currentElection.parties.at(ecPartyId).shortCode);
   }
   
   // Check if party is in the previous election data
   if (previousElection.parties.contains(ecPartyId)) {
-    return processParty(previousElection.parties.at(ecPartyId), ecPartyId).value();
+    return processParty(ecPartyId, previousElection.parties.at(ecPartyId).shortCode);
   }
   
   // 3. Failsafe: Party not found in either election
   logger << "Warning: Party ID " << ecPartyId << " not found in either current or previous election data\n";
-  int newId = getNextId();
-  ecPartyToInternalParty[ecPartyId] = newId;
-  return newId;
+  return processParty(ecPartyId, "");
 }
 
 float Election::variabilityNormal(float mean, float sd, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const {

@@ -109,6 +109,85 @@ bool sameRecord(Record const& current, Record const& previous) {
     return current.identity == previous.identity && current.district == previous.district &&
         current.role == previous.role && current.candidates == previous.candidates && current.closed == previous.closed;
 }
+
+using RecordIndex = std::map<std::string,Record const*>;
+
+bool countFitsAccount(Record const& record, Count const& count,
+    Snapshot const& effective, HistoryAccount account) {
+    return account == HistoryAccount::TwoCandidatePreferred ?
+        tcpFits(record,count,effective.optionalPreferential) :
+        fpFits(record,count,effective.districts.at(record.district).enrolment);
+}
+
+bool earlierRecordFits(Record const& record, Record const& earlier,
+    Snapshot const& effective, HistoryAccount account) {
+    // Single-count recovery uses the effective parent. A reconciliation hold
+    // instead needs both candidate vectors from one accepted historical record;
+    // neither count may borrow a same-time or future observation.
+    if (account == HistoryAccount::Reconciled)
+        return reconciliationFits(record,earlier,effective.districts.at(record.district).enrolment,
+            effective.optionalPreferential) && !earlier.fp.observedAt.empty() &&
+            !earlier.tcp.observedAt.empty() && earlier.fp.observedAt < effective.sourceTime &&
+            earlier.tcp.observedAt < effective.sourceTime;
+    auto const& count = account == HistoryAccount::TwoCandidatePreferred ? earlier.tcp : earlier.fp;
+    return count.observedAt < effective.sourceTime && countFitsAccount(record,count,effective,account);
+}
+
+RecordIndex recordsNeedingEarlierHistory(Snapshot const& effective,
+    Snapshot const* previous, HistoryAccount account) {
+    RecordIndex needed, nearest;
+    if (!previous) return needed;
+    for (auto const& record : previous->records) nearest.emplace(record.key,&record);
+    // Normally current or nearest accepted counts suffice. Search farther back
+    // only for affected records: a corrected FP parent may fit an older TCP, or
+    // the nearest source may lack preferences needed for a joint recount hold.
+    for (auto const& record : effective.records) {
+        if (account == HistoryAccount::Reconciled) {
+            if (!reconciliationNeeded(record,effective.optionalPreferential)) continue;
+        } else {
+            auto const& current = account == HistoryAccount::TwoCandidatePreferred ? record.tcp : record.fp;
+            if (countFitsAccount(record,current,effective,account)) continue;
+            if (account == HistoryAccount::TwoCandidatePreferred &&
+                (!record.fp.votes || total(record.fp.votes) == 0)) continue;
+        }
+        auto found = nearest.find(record.key);
+        if (found == nearest.end() || !sameRecord(record,*found->second)) continue;
+        // A reconciled downward revision supersedes older, larger FP totals.
+        // Do not resurrect those totals merely because a later TCP is wrong,
+        // or scan the full history for a persistent TCP error with stable FP.
+        if (account == HistoryAccount::Reconciled &&
+            fpFits(record,found->second->fp,effective.districts.at(record.district).enrolment) &&
+            total(found->second->fp.votes) <= total(record.fp.votes)) continue;
+        if (earlierRecordFits(record,*found->second,effective,account)) continue;
+        needed.emplace(record.key,&record);
+    }
+    return needed;
+}
+
+std::optional<Snapshot> readEarlierCountRecords(std::filesystem::path const& folder,
+    Snapshot const& effective, HistoryAccount account, RecordIndex needed) {
+    // Parse one private source at a time, newest first. Retain only the chosen
+    // records, so a long sequence does not accumulate parsed JSON in memory.
+    if (needed.empty()) return {};
+    Snapshot result;
+    result.election = effective.election; result.optionalPreferential = effective.optionalPreferential;
+    for (auto const& path : earlierFiles(folder,effective.sourceTime)) {
+        std::ifstream stream(path); json value; stream >> value;
+        auto old = decode(value);
+        if (old.election != effective.election || old.sourceTime >= effective.sourceTime ||
+            old.optionalPreferential != effective.optionalPreferential) continue;
+        for (auto const& record : old.records) {
+            auto requested = needed.find(record.key);
+            if (requested == needed.end() || !sameRecord(*requested->second,record)) continue;
+            if (!earlierRecordFits(*requested->second,record,effective,account)) continue;
+            result.records.push_back(record);
+            needed.erase(requested);
+        }
+        if (needed.empty()) break;
+    }
+    return result.records.empty() ? std::optional<Snapshot>{} : std::move(result);
+}
+
 void replaceFile(std::filesystem::path const& temporary, std::filesystem::path const& target) {
     // Replace one fully written source revision atomically. The old file is
     // never removed first, so an interrupted write retains its previous state.
@@ -203,47 +282,9 @@ std::optional<Snapshot> loadCompatiblePrevious(std::filesystem::path const& fold
 }
 
 std::optional<Snapshot> loadEarlierCounts(std::filesystem::path const& folder,
-    Snapshot const& effective, Snapshot const* previous, bool tcp) {
-    if (!previous) return {};
-    std::map<std::string,Record const*> oldRecords, needed;
-    for (auto const& record : previous->records) oldRecords.emplace(record.key,&record);
-    auto fits = [&](Record const& record, Count const& count) {
-        return tcp ? tcpFits(record,count,effective.optionalPreferential) :
-            fpFits(record,count,effective.districts.at(record.district).enrolment);
-    };
-    // Normally the nearest record already supplies a suitable count. Search
-    // farther back only for affected records, in one disk pass for the whole
-    // run. A corrected FP parent can make an older TCP suitable again even
-    // when the most recent effective source had to suppress that TCP.
-    for (auto const& record : effective.records) {
-        auto const& current = tcp ? record.tcp : record.fp;
-        if (fits(record,current)) continue;
-        if (tcp && (!record.fp.votes || total(record.fp.votes) == 0)) continue;
-        auto found = oldRecords.find(record.key);
-        if (found == oldRecords.end() || !sameRecord(record,*found->second)) continue;
-        auto const& old = tcp ? found->second->tcp : found->second->fp;
-        if (fits(record,old) && old.observedAt < effective.sourceTime) continue;
-        needed.emplace(record.key,&record);
-    }
-    if (needed.empty()) return {};
-    Snapshot result;
-    result.election = effective.election; result.optionalPreferential = effective.optionalPreferential;
-    for (auto const& path : earlierFiles(folder,effective.sourceTime)) {
-        std::ifstream stream(path); json value; stream >> value;
-        auto old = decode(value);
-        if (old.election != effective.election || old.sourceTime >= effective.sourceTime ||
-            old.optionalPreferential != effective.optionalPreferential) continue;
-        for (auto const& record : old.records) {
-            auto requested = needed.find(record.key);
-            if (requested == needed.end() || !sameRecord(*requested->second,record)) continue;
-            auto const& count = tcp ? record.tcp : record.fp;
-            if (count.observedAt >= effective.sourceTime || !fits(*requested->second,count)) continue;
-            result.records.push_back(record);
-            needed.erase(requested);
-        }
-        if (needed.empty()) break;
-    }
-    return result.records.empty() ? std::optional<Snapshot>{} : std::move(result);
+    Snapshot const& effective, Snapshot const* previous, HistoryAccount account) {
+    auto needed = recordsNeedingEarlierHistory(effective,previous,account);
+    return readEarlierCountRecords(folder,effective,account,std::move(needed));
 }
 std::string fingerprint(std::filesystem::path const& source) {
     // A content fingerprint distinguishes revisions sharing a source clock.

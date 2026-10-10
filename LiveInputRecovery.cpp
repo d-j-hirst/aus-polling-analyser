@@ -33,6 +33,7 @@ using json = nlohmann::json;
 json describe(Issue const& issue) {
     static std::map<std::string,std::string> const labels{
         {"invalid_fp","Invalid first-preference count"},{"invalid_tcp","Invalid two-candidate count"},
+        {"reconciliation_hold","FP/TCP reconciliation hold"},
         {"record_exceeds_enrolment","Service FP reaches enrolment"},{"district_exceeds_enrolment","District FP reaches enrolment"},
         {"tcp_district_exceeds_enrolment","District TCP reaches enrolment"},
         {"invalid_summary","Unreadable district summary"},
@@ -67,6 +68,23 @@ std::string invalidFp(Record const& record) {
     return {};
 }
 
+std::string invalidTcpCandidates(Record const& record) {
+    // Call after both vectors are present. Checking identities separately lets
+    // the recount hold distinguish a valid but out-of-step pair from malformed
+    // preferences, which still follow the ordinary independent recovery path.
+    if (record.tcp.votes->size() != 2) return "TCP does not identify exactly two candidates.";
+    for (auto const& [candidate,count] : *record.tcp.votes) {
+        if (count < 0) return "A two-candidate count is negative.";
+        if (!record.fp.votes->count(candidate)) return "A TCP candidate has no corresponding FP record.";
+    }
+    return {};
+}
+
+bool tcpExceedsFp(Record const& record) {
+    auto fp = total(record.fp.votes), tcp = total(record.tcp.votes);
+    return tcp-fp > std::max(AbsoluteTcpAllowance,RelativeTcpAllowance*fp);
+}
+
 // Declaration TCP can legitimately lag FP while batches are being processed.
 // Ordinary/PPVC partial TCP retains LiveV2's existing 95% comparability rule.
 // Exhaustion under OPV is not a missing-preferences error. A small allowance
@@ -76,12 +94,8 @@ std::string invalidTcp(Record const& record, bool opv, bool& routine) {
     auto fp = total(record.fp.votes), tcp = total(record.tcp.votes);
     if (!record.tcp.votes || tcp == 0) return {};
     if (!record.fp.votes || fp == 0) { routine = true; return "TCP is present before usable FP."; }
-    if (record.tcp.votes->size() != 2) return "TCP does not identify exactly two candidates.";
-    for (auto const& [candidate,count] : *record.tcp.votes) {
-        if (count < 0) return "A two-candidate count is negative.";
-        if (!record.fp.votes->count(candidate)) return "A TCP candidate has no corresponding FP record.";
-    }
-    if (!opv && tcp-fp > std::max(AbsoluteTcpAllowance,RelativeTcpAllowance*fp))
+    if (auto reason = invalidTcpCandidates(record); !reason.empty()) return reason;
+    if (!opv && tcpExceedsFp(record))
         return "TCP exceeds FP beyond the allowance for small count differences.";
     if (!opv && record.role != "declaration" && tcp < OrdinaryTcpComparableFraction*fp) {
         routine = true; return "The ordinary/PPVC TCP count is not yet comparable with its FP count.";
@@ -112,11 +126,11 @@ struct PreviousCounts {
 };
 
 PreviousCounts selectEarlierCounts(Snapshot const& current, Snapshot const* previous,
-    RecordIndex const& nearest, CountHistoryLookup const& history, bool tcp) {
+    RecordIndex const& nearest, CountHistoryLookup const& history, HistoryAccount account) {
     // Keep the selected snapshot alive for as long as its record index is used.
     // The normal nearest snapshot remains owned by the preparation caller.
     PreviousCounts result;
-    result.earlier = history ? history(current,previous,tcp) : std::optional<Snapshot>{};
+    result.earlier = history ? history(current,previous,account) : std::optional<Snapshot>{};
     result.records = nearest;
     if (result.earlier) for (auto const& record : result.earlier->records) result.records[record.key] = &record;
     return result;
@@ -144,6 +158,38 @@ void recordRecovery(Registry& registry, Record const& record, std::string type,
         : "Treating this count as unreported; inspect or correct the source record.";
     registry.add({std::move(type),record.key,record.district,record.name,std::move(reason),
         std::move(action),effective.observedAt,impact,routine,rejected.votes,effective.votes});
+}
+
+void holdUnreconciledCounts(Result& result, RecordIndex const& previous) {
+    // Normally a valid current account replaces the previous one, including
+    // genuine downward corrections. A recount can instead reset FP while TCP
+    // still describes the larger earlier batch. Keep that earlier joint account
+    // until the new pair reconciles, rather than accepting the reset and then
+    // losing its previously counted preferences. Other records still update.
+    for (auto& record : result.snapshot.records) {
+        auto old = compatiblePrevious(record,previous);
+        double enrolment = result.snapshot.districts.at(record.district).enrolment;
+        if (!old || !reconciliationFits(record,*old,enrolment,result.snapshot.optionalPreferential)) continue;
+        if (old->fp.observedAt.empty() || old->tcp.observedAt.empty() ||
+            old->fp.observedAt >= result.snapshot.sourceTime || old->tcp.observedAt >= result.snapshot.sourceTime) continue;
+        auto rejectedFp = record.fp;
+        auto rejectedTcp = record.tcp;
+        replaceCount(record.fp,&old->fp,result.snapshot.sourceTime);
+        replaceCount(record.tcp,&old->tcp,result.snapshot.sourceTime);
+        // A rejected current account cannot make its restored votes final or
+        // create a fresh counting event. Original per-count completion/times
+        // remain attached to the accepted observations.
+        result.snapshot.districts.at(record.district).finalised = false;
+        result.issues.add({"reconciliation_hold",record.key,record.district,record.name,
+            "FP fell to " + std::to_string(total(rejectedFp.votes)) +
+                " while TCP reports " + std::to_string(total(rejectedTcp.votes)) +
+                ". Retaining the earlier account of " + std::to_string(total(record.fp.votes)) +
+                " FP and " + std::to_string(total(record.tcp.votes)) + " TCP votes until the current counts reconcile.",
+            "Holding the previous accepted FP/TCP account; check recount progress or correct the source. "
+                "TCP observation: " + record.tcp.observedAt + ".",
+            record.fp.observedAt,double(total(record.fp.votes)-total(rejectedFp.votes)),false,
+            rejectedFp.votes,record.fp.votes});
+    }
 }
 
 void recoverFpRecords(Result& result, RecordIndex const& previous) {
@@ -368,6 +414,26 @@ bool fpFits(Record const& record, Count const& count, double enrolment) {
     return count.votes && invalidFp(candidate).empty() && total(count.votes) < enrolment;
 }
 
+bool reconciliationNeeded(Record const& record, bool optionalPreferential) {
+    // FP arriving ahead of TCP is routine. This hold addresses the opposite
+    // contradiction, including an explicit FP reset to zero. Malformed or
+    // missing records retain independent recovery, and OPV is unchanged.
+    if (optionalPreferential || record.closed || !record.fp.fresh() || !record.tcp.fresh() ||
+        !invalidFp(record).empty() || !record.tcp.error.empty() ||
+        !invalidTcpCandidates(record).empty()) return false;
+    return tcpExceedsFp(record);
+}
+
+bool reconciliationFits(Record const& record, Record const& previous,
+    double enrolment, bool optionalPreferential) {
+    if (!reconciliationNeeded(record,optionalPreferential) ||
+        total(previous.fp.votes) <= total(record.fp.votes) ||
+        !fpFits(record,previous.fp,enrolment) || total(previous.tcp.votes) == 0) return false;
+    auto earlierParent = record;
+    earlierParent.fp = previous.fp;
+    return tcpFits(earlierParent,previous.tcp,optionalPreferential);
+}
+
 Result recover(Snapshot current, std::optional<Snapshot> const& previous,
     CountHistoryLookup const& history) {
     validateSourceRecords(current);
@@ -375,13 +441,15 @@ Result recover(Snapshot current, std::optional<Snapshot> const& previous,
         canonicalTime(previous->sourceTime) < current.sourceTime ? &*previous : nullptr;
     auto records = indexPrevious(old);
     Result result{std::move(current),{}};
-    auto fpHistory = selectEarlierCounts(result.snapshot,old,records,history,false);
+    auto reconciledHistory = selectEarlierCounts(result.snapshot,old,records,history,HistoryAccount::Reconciled);
+    holdUnreconciledCounts(result,reconciledHistory.records);
+    auto fpHistory = selectEarlierCounts(result.snapshot,old,records,history,HistoryAccount::FirstPreferences);
     recoverFpRecords(result,fpHistory.records);
     recoverDistrictAccounts(result,old,records);
     // TCP compatibility depends on the effective FP, including whole-district
     // rollback. Search older TCP only after that account is settled, and merge
     // the selected records without retaining the historical JSON sequence.
-    auto tcpHistory = selectEarlierCounts(result.snapshot,old,records,history,true);
+    auto tcpHistory = selectEarlierCounts(result.snapshot,old,records,history,HistoryAccount::TwoCandidatePreferred);
     recoverTcpRecords(result,tcpHistory.records);
     recoverDistrictTcpAccounts(result,tcpHistory.records);
     checkEffectiveAccounts(result);

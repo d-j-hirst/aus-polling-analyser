@@ -363,7 +363,9 @@ void Results2::Election::preload2022Vic(tinyxml2::XMLDocument const& input_candi
     {"The Australian Greens - Victoria", "GRN"},
     {"Australian Labor Party - Victorian Branch", "ALP"},
     {"Liberal Party of Australia - Victorian Division", "LNP"},
-    {"National Party of Australia - Victoria", "LNP"}
+    // Liberal and National candidates have separate identities. A project may
+    // still combine them through its configured official-code aliases.
+    {"National Party of Australia - Victoria", "NAT"}
   };
   auto const& eml = requiredChild(input_candidates, "EML", "VEC candidate preload");
   auto const& candidateList = requiredChild(eml, "CandidateList", "VEC candidate preload/EML");
@@ -596,6 +598,10 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
           int tcpCandId = indexToId[tcpCandIndexI];
           int tcpAffiliation = candidates[tcpCandId].party;
           seats[seatId].tcpVotes[tcpAffiliation][voteType] += tcpVotes;
+          // Live booth comparisons use candidate counts, while the older
+          // results summaries use party counts. Preserve the same observed
+          // historical TCP account in both representations.
+          seats[seatId].tcpVotesCandidate[tcpCandId][voteType] += tcpVotes;
         }
         continue;
       }
@@ -657,7 +663,9 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
         int tcpCandId = indexToId[tcpCandIndexI];
         int tcpAffiliation = candidates[tcpCandId].party;
         booth.tcpVotes[tcpAffiliation] = tcpVotes;
+        booth.tcpVotesCandidate[tcpCandId] = tcpVotes;
         seats[seatId].tcpVotes[tcpAffiliation][VoteType::Ordinary] += tcpVotes;
+        seats[seatId].tcpVotesCandidate[tcpCandId][VoteType::Ordinary] += tcpVotes;
       }
       seats[seatId].booths.push_back(booth.id);
     }
@@ -709,7 +717,7 @@ void Results2::Election::preloadNswec([[maybe_unused]] nlohmann::json const& res
     {"Australian Labor Party (NSW Branch)", "ALP"},
     {"Country Labor Party", "ALP"},
     {"The Liberal Party of Australia, New South Wales Division", "LNP"},
-    {"National Party of Australia - NSW", "LNP"}
+    {"National Party of Australia - NSW", "NAT"}
   };
   auto const& mediaFeed = requiredChild(zeros, "MediaFeed", "NSWEC preload");
   auto const& election = requiredChild(mediaFeed, "Election", "NSWEC preload/MediaFeed");
@@ -987,7 +995,11 @@ void Results2::Election::preloadNswec([[maybe_unused]] nlohmann::json const& res
           int tcpCandId = indexToId[tcpCandIndexI];
           int tcpAffiliation = candidates[tcpCandId].party;
           booth.tcpVotes[tcpAffiliation] = tcpVotes;
+          // Keep ordinary historical TCP in the candidate representation used
+          // for live swing comparisons, as declaration counts already do.
+          booth.tcpVotesCandidate[tcpCandId] = tcpVotes;
           if (seatId > 0) seats[seatId].tcpVotes[tcpAffiliation][VoteType::Ordinary] += tcpVotes;
+          if (seatId > 0) seats[seatId].tcpVotesCandidate[tcpCandId][VoteType::Ordinary] += tcpVotes;
         }
         auto tpps = boothValue["tpp"];
         for (auto const& [tppCandIndex, tppVotes] : tpps.items()) {

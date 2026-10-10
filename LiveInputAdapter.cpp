@@ -209,8 +209,8 @@ Result prepare(Results2::Election& election, TurnoutModelIO::Artifact const& art
     auto identified = identify(election,artifact,fingerprint(source));
     auto folder = directory(root,election.termCode);
     auto previous = loadCompatiblePrevious(folder,identified);
-    auto result = recover(std::move(identified),previous,[&](Snapshot const& effective, Snapshot const* old, bool tcp) {
-        return loadEarlierCounts(folder,effective,old,tcp);
+    auto result = recover(std::move(identified),previous,[&](Snapshot const& effective, Snapshot const* old, HistoryAccount account) {
+        return loadEarlierCounts(folder,effective,old,account);
     });
     recordUnreadableSummaries(election,result);
     apply(election,result.snapshot);

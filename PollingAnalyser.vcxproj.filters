@@ -510,6 +510,9 @@
 	<ClInclude Include="LiveSimulationMath.h">
 	  <Filter>Header Files\Utility</Filter>
 	</ClInclude>
+	<ClInclude Include="MajorPartyFpMath.h">
+	  <Filter>Header Files\Utility</Filter>
+	</ClInclude>
 	<ClInclude Include="LivePreparationBridge.h">
 	  <Filter>Header Files\Process Objects</Filter>
 	</ClInclude>
@@ -743,6 +746,9 @@
     </ClInclude>
     <ClInclude Include="LiveTurnoutMath.h">
       <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="LivePartyMapping.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LiveTurnout.h">
       <Filter>Header Files\Process Objects</Filter>

@@ -123,6 +123,132 @@ void checkDistrictRecoveryAndProcedures() {
     assert(total(pairRecovered.snapshot.records[0].tcp.votes)+total(pairRecovered.snapshot.records[1].tcp.votes) < 1000);
 }
 
+bool hasIssue(Result const& result, std::string const& type) {
+    auto rows = result.issues.summary();
+    return std::any_of(rows.begin(),rows.end(),[&](auto const& row) { return row.at("type") == type; });
+}
+
+void checkReconciliationHold() {
+    // Fictional declaration counts reproduce a reset followed by partial
+    // rechecking. The old pair remains evidence, while unaffected booths and
+    // districts continue using their new counts.
+    auto first = example();
+    first.records[1].tcp.votes = Counts{{11,60},{12,40}};
+    auto old = recover(first,{}).snapshot;
+    auto current = example("2026-03-30T09:00:00");
+    current.records[1].fp.votes = Counts{{11,0},{12,0}};
+    current.records[1].tcp.votes = Counts{{11,62},{12,40}};
+    current.records[2].fp.votes = Counts{{11,200},{12,130}};
+    current.records[2].tcp.votes = Counts{{11,210},{12,120}};
+    current.districts["North"].finalised = true;
+    auto held = recover(current,old);
+    auto const& record = held.snapshot.records[1];
+    assert(record.fp.votes == old.records[1].fp.votes && record.tcp.votes == old.records[1].tcp.votes);
+    assert(record.fp.status == Status::Restored && record.tcp.status == Status::Restored);
+    assert(record.fp.observedAt == first.sourceTime && record.tcp.observedAt == first.sourceTime);
+    assert(!record.fp.fresh() && !record.tcp.fresh() && !record.fp.complete && !record.tcp.complete);
+    assert(!held.snapshot.districts.at("North").finalised);
+    assert(held.snapshot.records[0].fp.fresh());
+    assert(total(held.snapshot.records[2].fp.votes) == 330 && held.snapshot.records[2].tcp.fresh());
+    auto rows = held.issues.summary();
+    auto warning = std::find_if(rows.begin(),rows.end(),[](auto const& row) { return row.at("type") == "reconciliation_hold"; });
+    assert(warning != rows.end() && warning->at("affected_records") == 1 && warning->at("affected_districts") == 1);
+    assert(warning->at("label") == "FP/TCP reconciliation hold" && warning->at("routine") == false);
+    assert(warning->at("rejected_total") == 0 && warning->at("effective_total") == 100);
+
+    // Restored FP must not manufacture local activity or pooled slowing
+    // evidence. The unaffected South account remains a fresh measurement.
+    TurnoutModel::Prior prior;
+    prior.seats = {"North","South"}; prior.groups = {"other"};
+    std::vector<TurnoutModel::Unit> units;
+    RecordStatuses statuses;
+    for (auto const& effective : held.snapshot.records) {
+        TurnoutModel::Unit unit;
+        unit.seat = effective.district == "North" ? 0 : 1;
+        unit.kind = effective.role; unit.name = unit.category = effective.name;
+        unit.counted = total(effective.fp.votes);
+        units.push_back(unit);
+        statuses[effective.key] = {effective.fp.metadata(),effective.tcp.metadata()};
+    }
+    auto observation = freshObservation(prior,units,statuses,current.sourceTime);
+    assert(!observation.counts.count({"North","Postal"}));
+    assert(!observation.counts.count({"North","allocation:other"}));
+    assert(observation.counts.at({"South","allocation:other"}) == 430);
+
+    current.sourceTime = "2026-03-30T10:00:00";
+    current.records[1].fp.votes = Counts{{11,8},{12,5}};
+    auto repeated = recover(current,held.snapshot);
+    assert(total(repeated.snapshot.records[1].fp.votes) == 100);
+    assert(repeated.snapshot.records[1].fp.observedAt == first.sourceTime);
+    assert(repeated.snapshot.records[1].tcp.observedAt == first.sourceTime);
+
+    // Reconciled lower counts are accepted on this first pass. Accepting the
+    // coherent new account removes the hold instead of enforcing growth.
+    current.sourceTime = "2026-03-30T11:00:00";
+    current.districts["North"].finalised = false;
+    current.records[1].fp.votes = Counts{{11,55},{12,38}};
+    current.records[1].tcp.votes = Counts{{11,57},{12,37}};
+    auto released = recover(current,repeated.snapshot);
+    assert(total(released.snapshot.records[1].fp.votes) == 93 && total(released.snapshot.records[1].tcp.votes) == 94);
+    assert(released.snapshot.records[1].fp.fresh() && released.snapshot.records[1].tcp.fresh());
+    assert(!hasIssue(released,"reconciliation_hold"));
+
+    // The same account-level recovery covers ordinary booths without changing
+    // their existing completion rules. A rejected declaration of completion
+    // cannot complete an unfinished held service.
+    current = example("2026-03-30T09:00:00");
+    current.records[0].fp.votes = Counts{{11,100},{12,80}};
+    auto booth = recover(current,old);
+    assert(total(booth.snapshot.records[0].fp.votes) == 300);
+    assert(booth.snapshot.records[0].fp.complete && booth.snapshot.records[0].tcp.complete);
+    assert(hasIssue(booth,"reconciliation_hold"));
+
+    // Normal additions ahead of preferences, permitted differences, genuine
+    // zeros and coherent downward corrections still pass through normally.
+    current = example("2026-03-30T09:00:00");
+    current.records[1].fp.votes = Counts{{11,70},{12,50}};
+    current.records[1].tcp.votes = first.records[1].tcp.votes;
+    assert(recover(current,old).snapshot.records[1].fp.fresh());
+    current.records[1].fp.votes = Counts{{11,50},{12,40}};
+    assert(!hasIssue(recover(current,old),"reconciliation_hold")); // Exactly 10 excess votes.
+    current.records[1].fp.votes = Counts{{11,50},{12,39}};
+    assert(hasIssue(recover(current,old),"reconciliation_hold"));
+    current.records[1].fp.votes = Counts{{11,50},{12,30}};
+    current.records[1].tcp.votes = Counts{{11,30},{12,20}};
+    assert(recover(current,old).snapshot.records[1].fp.fresh()); // Valid partial declarations.
+    current.records[1].fp.votes = current.records[1].tcp.votes = Counts{{11,0},{12,0}};
+    assert(recover(current,old).snapshot.records[1].fp.fresh());
+
+    // TCP overcounts without an FP reduction remain ordinary error recovery;
+    // malformed records, incompatible identities and absent history likewise
+    // cannot establish a recount hold. OPV keeps its existing treatment.
+    current.records[1].fp.votes = first.records[1].fp.votes;
+    current.records[1].tcp.votes = Counts{{11,600},{12,400}};
+    auto overcount = recover(current,old);
+    assert(overcount.snapshot.records[1].fp.fresh() && !hasIssue(overcount,"reconciliation_hold"));
+    current.records[1].fp.votes = Counts{{11,0},{12,0}};
+    current.records[1].tcp.votes = first.records[1].tcp.votes;
+    assert(recover(current,{}).snapshot.records[1].fp.fresh());
+    auto incompatible = old; incompatible.records[1].identity += "/changed";
+    assert(recover(current,incompatible).snapshot.records[1].fp.fresh());
+    incompatible = old; incompatible.records[1].candidates = {11,13};
+    assert(recover(current,incompatible).snapshot.records[1].fp.fresh());
+    incompatible = old; incompatible.records[1].tcp.votes.reset();
+    assert(recover(current,incompatible).snapshot.records[1].fp.fresh());
+    current.sourceTime = old.sourceTime;
+    assert(recover(current,old).snapshot.records[1].fp.fresh()); // Strictly earlier observations only.
+    current.sourceTime = "2026-03-30T07:00:00";
+    assert(recover(current,old).snapshot.records[1].fp.fresh());
+    current.sourceTime = "2026-03-30T09:00:00";
+    current.records[1].tcp.error = "Malformed preference count";
+    assert(recover(current,old).snapshot.records[1].fp.fresh());
+    current.records[1].tcp.error.clear();
+    current.records[1].fp.error = "Malformed first-preference count";
+    assert(!hasIssue(recover(current,old),"reconciliation_hold"));
+    current.records[1].fp.error.clear(); current.optionalPreferential = true;
+    assert(!hasIssue(recover(current,old),"reconciliation_hold"));
+}
+
 void checkRegistry() {
     Registry registry;
     Issue issue{"bad","b","North","Second","Contradiction","Inspect source","",50,false,{}, {}};
@@ -278,8 +404,8 @@ void checkOlderCompatibleCounts(std::filesystem::path const& folder) {
     commit(folder,recover(large,{}).snapshot);
     auto corrected = example("2026-03-30T10:00:00");
     corrected.records[0].tcp.error = "Malformed preference record";
-    auto lookup = [&](Snapshot const& effective, Snapshot const* previous, bool tcp) {
-        return loadEarlierCounts(folder,effective,previous,tcp);
+    auto lookup = [&](Snapshot const& effective, Snapshot const* previous, HistoryAccount account) {
+        return loadEarlierCounts(folder,effective,previous,account);
     };
     // The nearest TCP is 600, which cannot fit corrected FP of 300. Restore
     // the older 300-vote pair, rather than losing previously accepted evidence.
@@ -307,6 +433,55 @@ void checkOlderCompatibleCounts(std::filesystem::path const& folder) {
     earlier = loadPrevious(folder,"fictional","2026-03-30T11:00:00.2");
     assert(earlier && earlier->sourceTime == "2026-03-30T11:00:00.1");
     assert(!recover(fractional,earlier).snapshot.records[0].fp.observedAt.empty());
+}
+
+void checkReconciliationHistory(std::filesystem::path const& folder) {
+    auto first = example(); first.records[1].tcp.votes = Counts{{11,60},{12,40}};
+    auto accepted = recover(first,{}).snapshot;
+    commit(folder,accepted);
+    // A compatible nearest cache can lack usable preferences. Select an older
+    // joint record, rather than combining independent FP and TCP fallbacks.
+    auto missing = example("2026-03-30T09:00:00");
+    missing.records[1].tcp.votes.reset();
+    commit(folder,recover(missing,{}).snapshot);
+    auto current = example("2026-03-30T10:00:00");
+    current.records[1].fp.votes = Counts{{11,0},{12,0}};
+    current.records[1].tcp.votes = first.records[1].tcp.votes;
+    auto lookup = [&](Snapshot const& effective, Snapshot const* previous, HistoryAccount account) {
+        return loadEarlierCounts(folder,effective,previous,account);
+    };
+    auto held = recover(current,loadCompatiblePrevious(folder,current),lookup);
+    assert(total(held.snapshot.records[1].fp.votes) == 100 && total(held.snapshot.records[1].tcp.votes) == 100);
+    assert(held.snapshot.records[1].fp.observedAt == first.sourceTime);
+    assert(held.snapshot.records[1].tcp.observedAt == first.sourceTime);
+    commit(folder,held.snapshot);
+
+    auto future = first; future.sourceTime = "2026-03-30T12:00:00";
+    future.records[1].fp.votes = future.records[1].tcp.votes = Counts{{11,150},{12,100}};
+    commit(folder,recover(future,{}).snapshot);
+    current.sourceTime = "2026-03-30T11:00:00";
+    current.records[1].fp.votes = Counts{{11,8},{12,5}};
+    auto repeated = recover(current,loadCompatiblePrevious(folder,current),lookup);
+    assert(total(repeated.snapshot.records[1].fp.votes) == 100); // Future source cannot supply 250.
+    assert(repeated.snapshot.records[1].fp.observedAt == first.sourceTime);
+
+    // Revising a previously held source with a coherent lower pair replaces
+    // that cache atomically. Subsequent holds use the revised accepted account.
+    auto revision = example("2026-03-30T10:00:00"); revision.sourceHash = "recount-reconciled";
+    revision.records[1].fp.votes = revision.records[1].tcp.votes = Counts{{11,45},{12,35}};
+    auto reconciled = recover(revision,loadCompatiblePrevious(folder,revision),lookup);
+    assert(reconciled.snapshot.records[1].fp.fresh() && !hasIssue(reconciled,"reconciliation_hold"));
+    commit(folder,reconciled.snapshot);
+    repeated = recover(current,loadCompatiblePrevious(folder,current),lookup);
+    assert(total(repeated.snapshot.records[1].fp.votes) == 80 && total(repeated.snapshot.records[1].tcp.votes) == 80);
+    assert(repeated.snapshot.records[1].fp.observedAt == revision.sourceTime);
+
+    // Once lower FP has been accepted, an unrelated TCP error cannot bring
+    // back the superseded larger account through a search of older caches.
+    current.records[1].fp.votes = revision.records[1].fp.votes;
+    auto stableFp = recover(current,loadCompatiblePrevious(folder,current),lookup);
+    assert(total(stableFp.snapshot.records[1].fp.votes) == 80 && stableFp.snapshot.records[1].fp.fresh());
+    assert(!hasIssue(stableFp,"reconciliation_hold"));
 }
 
 #ifdef LIVE_INPUT_PARSER_TESTS
@@ -410,9 +585,11 @@ int main(int argc, char** argv) {
     auto folder = root/"cli-build"/"input-recovery-tests";
     std::filesystem::remove_all(folder);
     checkLocalRecovery(); checkDistrictRecoveryAndProcedures(); checkRegistry();
+    checkReconciliationHold();
     checkFreshProgressEvidence();
     checkHistory(folder); checkFailedUpdateTransaction(folder);
     checkOlderCompatibleCounts(folder/"older-compatible");
+    checkReconciliationHistory(folder/"reconciliation");
 #ifdef LIVE_INPUT_PARSER_TESTS
     checkParserAndAdapter();
 #endif

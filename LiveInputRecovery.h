@@ -92,15 +92,22 @@ struct Result {
 
 std::int64_t total(std::optional<Counts> const& votes);
 std::string canonicalTime(std::string value);
-// Most runs need only the nearest compatible record. The optional disk lookup
-// searches older compatible FP before local recovery, and older TCP after FP
-// recovery has established the effective parent. Its final argument selects
-// TCP rather than FP; each search reads the affected records in one disk pass.
-using CountHistoryLookup = std::function<std::optional<Snapshot>(Snapshot const&, Snapshot const*, bool)>;
+// Most runs need only the nearest compatible record. A reconciliation hold
+// needs both counts from one accepted record, rather than independently selected
+// FP and TCP dates. Other recovery searches FP first, then TCP against effective
+// FP. Each disk search reads only affected records, one source file at a time.
+enum class HistoryAccount { FirstPreferences, TwoCandidatePreferred, Reconciled };
+using CountHistoryLookup = std::function<std::optional<Snapshot>(Snapshot const&, Snapshot const*, HistoryAccount)>;
 Result recover(Snapshot current, std::optional<Snapshot> const& previous,
     CountHistoryLookup const& history = {});
 bool fpFits(Record const& record, Count const& count, double enrolment);
 bool tcpFits(Record const& record, Count const& count, bool optionalPreferential);
+// A temporary FP reset is established only by a contradictory current pair and
+// a larger earlier accepted FP account with usable preferences. A lower pair
+// that reconciles passes through normally; this is not a monotonic-count rule.
+bool reconciliationNeeded(Record const& record, bool optionalPreferential);
+bool reconciliationFits(Record const& record, Record const& previous,
+    double enrolment, bool optionalPreferential);
 // Only checked current measurements can refresh the counting clock. A group
 // containing any restored/unavailable constituent is not a fresh aggregate.
 TurnoutModel::Observation freshObservation(TurnoutModel::Prior const& prior,
@@ -114,7 +121,7 @@ std::optional<Snapshot> loadPrevious(std::filesystem::path const& directory,
 std::optional<Snapshot> loadCompatiblePrevious(std::filesystem::path const& directory,
     Snapshot const& current);
 std::optional<Snapshot> loadEarlierCounts(std::filesystem::path const& directory,
-    Snapshot const& effective, Snapshot const* previous, bool tcp);
+    Snapshot const& effective, Snapshot const* previous, HistoryAccount account);
 void commit(std::filesystem::path const& directory, Snapshot const& snapshot);
 std::string fingerprint(std::filesystem::path const& source);
 }

@@ -1,5 +1,6 @@
 #include "ForecastSpecificationIO.h"
 #include "ForecastSpecificationProjectAdapter.h"
+#include "General.h"
 #include "PollingProject.h"
 #include "WorkspacePaths.h"
 
@@ -7,6 +8,93 @@
 #include <iostream>
 #include <cmath>
 #include <string>
+
+namespace {
+	bool checkNationalsLookup(PollingProject& owner)
+	{
+		// Feed aliases remain useful when a project groups the Coalition together.
+		// The separate-Nationals machinery must distinguish that setup from a
+		// project with two independently configured Coalition parties.
+		PartyCollection grouped(owner);
+		Party labor;
+		labor.officialCodes = { "ALP" };
+		grouped.add(labor);
+		if (grouped.separateNationalsIndex() != PartyCollection::InvalidIndex)
+			return false;
+		Party coalition;
+		coalition.officialCodes = { "LIB", "NAT", "LNP" };
+		grouped.add(coalition);
+		if (grouped.indexByShortCode("NAT") != 1 ||
+			grouped.indexByShortCode("LIB") != 1 ||
+			grouped.separateNationalsIndex() != PartyCollection::InvalidIndex)
+			return false;
+
+		Party liberal;
+		liberal.officialCodes = { "LIB", "LP", "LNP" };
+		grouped.replace(grouped.indexToId(1), liberal);
+		Party green;
+		green.officialCodes = { "GRN" };
+		grouped.add(green);
+		Party national;
+		national.officialCodes = { "NAT", "NP" };
+		grouped.add(national);
+		if (grouped.separateNationalsIndex() != 3 ||
+			grouped.indexByShortCode("LIB") != 1 ||
+			grouped.indexByShortCode("NP") != 3)
+			return false;
+
+		// Neither of the first two parties is an additional Coalition partner,
+		// even if a custom project calls its first major party NAT.
+		PartyCollection majorNationals(owner);
+		majorNationals.add(national);
+		majorNationals.add(liberal);
+		return majorNationals.separateNationalsIndex() ==
+			PartyCollection::InvalidIndex;
+	}
+
+	bool checkVictorianCoalition(PollingProject const& project)
+	{
+		// These are configuration checks, using the known 2022 candidate roster.
+		// Both-party contests must remain possible, while Nationals-only seats
+		// must not acquire a fictional Liberal candidate.
+		auto const& parties = project.parties();
+		auto const national = parties.separateNationalsIndex();
+		if (parties.count() != 8 || national != 7 ||
+			parties.indexByShortCode("LIB") != 1 ||
+			parties.viewByIndex(national).relationType !=
+				Party::RelationType::Coalition ||
+			parties.viewByIndex(national).relationTarget != parties.indexToId(1))
+			return false;
+		std::vector<std::string> const nationalOnly = {
+			"Gippsland East", "Gippsland South", "Lowan", "Murray Plains",
+			"Ovens Valley" };
+		std::vector<std::string> const both = {
+			"Bass", "Euroa", "Mildura", "Morwell", "Shepparton" };
+		for (auto const& [id, seat] : project.seats()) {
+			static_cast<void>(id);
+			if (seat.runningParties.empty()) return false;
+			// Every other seat has a known Liberal candidate and no Nationals
+			// candidate. An omitted list would leave candidacy undecided.
+			if (!contains(nationalOnly, seat.name) && !contains(both, seat.name) &&
+				(contains(seat.runningParties, std::string("NAT")) ||
+					!contains(seat.runningParties, std::string("LNP")))) return false;
+			if (contains(nationalOnly, seat.name)) {
+				if (seat.incumbent != parties.indexToId(national) ||
+					!contains(seat.runningParties, std::string("NAT")) ||
+					contains(seat.runningParties, std::string("LNP"))) return false;
+			}
+			if (contains(both, seat.name) &&
+				(!contains(seat.runningParties, std::string("NAT")) ||
+					!contains(seat.runningParties, std::string("LNP")))) return false;
+			if (seat.name == "Euroa" &&
+				seat.incumbent != parties.indexToId(national)) return false;
+			if (seat.name == "Mildura" &&
+				(seat.candidateNames.at("Jade Benham") != "NAT" ||
+					seat.candidateNames.at("Paul Matheson") != "LNP")) return false;
+		}
+		return true;
+	}
+}
 
 int main(int argc, char const* argv[])
 {
@@ -39,6 +127,15 @@ int main(int argc, char const* argv[])
 
 		auto const& specification = loaded.specification;
 		auto const& project = *constructed.project;
+		if (!checkNationalsLookup(*constructed.project)) {
+			std::cerr << "Combined and separate Nationals lookups disagree\n";
+			valid = false;
+		}
+		if (specification.electionCode == "2022vic" &&
+			!checkVictorianCoalition(project)) {
+			std::cerr << "2022vic Coalition configuration was not imported correctly\n";
+			valid = false;
+		}
 		if (!project.isValid() ||
 			project.seats().count() == 0 ||
 			constructed.runtimeIds.parties.size() !=

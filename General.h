@@ -210,9 +210,11 @@ T mix(T lower, T upper, T upperFactor) {
 	return upper * upperFactor + lower * (T(1.0) - upperFactor);
 }
 
-// find value for "key" within "map" giving "defaultVal" if not found.
+// Read an optional input without inserting a default into the shared map.
+// Simulation workers may use this concurrently after preparation has finished;
+// borrow the map rather than copying it for every lookup.
 template<typename T, typename U, typename V>
-V getAt(T map, U key, V defaultVal) {
+V getAt(T const& map, U key, V defaultVal) {
 	auto it = map.find(key);
 	if (it == map.end()) return defaultVal;
 	return it->second;

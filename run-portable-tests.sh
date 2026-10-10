@@ -75,7 +75,9 @@ run_test LiveAnalysisArchiveTests
 run_test LiveSnapshotSequenceTests
 run_test LiveSnapshotDataTests
 run_test MacroTargetResolverTests
+run_test MajorPartyFpMathTests
 run_test RandomGeneratorTests
+run_test SharedInputLookupTests
 run_test TerminalMacroFeedbackTests
 run_test LiveInputRecoveryTests "$ROOT_DIRECTORY"
 run_test TurnoutModelTests

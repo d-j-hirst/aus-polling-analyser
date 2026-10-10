@@ -1114,7 +1114,7 @@ void SimulationPreparation::determineSpecificPartyIndices()
 	if (run.grnPartyIndex == PartyCollection::InvalidIndex) {
 		run.grnPartyIndex = InvalidPartyIndex;
 	}
-	run.natPartyIndex = project.parties().indexByShortCode("NAT");
+	run.natPartyIndex = project.parties().separateNationalsIndex();
 	if (run.natPartyIndex == PartyCollection::InvalidIndex) {
 		run.natPartyIndex = InvalidPartyIndex;
 	}

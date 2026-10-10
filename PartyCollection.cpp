@@ -56,6 +56,14 @@ int PartyCollection::indexByShortCode(std::string shortCode) const
 	return -1;
 }
 
+PartyCollection::Index PartyCollection::separateNationalsIndex() const
+{
+	// Ordinary code lookup still recognises aliases in combined-party projects.
+	// Only the simulation's distinct Coalition partner needs this restriction.
+	auto const index = indexByShortCode("NAT");
+	return index >= NumMajorParties ? index : InvalidIndex;
+}
+
 PartyCollection::Index PartyCollection::idToIndex(Party::Id id) const
 {
 	auto foundIt = parties.find(id);

@@ -12,7 +12,9 @@ LiveAnalysisArchiveTests
 LiveSnapshotSequenceTests
 LiveSnapshotDataTests
 MacroTargetResolverTests
+MajorPartyFpMathTests
 RandomGeneratorTests
+SharedInputLookupTests
 TerminalMacroFeedbackTests
 TurnoutModelTests
 WorkspacePathsTests

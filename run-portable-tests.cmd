@@ -75,7 +75,11 @@ call :run LiveSnapshotDataTests
 if errorlevel 1 goto :failure
 call :run MacroTargetResolverTests
 if errorlevel 1 goto :failure
+call :run MajorPartyFpMathTests
+if errorlevel 1 goto :failure
 call :run RandomGeneratorTests
+if errorlevel 1 goto :failure
+call :run SharedInputLookupTests
 if errorlevel 1 goto :failure
 call :run TerminalMacroFeedbackTests
 if errorlevel 1 goto :failure

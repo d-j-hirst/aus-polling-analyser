@@ -1,5 +1,6 @@
 #include "../LiveData.h"
 #include "../LiveSimulationMath.h"
+#include "../LivePartyMapping.h"
 
 #include <cassert>
 #include <cmath>
@@ -17,6 +18,32 @@ int main()
 	assert(LiveData::voteTypeName(LiveData::VoteType::IVote) == "iVote");
 	assert(LiveData::voteTypeName(LiveData::VoteType::MarkedAsVoted) == "Marked as voted");
 	assert(LiveData::boothTypeName(LiveData::BoothType::Ppvc) == "PPVC");
+
+	// Configured coalition aliases may deliberately combine parties, while a
+	// project with separate Nationals retains both identities. Missing codes on
+	// other registered parties must never act as a shared alias.
+	std::map<int, int> commissionIds{{11, 0}, {12, 1}, {13, 7}};
+	std::map<std::string, int> abbreviations{{"ALP", 0}, {"LNP", 1}, {"NAT", 7}};
+	auto mapParty = [&](int id, std::string const& code) {
+		return LivePartyMapping::mapParty(id, code, 8, 100000,
+			commissionIds, abbreviations);
+	};
+	assert(mapParty(12, "LNP") == 1);
+	assert(mapParty(13, "NAT") == 7);
+	assert(mapParty(14, "NAT") == 7); // Same party, another election's ID.
+	int const unknownOne = mapParty(21, "");
+	int const unknownTwo = mapParty(22, "");
+	assert(unknownOne >= 8 && unknownTwo > unknownOne);
+	assert(mapParty(21, "") == unknownOne);
+	assert(!abbreviations.contains(""));
+	int const minor = mapParty(23, "MIN");
+	assert(mapParty(24, "MIN") == minor);
+	std::map<int, int> combinedIds;
+	std::map<std::string, int> combinedCodes{{"LNP", 1}, {"NAT", 1}};
+	assert(LivePartyMapping::mapParty(31, "LNP", 2, 100000,
+		combinedIds, combinedCodes) == 1);
+	assert(LivePartyMapping::mapParty(32, "NAT", 2, 100000,
+		combinedIds, combinedCodes) == 1);
 
 	LiveData::BoothSnapshot snapshot;
 	assert(snapshot.boothType == LiveData::BoothType::Invalid);
