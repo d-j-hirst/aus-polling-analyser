@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-10-10T14:10:07Z",
+  "updated_at_utc": "2026-10-11T11:11:41Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 25,
+      "semantic_revision": 27,
       "files": {
         "2019fed.txt": {
           "sha256": "014946dc77548034140f78ad66a062f1c59a6d070122cea4c7dcb8bd4525b321",
@@ -65,9 +65,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "c560da1832d8b1661b60bd7744fb55f41e3bb4c9775e4726d8f487430de0da82",
-          "size_bytes": 22473,
-          "recorded_mtime_utc": "2026-10-06T10:22:22.436948Z"
+          "sha256": "0d31b81e79eb9c7512d4b9965db1ec1b102c04fa5a02da894af461d2e49f7088",
+          "size_bytes": 22845,
+          "recorded_mtime_utc": "2026-10-11T11:10:18.032164Z"
         },
         "2027nsw.txt": {
           "sha256": "9066c05124dc34153f7b56e0d6c2a7238d5a40e3e1edb7965d74778378c4120a",
@@ -618,9 +618,56 @@
             "description": "Public VEC first-preference candidate tables for all 87 active 2022 districts; original November Narracan nominations from the ABC election guide as noted in the summary. Minor registered parties without their own model grouping count as OTH; candidates without a party endorsement count as IND. Each asterisk denotes one additional candidate.",
             "uri": "https://vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district"
           }
+        },
+        {
+          "id": "20261011T110848Z-other-forecast-seats-bca44d1c",
+          "recorded_at_utc": "2026-10-11T11:08:48Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 26,
+          "provenance_revision": 26,
+          "summary": "2026vic betting odds & candidate data",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261011T111141Z-source_refresh-forecast-seats-7c552b72",
+          "recorded_at_utc": "2026-10-11T11:11:41Z",
+          "change_type": "source_refresh",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 27,
+          "provenance_revision": 27,
+          "summary": "Apply the approved 10 October 2026 candidacy audit: add Liberal candidates Charles Aponso (Richmond) and Belinda Stojcevski (Thomastown), and One Nation candidates Michael Abelman (Caulfield), Andrew Partridge (Lowan), Casey Murphy (Morwell), Andrew Forehan (Pascoe Vale), Franco Guardiani (Preston) and John O'Connor (Ringwood), using official party names. Add Lou Costa (Shepparton), Dom Bonanno (Macedon) and Kim Robbins (Nepean) as confirmed prominent independents at viability -1, without returning-independent flags. Preserve existing viability ratings, returning-independent flags, historical incumbent codes, Coalition assumptions and betting odds; leave other independent campaigns pending.",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          },
+          "source": {
+            "description": "Official party listings verified for the 10 October audit: https://vicliberal.org.au/team/charles-aponso, https://vicliberal.org.au/team/belinda-stojcevksi and the One Nation candidate directory. Lou Costa endorsement: https://www.sheppnews.com.au/news/voices-for-goulburn-valley-endorses-a-community-independent-candidate/. Dom Bonanno candidacy: https://www.domformacedon.com.au/ and https://sunburymacedonranges.starweekly.com.au/news/bonanno-announces-state-election-bid/. Kim Robbins campaign: https://www.mpnews.com.au/2026/09/29/campaigning-for-the-state-election-ramps-up/. Kim Robbins is not endorsed by Independents for Mornington Peninsula; Dom Bonanno previously stood as a Liberal.",
+            "uri": "https://vic.onenation.org.au/candidates",
+            "coverage_through": "2026-10-10"
+          }
         }
       ],
-      "provenance_revision": 25
+      "provenance_revision": 27
     }
   }
 }
