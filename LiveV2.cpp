@@ -306,6 +306,7 @@ enum class VariabilityTag : std::uint32_t {
   GenerateNonClassicTppVariability = 15,
   GenerateBoothTypeFpVariability = 16,
   GenerateVoteTypeFpVariability = 17,
+  GenerateFpEvidenceEndpoint = 18,
 };
 
 void Node::log() const
@@ -4015,9 +4016,7 @@ void Election::generateVariability(int iterationIndex) {
     std::set<int> adjustedPartyIds;
     bool fpProjectionChanged = false;
     for (auto const& [partyId, stdDev] : seat.fpAllBoothsStdDev) {
-      float randomVariation = variabilityNormal(
-        0.0f, fpEvidenceStdDev(seatIndex,partyId,stdDev), seatIndex, partyId, uint32_t(VariabilityTag::GenerateFpVariability)
-      );
+      float randomVariation = drawFpVariability(seatIndex,partyId,stdDev);
       // Random variability can be not-quite-symmetric due to the complexity of the simulation,
       // so this (and similar lines elsewhere) ensures that the variation is zero when completion is zero,
       // but rapidly transitions to full variability as completion increases
@@ -4277,18 +4276,36 @@ int Election::mapPartyId(
   return processParty(ecPartyId, "");
 }
 
-float Election::variabilityNormal(float mean, float sd, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const {
-  if (!std::isfinite(mean) || !std::isfinite(sd) || sd < 0.0f) {
-    throw std::runtime_error(
-      "Cannot generate live variability from invalid normal parameters.");
-  }
+std::uint64_t Election::variabilityKey(int itemIndex, std::uint64_t partyId, std::uint32_t tag) const {
+  // Separate keyed streams make each candidate's draw reproducible regardless
+  // of thread scheduling. The endpoint choice must not share the normal draw's
+  // stream, or selecting an estimate would also select a particular local error.
   std::uint64_t key = variabilityBaseSeed;
   key = RandomGenerator::mixKey(key, LiveVariabilityDomain);
   key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(variabilitySampleIndex));
   key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(itemIndex));
   key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(partyId));
   key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(tag));
-  return RandomGenerator::normal_from_key(key, mean, sd);
+  return key;
+}
+
+float Election::variabilityNormal(float mean, float sd, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const {
+  if (!std::isfinite(mean) || !std::isfinite(sd) || sd < 0.0f) {
+    throw std::runtime_error(
+      "Cannot generate live variability from invalid normal parameters.");
+  }
+  return RandomGenerator::normal_from_key(variabilityKey(itemIndex,partyId,tag), mean, sd);
+}
+
+float Election::drawFpVariability(int seatIndex, int partyId, float localStdDev) const {
+  // Both contributions use the same whole-seat transformed scale and receive
+  // the existing smooth count-progress phase-in before the finite-pool sampler.
+  // Counted candidate votes remain fixed when that sampler changes composition.
+  float normal = variabilityNormal(0.0f,fpEvidenceNormalStdDev(seatIndex,partyId,localStdDev),
+    seatIndex,partyId,uint32_t(VariabilityTag::GenerateFpVariability));
+  double quantile = RandomGenerator::uniform01_from_key(
+    variabilityKey(seatIndex,partyId,uint32_t(VariabilityTag::GenerateFpEvidenceEndpoint)));
+  return normal+fpEvidenceDisagreement(seatIndex,partyId,quantile);
 }
 
 void Election::log(bool includeLargeRegions, bool includeSeats, bool includeBooths) const {

@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-10-11T11:11:41Z",
+  "updated_at_utc": "2026-10-12T11:22:05Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 27,
+      "semantic_revision": 31,
       "files": {
         "2019fed.txt": {
           "sha256": "014946dc77548034140f78ad66a062f1c59a6d070122cea4c7dcb8bd4525b321",
@@ -65,9 +65,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "0d31b81e79eb9c7512d4b9965db1ec1b102c04fa5a02da894af461d2e49f7088",
-          "size_bytes": 22845,
-          "recorded_mtime_utc": "2026-10-11T11:10:18.032164Z"
+          "sha256": "ac9985b2217bbb96a0a6f4cb12bb48965b51f0d319afc90c39620234fa4eeb80",
+          "size_bytes": 22846,
+          "recorded_mtime_utc": "2026-10-12T10:25:39.928709Z"
         },
         "2027nsw.txt": {
           "sha256": "9066c05124dc34153f7b56e0d6c2a7238d5a40e3e1edb7965d74778378c4120a",
@@ -75,9 +75,9 @@
           "recorded_mtime_utc": "2026-09-13T23:28:54.408756Z"
         },
         "2028fed.txt": {
-          "sha256": "c8cd396e12fea93793036e496b6ec22cdec48b6166c2c4fdfda54d2703db0538",
-          "size_bytes": 30506,
-          "recorded_mtime_utc": "2026-09-14T05:55:33.329933Z"
+          "sha256": "fe074252b3a2158a68ff4fd9989ece8906d3a718d5454ad6e5fc6f313b32e378",
+          "size_bytes": 33905,
+          "recorded_mtime_utc": "2026-10-12T11:20:44.975754Z"
         }
       },
       "events": [
@@ -665,9 +665,93 @@
             "uri": "https://vic.onenation.org.au/candidates",
             "coverage_through": "2026-10-10"
           }
+        },
+        {
+          "id": "20261012T095447Z-new_polling-forecast-seats-4e25c471",
+          "recorded_at_utc": "2026-10-12T09:54:47Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 28,
+          "provenance_revision": 28,
+          "summary": "DemosAU MRP",
+          "files": [
+            "2028fed.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261012T102750Z-other-forecast-seats-43961415",
+          "recorded_at_utc": "2026-10-12T10:27:50Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 29,
+          "provenance_revision": 29,
+          "summary": "Seat odds update",
+          "files": [
+            "2028fed.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261012T102844Z-other-forecast-seats-024f332e",
+          "recorded_at_utc": "2026-10-12T10:28:44Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 30,
+          "provenance_revision": 30,
+          "summary": "Betting odds update",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261012T112205Z-correction-forecast-seats-d58c6510",
+          "recorded_at_utc": "2026-10-12T11:22:05Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 31,
+          "provenance_revision": 31,
+          "summary": "fix Casey entry",
+          "files": [
+            "2028fed.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 27
+      "provenance_revision": 31
     }
   }
 }

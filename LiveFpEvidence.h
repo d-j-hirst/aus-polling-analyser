@@ -137,23 +137,37 @@ inline double replacementWeight(Evidence const& evidence) {
     // used for live variability is discounted for a small or concentrated count.
     return -std::expm1(-PriorReplacementRate*evidence.completion*breadthGate(evidence));
 }
-inline double disagreementVariance(Prepared const& prepared, int party) {
+inline double disagreementGap(Prepared const& prepared, int party) {
     auto const& e = prepared.evidence;
-    double w = value(prepared.weight,party), pool = total(e.historical);
+    double pool = total(e.historical);
     double size = e.observed+pool;
-    if (size == 0 || w == 0) return 0;
+    if (pool == 0 || e.observed == 0) return 0;
     double fixed = value(e.counted,party);
     auto odds = [fixed,size](double future) {
         double votes = fixed+future;
         return std::log((votes+.5)/(std::max(0.,size-votes)+.5));
     };
-    double gap = odds(value(e.absolute,party))-odds(value(e.historical,party));
-    // Disagreement is uncertainty, not another independent observation. Use
-    // the between-method variance on natural log odds without dividing either
-    // method's sampling variance by a spurious combined sample size.
+    return odds(value(e.absolute,party))-odds(value(e.historical,party));
+}
+inline double disagreementVariance(Prepared const& prepared, int party) {
+    // This remains the total disagreement variance for diagnostics. The draw
+    // below supplies it separately from the normal sampling uncertainty.
+    double w = value(prepared.weight,party);
+    double gap = disagreementGap(prepared,party);
     return w*(1-w)*gap*gap;
 }
-inline double additionalVariance(Prepared const& prepared, int party) {
+inline double disagreementVariation(Prepared const& prepared, int party, double quantile) {
+    // Ordinary local uncertainty still varies around either estimate. Only
+    // uncertainty about which of the two descriptions is appropriate chooses
+    // an endpoint: absolute with probability w, historical with probability
+    // 1-w. Subtracting w centres this natural-log-odds contribution on zero.
+    // Its variance is still w(1-w)*gap^2, but disagreement alone cannot extend
+    // the gap beyond both estimates, as an unbounded normal draw could.
+    double w = value(prepared.weight,party);
+    if (w == 0 || w == 1) return 0;
+    return ((quantile < w ? 1.0 : 0.0)-w)*disagreementGap(prepared,party);
+}
+inline double earlyVariance(Prepared const& prepared, int party) {
     auto const& e = prepared.evidence;
     double pool = total(e.historical), size = pool+e.observed;
     if (pool == 0 || e.observed == 0) return 0;
@@ -167,7 +181,10 @@ inline double additionalVariance(Prepared const& prepared, int party) {
     // votes nor leaves a fixed percentage-point error when counting finishes.
     double remainingSd = std::exp(-e.completion/EarlyUncertaintyCompletion)/std::sqrt(e.breadth+1);
     double response = pool/size*q/(overall*(1-overall));
-    return disagreementVariance(prepared,party)+std::pow(response*remainingSd,2);
+    return std::pow(response*remainingSd,2);
+}
+inline double additionalVariance(Prepared const& prepared, int party) {
+    return disagreementVariance(prepared,party)+earlyVariance(prepared,party);
 }
 inline Shares adjusted(Unit const& unit, Shares const& factors) {
     auto future = remainder(unit);

@@ -839,10 +839,14 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 		seatJson["fp_all_booths_std_dev"] = parties.values(seat.fpAllBoothsStdDev);
 		if (fpEvidence) {
 			auto const& evidence = fpEvidence->at(&seat-seats.data());
-			LiveFpEvidence::Shares extraVariance;
-			for (auto const& [candidate,share] : evidence.future)
+			LiveFpEvidence::Shares extraVariance, normalVariance, disagreementGaps;
+			for (auto const& [candidate,share] : evidence.future) {
 				extraVariance[candidate] = LiveFpEvidence::additionalVariance(evidence,candidate);
+				normalVariance[candidate] = LiveFpEvidence::earlyVariance(evidence,candidate);
+				disagreementGaps[candidate] = LiveFpEvidence::disagreementGap(evidence,candidate);
+			}
 			seatJson["fp_evidence"] = {
+				{"disagreement_distribution","two_estimate_endpoints"},
 				{"completion",number(evidence.evidence.completion)},
 				{"reporting_breadth",number(evidence.evidence.breadth)},
 				{"prior_replacement_weight",number(LiveFpEvidence::replacementWeight(evidence.evidence))},
@@ -850,6 +854,8 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 				{"historical_remaining",parties.values(evidence.evidence.historical)},
 				{"absolute_remaining",parties.values(evidence.evidence.absolute)},
 				{"additional_log_odds_variance",parties.values(extraVariance)},
+				{"normal_additional_log_odds_variance",parties.values(normalVariance)},
+				{"disagreement_log_odds_gap",parties.values(disagreementGaps)},
 				{"combined_remaining_shares",parties.values(evidence.future)}
 			};
 		}

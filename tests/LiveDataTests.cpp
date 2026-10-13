@@ -150,8 +150,87 @@ void testCompetingFpEvidence() {
     assert(exact.at(9)==10);
 }
 
+void testFpDisagreementEndpoints() {
+    using namespace LiveFpEvidence;
+    // Fictional weakly comparable candidate: counted votes are fixed, while
+    // historical and absolute descriptions disagree about the future pool.
+    // The same contract also applies when history predicts the higher result.
+    Prepared p;
+    p.evidence.observed=1000; p.evidence.completion=.1; p.evidence.breadth=4;
+    p.evidence.counted={{0,500},{1,420},{900,80}};
+    p.evidence.historical={{0,4400},{1,4400},{900,200}};
+    p.evidence.absolute={{0,4000},{1,4100},{900,900}};
+    p.future={{0,.47},{1,.46},{900,.07}};
+    double const gap=std::log(980.5/9020.5)-std::log(280.5/9720.5);
+    assert(std::abs(disagreementGap(p,900)-gap)<1e-12);
+    for (bool reverse : {false,true}) {
+        if (reverse) std::swap(p.evidence.historical,p.evidence.absolute);
+        double const direction=reverse ? -gap : gap;
+        for (double w : {0.,.001,.05,.5,.95,.999,1.}) {
+            p.weight[900]=w;
+            double historical=disagreementVariation(p,900,1);
+            double absolute=disagreementVariation(p,900,0);
+            double mean=(1-w)*historical+w*absolute;
+            double variance=(1-w)*historical*historical+w*absolute*absolute;
+            assert(std::abs(mean)<1e-12);
+            assert(std::abs(variance-disagreementVariance(p,900))<1e-12);
+            assert(std::abs(variance-w*(1-w)*gap*gap)<1e-12);
+            // Once a method has all the weight there is no disagreement; when
+            // both have weight, the draw never extends beyond either endpoint.
+            for (double u : {0.,.0005,.025,.25,.5,.75,.975,.9995,1.}) {
+                double offset=disagreementVariation(p,900,u);
+                double centre=w*direction;
+                assert(offset+centre>=std::min(0.,direction)-1e-12);
+                assert(offset+centre<=std::max(0.,direction)+1e-12);
+                if (w==0 || w==1) assert(offset==0);
+            }
+            double normal=earlyVariance(p,900);
+            assert(normal>0);
+            assert(std::abs(additionalVariance(p,900)-variance-normal)<1e-12);
+        }
+    }
+    auto agreement=p;
+    agreement.evidence.absolute=agreement.evidence.historical;
+    assert(disagreementVariation(agreement,900,.5)==0);
+    assert(earlyVariance(agreement,900)==earlyVariance(p,900));
+
+    // The ordinary count-preservation path is shared with the new draw. A
+    // choice changes future composition, keeps the seat total, and permits
+    // ordinary normal variation in addition to the endpoint contribution.
+    p.weight[900]=.7;
+    std::map<int,float> projected{{0,4730.f},{1,4560.f},{900,710.f}};
+    for (double u : {.1,.9}) {
+        double offset=25*disagreementVariation(p,900,u);
+        for (double normal : {-2.,0.,2.}) {
+            auto varied=LiveTurnoutMath::varyRemaining(projected,p.evidence.counted,
+                {{900,offset+normal}},true);
+            double sum=0;
+            for (auto const& [id,v] : varied) {
+                assert(std::isfinite(v) && v>=p.evidence.counted.at(id));
+                sum+=v;
+            }
+            assert(std::abs(sum-10000)<.002);
+        }
+    }
+    // No observations and no future voters are exact no-ops. The first vote
+    // still receives the existing smooth progress phase-in rather than a new
+    // threshold at which the entire distribution changes.
+    auto empty=p; empty.evidence.observed=0;
+    assert(disagreementVariation(empty,900,.1)==0);
+    auto complete=p; complete.evidence.historical.clear();
+    assert(disagreementVariation(complete,900,.1)==0);
+    assert(earlyVariance(complete,900)==0);
+    Unit unreported{{},{{0,5000},{1,4000},{900,1000}},{0,1},1,0,true,false};
+    Unit first{{{0,1},{1,0},{900,0}},{{0,1400},{1,1300},{900,300}},{0,1},1,1,false,true};
+    auto tiny=prepare({unreported,first},0);
+    double phase=-std::expm1(-50*tiny.evidence.completion);
+    for (double u : {0.,.5,1.})
+        assert(std::abs(phase*disagreementVariation(tiny,900,u))<.01);
+}
+
 int main()
 {
+    testFpDisagreementEndpoints();
     testCompetingFpEvidence();
     testNewVoteComposition();
     // Fictional batches: earlier urban primaries favour the first finalist;

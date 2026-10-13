@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored election-specific regional polling inputs.",
   "created_at_utc": "2026-07-23T23:21:58Z",
-  "updated_at_utc": "2026-10-11T11:04:43Z",
+  "updated_at_utc": "2026-10-12T09:37:12Z",
   "categories": {
     "regional_poll_inputs": {
       "description": "Election-specific regional poll breakdowns used by region_model.py.",
@@ -13,7 +13,7 @@
         "*-polls-ON.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 7,
+      "semantic_revision": 8,
       "files": {
         "2024qld-polls.csv": {
           "sha256": "87b685e3a3be3c726a75e09ffebcefa603b4c55ad3556e937a2db810e3f94412",
@@ -46,14 +46,14 @@
           "recorded_mtime_utc": "2026-07-29T14:17:40.248107Z"
         },
         "2028fed-polls-ON.csv": {
-          "sha256": "5e52d4dbf7b93e94310bf2ce3c7564e2140b6c5c53bf98e83b668fed1a9d9c82",
-          "size_bytes": 2165,
-          "recorded_mtime_utc": "2026-10-11T08:59:53.955666Z"
+          "sha256": "017025e5640594f60167876fdc181a69d12118c6e05c94beaa7cfe7bd1a76e90",
+          "size_bytes": 2220,
+          "recorded_mtime_utc": "2026-10-12T09:26:37.515036Z"
         },
         "2028fed-polls.csv": {
-          "sha256": "78639d4bd289bc2a2f2e634d35e86cbab352b8a064deb25cf1d3f18b852c29f3",
-          "size_bytes": 3400,
-          "recorded_mtime_utc": "2026-10-11T08:59:44.209250Z"
+          "sha256": "7bcd5451a9ca61316a3e220cc3df455c517e56bb0d036ad05e95ea1a06d98a8e",
+          "size_bytes": 3485,
+          "recorded_mtime_utc": "2026-10-12T09:26:41.565731Z"
         },
         "2028qld-polls-ON.csv": {
           "sha256": "948e26ac2d7c1b3f413d64aec71a58335881f830cea6224d892162a4984ea0c2",
@@ -273,9 +273,31 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261012T093712Z-new_polling-regional-poll-inputs-aad2da7f",
+          "recorded_at_utc": "2026-10-12T09:37:12Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 8,
+          "provenance_revision": 8,
+          "summary": "Morgan + DemosAU MRP",
+          "files": [
+            "2028fed-polls-ON.csv",
+            "2028fed-polls.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 7
+      "provenance_revision": 8
     }
   }
 }

@@ -574,7 +574,9 @@ private:
   LiveFpEvidence::Unit fpEvidenceUnit(int boothIndex, bool varied = false) const;
   void applyFpEvidence(int boothIndex);
   void refreshFpEvidenceProjections();
-  float fpEvidenceStdDev(int seatIndex, int partyId, float localStdDev) const;
+  int fpEvidenceCandidate(int seatIndex, int partyId) const;
+  float fpEvidenceNormalStdDev(int seatIndex, int partyId, float localStdDev) const;
+  float fpEvidenceDisagreement(int seatIndex, int partyId, double quantile) const;
 
   void calculateTcpPreferenceFlows();
 
@@ -660,6 +662,8 @@ private:
     Results2::Election const& currentElection);
 
   float variabilityNormal(float mean, float sd, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
+  std::uint64_t variabilityKey(int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
+  float drawFpVariability(int seatIndex, int partyId, float localStdDev) const;
 
   void log(bool includeLargeRegions = false, bool includeSeats = false, bool includeBooths = false) const;
 
