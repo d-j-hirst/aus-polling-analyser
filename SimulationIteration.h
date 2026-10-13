@@ -74,8 +74,15 @@ private:
 	void correctMajorPartyFpBias(bool accountForSeatNormalisation = false);
 	void solveTerminalFpReconciliation();
 	void incorporateLiveResults();
+	void incorporateLiveSeatFp(int seatIndex);
+	void prepareLiveFpCandidates(int seatIndex, LiveTurnoutMath::PartyAccount const& account);
+	void conditionLiveFpPrior(int seatIndex);
+	void recombineLiveCoalition(int seatIndex);
+	void integrateLiveFpAccount(int seatIndex, LiveData::VoteCountAccount const& account,
+		LiveData::FpIntegrationInformation const& information);
+	void restoreLiveFpGroups(int seatIndex, std::map<int,float> integrated, int independentGroup);
 	void determineSeatFinalResult(int seatIndex);
-	void assignNationalsVotes(int seatIndex, bool updateFromLive = true, bool finalSplit = false);
+	void assignNationalsVotes(int seatIndex);
 	void applyLiveManualOverrides(int seatIndex);
 	void recordSeatResult(int seatIndex);
 	void assignDirectWins();

@@ -81,7 +81,9 @@ public:
 	bool previousDisendorsement = false;
 	bool incumbentRecontestConfirmed = false;
 	bool confirmedProminentIndependent = false;
-	// The current independent is the same unsuccessful candidate as last time.
+	// The separately modelled current independent is the same unsuccessful
+	// principal candidate as last time. Required to reuse that candidate's
+	// prior once runningParties is populated; incumbents use their own path.
 	bool previousIndRunning = false;
 
 	float knownPrepollPercent = 0.0f;

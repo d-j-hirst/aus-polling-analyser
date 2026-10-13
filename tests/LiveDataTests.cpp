@@ -1,9 +1,11 @@
 #include "../LiveData.h"
 #include "../LiveSimulationMath.h"
+#include "../IndependentCandidacy.h"
 #include "../LivePartyMapping.h"
 #include "../LivePartialCount.h"
 #include "../LiveNewVotes.h"
 #include "../LiveFpEvidence.h"
+#include "../LiveFpIntegration.h"
 #include "../LiveTurnoutMath.h"
 
 #include <cassert>
@@ -15,6 +17,25 @@ static_assert(int(LiveData::VoteType::TIO) == 12);
 static_assert(int(LiveData::VoteType::MarkedAsVoted) == 13);
 static_assert(int(LiveData::BoothType::Normal) == 0);
 static_assert(int(LiveData::BoothType::Invalid) == 6);
+
+void testHistoricalIndependentEligibility()
+{
+    using IndependentCandidacy::usePreviousResult;
+    // A fictional defeated candidate won 24% last time. Some IND entries on
+    // a configured ballot cannot preserve that campaign's prior, whether or
+    // not a different named campaign has been marked prominent. This applies
+    // before any sampled recontest or transfer to the emerging slot.
+    assert(!usePreviousResult(true, false, false));
+    // Explicitly returning candidates keep their historical distribution.
+    assert(usePreviousResult(true, false, true));
+    // Before the ballot is known, an unannounced return remains possible.
+    assert(usePreviousResult(false, false, false));
+    assert(usePreviousResult(false, false, true));
+    // Incumbents continue through the separate retirement/recontest checks;
+    // they do not need the unsuccessful-candidate flag.
+    assert(usePreviousResult(true, true, false));
+    assert(usePreviousResult(false, true, false));
+}
 
 void testNewVoteComposition() {
     using namespace LiveNewVotes;
@@ -85,6 +106,58 @@ void testNewVoteComposition() {
     assert(std::abs(parent.specific.at(1)-parent.deviations.at(1)*.5) < 1e-7);
 }
 
+void testIndependentPooling() {
+    using namespace LiveNewVotes;
+    assert(independentPoolingWeight(0) == 0);
+    assert(std::abs(independentPoolingWeight(.05)-.5) < 1e-12);
+    assert(independentPoolingWeight(.01) < .04);
+    assert(independentPoolingWeight(.2) > .94);
+    // Fictional small campaigns rise from low bases while established
+    // candidates fall. Preserve each seat's own evidence and reduce only
+    // the movement it contributes to other districts.
+    FpEvidence small{10000,5000,.5,1,{{0,4.0f},{3,20.0f}},{},{}};
+    FpEvidence strong{10000,5000,.5,1,{{0,4.0f},{3,-10.0f}},{},{}};
+    prepareIndependentPooling(small,3,.01);
+    prepareIndependentPooling(strong,3,.2);
+    assert(small.deviations.at(3) == 20 && small.confidence == .5);
+    std::vector<FpEvidence> sources(10,small);
+    sources.push_back(strong); sources.push_back(strong);
+    auto combined = aggregate(sources,120000);
+    assert(combined.deviations.at(3) < -4);
+    assert(combined.deviations.at(0) == 4 && combined.confidence == .5);
+    assert(poolingConfidence(combined,3) < .1);
+
+    // Region size must not replenish lost independent evidence. Splitting
+    // these sources into regions preserves the flat candidate mean, weight
+    // and confidence, without applying the share discount again.
+    auto weakRegion = aggregate(std::vector<FpEvidence>(10,small),100000);
+    auto strongRegion = aggregate({strong,strong},20000);
+    auto nested = aggregate({weakRegion,strongRegion},120000);
+    assert(std::abs(nested.deviations.at(3)-combined.deviations.at(3)) < 1e-6);
+    assert(std::abs(nested.poolingVotes.at(3)-combined.poolingVotes.at(3)) < 1e-9);
+    assert(poolingConfidence(nested,3) == poolingConfidence(combined,3));
+    FpEvidence absent{10000,5000,.5,1,{{0,4.0f}},{},{}};
+    prepareIndependentPooling(absent,3,.2);
+    assert(candidateEvidenceWeight(absent,3) == 0);
+    auto sparse = aggregate({absent,strong},20000);
+    assert(sparse.deviations.at(3) == -10);
+    assert(sparse.poolingVotes.at(3) == strong.poolingVotes.at(3));
+    assert(sparse.confidence == .5);
+    auto noIndependent = aggregate({absent,absent},20000);
+    assert(!noIndependent.deviations.contains(3));
+    assert(poolingConfidence(noIndependent,3) == 0);
+    condition(combined,{},.5,{{3,.1}});
+    assert(combined.specific.at(0) == 2);
+    assert(std::abs(combined.specific.at(3)-combined.deviations.at(3)*.1) < 1e-6);
+
+    // Broad, genuine improvement among competitive campaigns still transfers.
+    // Neither weight nor confidence uses the first booth's observed share.
+    strong.deviations[3] = 8;
+    auto broad = aggregate({strong,strong,strong},30000);
+    assert(broad.deviations.at(3) == 8);
+    assert(poolingConfidence(broad,3) > .47);
+}
+
 void testCompetingFpEvidence() {
     using namespace LiveFpEvidence;
     Unit ordinary{{{0,400},{1,350},{900,250}},{{0,400},{1,350},{900,250}},{0,1},.1,0,true,false};
@@ -113,7 +186,7 @@ void testCompetingFpEvidence() {
     assert(adjusted(ordinary,weak.factors) == ordinary.projected);
     auto none = prepare({unreported},0);
     assert(none.factors.empty());
-    assert(replacementWeight(none.evidence) == 0);
+    assert(breadthGate(none.evidence) == 0);
     assert(adjusted(unreported,none.factors) == unreported.projected);
     assert(prepare({ordinary},.1).factors.empty());
     assert(prepare({},0).factors.empty());
@@ -130,24 +203,9 @@ void testCompetingFpEvidence() {
     auto initialComposition = LiveNewVotes::normalize(first.evidence.historical);
     for (auto const& [id,share] : initialComposition)
         assert(std::abs(first.future.at(id)-share)<.001);
-    assert(replacementWeight(first.evidence)<.001);
+    assert(breadthGate(first.evidence)<.001);
 
-    // A new seat with broad 15%-complete counts should not inherit an extreme
-    // independent prior just because it lacks a historical seat-wide swing.
-    Evidence broad;
-    broad.completion=.15; broad.observed=6000; broad.breadth=6;
-    double replacement=replacementWeight(broad);
-    assert(replacement>.99);
-    auto narrow=broad; narrow.breadth=1;
-    assert(replacementWeight(narrow)<replacement);
-    LiveTurnoutMath::PartyAccount account{{{0,2400},{1,3000},{9,600}},{{0,19000.f},{1,17000.f},{9,4000.f}}};
-    for (float prior : {1.f,30.f,60.f}) {
-        auto live=LiveTurnoutMath::reconcileForecast(account,{{0,(100-prior)/2},{1,(100-prior)/2},{9,prior}},true,1-replacement);
-        assert(live.at(9)>9 && live.at(9)<11);
-        assert(std::abs(live.at(0)+live.at(1)+live.at(9)-100)<.0001);
-    }
-    auto exact=LiveTurnoutMath::reconcileForecast(account,{{0,20.f},{1,20.f},{9,60.f}},true,0);
-    assert(exact.at(9)==10);
+
 }
 
 void testFpDisagreementEndpoints() {
@@ -228,8 +286,97 @@ void testFpDisagreementEndpoints() {
         assert(std::abs(phase*disagreementVariation(tiny,900,u))<.01);
 }
 
+void testFpPrecisionIntegration() {
+    using namespace LiveFpIntegration;
+    auto identity = [](int id) { return id; };
+    // Record unrounded draws and the implicit zero when a candidate is absent.
+    MomentAccumulator baseline;
+    baseline.add({{0,40.f},{1,50.f},{2,10.f}});
+    baseline.add({{0,50.f},{1,50.f}});
+    auto moments = baseline.finish();
+    double expected = (logOdds(.1)+logOdds(0))/2;
+    assert(std::abs(moments.logOddsMean.at(2)-expected)<1e-10);
+    assert(std::abs(moments.logOddsVariance.at(2)-std::pow(logOdds(.1)-logOdds(0),2)/4)<1e-9);
+    // Anti-correlated candidates sum to a constant share. Adding their separate
+    // variances would invent uncertainty in this anonymous candidate group.
+    auto combined = group(moments,0,[](int id) { return id == 2 ? 0 : id; });
+    assert(combined.present && combined.variance<1e-12);
+
+    // Broad early count draws earn less weight than a narrow pre-election prior.
+    // This single precision weight also bounds the independent blended variance.
+    for (double rawVariance : {.001,.04,1.,10.}) {
+        for (double gate : {0.,.01,.1,.9,1.}) {
+            double w = countWeight(.04,rawVariance,gate);
+            double variance = std::pow(1-w,2)*.04+w*w*rawVariance;
+            assert(variance<=.04+1e-12);
+            assert(w>=0 && w<=1);
+        }
+    }
+    double tinyGate = 80./580*.5;
+    assert(countWeight(.04,1,tinyGate)<.003);
+    assert(countWeight(.04,1,0)==0);
+    assert(countWeight(0,1,1)==0);
+    assert(countWeight(.04,0,1)==1);
+
+    LiveData::FpIntegrationInformation information;
+    information.baseline.logOddsMean={{0,logOdds(.3)},{1,logOdds(.7)}};
+    information.baseline.logOddsVariance={{0,.04},{1,.04}};
+    information.baseline.shareMean={{0,.3},{1,.7}};
+    information.count.logOddsMean={{0,logOdds(.45)},{1,logOdds(.55)}};
+    information.count.logOddsVariance={{0,1.f},{1,1.f}};
+    information.count.shareMean={{0,.45},{1,.55}};
+    std::map<int,float> prior{{0,30.f},{1,70.f}};
+    LiveTurnoutMath::PartyAccount early{{{0,40.f},{1,40.f}},{{0,18000.f},{1,22000.f}}};
+    // No observations preserves the exact prior; eighty votes move it smoothly.
+    auto unreported=early; unreported.counted={{0,0.f},{1,0.f}};
+    assert(integrate(unreported,prior,information,identity,identity)==prior);
+    information.evidenceGate=tinyGate;
+    auto first=integrate(early,prior,information,identity,identity);
+    assert(first.at(0)>30 && first.at(0)<30.1);
+    assert(std::abs(first.at(0)+first.at(1)-100)<1e-5);
+
+    // Shared movement survives even when local uncertainty is very broad. The
+    // caller supplies the same conditional prior shift as the count's centre.
+    auto shifted=early; shifted.projected={{0,14000.f},{1,26000.f}};
+    auto common=integrate(shifted,{{0,35.f},{1,65.f}},information,identity,identity);
+    assert(std::abs(common.at(0)-35)<1e-5);
+
+    // Tight count evidence replaces an implausible prior tail, while fixed
+    // counts always bound the result, even if a precise prior contradicts them.
+    information.evidenceGate=.9;
+    information.count.logOddsVariance={{0,.00001},{1,.00001}};
+    auto strong=integrate(early,{{0,90.f},{1,10.f}},information,identity,identity);
+    assert(strong.at(0)>44.9 && strong.at(0)<45.1);
+    LiveTurnoutMath::PartyAccount late{{{0,490.f},{1,450.f},{2,50.f}},{{0,500.f},{1,450.f},{2,50.f}}};
+    auto bounded=constrainToCounted(late,{{0,.01},{1,.98},{2,.01}});
+    assert(bounded.at(0)>=49 && bounded.at(1)>=45 && bounded.at(2)>=5);
+    assert(std::abs(bounded.at(0)+bounded.at(1)+bounded.at(2)-100)<1e-5);
+    auto complete=late; complete.counted={{0,500.f},{1,450.f},{2,50.f}};
+    auto exact=constrainToCounted(complete,{{0,.8},{1,.1},{2,.1}});
+    assert(exact.at(0)==50 && exact.at(1)==45 && exact.at(2)==5);
+    // Identical moments under an independent proxy or Liberal/National
+    // partition produce identical results; array position has no meaning here.
+    auto proxy=information;
+    auto relabel = [](auto const& values) {
+        std::map<int,double> out;
+        for (auto const& [id,v] : values) out[id == 1 ? 900 : id]=v;
+        return out;
+    };
+    proxy.count.shareMean=relabel(information.count.shareMean);
+    proxy.count.logOddsMean=relabel(information.count.logOddsMean);
+    proxy.count.logOddsVariance=relabel(information.count.logOddsVariance);
+    LiveTurnoutMath::PartyAccount alias{{{0,40.f},{900,40.f}},{{0,18000.f},{900,22000.f}}};
+    auto partition=[](int id) { return id == 900 ? 1 : id; };
+    auto renamed=integrate(LiveTurnoutMath::partitionAccount({&alias.counted,&alias.projected},partition),
+        {{0,90.f},{1,10.f}},proxy,identity,partition);
+    assert(renamed==strong);
+}
+
 int main()
 {
+    testHistoricalIndependentEligibility();
+    testIndependentPooling();
+    testFpPrecisionIntegration();
     testFpDisagreementEndpoints();
     testCompetingFpEvidence();
     testNewVoteComposition();

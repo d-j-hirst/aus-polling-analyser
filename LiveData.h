@@ -108,6 +108,24 @@ struct VoteCountAccount {
 };
 enum class CountKind { Fp, Tpp, Tcp };
 
+// Moments of actual FP draws, measured in natural log odds and vote fractions.
+// Share covariances allow the simulator to combine ballot candidates into its
+// anonymous Others group without treating their uncertainties as independent.
+// These small runtime objects are rebuilt with the live baseline, not saved in
+// a project or retained separately for every snapshot.
+struct FpDistributionMoments {
+	std::map<int, double> logOddsMean, logOddsVariance, shareMean;
+	std::map<std::pair<int, int>, double> shareCovariance;
+};
+struct FpIntegrationInformation {
+	FpDistributionMoments baseline, count;
+	// Accepted election + region movement, in the analyser's log odds times 25.
+	// Freeze the prepared mean: local random count errors must not also enter
+	// the conditional prior indirectly through recalculated regional summaries.
+	std::map<int,float> sharedDeviation;
+	double evidenceGate = 0;
+};
+
 // Diagnostic values used by the live summary export. They remain DTOs rather
 // than exposing the live analyser's internal node hierarchy.
 struct Internals {
@@ -161,10 +179,10 @@ public:
 	// intentionally unused parameters unnamed in the default implementation.
 	virtual std::optional<VoteCountAccount> getSeatVoteCountAccount(
 		std::string const&, CountKind) const { return {}; }
-	// Absolute-count evidence can replace the residual pre-election FP tail even
-	// when historical swings are poorly comparable. This is separate from TPP
-	// confidence and from the choice of historical/absolute FP central estimate.
-	virtual float getSeatFpEvidenceWeight(std::string const&) const { return 0; }
+	// Borrowed immutable moments for the FP precision handoff. Its lifetime is
+	// the provider's; scenario copies share preparation rather than copying draws.
+	virtual FpIntegrationInformation const* getSeatFpIntegrationInformation(
+		std::string const&) const { return nullptr; }
 	virtual std::optional<ValueInformation> getSeatNationalsProportion(
 		std::string const& seatName) const = 0;
 

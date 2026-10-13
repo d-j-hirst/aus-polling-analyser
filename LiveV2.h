@@ -71,6 +71,9 @@ public:
   // Confidence = how useful the existing results are for projection remaining results.
   // So this will include estimates from fp, but not include results where swing can't be calculated
   float fpConfidence = 0.0f;
+  // Candidate-specific effective votes for movement shared across districts.
+  // These never reduce the confidence in this district's own reported FP.
+  std::map<int, double> fpPoolingVotes;
   float tcpConfidence = 0.0f;
   float tppConfidence = 0.0f;
   float preferenceFlowConfidence = 0.0f;
@@ -161,6 +164,10 @@ public:
 
 class Seat {
 public:
+  // A separately modelled principal campaign can inform other independents.
+  // A generic emerging/recontest possibility has no identified candidate to
+  // compare and supplies no pooling baseline; it still receives local updates.
+  double independentPoolingBaselineShare = 0;
   Seat(Results2::Seat const& seat, int parentRegionIndex);
 
   void log(Election const& election, bool includeBooths = false) const;
@@ -313,7 +320,8 @@ public:
     return {};
   }
 
-  float getSeatFpEvidenceWeight(std::string const& seatName) const override;
+  LiveData::FpIntegrationInformation const* getSeatFpIntegrationInformation(
+    std::string const& seatName) const override;
 
   std::map<int, float> getSeatOverallFpDeviations(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
@@ -555,6 +563,13 @@ private:
   void aggregateToLargeRegion(LargeRegion& largeRegion);
   void aggregateToElection();
 
+  LiveNewVotes::FpEvidence primaryEvidence(Node const& node) const;
+  void prepareIndependentPooling(LiveNewVotes::FpEvidence& evidence, Seat const& seat) const;
+  void prepareSeatIndependentPooling(Seat& seat) const;
+  float fpPoolingObservationWeight(Node const& node, int party, float strength) const;
+  std::map<int,double> fpPoolingObservationWeights(LiveNewVotes::FpEvidence const& evidence, float strength) const;
+  void retainObservedIndependentPooling(Node const& node, std::map<int,float>& finalDeviations) const;
+
   Node aggregateFromChildren(const std::vector<Node const*>& nodesToAggregate, Node const* parentNode = nullptr) const;
 
   // Propagates information from higher levels to lower levels
@@ -577,6 +592,11 @@ private:
   int fpEvidenceCandidate(int seatIndex, int partyId) const;
   float fpEvidenceNormalStdDev(int seatIndex, int partyId, float localStdDev) const;
   float fpEvidenceDisagreement(int seatIndex, int partyId, double quantile) const;
+  void prepareFpIntegration();
+  std::vector<LiveData::FpIntegrationInformation> fpIntegrationCentres() const;
+  std::vector<LiveData::FpDistributionMoments> measureFpCountMoments();
+  void generateSharedFpVariability();
+  std::map<int, double> drawSeatFpChanges(int seatIndex) const;
 
   void calculateTcpPreferenceFlows();
 
@@ -733,6 +753,7 @@ private:
   // share these compact maps and own only their varied future compositions.
   std::shared_ptr<std::vector<LiveNewVotes::Shares> const> newVoteContexts;
   std::shared_ptr<std::vector<LiveFpEvidence::Prepared> const> fpEvidence;
+  std::shared_ptr<std::vector<LiveData::FpIntegrationInformation> const> fpIntegration;
   std::map<std::string, TurnoutModelIO::InactiveContest> inactiveContests;
   std::shared_ptr<nlohmann::json const> turnoutDiagnostic;
 

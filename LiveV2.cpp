@@ -799,6 +799,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   preparePreferenceCorrections();
   prepareVariability();
   prepareTurnoutComposition();
+  prepareFpIntegration();
   log(true, true, true);
 }
 
@@ -1469,6 +1470,7 @@ void Election::includeSeatBaselineResults(
     auto& seat = *seatIt;
     for (auto const& [partyId, probabilityBands] : baseline.seatFpProbabilityBand.at(i)) {
       float median = probabilityBands.at((probabilityBands.size() - 1) / 2);
+      if (partyId == run.indPartyIndex) seat.independentPoolingBaselineShare = median*.01;
       // Some categories like emerging-ind will likely have a median of 0,
       // but we want to include them, so assign them a small baseline share
       // This won't affect significant parties or independents as their median will
@@ -1983,6 +1985,7 @@ void Election::aggregateCollection(T& parent, const std::vector<int>& childIndic
 
 void Election::aggregateToSeat(Seat& seat) {
   aggregateCollection(seat, seat.booths, booths);
+  prepareSeatIndependentPooling(seat);
 }
 
 void Election::aggregateToLargeRegion(LargeRegion& largeRegion) {
@@ -1993,6 +1996,52 @@ void Election::aggregateToElection() {
   std::vector<int> indices(largeRegions.size());
   std::iota(indices.begin(), indices.end(), 0);
   aggregateCollection(*this, indices, largeRegions);
+}
+
+LiveNewVotes::FpEvidence Election::primaryEvidence(Node const& source) const {
+  return {expectedVotesForAggregation(source),double(source.totalFpVotesCurrent()),
+    source.fpConfidence,source.relevanceModifier,source.fpDeviations,{},source.fpPoolingVotes};
+}
+
+void Election::prepareIndependentPooling(LiveNewVotes::FpEvidence& evidence, Seat const& seat) const {
+  // Most parties represent the same organisation in every district. The
+  // independent slot instead represents a different principal candidate in
+  // each seat. Use its baseline size to assess cross-seat comparability;
+  // current counts still determine that candidate's own local estimate.
+  // Only the separate principal-campaign baseline establishes source size.
+  // Mapping a hypothetical emerging candidate into the local principal slot
+  // later does not establish that this is a continuing/comparable campaign.
+  // Usually the baseline and current principal identify the same candidate.
+  // If a different independent overtakes that candidate locally, its local
+  // votes remain usable but the older campaign's baseline is not its source
+  // size for movement shared with other districts.
+  double share = seat.independentPartyIndex != InvalidPartyIndex
+    && seat.liveIndependentPartyIndex == seat.independentPartyIndex
+    ? seat.independentPoolingBaselineShare : 0;
+  LiveNewVotes::prepareIndependentPooling(evidence,run.indPartyIndex,share);
+}
+
+void Election::prepareSeatIndependentPooling(Seat& seat) const {
+  auto evidence = primaryEvidence(seat.node);
+  prepareIndependentPooling(evidence,seat);
+  seat.node.fpPoolingVotes = std::move(evidence.poolingVotes);
+}
+
+float Election::fpPoolingObservationWeight(Node const& source, int party, float strength) const {
+  // Region and election shrinkage must use the same discounted candidate
+  // evidence as their means. Using all-party confidence here would give a
+  // region with one weak independent comparison disproportionate influence.
+  float confidence = source.fpPoolingVotes.contains(party)
+    ? float(LiveNewVotes::poolingConfidence(primaryEvidence(source),party)) : source.fpConfidence;
+  return obsWeight(confidence,strength);
+}
+
+std::map<int,double> Election::fpPoolingObservationWeights(
+  LiveNewVotes::FpEvidence const& evidence, float strength) const {
+  std::map<int,double> weights;
+  for (auto const& [party,votes] : evidence.poolingVotes)
+    weights[party] = obsWeight(float(LiveNewVotes::poolingConfidence(evidence,party)),strength);
+  return weights;
 }
 
 Node Election::aggregateFromChildren(
@@ -2017,18 +2066,18 @@ Node Election::aggregateFromChildren(
   // Evidence and completion are separate accounts. Cap primary-composition
   // evidence at actual received votes, but retain the expected-size denominator
   // for completion and confidence even for booths with no usable comparison.
-  std::vector<LiveNewVotes::FpEvidence> primaryEvidence;
+  std::vector<LiveNewVotes::FpEvidence> childrenPrimaryEvidence;
   double completedVotes = 0, primaryExpectedVotes = 0;
   for (auto child : nodesToAggregate) {
     double size = expectedVotesForAggregation(*child);
-    primaryEvidence.push_back({size,double(child->totalFpVotesCurrent()),
-      child->fpConfidence,child->relevanceModifier,child->fpDeviations,{}});
+    childrenPrimaryEvidence.push_back(primaryEvidence(*child));
     completedVotes += child->fpCompletion*size;
     primaryExpectedVotes += size;
   }
-  auto primary = LiveNewVotes::aggregate(primaryEvidence,primaryExpectedVotes);
+  auto primary = LiveNewVotes::aggregate(childrenPrimaryEvidence,primaryExpectedVotes);
   aggregatedNode.fpDeviations = std::move(primary.deviations);
   aggregatedNode.fpConfidence = float(primary.confidence);
+  aggregatedNode.fpPoolingVotes = std::move(primary.poolingVotes);
   if (primaryExpectedVotes > 0) aggregatedNode.fpCompletion = float(completedVotes/primaryExpectedVotes);
 
   // Aggregate current election vote totals (used for weighting only)
@@ -2130,9 +2179,8 @@ void Election::determineElectionSpecificDeviations() {
   // needed to reach the same level of true confidence. So we use a higher strength than for
   // other areas. In v3 of the model, we should treat this more as a sampling issue (base the
   // weight on sample size adjusted for representativeness, not % of total) but this will do for now
-  float fpObsWeight = obsWeight(node.fpConfidence, VoteObsWeightStrength * 2.5f);
   for (auto const& [partyId, deviation] : node.fpDeviations) {
-    node.specificFpDeviations[partyId] = deviation * fpObsWeight;
+    node.specificFpDeviations[partyId] = deviation * fpPoolingObservationWeight(node,partyId,VoteObsWeightStrength*2.5f);
   }
   float tppObsWeight = obsWeight(node.tppConfidence, VoteObsWeightStrength * 2.5f);
   node.specificTppDeviation = node.tppDeviation.value_or(0.0f) * tppObsWeight;
@@ -2140,11 +2188,11 @@ void Election::determineElectionSpecificDeviations() {
 
 void Election::determineLargeRegionSpecificDeviations() {
   for (auto& largeRegion : largeRegions) {
-    float fpObsWeight = obsWeight(largeRegion.node.fpConfidence);
     for (auto const& [partyId, deviation] : largeRegion.node.fpDeviations) {
       float parentFpDeviation = node.specificFpDeviations.contains(partyId) ? node.specificFpDeviations.at(partyId) : 0.0f;
       float excludingParents = deviation - parentFpDeviation;
-      largeRegion.node.specificFpDeviations[partyId] = excludingParents * fpObsWeight;
+      largeRegion.node.specificFpDeviations[partyId] = excludingParents
+        * fpPoolingObservationWeight(largeRegion.node,partyId,VoteObsWeightStrength);
     }
     float tppObsWeight = obsWeight(largeRegion.node.tppConfidence);
     float parentTppDeviation = node.specificTppDeviation.value_or(0.0f);
@@ -2436,9 +2484,11 @@ Election::OrdinaryFpHierarchy Election::collectOrdinaryFpEvidence() const {
       // each declaration service's current batch is blended in separately.
       children.push_back({expectedVotesForAggregation(n),double(n.totalFpVotesCurrent()),
         booth.voteType == Results2::VoteType::Ordinary ? n.fpConfidence : 0,
-        n.relevanceModifier,n.fpDeviations,{}});
+        n.relevanceModifier,n.fpDeviations,{}, {}});
     }
-    hierarchy.seats.push_back(LiveNewVotes::aggregate(children,expectedVotesForAggregation(seat.node)));
+    auto evidence = LiveNewVotes::aggregate(children,expectedVotesForAggregation(seat.node));
+    prepareIndependentPooling(evidence,seat);
+    hierarchy.seats.push_back(std::move(evidence));
   }
   return hierarchy;
 }
@@ -2453,9 +2503,11 @@ void Election::aggregateOrdinaryFpEvidence(OrdinaryFpHierarchy& hierarchy) const
 }
 
 void Election::conditionOrdinaryFpEvidence(OrdinaryFpHierarchy& hierarchy) const {
-  LiveNewVotes::condition(hierarchy.election,{},obsWeight(float(hierarchy.election.confidence),VoteObsWeightStrength*2.5f));
+  LiveNewVotes::condition(hierarchy.election,{},obsWeight(float(hierarchy.election.confidence),VoteObsWeightStrength*2.5f),
+    fpPoolingObservationWeights(hierarchy.election,VoteObsWeightStrength*2.5f));
   for (auto& region : hierarchy.regions)
-    LiveNewVotes::condition(region,{&hierarchy.election},obsWeight(float(region.confidence)));
+    LiveNewVotes::condition(region,{&hierarchy.election},obsWeight(float(region.confidence)),
+      fpPoolingObservationWeights(region,VoteObsWeightStrength));
   for (std::size_t i = 0; i < seats.size(); ++i) {
     auto& evidence = hierarchy.seats[i];
     LiveNewVotes::condition(evidence,{&hierarchy.election,&hierarchy.regions.at(seats[i].parentRegionIndex)},
@@ -3395,6 +3447,17 @@ static float offsetWeightTpp(LiveV2::Node const& node) {
   return offsetWeight(node.tppCompletion, node.tppConfidence);
 }
 
+void Election::retainObservedIndependentPooling(Node const& source, std::map<int,float>& finalDeviations) const {
+  // For ordinary parties the change in their total projected vote summarizes
+  // the shared movement. Independent projections combine distinct campaigns,
+  // including seats still inheriting the pooled estimate. Summing those
+  // predictions would recycle that inheritance as fresh evidence and undo
+  // candidate-specific source weights. Pass the accepted observed movement
+  // instead; each seat's local account still uses all its actual counted votes.
+  finalDeviations[run.indPartyIndex] = source.specificFpDeviations.contains(run.indPartyIndex)
+    ? source.specificFpDeviations.at(run.indPartyIndex) : 0;
+}
+
 void Election::determineElectionFinalFpDeviations(bool allowCurrentData) {
   auto const shares = projectedVoteShares(
     node.fpVotesProjected, "Election");
@@ -3415,6 +3478,7 @@ void Election::determineElectionFinalFpDeviations(bool allowCurrentData) {
       offsetSpecificFpDeviations[partyId] = finalDeviation;
     }
   }
+  if (allowCurrentData) retainObservedIndependentPooling(node,finalSpecificFpDeviations);
 }
 
 void Election::determineElectionFinalTppDeviation(bool allowCurrentData) {
@@ -3474,6 +3538,8 @@ void Election::determineLargeRegionFinalFpDeviations(bool allowCurrentData, int 
         finalDeviation;
     }
   }
+  if (allowCurrentData) retainObservedIndependentPooling(largeRegions[largeRegionIndex].node,
+    largeRegions[largeRegionIndex].finalSpecificFpDeviations);
 }
 
 void Election::determineLargeRegionFinalTppDeviation(bool allowCurrentData, int largeRegionIndex) {
@@ -3939,6 +4005,53 @@ void Election::prepareVariability() {
   createRandomVariation = false;
 }
 
+void LiveV2::Election::generateSharedFpVariability() {
+    // A category draw is shared between districts in the scenario. Its raw
+    // uncertainty participates in the same precision calculation as local
+    // uncertainty; applying a progress phase-in first would hide that width.
+    boothTypeFpIterationVariation.clear();
+    voteTypeFpIterationVariation.clear();
+    for (auto const& [party,variations] : boothTypeFpBiasStdDev)
+        for (auto const& [type,sd] : variations)
+            boothTypeFpIterationVariation[party][type] = variabilityNormal(0.f,sd,
+                int(type),party,uint32_t(VariabilityTag::GenerateBoothTypeFpVariability));
+    for (auto const& [party,variations] : voteTypeFpBiasStdDev)
+        for (auto const& [type,sd] : variations)
+            voteTypeFpIterationVariation[party][type] = variabilityNormal(0.f,sd,
+                int(type),party,uint32_t(VariabilityTag::GenerateVoteTypeFpVariability));
+}
+
+std::map<int,double> LiveV2::Election::drawSeatFpChanges(int seatIndex) const {
+    auto const& seat = seats.at(seatIndex);
+    std::map<int,double> changes;
+    auto sensitivity = [&](double votes) {
+        if (!std::isfinite(votes) || votes < 0 || (votes > 0 && seat.node.totalVotesPrevious() <= 0))
+            throw std::runtime_error("Invalid FP category sensitivity: "+seat.name);
+        return votes > 0 ? votes/seat.node.totalVotesPrevious()*obsWeight(node.fpConfidence) : 0.;
+    };
+    for (auto const& [party,sd] : seat.fpAllBoothsStdDev) {
+        int candidate = party;
+        if (!seat.node.fpVotesProjected.contains(candidate)) {
+            if (party < IndependentPartyIdOffset || !seat.node.fpVotesProjected.contains(run.indPartyIndex))
+                throw std::runtime_error("FP variability references a missing candidate: "+seat.name);
+            candidate = run.indPartyIndex;
+        }
+        if (changes.contains(candidate))
+            throw std::runtime_error("Duplicate FP variability candidate: "+seat.name);
+        double change = drawFpVariability(seatIndex,party,sd);
+        if (boothTypeFpIterationVariation.contains(party) && seat.fpBoothTypeSensitivity.contains(party))
+            for (auto const& [type,variation] : boothTypeFpIterationVariation.at(party))
+                if (seat.fpBoothTypeSensitivity.at(party).contains(type))
+                    change += variation*sensitivity(seat.fpBoothTypeSensitivity.at(party).at(type));
+        if (voteTypeFpIterationVariation.contains(party) && seat.fpVoteTypeSensitivity.contains(party))
+            for (auto const& [type,variation] : voteTypeFpIterationVariation.at(party))
+                if (seat.fpVoteTypeSensitivity.at(party).contains(type))
+                    change += variation*sensitivity(seat.fpVoteTypeSensitivity.at(party).at(type));
+        changes[candidate] = change;
+    }
+    return changes;
+}
+
 void Election::generateVariability(int iterationIndex) {
   // generate seat-level variability using the parameters previously prepared
   // this simulates the variability caused by random booth results without
@@ -3968,24 +4081,7 @@ void Election::generateVariability(int iterationIndex) {
     voteTypeTppIterationVariation[voteType] *=
       variabilityProgressWeight(node.fpCompletion);
   }
-  for (auto const& [partyId, variations] : boothTypeFpBiasStdDev) {
-    for (auto const& [boothType, variation] : variations) {
-      boothTypeFpIterationVariation[partyId][boothType] = variabilityNormal(
-        0.0f, variation, int(boothType), partyId, uint32_t(VariabilityTag::GenerateBoothTypeFpVariability)
-      );
-      boothTypeFpIterationVariation[partyId][boothType] *=
-        variabilityProgressWeight(node.fpCompletion);
-    }
-  }
-  for (auto const& [partyId, variations] : voteTypeFpBiasStdDev) {
-    for (auto const& [voteType, variation] : variations) {
-      voteTypeFpIterationVariation[partyId][voteType] = variabilityNormal(
-        0.0f, variation, int(voteType), partyId, uint32_t(VariabilityTag::GenerateVoteTypeFpVariability)
-      );
-      voteTypeFpIterationVariation[partyId][voteType] *=
-        variabilityProgressWeight(node.fpCompletion);
-    }
-  }
+  generateSharedFpVariability();
   nonClassicTppIterationVariation = variabilityNormal(
     0.0f, NonClassicTppVariabilityStdDev, 0, 0, uint32_t(VariabilityTag::GenerateNonClassicTppVariability)
   );
@@ -4010,80 +4106,11 @@ void Election::generateVariability(int iterationIndex) {
       return expectedVotes / previousSeatVotes;
     };
 
-    // Collect transformed composition changes; the turnout component applies
-    // them only to the outstanding pool and retains all measured party votes.
-    std::map<int, double> remainingFpChanges;
-    std::set<int> adjustedPartyIds;
-    bool fpProjectionChanged = false;
-    for (auto const& [partyId, stdDev] : seat.fpAllBoothsStdDev) {
-      float randomVariation = drawFpVariability(seatIndex,partyId,stdDev);
-      // Random variability can be not-quite-symmetric due to the complexity of the simulation,
-      // so this (and similar lines elsewhere) ensures that the variation is zero when completion is zero,
-      // but rapidly transitions to full variability as completion increases
-      randomVariation *= variabilityProgressWeight(seat.node.fpCompletion);
-      // If the party isn't found in the existing projection, that means it was converted
-      // to the main independent, so use the independent party index instead
-      int usePartyId = partyId;
-      if (!seat.node.fpVotesProjected.contains(partyId)) {
-        if (partyId < IndependentPartyIdOffset
-          || !seat.node.fpVotesProjected.contains(run.indPartyIndex)) {
-          throw std::runtime_error(
-            seatContext + " FP variability references missing party "
-            + std::to_string(partyId) + ".");
-        }
-        usePartyId = run.indPartyIndex;
-      }
-      if (!adjustedPartyIds.insert(usePartyId).second) {
-        throw std::runtime_error(
-          seatContext + " maps multiple FP variability sources to party "
-          + std::to_string(usePartyId) + ".");
-      }
-      auto const& compositionFp = turnout->mean(LiveData::CountKind::Fp, seatIndex);
-      float const compositionFpTotal = positiveVoteTotal(compositionFp,seatContext);
-      float const transformedCurrentFpProjection = transformedPartyShare(
-        compositionFp, usePartyId, compositionFpTotal,
-        seatContext + " FP projection");
-      float transformedNewFpProjection = transformedCurrentFpProjection + randomVariation;
-      bool partyProjectionChanged = randomVariation != 0.0f;
-      float withBoothTypeBias = transformedNewFpProjection;
-      if (boothTypeFpIterationVariation.contains(partyId)) {
-        for (auto const& [boothType, variation] : boothTypeFpIterationVariation.at(partyId)) {
-          if (!seat.fpBoothTypeSensitivity.contains(partyId) || !seat.fpBoothTypeSensitivity[partyId].contains(boothType)) continue;
-          float sensitivity = categorySensitivity(
-            seat.fpBoothTypeSensitivity.at(partyId).at(boothType),
-            "FP booth-type");
-          // See comments in the TPP section for explanation of the sensitivity scaling
-          sensitivity *= obsWeight(node.fpConfidence);
-          float const adjustment = variation * sensitivity;
-          withBoothTypeBias += adjustment;
-          partyProjectionChanged = partyProjectionChanged || adjustment != 0.0f;
-        }
-      }
-      float withVoteTypeBias = withBoothTypeBias;
-      if (voteTypeFpIterationVariation.contains(partyId)) {
-        for (auto const& [voteType, variation] : voteTypeFpIterationVariation.at(partyId)) {
-          if (!seat.fpVoteTypeSensitivity.contains(partyId) || !seat.fpVoteTypeSensitivity[partyId].contains(voteType)) continue;
-          float sensitivity = categorySensitivity(
-            seat.fpVoteTypeSensitivity.at(partyId).at(voteType),
-            "FP vote-type");
-          // See comments in the TPP section for explanation of the sensitivity scaling
-          sensitivity *= obsWeight(node.fpConfidence);
-          float const adjustment = variation * sensitivity;
-          withVoteTypeBias += adjustment;
-          partyProjectionChanged = partyProjectionChanged || adjustment != 0.0f;
-        }
-      }
-      // Preserve the baseline bit-for-bit before any live evidence exists.
-      // Transforming and normalizing an unchanged share can otherwise introduce
-      // rounding effects even though every variability weight is zero.
-      if (!partyProjectionChanged) continue;
-      remainingFpChanges[usePartyId] = withVoteTypeBias - transformedCurrentFpProjection;
-      fpProjectionChanged = true;
-    }
-    if (fpProjectionChanged) {
-      seat.node.fpVotesProjected = turnout->vary(LiveData::CountKind::Fp, seatIndex,
-        seat.node.fpVotesProjected, remainingFpChanges);
-    }
+    // Unphased FP draws are integrated by their measured precision at the
+    // simulator boundary. Both preparation and scenarios use this same finite
+    // outstanding-vote response; there is no second local progress weight.
+    seat.node.fpVotesProjected = turnout->vary(LiveData::CountKind::Fp, seatIndex,
+      seat.node.fpVotesProjected, drawSeatFpChanges(seatIndex));
 
     if (seat.node.tppVotesProjected.size() != 2
       || !seat.node.tppVotesProjected.contains(0)
@@ -4298,8 +4325,8 @@ float Election::variabilityNormal(float mean, float sd, int itemIndex, std::uint
 }
 
 float Election::drawFpVariability(int seatIndex, int partyId, float localStdDev) const {
-  // Both contributions use the same whole-seat transformed scale and receive
-  // the existing smooth count-progress phase-in before the finite-pool sampler.
+  // Both contributions use the same whole-seat transformed scale. Their raw
+  // width determines precision at the simulator boundary; do not phase it in.
   // Counted candidate votes remain fixed when that sampler changes composition.
   float normal = variabilityNormal(0.0f,fpEvidenceNormalStdDev(seatIndex,partyId,localStdDev),
     seatIndex,partyId,uint32_t(VariabilityTag::GenerateFpVariability));

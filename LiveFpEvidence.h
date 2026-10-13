@@ -19,7 +19,6 @@ using Shares = LiveNewVotes::Shares;
 inline constexpr double AbsoluteStrength = .5;
 inline constexpr int CompetitionPower = 4;
 inline constexpr double EvidenceVotes = 500;
-inline constexpr double PriorReplacementRate = 50;
 inline constexpr double EarlyUncertaintyCompletion = .1;
 struct Unit {
     // Maps are keyed by ballot candidate identity, never modelling-slot order.
@@ -129,13 +128,6 @@ inline Shares combine(Evidence const& evidence, Shares& weights) {
             +w*std::log(std::max(floor,value(absolute,id))));
     }
     return LiveNewVotes::normalize(std::move(result));
-}
-inline double replacementWeight(Evidence const& evidence) {
-    // This replaces residual pre-election variation, not historical swing
-    // information. A redistributed seat can have reliable absolute FP counts
-    // even when it has little comparable history. The same gradual phase-in
-    // used for live variability is discounted for a small or concentrated count.
-    return -std::expm1(-PriorReplacementRate*evidence.completion*breadthGate(evidence));
 }
 inline double disagreementGap(Prepared const& prepared, int party) {
     auto const& e = prepared.evidence;

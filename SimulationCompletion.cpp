@@ -381,6 +381,11 @@ void SimulationCompletion::recordSeatPartyWinPercentages()
 
 void SimulationCompletion::recordSeatFpVoteStats()
 {
+	if (run.doingLiveBaselineSimulation) {
+		sim.latestReport.liveBaselineFpMoments.clear();
+		for (auto const& moments : run.liveBaselineFpMoments)
+			sim.latestReport.liveBaselineFpMoments.push_back(moments.finish());
+	}
 	sim.latestReport.probabilityBands = sim.latestReport.CurrentlyUsedProbabilityBands;
 	sim.latestReport.seatPartyMeanFpShare.resize(project.seats().count());
 	sim.latestReport.seatFpProbabilityBand.resize(project.seats().count());

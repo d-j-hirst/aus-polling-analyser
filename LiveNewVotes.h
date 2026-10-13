@@ -19,6 +19,13 @@ inline constexpr double HalfVote = .5;
 inline constexpr double EarlyRemainingMultiplier = 4;
 inline constexpr double EarlyEvidenceVotes = 300;
 inline constexpr double PostalCoalitionLogOddsShift = -2.0/25;
+// Independents share a modelling slot, but are separate local campaigns. A
+// one-percent candidate's large proportional change says much less about a
+// competitive independent elsewhere than a comparable established campaign.
+// Five percent is the half-weight share, not an eligibility cutoff. Freeze the
+// share at the pre-count baseline so a surprising first booth cannot promote
+// itself into a strong source of movement for other districts.
+inline constexpr double IndependentPoolingHalfWeightShare = .05;
 enum class Category { General, AggregatedEarly };
 
 inline double smoothedShare(double votes, double total, std::size_t candidates) {
@@ -92,9 +99,29 @@ inline double firstShare(Shares const& primaries, LivePartialCount::Flows const&
 struct FpEvidence {
     double expected = 0, counted = 0, confidence = 0, relevance = 1;
     std::map<int,float> deviations, specific;
+    // Effective observed votes for cross-district pooling only. An explicit
+    // zero means no evidence for that candidate, even if other parties have
+    // reported. Carry these votes upward without borrowing general confidence
+    // or applying the source-share discount again at each level.
+    std::map<int,double> poolingVotes;
 };
 inline double evidenceWeight(FpEvidence const& evidence) {
     return std::min(evidence.expected*evidence.confidence,evidence.counted)*evidence.relevance;
+}
+inline double independentPoolingWeight(double baselineShare) {
+    double share = std::clamp(baselineShare,0.0,1.0);
+    double scale = IndependentPoolingHalfWeightShare;
+    return share*share/(share*share+scale*scale);
+}
+inline void prepareIndependentPooling(FpEvidence& evidence, int independent, double baselineShare) {
+    evidence.poolingVotes[independent] = evidence.deviations.contains(independent)
+        ? evidenceWeight(evidence)*independentPoolingWeight(baselineShare) : 0;
+}
+inline double candidateEvidenceWeight(FpEvidence const& evidence, int candidate) {
+    return evidence.poolingVotes.contains(candidate) ? evidence.poolingVotes.at(candidate) : evidenceWeight(evidence);
+}
+inline double poolingConfidence(FpEvidence const& evidence, int candidate) {
+    return evidence.expected > 0 ? std::clamp(candidateEvidenceWeight(evidence,candidate)/evidence.expected,0.0,1.0) : 0;
 }
 inline FpEvidence aggregate(std::vector<FpEvidence> const& children, double expected) {
     FpEvidence result; result.expected = expected;
@@ -106,23 +133,28 @@ inline FpEvidence aggregate(std::vector<FpEvidence> const& children, double expe
         result.counted += child.counted;
         if (!child.deviations.empty()) confidenceVotes += weight;
         for (auto const& [candidate,deviation] : child.deviations) {
-            sums[candidate] += weight*deviation;
-            weights[candidate] += weight;
+            double candidateWeight = candidateEvidenceWeight(child,candidate);
+            sums[candidate] += candidateWeight*deviation;
+            weights[candidate] += candidateWeight;
         }
+        for (auto const& [candidate,votes] : child.poolingVotes) result.poolingVotes[candidate] = 0;
     }
     if (denominator > 0) result.confidence = confidenceVotes/denominator;
     for (auto const& [candidate,sum] : sums)
         if (weights[candidate] > 0) result.deviations[candidate] = float(sum/weights[candidate]);
+    for (auto& [candidate,votes] : result.poolingVotes) votes = weights[candidate];
     return result;
 }
-inline void condition(FpEvidence& evidence, std::vector<FpEvidence const*> const& parents, double weight) {
+inline void condition(FpEvidence& evidence, std::vector<FpEvidence const*> const& parents, double weight,
+    std::map<int,double> const& candidateWeights = {}) {
     // Match the existing hierarchy: remove the accepted broad movement, then
     // shrink the local residual according to the amount of observed evidence.
     for (auto const& [candidate,deviation] : evidence.deviations) {
         double residual = deviation;
         for (auto parent : parents)
             if (parent->specific.contains(candidate)) residual -= parent->specific.at(candidate);
-        evidence.specific[candidate] = float(residual*weight);
+        double candidateWeight = candidateWeights.contains(candidate) ? candidateWeights.at(candidate) : weight;
+        evidence.specific[candidate] = float(residual*candidateWeight);
     }
 }
 }

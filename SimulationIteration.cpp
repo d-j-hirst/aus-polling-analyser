@@ -2,6 +2,7 @@
 
 #include "CountProgress.h"
 #include "LiveSimulationMath.h"
+#include "IndependentCandidacy.h"
 #include "LiveTurnoutMath.h"
 #include "MajorPartyFpMath.h"
 #include "SpecialPartyCodes.h"
@@ -146,7 +147,6 @@ enum class VariabilityTag : std::uint32_t {
 	IndEmergenceDecision = 44,
 	IndEmergenceQuantile = 45,
 	CoalitionFutureRetirement = 46,
-	NationalsLiveVariability = 47,
 	CoalitionCandidateParticipation = 48,
 };
 
@@ -1142,6 +1142,17 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	auto tempPastResults = pastSeatResults[seatIndex].fpVotePercent;
 
 	for (auto [partyIndex, voteShare] : tempPastResults) {
+		// Carry a historical independent forward only when that campaign could
+		// still be running. New named and generic independents are generated
+		// separately below; unrelated IND ballot entries must not inherit the
+		// previous principal candidate's support or possible-recontest tail.
+		if (partyIndex == run.indPartyIndex &&
+			!IndependentCandidacy::usePreviousResult(
+				!run.runningParties[seatIndex].empty(),
+				incumbentPartyIndex == run.indPartyIndex,
+				seat.previousIndRunning)) {
+			continue;
+		}
 		if (partyIndex != 0 && partyIndex != 1 && seat.tcpChange.size()) {
 			// reduce incumbent fp by the tcp-change vs challenger (to account for redistributions)
 			if (partyIndex == incumbentPartyIndex &&
@@ -1176,8 +1187,9 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.greensSeatStatistics);
 		}
 		// Independents use the continuing-candidate model when incumbent,
-		// confirmed, or sampled as a possible recontest by the strongest previous
-		// candidate. Unsuccessful unconfirmed candidates are phased out below.
+		// confirmed, or sampled as a possible recontest before the ballot is
+		// known. Unconfirmed recontests are phased out below; the ballot check
+		// above excludes them altogether once candidacy is configured.
 		else if (effectiveIndependent && (
 				incumbentPartyIndex == partyIndex ||
 				contains(run.seatProminentMinors[seatIndex], partyIndex) ||
@@ -1304,6 +1316,9 @@ void SimulationIteration::determineSpecificPartyFp(
 	}
 	if (run.runningParties[seatIndex].size() && partyIndex >= Mp::Others &&
 		contains(run.runningParties[seatIndex], project.parties().viewByIndex(partyIndex).abbreviation)) {
+		// For the historical IND slot, eligibility was checked before this
+		// calculation. Here ballot presence confirms an eligible campaign,
+		// rather than turning a different independent into the old candidate.
 		recontestRateMixed = 1.0f;
 	}
 	if (run.runningParties[seatIndex].size() && partyIndex == OthersIndex &&
@@ -3407,367 +3422,127 @@ void SimulationIteration::incorporateLiveResults()
 		}
 	}
 
-	auto const electionFpDeviations =
-		liveElection->getFinalSpecificFpDeviations();
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		auto const& seat = project.seats().viewByIndex(seatIndex);
-		int const regionIndex =
-			project.regions().idToIndex(seat.region);
-		if (regionIndex == RegionCollection::InvalidIndex) {
-			throw InvalidIteration();
-		}
-		auto const regionFpDeviations =
-			liveElection->getRegionFinalSpecificFpDeviations(regionIndex);
-		auto const seatFpInformation =
-			liveElection->getSeatFpInformation(seat.name);
-		bool requiresNormalisation = false;
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex)
+		incorporateLiveSeatFp(seatIndex);
+}
 
-		auto partyHasPositiveShare = [&](int partyIndex) {
-			return seatFpVoteShare[seatIndex].contains(partyIndex) &&
-				seatFpVoteShare[seatIndex].at(partyIndex) >
-				LiveSimulationMath::EvidenceEpsilon;
-		};
+void SimulationIteration::prepareLiveFpCandidates(int seatIndex, LiveTurnoutMath::PartyAccount const& account)
+{
+	// Usually every configured party already has a prior draw. A separately
+	// identified candidate that previously belonged to generic Others takes a
+	// share from that same source; creating its slot does not create new votes.
+	auto& prior = seatFpVoteShare[seatIndex];
+	auto const& seat = project.seats().viewByIndex(seatIndex);
+	auto const information = liveElection->getSeatFpInformation(seat.name);
+	for (auto const& [party,votes] : account.projected) {
+		if (party < 0 || party >= project.parties().count() || party == run.natPartyIndex) continue;
+		if (prior.contains(party) && prior.at(party) > LiveSimulationMath::EvidenceEpsilon) continue;
+		if (party == run.indPartyIndex && getAt(prior,EmergingIndIndex,0.f) > 0) continue;
+		auto found = information.find(party);
+		if (found == information.end()) continue;
+		float source = getAt(prior,OthersIndex,0.f);
+		float requested = detransformVoteShare(found->second.baseline);
+		float share = std::min(source,requested);
+		prior[party] = share;
+		prior[OthersIndex] = source-share;
+	}
+}
 
-		auto effectivePartyIndex = [&](int partyIndex) {
-			if (partyIndex == run.indPartyIndex &&
-				!partyHasPositiveShare(run.indPartyIndex) &&
-				partyHasPositiveShare(EmergingIndIndex)) {
-				return EmergingIndIndex;
-			}
-			return partyIndex;
-		};
-		auto deviationForParty = [](auto const& deviations, int partyIndex) {
-			auto const it = deviations.find(partyIndex);
-			return it == deviations.end() ? 0.0f : it->second;
-		};
+void SimulationIteration::conditionLiveFpPrior(int seatIndex)
+{
+	// Election and regional movements are supported by many locations. Apply
+	// them to the correlated pre-election draw before local precision weighting,
+	// so broad local uncertainty cannot erase an already supported shared shift.
+	auto const& seat = project.seats().viewByIndex(seatIndex);
+	auto const& movement = liveElection->getSeatFpIntegrationInformation(seat.name)->sharedDeviation;
+	for (auto& [party,share] : seatFpVoteShare[seatIndex]) {
+		if (party == CoalitionPartnerIndex || share <= LiveSimulationMath::EvidenceEpsilon) continue;
+		int source = party == EmergingIndIndex ? run.indPartyIndex : party;
+		float deviation = getAt(movement,source,0.f);
+		if (!std::isfinite(deviation)) throw InvalidIteration();
+		if (materiallyNonZero(deviation)) share = detransformVoteShare(transformVoteShare(share)+deviation);
+	}
+	normaliseSeatFp(seatIndex);
+}
 
-		// The standard path keeps Liberal and National votes combined until TCP
-		// resolution. Split them early only when National-specific live evidence
-		// actually needs a separate share.
-		bool coalitionWasSplit = false;
-		if (run.natPartyIndex >= 0) {
-			float nationalsBaselineWeight = 0.0f;
-			auto const nationalsInfo =
-				seatFpInformation.find(run.natPartyIndex);
-			if (nationalsInfo != seatFpInformation.end()) {
-				nationalsBaselineWeight = liveBlendWeight(
-					nationalsInfo->second.completion,
-					nationalsInfo->second.confidence);
-			}
-			auto const nationalsProportion =
-				liveElection->getSeatNationalsProportion(seat.name);
-			float nationalsProportionWeight = 0.0f;
-			if (nationalsProportion) {
-				nationalsProportionWeight = liveBlendWeight(
-					nationalsProportion->completion,
-					nationalsProportion->confidence,
-					14.0f);
-			}
-			bool const hasNationalsDeviation =
-				materiallyNonZero(deviationForParty(
-					electionFpDeviations, run.natPartyIndex)) ||
-				materiallyNonZero(deviationForParty(
-					regionFpDeviations, run.natPartyIndex)) ||
-				(nationalsInfo != seatFpInformation.end() &&
-					materiallyNonZero(nationalsInfo->second.deviation));
-			if (nationalsBaselineWeight > 0.0f ||
-				nationalsProportionWeight > 0.0f ||
-				hasNationalsDeviation) {
-				assignNationalsVotes(
-					seatIndex, nationalsProportionWeight > 0.0f);
-				coalitionWasSplit = true;
-			}
-		}
+void SimulationIteration::recombineLiveCoalition(int seatIndex)
+{
+	if (run.natPartyIndex < 0) return;
+	auto& shares = seatFpVoteShare[seatIndex];
+	float coalition = getAt(shares,Mp::Two,0.f)+getAt(shares,run.natPartyIndex,0.f);
+	if (coalition > 0) nationalsShare[seatIndex] = getAt(shares,run.natPartyIndex,0.f)/coalition;
+	shares[Mp::Two] = coalition;
+	shares.erase(run.natPartyIndex);
+}
 
-		auto applyFpDeviation = [&](int partyIndex, float deviation) {
-			if (!std::isfinite(deviation)) throw InvalidIteration();
-			if (!materiallyNonZero(deviation)) return;
-			int const effectiveIndex =
-				effectivePartyIndex(partyIndex);
-			if (!partyHasPositiveShare(effectiveIndex)) return;
-			float transformedFp = transformVoteShare(
-				seatFpVoteShare[seatIndex].at(effectiveIndex));
-			transformedFp += deviation;
-			seatFpVoteShare[seatIndex][effectiveIndex] =
-				detransformVoteShare(transformedFp);
-			requiresNormalisation = true;
-		};
+void SimulationIteration::incorporateLiveSeatFp(int seatIndex)
+{
+	auto const& seat = project.seats().viewByIndex(seatIndex);
+	auto rawAccount = liveElection->getSeatVoteCountAccount(seat.name,LiveData::CountKind::Fp);
+	auto const* information = liveElection->getSeatFpIntegrationInformation(seat.name);
+	if (!rawAccount) return;
+	if (!information) throw std::runtime_error("Missing prepared live FP precision information.");
 
-		// As confidence rises, replace prior seat-level variation with the
-		// randomized live baseline before applying observed deviations.
-		struct PendingPartyActivation {
-			int partyIndex;
-			float targetShare;
-			float weight;
-		};
-		std::vector<PendingPartyActivation> pendingActivations;
-		for (auto const& [partyIndex, information] : seatFpInformation) {
-			if (!std::isfinite(information.baseline)) {
-				throw InvalidIteration();
-			}
-			float const baselineWeight = liveBlendWeight(
-				information.completion, information.confidence);
-			if (baselineWeight == 0.0f) continue;
+	// Keep the flow at the simulator boundary explicit: identify the same
+	// candidates, condition the prior on shared evidence, integrate local count
+	// draws by precision, then restore the simulator's combined Coalition slot.
+	if (run.natPartyIndex >= 0) assignNationalsVotes(seatIndex);
+	if (information->evidenceGate > 0) {
+		auto raw = LiveTurnoutMath::partitionAccount(*rawAccount,[](int id) { return id; });
+		prepareLiveFpCandidates(seatIndex,raw);
+	}
+	conditionLiveFpPrior(seatIndex);
+	if (information->evidenceGate > 0)
+		integrateLiveFpAccount(seatIndex,*rawAccount,*information);
+	recombineLiveCoalition(seatIndex);
+}
 
-			int const effectiveIndex =
-				effectivePartyIndex(partyIndex);
-			if (partyHasPositiveShare(effectiveIndex)) {
-				float const priorFpShare = transformVoteShare(std::clamp(
-					seatFpVoteShare[seatIndex].at(effectiveIndex),
-					0.01f, 99.99f));
-				float const mixedFpShare = mix(
-					priorFpShare, information.baseline, baselineWeight);
-				seatFpVoteShare[seatIndex][effectiveIndex] =
-					detransformVoteShare(mixedFpShare);
-				requiresNormalisation = true;
-				continue;
-			}
+void SimulationIteration::integrateLiveFpAccount(int seatIndex,
+	LiveData::VoteCountAccount const& raw, LiveData::FpIntegrationInformation const& information)
+{
+	auto& shares = seatFpVoteShare[seatIndex];
+	// A principal independent can be stored in the existing emerging slot.
+	// Ballot IDs remain distinct in the live account; only this modelling
+	// boundary combines unrepresented candidates into the anonymous pool.
+	int principal = getAt(shares,run.indPartyIndex,0.f) > LiveSimulationMath::EvidenceEpsilon
+		? run.indPartyIndex : getAt(shares,EmergingIndIndex,0.f) > 0 ? EmergingIndIndex : run.indPartyIndex;
+	auto priorGroup = [&](int id) {
+		if (id == CoalitionPartnerIndex || id == EmergingPartyIndex) return OthersIndex;
+		if (id == run.indPartyIndex) return principal;
+		if (id == EmergingIndIndex) {
+			if (principal == EmergingIndIndex) return principal;
+			return OthersIndex;
+		}
+		return id;
+	};
+	auto countGroup = [&](int id) {
+		if (id == run.indPartyIndex) return principal;
+		return id >= 0 && id < project.parties().count() ? id : OthersIndex;
+	};
+	auto account = LiveTurnoutMath::partitionAccount(raw,countGroup);
+	std::map<int,float> prior;
+	for (auto const& [id,p] : shares) if (id != CoalitionPartnerIndex) prior[priorGroup(id)] += p;
+	auto integrated = LiveFpIntegration::integrate(account,prior,information,priorGroup,countGroup);
+	restoreLiveFpGroups(seatIndex,std::move(integrated),priorGroup(EmergingIndIndex));
+}
 
-			bool const configuredParty =
-				effectiveIndex >= 0 &&
-				effectiveIndex < project.parties().count();
-			bool const independentProxy =
-				effectiveIndex == EmergingIndIndex;
-			if (!configuredParty && !independentProxy) continue;
-			pendingActivations.push_back({
-				effectiveIndex,
-				detransformVoteShare(information.baseline),
-				baselineWeight,
-			});
-		}
-
-		// Retain a strength-weighted portion of the generic OTH pool for
-		// candidates that remain unrepresented. A strongly observed new party
-		// receives more than one generic candidate's implied share, while direct
-		// live OTH evidence below replaces this prior progressively.
-		int remainingOthersCandidates = run.othCount[seatIndex];
-		if (partyHasPositiveShare(EmergingPartyIndex)) {
-			--remainingOthersCandidates;
-		}
-		int remainingIndependentCandidates = run.indCount[seatIndex];
-		if (partyHasPositiveShare(run.indPartyIndex)) {
-			--remainingIndependentCandidates;
-		}
-		if (partyHasPositiveShare(EmergingIndIndex)) {
-			--remainingIndependentCandidates;
-		}
-		std::vector<float> othersActivationShares;
-		for (auto const& activation : pendingActivations) {
-			if (activation.partyIndex == run.natPartyIndex) continue;
-			othersActivationShares.push_back(
-				activation.targetShare * activation.weight);
-			if (activation.partyIndex == EmergingPartyIndex) {
-				--remainingOthersCandidates;
-			}
-			if (activation.partyIndex == run.indPartyIndex ||
-				activation.partyIndex == EmergingIndIndex) {
-				--remainingIndependentCandidates;
-			}
-		}
-		int const remainingGenericCandidates =
-			std::max(0, remainingOthersCandidates) +
-			std::max(0, remainingIndependentCandidates);
-		float const priorOthersShare = getAt(
-			seatFpVoteShare[seatIndex], OthersIndex, 0.0f);
-		float const othersReserve = LiveSimulationMath::othersReserve(
-			priorOthersShare,
-			remainingGenericCandidates,
-			othersActivationShares);
-
-		for (auto const& pending : pendingActivations) {
-			int const sourceIndex =
-				pending.partyIndex == run.natPartyIndex ?
-				Mp::Two : OthersIndex;
-			float const sourceShare = getAt(
-				seatFpVoteShare[seatIndex], sourceIndex, 0.0f);
-			auto const activation = LiveSimulationMath::activateFromSource(
-				pending.targetShare,
-				pending.weight,
-				sourceShare,
-				sourceIndex == OthersIndex ? othersReserve : 0.0f);
-			if (activation.partyShare <= 0.0f) continue;
-			seatFpVoteShare[seatIndex][pending.partyIndex] =
-				activation.partyShare;
-			seatFpVoteShare[seatIndex][sourceIndex] =
-				activation.sourceShare;
-			requiresNormalisation =
-				requiresNormalisation || activation.requiresNormalisation;
-		}
-		for (auto const& [partyIndex, deviation] :
-			electionFpDeviations) {
-			applyFpDeviation(partyIndex, deviation);
-		}
-		for (auto const& [partyIndex, deviation] :
-			regionFpDeviations) {
-			applyFpDeviation(partyIndex, deviation);
-		}
-		for (auto const& [partyIndex, information] :
-			seatFpInformation) {
-			applyFpDeviation(partyIndex, information.deviation);
-		}
-
-		float seatEvidenceWeight = 0.0f;
-		for (auto const& [_, information] : seatFpInformation) {
-			seatEvidenceWeight = std::max(
-				seatEvidenceWeight,
-				liveBlendWeight(
-					information.completion, information.confidence));
-		}
-
-		// LiveV2 tracks one principal independent. Preserve the second standard
-		// independent when the ballot contains at least two; otherwise phase the
-		// proxy into Others as live evidence accumulates.
-		if (run.indCount[seatIndex] < 2 &&
-			partyHasPositiveShare(EmergingIndIndex) &&
-			partyHasPositiveShare(run.indPartyIndex) &&
-			seatEvidenceWeight > 0.0f) {
-			float const previousShare =
-				seatFpVoteShare[seatIndex][EmergingIndIndex];
-			float const removedShare =
-				previousShare * seatEvidenceWeight;
-			seatFpVoteShare[seatIndex][EmergingIndIndex] =
-				previousShare - removedShare;
-			seatFpVoteShare[seatIndex][OthersIndex] += removedShare;
-		}
-
-		// Recalculate major-party FPs here if live preference-flow information
-		// is integrated in future.
-		// auto preferenceDeviationInfo = liveElection->getSeatLivePreferenceFlowDeviation(seat.name);
-		// float preferenceDeviationToUse = preferenceDeviationInfo.value * std::sqrt(preferenceDeviationInfo.confidence);
-		// allocateMajorPartyFp(seatIndex, preferenceDeviationToUse);
-
-		// Recombine the Coalition for preference allocation. It will be split
-		// again when the final pair of candidates is determined. Retain the
-		// post-deviation ratio so that split does not discard the separate
-		// Liberal and National live FP adjustments just applied above.
-		if (coalitionWasSplit) {
-			float const coalitionVote =
-				seatFpVoteShare[seatIndex][Mp::Two] +
-				seatFpVoteShare[seatIndex][run.natPartyIndex];
-			if (coalitionVote > 0.0f) {
-				nationalsShare[seatIndex] = std::clamp(
-					seatFpVoteShare[seatIndex][run.natPartyIndex] /
-						coalitionVote,
-					0.0f, 1.0f);
-			}
-			seatFpVoteShare[seatIndex][Mp::Two] = coalitionVote;
-			seatFpVoteShare[seatIndex].erase(run.natPartyIndex);
-		}
-		if (partyHasPositiveShare(EmergingPartyIndex) &&
-			seatEvidenceWeight > 0.0f) {
-			float const previousShare =
-				seatFpVoteShare[seatIndex][EmergingPartyIndex];
-			float const removedShare =
-				previousShare * seatEvidenceWeight;
-			seatFpVoteShare[seatIndex][EmergingPartyIndex] =
-				previousShare - removedShare;
-			seatFpVoteShare[seatIndex][OthersIndex] += removedShare;
-		}
-		// Unlike with specific party votes, the system of interlocking swings is not
-		// helpful for others votes, so we just mix the prior with the observed value
-		// (as total others votes are highly seat specific)
-		std::map<int, float> representedParties;
-		for (auto const& [partyIndex, share] :
-			seatFpVoteShare[seatIndex]) {
-			if (share > LiveSimulationMath::EvidenceEpsilon) {
-				representedParties[partyIndex] = share;
-			}
-		}
-		if (!representedParties.contains(run.indPartyIndex) &&
-			representedParties.contains(EmergingIndIndex)) {
-			representedParties[run.indPartyIndex] =
-				representedParties.at(EmergingIndIndex);
-		}
-		// The Coalition is combined here. National votes already represented
-		// within that share must not also enter the anonymous Others group.
-		if (run.natPartyIndex >= 0 && representedParties.contains(Mp::Two))
-			representedParties[run.natPartyIndex] = representedParties.at(Mp::Two);
-		auto seatOthersInformation = liveElection->getSeatOthersInformation(
-			seat.name, representedParties);
-		if (!std::isfinite(seatOthersInformation.value) ||
-			seatOthersInformation.value < 0.0f ||
-			seatOthersInformation.value > 100.0f) {
-			throw InvalidIteration();
-		}
-		float const observedWeight = liveBlendWeight(
-			seatOthersInformation.completion,
-			seatOthersInformation.confidence);
-		bool const hasOthersInformation =
-			seatOthersInformation.value > 0.0f ||
-			seatOthersInformation.completion > 0.0f ||
-			seatOthersInformation.confidence > 0.0f;
-		if (hasOthersInformation && observedWeight > 0.0f) {
-			seatFpVoteShare[seatIndex][OthersIndex] = mix(
-				getAt(
-					seatFpVoteShare[seatIndex],
-					OthersIndex, 0.0f),
-				seatOthersInformation.value,
-				observedWeight);
-			requiresNormalisation = true;
-		}
-		if (requiresNormalisation) {
-			std::set<int> fixedLiveParties;
-			if (othersReserve > 0.0f) {
-				fixedLiveParties.insert(OthersIndex);
-				for (auto const& activation : pendingActivations) {
-					if (activation.partyIndex != run.natPartyIndex &&
-						seatFpVoteShare[seatIndex].contains(
-							activation.partyIndex)) {
-						fixedLiveParties.insert(activation.partyIndex);
-					}
-				}
-			}
-
-			if (fixedLiveParties.empty()) {
-				normaliseSeatFp(seatIndex);
-			}
-			else {
-				float fixedVote = 0.0f;
-				float flexibleVote = 0.0f;
-				for (auto const& [partyIndex, voteShare] :
-					seatFpVoteShare[seatIndex]) {
-					if (partyIndex == CoalitionPartnerIndex) continue;
-					if (fixedLiveParties.contains(partyIndex)) {
-						fixedVote += voteShare;
-					}
-					else {
-						flexibleVote += voteShare;
-					}
-				}
-				float const flexibleTarget = 100.0f - fixedVote;
-				if (!std::isfinite(fixedVote) ||
-					!std::isfinite(flexibleVote) ||
-					flexibleVote <= 0.0f || flexibleTarget < 0.0f) {
-					throw InvalidIteration();
-				}
-				float const correctionFactor =
-					flexibleTarget / flexibleVote;
-				for (auto& [partyIndex, voteShare] :
-					seatFpVoteShare[seatIndex]) {
-					if (partyIndex == CoalitionPartnerIndex ||
-						fixedLiveParties.contains(partyIndex)) {
-						continue;
-					}
-					voteShare *= correctionFactor;
-				}
-			}
-		}
-		if (auto account = liveElection->getSeatVoteCountAccount(seat.name, LiveData::CountKind::Fp)) {
-			// Apply the same candidate partition to both parts of the account.
-			// Coalition votes are combined at this point, and the principal
-			// independent may be represented by the existing emerging proxy.
-			auto classify = [&](int party) {
-				if (party == run.natPartyIndex) return int(Mp::Two);
-				int effective = effectivePartyIndex(party);
-				return partyHasPositiveShare(effective) ? effective : OthersIndex;
-			};
-			auto partition = LiveTurnoutMath::partitionAccount(*account, classify);
-			seatFpVoteShare[seatIndex].erase(CoalitionPartnerIndex);
-			seatFpVoteShare[seatIndex] = LiveTurnoutMath::reconcileForecast(
-				std::move(partition), seatFpVoteShare[seatIndex], true,
-				1.0-liveElection->getSeatFpEvidenceWeight(seat.name));
+void SimulationIteration::restoreLiveFpGroups(int seatIndex, std::map<int,float> integrated, int independentGroup)
+{
+	// Preserve the pre-election allocation between anonymous candidates. The
+	// aggregate's precision limits their combined vote; assigning part of it to
+	// the existing emerging slots neither adds votes nor invents another count.
+	// A single identified independent uses one slot and needs no such split.
+	auto const& prior = seatFpVoteShare[seatIndex];
+	float generic = getAt(prior,OthersIndex,0.f)+getAt(prior,EmergingPartyIndex,0.f);
+	if (independentGroup == OthersIndex) generic += getAt(prior,EmergingIndIndex,0.f);
+	if (generic > 0 && integrated.contains(OthersIndex)) {
+		float pool = integrated.at(OthersIndex);
+		for (int id : {OthersIndex,EmergingPartyIndex,EmergingIndIndex}) {
+			if (id == EmergingIndIndex && independentGroup != OthersIndex) continue;
+			if (prior.contains(id)) integrated[id] = pool*prior.at(id)/generic;
 		}
 	}
+	seatFpVoteShare[seatIndex] = std::move(integrated);
 }
 
 void SimulationIteration::determineSeatFinalResult(int seatIndex)
@@ -4111,10 +3886,10 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			countedNationals = getAt(*account->counted, run.natPartyIndex, 0.) > 0;
 	}
 	if (run.natPartyIndex >= 0 && (nationalsShare[seatIndex] > 0 || countedNationals)) {
-		// Live runs have already blended the National proportion in
-		// incorporateLiveResults(); non-live runs have no update to apply.
-		// In either case, only split the stored Coalition share here.
-		assignNationalsVotes(seatIndex, false, true);
+		// Restore the stored split. Live FP integration has already validated
+		// Liberal and National allocations separately; another blend here would
+		// undo that precision handoff. Ordinary runs use their prior split.
+		assignNationalsVotes(seatIndex);
 		float natShare = seatFpVoteShare[seatIndex][run.natPartyIndex];
 		float libShare = seatFpVoteShare[seatIndex][Mp::Two];
 		float const coalitionShare = natShare + libShare;
@@ -4222,61 +3997,22 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	if (run.isLive()) applyLiveManualOverrides(seatIndex);
 }
 
-void SimulationIteration::assignNationalsVotes(
-	int seatIndex, bool updateFromLive, bool finalSplit) {
+
+void SimulationIteration::assignNationalsVotes(int seatIndex) {
 	if (run.natPartyIndex < 0) return;
 	if (!seatFpVoteShare[seatIndex].contains(Mp::Two) ||
 		!std::isfinite(nationalsShare[seatIndex]) ||
-		nationalsShare[seatIndex] < 0.0f ||
-		nationalsShare[seatIndex] > 1.0f) {
+		nationalsShare[seatIndex] < 0.0f || nationalsShare[seatIndex] > 1.0f)
 		throw InvalidIteration();
-	}
 
-	auto const& seat = project.seats().viewByIndex(seatIndex);
-	if (updateFromLive && run.isLiveAutomatic()) {
-		auto nationalsProportion = liveElection->getSeatNationalsProportion(seat.name);
-		if (nationalsProportion && nationalsShare[seatIndex] > 0.0f && nationalsShare[seatIndex] < 1.0f) {
-			const float liveEstimate = nationalsProportion.value().value;
-			if (liveEstimate > 0.0f && liveEstimate < 1.0f) {
-				const float effectiveConfidence = effectiveLiveConfidence(
-					nationalsProportion.value().completion,
-					nationalsProportion.value().confidence);
-				const float stdDev = std::min(10.0f, 1.0f / (effectiveConfidence + 0.02f) - 0.97f);
-				const float transformedLive = transformVoteShare(liveEstimate * 100.0f);
-				const float transformedPrior = transformVoteShare(nationalsShare[seatIndex] * 100.0f);
-				const float liveWithVariability = transformedLive + variabilityNormal(
-					0.0f, stdDev, seatIndex, 0, uint32_t(VariabilityTag::NationalsLiveVariability)
-				);
-				const float liveWeight = LiveSimulationMath::evidenceWeight(
-					effectiveConfidence, 14.0f);
-				const float mixedShare = mix(transformedPrior, liveWithVariability, liveWeight);
-				nationalsShare[seatIndex] = detransformVoteShare(mixedShare) * 0.01f;
-			}
-		}
-	}
-	float const coalitionVote = seatFpVoteShare[seatIndex].at(Mp::Two);
-	float nationalsVote = coalitionVote * nationalsShare[seatIndex];
-	if (finalSplit && liveElection && coalitionVote > 0) {
-		if (auto account = liveElection->getSeatVoteCountAccount(seat.name, LiveData::CountKind::Fp)) {
-			// The combined Coalition was already reconciled with counted FP.
-			// Split only its outstanding pool, so a prior National proportion
-			// cannot subsequently erase counted Liberal or National votes.
-			LiveTurnoutMath::PartyAccount coalition;
-			for (int party : {int(Mp::Two), run.natPartyIndex}) {
-				coalition.projected[party] = getAt(*account->projected, party, 0.f);
-				coalition.counted[party] = getAt(*account->counted, party, 0.);
-			}
-			double total = 0;
-			for (auto const& [party, votes] : *account->projected) total += votes;
-			coalition = LiveTurnoutMath::resizeAccount(std::move(coalition), total * coalitionVote / 100);
-			auto shares = LiveTurnoutMath::reconcileForecast(std::move(coalition),
-				{{int(Mp::Two), 100.f * (1 - nationalsShare[seatIndex])},
-				{run.natPartyIndex, 100.f * nationalsShare[seatIndex]}});
-			nationalsVote = coalitionVote * shares.at(run.natPartyIndex) / 100.f;
-		}
-	}
-	seatFpVoteShare[seatIndex][run.natPartyIndex] = nationalsVote;
-	seatFpVoteShare[seatIndex][Mp::Two] = coalitionVote - nationalsVote;
+	// The ordinary simulator carries a combined Coalition share until the
+	// finalist calculation. Live integration temporarily splits that same
+	// account, saves its updated ratio, and restores it here without introducing
+	// another uncertainty draw or moving any validated counted votes.
+	float coalition = seatFpVoteShare[seatIndex].at(Mp::Two);
+	float nationals = coalition*nationalsShare[seatIndex];
+	seatFpVoteShare[seatIndex][run.natPartyIndex] = nationals;
+	seatFpVoteShare[seatIndex][Mp::Two] = coalition-nationals;
 }
 
 void SimulationIteration::applyLiveManualOverrides(int seatIndex)
@@ -4457,6 +4193,10 @@ void SimulationIteration::recordSeatPartyWinner(int seatIndex)
 
 void SimulationIteration::recordSeatFpVotes(int seatIndex)
 {
+	// This runs under the existing result-recording mutex. Measure the actual
+	// baseline draws, including absent-candidate zeros, before histogram rounding.
+	if (recordedRun.doingLiveBaselineSimulation)
+		recordedRun.liveBaselineFpMoments.at(seatIndex).add(seatFpVoteShare[seatIndex]);
 	for (auto [partyIndex, fpPercent] : seatFpVoteShare[seatIndex]) {
 		recordedRun.cumulativeSeatPartyFpShare[seatIndex][partyIndex] += fpPercent;
 		int bucket = std::clamp(int(std::floor(fpPercent * 0.01f * float(SimulationRun::BucketCount))), 0, SimulationRun::BucketCount - 1);

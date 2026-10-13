@@ -513,6 +513,9 @@
 	<ClInclude Include="LiveSimulationMath.h">
 	  <Filter>Header Files\Utility</Filter>
 	</ClInclude>
+	<ClInclude Include="IndependentCandidacy.h">
+	  <Filter>Header Files\Utility</Filter>
+	</ClInclude>
 	<ClInclude Include="MajorPartyFpMath.h">
 	  <Filter>Header Files\Utility</Filter>
 	</ClInclude>
@@ -754,6 +757,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LiveFpEvidence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveFpIntegration.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LiveNewVotes.h">

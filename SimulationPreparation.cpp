@@ -426,6 +426,7 @@ void SimulationPreparation::resetSeatSpecificOutput()
 	run.seatIndividualBoothGrowth.assign(seatCount, 0.0f);
 	run.seatPartyWins.assign(seatCount, {});
 	run.cumulativeSeatPartyFpShare.assign(seatCount, {});
+	if (run.doingLiveBaselineSimulation) run.liveBaselineFpMoments.assign(seatCount, {});
 	run.seatPartyFpDistribution.assign(seatCount, {});
 	run.seatPartyFpZeros.assign(seatCount, {});
 	run.seatTcpDistribution.assign(seatCount, {});

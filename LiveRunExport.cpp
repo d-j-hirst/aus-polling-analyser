@@ -1,4 +1,5 @@
 #include "LiveRunExport.h"
+#include "LiveFpIntegration.h"
 
 #include "Date.h"
 #include "LiveAnalysisArchive.h"
@@ -167,6 +168,7 @@ json serializeNode(LiveV2::Node const& node, PartyNames const& parties)
 	result["relevance_modifier"] = number(node.relevanceModifier);
 	result["running_parties"] = parties.identities(node.runningParties);
 	result["fp_confidence"] = number(node.fpConfidence);
+	result["fp_pooling_evidence_votes"] = parties.values(node.fpPoolingVotes);
 	result["tcp_confidence"] = number(node.tcpConfidence);
 	result["tpp_confidence"] = number(node.tppConfidence);
 	result["preference_flow_confidence"] = number(node.preferenceFlowConfidence);
@@ -837,6 +839,7 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 		seatJson["offset_specific_tpp_deviation"] =
 			optionalNumber(seat.offsetSpecificTppDeviation);
 		seatJson["fp_all_booths_std_dev"] = parties.values(seat.fpAllBoothsStdDev);
+		seatJson["independent_pooling_baseline_share"] = number(seat.independentPoolingBaselineShare);
 		if (fpEvidence) {
 			auto const& evidence = fpEvidence->at(&seat-seats.data());
 			LiveFpEvidence::Shares extraVariance, normalVariance, disagreementGaps;
@@ -849,7 +852,7 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 				{"disagreement_distribution","two_estimate_endpoints"},
 				{"completion",number(evidence.evidence.completion)},
 				{"reporting_breadth",number(evidence.evidence.breadth)},
-				{"prior_replacement_weight",number(LiveFpEvidence::replacementWeight(evidence.evidence))},
+				{"precision_evidence_gate",number(LiveFpEvidence::breadthGate(evidence.evidence))},
 				{"absolute_weights",parties.values(evidence.weight)},
 				{"historical_remaining",parties.values(evidence.evidence.historical)},
 				{"absolute_remaining",parties.values(evidence.evidence.absolute)},
@@ -857,6 +860,24 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 				{"normal_additional_log_odds_variance",parties.values(normalVariance)},
 				{"disagreement_log_odds_gap",parties.values(disagreementGaps)},
 				{"combined_remaining_shares",parties.values(evidence.future)}
+			};
+		}
+		if (fpIntegration) {
+			auto const& moments = fpIntegration->at(&seat-seats.data());
+			std::map<int,double> weights;
+			for (auto const& [party,variance] : moments.count.logOddsVariance)
+				if (moments.baseline.logOddsVariance.contains(party))
+					weights[party] = LiveFpIntegration::countWeight(
+						moments.baseline.logOddsVariance.at(party),variance,moments.evidenceGate);
+			seatJson["fp_integration"] = {
+				{"method","local_precision"},
+				{"evidence_gate",number(moments.evidenceGate)},
+				{"shared_deviation",parties.values(moments.sharedDeviation)},
+				{"baseline_log_odds_mean",parties.values(moments.baseline.logOddsMean)},
+				{"count_log_odds_mean",parties.values(moments.count.logOddsMean)},
+				{"baseline_log_odds_variance",parties.values(moments.baseline.logOddsVariance)},
+				{"count_log_odds_variance",parties.values(moments.count.logOddsVariance)},
+				{"individual_count_weights",parties.values(weights)}
 			};
 		}
 		seatJson["tpp_all_booths_std_dev"] = number(seat.tppAllBoothsStdDev);

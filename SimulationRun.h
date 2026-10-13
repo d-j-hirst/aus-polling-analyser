@@ -2,6 +2,7 @@
 
 #include "Date.h"
 #include "LiveData.h"
+#include "LiveFpIntegration.h"
 #include "LiveResultsInput.h"
 #include "LiveInputRecovery.h"
 #include <optional>
@@ -284,6 +285,9 @@ private:
 	std::vector<double> partyTwoWinPercent;
 	std::vector<double> othersWinPercent;
 	std::vector<std::map<int, double>> cumulativeSeatPartyFpShare;
+	// Only the live baseline records these moments; ordinary forecasts keep the
+	// existing summaries. No simulation draws or per-snapshot history are held.
+	std::vector<LiveFpIntegration::MomentAccumulator> liveBaselineFpMoments;
 	std::vector<std::map<int, std::array<int, BucketCount>>> seatPartyFpDistribution;
 	std::vector<std::map<int, int>> seatPartyFpZeros; // frequency of seat total being actually zero, i.e. candidate didn't run
 	std::vector<double> coalitionWinPercent;
