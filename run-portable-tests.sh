@@ -81,6 +81,7 @@ run_test MacroTargetResolverTests
 run_test MajorPartyFpMathTests
 run_test RandomGeneratorTests
 run_test RegionalSwingMathTests
+run_test SeatVolatilityTests "$ROOT_DIRECTORY"
 run_test SharedInputLookupTests
 run_test TerminalMacroFeedbackTests
 run_test LiveInputRecoveryTests "$ROOT_DIRECTORY"

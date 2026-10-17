@@ -1,0 +1,25 @@
+[
+  {
+    "year": 2019,
+    "seat": "Whitlam",
+    "alp_percent": 60.91,
+    "previous_alp_percent": 63.72,
+    "reason": "Coalition TCP finalist changed from Liberal to National. AEC comparison fields use zero baselines; NSW boundaries did not change between these elections.",
+    "sources": [
+      "https://results.aec.gov.au/24310/Website/HouseDivisionPage-24310-150.htm",
+      "https://results.aec.gov.au/20499/Website/HouseTppByDivision-20499-NSW.htm",
+      "https://www.aec.gov.au/Electorates/Redistributions/Dates.htm"
+    ]
+  },
+  {
+    "year": 2025,
+    "seat": "Bendigo",
+    "alp_percent": 51.4,
+    "previous_alp_percent": 61.21,
+    "reason": "Coalition TCP finalist changed from Liberal to National. Use the AEC's redistributed prior TPP rather than the zero TCP comparison or the old-boundary 2022 result.",
+    "sources": [
+      "https://results.aec.gov.au/31496/Website/HouseDivisionPage-31496-200.htm",
+      "https://www.aec.gov.au/media/files/Seat-status-fact-sheet-2025-federal-election.pdf"
+    ]
+  }
+]

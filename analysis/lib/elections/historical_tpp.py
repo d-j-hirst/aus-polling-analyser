@@ -9,18 +9,43 @@ incumbency analysis must continue to use the original TCP results.
 import csv
 from dataclasses import dataclass
 import math
+import json
+from typing import Optional
 
 from lib.paths import ANALYSIS_DIRECTORY
 
 
 HISTORY_PATH = ANALYSIS_DIRECTORY / 'Data' / 'federal-tpp-history.csv'
+CORRECTIONS_PATH = ANALYSIS_DIRECTORY / 'Data' / 'historical-tpp-corrections.json'
 COALITION_PARTIES = frozenset({'Liberal', 'National', 'Liberal National', 'Country Liberal'})
 
 
 @dataclass(frozen=True)
 class TppResult:
     percent: float
-    swing: float
+    swing: Optional[float]
+
+
+def usable_swing(percent, swing):
+    """A missing comparison must not become a swing from zero or 100 percent."""
+    if swing is None:
+        return None
+    if not math.isfinite(swing):
+        raise ValueError('Non-finite historical TPP swing.')
+    return swing if 0 < percent - swing < 100 else None
+
+
+def apply_reviewed_corrections(year, results, path=CORRECTIONS_PATH):
+    """Apply sourced input repairs, without changing valid current vote shares."""
+    for row in json.loads(path.read_text(encoding='utf-8')):
+        if row['year'] != year or row['seat'] not in results:
+            continue
+        current = results[row['seat']]
+        if abs(current.percent - row['alp_percent']) > .011:
+            raise ValueError(f"Historical TPP correction no longer matches {year} {row['seat']}")
+        results[row['seat']] = TppResult(current.percent,
+            round(current.percent - row['previous_alp_percent'], 6))
+    return results
 
 
 def parse_aec_tpp(text):
@@ -41,8 +66,9 @@ def parse_aec_tpp(text):
     for row in rows:
         name = row['DivisionNm']
         percent = float(row[labor])
-        swing = sign * float(row['Swing'])
-        if not name or name in result or not 0 <= percent <= 100 or not math.isfinite(swing):
+        raw_swing = row['Swing'].strip()
+        swing = usable_swing(percent, sign * float(raw_swing)) if raw_swing else None
+        if not name or name in result or not 0 <= percent <= 100:
             raise ValueError(f'Invalid or duplicate AEC TPP division: {name}')
         if abs(percent + float(row[coalition]) - 100) > .02:
             raise ValueError(f'AEC TPP percentages do not sum to 100: {name}')
@@ -56,8 +82,10 @@ def load_tpp_history(path=HISTORY_PATH):
     with path.open(encoding='utf-8', newline='') as stream:
         for row in csv.DictReader(stream):
             key = (int(row['year']), row['seat'])
-            value = TppResult(float(row['alp_percent']), float(row['alp_swing']))
-            if key in result or not 0 <= value.percent <= 100 or not math.isfinite(value.swing):
+            percent = float(row['alp_percent'])
+            swing = float(row['alp_swing']) if row['alp_swing'].strip() else None
+            value = TppResult(percent, usable_swing(percent, swing))
+            if key in result or not 0 <= value.percent <= 100:
                 raise ValueError(f'Invalid historical TPP record: {key}')
             result[key] = value
     return result
@@ -73,5 +101,7 @@ def seat_tpp(election, seat, history):
         coalition = next((candidate for candidate in pair if candidate.party in COALITION_PARTIES), None)
         if labor is not None and coalition is not None and pair[0].swing is not None:
             swing = pair[0].swing if pair[0].party == 'Labor' else -pair[0].swing
-            return TppResult(labor.percent, swing)
+            swing = usable_swing(labor.percent, swing)
+            if swing is not None:
+                return TppResult(labor.percent, swing)
     return history.get((election.year(), seat.name)) if election.region() == 'fed' else None

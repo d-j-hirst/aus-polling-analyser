@@ -525,6 +525,7 @@
 	<ClInclude Include="CoalitionCandidacy.h">
 	  <Filter>Header Files\Utility</Filter>
 	</ClInclude>
+	<ClInclude Include="SeatVolatility.h" />
 	<ClInclude Include="RegionalSwingMath.h">
 	  <Filter>Header Files\Utility</Filter>
 	</ClInclude>

@@ -14,7 +14,7 @@ import sys
 
 ANALYSIS = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ANALYSIS))
-from lib.elections.historical_tpp import parse_aec_tpp
+from lib.elections.historical_tpp import parse_aec_tpp, apply_reviewed_corrections
 from category_sources import fetch
 
 EVENTS = {2007: 13745, 2010: 15508, 2013: 17496, 2016: 20499,
@@ -26,7 +26,7 @@ def collect(download=False):
     for year, event in EVENTS.items():
         url = f'https://results.aec.gov.au/{event}/Website/Downloads/HouseTppByDivisionDownload-{event}.csv'
         raw = fetch(url, download=download)
-        results = parse_aec_tpp(raw.decode('utf-8-sig'))
+        results = apply_reviewed_corrections(year, parse_aec_tpp(raw.decode('utf-8-sig')))
         if len(results) < 150:
             raise ValueError(f'Incomplete division table for {year}.')
         sources[year] = dict(url=url, sha256=hashlib.sha256(raw).hexdigest(), divisions=len(results))

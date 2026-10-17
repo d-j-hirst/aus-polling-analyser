@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-10-16T21:38:18Z",
+  "updated_at_utc": "2026-10-17T09:18:23Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -2334,10 +2334,11 @@
         "tpp-fed-regions.csv",
         "region-polls-fed.csv",
         "federal-tpp-history.csv",
+        "historical-tpp-corrections.json",
         "federal-tpp-history-sources.json"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 3,
+      "semantic_revision": 4,
       "files": {
         "by-elections.csv": {
           "sha256": "1582e6f9fad43b96af2fe32d3f7226c66de012881da06aa8fe8da3db89d9611e",
@@ -2347,12 +2348,17 @@
         "federal-tpp-history-sources.json": {
           "sha256": "16040b01b679a108b2c854ab736346bf17873789b88c544dead2818c5769340e",
           "size_bytes": 1557,
-          "recorded_mtime_utc": "2026-10-16T21:36:08.875381Z"
+          "recorded_mtime_utc": "2026-10-17T09:09:17.996011Z"
         },
         "federal-tpp-history.csv": {
-          "sha256": "311bb0095009b9912b99ec6ec32b37339c2b296362990441f46eaa965aa8abb0",
-          "size_bytes": 25517,
-          "recorded_mtime_utc": "2026-10-16T21:36:08.875381Z"
+          "sha256": "d5113ae91eb09dbdb155a04265cff65c6ee1ad9471f2e3f04de78ae764cd3f25",
+          "size_bytes": 25507,
+          "recorded_mtime_utc": "2026-10-17T09:09:17.995010Z"
+        },
+        "historical-tpp-corrections.json": {
+          "sha256": "5991e68a2ec401993012cd5de63031795f7825df29b3afac958c4bff68637dd9",
+          "size_bytes": 1030,
+          "recorded_mtime_utc": "2026-10-17T09:09:16.885873Z"
         },
         "region-polls-fed.csv": {
           "sha256": "b45ff7cb8ee4b7f0a92df1dee48dad1e2b99efa01060527ca8943c7c3c7ef98c",
@@ -2442,9 +2448,32 @@
           "source": {
             "description": "AEC final division TPP downloads; per-election URLs and hashes in Data/federal-tpp-history-sources.json"
           }
+        },
+        {
+          "id": "20261017T091823Z-correction-seat-analysis-inputs-1546ff40",
+          "recorded_at_utc": "2026-10-17T09:18:23Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "provenance_revision": 4,
+          "summary": "Repair Whitlam 2019 and Bendigo 2025 using meaningful comparable TPP swings; preserve current shares but omit other impossible comparison swings.",
+          "files": [
+            "federal-tpp-history-sources.json",
+            "federal-tpp-history.csv",
+            "historical-tpp-corrections.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "analyse_elections"
+            ]
+          }
         }
       ],
-      "provenance_revision": 3
+      "provenance_revision": 4
     }
   }
 }

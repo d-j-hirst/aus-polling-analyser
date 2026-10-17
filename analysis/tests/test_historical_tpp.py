@@ -1,11 +1,25 @@
 import unittest
 from types import SimpleNamespace
 
-from lib.elections.historical_tpp import parse_aec_tpp, seat_tpp, TppResult
+from lib.elections.historical_tpp import parse_aec_tpp, seat_tpp, TppResult, apply_reviewed_corrections, load_tpp_history
 from lib.shared.election_code import ElectionCode
 
 
 class HistoricalTppTests(unittest.TestCase):
+    def test_invalid_comparison_preserves_valid_current_share(self):
+        text = ('metadata\nDivisionNm,Australian Labor Party Percentage,'
+                'Liberal/National Coalition Percentage,Swing\nExample,60,40,60\n')
+        self.assertEqual(parse_aec_tpp(text)['Example'], TppResult(60, None))
+
+    def test_reviewed_coalition_pair_changes_survive_regeneration(self):
+        for year, name, current, expected in [(2019, 'Whitlam', 60.91, -2.81),
+                                              (2025, 'Bendigo', 51.4, -9.81)]:
+            repaired = apply_reviewed_corrections(year, {name: TppResult(current, None)})
+            self.assertEqual(repaired[name], TppResult(current, expected))
+            self.assertEqual(load_tpp_history()[(year, name)], repaired[name])
+            with self.assertRaisesRegex(ValueError, 'no longer matches'):
+                apply_reviewed_corrections(year, {name: TppResult(current+1, None)})
+
     def test_swing_sign_follows_column_order_not_leader(self):
         # The same Labor gain appears with either layout, even where Labor
         # leads the count in the Coalition-first download.

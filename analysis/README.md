@@ -509,6 +509,13 @@ command. Regional calibration can be regenerated without rerunning seat analysis
 
 ### Statistical TPP in non-classic federal seats
 
+The simulation now reads election-specific local TPP scales from
+`Seat Statistics/individual-seat-factors/<election>.csv`. See
+[historical seat TPP volatility](../docs/seat-volatility.md) for the transformed
+scale, past-only cutoff, minimum-four rule, disruption allowance and standalone
+non-Stan regeneration command. These replace the all-years local-volatility
+input and its separate fallback blend.
+
 Historical seat-swing analysis also reads `Data/federal-tpp-history.csv` to
 include seats whose actual final pair was not Labor versus the Coalition.
 The AEC publishes a separate statistical TPP count for these seats. Its

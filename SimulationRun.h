@@ -134,7 +134,7 @@ public:
 	};
 
 	struct IndividualSeatParameters {
-		bool loaded = false; // If a seat has parameters for both its current and past name, don't want the past one to overwrite the current one
+		bool loaded = false; // True for matched history; false for this election's generic fallback.
 		float elasticity = 1.0f;
 		float trend = 0.0f;
 		float volatility = 2.5f;

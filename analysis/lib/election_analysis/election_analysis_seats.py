@@ -89,7 +89,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions, by_elections):
             this_tpp = seat_tpp(this_election, this_seat_result, tpp_history)
             previous_tpp = (seat_tpp(previous_election, previous_seat_result, tpp_history)
                             if previous_results is not None else None)
-            if this_tpp is None:
+            if this_tpp is None or this_tpp.swing is None:
                 continue
 
             # Check previous results has a classic 2cp swing

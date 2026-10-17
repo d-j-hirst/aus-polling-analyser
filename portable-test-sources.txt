@@ -17,6 +17,7 @@ MacroTargetResolverTests
 MajorPartyFpMathTests
 RandomGeneratorTests
 RegionalSwingMathTests
+SeatVolatilityTests
 SharedInputLookupTests
 TerminalMacroFeedbackTests
 TurnoutModelTests

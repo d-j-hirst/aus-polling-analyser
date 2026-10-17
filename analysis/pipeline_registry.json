@@ -155,6 +155,8 @@
       "core": true,
       "paths": [
         "scripts/pipeline/election_analysis.py",
+        "scripts/pipeline/seat_volatility.py",
+        "lib/election_analysis/seat_volatility.py",
         "lib/election_analysis/election_analysis_common.py",
         "lib/election_analysis/election_analysis_parties.py",
         "lib/election_analysis/election_analysis_regions.py",

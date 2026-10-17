@@ -975,7 +975,6 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	const float elasticity = run.seatParameters[seatIndex].elasticity;
 	// float trend = run.seatParameters[seatIndex].trend;
 	const float volatility = run.seatParameters[seatIndex].volatility;
-	const bool useVolatility = run.seatParameters[seatIndex].loaded;
 	// Save effects so we can record them for the display
 	const int regionIndex = project.regions().idToIndex(seat.region);
 	if (regionIndex == RegionCollection::InvalidIndex) {
@@ -1025,9 +1024,10 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	float pollEffect = PollWeight * (run.seatTppPolls[seatIndex] ? run.seatTppPolls[seatIndex] - detransformVoteShare(transformedTpp) : 0.0f);
 	transformedTpp += pollEffect;
 	// All fixed factors taken to account, add random factors
-	float swingDeviation = run.tppSwingFactors.meanSwingDeviation;
-	if (run.regionCode == "fed") swingDeviation += run.tppSwingFactors.federalModifier;
-	if (useVolatility) swingDeviation = 0.75f * volatility + 0.25f * swingDeviation;
+	// Both named seats and unknown seats receive a final transformed-scale SD
+	// from this election's past-only calibration. Generic padding is already
+	// included there; the old 75/25 blend would count it a second time.
+	float swingDeviation = volatility;
 	float kurtosis = run.tppSwingFactors.swingKurtosis;
 	// Add random noise to the new margin of this seat
 	float quantile = variabilityUniform(0.0f, 1.0f, seatIndex, 0, uint32_t(VariabilityTag::SeatTpp));

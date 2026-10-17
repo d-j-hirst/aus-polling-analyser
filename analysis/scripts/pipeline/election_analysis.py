@@ -222,6 +222,8 @@ def main():
     for election in federal_regional_provenance.SUPPORTED_ELECTIONS:
         analyse_region_swings(int(election[:4]))
     analyse_seat_swings(elections, seat_types, seat_regions, by_elections)
+    from scripts.pipeline.seat_volatility import generate, configured_elections
+    generate(configured_elections(), checked_elections=elections)
     analyse_green_independent_correlation(elections)
     analyse_nationals(elections, all_elections)
     record_generated_provenance()

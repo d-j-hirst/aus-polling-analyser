@@ -28,6 +28,7 @@ CI_TEST_MODULES = (
     'test_backfill_live_snapshot_summary',
     'test_election_data',
     'test_historical_tpp',
+    'test_seat_volatility',
     'test_election_store',
     'test_election_analysis',
     'test_election_analysis_regions',

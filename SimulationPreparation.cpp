@@ -1,5 +1,6 @@
 #include "SimulationPreparation.h"
 #include "CoalitionCandidacy.h"
+#include "SeatVolatility.h"
 
 #include "LivePreparationBridge.h"
 #include "PollingProject.h"
@@ -2200,60 +2201,42 @@ void SimulationPreparation::validateCoalitionSeatSettings() const
 
 void SimulationPreparation::loadIndividualSeatParameters()
 {
-	run.seatParameters.assign(
-		project.seats().count(),
-		SimulationRun::IndividualSeatParameters());
-	std::vector<int> matchPriority(project.seats().count(), 0);
-	std::string const fileName = workspaceFile(
-		"analysis/Seat Statistics/individual-seat-factors.csv");
-	auto file = std::ifstream(fileName);
-	if (!file) throw Exception("Could not find file " + fileName + "!");
-	std::string line;
-	while (std::getline(file, line)) {
-		if (line.empty()) continue;
-		auto const values = splitString(line, ",");
-		requireColumns(values, 6, fileName, "individual-seat row");
-		if (values[1] != run.regionCode) continue;
+    auto const table = readIndividualSeatParameters();
+    applyIndividualSeatParameters(table);
+}
 
-		SimulationRun::IndividualSeatParameters parameters;
-		parameters.loaded = true;
-		parameters.elasticity = parseFiniteFloat(
-			values[3], fileName, "seat elasticity");
-		parameters.trend = parseFiniteFloat(
-			values[4], fileName, "seat trend");
-		parameters.volatility = parseFiniteFloat(
-			values[5], fileName, "seat volatility");
-		if (parameters.elasticity <= 0.0f) {
-			throw Exception(
-				fileName + " has non-positive elasticity for " +
-				values[0] + ".");
-		}
-		if (parameters.volatility < 0.0f) {
-			throw Exception(
-				fileName + " has negative volatility for " +
-				values[0] + ".");
-		}
+SeatVolatility::Table SimulationPreparation::readIndividualSeatParameters() const
+{
+    std::string const fileName = workspaceFile(
+        "analysis/Seat Statistics/individual-seat-factors/" + run.getTermCode() + ".csv");
+    auto file = std::ifstream(fileName);
+    if (!file) throw Exception("Could not find " + fileName +
+        "; generate election-specific seat volatility parameters.");
+    SeatVolatility::Table table;
+    try {
+        table = SeatVolatility::read(file, run.getTermCode());
+    }
+    catch (std::exception const& error) {
+        throw Exception(fileName + ": " + error.what());
+    }
+    return table;
+}
 
-		for (int seatIndex = 0;
-			seatIndex < project.seats().count(); ++seatIndex) {
-			auto const& seat = project.seats().viewByIndex(seatIndex);
-			int priority = 0;
-			if (values[0] == seat.name) {
-				priority = 2;
-			}
-			else if (
-				(!seat.previousName.empty() &&
-					values[0] == seat.previousName) ||
-				(!seat.useFpResults.empty() &&
-					values[0] == seat.useFpResults)) {
-				priority = 1;
-			}
-			if (priority > matchPriority[seatIndex]) {
-				run.seatParameters[seatIndex] = parameters;
-				matchPriority[seatIndex] = priority;
-			}
-		}
-	}
+void SimulationPreparation::applyIndividualSeatParameters(SeatVolatility::Table const& table)
+{
+    // Load the term's historical tail shape and final local scales. Each scale
+    // already includes generic padding and the disruption allowance; do not
+    // blend it again with the legacy mean-absolute-deviation statistics.
+    run.tppSwingFactors.swingKurtosis = float(table.kurtosis);
+    run.seatParameters.assign(project.seats().count(), SimulationRun::IndividualSeatParameters());
+    for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+        auto const& seat = project.seats().viewByIndex(seatIndex);
+        auto const source = table.lookup(seat.name, seat.previousName, seat.useFpResults);
+        auto& target = run.seatParameters[seatIndex];
+        target.loaded = source.matched;
+        target.elasticity = float(source.elasticity);
+        target.volatility = float(source.sd);
+    }
 }
 
 void SimulationPreparation::prepareProminentMinors()

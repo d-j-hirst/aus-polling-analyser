@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-10-16T23:04:13Z",
+  "updated_at_utc": "2026-10-17T09:20:50Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -520,10 +520,12 @@
         "scripts/pipeline/regional_analysis.py",
         "lib/election_analysis/election_analysis_seats.py",
         "lib/elections/historical_tpp.py",
+        "lib/election_analysis/seat_volatility.py",
+        "scripts/pipeline/seat_volatility.py",
         "scripts/diagnostics/collect_historical_tpp.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 8,
+      "semantic_revision": 9,
       "files": {
         "lib/election_analysis/election_analysis_common.py": {
           "sha256": "73592677cc34c03e24f7235fe8858fb04d967201fe287e1abfdf2629bc1b4a94",
@@ -541,34 +543,44 @@
           "recorded_mtime_utc": "2026-10-16T22:57:53.801965Z"
         },
         "lib/election_analysis/election_analysis_seats.py": {
-          "sha256": "20e6f99145dd1db0a2b5be65d8db12db387f1f0d450cb4094cb1f9b528163181",
-          "size_bytes": 32470,
-          "recorded_mtime_utc": "2026-10-16T21:36:08.689431Z"
+          "sha256": "c102b3701179c564584ce814cf895a36549fd4766ec85f40edebb61200189fc4",
+          "size_bytes": 32496,
+          "recorded_mtime_utc": "2026-10-17T09:09:16.320499Z"
         },
         "lib/election_analysis/regional_calibration.py": {
           "sha256": "4c32bbaf7a2ace1cc54439cb9f53e55961ae55b8fa55ae40fd4e78af522d1b2f",
           "size_bytes": 17381,
           "recorded_mtime_utc": "2026-10-16T23:03:35.678259Z"
         },
+        "lib/election_analysis/seat_volatility.py": {
+          "sha256": "bded92bf88bae8c2450da5975ad10fe9fae4dffc8136be8fb37711cb12c2b497",
+          "size_bytes": 7737,
+          "recorded_mtime_utc": "2026-10-17T09:20:48.825417Z"
+        },
         "lib/elections/historical_tpp.py": {
-          "sha256": "a79a353acf64ca7c42ec7d20a56cc3f96068545588d0789a2a0b6740a1446ab7",
-          "size_bytes": 3373,
-          "recorded_mtime_utc": "2026-10-16T21:35:54.796278Z"
+          "sha256": "7858f7b7deefaaea3a8561f28e258b761e4b2aa10956ab395b7b50a5df919009",
+          "size_bytes": 4690,
+          "recorded_mtime_utc": "2026-10-17T09:09:16.060701Z"
         },
         "scripts/diagnostics/collect_historical_tpp.py": {
-          "sha256": "4e17b1731002d622635c813ea5497caa123ecbbfbc385b2a1277c5f7aa22cadd",
-          "size_bytes": 2297,
-          "recorded_mtime_utc": "2026-10-16T21:35:55.170799Z"
+          "sha256": "9322b03613cb87642df25ca13b0914b9b39e5c528cc51a8d8f791b4bb6b20683",
+          "size_bytes": 2359,
+          "recorded_mtime_utc": "2026-10-17T09:09:16.578599Z"
         },
         "scripts/pipeline/election_analysis.py": {
-          "sha256": "51abeb4a6bfe3a05fcb1509e4c97d3b8ef9c8edc587276c07bd78ac07ecb4b0d",
-          "size_bytes": 8019,
-          "recorded_mtime_utc": "2026-10-01T05:03:09.046112Z"
+          "sha256": "4571b76eeee43430b05f6f1d1efb52f64b7a22fb6d13e414d2388e4ad1ecc560",
+          "size_bytes": 8165,
+          "recorded_mtime_utc": "2026-10-17T09:12:02.325227Z"
         },
         "scripts/pipeline/regional_analysis.py": {
           "sha256": "090da9ed33c19b31f6931cd52437203bf2da59cb32af2a264e5d48a12e4783e4",
           "size_bytes": 3766,
           "recorded_mtime_utc": "2026-10-16T23:01:16.635099Z"
+        },
+        "scripts/pipeline/seat_volatility.py": {
+          "sha256": "5512345b9402131a72f70ee0ca6829943ac62d18d92e5fa5f862d4744feca755",
+          "size_bytes": 5348,
+          "recorded_mtime_utc": "2026-10-17T09:20:49.097069Z"
         }
       },
       "events": [
@@ -921,9 +933,57 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261017T091823Z-methodology-election-analysis-script-49712cf9",
+          "recorded_at_utc": "2026-10-17T09:18:23Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 9,
+          "provenance_revision": 10,
+          "summary": "Use past-only election-specific transformed seat volatility with recency, minimum-four generic padding and a doubled generic disruption observation; validate historical TPP comparisons.",
+          "files": [
+            "lib/election_analysis/election_analysis_seats.py",
+            "lib/election_analysis/seat_volatility.py",
+            "lib/elections/historical_tpp.py",
+            "scripts/diagnostics/collect_historical_tpp.py",
+            "scripts/pipeline/election_analysis.py",
+            "scripts/pipeline/seat_volatility.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "analyse_elections"
+            ]
+          }
+        },
+        {
+          "id": "20261017T092050Z-other-election-analysis-script-ccc626a8",
+          "recorded_at_utc": "2026-10-17T09:20:50Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 9,
+          "provenance_revision": 10,
+          "summary": "Separate seat-table construction and output publication from the top-level calibration flows.",
+          "files": [
+            "lib/election_analysis/seat_volatility.py",
+            "scripts/pipeline/seat_volatility.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "analyse_elections"
+            ]
+          }
         }
       ],
-      "provenance_revision": 9
+      "provenance_revision": 10
     },
     "poll_transform_script": {
       "description": "Vote-share transforms and bounds shared by Python analysis stages.",
@@ -5441,9 +5501,9 @@
           "recorded_mtime_utc": "2026-10-01T04:46:46.749846Z"
         },
         "pipeline_registry.json": {
-          "sha256": "9c3c2ef114f8926ed0cd0034b90edff741ec5d37cbb32334bbc15490d5b9bc17",
-          "size_bytes": 47469,
-          "recorded_mtime_utc": "2026-10-01T04:46:47.501500Z"
+          "sha256": "bc481c906935bc22e5c43c198276e58ef54556e981af0c3a60dcaa6afea82d18",
+          "size_bytes": 47568,
+          "recorded_mtime_utc": "2026-10-17T09:18:22.420964Z"
         },
         "scripts/__init__.py": {
           "sha256": "d30f97119ad0e36b9f1fd52fcae6097b1b207747d0c17933368fd996ce1f7b8f",
@@ -7554,6 +7614,25 @@
           "summary": "Register the turnout package initializer; it contains a docstring only and imports no numerical or pipeline implementations.",
           "files": [
             "lib/turnout/__init__.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261017T091939Z-other-pipeline-orchestration-tools-c85737f7",
+          "recorded_at_utc": "2026-10-17T09:19:39Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Register the standalone election-specific seat volatility calculation alongside the historical analysis entry point.",
+          "files": [
+            "pipeline_registry.json"
           ],
           "scope": {
             "all": true,

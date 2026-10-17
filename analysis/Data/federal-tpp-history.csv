@@ -746,7 +746,7 @@ year,seat,alp_percent,alp_swing
 2019,Watson,63.52,-4.06
 2019,Wentworth,40.15,7.9
 2019,Werriwa,55.47,-2.73
-2019,Whitlam,60.91,-39.09
+2019,Whitlam,60.91,-2.81
 2019,Wide Bay,36.85,-4.96
 2019,Wills,75.85,4.18
 2019,Wright,35.42,-4.96
@@ -909,7 +909,7 @@ year,seat,alp_percent,alp_swing
 2025,Barton,66.0,4.01
 2025,Bass,58.01,9.44
 2025,Bean,69.29,6.34
-2025,Bendigo,51.4,51.4
+2025,Bendigo,51.4,-9.81
 2025,Bennelong,59.26,9.3
 2025,Berowra,48.37,5.93
 2025,Blair,55.71,0.48
@@ -920,7 +920,7 @@ year,seat,alp_percent,alp_swing
 2025,Braddon,57.2,15.23
 2025,Bradfield,45.05,1.18
 2025,Brand,66.92,-0.15
-2025,Brisbane,58.96,58.96
+2025,Brisbane,58.96,
 2025,Bruce,64.62,9.31
 2025,Bullwinkel,50.51,-2.84
 2025,Burt,65.71,2.42
@@ -1018,7 +1018,7 @@ year,seat,alp_percent,alp_swing
 2025,Moreton,66.09,7.0
 2025,New England,32.94,-1.85
 2025,Newcastle,70.79,2.85
-2025,Nicholls,35.62,35.62
+2025,Nicholls,35.62,
 2025,O'Connor,36.72,-6.59
 2025,Oxley,69.19,7.6
 2025,Page,40.71,1.36

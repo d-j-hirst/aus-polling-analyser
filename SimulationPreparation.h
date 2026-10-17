@@ -9,6 +9,7 @@ class PollingProject;
 class Seat;
 class Simulation;
 class SimulationRun;
+namespace SeatVolatility { struct Table; }
 
 class SimulationPreparation {
 public:
@@ -72,6 +73,8 @@ private:
 	void loadNationalsSeatExpectations();
 	void validateCoalitionSeatSettings() const;
 	void loadIndividualSeatParameters();
+	SeatVolatility::Table readIndividualSeatParameters() const;
+	void applyIndividualSeatParameters(SeatVolatility::Table const& table);
 	void prepareProminentMinors();
 	void prepareRunningParties();
 	void calculateIndEmergenceModifier();
