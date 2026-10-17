@@ -535,6 +535,8 @@
 	<ClInclude Include="CoalitionCandidacy.h" />
 	<ClInclude Include="MajorPartyFpMath.h" />
 	<ClInclude Include="SeatVolatility.h" />
+	<ClInclude Include="LiveVariability.h" />
+	<ClInclude Include="LivePreparedStorage.h" />
 	<ClInclude Include="RegionalSwingMath.h" />
 	<ClInclude Include="LivePreparationBridge.h" />
 	<ClInclude Include="WorkspacePaths.h" />

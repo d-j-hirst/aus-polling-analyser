@@ -526,6 +526,8 @@
 	  <Filter>Header Files\Utility</Filter>
 	</ClInclude>
 	<ClInclude Include="SeatVolatility.h" />
+	<ClInclude Include="LiveVariability.h" />
+	<ClInclude Include="LivePreparedStorage.h" />
 	<ClInclude Include="RegionalSwingMath.h">
 	  <Filter>Header Files\Utility</Filter>
 	</ClInclude>

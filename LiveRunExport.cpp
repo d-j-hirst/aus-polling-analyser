@@ -1073,7 +1073,8 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 				{"individual_count_weights",parties.values(weights)}
 			};
 		}
-		seatJson["tpp_all_booths_std_dev"] = number(seat.tppAllBoothsStdDev);
+		// This optional legacy diagnostic is not the active joint TPP scale.
+		seatJson["tpp_all_booths_std_dev"] = optionalNumber(seat.tppAllBoothsStdDev);
 		// Source weights explain which part of the shared conversion adjustment
 		// reaches this seat. They are not counts or extra turnout observations.
 		seatJson["estimated_tpp"] = {
@@ -1109,8 +1110,8 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 		seatsJson.push_back(std::move(seatJson));
 
 		for (int boothIndex : seat.booths) {
-			if (boothIndex < 0 || boothIndex >= int(booths.size())) continue;
-			auto const& booth = booths[boothIndex];
+			if (boothIndex < 0 || boothIndex >= int(readBooths().size())) continue;
+			auto const& booth = readBooths()[boothIndex];
 			json boothJson;
 			boothJson["name"] = booth.name;
 			boothJson["seat_name"] = seat.name;

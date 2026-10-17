@@ -97,7 +97,7 @@ LivePartyConversion::MatchedAccount LiveV2::Election::matchedConversionAccount(i
     LivePartyConversion::MatchedAccount account;
     double broadOffset = heldOutPreferenceOffset(seatIndex);
     for (int index : seats.at(seatIndex).booths) {
-        auto const& booth = booths[index];
+        auto const& booth = readBooths()[index];
         // Require the existing valid current FP/TPP match, not an earlier
         // partial cohort or a non-classic TCP. OPV is excluded by the caller.
         if (tppBoothMatchedPreferenceUnit(index) <= 0) continue;
@@ -140,8 +140,8 @@ void LiveV2::Election::identifyTppIntegrationSeats() {
         if (found == baseline.seatName.end()) throw std::runtime_error("Missing TPP baseline district: " + seat.name);
         tppProjectSeatIndices.push_back(int(found - baseline.seatName.begin()));
         for (int index : seat.booths)
-            if (turnoutFpTarget(index) > 0 && categoryCode(booths[index]) != 0)
-                categories.insert(categoryCode(booths[index]));
+            if (turnoutFpTarget(index) > 0 && categoryCode(readBooths()[index]) != 0)
+                categories.insert(categoryCode(readBooths()[index]));
     }
     tppCategoryCodes.assign(categories.begin(), categories.end());
 }
@@ -233,12 +233,12 @@ double LiveV2::Election::tppBoothTarget(int index) const {
     if (!optionalPreferential) return turnoutFpTarget(index);
     // OPV accounts use continuing votes, not exhausted formal ballots.
     double expected = 0;
-    for (auto const& [party, votes] : booths[index].node.tppVotesProjected) expected += votes;
+    for (auto const& [party, votes] : readBooths()[index].node.tppVotesProjected) expected += votes;
     return expected;
 }
 
 double LiveV2::Election::tppBoothBaseline(int index) const {
-    auto const& booth = booths[index];
+    auto const& booth = readBooths()[index];
     auto const& n = booth.node;
     auto const& seat = seats.at(booth.parentSeatId);
     return n.tppSharePrevious
@@ -277,7 +277,7 @@ LiveV2::Election::tppCategoryEvidence(int seatIndex, double referenceShift,
 }
 
 double LiveV2::Election::tppBoothMatchedPreferenceUnit(int index) const {
-    auto const& booth = booths[index];
+    auto const& booth = readBooths()[index];
     auto const& n = booth.node;
     // Reuse the eligibility of the existing correction: comparable current
     // FP/TCP, usable historical flows and nonzero reliability. An old stored
@@ -294,7 +294,7 @@ double LiveV2::Election::tppBoothMatchedPreferenceUnit(int index) const {
 void LiveV2::Election::appendTppBoothEvidence(int index, double referenceShift,
     std::map<int, LiveTppIntegration::CategoryEvidence>& categories,
     std::optional<bool> inferredLocations) const {
-    auto const& booth = booths[index];
+    auto const& booth = readBooths()[index];
     auto const& n = booth.node;
     double expected = tppBoothTarget(index);
     if (expected <= 0) return; // Explicit closures/inactive services carry no weight.

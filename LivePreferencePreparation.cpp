@@ -40,7 +40,7 @@ void LiveV2::Election::preparePreferenceCorrections() {
         // regression does not attempt to revise. The adjusted account is an
         // exact copy until a scenario draws an opposing preference transfer.
         for (int b : seat.booths) {
-            auto const& tcp = booths[b].node.tcpVotesCurrent;
+            auto const& tcp = readBooths()[b].node.tcpVotesCurrent;
             if (tcp.size() == 2 && tcp.contains(0) && (tcp.contains(1) || tcp.contains(natPartyIndex)))
                 for (auto const& [p, v] : tcp) prepared->countedTpp[s][p == natPartyIndex ? 1 : p] += v;
         }
@@ -60,7 +60,7 @@ void LiveV2::Election::preparePreferenceCorrections() {
         std::vector<LivePreferenceCorrections::Observation> observations;
         std::map<int, double> otherTotals;
         for (int b : seat.booths) {
-            auto const& booth = booths[b];
+            auto const& booth = readBooths()[b];
             auto const& n = booth.node;
             if (booth.voteType != Results2::VoteType::Ordinary
                 || (booth.boothType != Results2::Booth::Type::Normal && booth.boothType != Results2::Booth::Type::Ppvc)) {
@@ -89,7 +89,7 @@ void LiveV2::Election::preparePreferenceCorrections() {
         auto const largestOther = std::max_element(otherTotals.begin(), otherTotals.end(),
             [](auto const& a, auto const& b) { return a.second < b.second; })->first;
         for (auto& observation : observations) {
-            auto const& fp = booths[observation.booth].node.fpVotesCurrent;
+            auto const& fp = readBooths()[observation.booth].node.fpVotesCurrent;
             if (fp.contains(largestOther)) observation.otherParty = fp.at(largestOther);
         }
         auto const mixtures = LivePreferenceCorrections::prepare(observations);
@@ -102,8 +102,8 @@ void LiveV2::Election::preparePreferenceCorrections() {
         for (auto const& mixture : mixtures) {
             bool const explicitDraw = std::any_of(state.distribution.explicitBooths.begin(), state.distribution.explicitBooths.end(),
                 [&](auto const& item) { return item.booth == mixture.booth; });
-            seatDiagnostic["booths"].push_back({{"booth", booths[mixture.booth].name},
-                {"formal_votes", booths[mixture.booth].node.totalFpVotesCurrent()}, {"preference_pool", mixture.pool},
+            seatDiagnostic["booths"].push_back({{"booth", readBooths()[mixture.booth].name},
+                {"formal_votes", readBooths()[mixture.booth].node.totalFpVotesCurrent()}, {"preference_pool", mixture.pool},
                 {"reported_preference_gain_a", mixture.gain}, {"predicted_preference_share", 1 / (1 + std::exp(-mixture.prediction))},
                 {"comparison_peers", mixture.peers}, {"size_matched_discrepancy", mixture.discrepancy},
                 {"broad_probability", mixture.broadProbability}, {"routine_probability", mixture.routineProbability},

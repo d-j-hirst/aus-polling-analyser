@@ -24,6 +24,12 @@ Config::Config(std::string const& filename)
 			if (values[0] == "bBeepOnCompletion") {
 				beepOnCompletion = std::stoi(values[1]) == 1;
 			}
+			if (values[0] == "bLiveDetailedLogging") {
+				liveDetailedLogging = std::stoi(values[1]) == 1;
+			}
+			if (values[0] == "bLiveLegacyTppDiagnostic") {
+				liveLegacyTppDiagnostic = std::stoi(values[1]) == 1;
+			}
 		} 
 		catch (std::invalid_argument) {
 			logger << "Invalid config line: " + line;

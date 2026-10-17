@@ -4,7 +4,7 @@
 #include "LiveFpIntegration.h"
 
 LiveFpEvidence::Unit LiveV2::Election::fpEvidenceUnit(int boothIndex, bool varied) const {
-    auto const& booth = booths.at(boothIndex);
+    auto const& booth = readBooths().at(boothIndex);
     auto const& seat = seats.at(booth.parentSeatId);
     LiveFpEvidence::Unit unit;
     for (auto const& [id,votes] : booth.node.fpVotesCurrent) unit.counted[id] = votes;
@@ -38,7 +38,7 @@ void LiveV2::Election::prepareFpEvidence() {
 
 void LiveV2::Election::applyFpEvidence(int boothIndex) {
     if (!fpEvidence) return; // The initial historical composition is prepared first.
-    auto& booth = booths.at(boothIndex);
+    auto& booth = preparationBooths().at(boothIndex);
     auto const& factors = fpEvidence->at(booth.parentSeatId).factors;
     if (factors.empty()) return; // Preserve zero-evidence and fully counted accounts.
     auto unit = fpEvidenceUnit(boothIndex,createRandomVariation);
@@ -54,7 +54,7 @@ void LiveV2::Election::refreshFpEvidenceProjections() {
     // Move only the future FP pool, then let the existing preference-flow
     // calculations see that same composition before rebuilding parent accounts.
     // Already counted FP and matched FP/TCP cohorts remain unchanged.
-    for (int index = 0; index < int(booths.size()); ++index) {
+    for (int index = 0; index < int(readBooths().size()); ++index) {
         applyFpEvidence(index);
         recomposeBoothTppVotes(true,index);
         recomposeBoothTcpVotes(index);

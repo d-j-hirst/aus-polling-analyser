@@ -48,6 +48,30 @@ Both live-run controls start immediately in the background. The progress window 
 
 Preparation and simulation use the configured simulation-thread limit. The background context reserves one logical processor for browsing where possible. Completed analysers are released after their detached outputs have been captured, so retained reports do not require a second full analyser in memory.
 
+Routine preparation writes a compact seat/booth summary and timing information
+to `PALog.log`; warnings and analysis sidecars remain available. It no longer
+dumps every booth's internal state into the text log. To restore that dump for
+a debugging session, set `bLiveDetailedLogging=1` in the workspace's
+`config.cfg` and restart the application. The default is `0`.
+
+Uncertainty preparation retains all 288 FP/TCP samples, caching their unchanged
+baseline booth totals and transformed shares once per snapshot. The earlier
+TPP RMS diagnostic is optional because the joint TPP calculation now supplies
+the forecast's TPP uncertainty. Set `bLiveLegacyTppDiagnostic=1` in `config.cfg`
+and restart to calculate it. By default, its analysis field
+`tpp_all_booths_std_dev` is `null` (not calculated), rather than a misleading
+zero. This switch does not disable or alter the active joint TPP calculation.
+Both switches default off when absent from older configuration files and
+require no project-file format change.
+
+After preparation, simulation draws share one immutable set of booth data.
+Each draw still owns its seat, region and election projections, including its
+sampled preference corrections. The 288 preparation samples retain independent
+writable booth copies because they recalculate booth projections. Diagnostics
+and booth views read the same prepared data through shared ownership; they do
+not depend on the original analyser remaining alive. This reduces copying
+without changing count accounts, iteration keys or forecast calculations.
+
 You can scroll and copy Results cells with **Ctrl+C**, change the All/Latest/Significant/Key filter, use every Live Booths output type, switch simulations or saved reports in Display, and browse the other tabs. Editing, downloads, other calculations, macros, configuration, report saving/deletion, uploads/exports and project Save/Save As/New/Open are disabled until the live job finishes. Ordinary selection changes do not re-enable these actions.
 
 Results separates **Raw Swing** from **Est. Swing**. Raw Swing averages each booth or declaration category's Labor–Coalition swing in percentage points. Counted classic TCP stays fixed; FP still awaiting preferences uses the forecast's existing preference-flow allocation, including any retained matched FP/TCP cohort. Thus 100 TCP votes arriving after 10,000 FP votes leave 9,900 votes estimated from FP, with a combined 10,000-vote weight. FP-only booths keep contributing independently. A complete TCP account needs no inferred addition. Before any preferences arrive, Raw Swing uses the existing booth-level 2PP estimate from received FP votes. Historical FP can also supply a previous-election comparison when classic TCP is unavailable. It makes no adjustment for which vote types have reported and does not blend with the seat-wide forecast or add outstanding votes. It stays blank without received votes or a usable historical comparison. Est. Swing retains the live model's seat-wide estimate, including outstanding votes, relative to the configured previous margin. Both use the same party colours. The summary's **Projected 2PP** uses the completed forecast's mean TPP distribution, matching Display and Live Booths.

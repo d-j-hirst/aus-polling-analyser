@@ -5,6 +5,8 @@
 #include "LiveEstimatedTpp.h"
 #include "LiveTppComposition.h"
 #include "LivePartyConversion.h"
+#include "LiveVariability.h"
+#include "LivePreparedStorage.h"
 
 #include "ElectionData.h"
 #include "General.h"
@@ -155,11 +157,12 @@ public:
   std::optional<std::pair<float, float>> coords; // latitude, longitude; unset if the source booth has none
   std::map<int, float> tppVotesEstimated; // estimate-only count for tpp votes, used for calculating general bias in TPP estimates
 
-  // Prepared once from compatible accepted counts. Scenarios copy only this
-  // small cohort/flow measurement, never the source documents or disk history.
+  // Prepared once from compatible accepted counts. Main scenarios share this
+  // frozen measurement, never retaining source documents or disk history.
   std::optional<LivePartialCount::Evidence> preferenceEvidence;
-  // Scenario-owned shares of genuinely new voters, with raw ballot identities.
-  // FP and pair projection consume this same composition; counts stay separate.
+  // Scratch shares of genuinely new voters, with raw ballot identities. FP
+  // and pair preparation consume the same composition; preparation samples
+  // own separate copies. Main draws use the prepared seat-level responses.
   LiveNewVotes::Shares futureFpShares;
 
   // Booths from a different seat are much less reliable for extrapolation
@@ -205,7 +208,7 @@ public:
   std::map<int, float> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
   std::optional<float> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
   std::map<int, float> fpAllBoothsStdDev; // variability of (transformed) fp votes across all remaining booths
-  float tppAllBoothsStdDev = 0.0f; // preparatory TPP RMS diagnostic; the joint update supplies active TPP uncertainty
+  std::optional<float> tppAllBoothsStdDev; // optional legacy RMS diagnostic; joint TPP uncertainty is always prepared
   // Frozen received-source evidence, shared by all scenarios in this snapshot.
   // Inferred TPP does not supply a counted lower bound, even at full FP count.
   LiveEstimatedTpp::Evidence estimatedTppEvidence;
@@ -525,6 +528,15 @@ public:
   std::optional<std::vector<double>> integrateTpp(std::vector<double> const& prior) const override;
 
 private:
+  // Callers choose a named copy path. Preparation samples own mutable booths;
+  // forecast scenarios share frozen booths but still copy seat/region state.
+  Election(Election const&) = default;
+  Election copyForPreparation() const;
+  std::unique_ptr<Election> copyForScenario() const;
+  std::vector<Booth> const& readBooths() const { return boothStorage.read(); }
+  std::vector<Booth>& preparationBooths() { return boothStorage.edit(); }
+  void freezePreparedBooths() { boothStorage.freeze(); }
+
   void prepareTppIntegration();
   void identifyTppIntegrationSeats();
   void prepareTppCategoryAccounts();
@@ -761,6 +773,14 @@ private:
   void calculateLivePreferenceFlowDeviations();
 
   void prepareVariability();
+  void resetPreparedVariability();
+  std::vector<LiveVariability::Baseline> prepareVariabilityBaselines(bool includeTpp) const;
+  std::vector<LiveVariability::Sample> runVariabilitySamples(
+    std::vector<LiveVariability::Baseline> const& baselines) const;
+  LiveVariability::Sample sampleVariability(int sampleIndex,
+    std::vector<LiveVariability::Baseline> const& baselines) const;
+  void storePreparedVariability(std::vector<LiveVariability::Sample> const& samples);
+  void logPreparedSummary() const;
 
   // Rechecking is independent of additions. Prepare its distributions once
   // from current comparable booths, then change only scenario pair accounts.
@@ -789,7 +809,7 @@ private:
   bool createRandomVariation = false;
 
   std::vector<LargeRegion> largeRegions;
-  std::vector<Booth> booths;
+  LivePreparedStorage<Booth> boothStorage;
   std::vector<LiveV2::Seat> seats;
 
   std::map<int, int> ecPartyToInternalParty;

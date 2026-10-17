@@ -350,13 +350,13 @@ void LiveV2::Election::prepareTurnout(Results2::Election const& currentElection,
     // observations, update the fixed prior, then retain the observation and
     // diagnostics. Party composition is prepared separately.
     auto started = std::chrono::steady_clock::now();
-    auto observations = collectTurnoutObservations(artifact.prior, currentElection, seats, booths);
+    auto observations = collectTurnoutObservations(artifact.prior, currentElection, seats, readBooths());
     auto directory = TurnoutModelIO::historyDirectory(project.paths().root(), run.getTermCode());
     auto mapping = TurnoutModelIO::observationMapping(artifact.prior);
     auto history = loadReceivedTurnoutHistory(directory, run.getTermCode(), currentElection.sourceTime,
         mapping, observations.current);
     turnout = LiveTurnout::Prepared::prepare(std::move(artifact), std::move(observations.units),
-        std::move(observations.boothIndexes), booths.size(), observations.finalised, history, currentElection.sourceTime);
+        std::move(observations.boothIndexes), readBooths().size(), observations.finalised, history, currentElection.sourceTime);
     // Persist only received measured counts. It is safe to start with an empty
     // directory during a live election; future replay sources are filtered out.
     run.pendingLiveCommits.push_back([directory, election = run.getTermCode(), time = currentElection.sourceTime,
@@ -369,11 +369,11 @@ void LiveV2::Election::prepareTurnout(Results2::Election const& currentElection,
 
 float LiveV2::Election::turnoutFpTarget(int boothIndex) const {
     double expected = turnout->fpTarget(boothIndex);
-    LiveTurnoutMath::remaining(expected, booths.at(boothIndex).node.totalFpVotesCurrent());
+    LiveTurnoutMath::remaining(expected, readBooths().at(boothIndex).node.totalFpVotesCurrent());
     return float(expected);
 }
 float LiveV2::Election::turnoutPairTarget(int boothIndex) const {
-    auto const& booth = booths.at(boothIndex);
+    auto const& booth = readBooths().at(boothIndex);
     return float(LiveTurnoutMath::pairTarget(turnout->fpTarget(boothIndex),
         booth.node.totalFpVotesCurrent(), booth.node.totalTcpVotesCurrent()));
 }
@@ -396,14 +396,14 @@ std::optional<LiveData::VoteCountAccount> LiveV2::Election::getSeatVoteCountAcco
 void LiveV2::Election::refreshTurnoutFpProgress() {
     // The same target counts determine vote composition and completion. Update
     // booth evidence first, then combine it at district and election levels.
-    auto weights = refreshFpBoothProgress(booths, *turnout);
-    aggregateFpProgress(node, seats, largeRegions, booths, weights);
+    auto weights = refreshFpBoothProgress(preparationBooths(), *turnout);
+    aggregateFpProgress(node, seats, largeRegions, readBooths(), weights);
 }
 
 void LiveV2::Election::prepareTurnoutComposition() {
     // Translate checked party accounts, attach their reusable count responses,
     // then record reconciliation diagnostics before simulation copies share them.
-    auto inputs = collectTurnoutComposition(seats, booths, *turnout, natPartyIndex, run.indPartyIndex);
+    auto inputs = collectTurnoutComposition(seats, readBooths(), *turnout, natPartyIndex, run.indPartyIndex);
     turnout = turnout->withComposition(inputs.units, inputs.seats);
     turnoutDiagnostic = std::make_shared<nlohmann::json const>(
         describeIntegratedTurnout(*turnoutDiagnostic, std::move(inputs.projections)));
@@ -429,6 +429,6 @@ void LiveV2::Election::refreshTurnoutScenarioProgress() {
 void LiveV2::Election::refreshTurnoutPairProgress() {
     // A complete FP report normally also has its final-pair count. When it
     // does not, keep the outstanding preference work in the pair denominator.
-    refreshPairBoothProgress(booths, *turnout, natPartyIndex);
-    aggregatePairProgress(node, seats, largeRegions, booths, *turnout);
+    refreshPairBoothProgress(preparationBooths(), *turnout, natPartyIndex);
+    aggregatePairProgress(node, seats, largeRegions, readBooths(), *turnout);
 }
