@@ -6,11 +6,14 @@
 #include "SpecialPartyCodes.h"
 #include "LiveTurnoutMath.h"
 #include "LivePartyMapping.h"
+#include "LiveTppSensitivity.h"
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <cmath>
 #include <exception>
+#include <iomanip>
 #include <mutex>
 #include <numeric>
 #include <ranges>
@@ -37,11 +40,15 @@ using namespace LiveV2;
 
 constexpr float VoteObsWeightStrength = 250.0f;
 constexpr float PreferenceFlowObsWeightStrength = 200.0f;
+// Operator notices concern materially limited historical evidence. A tiny
+// genuine unanimous pool can be weak information without being a data error.
+// This vote-scale threshold controls notices only, not the reliability fade.
+constexpr double HistoricalPreferenceWarningVotes = 10;
 constexpr float CoalitionLeakagePercent = 20.0f;
 constexpr float PreviousTotalVotesGuess = 500.0f;
 constexpr float HospitalBoothVotesGuess = 50.0f;
 constexpr float DifferentSeatRelevanceModifier = 0.1f;
-constexpr float NonClassicTppVariabilityStdDev = 2.5f;
+// Effective breadth scale for the retained inferred-TPP bias diagnostic.
 constexpr float NonClassicBiasEffectiveBoothScale = 5.0f;
 constexpr float MaxPreferenceVoteTotalDifference = float(LivePartialCount::ComparableTotalFraction);
 constexpr int VariabilityPreparationSamples = 288;
@@ -269,14 +276,7 @@ float deterministicRootMeanSquare(
 float obsWeight(float confidence, float strength = VoteObsWeightStrength) {
   // TODO: Calibrate this confidence-to-weight curve against historical live
   // counts. Its shape and the level-specific strengths are currently heuristic.
-  if (!std::isfinite(confidence) || !std::isfinite(strength) || strength < 0.0f) {
-    throw std::runtime_error("Cannot weight invalid live-election evidence.");
-  }
-  float const boundedConfidence = std::clamp(confidence, 0.0f, 1.0f);
-  return std::min(
-    1.0f,
-    1.01f - 1.01f
-      / (1.0f + std::pow(boundedConfidence, 1.6f) * strength));
+  return LiveSimulationMath::observationWeight(confidence, strength);
 }
 
 float variabilityProgressWeight(float completion) {
@@ -298,12 +298,8 @@ enum class VariabilityTag : std::uint32_t {
   TcpSwingDifferentCandidate = 6,
   NonOrdinaryTpp = 7,
   BoothProjectionTpp = 8,
-  GenerateBoothTypeTppVariability = 9,
-  GenerateVoteTypeTppVariability = 10,
   GenerateFpVariability = 11,
-  GenerateTppVariability = 12,
   GenerateTcpVariability = 13,
-  GenerateNonClassicTppVariability = 15,
   GenerateBoothTypeFpVariability = 16,
   GenerateVoteTypeFpVariability = 17,
   GenerateFpEvidenceEndpoint = 18,
@@ -630,6 +626,42 @@ Booth::Booth(
   node.relevanceModifier = sameSeat ? 1.0f : DifferentSeatRelevanceModifier;
 }
 
+std::optional<double> Election::rawPendingFirstVotes(Booth const& booth) const {
+  auto const& n = booth.node;
+  double const tcpVotes = n.totalTcpVotesCurrent();
+  double const pending = n.totalFpVotesCurrent()-tcpVotes;
+  if (tcpVotes <= 0 || pending <= 0 || !isTppSet(n.tcpVotesCurrent,natPartyIndex)) return {};
+  // Match projectCountedTpp/projectDeclarationTpp's received-vote accounting.
+  // Counted preferences stay fixed; only FP awaiting preferences is inferred,
+  // using the same historical/pooled flows and retained matching FP/TCP cohort.
+  // This deliberately excludes the forecast's not-yet-received FP voters.
+  if (optionalPreferential) return pending*n.tcpVotesCurrent.at(0)/tcpVotes;
+  int const coalition = n.tcpVotesCurrent.contains(natPartyIndex) ? natPartyIndex : 1;
+  return LivePartialCount::pendingFirst(n.fpVotesCurrent,n.tcpVotesCurrent,
+    classicPreferenceFlows(booth,coalition),preferencePriorOffset(booth),
+    booth.preferenceEvidence,0,coalition);
+}
+
+float Election::getSeatRawTppSwing(std::string const& seatName) const {
+  auto seat = std::find_if(seats.begin(),seats.end(),[&](auto const& s) { return s.name == seatName; });
+  if (seat == seats.end()) return std::numeric_limits<float>::quiet_NaN();
+  LiveData::RawTppSwing swing;
+  auto percent = [](std::optional<float> share) -> std::optional<double> {
+    return share ? std::optional<double>(detransformVoteShare(*share)) : std::nullopt;
+  };
+  for (int index : seat->booths) {
+    auto const& booth = booths.at(index);
+    auto const& n = booth.node;
+    // The raw booth shares are established from received TCP or FP before
+    // turnout recomposition and forecast blending. Using projected vote totals
+    // here would reintroduce the prior-heavy seat estimate into the raw column.
+    swing.add(n.tcpVotesCurrent,n.tcpVotesPrevious,natPartyIndex,
+      n.totalFpVotesCurrent(),percent(n.tppShare),percent(n.tppSharePrevious),
+      rawPendingFirstVotes(booth));
+  }
+  return swing.value().value_or(std::numeric_limits<float>::quiet_NaN());
+}
+
 void Booth::calculateTppSwing(int natPartyIndex) {
   if (node.totalTcpVotesCurrent() > 0
     && isTppSet(node.tcpVotesCurrent, natPartyIndex)
@@ -677,6 +709,7 @@ void LiveV2::Seat::log(Election const& election, bool includeBooths) const
   PA_LOG_VAR(offsetSpecificTppDeviation);
   PA_LOG_VAR(fpAllBoothsStdDev);
   PA_LOG_VAR(tppAllBoothsStdDev);
+  PA_LOG_VAR(estimatedTppInfluence);
   PA_LOG_VAR(tcpAllBoothsStdDev);
   PA_LOG_VAR(independentPartyIndex);
   PA_LOG_VAR(tcpFocusPartyIndex);
@@ -791,15 +824,19 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   calculateTcpPreferenceFlows();
   preparePreferenceCohorts(previousElection, currentElection, preferenceHistory);
   prepareTurnout(currentElection, std::move(turnoutInput));
+  reportLimitedHistoricalPreferenceEvidence(currentElection.sourceTime);
   prepareNewVoteContexts();
   recomposeVoteCounts();
   prepareFpEvidence();
   refreshFpEvidenceProjections();
+  prepareTppProjectionSensitivities();
+  prepareEstimatedTppEvidence();
   calculateLivePreferenceFlowDeviations();
   preparePreferenceCorrections();
   prepareVariability();
   prepareTurnoutComposition();
   prepareFpIntegration();
+  prepareTppIntegration();
   log(true, true, true);
 }
 
@@ -1087,6 +1124,103 @@ std::optional<float> Election::preferenceRateOffset(Booth const& booth, bool cur
     ? std::optional<float>(0) : std::nullopt;
 }
 
+std::optional<LivePartialCount::PreferenceTransfer> Election::historicalPreferenceTransfer(Booth const& booth) const {
+  auto const& tcp = booth.node.tcpVotesPrevious;
+  if (!isTppSet(tcp,natPartyIndex)) return {};
+  int coalition = tcp.contains(natPartyIndex) ? natPartyIndex : 1;
+  return LivePartialCount::measureTransfer(booth.node.fpVotesPrevious,tcp,0,coalition);
+}
+
+void Election::calculatePreferenceFlowEvidence(Booth& booth) {
+  auto current = preferenceRateOffset(booth,true);
+  auto previous = preferenceRateOffset(booth,false);
+  if (!current || !previous) return;
+  if (!std::isfinite(*current) || !std::isfinite(*previous)) {
+    logger << "Warning: Non-finite preference rate offset for booth " << booth.name << "\n";
+    return;
+  }
+  // Usually both elections supply ordinary, comparable preference flows.
+  // Retain their measured difference and the existing coverage rule. Only
+  // an extreme historical rate discounts how much that difference trains
+  // local/seat/regional extrapolation; current counted votes remain fixed.
+  auto historical = historicalPreferenceTransfer(booth);
+  double reliability = historical ? LivePartialCount::historicalFlowReliability(historical->share()) : 1;
+  booth.node.preferenceFlowDeviation = *current-*previous;
+  booth.node.preferenceFlowConfidence = float(reliability*std::min(
+    booth.node.fpConfidence,booth.node.tppCompletion));
+}
+
+double Election::limitedHistoricalPreferenceImpact(Booth const& booth,
+  LivePartialCount::PreferenceTransfer const& historical, double reliability) const {
+  auto const& fp = booth.node.fpVotesCurrent;
+  auto const& tcp = booth.node.tcpVotesCurrent;
+  if (!isTppSet(tcp,natPartyIndex)) return 0;
+  int coalition = tcp.contains(natPartyIndex) ? natPartyIndex : 1;
+  auto current = LivePartialCount::measureTransfer(fp,tcp,0,coalition);
+  auto previousOffset = preferenceRateOffset(booth,false);
+  if (!current || !previousOffset) return 0;
+  auto flows = classicPreferenceFlows(booth,coalition);
+  double expected = (LivePartialCount::expectedFirst(fp,flows,0)-LivePartialCount::value(fp,0))/current->votes;
+  double historicalPrediction = LivePartialCount::inverseLogOdds(
+    LivePartialCount::logOdds(expected)+*previousOffset/25);
+  // Rank notices by the smaller measured preference pool times the flow
+  // disagreement and lost reliability. This is a vote-scale severity proxy,
+  // not a claim that the forecast changed by this many votes. Party mix is
+  // already accounted for in the current expected flow used here.
+  return std::min(historical.votes,current->votes)*(1-reliability)*
+    std::abs(historicalPrediction-current->share())*booth.node.relevanceModifier;
+}
+
+std::string Election::describePreferenceCounts(std::map<int,int> const& counts) const {
+  std::ostringstream text;
+  for (auto const& [party,votes] : counts) {
+    if (text.tellp() > 0) text << ", ";
+    if (party >= 0 && party < project.parties().count())
+      text << project.parties().viewByIndex(party).abbreviation;
+    else text << "historical party " << party;
+    text << " " << votes;
+  }
+  return text.str();
+}
+
+void Election::recordLimitedHistoricalPreferenceIssue(Booth const& booth,
+  LivePartialCount::PreferenceTransfer const& historical, double reliability,
+  double impact, std::string const& sourceTime) {
+  auto const& seat = seats.at(booth.parentSeatId);
+  std::string role = booth.voteType != Results2::VoteType::Ordinary ? "declaration" :
+    booth.boothType == Results2::Booth::Type::Ppvc ? "ppvc" : "ordinary";
+  std::ostringstream explanation;
+  explanation << std::fixed << std::setprecision(2)
+    << "The previous count implies " << historical.share()*100
+    << "% of non-finalist preferences reaching Labor after normalizing the FP/TCP totals. "
+    << "Near-unanimous flows are sensitive to small count discrepancies; retaining "
+    << reliability*100 << "% of this comparison's extrapolation weight.\n"
+    << "Previous FP: " << describePreferenceCounts(booth.node.fpVotesPrevious)
+    << " (total " << booth.node.totalVotesPrevious() << ").\n"
+    << "Previous TCP: " << describePreferenceCounts(booth.node.tcpVotesPrevious)
+    << " (total " << booth.node.totalTcpVotesPrevious() << ").";
+  run.inputIssues.add({"historical_preference_limited",seat.name+"/"+role+"/"+booth.name,
+    seat.name,booth.name,explanation.str(),
+    "Check the historical FP/TCP counts if available. Their extrapolation evidence has been discounted; counted TCP is retained.",
+    sourceTime,impact,false,{},{}});
+}
+
+void Election::reportLimitedHistoricalPreferenceEvidence(std::string const& sourceTime) {
+  // Preparation reports this once through the existing grouped registry.
+  // Scenario generation never adds notices, and tiny unanimous pools remain
+  // quiet even though their extrapolation weight is correctly reduced.
+  for (auto const& booth : booths) {
+    if (!booth.node.preferenceFlowDeviation) continue;
+    auto historical = historicalPreferenceTransfer(booth);
+    if (!historical) continue;
+    double reliability = LivePartialCount::historicalFlowReliability(historical->share());
+    if (reliability == 1) continue;
+    double impact = limitedHistoricalPreferenceImpact(booth,*historical,reliability);
+    if (impact >= HistoricalPreferenceWarningVotes)
+      recordLimitedHistoricalPreferenceIssue(booth,*historical,reliability,impact,sourceTime);
+  }
+}
+
 LivePartialCount::Flows Election::pairPreferenceFlows(Booth const& booth, int first, int second) const {
   if (first == 0 && (second == 1 || second == natPartyIndex))
     return classicPreferenceFlows(booth,second);
@@ -1352,30 +1486,7 @@ void Election::calculateTppEstimates(bool withTpp) {
     }
 
     if (partyOneShare > 0.0f && partyOneShare < 100.0f) {
-      std::optional<float> currentPreferenceRateOffset = preferenceRateOffset(booth,true);
-      if (currentPreferenceRateOffset && prevPreferenceRateOffset) {
-        bool isBad = false;
-        // Error inputs can result in NaN or Inf
-        // Inf can also result from legitimate results where the
-        // preference flow is 0% or 100%
-        // For analysis purposes, it's better to just ignore these booths
-        if (!std::isfinite(currentPreferenceRateOffset.value())
-          || !std::isfinite(prevPreferenceRateOffset.value())) {
-          logger << "Warning: Non-finite preference rate offset for booth " << booth.name << "\n";
-          logger << "Current: " << currentPreferenceRateOffset.value() << "\n";
-          logger << "Previous: " << prevPreferenceRateOffset.value() << "\n";
-          isBad = true;
-        }
-        if (!isBad) {
-          booth.node.preferenceFlowDeviation = currentPreferenceRateOffset.value() - prevPreferenceRateOffset.value();
-          // Preference evidence requires both FP and TPP counts. Ordinary
-          // booths are complete (confidence 1); incremental categories retain
-          // their progress-based confidence rather than becoming fully trusted
-          // as soon as their first batch arrives.
-          booth.node.preferenceFlowConfidence = std::min(
-            booth.node.fpConfidence, booth.node.tppCompletion);
-        }
-      }
+      calculatePreferenceFlowEvidence(booth);
       if (!withTpp) {
         booth.node.tppShare = transformVoteShare(partyOneShare);
         // An FP-derived TPP estimate is less informative than a direct count,
@@ -2332,13 +2443,11 @@ void Election::recomposeVoteCounts() {
   // differences in the mix of reporting units.
 
   if (!createRandomVariation) {
-    // These sensitivities describe the current outstanding-vote composition.
-    // Reset them before preparation so each source contributes exactly once.
+    // FP sensitivities are collected by this composition pass. TPP weights
+    // are prepared separately after all FP-evidence projection refreshes.
     for (auto& seat : seats) {
       seat.fpBoothTypeSensitivity.clear();
       seat.fpVoteTypeSensitivity.clear();
-      seat.tppBoothTypeSensitivity.clear();
-      seat.tppVoteTypeSensitivity.clear();
     }
     refreshTurnoutFpProgress();
 
@@ -3027,13 +3136,13 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
           + booth.name + ".");
       }
       int const previousOpponentId = previousOpponent->first;
-      float weightedSwing = 0.0f;
-      float summedWeight = 0.0f;
-      float totalExpected = 0.0f;
+      LivePartialCount::SharedFinalistTcpEvidence comparison;
 
       for (auto const& otherBoothIndex : seat.booths) {
         // Compare the shared finalist against its previous opponent.
         auto& otherBooth = booths.at(otherBoothIndex);
+        float swing = 0.0f;
+        float weight = 0.0f;
         if (otherBooth.node.tcpVotesCurrent.contains(firstPartyId)
           && otherBooth.node.tcpVotesCurrent.contains(secondPartyId)
           && otherBooth.node.tcpVotesPrevious.contains(sharedPreviousPartyId)
@@ -3050,15 +3159,16 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
             float(otherBooth.node.tcpVotesCurrent.at(sharedPreviousPartyId)) /
               float(otherBooth.node.totalTcpVotesCurrent()) * 100.0f,
             0.01f, 99.99f));
-          float swing = currentSharedShare - previousSharedShare;
-          float weight = static_cast<float>(otherBooth.node.totalVotesPrevious()) * otherBooth.node.relevanceModifier;
-          weightedSwing += swing * weight;
-          summedWeight += weight;
-          totalExpected += otherBooth.node.totalFpVotesProjected();
+          swing = currentSharedShare - previousSharedShare;
+          weight = static_cast<float>(otherBooth.node.totalVotesPrevious()) * otherBooth.node.relevanceModifier;
         }
+        // Include every location's expected size even when its TCP has not
+        // arrived or its old pair cannot be compared. Restricting this total
+        // to reporting booths makes one small result look like full coverage.
+        comparison.addBooth(otherBooth.node.totalFpVotesProjected(), swing, weight);
       }
-      if (summedWeight > 0.0f) {
-        float averageSwing = weightedSwing / summedWeight;
+      if (comparison.available()) {
+        float averageSwing = comparison.meanSwing();
         if (createRandomVariation) {
           // Remaining preference composition is less certain when the
           // supporting booth is small. Its total stays in the turnout account.
@@ -3078,10 +3188,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
           0.01f, 99.99f));
         float tcpTransformedEstimateCurrent = tcpTransformedSharePrevious + averageSwing;
         float tcpEstimateCurrent = detransformVoteShare(tcpTransformedEstimateCurrent) * currentVoteTarget * 0.01f;
-        // Lower confidence because one of the parties has changed, so patterns are less reliable
-        methodConfidence[2] = totalExpected > 0.0f
-          ? std::sqrt(std::clamp(summedWeight / totalExpected, 0.0f, 1.0f)) * 0.1f
-          : 0.0f;
+        methodConfidence[2] = comparison.confidence();
         if (sharedPreviousPartyId == firstPartyId) {
           tcpFirst[2] = tcpEstimateCurrent;
           tcpSecond[2] = currentVoteTarget - tcpEstimateCurrent;
@@ -3282,17 +3389,34 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
   } else {
     if (!dataExists) {
       booth.node.tppVotesProjected = tempTppVotesProjected;
-      if (allowCurrentData && booth.boothType != Results2::Booth::Type::Normal && booth.boothType != Results2::Booth::Type::Invalid && booth.boothType != Results2::Booth::Type::Other) {
-        seats[booth.parentSeatId].tppBoothTypeSensitivity[booth.boothType] += currentVoteTarget;
-      }
-      else if (allowCurrentData && booth.voteType != Results2::VoteType::Ordinary && booth.voteType != Results2::VoteType::Invalid) {
-        seats[booth.parentSeatId].tppVoteTypeSensitivity[booth.voteType] += currentVoteTarget;
-      }
     }
     else { // dataExists
       booth.tppVotesEstimated = tempTppVotesProjected;
     }
   }
+}
+
+void Election::prepareTppProjectionSensitivities() {
+  // Composition can be refreshed more than once before variability is ready.
+  // Collect category exposure once from the final accounts, outside that flow.
+  for (int seatIndex = 0; seatIndex < int(seats.size()); ++seatIndex)
+    prepareSeatTppProjectionSensitivities(seatIndex);
+}
+
+void Election::prepareSeatTppProjectionSensitivities(int seatIndex) {
+  auto& seat = seats.at(seatIndex);
+  std::vector<LiveTppSensitivity::Unit> units;
+  units.reserve(seat.booths.size());
+  for (int boothIndex : seat.booths) {
+    auto const& booth = booths.at(boothIndex);
+    bool const hasObservedTpp = LiveEstimatedTpp::observedTppVotes(
+      booth.node.tcpVotesCurrent, natPartyIndex) > 0;
+    units.push_back({booth.boothType, booth.voteType,
+      turnoutFpTarget(boothIndex), hasObservedTpp});
+  }
+  auto sensitivity = LiveTppSensitivity::prepare(units, optionalPreferential);
+  seat.tppBoothTypeSensitivity = std::move(sensitivity.boothTypes);
+  seat.tppVoteTypeSensitivity = std::move(sensitivity.voteTypes);
 }
 
 void Election::recomposeSeatFpVotes(int seatIndex) {
@@ -3648,6 +3772,25 @@ void Election::determineSeatFinalTppDeviation(bool allowCurrentData, int seatInd
   }
 }
 
+LiveEstimatedTpp::Unit Election::estimatedTppUnit(int boothIndex) const {
+  auto const& n = booths.at(boothIndex).node;
+  return {turnoutFpTarget(boothIndex), double(n.totalFpVotesCurrent()),
+    LiveEstimatedTpp::observedTppVotes(n.tcpVotesCurrent,natPartyIndex),
+    n.fpConfidence,n.tppCompletion,n.relevanceModifier,
+    n.tppDeviation.has_value(),optionalPreferential};
+}
+
+void Election::prepareEstimatedTppEvidence() {
+  // Freeze the received sources after turnout has supplied the common count
+  // denominators. Scenarios vary their finite remaining pools, not whether a
+  // feed declared the TCP candidates or which source counts supplied evidence.
+  for (auto& seat : seats) {
+    seat.estimatedTppEvidence = {};
+    for (int booth : seat.booths) seat.estimatedTppEvidence.add(estimatedTppUnit(booth));
+    seat.estimatedTppInfluence = float(seat.estimatedTppEvidence.influence());
+  }
+}
+
 void LiveV2::Election::calculateTppEstimateBias()
 {
   nonClassicTppBiasPercentagePoints = 0.0f;
@@ -3816,6 +3959,9 @@ void Election::prepareVariability() {
   // do a smaller sample to establish the distribution at the seat level, then
   // use that for inter-simulation variation.
 
+  auto const started = std::chrono::steady_clock::now();
+  run.reportProgress("Preparing live uncertainty: 0/"
+    + std::to_string(VariabilityPreparationSamples) + " samples completed...");
   createRandomVariation = true;
   for (auto& seat : seats) {
     seat.fpAllBoothsStdDev.clear();
@@ -3826,13 +3972,20 @@ void Election::prepareVariability() {
   std::map<int, std::map<int, std::vector<float>>> seatFpResults; // by seat, then by party
   std::map<int, std::vector<float>> seatTppResults;
   std::map<int, std::vector<float>> seatTcpResults;
+  // These preparatory draws are part of the live calculation too. Respect
+  // the same worker limit as the main simulation; a background context caps
+  // that limit to leave a processor for browsing. The sample indices and the
+  // ordered RMS aggregation below are unchanged by how batches are scheduled.
+  int const preparationThreads = std::clamp(
+    project.config().getSimulationThreads(), 1, VariabilityPreparationThreads);
+  int nextProgressSample = VariabilityPreparationSamples / 8;
   for (int batchStart = 0; batchStart < VariabilityPreparationSamples;
-    batchStart += VariabilityPreparationThreads) {
+    batchStart += preparationThreads) {
     std::mutex seatResultsMutex;
     std::exception_ptr workerException;
     std::vector<std::thread> threads;
     int const batchSize = std::min(
-      VariabilityPreparationThreads,
+      preparationThreads,
       VariabilityPreparationSamples - batchStart);
     threads.reserve(batchSize);
 
@@ -3978,6 +4131,15 @@ void Election::prepareVariability() {
       createRandomVariation = false;
       std::rethrow_exception(workerException);
     }
+    // Report only a few milestones, after joining each batch. This is activity
+    // information for the job's progress window, independent of input issues
+    // and of the order in which deterministic uncertainty draws are combined.
+    int const completed = batchStart + batchSize;
+    if (completed >= nextProgressSample || completed == VariabilityPreparationSamples) {
+      run.reportProgress("Preparing live uncertainty: " + std::to_string(completed)
+        + "/" + std::to_string(VariabilityPreparationSamples) + " samples completed...");
+      nextProgressSample = completed + VariabilityPreparationSamples / 8;
+    }
   }
 
   for (int seatIndex : std::ranges::views::iota(0, int(seats.size()))) {
@@ -4003,6 +4165,9 @@ void Election::prepareVariability() {
     }
   }
   createRandomVariation = false;
+  logger << "Live uncertainty preparation: "
+    << std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count()
+    << " seconds\n";
 }
 
 void LiveV2::Election::generateSharedFpVariability() {
@@ -4062,127 +4227,21 @@ void Election::generateVariability(int iterationIndex) {
       "Cannot generate live variability for a negative iteration index.");
   }
   variabilitySampleIndex = iterationIndex;
-  boothTypeTppIterationVariation.clear();
-  voteTypeTppIterationVariation.clear();
   boothTypeFpIterationVariation.clear();
   voteTypeFpIterationVariation.clear();
 
-  for (auto const& [boothType, variation] : boothTypeTppBiasStdDev) {
-    boothTypeTppIterationVariation[boothType] = variabilityNormal(
-      0.0f, variation, int(boothType), 0, uint32_t(VariabilityTag::GenerateBoothTypeTppVariability)
-    );
-    boothTypeTppIterationVariation[boothType] *=
-      variabilityProgressWeight(node.fpCompletion);
-  }
-  for (auto const& [voteType, variation] : voteTypeTppBiasStdDev) {
-    voteTypeTppIterationVariation[voteType] = variabilityNormal(
-      0.0f, variation, int(voteType), 0, uint32_t(VariabilityTag::GenerateVoteTypeTppVariability)
-    );
-    voteTypeTppIterationVariation[voteType] *=
-      variabilityProgressWeight(node.fpCompletion);
-  }
+  // TPP composition errors are conditioned jointly at the simulator
+  // boundary. Only FP and non-classic TCP retain their existing draws here.
   generateSharedFpVariability();
-  nonClassicTppIterationVariation = variabilityNormal(
-    0.0f, NonClassicTppVariabilityStdDev, 0, 0, uint32_t(VariabilityTag::GenerateNonClassicTppVariability)
-  );
 
   for (int seatIndex = 0; seatIndex < int(seats.size()); ++seatIndex) {
     auto& seat = seats[seatIndex];
     std::string const seatContext = "Seat " + seat.name;
-    float const previousSeatVotes = float(seat.node.totalVotesPrevious());
-    auto categorySensitivity = [&seatContext, previousSeatVotes](
-      float expectedVotes, std::string_view category) {
-      if (!std::isfinite(expectedVotes) || expectedVotes < 0.0f) {
-        throw std::runtime_error(
-          seatContext + " has invalid " + std::string(category)
-          + " sensitivity votes.");
-      }
-      if (expectedVotes == 0.0f) return 0.0f;
-      if (previousSeatVotes <= 0.0f) {
-        throw std::runtime_error(
-          seatContext + " cannot scale " + std::string(category)
-          + " sensitivity without previous votes.");
-      }
-      return expectedVotes / previousSeatVotes;
-    };
-
     // Unphased FP draws are integrated by their measured precision at the
     // simulator boundary. Both preparation and scenarios use this same finite
     // outstanding-vote response; there is no second local progress weight.
     seat.node.fpVotesProjected = turnout->vary(LiveData::CountKind::Fp, seatIndex,
       seat.node.fpVotesProjected, drawSeatFpChanges(seatIndex));
-
-    if (seat.node.tppVotesProjected.size() != 2
-      || !seat.node.tppVotesProjected.contains(0)
-      || !seat.node.tppVotesProjected.contains(1)) {
-      throw std::runtime_error(
-        seatContext + " does not have a two-party TPP projection.");
-    }
-    float randomTppVariation = variabilityNormal(
-      0.0f, seat.tppAllBoothsStdDev, seatIndex, 0, uint32_t(VariabilityTag::GenerateTppVariability)
-    );
-    randomTppVariation *= variabilityProgressWeight(seat.node.tppCompletion);
-    auto const& compositionTpp = turnout->mean(LiveData::CountKind::Tpp, seatIndex);
-    float const compositionTppTotal = positiveVoteTotal(compositionTpp,seatContext);
-    float const transformedCurrentTppProjection = transformedPartyShare(
-      compositionTpp, 0, compositionTppTotal,
-      seatContext + " TPP projection");
-    float transformedNewTppProjection = transformedCurrentTppProjection + randomTppVariation;
-    bool tppProjectionChanged = randomTppVariation != 0.0f;
-    float withBoothTypeBias = transformedNewTppProjection;
-    for (auto const& [boothType, variation] : boothTypeTppIterationVariation) {
-      if (!seat.tppBoothTypeSensitivity.contains(boothType)) continue;
-      float sensitivity = categorySensitivity(
-        seat.tppBoothTypeSensitivity.at(boothType), "TPP booth-type");
-      // Sensitivity is scaled by the election's confidence. We need scaling because the
-      // variation is applied on top of the existing projection, so if confidence is zero/low
-      // this should not change the forecast much from the baseline.
-      // For now, use election-wide confidence as the booth sensitivity is an election-level measure
-      // but could revisit this later
-      sensitivity *= obsWeight(node.tppConfidence);
-      float const adjustment = variation * sensitivity;
-      withBoothTypeBias += adjustment;
-      tppProjectionChanged = tppProjectionChanged || adjustment != 0.0f;
-    }
-    float withVoteTypeBias = withBoothTypeBias;
-    for (auto const& [voteType, variation] : voteTypeTppIterationVariation) {
-      if (!seat.tppVoteTypeSensitivity.contains(voteType)) continue;
-      float sensitivity = categorySensitivity(
-        seat.tppVoteTypeSensitivity.at(voteType), "TPP vote-type");
-      sensitivity *= obsWeight(node.tppConfidence);
-      float const adjustment = variation * sensitivity;
-      withVoteTypeBias += adjustment;
-      tppProjectionChanged = tppProjectionChanged || adjustment != 0.0f;
-    }
-    // This must eventually check for feed-derived TPP results for non-classic seats once those are included in the simulation
-    bool const usesEstimatedClassicTpp = !isTppSet(seat.node.tcpVotesCurrent, natPartyIndex);
-    float withNonClassicVariability = withVoteTypeBias;
-    if (usesEstimatedClassicTpp) {
-      // General TPP variability and the measured non-classic bias have
-      // different evidence bases, so phase them in independently.
-      float const variabilityWeight = obsWeight(node.tppConfidence);
-      float const biasWeight = obsWeight(nonClassicTppBiasConfidence);
-      float const variabilityAdjustment =
-        nonClassicTppIterationVariation * variabilityWeight;
-      withNonClassicVariability += variabilityAdjustment;
-      tppProjectionChanged =
-        tppProjectionChanged || variabilityAdjustment != 0.0f;
-      // Ideally the bias for non-classic seats should be applied at a booth level, not here
-      // but it will do as a quick stop-gap
-      // The 0.8f reflects that non-classic seats may not follow the same patterns as classic seats (calibrated to 2025fed)
-      float const biasAdjustment =
-        -nonClassicTppBiasPercentagePoints * biasWeight * 0.8f;
-      if (biasAdjustment != 0.0f) {
-        float const biasAdjustedShare = predictorCorrectorTransformedSwing(
-          detransformVoteShare(withNonClassicVariability), biasAdjustment);
-        withNonClassicVariability = transformVoteShare(biasAdjustedShare);
-        tppProjectionChanged = true;
-      }
-    }
-    if (tppProjectionChanged) {
-      seat.node.tppVotesProjected = turnout->vary(LiveData::CountKind::Tpp, seatIndex,
-        seat.node.tppVotesProjected, {{0, withNonClassicVariability - transformedCurrentTppProjection}});
-    }
 
     if (seat.tcpAllBoothsStdDev.has_value()) {
       if (seat.node.tcpVotesProjected.size() != 2) {

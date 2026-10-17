@@ -1,0 +1,283 @@
+{
+  "observations": [
+    {
+      "seats": 144,
+      "previous_fractions": {
+        "ordinary": 0.8159747846780344,
+        "early": 0.05914777916934987,
+        "postal": 0.05142807081365835
+      },
+      "current_fractions": {
+        "ordinary": 0.7962442564668054,
+        "early": 0.08302192448152063,
+        "postal": 0.055597854628337495
+      },
+      "log_ratio_growth": 0.3635431390423838,
+      "contrast_change": 0.364071971972596,
+      "election": "2007fed",
+      "previous": "2004fed"
+    },
+    {
+      "seats": 139,
+      "previous_fractions": {
+        "ordinary": 0.7954882879328788,
+        "early": 0.0838015694528976,
+        "postal": 0.05624647184548922
+      },
+      "current_fractions": {
+        "ordinary": 0.7583673480016301,
+        "early": 0.1152556275559826,
+        "postal": 0.06402630380881826
+      },
+      "log_ratio_growth": 0.3664890024868779,
+      "contrast_change": -1.3050949273702108,
+      "election": "2010fed",
+      "previous": "2007fed"
+    },
+    {
+      "seats": 137,
+      "previous_fractions": {
+        "ordinary": 0.7602628098611249,
+        "early": 0.1129208297147285,
+        "postal": 0.06398571747613836
+      },
+      "current_fractions": {
+        "ordinary": 0.676385543901627,
+        "early": 0.18008883082841792,
+        "postal": 0.08556205022465764
+      },
+      "log_ratio_growth": 0.5836642138626704,
+      "contrast_change": -0.6236070336432364,
+      "election": "2013fed",
+      "previous": "2010fed"
+    },
+    {
+      "seats": 136,
+      "previous_fractions": {
+        "ordinary": 0.6774586915171378,
+        "early": 0.1782193757388536,
+        "postal": 0.08575100010506051
+      },
+      "current_fractions": {
+        "ordinary": 0.629535441805064,
+        "early": 0.223270234521618,
+        "postal": 0.08971947921381018
+      },
+      "log_ratio_growth": 0.29873403792972697,
+      "contrast_change": 0.39664206036051075,
+      "election": "2016fed",
+      "previous": "2013fed"
+    },
+    {
+      "seats": 143,
+      "previous_fractions": {
+        "ordinary": 0.6253904236802306,
+        "early": 0.22951106840973728,
+        "postal": 0.08815637042175743
+      },
+      "current_fractions": {
+        "ordinary": 0.5376392673657299,
+        "early": 0.3258677396141188,
+        "postal": 0.08525968802214967
+      },
+      "log_ratio_growth": 0.5017286397161071,
+      "contrast_change": -0.9022417565736984,
+      "election": "2019fed",
+      "previous": "2016fed"
+    },
+    {
+      "seats": 150,
+      "previous_fractions": {
+        "ordinary": 0.5361300872600891,
+        "early": 0.3277825597563398,
+        "postal": 0.08503923379291622
+      },
+      "current_fractions": {
+        "ordinary": 0.4478361647498898,
+        "early": 0.3699530972646041,
+        "postal": 0.14605769559379456
+      },
+      "log_ratio_growth": 0.3009751423651297,
+      "contrast_change": 1.3594524119562799,
+      "election": "2022fed",
+      "previous": "2019fed"
+    },
+    {
+      "seats": 149,
+      "previous_fractions": {
+        "ordinary": 0.4470891989603781,
+        "early": 0.3710825205944279,
+        "postal": 0.1456949970943039
+      },
+      "current_fractions": {
+        "ordinary": 0.40323557681183386,
+        "early": 0.42030267057994336,
+        "postal": 0.13588731052703143
+      },
+      "log_ratio_growth": 0.2277878065716017,
+      "contrast_change": -1.9391279178176575,
+      "election": "2025fed",
+      "previous": "2022fed"
+    },
+    {
+      "seats": 76,
+      "previous_fractions": {
+        "ordinary": 0.7787484036357707,
+        "early": 0.09049756634907112,
+        "postal": 0.06623009956944
+      },
+      "current_fractions": {
+        "ordinary": 0.6856575823681975,
+        "early": 0.1666833179811873,
+        "postal": 0.07640135450209459
+      },
+      "log_ratio_growth": 0.7380824216288195,
+      "contrast_change": 1.6874470893658575,
+      "election": "2010vic",
+      "previous": "2006vic"
+    },
+    {
+      "seats": 65,
+      "previous_fractions": {
+        "ordinary": 0.688286777791098,
+        "early": 0.16377347492668354,
+        "postal": 0.07727086145933103
+      },
+      "current_fractions": {
+        "ordinary": 0.5875015017983407,
+        "early": 0.2533472523419013,
+        "postal": 0.08858259569418846
+      },
+      "log_ratio_growth": 0.5946036409881775,
+      "contrast_change": 0.328487981601016,
+      "election": "2014vic",
+      "previous": "2010vic"
+    },
+    {
+      "seats": 76,
+      "previous_fractions": {
+        "ordinary": 0.5844751478813326,
+        "early": 0.2597657337060889,
+        "postal": 0.0862162602227476
+      },
+      "current_fractions": {
+        "ordinary": 0.48105110120418426,
+        "early": 0.3695118753618521,
+        "postal": 0.07595364457601267
+      },
+      "log_ratio_growth": 0.5471434356744861,
+      "contrast_change": -1.7136503880858625,
+      "election": "2018vic",
+      "previous": "2014vic"
+    },
+    {
+      "seats": 60,
+      "previous_fractions": {
+        "ordinary": 0.48377182001938995,
+        "early": 0.3656950397628845,
+        "postal": 0.07545244668177763
+      },
+      "current_fractions": {
+        "ordinary": 0.3504969003917419,
+        "early": 0.49298497090608145,
+        "postal": 0.10738555146572529
+      },
+      "log_ratio_growth": 0.6209404134799578,
+      "contrast_change": 2.693576095896157,
+      "election": "2022vic",
+      "previous": "2018vic"
+    },
+    {
+      "seats": 93,
+      "previous_fractions": {
+        "ordinary": 0.672081028776141,
+        "early": 0.14705866688916544,
+        "postal": 0.04617441181326436
+      },
+      "current_fractions": {
+        "ordinary": 0.614482911865629,
+        "early": 0.2210672790103788,
+        "postal": 0.03000352437149764
+      },
+      "log_ratio_growth": 0.49723327481701385,
+      "contrast_change": -1.2461730871034407,
+      "election": "2019nsw",
+      "previous": "2015nsw"
+    },
+    {
+      "seats": 86,
+      "previous_fractions": {
+        "ordinary": 0.6120103687584608,
+        "early": 0.22450162656879075,
+        "postal": 0.08181124994922119
+      },
+      "current_fractions": {
+        "ordinary": 0.5062262016124488,
+        "early": 0.3290397541724537,
+        "postal": 0.08475650772991122
+      },
+      "log_ratio_growth": 0.572061240994592,
+      "contrast_change": -1.062987107497313,
+      "election": "2023nsw",
+      "previous": "2019nsw"
+    },
+    {
+      "seats": 84,
+      "previous_fractions": {
+        "ordinary": 0.2690719083006926,
+        "early": 0.42853641505158546,
+        "postal": 0.24703227387707347
+      },
+      "current_fractions": {
+        "ordinary": 0.26584347368720324,
+        "early": 0.5003887925397322,
+        "postal": 0.16669071446848435
+      },
+      "log_ratio_growth": 0.1670806344812889,
+      "contrast_change": -3.2299814562235145,
+      "election": "2024qld",
+      "previous": "2020qld"
+    }
+  ],
+  "prediction": {
+    "elections": 14,
+    "intercept": -2.469882777744378,
+    "slope": 4.605778061958547,
+    "correlation": 0.48582099081035596,
+    "prediction_rmse": {
+      "no_change": 1.582660530962441,
+      "historical_mean": 1.6569281343069246,
+      "size_growth": 1.5837776925879186
+    }
+  },
+  "examples": [
+    {
+      "description": "More Coalition-leaning than existing early voters",
+      "mover_share": 30.0,
+      "ordinary": 60.0,
+      "early": 38.0,
+      "overall": 49.0
+    },
+    {
+      "description": "Same as existing early voters",
+      "mover_share": 40.0,
+      "ordinary": 57.99999999999999,
+      "early": 40.0,
+      "overall": 49.0
+    },
+    {
+      "description": "Representative of ordinary voters",
+      "mover_share": 55.00000000000001,
+      "ordinary": 55.00000000000001,
+      "early": 43.0,
+      "overall": 49.0
+    },
+    {
+      "description": "More Labor-leaning than ordinary voters",
+      "mover_share": 65.0,
+      "ordinary": 53.0,
+      "early": 45.0,
+      "overall": 49.0
+    }
+  ]
+}

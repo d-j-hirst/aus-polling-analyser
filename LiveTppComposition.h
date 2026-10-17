@@ -1,0 +1,478 @@
+#pragma once
+
+#include "LiveTppIntegration.h"
+#include "LiveTppCompositionParameters.h"
+
+#include <array>
+#include <map>
+#include <string_view>
+
+// Category composition reallocates an existing seat forecast between voting
+// channels. Shared departures describe an election; local departures describe
+// how one district differs from it. Neither is extra independent seat-TPP noise.
+namespace LiveTppComposition {
+using namespace LiveTppIntegration;
+
+// Allow modestly larger departures than the historical covariance estimate.
+// Scale both local and shared category SDs, preserving their correlations.
+// The joint prior still retains the original seat covariance budget; this
+// does not add independent national noise or alter category mean estimates.
+constexpr double CategoryDepartureSdMultiplier = 1.1;
+
+// Variance in percentage-points-squared per unit unresolved preference share.
+// 2022 federal non-classic conversion errors suggest K about 29--30; 35 is a
+// conservative working scale, not a multi-election coverage guarantee.
+constexpr double ConversionPoolVariance = 35;
+constexpr double LocalConversionVarianceFloor = .2;
+constexpr double LocalConversionEvidenceRate = 2;
+
+template<class Counts>
+inline double preferencePoolFraction(Counts const& fp, int nationals) {
+    double total = 0, pool = 0;
+    for (auto const& [party, votes] : fp) {
+        if (!std::isfinite(double(votes)) || votes < 0)
+            throw std::logic_error("Invalid preference-pool count.");
+        total += votes;
+        // Both Coalition partners are on the same side of a hypothetical TPP.
+        if (party != 0 && party != 1 && party != nationals) pool += votes;
+    }
+    return total > 0 ? pool/total : 0;
+}
+
+inline double localConversionRetention(double matchedUnits) {
+    if (!std::isfinite(matchedUnits) || matchedUnits < 0)
+        throw std::logic_error("Invalid matched preference evidence.");
+    // Good same-district matches across categories reduce extrapolation uncertainty;
+    // remaining systematic differences do not disappear with booth count.
+    return LocalConversionVarianceFloor + (1-LocalConversionVarianceFloor)
+        / (1+LocalConversionEvidenceRate*matchedUnits);
+}
+
+inline double conversionShareJacobian(double percent) {
+    if (!std::isfinite(percent) || percent < 0 || percent > 100)
+        throw std::logic_error("Invalid TPP conversion share.");
+    // Same endpoint convention as transform(). d(25 log odds)/d(share points).
+    double p = std::clamp(percent, 1e-6, 100-1e-6);
+    return 2500/(p*(100-p));
+}
+
+inline double matchedPreferenceUnit(double preferenceVotes, double reliability) {
+    // One large booth supplies at most one location's information. A tiny
+    // preference pool supplies much less: 500 transferred votes give half a
+    // location. Use the same count scale as the existing preference-flow fit.
+    return std::clamp(reliability, 0., 1.) * std::max(0., preferenceVotes)
+        / (std::max(0., preferenceVotes) + 500.);
+}
+
+inline double conversionSd(double matchedUnits) {
+    if (!std::isfinite(matchedUnits) || matchedUnits < 0)
+        throw std::logic_error("Invalid matched preference evidence.");
+    // Unit prior precision plus fractional independent reporting locations.
+    // This measures robustness only; no residual sign is fitted here.
+    return std::sqrt(ConversionPoolVariance / (1 + matchedUnits));
+}
+
+inline double pooledPreferenceUnits(std::map<int, CategoryEvidence> const& categories) {
+    // Count each physical category once, from the combined evidence account,
+    // never again from its measured/inferred observation subsets. The existing
+    // preference-flow mean already pools through seat, region and election.
+    double units = 0;
+    for (auto const& [code, evidence] : categories) units += evidence.matchedPreferenceUnits;
+    return units;
+}
+
+// Reporting order is an error in the observed ordinary sample, distinct from
+// the true whole-category departure and from preference conversion. These are
+// conservative first-pass scales, not a fit to one election's signed error.
+// Near 50% TPP the transformed scale is approximately percentage points.
+constexpr std::size_t ReportingOrderFactors = 2;
+constexpr double ReportingOrderInitialSd = 1.5;
+constexpr double ReportingOrderCoverageScale = .1;
+constexpr double ReportingOrderCorrelation = .5;
+
+inline double reportingOrderSd(ReportingProgress const& progress, bool measured) {
+    if (progress.expectedVotes <= 0) return 0;
+    double coverage = progress.coverage(measured);
+    // At 10% coverage this retains 45% of the initial SD; complete coverage
+    // removes it. Using the lesser of vote and location coverage avoids either
+    // one huge booth or many tiny booths prematurely exhausting the allowance.
+    return ReportingOrderInitialSd*(1-coverage)/(1+coverage/ReportingOrderCoverageScale);
+}
+
+inline Moments withReportingOrder(Moments prior) {
+    // Two correlated unit-variance nuisance states: FP-reporting order and
+    // TCP-readiness order. They share geography, but the smaller TCP subset can
+    // differ. Their observation loadings shrink with current-snapshot coverage.
+    // Seat/category priors are untouched; no noise is added after conditioning.
+    auto start = prior.mean.size();
+    prior.mean.resize(start+ReportingOrderFactors, 0);
+    for (auto& row : prior.covariance) row.resize(prior.mean.size(), 0);
+    prior.covariance.resize(prior.mean.size(), Vector(prior.mean.size()));
+    for (std::size_t i = start; i < prior.mean.size(); ++i)
+        for (std::size_t j = start; j < prior.mean.size(); ++j)
+            prior.covariance[i][j] = i == j ? 1 : ReportingOrderCorrelation;
+    return prior;
+}
+
+inline void applyReportingOrder(Observation& row, ReportingProgress const& progress,
+    std::size_t factorStart) {
+    if (row.category != 0) return; // First pass: ordinary-day booth reporting order.
+    auto factor = factorStart + (row.inferredLocations ? 0 : 1);
+    row.h.at(factor) = reportingOrderSd(progress, !row.inferredLocations);
+}
+
+struct Exposure {
+    std::array<double, 4> mean{}, split{};
+    bool unsupported = false;
+};
+
+inline Exposure exposure(int code, std::string_view region, int year = 2025) {
+    Exposure result;
+    if (code == 0) return result; // Ordinary is the contrast reference.
+    if (code == 1) result.mean[0] = 1; // Ordinary PPVC.
+    else if (code == 104 && region == "wa") {
+        // WA's adapter calls its in-person Early total PrePoll. Before 2025
+        // that total included outside-district early votes; those are now Absent.
+        if (year >= 2025) result.mean[0] = 1;
+        else {
+            result.mean[0] = result.mean[1] = .5;
+            result.split[0] = 1/std::sqrt(12.); result.split[1] = -result.split[0];
+        }
+    }
+    else if (code == 104) result.mean[1] = 1; // Federal/QLD declaration pre-poll.
+    else if (code == 105) result.mean[3] = 1;
+    else if (code == 106 && region == "vic") {
+        // VEC Early includes in-district AND out-of-district early votes.
+        // A uniform unknown mixture is marginalised, not entered as fictitious
+        // half-sized count records. Its split uncertainty is retained below.
+        result.mean[0] = result.mean[1] = .5;
+        result.split[0] = 1 / std::sqrt(12.); result.split[1] = -result.split[0];
+    }
+    else if (code == 106) result.mean[0] = 1;
+    else if (code == 102 && (region == "nsw" || (region == "wa" && year >= 2025))) {
+        // These jurisdictions' Absent totals combine early-away and day-away.
+        result.mean[1] = result.mean[2] = .5;
+        result.split[1] = 1 / std::sqrt(12.); result.split[2] = -result.split[1];
+    }
+    else if (code == 102) result.mean[2] = 1;
+    else result.unsupported = true; // Mobile/provisional etc: separate broad prior.
+    return result;
+}
+
+inline double bilinear(std::array<double, 4> const& a, double const (&cov)[4][4],
+    std::array<double, 4> const& b) {
+    double value = 0;
+    for (int i = 0; i < 4; ++i) for (int j = 0; j < 4; ++j) value += a[i] * cov[i][j] * b[j];
+    return value;
+}
+
+inline Matrix categoryCovariance(std::vector<int> const& codes, std::string_view region, bool local, int year = 2025) {
+    auto const& covariance = local ? LocalCovariance : SharedCovariance;
+    Matrix result(codes.size(), Vector(codes.size()));
+    for (std::size_t i = 0; i < codes.size(); ++i) {
+        auto a = exposure(codes[i], region, year);
+        for (std::size_t j = 0; j < codes.size(); ++j) {
+            auto b = exposure(codes[j], region, year);
+            result[i][j] = bilinear(a.mean, covariance, b.mean);
+            if (i == j) {
+                result[i][j] += bilinear(a.split, covariance, a.split);
+            }
+            result[i][j] *= CategoryDepartureSdMultiplier*CategoryDepartureSdMultiplier;
+            // Unstudied channels already have a separate broad SD of 5;
+            // this tuning applies to the calibrated category relationships.
+            if (i == j && a.unsupported) result[i][i] += 25;
+        }
+    }
+    return result;
+}
+
+inline bool factor(Matrix const& covariance, Matrix& root) {
+    // A semidefinite Cholesky factor also accepts deterministic baseline seats.
+    // A non-positive budget is reported to the caller, never repaired by adding
+    // national variance. The tolerance only absorbs floating-point round-off.
+    auto n = covariance.size();
+    root.assign(n, Vector(n));
+    double tolerance = 1e-9;
+    for (std::size_t i = 0; i < n; ++i) {
+        if (covariance[i].size() != n) throw std::logic_error("Invalid composition covariance shape.");
+        tolerance = std::max(tolerance, std::abs(covariance[i][i])*1e-10);
+    }
+    for (std::size_t i = 0; i < n; ++i) for (std::size_t j = 0; j <= i; ++j) {
+        double value = covariance[i][j];
+        for (std::size_t k = 0; k < j; ++k) value -= root[i][k]*root[j][k];
+        if (!std::isfinite(value)) return false;
+        if (i == j) {
+            if (value < -tolerance) return false;
+            root[i][j] = std::sqrt(std::max(0., value));
+        }
+        else if (root[j][j] > 0) root[i][j] = value/root[j][j];
+        else if (std::abs(value) > tolerance) return false;
+    }
+    return true;
+}
+
+inline Vector forwardSolve(Matrix const& root, Vector values) {
+    for (std::size_t i = 0; i < values.size(); ++i) {
+        for (std::size_t j = 0; j < i; ++j) values[i] -= root[i][j]*values[j];
+        if (root[i][i] > 0) values[i] /= root[i][i];
+        else if (std::abs(values[i]) < 1e-7) values[i] = 0;
+        else throw std::logic_error("Composition exceeds deterministic TPP budget.");
+    }
+    return values;
+}
+
+inline Vector covarianceSolve(Matrix const& root, Vector values) {
+    values = forwardSolve(root, std::move(values));
+    for (std::size_t end = values.size(); end > 0; --end) {
+        auto i = end - 1;
+        for (std::size_t j = i + 1; j < values.size(); ++j) values[i] -= root[j][i]*values[j];
+        values[i] = root[i][i] > 0 ? values[i]/root[i][i] : 0;
+    }
+    return values;
+}
+
+inline Matrix mappedCovariance(Matrix const& exposures, Matrix const& covariance) {
+    Matrix products(exposures.size(), Vector(covariance.size()));
+    for (std::size_t i = 0; i < exposures.size(); ++i)
+        for (std::size_t c = 0; c < covariance.size(); ++c)
+            products[i][c] = dot(exposures[i], covariance[c]);
+    Matrix result(exposures.size(), Vector(exposures.size()));
+    for (std::size_t i = 0; i < exposures.size(); ++i)
+        for (std::size_t j = 0; j < exposures.size(); ++j) result[i][j] = dot(products[i], exposures[j]);
+    return result;
+}
+
+inline double covarianceBudget(Matrix const& baseline, Matrix const& contribution) {
+    // Reserve ten percent of the baseline covariance for other forecast errors.
+    // The maximum admissible scale is determined by the entire covariance, not
+    // by each diagonal separately (which could produce an impossible joint prior).
+    auto fits = [&](double scale) {
+        Matrix remainder = baseline, root;
+        for (std::size_t i = 0; i < baseline.size(); ++i)
+            for (std::size_t j = 0; j < baseline.size(); ++j)
+                remainder[i][j] = .9*baseline[i][j] - scale*contribution[i][j];
+        return factor(remainder, root);
+    };
+    if (fits(1)) return 1;
+    double low = 0, high = 1;
+    for (int iteration = 0; iteration < 40; ++iteration) {
+        double middle = (low + high)/2;
+        if (fits(middle)) low = middle; else high = middle;
+    }
+    return low < 1e-8 ? 0 : low;
+}
+
+struct Prior {
+    Moments moments;
+    double budgetScale = 1;
+};
+
+inline Matrix referenceMixtures(Matrix mixtures, Vector const& weights, Vector const& loadings) {
+    // Centre geography around the same election-wide mixture. The caller's
+    // weights include the share derivative and divide by the seat loading, so
+    // the induced geographical offsets conserve the national vote total to
+    // first order, including seats with different baseline partisan leans.
+    if (mixtures.empty()) return mixtures;
+    Vector reference(mixtures.front().size());
+    double total = 0;
+    for (std::size_t s = 0; s < mixtures.size(); ++s) {
+        total += weights.at(s);
+        for (std::size_t c = 0; c < reference.size(); ++c) reference[c] += weights[s]*mixtures[s][c];
+    }
+    if (total > 0) for (double& value : reference) value /= total;
+    for (std::size_t s = 0; s < mixtures.size(); ++s) for (std::size_t c = 0; c < reference.size(); ++c)
+        mixtures[s][c] = weights[s] > 0 ? (mixtures[s][c]-reference[c])/loadings.at(s) : 0;
+    return mixtures;
+}
+
+inline Prior jointPrior(Moments const& baseline, Matrix const& category, Matrix const& mix) {
+    // The reference mix is common to all districts. Cov(T,D)=A*C, where A is
+    // each district's departure from that reference. Consequently ordinary
+    // results cannot explain a regional forecast miss by regressing it on the
+    // district's postal fraction. Paired category counts can still learn D.
+    // T's complete covariance is copied unchanged: this ALLOCATES its budget.
+    auto n = baseline.mean.size(), k = category.size(), size = n + k;
+    if (mix.size() != n) throw std::logic_error("Missing TPP category mixtures.");
+    Matrix root;
+    if (!factor(baseline.covariance, root)) throw std::logic_error("Invalid TPP baseline covariance.");
+    double scale = covarianceBudget(baseline.covariance, mappedCovariance(mix, category));
+    Prior result{baseline, scale};
+    result.moments.mean.resize(size);
+    auto& covariance = result.moments.covariance;
+    for (auto& row : covariance) row.resize(size);
+    covariance.resize(size, Vector(size));
+    for (std::size_t c = 0; c < k; ++c) {
+        for (std::size_t d = 0; d < k; ++d) covariance[n+c][n+d] = scale*category[c][d];
+        for (std::size_t s = 0; s < n; ++s)
+            covariance[s][n+c] = covariance[n+c][s] = scale*dot(mix[s], category[c]);
+    }
+    return result;
+}
+
+struct Extension {
+    std::size_t seats = 0;
+    Vector seatMeans;
+    Matrix regression, root;
+};
+
+inline Extension prepareExtension(Moments const& prior, std::size_t seats) {
+    // Append category draws CONDITIONAL on the actual baseline seat draw. An
+    // independent normal here would undo the very covariance prepared above.
+    Extension result{seats, Vector(prior.mean.begin(), prior.mean.begin()+seats), {}, {}};
+    Matrix baseline(seats, Vector(seats)), root;
+    for (std::size_t i = 0; i < seats; ++i)
+        std::copy_n(prior.covariance[i].begin(), seats, baseline[i].begin());
+    if (!factor(baseline, root)) throw std::logic_error("Invalid TPP baseline factor.");
+    auto k = prior.mean.size() - seats;
+    Matrix remaining(k, Vector(k));
+    for (std::size_t c = 0; c < k; ++c) {
+        Vector cross(prior.covariance[seats+c].begin(), prior.covariance[seats+c].begin()+seats);
+        result.regression.push_back(covarianceSolve(root, cross));
+    }
+    for (std::size_t c = 0; c < k; ++c) for (std::size_t d = 0; d < k; ++d) {
+        Vector cross(prior.covariance[seats+d].begin(), prior.covariance[seats+d].begin()+seats);
+        remaining[c][d] = prior.covariance[seats+c][seats+d] - dot(result.regression[c], cross);
+    }
+    if (!factor(remaining, result.root)) throw std::logic_error("Invalid conditional category covariance.");
+    return result;
+}
+
+template<class Normal>
+inline Vector extend(Extension const& extension, Vector state, Normal normal) {
+    if (state.size() != extension.seats) throw std::logic_error("Invalid TPP baseline draw size.");
+    auto delta = state;
+    for (std::size_t s = 0; s < delta.size(); ++s) delta[s] -= extension.seatMeans[s];
+    Vector noise(extension.root.size());
+    for (std::size_t i = 0; i < noise.size(); ++i) noise[i] = normal(i);
+    for (std::size_t c = 0; c < noise.size(); ++c)
+        state.push_back(dot(extension.regression[c], delta) + dot(extension.root[c], noise));
+    return state;
+}
+
+inline std::vector<Observation> decorrelate(std::vector<Observation> rows, Matrix const& covariance) {
+    // Local category departures remain after a category finishes counting, but
+    // their weighted sum is zero. Whitening this small within-seat block keeps
+    // that cancellation; adding independent variance floors would lose it.
+    Matrix root;
+    if (!factor(covariance, root)) throw std::logic_error("Invalid local composition covariance.");
+    for (std::size_t i = 0; i < rows.size(); ++i) {
+        if (root[i][i] <= 0) throw std::logic_error("Singular TPP observation block.");
+        for (std::size_t j = 0; j < i; ++j) {
+            rows[i].value -= root[i][j]*rows[j].value;
+            for (std::size_t c = 0; c < rows[i].h.size(); ++c) rows[i].h[c] -= root[i][j]*rows[j].h[c];
+        }
+        rows[i].value /= root[i][i];
+        for (double& value : rows[i].h) value /= root[i][i];
+        rows[i].variance = 1;
+    }
+    return rows;
+}
+
+struct ObservationBlock {
+    std::vector<Observation> rows;
+    Matrix covariance;
+};
+
+inline ObservationBlock observationBlock(std::vector<Observation> rows,
+    Matrix const& localExposures, Matrix const& categoryCovariance) {
+    auto covariance = mappedCovariance(localExposures, categoryCovariance);
+    for (std::size_t i = 0; i < rows.size(); ++i) covariance[i][i] += rows[i].variance;
+    return {std::move(rows), std::move(covariance)};
+}
+
+inline void allowForConversionUncertainty(ObservationBlock& block, double budgetFraction) {
+    // The existing FP conversion already corrects preferences using measured
+    // FP/TCP pairs. Do not fit another election-wide signed correction from
+    // discrepancies between different districts' forecast and count patterns.
+    // Local uncertainty is NOT inflated by the number of districts. Only the
+    // residual uncertainty of the shared correction uses a precision budget;
+    // that residual shrinks with matched locations across all categories.
+    if (!std::isfinite(budgetFraction) || budgetFraction <= 0 || budgetFraction > 1)
+        throw std::logic_error("Invalid TPP conversion precision budget.");
+    for (auto& row : block.rows) {
+        double q = row.unresolvedPreferenceFraction;
+        if (!std::isfinite(q) || q < 0 || q > row.inferredFraction + 1e-10
+            || !std::isfinite(row.conversionJacobian) || row.conversionJacobian <= 0)
+            throw std::logic_error("Invalid unresolved preference exposure.");
+        double exposure = std::sqrt(q)*row.conversionJacobian;
+        row.localConversionSd = exposure*std::sqrt(ConversionPoolVariance
+            * localConversionRetention(row.localMatchedUnits));
+        // Keep the existing shared precision budget, without a local residual
+        // floor: many measured districts can establish the common correction.
+        row.sharedConversionSd = exposure*conversionSd(row.sharedMatchedUnits);
+    }
+    for (std::size_t i = 0; i < block.rows.size(); ++i) {
+        double f = block.rows[i].inferredFraction;
+        if (!std::isfinite(f) || f < 0 || f > 1)
+            throw std::logic_error("Invalid inferred TPP fraction.");
+        for (std::size_t j = 0; j < block.rows.size(); ++j) {
+            auto const& a = block.rows[i]; auto const& b = block.rows[j];
+            // q already includes the fraction pending TCP. Applying f again
+            // would turn the intended linear variance taper into a cubic one.
+            double extra = a.localConversionSd*b.localConversionSd
+                + a.sharedConversionSd*b.sharedConversionSd/budgetFraction;
+            block.covariance.at(i).at(j) += extra;
+            if (i == j) block.rows[i].conversionVariance = extra;
+        }
+    }
+    // District budget fractions are their shares of ALL expected votes,
+    // including unreported districts. They sum to one. For any weighted sum
+    // of observations, Cauchy-Schwarz gives sum(x_s^2/a_s) >= (sum x_s)^2.
+    // Thus the enlarged blocks cover even perfectly correlated remaining
+    // shared errors, including between categories. The local term is shared
+    // within a district too; extra category rows cannot duplicate precision.
+    // Unlike a fixed election-wide allowance, thousands of matched locations
+    // now establish a robust correction rather than leaving FP mostly unused.
+    // All of it enters BEFORE conditioning, so no extra draw noise widens the
+    // posterior afterwards. Direct TCP (f=0) receives no conversion allowance.
+}
+
+inline double share(double transformed) { return 100/(1+std::exp(-transformed/25)); }
+inline double transform(double percent) {
+    percent = std::clamp(percent, 1e-6, 100-1e-6);
+    return 25*std::log(percent/(100-percent));
+}
+inline double derivative(double percent) { return percent*(100-percent)/2500; }
+
+inline double observedShare(CategoryEvidence const& evidence) {
+    // Compare like locations on the count scale, then carry their bounded
+    // swing to the whole category. This avoids an early extreme booth implying
+    // a share above 100%, and reproduces the actual share at full coverage.
+    double prior = evidence.baselineFirst/evidence.expected;
+    double received = evidence.weightedObservedShare/evidence.weight;
+    double comparison = evidence.weightedBaselineShare/evidence.weight;
+    return share(transform(prior)+transform(received)-transform(comparison));
+}
+
+struct Account {
+    Vector shares, fractions, contrastWeights;
+    double seatLoading = 1;
+};
+
+inline Account centre(Vector const& shares, Vector const& amounts, double totalShare) {
+    // Preserve the seat prior exactly on the VOTE scale. Neither a weighted
+    // average of log odds nor an average of component percentages is a count.
+    if (shares.empty() || shares.size() != amounts.size()) throw std::logic_error("Invalid TPP category account.");
+    double total = 0;
+    for (double value : amounts) total += value;
+    if (total <= 0) throw std::logic_error("Empty TPP category account.");
+    Account result;
+    for (double amount : amounts) result.fractions.push_back(amount/total);
+    double low = -1000, high = 1000;
+    for (int iteration = 0; iteration < 80; ++iteration) {
+        double middle = (low+high)/2, weighted = 0;
+        for (std::size_t c = 0; c < shares.size(); ++c)
+            weighted += result.fractions[c]*share(transform(shares[c])+middle);
+        if (weighted < totalShare) low = middle; else high = middle;
+    }
+    double slope = 0;
+    for (std::size_t c = 0; c < shares.size(); ++c) {
+        result.shares.push_back(share(transform(shares[c])+(low+high)/2));
+        double weight = result.fractions[c]*derivative(result.shares.back());
+        result.contrastWeights.push_back(weight); slope += weight;
+    }
+    for (double& weight : result.contrastWeights) weight /= slope;
+    result.seatLoading = derivative(totalShare)/slope;
+    return result;
+}
+} // namespace LiveTppComposition

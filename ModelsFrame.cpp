@@ -28,6 +28,7 @@ ModelsFrame::ModelsFrame(ProjectFrame::Refresher refresher, PollingProject* proj
 	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Models", wxPoint(0, 0), project),
 	refresher(refresher)
 {
+	allowDuringLiveRun({ControlId::DisplayResults});
 	setupToolbar();
 	setupDataTable();
 	refreshDataTable();
@@ -179,6 +180,7 @@ void ModelsFrame::setupToolbar()
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+	applyActivityPolicy();
 }
 
 void ModelsFrame::setupDataTable()
@@ -275,4 +277,5 @@ void ModelsFrame::updateInterface() {
 	toolBar->EnableTool(ControlId::Remove, somethingSelected);
 	toolBar->EnableTool(ControlId::CollectData, somethingSelected);
 	toolBar->EnableTool(ControlId::DisplayResults, somethingSelected);
+	applyActivityPolicy();
 }

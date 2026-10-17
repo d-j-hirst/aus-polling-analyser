@@ -1,6 +1,7 @@
 #include "../LiveSnapshotData.h"
 #include "../LiveSnapshotGraph.h"
 #include "../LiveSnapshotTable.h"
+#include "../LiveTppDiagnostics.h"
 #include "../SpecialPartyCodes.h"
 
 #include <cassert>
@@ -423,6 +424,38 @@ int main()
 
 	auto graph = makeParliamentGraph(view);
 	assert(graph.xLabels.size() == 3);
+	// Pre-election captures remain in every table but must not squeeze the
+	// election-night graph into a few pixels. All graph modes share this range.
+	std::vector<SnapshotRecord> checkpoint;
+	for (auto const& [code,progress] : std::vector<std::pair<std::string,double>>{
+		{"20220503123548",0},{"20220521170100",0},{"20220521180101",.001},{"20220522120000",.7}}) {
+		SnapshotRecord record;
+		record.snapshotCode = code;
+		record.document = snapshotDocument(code,"",json::array({outcome(0,75)}),
+			json::array(),json::array(),0);
+		record.document["simulation_report"]["seat_fp_completion"] = json::array({progress});
+		checkpoint.push_back(std::move(record));
+	}
+	auto checkpointTable = buildParliamentView(checkpoint);
+	assert(checkpointTable.rows.size() == 4);
+	assert(checkpointTable.rows[0].countingStarted == false);
+	assert(checkpointTable.rows[2].countingStarted == true);
+	auto checkpointGraph = makeParliamentGraph(checkpointTable);
+	assert(checkpointGraph.xLabels.size() == 3);
+	assert(checkpointGraph.xTimes.front() == snapshotCodeTimeSeconds("20220521170100"));
+	assert(checkpointGraph.series[0].values.size() == checkpointGraph.xTimes.size());
+	auto checkpointLayout = layoutParliamentGraph(checkpointGraph,1000,600);
+	assert(checkpointLayout.xPixels[1]-checkpointLayout.xPixels[0] > 50);
+	// While still waiting for the first count, show the latest pre-count day.
+	checkpoint.resize(2);
+	assert(makeParliamentGraph(buildParliamentView(checkpoint)).xLabels.size() == 1);
+	// A lone initial source is still browsable. Older archives with no progress
+	// metadata keep their full graph rather than silently losing data.
+	checkpoint.resize(1);
+	assert(makeParliamentGraph(buildParliamentView(checkpoint)).xLabels.size() == 1);
+	checkpointTable.rows[0].countingStarted.reset();
+	for (auto& row : checkpointTable.rows) row.countingStarted.reset();
+	assert(makeParliamentGraph(checkpointTable).xLabels.size() == 4);
 	assert(graph.series.size() == view.columns.size() - 1);
 	assert(graph.series[0].label == "ALP Majority");
 	assert(graph.series[0].style == GraphLineStyle::Solid);
@@ -1256,6 +1289,37 @@ int main()
 	});
 	biasLate["live_analysis_summary"]["projected_2pp"] = 56.25;
 	biasLate["live_analysis_summary"]["raw_2pp_deviation"] = -0.5;
+	// Exercise the export-to-view boundary, including compact retention. Large
+	// state/observation arrays must never be carried into the viewer summary.
+	json integration = {{"weighted_posterior_centre", 52.1},
+		{"weighted_prior_sd", 2.0}, {"weighted_posterior_sd", 1.0},
+		{"inferred_evidence_percent", 40.0}, {"conversion_uncertainty_sd", 2.5},
+		{"composition_covariance_budget_scale", .8},
+		{"conversion_shared_sd", .12}, {"conversion_matched_units", 420.0},
+		{"ordinary_fp_order_sd", .8}, {"ordinary_tcp_order_sd", 1.2},
+		{"ordinary_fp_order_coverage", .06}, {"ordinary_tcp_order_coverage", .01},
+		{"prior_covariance", json::array({json::array({4, 0}), json::array({0, 1})})},
+		{"states", json::array({std::string(100000, 'x')})}};
+	auto integrationSummary = LiveTppDiagnostics::viewerSummary(integration);
+	assert(integrationSummary.size() == 13);
+	assert(!integrationSummary.contains("states"));
+	assert(!integrationSummary.contains("prior_covariance"));
+	// New pool diagnostics must remain optional for older archives. They are
+	// scalars, not retained observation arrays, in the compact viewer history.
+	auto poolSummary = LiveTppDiagnostics::viewerSummary({
+		{"conversion_pool_variance", 35.0}, {"conversion_pool_percent", 18.0},
+		{"conversion_local_sd", 2.1}});
+	assert(poolSummary.size() == 3);
+	assert(poolSummary.at("tpp_conversion_pool_variance") == 35.0);
+	assert(poolSummary.at("tpp_conversion_pool_percent") == 18.0);
+	assert(poolSummary.at("tpp_conversion_local_sd") == 2.1);
+	biasLate["live_analysis_summary"].update(integrationSummary);
+	biasLate["live_analysis_summary"].update(poolSummary);
+	assert(LiveTppDiagnostics::viewerSummary(nullptr).empty());
+	assert(!LiveTppDiagnostics::viewerSummary({{"weighted_prior_sd", 0},
+		{"weighted_posterior_sd", 0}}).contains("tpp_variance_retained_percent"));
+	assert(LiveTppDiagnostics::viewerSummary({{"weighted_prior_sd", "invalid"},
+		{"inferred_evidence_percent", nullptr}}).empty());
 	auto biasDir = root / "category-bias";
 	std::filesystem::create_directories(biasDir);
 	writeJson(biasDir / "snapshot_20260402140000__run_a.json", biasEarly);
@@ -1364,7 +1428,7 @@ int main()
 	assert(voteCountGraph.series[2].values[1] == 50.0);
 
 	auto internal2pp = buildInternal2ppView(biasRecords);
-	assert(internal2pp.columns.size() == 3);
+	assert(internal2pp.columns.size() == 16);
 	assert(internal2pp.columns[0].kind == ParliamentColumn::Kind::Snapshot);
 	assert(internal2pp.columns[1].kind == ParliamentColumn::Kind::Internal2pp);
 	assert(internal2pp.columns[1].header == "Internal projected 2PP");
@@ -1377,6 +1441,24 @@ int main()
 	assert(internal2pp.cells[0][2].percent == -1.8);
 	assert(internal2pp.cells[1][1].percent == 56.25);
 	assert(internal2pp.cells[1][2].percent == -0.5);
+	for (int column = 3; column < 16; ++column) {
+		assert(internal2pp.cells[0][column].kind == CellValue::Kind::Text);
+		assert(internal2pp.cells[0][column].text.empty());
+		assert(!internal2pp.columns[column].includeInGraph);
+	}
+	assert(internal2pp.cells[1][3].percent == 52.1);
+	assert(internal2pp.cells[1][4].percent == 1.0);
+	assert(internal2pp.cells[1][5].percent == 25.0); // Variance ratio, not SD ratio.
+	assert(internal2pp.cells[1][6].percent == 40.0);
+	assert(internal2pp.cells[1][7].percent == 18.0);
+	assert(internal2pp.cells[1][8].percent == 2.1);
+	assert(internal2pp.cells[1][9].percent == .12);
+	assert(internal2pp.cells[1][10].percent == 420.0);
+	assert(internal2pp.cells[1][11].percent == .8);
+	assert(internal2pp.cells[1][12].percent == 1.2);
+	assert(internal2pp.cells[1][13].percent == 6.0);
+	assert(internal2pp.cells[1][14].percent == 1.0);
+	assert(internal2pp.cells[1][15].percent == 80.0);
 	assert(internal2pp.columns[1].colour);
 	assert(internal2pp.columns[2].colour);
 	assert(internal2pp.columns[1].colour->r != internal2pp.columns[2].colour->r ||
@@ -1457,7 +1539,7 @@ int main()
 		CompletionChangeBorder::None);
 
 	auto omittedInternal = buildInternal2ppView(compactLoaded.records);
-	assert(omittedInternal.columns.size() == 3);
+	assert(omittedInternal.columns.size() == 16);
 	assert(omittedInternal.cells[0][1].percent == 0.0);
 	assert(omittedInternal.cells[0][1].text == formatSeatExpectation(0.0));
 	assert(omittedInternal.cells[0][2].percent == 0.0);

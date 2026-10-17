@@ -2,6 +2,8 @@
 #include "LivePartialCount.h"
 #include "LiveNewVotes.h"
 #include "LiveFpEvidence.h"
+#include "LiveEstimatedTpp.h"
+#include "LiveTppComposition.h"
 
 #include "ElectionData.h"
 #include "General.h"
@@ -192,7 +194,11 @@ public:
   std::map<int, float> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
   std::optional<float> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
   std::map<int, float> fpAllBoothsStdDev; // variability of (transformed) fp votes across all remaining booths
-  float tppAllBoothsStdDev = 0.0f; // variability of (transformed) tpp votes across all remaining booths
+  float tppAllBoothsStdDev = 0.0f; // preparatory TPP RMS diagnostic; the joint update supplies active TPP uncertainty
+  // Frozen received-source evidence, shared by all scenarios in this snapshot.
+  // Inferred TPP does not supply a counted lower bound, even at full FP count.
+  LiveEstimatedTpp::Evidence estimatedTppEvidence;
+  float estimatedTppInfluence = 0.0f;
   std::optional<float> tcpAllBoothsStdDev; // variability of (transformed) tcp votes across all remaining booths
   float livePreferenceFlowDeviation = 0.0f; // deviations from the "expected" pre-election preference flows
   std::map<Results2::VoteType, float> tppVoteTypeSensitivity; // expected number of (entirely) uncounted votes in this category
@@ -342,7 +348,7 @@ public:
     return {};
   }
 
-  float getSeatRawTppSwing(std::string const& seatName) const override {
+  float getSeatEstimatedTppSwing(std::string const& seatName) const override {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
       auto const& seatNode = seats[seatIndex].node;
@@ -365,11 +371,13 @@ public:
       }
       float const originalTpp = detransformVoteShare(
         *seatNode.tppShareBaseline - *seatNode.tppSwingBaseline);
-      float const currentTpp = seatNode.tppVotesProjected.at(0) / pairTotal * 100.0f;
+      float const currentTpp = preparedTppShare(seatIndex);
       return currentTpp - originalTpp;
 		}
     return std::numeric_limits<float>::quiet_NaN();
   }
+
+  float getSeatRawTppSwing(std::string const& seatName) const override;
 
   float getSeatFpCompletion(std::string const& seatName) const override {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
@@ -503,7 +511,53 @@ public:
   std::unique_ptr<LiveData::Provider> generateScenario(
     int iterationIndex) const override;
 
+  std::optional<std::vector<double>> integrateTpp(std::vector<double> const& prior) const override;
+
 private:
+  void prepareTppIntegration();
+  void identifyTppIntegrationSeats();
+  void prepareTppCategoryAccounts();
+  void prepareTppReportingOrder();
+  LiveTppIntegration::Moments tppJointPrior();
+  LiveTppIntegration::Matrix tppReferenceMixtures() const;
+  std::vector<LiveTppIntegration::Observation> tppJointObservations();
+  double tppExpectedVotes() const;
+  std::map<int, double> tppMatchedPreferenceUnits() const;
+  double tppPooledPreferenceUnits() const;
+  std::optional<double> tppInferredEvidencePercent() const;
+  LiveTppComposition::ObservationBlock tppSeatObservations(int seatIndex, double electionExpected,
+    double matchedUnits) const;
+  std::pair<std::vector<LiveTppIntegration::Observation>, LiveTppIntegration::Matrix>
+    tppSeatObservationRows(int seatIndex, double matchedUnits) const;
+  double tppBoothTarget(int boothIndex) const;
+  double tppBoothBaseline(int boothIndex) const;
+  double tppSeatReferenceShift(int seatIndex, double priorShare) const;
+  double tppBoothMatchedPreferenceUnit(int boothIndex) const;
+  std::map<int, LiveTppIntegration::CategoryEvidence> tppCategoryEvidence(int seatIndex, double referenceShift,
+    std::optional<bool> inferredLocations = {}) const;
+  void appendTppBoothEvidence(int boothIndex, double referenceShift,
+    std::map<int, LiveTppIntegration::CategoryEvidence>& categories,
+    std::optional<bool> inferredLocations) const;
+  double tppScenarioCountChange(int seatIndex) const;
+  float preparedTppShare(int seatIndex) const;
+  nlohmann::json tppIntegrationDiagnostic() const;
+  nlohmann::json tppConversionDiagnostic() const;
+  std::shared_ptr<LiveTppIntegration::Update const> tppIntegration;
+  std::vector<int> tppProjectSeatIndices;
+  std::vector<int> tppCategoryCodes;
+  struct TppCategoryAccount {
+    double referenceShift = 0;
+    std::map<int, LiveTppIntegration::CategoryEvidence> evidence;
+    std::array<std::map<int, LiveTppIntegration::CategoryEvidence>, 2> observationEvidence;
+    std::vector<int> codes;
+    LiveTppComposition::Account account;
+    double expectedVotes() const;
+  };
+  std::shared_ptr<std::vector<TppCategoryAccount> const> tppCategoryAccounts;
+  std::shared_ptr<std::vector<LiveTppIntegration::Observation> const> tppReceivedObservations;
+  std::shared_ptr<LiveTppComposition::Extension const> tppPriorExtension;
+  double tppCompositionBudgetScale = 1;
+  LiveTppIntegration::ReportingProgress tppOrdinaryReportingProgress;
   template<typename T, typename U>
   void aggregateCollection(T& parent, const std::vector<int>& childIndices, 
     const std::vector<U>& childNodes) const;
@@ -527,6 +581,15 @@ private:
   std::vector<Node const*> getThisAndParents(T& child) const;
 
   void calculateTppEstimates(bool withTpp);
+  void calculatePreferenceFlowEvidence(Booth& booth);
+  std::optional<LivePartialCount::PreferenceTransfer> historicalPreferenceTransfer(Booth const& booth) const;
+  void reportLimitedHistoricalPreferenceEvidence(std::string const& sourceTime);
+  double limitedHistoricalPreferenceImpact(Booth const& booth,
+    LivePartialCount::PreferenceTransfer const& historical, double reliability) const;
+  void recordLimitedHistoricalPreferenceIssue(Booth const& booth,
+    LivePartialCount::PreferenceTransfer const& historical, double reliability,
+    double impact, std::string const& sourceTime);
+  std::string describePreferenceCounts(std::map<int,int> const& counts) const;
 
   void preparePreferenceCohorts(Results2::Election const& previousElection,
     Results2::Election const& currentElection, LiveInputRecovery::PreferenceHistories const& history);
@@ -535,6 +598,7 @@ private:
   std::optional<float> preferenceRateOffset(Booth const& booth, bool current) const;
   double preferencePriorOffset(Booth const& booth, bool includeLocal = true) const;
   std::map<int,float> projectCountedTpp(int boothIndex, double contextShare);
+  std::optional<double> rawPendingFirstVotes(Booth const& booth) const;
   std::map<int,float> projectDeclarationTpp(int boothIndex);
   int coalitionFinalist(Booth const& booth) const;
   double futurePreferenceOffset(Booth const& booth, int first, int second) const;
@@ -589,6 +653,8 @@ private:
   LiveFpEvidence::Unit fpEvidenceUnit(int boothIndex, bool varied = false) const;
   void applyFpEvidence(int boothIndex);
   void refreshFpEvidenceProjections();
+  void prepareTppProjectionSensitivities();
+  void prepareSeatTppProjectionSensitivities(int seatIndex);
   int fpEvidenceCandidate(int seatIndex, int partyId) const;
   float fpEvidenceNormalStdDev(int seatIndex, int partyId, float localStdDev) const;
   float fpEvidenceDisagreement(int seatIndex, int partyId, double quantile) const;
@@ -663,6 +729,8 @@ private:
   void determineSeatFinalTppDeviation(bool allowCurrentData, int seatIndex);
 
   void calculateTppEstimateBias();
+  LiveEstimatedTpp::Unit estimatedTppUnit(int boothIndex) const;
+  void prepareEstimatedTppEvidence();
   void calculateLivePreferenceFlowDeviations();
 
   void prepareVariability();
@@ -714,9 +782,6 @@ private:
   std::map<Results2::VoteType, float> voteTypeTppBiases;
   std::map<Results2::Booth::Type, float> boothTypeTppBiasStdDev;
   std::map<Results2::VoteType, float> voteTypeTppBiasStdDev;
-  std::map<Results2::Booth::Type, float> boothTypeTppIterationVariation;
-  std::map<Results2::VoteType, float> voteTypeTppIterationVariation;
-  float nonClassicTppIterationVariation = 0.0f;
   std::map<Results2::Booth::Type, float> boothTypeTppSourceCount;
   std::map<Results2::VoteType, float> voteTypeTppSourceCount;
   std::map<Results2::Booth::Type, float> boothTypeTppVoteCount;

@@ -1,6 +1,9 @@
 #pragma once
 
+#include "LiveTppIntegration.h"
+
 #include <map>
+#include <cmath>
 #include <memory>
 #include <optional>
 #include <string>
@@ -143,6 +146,58 @@ struct Internals {
 	float raw2ppDeviation = 0.0f;
 };
 
+// A display statistic from received booth/category evidence. Counted classic
+// TCP supplies the share and weight where available. Before preferences arrive,
+// use the existing FP-derived booth share, weighted by its received FP count.
+// With partial TCP, retain its votes and add the forecast's FP-derived allocation
+// of the received votes still awaiting preferences. Never count those votes twice.
+// Historical FP can likewise supply a comparison when classic TCP is absent.
+// These are comparisons of the received samples: outstanding votes, vote-type
+// rebalancing and redistribution discounts belong to the separate live estimate.
+struct RawTppSwing {
+	double weightedSwing = 0, countedVotes = 0;
+	void add(std::map<int,int> const& current, std::map<int,int> const& previous, int nationals,
+		double fpVotes = 0, std::optional<double> fpBasedCurrentShare = {},
+		std::optional<double> fpBasedPreviousShare = {},
+		std::optional<double> pendingFirstVotes = {}) {
+		auto classic = [nationals](auto const& counts) {
+			return counts.size() == 2 && counts.contains(0) &&
+				(counts.contains(1) || (nationals > 0 && counts.contains(nationals)));
+		};
+		auto total = [](auto const& counts) {
+			double sum = 0;
+			for (auto const& [party,votes] : counts) { if (votes < 0) return -1.0; sum += votes; }
+			return sum;
+		};
+		double const now = total(current), before = total(previous);
+		auto currentShare = fpBasedCurrentShare, previousShare = fpBasedPreviousShare;
+		double weight = fpVotes;
+		if (classic(current) && now > 0) {
+			currentShare = 100.0*current.at(0)/now;
+			weight = now;
+			// A normal completed booth needs no inferred addition. A partial
+			// category instead keeps the same pending-preference allocation as
+			// the forecast; a first small TCP batch cannot remove the other FP.
+			double const pending = fpVotes-now;
+			if (pending > 0 && pendingFirstVotes && std::isfinite(*pendingFirstVotes)
+				&& *pendingFirstVotes >= 0 && *pendingFirstVotes <= pending) {
+				weight = fpVotes;
+				currentShare = 100.0*(current.at(0)+*pendingFirstVotes)/weight;
+			}
+		}
+		if (classic(previous) && before > 0) previousShare = 100.0*previous.at(0)/before;
+		auto validShare = [](auto const& share) {
+			return share && std::isfinite(*share) && *share >= 0 && *share <= 100;
+		};
+		if (!std::isfinite(weight) || weight <= 0 || !validShare(currentShare) || !validShare(previousShare)) return;
+		weightedSwing += weight * (*currentShare-*previousShare);
+		countedVotes += weight;
+	}
+	std::optional<float> value() const {
+		return countedVotes > 0 ? std::optional<float>(float(weightedSwing/countedVotes)) : std::nullopt;
+	}
+};
+
 struct BoothSnapshot {
 	std::string seatName;
 	std::string boothName;
@@ -157,6 +212,12 @@ struct BoothSnapshot {
 class Provider {
 public:
 	virtual ~Provider() = default;
+
+	// Input/output are transformed TPP draws in project seat order. Automatic
+	// live providers condition the whole vector together; legacy/manual providers
+	// can retain their existing handoff by leaving this boundary unavailable.
+	virtual std::optional<std::vector<double>> integrateTpp(
+		std::vector<double> const&) const { return {}; }
 
 	virtual std::unique_ptr<Provider> generateScenario(
 		int iterationIndex) const = 0;
@@ -188,6 +249,9 @@ public:
 
 	// Prepared seat-wide TPP estimate (counted plus outstanding votes), relative
 	// to the configured previous margin. Returns NaN before live evidence exists.
+	virtual float getSeatEstimatedTppSwing(std::string const& seatName) const = 0;
+	// Raw, count-weighted booth swing (TCP where available, otherwise FP-derived),
+	// without forecast blending or outstanding-vote adjustments.
 	virtual float getSeatRawTppSwing(std::string const& seatName) const = 0;
 	virtual float getSeatFpCompletion(std::string const& seatName) const = 0;
 	virtual float getSeatTppCompletion(std::string const& seatName) const = 0;

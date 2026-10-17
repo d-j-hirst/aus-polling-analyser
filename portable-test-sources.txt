@@ -5,6 +5,7 @@ DateTests
 ForecastSpecificationProjectAdapterTests
 ForecastSpecificationTests
 LiveDataTests
+LiveTppCompositionTests
 LivePreferenceCorrectionTests
 LiveResultsInputTests
 LiveRunExportTests
@@ -14,8 +15,10 @@ LiveSnapshotDataTests
 MacroTargetResolverTests
 MajorPartyFpMathTests
 RandomGeneratorTests
+RegionalSwingMathTests
 SharedInputLookupTests
 TerminalMacroFeedbackTests
 TurnoutModelTests
 WorkspacePathsTests
 LiveInputRecoveryTests
+ResponsiveLiveTests

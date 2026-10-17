@@ -17,6 +17,7 @@
 #include "wx/bookctrl.h"
 
 #include "PollingProject.h"
+#include <set>
 
 class GenericChildFrame : public wxPanel {
 
@@ -28,8 +29,14 @@ public:
 
 	// Checks whether the window is closed.
 	bool getIsClosed();
+	bool allowsLiveAction(int id) const;
+	void refreshActivityPolicy();
 
 protected:
+	void allowDuringLiveRun(std::initializer_list<int> ids);
+	void applyActivityPolicy();
+	virtual void updateInterface() {}
+	std::set<int> liveReadOnlyActions;
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnClose(wxCloseEvent& WXUNUSED(event));

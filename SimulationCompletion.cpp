@@ -146,8 +146,8 @@ void SimulationCompletion::completeRun(
 
 	if (run.isLiveAutomatic() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
 		exportSummary(feedback, actionRequired);
-		LiveRunExport::exportCompletedAutomaticLiveRun(
-			project, sim, run, iterations, feedback, actionRequired);
+		run.recordSnapshotExport(LiveRunExport::exportCompletedAutomaticLiveRun(
+			project, sim, run, iterations, feedback, actionRequired));
 	}
 
 	logger << "Simulation successfully completed.\n";
@@ -382,6 +382,7 @@ void SimulationCompletion::recordSeatPartyWinPercentages()
 void SimulationCompletion::recordSeatFpVoteStats()
 {
 	if (run.doingLiveBaselineSimulation) {
+		sim.latestReport.liveBaselineTppMoments = run.liveBaselineTppMoments.finish();
 		sim.latestReport.liveBaselineFpMoments.clear();
 		for (auto const& moments : run.liveBaselineFpMoments)
 			sim.latestReport.liveBaselineFpMoments.push_back(moments.finish());

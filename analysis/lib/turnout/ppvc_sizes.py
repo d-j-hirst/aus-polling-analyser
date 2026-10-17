@@ -172,7 +172,7 @@ def starting_weights(units, raw_counts, metadata, calibration, statistic='median
                 kind = calibration.get('seat_types', {}).get(unit['seat_name'])
                 reference = calibration.get('by_seat_type', {}).get(kind, calibration) if statistic.endswith('_by_type') else calibration
                 sizes[j] = reference[statistic.removesuffix('_by_type')]
-                source = '2022_local_new_or_changed_' + statistic
+                source = calibration.get('election', '2022fed')[:4] + '_local_new_or_changed_' + statistic
         details[unit['id']] = dict(ppvc_location=role, starting_size_source=source,
                                   seat_type=calibration.get('seat_types', {}).get(unit['seat_name']))
     totals = Counter()

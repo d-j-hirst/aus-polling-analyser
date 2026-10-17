@@ -47,6 +47,7 @@ void SimulationsFrame::setupToolbar()
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+	applyActivityPolicy();
 }
 
 void SimulationsFrame::setupDataTable()
@@ -256,4 +257,5 @@ void SimulationsFrame::updateInterface() {
 	toolBar->EnableTool(ControlId::Edit, somethingSelected);
 	toolBar->EnableTool(ControlId::Remove, somethingSelected);
 	toolBar->EnableTool(ControlId::CollectData, somethingSelected);
+	applyActivityPolicy();
 }

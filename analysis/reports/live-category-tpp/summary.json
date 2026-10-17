@@ -1,0 +1,3179 @@
+{
+  "comparisons": [
+    {
+      "seats": 144,
+      "ordinary_error": 0.4658637260895184,
+      "category_error": 0.8299356980621144,
+      "contrast_change": 0.364071971972596,
+      "overall_error": 0.3762181903852997,
+      "current_ordinary": 53.47244251963806,
+      "current_category": 51.47770176400048,
+      "previous_ordinary": 47.81180451740648,
+      "previous_category": 45.4589722477696,
+      "previous_sample_tpp": 47.37626361056212,
+      "current_sample_tpp": 52.94841674677141,
+      "local_change_mean": 0.3661257964802127,
+      "local_change_rms": 2.2009053782538968,
+      "election": "2007fed",
+      "previous": "2004fed",
+      "category": "early"
+    },
+    {
+      "seats": 144,
+      "ordinary_error": 0.4658637260895184,
+      "category_error": 0.0740427843982161,
+      "contrast_change": -0.3918209416913023,
+      "overall_error": 0.3762181903852997,
+      "current_ordinary": 53.47244251963806,
+      "current_category": 47.039537257365104,
+      "previous_ordinary": 47.81180451740648,
+      "previous_category": 41.83404427701874,
+      "previous_sample_tpp": 47.37626361056212,
+      "current_sample_tpp": 52.94841674677141,
+      "local_change_mean": -0.16973794947617357,
+      "local_change_rms": 2.7155692455693177,
+      "election": "2007fed",
+      "previous": "2004fed",
+      "category": "postal"
+    },
+    {
+      "seats": 144,
+      "ordinary_error": 0.4658637260895184,
+      "category_error": 0.7292720352582118,
+      "contrast_change": 0.2634083091686934,
+      "overall_error": 0.3762181903852997,
+      "current_ordinary": 53.47244251963806,
+      "current_category": 53.385433812201256,
+      "previous_ordinary": 47.81180451740648,
+      "previous_category": 47.461761505643494,
+      "previous_sample_tpp": 47.37626361056212,
+      "current_sample_tpp": 52.94841674677141,
+      "local_change_mean": 0.04716262818167262,
+      "local_change_rms": 2.252726528093684,
+      "election": "2007fed",
+      "previous": "2004fed",
+      "category": "absent"
+    },
+    {
+      "seats": 144,
+      "ordinary_error": 0.4658637260895184,
+      "category_error": 2.352249066486671,
+      "contrast_change": 1.8863853403971524,
+      "overall_error": 0.3762181903852997,
+      "current_ordinary": 53.47244251963806,
+      "current_category": 60.92009352221152,
+      "previous_ordinary": 47.81180451740648,
+      "previous_category": 53.53891755134438,
+      "previous_sample_tpp": 47.37626361056212,
+      "current_sample_tpp": 52.94841674677141,
+      "local_change_mean": 0.8056792051389067,
+      "local_change_rms": 5.942752086883761,
+      "election": "2007fed",
+      "previous": "2004fed",
+      "category": "provisional"
+    },
+    {
+      "seats": 139,
+      "ordinary_error": -0.9126249090656672,
+      "category_error": -2.2177198364358777,
+      "contrast_change": -1.3050949273702104,
+      "overall_error": -1.0137069095928355,
+      "current_ordinary": 50.76455541295595,
+      "current_category": 47.46003642021518,
+      "previous_ordinary": 53.037979226516455,
+      "previous_category": 51.03990411367609,
+      "previous_sample_tpp": 52.492476299022584,
+      "current_sample_tpp": 50.1163507704262,
+      "local_change_mean": -1.3156921344991055,
+      "local_change_rms": 2.1285144497403805,
+      "election": "2010fed",
+      "previous": "2007fed",
+      "category": "early"
+    },
+    {
+      "seats": 139,
+      "ordinary_error": -0.9126249090656672,
+      "category_error": 0.3040999696770621,
+      "contrast_change": 1.2167248787427294,
+      "overall_error": -1.0137069095928355,
+      "current_ordinary": 50.76455541295595,
+      "current_category": 45.27271692020287,
+      "previous_ordinary": 53.037979226516455,
+      "previous_category": 46.325577603696416,
+      "previous_sample_tpp": 52.492476299022584,
+      "current_sample_tpp": 50.1163507704262,
+      "local_change_mean": 0.43246162996785287,
+      "local_change_rms": 2.3094289124117844,
+      "election": "2010fed",
+      "previous": "2007fed",
+      "category": "postal"
+    },
+    {
+      "seats": 139,
+      "ordinary_error": -0.9126249090656672,
+      "category_error": 0.9142421404859971,
+      "contrast_change": 1.8268670495516641,
+      "overall_error": -1.0137069095928355,
+      "current_ordinary": 50.76455541295595,
+      "current_category": 52.55780747454773,
+      "previous_ordinary": 53.037979226516455,
+      "previous_category": 53.00665424540857,
+      "previous_sample_tpp": 52.492476299022584,
+      "current_sample_tpp": 50.1163507704262,
+      "local_change_mean": 1.975694008573399,
+      "local_change_rms": 2.3005593604471652,
+      "election": "2010fed",
+      "previous": "2007fed",
+      "category": "absent"
+    },
+    {
+      "seats": 139,
+      "ordinary_error": -0.9126249090656672,
+      "category_error": -1.558809516683345,
+      "contrast_change": -0.6461846076176779,
+      "overall_error": -1.0137069095928355,
+      "current_ordinary": 50.76455541295595,
+      "current_category": 57.67487963749646,
+      "previous_ordinary": 53.037979226516455,
+      "previous_category": 60.500718735026354,
+      "previous_sample_tpp": 52.492476299022584,
+      "current_sample_tpp": 50.1163507704262,
+      "local_change_mean": -0.5620554197856601,
+      "local_change_rms": 6.9086788734185225,
+      "election": "2010fed",
+      "previous": "2007fed",
+      "category": "provisional"
+    },
+    {
+      "seats": 137,
+      "ordinary_error": 0.14871268563105144,
+      "category_error": -0.4748943480121852,
+      "contrast_change": -0.6236070336432367,
+      "overall_error": -0.2620790788698666,
+      "current_ordinary": 47.476309895117325,
+      "current_category": 43.82611036566802,
+      "previous_ordinary": 50.852423429405555,
+      "previous_category": 47.79781807169863,
+      "previous_sample_tpp": 50.23522765480496,
+      "current_sample_tpp": 46.45206790773169,
+      "local_change_mean": -1.0155163660168662,
+      "local_change_rms": 2.2502804081922196,
+      "election": "2013fed",
+      "previous": "2010fed",
+      "category": "early"
+    },
+    {
+      "seats": 137,
+      "ordinary_error": 0.14871268563105144,
+      "category_error": -0.2834220324454364,
+      "contrast_change": -0.43213471807648784,
+      "overall_error": -0.2620790788698666,
+      "current_ordinary": 47.476309895117325,
+      "current_category": 41.69012733531303,
+      "previous_ordinary": 50.852423429405555,
+      "previous_category": 45.435543765116826,
+      "previous_sample_tpp": 50.23522765480496,
+      "current_sample_tpp": 46.45206790773169,
+      "local_change_mean": -0.5969683421713202,
+      "local_change_rms": 2.4958218515484396,
+      "election": "2013fed",
+      "previous": "2010fed",
+      "category": "postal"
+    },
+    {
+      "seats": 137,
+      "ordinary_error": 0.14871268563105144,
+      "category_error": 1.4992870310474373,
+      "contrast_change": 1.3505743454163859,
+      "overall_error": -0.2620790788698666,
+      "current_ordinary": 47.476309895117325,
+      "current_category": 50.39897674200286,
+      "previous_ordinary": 50.852423429405555,
+      "previous_category": 52.42484966706519,
+      "previous_sample_tpp": 50.23522765480496,
+      "current_sample_tpp": 46.45206790773169,
+      "local_change_mean": 1.1784856779751869,
+      "local_change_rms": 2.146559500847609,
+      "election": "2013fed",
+      "previous": "2010fed",
+      "category": "absent"
+    },
+    {
+      "seats": 137,
+      "ordinary_error": 0.14871268563105144,
+      "category_error": 0.9769117818426043,
+      "contrast_change": 0.8281990962115529,
+      "overall_error": -0.2620790788698666,
+      "current_ordinary": 47.476309895117325,
+      "current_category": 55.176546168861655,
+      "previous_ordinary": 50.852423429405555,
+      "previous_category": 57.68394174390013,
+      "previous_sample_tpp": 50.23522765480496,
+      "current_sample_tpp": 46.45206790773169,
+      "local_change_mean": 0.6347308236835298,
+      "local_change_rms": 5.611338942768379,
+      "election": "2013fed",
+      "previous": "2010fed",
+      "category": "provisional"
+    },
+    {
+      "seats": 137,
+      "ordinary_error": 0.14871268563105144,
+      "category_error": -0.61569889972237,
+      "contrast_change": -0.7644115853534215,
+      "overall_error": -0.2620790788698666,
+      "current_ordinary": 47.476309895117325,
+      "current_category": 43.42828092392335,
+      "previous_ordinary": 50.852423429405555,
+      "previous_category": 47.53479623237363,
+      "previous_sample_tpp": 50.23522765480496,
+      "current_sample_tpp": 46.45206790773169,
+      "local_change_mean": -1.094945211308569,
+      "local_change_rms": 3.1020367344272994,
+      "election": "2013fed",
+      "previous": "2010fed",
+      "category": "ppvc"
+    },
+    {
+      "seats": 137,
+      "ordinary_error": 0.14871268563105144,
+      "category_error": 0.5350758299186327,
+      "contrast_change": 0.38636314428758123,
+      "overall_error": -0.2620790788698666,
+      "current_ordinary": 47.476309895117325,
+      "current_category": 45.34507853652022,
+      "previous_ordinary": 50.852423429405555,
+      "previous_category": 48.324166943844546,
+      "previous_sample_tpp": 50.23522765480496,
+      "current_sample_tpp": 46.45206790773169,
+      "local_change_mean": 0.20804830357599846,
+      "local_change_rms": 2.652970537219212,
+      "election": "2013fed",
+      "previous": "2010fed",
+      "category": "early_declaration"
+    },
+    {
+      "seats": 136,
+      "ordinary_error": 0.32055893683823244,
+      "category_error": 0.7172009971987432,
+      "contrast_change": 0.39664206036051075,
+      "overall_error": 0.06476237891964803,
+      "current_ordinary": 50.68204313081758,
+      "current_category": 47.220620700979765,
+      "previous_ordinary": 47.232428765589894,
+      "previous_category": 43.40723277604968,
+      "previous_sample_tpp": 46.201618530038665,
+      "current_sample_tpp": 49.39100805140174,
+      "local_change_mean": 0.3975827910334082,
+      "local_change_rms": 1.9762314521735265,
+      "election": "2016fed",
+      "previous": "2013fed",
+      "category": "early"
+    },
+    {
+      "seats": 136,
+      "ordinary_error": 0.32055893683823244,
+      "category_error": -1.2124910468204888,
+      "contrast_change": -1.5330499836587212,
+      "overall_error": 0.06476237891964803,
+      "current_ordinary": 50.68204313081758,
+      "current_category": 43.38743949946877,
+      "previous_ordinary": 47.232428765589894,
+      "previous_category": 41.512015535560124,
+      "previous_sample_tpp": 46.201618530038665,
+      "current_sample_tpp": 49.39100805140174,
+      "local_change_mean": -0.46733909144549396,
+      "local_change_rms": 2.165114618526733,
+      "election": "2016fed",
+      "previous": "2013fed",
+      "category": "postal"
+    },
+    {
+      "seats": 136,
+      "ordinary_error": 0.32055893683823244,
+      "category_error": 0.20489165949936172,
+      "contrast_change": -0.11566727733887072,
+      "overall_error": 0.06476237891964803,
+      "current_ordinary": 50.68204313081758,
+      "current_category": 53.71657824816616,
+      "previous_ordinary": 47.232428765589894,
+      "previous_category": 50.386617234505096,
+      "previous_sample_tpp": 46.201618530038665,
+      "current_sample_tpp": 49.39100805140174,
+      "local_change_mean": -0.17823519578675207,
+      "local_change_rms": 2.466269351378585,
+      "election": "2016fed",
+      "previous": "2013fed",
+      "category": "absent"
+    },
+    {
+      "seats": 136,
+      "ordinary_error": 0.32055893683823244,
+      "category_error": 0.9030287159931554,
+      "contrast_change": 0.5824697791549229,
+      "overall_error": 0.06476237891964803,
+      "current_ordinary": 50.68204313081758,
+      "current_category": 58.94816779686397,
+      "previous_ordinary": 47.232428765589894,
+      "previous_category": 54.99391289224577,
+      "previous_sample_tpp": 46.201618530038665,
+      "current_sample_tpp": 49.39100805140174,
+      "local_change_mean": 0.5559466119668113,
+      "local_change_rms": 4.593214517622636,
+      "election": "2016fed",
+      "previous": "2013fed",
+      "category": "provisional"
+    },
+    {
+      "seats": 136,
+      "ordinary_error": 0.32055893683823244,
+      "category_error": 1.1040568225681464,
+      "contrast_change": 0.783497885729914,
+      "overall_error": 0.06476237891964803,
+      "current_ordinary": 50.68204313081758,
+      "current_category": 47.118103277090775,
+      "previous_ordinary": 47.232428765589894,
+      "previous_category": 42.9266797084618,
+      "previous_sample_tpp": 46.201618530038665,
+      "current_sample_tpp": 49.39100805140174,
+      "local_change_mean": 0.7459965609655076,
+      "local_change_rms": 2.2631583614142476,
+      "election": "2016fed",
+      "previous": "2013fed",
+      "category": "ppvc"
+    },
+    {
+      "seats": 136,
+      "ordinary_error": 0.32055893683823244,
+      "category_error": -0.5677679253550627,
+      "contrast_change": -0.8883268621932952,
+      "overall_error": 0.06476237891964803,
+      "current_ordinary": 50.68204313081758,
+      "current_category": 47.75800022776449,
+      "previous_ordinary": 47.232428765589894,
+      "previous_category": 45.207096147149,
+      "previous_sample_tpp": 46.201618530038665,
+      "current_sample_tpp": 49.39100805140174,
+      "local_change_mean": -0.5815310997141075,
+      "local_change_rms": 2.858804056591332,
+      "election": "2016fed",
+      "previous": "2013fed",
+      "category": "early_declaration"
+    },
+    {
+      "seats": 143,
+      "ordinary_error": -1.5907782455009296,
+      "category_error": -2.4930200020746276,
+      "contrast_change": -0.902241756573698,
+      "overall_error": -2.255819844237961,
+      "current_ordinary": 49.93363330528583,
+      "current_category": 45.75214244888427,
+      "previous_ordinary": 50.632778765636125,
+      "previous_category": 47.345796390931994,
+      "previous_sample_tpp": 49.373719826492824,
+      "current_sample_tpp": 48.01051711297958,
+      "local_change_mean": -0.8323424280045348,
+      "local_change_rms": 2.0040909092484545,
+      "election": "2019fed",
+      "previous": "2016fed",
+      "category": "early"
+    },
+    {
+      "seats": 143,
+      "ordinary_error": -1.5907782455009296,
+      "category_error": -2.4539862898183573,
+      "contrast_change": -0.8632080443174277,
+      "overall_error": -2.255819844237961,
+      "current_ordinary": 49.93363330528583,
+      "current_category": 41.87902872900546,
+      "previous_ordinary": 50.632778765636125,
+      "previous_category": 43.407459896405456,
+      "previous_sample_tpp": 49.373719826492824,
+      "current_sample_tpp": 48.01051711297958,
+      "local_change_mean": -1.6091253571091273,
+      "local_change_rms": 2.41309890959827,
+      "election": "2019fed",
+      "previous": "2016fed",
+      "category": "postal"
+    },
+    {
+      "seats": 143,
+      "ordinary_error": -1.5907782455009296,
+      "category_error": -1.277206229454654,
+      "contrast_change": 0.3135720160462756,
+      "overall_error": -2.255819844237961,
+      "current_ordinary": 49.93363330528583,
+      "current_category": 53.1785950319676,
+      "previous_ordinary": 50.632778765636125,
+      "previous_category": 53.56244810917914,
+      "previous_sample_tpp": 49.373719826492824,
+      "current_sample_tpp": 48.01051711297958,
+      "local_change_mean": -0.31718898093598136,
+      "local_change_rms": 2.5348699142567717,
+      "election": "2019fed",
+      "previous": "2016fed",
+      "category": "absent"
+    },
+    {
+      "seats": 143,
+      "ordinary_error": -1.5907782455009296,
+      "category_error": -3.6617749822648333,
+      "contrast_change": -2.0709967367639037,
+      "overall_error": -2.255819844237961,
+      "current_ordinary": 49.93363330528583,
+      "current_category": 56.20696008659803,
+      "previous_ordinary": 50.632778765636125,
+      "previous_category": 58.91306600352295,
+      "previous_sample_tpp": 49.373719826492824,
+      "current_sample_tpp": 48.01051711297958,
+      "local_change_mean": -1.6633543298497993,
+      "local_change_rms": 4.507420286165997,
+      "election": "2019fed",
+      "previous": "2016fed",
+      "category": "provisional"
+    },
+    {
+      "seats": 143,
+      "ordinary_error": -1.5907782455009296,
+      "category_error": -2.7948074015725157,
+      "contrast_change": -1.2040291560715861,
+      "overall_error": -2.255819844237961,
+      "current_ordinary": 49.93363330528583,
+      "current_category": 45.289720258871526,
+      "previous_ordinary": 50.632778765636125,
+      "previous_category": 47.18190966525616,
+      "previous_sample_tpp": 49.373719826492824,
+      "current_sample_tpp": 48.01051711297958,
+      "local_change_mean": -1.0295186755059482,
+      "local_change_rms": 2.2245948945749756,
+      "election": "2019fed",
+      "previous": "2016fed",
+      "category": "ppvc"
+    },
+    {
+      "seats": 143,
+      "ordinary_error": -1.5907782455009296,
+      "category_error": -0.1965354298517723,
+      "contrast_change": 1.3942428156491573,
+      "overall_error": -2.255819844237961,
+      "current_ordinary": 49.93363330528583,
+      "current_category": 48.915234977504994,
+      "previous_ordinary": 50.632778765636125,
+      "previous_category": 48.2207527888591,
+      "previous_sample_tpp": 49.373719826492824,
+      "current_sample_tpp": 48.01051711297958,
+      "local_change_mean": 0.8590661134667008,
+      "local_change_rms": 2.883112883134516,
+      "election": "2019fed",
+      "previous": "2016fed",
+      "category": "early_declaration"
+    },
+    {
+      "seats": 150,
+      "ordinary_error": -0.3282355913538504,
+      "category_error": 1.0312168206024297,
+      "contrast_change": 1.35945241195628,
+      "overall_error": 0.00981044687985655,
+      "current_ordinary": 53.70577212991008,
+      "current_category": 50.83314397118852,
+      "previous_ordinary": 50.443980756664544,
+      "previous_category": 46.21245076525173,
+      "previous_sample_tpp": 48.49493333446274,
+      "current_sample_tpp": 52.09987620659793,
+      "local_change_mean": 1.748534097865152,
+      "local_change_rms": 1.761343206709911,
+      "election": "2022fed",
+      "previous": "2019fed",
+      "category": "early"
+    },
+    {
+      "seats": 150,
+      "ordinary_error": -0.3282355913538504,
+      "category_error": 3.094631378809083,
+      "contrast_change": 3.422866970162933,
+      "overall_error": 0.00981044687985655,
+      "current_ordinary": 53.70577212991008,
+      "current_category": 49.023696009975886,
+      "previous_ordinary": 50.443980756664544,
+      "previous_category": 42.39166975867401,
+      "previous_sample_tpp": 48.49493333446274,
+      "current_sample_tpp": 52.09987620659793,
+      "local_change_mean": 3.2520621630039144,
+      "local_change_rms": 2.2394554734146386,
+      "election": "2022fed",
+      "previous": "2019fed",
+      "category": "postal"
+    },
+    {
+      "seats": 150,
+      "ordinary_error": -0.3282355913538504,
+      "category_error": 0.15371361476232526,
+      "contrast_change": 0.48194920611617564,
+      "overall_error": 0.00981044687985655,
+      "current_ordinary": 53.70577212991008,
+      "current_category": 57.39369328916857,
+      "previous_ordinary": 50.443980756664544,
+      "previous_category": 53.6910398802613,
+      "previous_sample_tpp": 48.49493333446274,
+      "current_sample_tpp": 52.09987620659793,
+      "local_change_mean": 0.06645075342812277,
+      "local_change_rms": 2.493540087799505,
+      "election": "2022fed",
+      "previous": "2019fed",
+      "category": "absent"
+    },
+    {
+      "seats": 150,
+      "ordinary_error": -0.3282355913538504,
+      "category_error": -1.7023427415200825,
+      "contrast_change": -1.374107150166232,
+      "overall_error": 0.00981044687985655,
+      "current_ordinary": 53.70577212991008,
+      "current_category": 58.78354789439232,
+      "previous_ordinary": 50.443980756664544,
+      "previous_category": 56.936119011157295,
+      "previous_sample_tpp": 48.49493333446274,
+      "current_sample_tpp": 52.09987620659793,
+      "local_change_mean": -1.5410480997992644,
+      "local_change_rms": 4.931525856349286,
+      "election": "2022fed",
+      "previous": "2019fed",
+      "category": "provisional"
+    },
+    {
+      "seats": 150,
+      "ordinary_error": -0.3282355913538504,
+      "category_error": 1.2285973484021968,
+      "contrast_change": 1.5568329397560472,
+      "overall_error": 0.00981044687985655,
+      "current_ordinary": 53.70577212991008,
+      "current_category": 50.57007837035395,
+      "previous_ordinary": 50.443980756664544,
+      "previous_category": 45.75492679287697,
+      "previous_sample_tpp": 48.49493333446274,
+      "current_sample_tpp": 52.09987620659793,
+      "local_change_mean": 1.9699748252643254,
+      "local_change_rms": 2.000092484687229,
+      "election": "2022fed",
+      "previous": "2019fed",
+      "category": "ppvc"
+    },
+    {
+      "seats": 150,
+      "ordinary_error": -0.3282355913538504,
+      "category_error": 0.30985538780877986,
+      "contrast_change": 0.6380909791626302,
+      "overall_error": 0.00981044687985655,
+      "current_ordinary": 53.70577212991008,
+      "current_category": 53.2574400955061,
+      "previous_ordinary": 50.443980756664544,
+      "previous_category": 49.355417643948535,
+      "previous_sample_tpp": 48.49493333446274,
+      "current_sample_tpp": 52.09987620659793,
+      "local_change_mean": 0.6594873973296037,
+      "local_change_rms": 2.7392769446498457,
+      "election": "2022fed",
+      "previous": "2019fed",
+      "category": "early_declaration"
+    },
+    {
+      "seats": 149,
+      "ordinary_error": 5.0388660248118935,
+      "category_error": 3.099738106994235,
+      "contrast_change": -1.9391279178176584,
+      "overall_error": 3.76814642686513,
+      "current_ordinary": 58.06452470828952,
+      "current_category": 53.325527580344406,
+      "previous_ordinary": 53.74676589085154,
+      "previous_category": 50.887712793443804,
+      "previous_sample_tpp": 52.15596968260413,
+      "current_sample_tpp": 55.24894327952557,
+      "local_change_mean": -1.3119978672567927,
+      "local_change_rms": 1.6678177161965524,
+      "election": "2025fed",
+      "previous": "2022fed",
+      "category": "early"
+    },
+    {
+      "seats": 149,
+      "ordinary_error": 5.0388660248118935,
+      "category_error": 3.1556967185708102,
+      "contrast_change": -1.8831693062410833,
+      "overall_error": 3.76814642686513,
+      "current_ordinary": 58.06452470828952,
+      "current_category": 51.63408993616986,
+      "previous_ordinary": 53.74676589085154,
+      "previous_category": 49.136161238515236,
+      "previous_sample_tpp": 52.15596968260413,
+      "current_sample_tpp": 55.24894327952557,
+      "local_change_mean": -1.8518676067209818,
+      "local_change_rms": 2.825007330814321,
+      "election": "2025fed",
+      "previous": "2022fed",
+      "category": "postal"
+    },
+    {
+      "seats": 149,
+      "ordinary_error": 5.0388660248118935,
+      "category_error": 3.4362369879036603,
+      "contrast_change": -1.6026290369082332,
+      "overall_error": 3.76814642686513,
+      "current_ordinary": 58.06452470828952,
+      "current_category": 60.158551830309946,
+      "previous_ordinary": 53.74676589085154,
+      "previous_category": 57.466504236454064,
+      "previous_sample_tpp": 52.15596968260413,
+      "current_sample_tpp": 55.24894327952557,
+      "local_change_mean": -1.9306924877655278,
+      "local_change_rms": 2.743518580381301,
+      "election": "2025fed",
+      "previous": "2022fed",
+      "category": "absent"
+    },
+    {
+      "seats": 149,
+      "ordinary_error": 5.0388660248118935,
+      "category_error": 4.111004258532057,
+      "contrast_change": -0.9278617662798361,
+      "overall_error": 3.76814642686513,
+      "current_ordinary": 58.06452470828952,
+      "current_category": 62.17873374079297,
+      "previous_ordinary": 53.74676589085154,
+      "previous_category": 58.87947868442417,
+      "previous_sample_tpp": 52.15596968260413,
+      "current_sample_tpp": 55.24894327952557,
+      "local_change_mean": -0.7545484992433499,
+      "local_change_rms": 5.664493140283694,
+      "election": "2025fed",
+      "previous": "2022fed",
+      "category": "provisional"
+    },
+    {
+      "seats": 149,
+      "ordinary_error": 5.0388660248118935,
+      "category_error": 3.0926774418910346,
+      "contrast_change": -1.946188582920859,
+      "overall_error": 3.76814642686513,
+      "current_ordinary": 58.06452470828952,
+      "current_category": 53.062900512517956,
+      "previous_ordinary": 53.74676589085154,
+      "previous_category": 50.63112931401221,
+      "previous_sample_tpp": 52.15596968260413,
+      "current_sample_tpp": 55.24894327952557,
+      "local_change_mean": -1.3754400529878443,
+      "local_change_rms": 1.8053159874602407,
+      "election": "2025fed",
+      "previous": "2022fed",
+      "category": "ppvc"
+    },
+    {
+      "seats": 149,
+      "ordinary_error": 5.0388660248118935,
+      "category_error": 3.706495858204605,
+      "contrast_change": -1.3323701666072885,
+      "overall_error": 3.76814642686513,
+      "current_ordinary": 58.06452470828952,
+      "current_category": 56.28248876755958,
+      "previous_ordinary": 53.74676589085154,
+      "previous_category": 53.26183282211518,
+      "previous_sample_tpp": 52.15596968260413,
+      "current_sample_tpp": 55.24894327952557,
+      "local_change_mean": -0.4321950972511541,
+      "local_change_rms": 2.9424422719783427,
+      "election": "2025fed",
+      "previous": "2022fed",
+      "category": "early_declaration"
+    },
+    {
+      "seats": 76,
+      "ordinary_error": 1.0917711776582306,
+      "category_error": 2.7792182670240884,
+      "contrast_change": 1.6874470893658577,
+      "overall_error": 1.40748128564275,
+      "current_ordinary": 48.53090780605175,
+      "current_category": 45.62524974421801,
+      "previous_ordinary": 55.06897311701387,
+      "previous_category": 50.48253478388304,
+      "previous_sample_tpp": 54.17660208789147,
+      "current_sample_tpp": 47.94725963378833,
+      "local_change_mean": 1.4131501990561648,
+      "local_change_rms": 3.3281441347612724,
+      "election": "2010vic",
+      "previous": "2006vic",
+      "category": "early"
+    },
+    {
+      "seats": 76,
+      "ordinary_error": 1.0917711776582306,
+      "category_error": 3.972953681652437,
+      "contrast_change": 2.8811825039942063,
+      "overall_error": 1.40748128564275,
+      "current_ordinary": 48.53090780605175,
+      "current_category": 43.2552246741614,
+      "previous_ordinary": 55.06897311701387,
+      "previous_category": 46.89265037605055,
+      "previous_sample_tpp": 54.17660208789147,
+      "current_sample_tpp": 47.94725963378833,
+      "local_change_mean": 1.3703743631565428,
+      "local_change_rms": 3.2269801048986344,
+      "election": "2010vic",
+      "previous": "2006vic",
+      "category": "postal"
+    },
+    {
+      "seats": 76,
+      "ordinary_error": 1.0917711776582306,
+      "category_error": 4.1035289710577185,
+      "contrast_change": 3.0117577933994877,
+      "overall_error": 1.40748128564275,
+      "current_ordinary": 48.53090780605175,
+      "current_category": 52.508206990151606,
+      "previous_ordinary": 55.06897311701387,
+      "previous_category": 56.02509873713979,
+      "previous_sample_tpp": 54.17660208789147,
+      "current_sample_tpp": 47.94725963378833,
+      "local_change_mean": 2.526739331575873,
+      "local_change_rms": 2.8399179893384185,
+      "election": "2010vic",
+      "previous": "2006vic",
+      "category": "absent"
+    },
+    {
+      "seats": 65,
+      "ordinary_error": 0.8472482022822828,
+      "category_error": 1.175736183883299,
+      "contrast_change": 0.3284879816010161,
+      "overall_error": 0.28915770451752465,
+      "current_ordinary": 52.81439922960442,
+      "current_category": 50.36042708825666,
+      "previous_ordinary": 49.37484998245949,
+      "previous_category": 46.59466548029818,
+      "previous_sample_tpp": 48.77519318766208,
+      "current_sample_tpp": 51.65880843047972,
+      "local_change_mean": -0.5958269436259024,
+      "local_change_rms": 2.6666478744846756,
+      "election": "2014vic",
+      "previous": "2010vic",
+      "category": "early"
+    },
+    {
+      "seats": 65,
+      "ordinary_error": 0.8472482022822828,
+      "category_error": -1.7591924237781633,
+      "contrast_change": -2.6064406260604462,
+      "overall_error": 0.28915770451752465,
+      "current_ordinary": 52.81439922960442,
+      "current_category": 44.57122768819034,
+      "previous_ordinary": 49.37484998245949,
+      "previous_category": 43.74653940825937,
+      "previous_sample_tpp": 48.77519318766208,
+      "current_sample_tpp": 51.65880843047972,
+      "local_change_mean": -1.479078447606868,
+      "local_change_rms": 3.4385340344373025,
+      "election": "2014vic",
+      "previous": "2010vic",
+      "category": "postal"
+    },
+    {
+      "seats": 65,
+      "ordinary_error": 0.8472482022822828,
+      "category_error": -0.706328053748499,
+      "contrast_change": -1.553576256030782,
+      "overall_error": 0.28915770451752465,
+      "current_ordinary": 52.81439922960442,
+      "current_category": 55.01535723128191,
+      "previous_ordinary": 49.37484998245949,
+      "previous_category": 53.13916230295558,
+      "previous_sample_tpp": 48.77519318766208,
+      "current_sample_tpp": 51.65880843047972,
+      "local_change_mean": -1.384051943939871,
+      "local_change_rms": 3.8452774648276655,
+      "election": "2014vic",
+      "previous": "2010vic",
+      "category": "absent"
+    },
+    {
+      "seats": 63,
+      "ordinary_error": 0.8272325740175547,
+      "category_error": -0.02349838397775894,
+      "contrast_change": -0.8507309579953136,
+      "overall_error": 0.28915770451752465,
+      "current_ordinary": 52.80312508140433,
+      "current_category": 58.800589810251836,
+      "previous_ordinary": 49.3902203550675,
+      "previous_category": 56.294480468132214,
+      "previous_sample_tpp": 48.78280754864915,
+      "current_sample_tpp": 51.65975935939446,
+      "local_change_mean": -0.2064257754494211,
+      "local_change_rms": 5.558077499575124,
+      "election": "2014vic",
+      "previous": "2010vic",
+      "category": "provisional"
+    },
+    {
+      "seats": 76,
+      "ordinary_error": 3.3663570909407277,
+      "category_error": 1.6527067028548652,
+      "contrast_change": -1.7136503880858625,
+      "overall_error": 2.498534907492221,
+      "current_ordinary": 58.18766247066764,
+      "current_category": 54.31352915595119,
+      "previous_ordinary": 51.74855844330212,
+      "previous_category": 49.525167582041014,
+      "previous_sample_tpp": 50.76449549416253,
+      "current_sample_tpp": 56.37462917921472,
+      "local_change_mean": -2.417003290606629,
+      "local_change_rms": 2.197763940531531,
+      "election": "2018vic",
+      "previous": "2014vic",
+      "category": "early"
+    },
+    {
+      "seats": 76,
+      "ordinary_error": 3.3663570909407277,
+      "category_error": 2.49443288953053,
+      "contrast_change": -0.8719242014101978,
+      "overall_error": 2.498534907492221,
+      "current_ordinary": 58.18766247066764,
+      "current_category": 49.916852768454554,
+      "previous_ordinary": 51.74855844330212,
+      "previous_category": 44.30087651063762,
+      "previous_sample_tpp": 50.76449549416253,
+      "current_sample_tpp": 56.37462917921472,
+      "local_change_mean": -2.297634628085564,
+      "local_change_rms": 3.1529896282316905,
+      "election": "2018vic",
+      "previous": "2014vic",
+      "category": "postal"
+    },
+    {
+      "seats": 76,
+      "ordinary_error": 3.3663570909407277,
+      "category_error": 4.141780072218674,
+      "contrast_change": 0.7754229812779467,
+      "overall_error": 2.498534907492221,
+      "current_ordinary": 58.18766247066764,
+      "current_category": 61.650642139870286,
+      "previous_ordinary": 51.74855844330212,
+      "previous_category": 54.567677497552566,
+      "previous_sample_tpp": 50.76449549416253,
+      "current_sample_tpp": 56.37462917921472,
+      "local_change_mean": -0.8092647032797455,
+      "local_change_rms": 3.8584730088599386,
+      "election": "2018vic",
+      "previous": "2014vic",
+      "category": "absent"
+    },
+    {
+      "seats": 73,
+      "ordinary_error": 3.3365267396422222,
+      "category_error": -0.8108805283152138,
+      "contrast_change": -4.147407267957436,
+      "overall_error": 2.498534907492221,
+      "current_ordinary": 58.35791694543151,
+      "current_category": 60.62618123943102,
+      "previous_ordinary": 52.01768734549822,
+      "previous_category": 58.43823160180504,
+      "previous_sample_tpp": 51.0430863847168,
+      "current_sample_tpp": 56.585081664988095,
+      "local_change_mean": -4.063875662688774,
+      "local_change_rms": 5.7897082115415595,
+      "election": "2018vic",
+      "previous": "2014vic",
+      "category": "provisional"
+    },
+    {
+      "seats": 60,
+      "ordinary_error": -0.5261129134014451,
+      "category_error": 2.167463182494712,
+      "contrast_change": 2.693576095896157,
+      "overall_error": 0.47324495140756184,
+      "current_ordinary": 54.45838449689826,
+      "current_category": 53.338377971763535,
+      "previous_ordinary": 58.45695049119803,
+      "previous_category": 54.704570176859306,
+      "previous_sample_tpp": 56.70587785582957,
+      "current_sample_tpp": 53.670515749991814,
+      "local_change_mean": 2.7026206704923976,
+      "local_change_rms": 2.416471905837925,
+      "election": "2022vic",
+      "previous": "2018vic",
+      "category": "early"
+    },
+    {
+      "seats": 60,
+      "ordinary_error": -0.5261129134014451,
+      "category_error": 4.526351572057231,
+      "contrast_change": 5.052464485458676,
+      "overall_error": 0.47324495140756184,
+      "current_ordinary": 54.45838449689826,
+      "current_category": 51.32161623077953,
+      "previous_ordinary": 58.45695049119803,
+      "previous_category": 50.338206475749345,
+      "previous_sample_tpp": 56.70587785582957,
+      "current_sample_tpp": 53.670515749991814,
+      "local_change_mean": 4.456341519569465,
+      "local_change_rms": 3.0587538346174887,
+      "election": "2022vic",
+      "previous": "2018vic",
+      "category": "postal"
+    },
+    {
+      "seats": 60,
+      "ordinary_error": -0.5261129134014451,
+      "category_error": -1.6655365979904349,
+      "contrast_change": -1.1394236845889898,
+      "overall_error": 0.47324495140756184,
+      "current_ordinary": 54.45838449689826,
+      "current_category": 56.62296259709937,
+      "previous_ordinary": 58.45695049119803,
+      "previous_category": 61.65219208477004,
+      "previous_sample_tpp": 56.70587785582957,
+      "current_sample_tpp": 53.670515749991814,
+      "local_change_mean": -1.1378786429289007,
+      "local_change_rms": 3.9875972598818583,
+      "election": "2022vic",
+      "previous": "2018vic",
+      "category": "absent"
+    },
+    {
+      "seats": 58,
+      "ordinary_error": -0.5249570787284887,
+      "category_error": -2.0425576830701027,
+      "contrast_change": -1.517600604341614,
+      "overall_error": 0.47324495140756184,
+      "current_ordinary": 54.59912116832916,
+      "current_category": 55.51135347756124,
+      "previous_ordinary": 58.58857734786792,
+      "previous_category": 60.9343679275784,
+      "previous_sample_tpp": 56.81002130253504,
+      "current_sample_tpp": 53.78115853595474,
+      "local_change_mean": -2.1923073962333435,
+      "local_change_rms": 7.904610839683249,
+      "election": "2022vic",
+      "previous": "2018vic",
+      "category": "provisional"
+    },
+    {
+      "seats": 93,
+      "ordinary_error": -2.0616889978465895,
+      "category_error": -3.30786208495003,
+      "contrast_change": -1.2461730871034407,
+      "overall_error": -2.025794486000268,
+      "current_ordinary": 48.350248469844686,
+      "current_category": 46.12927072469083,
+      "previous_ordinary": 46.08509784047946,
+      "previous_category": 45.110775401945624,
+      "previous_sample_tpp": 45.67975047006234,
+      "current_sample_tpp": 47.97852895659374,
+      "local_change_mean": -0.814015197546535,
+      "local_change_rms": 3.0334062634930223,
+      "election": "2019nsw",
+      "previous": "2015nsw",
+      "category": "early"
+    },
+    {
+      "seats": 93,
+      "ordinary_error": -2.0616889978465895,
+      "category_error": -4.408299818183774,
+      "contrast_change": -2.346610820337184,
+      "overall_error": -2.025794486000268,
+      "current_ordinary": 48.350248469844686,
+      "current_category": 38.76700529475845,
+      "previous_ordinary": 46.08509784047946,
+      "previous_category": 38.83732170417035,
+      "previous_sample_tpp": 45.67975047006234,
+      "current_sample_tpp": 47.97852895659374,
+      "local_change_mean": -1.6852340529436016,
+      "local_change_rms": 3.2324146430366585,
+      "election": "2019nsw",
+      "previous": "2015nsw",
+      "category": "postal"
+    },
+    {
+      "seats": 93,
+      "ordinary_error": -2.0616889978465895,
+      "category_error": -0.39817607922783127,
+      "contrast_change": 1.6635129186187583,
+      "overall_error": -2.025794486000268,
+      "current_ordinary": 48.350248469844686,
+      "current_category": 51.37988519974007,
+      "previous_ordinary": 46.08509784047946,
+      "previous_category": 47.44636523514105,
+      "previous_sample_tpp": 45.67975047006234,
+      "current_sample_tpp": 47.97852895659374,
+      "local_change_mean": 0.9277919496710794,
+      "local_change_rms": 2.9139269920213104,
+      "election": "2019nsw",
+      "previous": "2015nsw",
+      "category": "absent"
+    },
+    {
+      "seats": 93,
+      "ordinary_error": -2.0616889978465895,
+      "category_error": 0.4805469331584771,
+      "contrast_change": 2.5422359310050666,
+      "overall_error": -2.025794486000268,
+      "current_ordinary": 48.350248469844686,
+      "current_category": 56.69330064617667,
+      "previous_ordinary": 46.08509784047946,
+      "previous_category": 51.91795886946002,
+      "previous_sample_tpp": 45.67975047006234,
+      "current_sample_tpp": 47.97852895659374,
+      "local_change_mean": 2.48653767904139,
+      "local_change_rms": 4.221950502815266,
+      "election": "2019nsw",
+      "previous": "2015nsw",
+      "category": "provisional"
+    },
+    {
+      "seats": 86,
+      "ordinary_error": 2.304278170043331,
+      "category_error": 1.2412910625460183,
+      "contrast_change": -1.0629871074973127,
+      "overall_error": 1.2724612938660025,
+      "current_ordinary": 56.63962808186588,
+      "current_category": 53.22593735112635,
+      "previous_ordinary": 49.04821660584408,
+      "previous_category": 46.667388011252974,
+      "previous_sample_tpp": 48.613052675726884,
+      "current_sample_tpp": 55.19305746193327,
+      "local_change_mean": -1.5019482352893823,
+      "local_change_rms": 3.8553355591841783,
+      "election": "2023nsw",
+      "previous": "2019nsw",
+      "category": "early"
+    },
+    {
+      "seats": 86,
+      "ordinary_error": 2.304278170043331,
+      "category_error": 5.728162925793698,
+      "contrast_change": 3.423884755750367,
+      "overall_error": 1.2724612938660025,
+      "current_ordinary": 56.63962808186588,
+      "current_category": 50.51119750970409,
+      "previous_ordinary": 49.04821660584408,
+      "previous_category": 39.6099104334431,
+      "previous_sample_tpp": 48.613052675726884,
+      "current_sample_tpp": 55.19305746193327,
+      "local_change_mean": 2.1860765370926107,
+      "local_change_rms": 3.724427336307947,
+      "election": "2023nsw",
+      "previous": "2019nsw",
+      "category": "postal"
+    },
+    {
+      "seats": 86,
+      "ordinary_error": 2.304278170043331,
+      "category_error": 1.126865018014077,
+      "contrast_change": -1.1774131520292541,
+      "overall_error": 1.2724612938660025,
+      "current_ordinary": 56.63962808186588,
+      "current_category": 58.33848837109398,
+      "previous_ordinary": 49.04821660584408,
+      "previous_category": 51.96254061339429,
+      "previous_sample_tpp": 48.613052675726884,
+      "current_sample_tpp": 55.19305746193327,
+      "local_change_mean": -1.5453987973363206,
+      "local_change_rms": 3.3990758336893223,
+      "election": "2023nsw",
+      "previous": "2019nsw",
+      "category": "absent"
+    },
+    {
+      "seats": 86,
+      "ordinary_error": 2.304278170043331,
+      "category_error": -0.46326977250578416,
+      "contrast_change": -2.767547942549115,
+      "overall_error": 1.2724612938660025,
+      "current_ordinary": 56.63962808186588,
+      "current_category": 61.71850408453871,
+      "previous_ordinary": 49.04821660584408,
+      "previous_category": 57.03012087767704,
+      "previous_sample_tpp": 48.613052675726884,
+      "current_sample_tpp": 55.19305746193327,
+      "local_change_mean": -3.367098395959993,
+      "local_change_rms": 4.955653354579744,
+      "election": "2023nsw",
+      "previous": "2019nsw",
+      "category": "provisional"
+    },
+    {
+      "seats": 84,
+      "ordinary_error": 0.8481935542816794,
+      "category_error": -2.381787901941835,
+      "contrast_change": -3.2299814562235145,
+      "overall_error": -1.2314034320287925,
+      "current_ordinary": 50.90055103857805,
+      "current_category": 44.53933374289337,
+      "previous_ordinary": 55.78521096502536,
+      "previous_category": 52.65553494236149,
+      "previous_sample_tpp": 53.33683119729841,
+      "current_sample_tpp": 46.35807424797635,
+      "local_change_mean": -3.590297159692737,
+      "local_change_rms": 2.1316726756920774,
+      "election": "2024qld",
+      "previous": "2020qld",
+      "category": "early"
+    },
+    {
+      "seats": 84,
+      "ordinary_error": 0.8481935542816794,
+      "category_error": -3.6271204787549642,
+      "contrast_change": -4.475314033036644,
+      "overall_error": -1.2314034320287925,
+      "current_ordinary": 50.90055103857805,
+      "current_category": 42.15987054464206,
+      "previous_ordinary": 55.78521096502536,
+      "previous_category": 51.480120244169925,
+      "previous_sample_tpp": 53.33683119729841,
+      "current_sample_tpp": 46.35807424797635,
+      "local_change_mean": -5.36048799711174,
+      "local_change_rms": 2.82273466469099,
+      "election": "2024qld",
+      "previous": "2020qld",
+      "category": "postal"
+    },
+    {
+      "seats": 84,
+      "ordinary_error": 0.8481935542816794,
+      "category_error": 4.75632837964204,
+      "contrast_change": 3.908134825360361,
+      "overall_error": -1.2314034320287925,
+      "current_ordinary": 50.90055103857805,
+      "current_category": 53.722069129623804,
+      "previous_ordinary": 55.78521096502536,
+      "previous_category": 54.71734874261058,
+      "previous_sample_tpp": 53.33683119729841,
+      "current_sample_tpp": 46.35807424797635,
+      "local_change_mean": 3.5837249430082205,
+      "local_change_rms": 3.291570924321067,
+      "election": "2024qld",
+      "previous": "2020qld",
+      "category": "absent"
+    }
+  ],
+  "unavailable": [
+    {
+      "election": "2009qld",
+      "previous": "2006qld",
+      "reason": "Missing category preference dataset"
+    },
+    {
+      "election": "2012qld",
+      "previous": "2009qld",
+      "reason": "Missing category preference dataset"
+    },
+    {
+      "election": "2015qld",
+      "previous": "2012qld",
+      "reason": "Missing category preference dataset"
+    },
+    {
+      "election": "2017qld",
+      "previous": "2015qld",
+      "reason": "Missing category preference dataset"
+    },
+    {
+      "election": "2020qld",
+      "previous": "2017qld",
+      "reason": "Missing category preference dataset"
+    },
+    {
+      "election": "2008wa",
+      "previous": "2005wa",
+      "reason": "Missing category preference dataset"
+    },
+    {
+      "election": "2013wa",
+      "previous": "2008wa",
+      "reason": "Missing category preference dataset"
+    },
+    {
+      "election": "2017wa",
+      "previous": "2013wa",
+      "reason": "Missing category preference dataset"
+    },
+    {
+      "election": "2021wa",
+      "previous": "2017wa",
+      "reason": "Fewer than 30 complete common districts"
+    },
+    {
+      "election": "2025wa",
+      "previous": "2021wa",
+      "reason": "Fewer than 30 complete common districts"
+    }
+  ],
+  "forecasts": {
+    "2007fed": {
+      "raw": 53.793,
+      "adjusted": 52.32473346720394,
+      "transformed": 2.3264108108504384,
+      "trend": "analysis\\Outputs\\fp_trend_2007fed_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2007fed_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2007fed.csv"
+    },
+    "2010fed": {
+      "raw": 51.345,
+      "adjusted": 51.133512893995515,
+      "transformed": 1.1337071399936296,
+      "trend": "analysis\\Outputs\\fp_trend_2010fed_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2010fed_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2010fed.csv"
+    },
+    "2013fed": {
+      "raw": 45.626,
+      "adjusted": 46.770895281596744,
+      "transformed": -3.2336053538089558,
+      "trend": "analysis\\Outputs\\fp_trend_2013fed_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2013fed_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2013fed.csv"
+    },
+    "2016fed": {
+      "raw": 49.703,
+      "adjusted": 49.57524161849897,
+      "transformed": -0.42476859991314836,
+      "trend": "analysis\\Outputs\\fp_trend_2016fed_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2016fed_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2016fed.csv"
+    },
+    "2019fed": {
+      "raw": 51.178,
+      "adjusted": 50.725291154086776,
+      "transformed": 0.7253420321667549,
+      "trend": "analysis\\Outputs\\fp_trend_2019fed_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2019fed_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2019fed.csv"
+    },
+    "2022fed": {
+      "raw": 52.656,
+      "adjusted": 52.12020727499989,
+      "transformed": 2.1214794375100663,
+      "trend": "analysis\\Outputs\\fp_trend_2022fed_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2022fed_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2022fed.csv"
+    },
+    "2025fed": {
+      "raw": 51.936,
+      "adjusted": 51.47051925086462,
+      "transformed": 1.4709434564198642,
+      "trend": "analysis\\Outputs\\fp_trend_2025fed_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2025fed_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2025fed.csv"
+    },
+    "2010vic": {
+      "raw": 49.171,
+      "adjusted": 47.01554441628652,
+      "transformed": -2.9880075092249085,
+      "trend": "analysis\\Outputs\\fp_trend_2010vic_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2010vic_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2010vic.csv"
+    },
+    "2014vic": {
+      "raw": 52.36,
+      "adjusted": 51.70123708763374,
+      "transformed": 1.7018940418018635,
+      "trend": "analysis\\Outputs\\fp_trend_2014vic_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2014vic_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2014vic.csv"
+    },
+    "2018vic": {
+      "raw": 54.874,
+      "adjusted": 54.83881599096871,
+      "transformed": 4.854007679660649,
+      "trend": "analysis\\Outputs\\fp_trend_2018vic_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2018vic_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2018vic.csv"
+    },
+    "2022vic": {
+      "raw": 55.476,
+      "adjusted": 54.531057652118406,
+      "transformed": 4.543522435146223,
+      "trend": "analysis\\Outputs\\fp_trend_2022vic_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2022vic_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2022vic.csv"
+    },
+    "2019nsw": {
+      "raw": 49.199,
+      "adjusted": 50.00469442076255,
+      "transformed": 0.004694420776342915,
+      "trend": "analysis\\Outputs\\fp_trend_2019nsw_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2019nsw_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2019nsw.csv"
+    },
+    "2023nsw": {
+      "raw": 53.28,
+      "adjusted": 52.994304414989436,
+      "transformed": 2.997891672037758,
+      "trend": "analysis\\Outputs\\fp_trend_2023nsw_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2023nsw_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2023nsw.csv"
+    },
+    "2024qld": {
+      "raw": 47.473,
+      "adjusted": 47.426338292149545,
+      "transformed": -2.575938294972347,
+      "trend": "analysis\\Outputs\\fp_trend_2024qld_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2024qld_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2024qld.csv"
+    },
+    "2021wa": {
+      "raw": 65.819,
+      "adjusted": 63.01412210918901,
+      "transformed": 13.320567514374488,
+      "trend": "analysis\\Outputs\\fp_trend_2021wa_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2021wa_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2021wa.csv"
+    },
+    "2025wa": {
+      "raw": 57.276,
+      "adjusted": 56.70192923931729,
+      "transformed": 6.742503917608646,
+      "trend": "analysis\\Outputs\\fp_trend_2025wa_@TPP.csv",
+      "adjustments": "analysis\\Adjustments\\adjust_2025wa_TPP.csv",
+      "fundamentals": "analysis\\Fundamentals\\fundamentals_2025wa.csv"
+    }
+  },
+  "summaries": {
+    "early": {
+      "elections": 14,
+      "intercept": -0.21097628271884777,
+      "slope": 0.7515072687987193,
+      "contrast_slope": -0.24849273120128068,
+      "correlation": 0.6845613113464436,
+      "contrast_mean": -0.3709418616544654,
+      "contrast_sd": 1.5966559015050295,
+      "residual_sd": 1.5870959024967934,
+      "leave_one_out_slope_range": [
+        0.6368330907546492,
+        0.8368629024792561
+      ],
+      "predictive_rmse": {
+        "fitted": 1.6581704125864494,
+        "carry_ordinary": 1.582660530962441,
+        "sixty_percent_reversion": 1.6049409429135633,
+        "independent_category": 2.0340902524156483,
+        "mean_contrast": 1.6569281343069246
+      },
+      "local_change_rms": 2.47430204331146,
+      "sensitivities": {
+        "federal_only": {
+          "elections": 7,
+          "intercept": -0.2784583483528427,
+          "slope": 0.7770159476425317,
+          "contrast_slope": -0.22298405235746832,
+          "correlation": 0.8504674542092346,
+          "contrast_mean": -0.3785578844450595,
+          "contrast_sd": 1.140267326323815,
+          "residual_sd": 1.1330803224590826,
+          "leave_one_out_slope_range": [
+            0.6755082872684472,
+            1.6719654875962369
+          ],
+          "predictive_rmse": {
+            "fitted": 2.356155650731671,
+            "carry_ordinary": 1.121504089287405,
+            "sixty_percent_reversion": 1.2220194404052895,
+            "independent_category": 1.8218479488767747,
+            "mean_contrast": 1.2316294781285775
+          },
+          "local_change_rms": 2.0087002590036276
+        },
+        "state_only": {
+          "elections": 7,
+          "intercept": -0.11666011257524363,
+          "slope": 0.7058523901695555,
+          "contrast_slope": -0.2941476098304445,
+          "correlation": 0.5329526402554352,
+          "contrast_mean": -0.3633258388638714,
+          "contrast_sd": 2.055032902226745,
+          "residual_sd": 2.177417913320452,
+          "leave_one_out_slope_range": [
+            0.05771576925639003,
+            0.9589687710680218
+          ],
+          "predictive_rmse": {
+            "fitted": 2.661025386583326,
+            "carry_ordinary": 1.9369711640198106,
+            "sixty_percent_reversion": 1.9126785793102035,
+            "independent_category": 2.2261887523564132,
+            "mean_contrast": 2.219689227671348
+          },
+          "local_change_rms": 2.865216304670433
+        },
+        "since_2016": {
+          "elections": 9,
+          "intercept": -0.36948313038162395,
+          "slope": 0.6853879850052338,
+          "contrast_slope": -0.3146120149947662,
+          "correlation": 0.6959721644127373,
+          "contrast_mean": -0.6271656827876154,
+          "contrast_sd": 1.8147754994982135,
+          "residual_sd": 1.7725630805394796,
+          "leave_one_out_slope_range": [
+            0.5427096953620544,
+            0.7899217069845147
+          ],
+          "predictive_rmse": {
+            "fitted": 1.8708650141143428,
+            "carry_ordinary": 1.8223096471733649,
+            "sixty_percent_reversion": 1.6912156212194371,
+            "independent_category": 2.1854649960883537,
+            "mean_contrast": 1.9248600930395863
+          },
+          "local_change_rms": 2.4286373406359187
+        },
+        "without_2025fed": {
+          "elections": 13,
+          "intercept": -0.20044814553471527,
+          "slope": 0.8368629024792561,
+          "contrast_slope": -0.1631370975207439,
+          "correlation": 0.6188174185786679,
+          "contrast_mean": -0.25031216502652753,
+          "contrast_sd": 1.5940685254662335,
+          "residual_sd": 1.6456589199553235,
+          "leave_one_out_slope_range": [
+            0.6624803284219682,
+            1.0335851320610834
+          ],
+          "predictive_rmse": {
+            "fitted": 1.7589871620951103,
+            "carry_ordinary": 1.5518520921310217,
+            "sixty_percent_reversion": 1.6381561958816215,
+            "independent_category": 1.9278714415657172,
+            "mean_contrast": 1.6591591251410855
+          },
+          "local_change_rms": 2.5256952201634526
+        },
+        "without_examples": {
+          "elections": 10,
+          "intercept": -0.42042998695392103,
+          "slope": 0.8884548301742261,
+          "contrast_slope": -0.1115451698257739,
+          "correlation": 0.862602490416964,
+          "contrast_mean": -0.49532460072941265,
+          "contrast_sd": 1.1521839910863338,
+          "residual_sd": 1.1949988207185525,
+          "leave_one_out_slope_range": [
+            0.7935473168566998,
+            1.110720366045209
+          ],
+          "predictive_rmse": {
+            "fitted": 1.3891080844214028,
+            "carry_ordinary": 1.2000506716267534,
+            "sixty_percent_reversion": 1.4679743939836287,
+            "independent_category": 2.120148633451353,
+            "mean_contrast": 1.2145085651386522
+          },
+          "local_change_rms": 2.3950173566754045
+        }
+      }
+    },
+    "postal": {
+      "elections": 14,
+      "intercept": 0.1405120244253205,
+      "slope": 0.847574889668384,
+      "contrast_slope": -0.152425110331616,
+      "correlation": 0.5075912937069224,
+      "contrast_mean": 0.04238935137710133,
+      "contrast_sd": 2.7567210485382523,
+      "residual_sd": 2.853317070548597,
+      "leave_one_out_slope_range": [
+        0.6399864581153071,
+        1.0727187260112874
+      ],
+      "predictive_rmse": {
+        "fitted": 3.008225449206298,
+        "carry_ordinary": 2.6567810573329194,
+        "sixty_percent_reversion": 2.799547437554962,
+        "independent_category": 3.141834874116558,
+        "mean_contrast": 2.8607846308359557
+      },
+      "local_change_rms": 2.8817830511455798,
+      "sensitivities": {
+        "federal_only": {
+          "elections": 7,
+          "intercept": 0.10947582388336621,
+          "slope": 0.608535978146781,
+          "contrast_slope": -0.39146402185321905,
+          "correlation": 0.6269901842350625,
+          "contrast_mean": -0.06625587786848001,
+          "contrast_sd": 1.8324696412934458,
+          "residual_sd": 1.7826167752487763,
+          "leave_one_out_slope_range": [
+            0.44303090407495155,
+            0.715138354196857
+          ],
+          "predictive_rmse": {
+            "fitted": 1.8576891160980675,
+            "carry_ordinary": 1.6978304983140622,
+            "sixty_percent_reversion": 1.5759784121316511,
+            "independent_category": 1.9714257195346587,
+            "mean_contrast": 1.979293430487881
+          },
+          "local_change_rms": 2.4623884989711002
+        },
+        "state_only": {
+          "elections": 7,
+          "intercept": 0.00047879955065392856,
+          "slope": 1.1795369945181344,
+          "contrast_slope": 0.17953699451813443,
+          "correlation": 0.5021926032652057,
+          "contrast_mean": 0.1510345806226825,
+          "contrast_sd": 3.6166448377282325,
+          "residual_sd": 3.9464483868357414,
+          "leave_one_out_slope_range": [
+            0.44142560264921316,
+            1.6700879365950028
+          ],
+          "predictive_rmse": {
+            "fitted": 4.520150887197164,
+            "carry_ordinary": 3.3517671118681074,
+            "sixty_percent_reversion": 3.631972433091433,
+            "independent_category": 3.9819258386850036,
+            "mean_contrast": 3.906422898592008
+          },
+          "local_change_rms": 3.2474590048027867
+        },
+        "since_2016": {
+          "elections": 9,
+          "intercept": 0.10968440937041475,
+          "slope": 0.8560362499399742,
+          "contrast_slope": -0.14396375006002582,
+          "correlation": 0.5335409565408072,
+          "contrast_mean": -0.008228908625475798,
+          "contrast_sd": 3.1996632620488508,
+          "residual_sd": 3.4014954158286,
+          "leave_one_out_slope_range": [
+            0.5985115396532564,
+            1.1072662226735344
+          ],
+          "predictive_rmse": {
+            "fitted": 3.65265544273894,
+            "carry_ordinary": 3.016682676909177,
+            "sixty_percent_reversion": 3.2013806772518296,
+            "independent_category": 3.6383507123210133,
+            "mean_contrast": 3.3937553851623172
+          },
+          "local_change_rms": 2.888513802924181
+        },
+        "without_2025fed": {
+          "elections": 13,
+          "intercept": 0.16828224992738325,
+          "slope": 1.0727187260112874,
+          "contrast_slope": 0.07271872601128737,
+          "correlation": 0.49288491593919903,
+          "contrast_mean": 0.19050924811696165,
+          "contrast_sd": 2.8107035376609697,
+          "residual_sd": 2.933521987815502,
+          "leave_one_out_slope_range": [
+            0.7697651626929994,
+            1.3349410849996077
+          ],
+          "predictive_rmse": {
+            "fitted": 3.132686654590563,
+            "carry_ordinary": 2.7071482522626567,
+            "sixty_percent_reversion": 2.8879668020330103,
+            "independent_category": 3.140766044325095,
+            "mean_contrast": 2.9254729944640085
+          },
+          "local_change_rms": 2.886104152593467
+        },
+        "without_examples": {
+          "elections": 10,
+          "intercept": -0.6425442926755348,
+          "slope": 0.9396796098812332,
+          "contrast_slope": -0.060320390118766776,
+          "correlation": 0.7731357273730565,
+          "contrast_mean": -0.6830451259055914,
+          "contrast_sd": 1.6719401100717453,
+          "residual_sd": 1.767955850471928,
+          "leave_one_out_slope_range": [
+            0.7753060166905337,
+            1.1573080657905168
+          ],
+          "predictive_rmse": {
+            "fitted": 1.930246370600869,
+            "carry_ordinary": 1.7269614942214062,
+            "sixty_percent_reversion": 1.9505484541770601,
+            "independent_category": 2.4932571842991704,
+            "mean_contrast": 1.76237961973978
+          },
+          "local_change_rms": 2.8294010663972498
+        }
+      }
+    },
+    "absent": {
+      "elections": 14,
+      "intercept": 0.7480139753519252,
+      "slope": 0.7264099264574986,
+      "contrast_slope": -0.2735900735425014,
+      "correlation": 0.6567244529626656,
+      "contrast_mean": 0.5718921455756869,
+      "contrast_sd": 1.6727539876633657,
+      "residual_sd": 1.6543469812117757,
+      "leave_one_out_slope_range": [
+        0.6555030484546872,
+        0.9007071910001059
+      ],
+      "predictive_rmse": {
+        "fitted": 1.7334610683310467,
+        "carry_ordinary": 1.7103513738528422,
+        "sixty_percent_reversion": 1.9034488774350253,
+        "independent_category": 2.3669956715360363,
+        "mean_contrast": 1.7358988504166428
+      },
+      "local_change_rms": 2.996985619641672,
+      "sensitivities": {
+        "federal_only": {
+          "elections": 7,
+          "intercept": 0.541332464894703,
+          "slope": 0.5954468681921854,
+          "contrast_slope": -0.4045531318078146,
+          "correlation": 0.8863572830739357,
+          "contrast_mean": 0.35972494457887016,
+          "contrast_sd": 1.0982914884658694,
+          "residual_sd": 0.7333256112469735,
+          "leave_one_out_slope_range": [
+            0.5050585388708383,
+            0.7711973082332283
+          ],
+          "predictive_rmse": {
+            "fitted": 0.8842047940471374,
+            "carry_ordinary": 1.0785757415675112,
+            "sixty_percent_reversion": 0.9651500769531896,
+            "independent_category": 1.5638837576188238,
+            "mean_contrast": 1.1862903913359513
+          },
+          "local_change_rms": 2.42686612256899
+        },
+        "state_only": {
+          "elections": 7,
+          "intercept": 0.8839558696615739,
+          "slope": 0.8808739100517003,
+          "contrast_slope": -0.11912608994829965,
+          "correlation": 0.5843994450114269,
+          "contrast_mean": 0.784059346572504,
+          "contrast_sd": 2.1797439713509554,
+          "residual_sd": 2.376545004118402,
+          "leave_one_out_slope_range": [
+            0.6820345288697695,
+            1.080232031961778
+          ],
+          "predictive_rmse": {
+            "fitted": 2.4803210200132124,
+            "carry_ordinary": 2.1650122433332113,
+            "sixty_percent_reversion": 2.5129107797481725,
+            "independent_category": 2.9596629218200996,
+            "mean_contrast": 2.354392577873886
+          },
+          "local_change_rms": 3.474790127735042
+        },
+        "since_2016": {
+          "elections": 9,
+          "intercept": 0.5488644002290249,
+          "slope": 0.7514296670005248,
+          "contrast_slope": -0.24857033299947517,
+          "correlation": 0.7405596215803971,
+          "contrast_mean": 0.34527319961712993,
+          "contrast_sd": 1.7016955096763358,
+          "residual_sd": 1.7091595035596523,
+          "leave_one_out_slope_range": [
+            0.668359793021944,
+            0.9296242869967056
+          ],
+          "predictive_rmse": {
+            "fitted": 1.8268612876160604,
+            "carry_ordinary": 1.6411061006591285,
+            "sixty_percent_reversion": 1.8909488168145434,
+            "independent_category": 2.527272833990676,
+            "mean_contrast": 1.8049206516102527
+          },
+          "local_change_rms": 3.1255321044062776
+        },
+        "without_2025fed": {
+          "elections": 13,
+          "intercept": 0.7695125622968904,
+          "slope": 0.9007071910001059,
+          "contrast_slope": -0.09929280899989412,
+          "correlation": 0.6390556618731664,
+          "contrast_mean": 0.7391630057667578,
+          "contrast_sd": 1.614597481840777,
+          "residual_sd": 1.6793626690774346,
+          "leave_one_out_slope_range": [
+            0.8228973966301087,
+            1.0692649551089952
+          ],
+          "predictive_rmse": {
+            "fitted": 1.7514507389669935,
+            "carry_ordinary": 1.7183580194391939,
+            "sixty_percent_reversion": 1.9356033662314185,
+            "independent_category": 2.2639250206724437,
+            "mean_contrast": 1.680526340385791
+          },
+          "local_change_rms": 3.0156007828502083
+        },
+        "without_examples": {
+          "elections": 10,
+          "intercept": 0.7973401532818365,
+          "slope": 0.6961465771263105,
+          "contrast_slope": -0.30385342287368955,
+          "correlation": 0.7552547430427005,
+          "contrast_mean": 0.5933242843201325,
+          "contrast_sd": 1.4622474152588243,
+          "residual_sd": 1.3855677360076135,
+          "leave_one_out_slope_range": [
+            0.608019476819574,
+            0.8980255604245829
+          ],
+          "predictive_rmse": {
+            "fitted": 1.519737503928612,
+            "carry_ordinary": 1.5087691869374849,
+            "sixty_percent_reversion": 1.702136863692843,
+            "independent_category": 2.274801852218422,
+            "mean_contrast": 1.5413441116373119
+          },
+          "local_change_rms": 2.850264715973915
+        }
+      }
+    },
+    "provisional": {
+      "elections": 12,
+      "intercept": -0.4603252092010695,
+      "slope": 0.5815280031134977,
+      "contrast_slope": -0.4184719968865023,
+      "correlation": 0.5736186299298004,
+      "contrast_mean": -0.7052622405752027,
+      "contrast_sd": 1.9169270721238232,
+      "residual_sd": 1.7954057957462288,
+      "leave_one_out_slope_range": [
+        0.26396968293172535,
+        0.7601719398181359
+      ],
+      "predictive_rmse": {
+        "fitted": 2.1168540487847642,
+        "carry_ordinary": 1.9661604150820453,
+        "sixty_percent_reversion": 1.7146330326765724,
+        "independent_category": 2.0044818251134373,
+        "mean_contrast": 2.0021650281200043
+      },
+      "local_change_rms": 5.639395234522825,
+      "sensitivities": {
+        "federal_only": {
+          "elections": 7,
+          "intercept": -0.27220630655902645,
+          "slope": 1.058347212777901,
+          "contrast_slope": 0.058347212777901,
+          "correlation": 0.8543300843398263,
+          "contrast_mean": -0.24601372072343167,
+          "contrast_sd": 1.3913815156072424,
+          "residual_sd": 1.5179616566690157,
+          "leave_one_out_slope_range": [
+            0.8813732299835869,
+            2.6407793827940376
+          ],
+          "predictive_rmse": {
+            "fitted": 3.93229602382351,
+            "carry_ordinary": 1.311450363274534,
+            "sixty_percent_reversion": 1.8350072964379065,
+            "independent_category": 2.4767404591956446,
+            "mean_contrast": 1.5028638025347114
+          },
+          "local_change_rms": 5.507840618116432
+        },
+        "state_only": {
+          "elections": 5,
+          "intercept": -0.5098339805188897,
+          "slope": -0.07999438849319092,
+          "contrast_slope": -1.0799943884931908,
+          "correlation": -0.18101650627087265,
+          "contrast_mean": -1.3482101683676824,
+          "contrast_sd": 2.5130545983049584,
+          "residual_sd": 1.083337266079645,
+          "leave_one_out_slope_range": [
+            -0.23501140908493148,
+            0.26161701511777197
+          ],
+          "predictive_rmse": {
+            "fitted": 1.4536099452148503,
+            "carry_ordinary": 2.621073327730335,
+            "sixty_percent_reversion": 1.530283293712993,
+            "independent_category": 1.0271967222498921,
+            "mean_contrast": 2.8096804564891573
+          },
+          "local_change_rms": 5.818576894944201
+        },
+        "since_2016": {
+          "elections": 8,
+          "intercept": -0.8851332077443462,
+          "slope": 0.599704043101621,
+          "contrast_slope": -0.40029595689837905,
+          "correlation": 0.6438040374666092,
+          "contrast_mean": -1.2101019697372684,
+          "contrast_sd": 2.0455179578527476,
+          "residual_sd": 1.926408374369061,
+          "leave_one_out_slope_range": [
+            0.1922246326710211,
+            0.8481823054563755
+          ],
+          "predictive_rmse": {
+            "fitted": 2.536820572165194,
+            "carry_ordinary": 2.263950646231678,
+            "sixty_percent_reversion": 1.8773695704316113,
+            "independent_category": 2.216345445290477,
+            "mean_contrast": 2.186750679079566
+          },
+          "local_change_rms": 5.433781452287761
+        },
+        "without_2025fed": {
+          "elections": 11,
+          "intercept": -0.5522133972226572,
+          "slope": 0.26396968293172535,
+          "contrast_slope": -0.7360303170682747,
+          "correlation": 0.24769874591369492,
+          "contrast_mean": -0.6850259200565997,
+          "contrast_sd": 2.009145297236115,
+          "residual_sd": 1.7244932911894577,
+          "leave_one_out_slope_range": [
+            0.021994172375871413,
+            0.5435116477905636
+          ],
+          "predictive_rmse": {
+            "fitted": 1.9348482503005755,
+            "carry_ordinary": 2.034442382318316,
+            "sixty_percent_reversion": 1.6757265356652153,
+            "independent_category": 1.687252005557947,
+            "mean_contrast": 2.1072093650006867
+          },
+          "local_change_rms": 5.637108065775828
+        },
+        "without_examples": {
+          "elections": 9,
+          "intercept": -0.04955342690530784,
+          "slope": 0.5768794908488778,
+          "contrast_slope": -0.4231205091511222,
+          "correlation": 0.5885170476442412,
+          "contrast_mean": -0.31154346553838574,
+          "contrast_sd": 2.0513807449802672,
+          "residual_sd": 1.934554568372175,
+          "leave_one_out_slope_range": [
+            0.2610382612700109,
+            0.8226913337093397
+          ],
+          "predictive_rmse": {
+            "fitted": 2.365719544886342,
+            "carry_ordinary": 1.9589917379805177,
+            "sixty_percent_reversion": 1.7491236144203248,
+            "independent_category": 2.1325711416068422,
+            "mean_contrast": 2.175817853356588
+          },
+          "local_change_rms": 5.479984016242585
+        }
+      }
+    },
+    "ppvc": {
+      "elections": 5,
+      "intercept": -0.11462262324227161,
+      "slope": 0.7210501962233493,
+      "contrast_slope": -0.2789498037766507,
+      "correlation": 0.8221955243287759,
+      "contrast_mean": -0.3148596997719811,
+      "contrast_sd": 1.4459923813193727,
+      "residual_sd": 1.4575496818487408,
+      "leave_one_out_slope_range": [
+        0.48714487186515965,
+        1.7492354344194307
+      ],
+      "predictive_rmse": {
+        "fitted": 3.170261879817813,
+        "carry_ordinary": 1.3311092381947613,
+        "sixty_percent_reversion": 1.3473489330820476,
+        "independent_category": 2.024009892196464,
+        "mean_contrast": 1.6166686297884572
+      },
+      "local_change_rms": 2.3217612227542492,
+      "sensitivities": {
+        "federal_only": {
+          "elections": 5,
+          "intercept": -0.11462262324227161,
+          "slope": 0.7210501962233493,
+          "contrast_slope": -0.2789498037766507,
+          "correlation": 0.8221955243287759,
+          "contrast_mean": -0.3148596997719811,
+          "contrast_sd": 1.4459923813193727,
+          "residual_sd": 1.4575496818487408,
+          "leave_one_out_slope_range": [
+            0.48714487186515965,
+            1.7492354344194307
+          ],
+          "predictive_rmse": {
+            "fitted": 3.170261879817813,
+            "carry_ordinary": 1.3311092381947613,
+            "sixty_percent_reversion": 1.3473489330820476,
+            "independent_category": 2.024009892196464,
+            "mean_contrast": 1.6166686297884572
+          },
+          "local_change_rms": 2.3217612227542492
+        },
+        "since_2016": {
+          "elections": 4,
+          "intercept": 0.05224008709375035,
+          "slope": 0.7038588631054695,
+          "contrast_slope": -0.2961411368945305,
+          "correlation": 0.8238398708115954,
+          "contrast_mean": -0.20247172837662097,
+          "contrast_sd": 1.6442784380032673,
+          "residual_sd": 1.7180467388228227,
+          "leave_one_out_slope_range": [
+            0.37496898144170876,
+            2.1966506229095724
+          ],
+          "predictive_rmse": {
+            "fitted": 4.940585324104009,
+            "carry_ordinary": 1.4383092459737803,
+            "sixty_percent_reversion": 1.4680661036440312,
+            "independent_category": 2.2418739417854416,
+            "mean_contrast": 1.8986491976077675
+          },
+          "local_change_rms": 2.0814804812734944
+        },
+        "without_2025fed": {
+          "elections": 4,
+          "intercept": 0.36452208046306445,
+          "slope": 1.7492354344194307,
+          "contrast_slope": 0.7492354344194307,
+          "correlation": 0.8026542723101292,
+          "contrast_mean": 0.0929725210152384,
+          "contrast_sd": 1.2957666277909219,
+          "residual_sd": 1.3749299024465043,
+          "leave_one_out_slope_range": [
+            -0.9807601286155242,
+            2.1966506229095724
+          ],
+          "predictive_rmse": {
+            "fitted": 2.8444207380920816,
+            "carry_ordinary": 1.1260116584371682,
+            "sixty_percent_reversion": 1.4068168393008667,
+            "independent_category": 1.6521521161022095,
+            "mean_contrast": 1.4962224227240446
+          },
+          "local_change_rms": 2.433809260338975
+        },
+        "without_examples": {
+          "elections": 4,
+          "intercept": -0.593165717898074,
+          "slope": 0.8063826957825293,
+          "contrast_slope": -0.1936173042174707,
+          "correlation": 0.9146017952225131,
+          "contrast_mean": -0.7827828596539881,
+          "contrast_sd": 1.152466079942693,
+          "residual_sd": 1.2403604651546416,
+          "leave_one_out_slope_range": [
+            0.6019403237804763,
+            1.7199071932250816
+          ],
+          "predictive_rmse": {
+            "fitted": 3.0532305642356024,
+            "carry_ordinary": 1.2684173423727434,
+            "sixty_percent_reversion": 1.3441949834925242,
+            "independent_category": 2.177936453047058,
+            "mean_contrast": 1.3307532029736526
+          },
+          "local_change_rms": 2.3954386826907195
+        }
+      }
+    },
+    "early_declaration": {
+      "elections": 5,
+      "intercept": 0.3065129382614034,
+      "slope": 0.6281641839349965,
+      "contrast_slope": -0.3718358160650035,
+      "correlation": 0.932237565945349,
+      "contrast_mean": 0.03959998205975701,
+      "contrast_sd": 1.124371345242026,
+      "residual_sd": 0.711927016932295,
+      "leave_one_out_slope_range": [
+        0.06154871712416186,
+        0.7038701318617223
+      ],
+      "predictive_rmse": {
+        "fitted": 1.6669844310851547,
+        "carry_ordinary": 1.0064476619180076,
+        "sixty_percent_reversion": 0.8897096804191014,
+        "independent_category": 1.7018469169848471,
+        "mean_contrast": 1.2570853799570276
+      },
+      "local_change_rms": 2.817266686192407,
+      "sensitivities": {
+        "federal_only": {
+          "elections": 5,
+          "intercept": 0.3065129382614034,
+          "slope": 0.6281641839349965,
+          "contrast_slope": -0.3718358160650035,
+          "correlation": 0.932237565945349,
+          "contrast_mean": 0.03959998205975701,
+          "contrast_sd": 1.124371345242026,
+          "residual_sd": 0.711927016932295,
+          "leave_one_out_slope_range": [
+            0.06154871712416186,
+            0.7038701318617223
+          ],
+          "predictive_rmse": {
+            "fitted": 1.6669844310851547,
+            "carry_ordinary": 1.0064476619180076,
+            "sixty_percent_reversion": 0.8897096804191014,
+            "independent_category": 1.7018469169848471,
+            "mean_contrast": 1.2570853799570276
+          },
+          "local_change_rms": 2.817266686192407
+        },
+        "since_2016": {
+          "elections": 4,
+          "intercept": 0.2694411441465188,
+          "slope": 0.6319835727045017,
+          "contrast_slope": -0.3680164272954983,
+          "correlation": 0.9329387307430979,
+          "contrast_mean": -0.047090808497199044,
+          "contrast_sd": 1.2788716152214883,
+          "residual_sd": 0.8652520353247302,
+          "leave_one_out_slope_range": [
+            -0.11284224170682382,
+            0.7346793807698395
+          ],
+          "predictive_rmse": {
+            "fitted": 2.416264271558598,
+            "carry_ordinary": 1.1085359716352616,
+            "sixty_percent_reversion": 0.965884311173204,
+            "independent_category": 1.8838198228925074,
+            "mean_contrast": 1.4767137426141954
+          },
+          "local_change_rms": 2.856864769038541
+        },
+        "without_2025fed": {
+          "elections": 4,
+          "intercept": 0.04246440899418657,
+          "slope": 0.06154871712416186,
+          "contrast_slope": -0.9384512828758381,
+          "correlation": 0.1069096888485533,
+          "contrast_mean": 0.3825925192265184,
+          "contrast_sd": 0.9493798110632735,
+          "residual_sd": 0.605475326610267,
+          "leave_one_out_slope_range": [
+            -0.960989665820434,
+            0.4165990066881317
+          ],
+          "predictive_rmse": {
+            "fitted": 1.1782879849074503,
+            "carry_ordinary": 0.9068453864959543,
+            "sixty_percent_reversion": 0.5240721659560293,
+            "independent_category": 0.43107513769824857,
+            "mean_contrast": 1.096249378961154
+          },
+          "local_change_rms": 2.7850938665385527
+        },
+        "without_examples": {
+          "elections": 4,
+          "intercept": 0.2430477326120637,
+          "slope": 0.639481126324461,
+          "contrast_slope": -0.36051887367553903,
+          "correlation": 0.9334259781307871,
+          "contrast_mean": -0.11002276721596127,
+          "contrast_sd": 1.2395031727791805,
+          "residual_sd": 0.8551438628642363,
+          "leave_one_out_slope_range": [
+            0.055684167201358076,
+            0.7680137514223941
+          ],
+          "predictive_rmse": {
+            "fitted": 1.9739903465117943,
+            "carry_ordinary": 1.0790649173256903,
+            "sixty_percent_reversion": 0.9699618015794319,
+            "independent_category": 1.8964047750216735,
+            "mean_contrast": 1.43125498093091
+          },
+          "local_change_rms": 2.83642908099945
+        }
+      }
+    }
+  },
+  "contrast_covariance": {
+    "categories": [
+      "early",
+      "postal",
+      "absent"
+    ],
+    "elections": [
+      "2007fed",
+      "2010fed",
+      "2013fed",
+      "2016fed",
+      "2019fed",
+      "2022fed",
+      "2025fed",
+      "2010vic",
+      "2014vic",
+      "2018vic",
+      "2022vic",
+      "2019nsw",
+      "2023nsw",
+      "2024qld"
+    ],
+    "covariance": [
+      [
+        2.5493100678108385,
+        3.0833581057414974,
+        -0.769019828880611
+      ],
+      [
+        3.0833581057414974,
+        7.599510939453843,
+        -1.0277287109586395
+      ],
+      [
+        -0.769019828880611,
+        -1.0277287109586395,
+        2.798105903243692
+      ]
+    ],
+    "correlation": [
+      [
+        1.0,
+        0.7005188312966063,
+        -0.287934784394527
+      ],
+      [
+        0.7005188312966063,
+        1.0,
+        -0.22287101614693197
+      ],
+      [
+        -0.287934784394527,
+        -0.222871016146932,
+        0.9999999999999999
+      ]
+    ]
+  },
+  "bootstrap_slope_intervals": {
+    "early": [
+      0.3298435273697371,
+      1.2692813693381053
+    ],
+    "postal": [
+      0.15156059769589691,
+      1.7244080841110703
+    ],
+    "absent": [
+      0.45522397208126436,
+      1.3113829201352862
+    ],
+    "provisional": [
+      -0.08218358945985224,
+      1.1133016155383204
+    ],
+    "ppvc": [
+      -1.3094019637007936,
+      2.4139724313483963
+    ],
+    "early_declaration": [
+      -1.3526983891331656,
+      0.7952415034399887
+    ]
+  },
+  "coverage": {
+    "2004fed": {
+      "seats": 146,
+      "exclusions": [],
+      "categories": [
+        "absent",
+        "early_declaration",
+        "mobile",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2007fed": {
+      "seats": 147,
+      "exclusions": [],
+      "categories": [
+        "absent",
+        "early_declaration",
+        "mobile",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2010fed": {
+      "seats": 142,
+      "exclusions": [],
+      "categories": [
+        "absent",
+        "early",
+        "early_declaration",
+        "mobile",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2013fed": {
+      "seats": 139,
+      "exclusions": [],
+      "categories": [
+        "absent",
+        "early",
+        "early_declaration",
+        "mobile",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2016fed": {
+      "seats": 150,
+      "exclusions": [],
+      "categories": [
+        "absent",
+        "early",
+        "early_declaration",
+        "mobile",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2019fed": {
+      "seats": 151,
+      "exclusions": [],
+      "categories": [
+        "absent",
+        "early",
+        "early_declaration",
+        "mobile",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2022fed": {
+      "seats": 151,
+      "exclusions": [],
+      "categories": [
+        "absent",
+        "early",
+        "early_declaration",
+        "mobile",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2025fed": {
+      "seats": 150,
+      "exclusions": [],
+      "categories": [
+        "absent",
+        "early",
+        "early_declaration",
+        "mobile",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2006vic": {
+      "seats": 76,
+      "exclusions": [
+        [
+          "Brunswick",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Gippsland East",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Melbourne",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Mildura",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Northcote",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Richmond",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Rodney",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Shepparton",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "https://itsitecoreblobvecprd01.blob.core.windows.net/public-files/historical-results/state2006/state2006resultferntreegullydistrict.html",
+          "No district heading"
+        ],
+        [
+          "Lara",
+          "Published 2CP differs from final FP by more than 2%",
+          32782,
+          35237
+        ],
+        [
+          "Mulgrave",
+          "Published 2CP differs from final FP by more than 2%",
+          27795,
+          29741
+        ],
+        [
+          "Narre Warren South",
+          "Published 2CP differs from final FP by more than 2%",
+          42606,
+          41375
+        ]
+      ],
+      "categories": [
+        "absent",
+        "declaration_combined",
+        "early",
+        "ordinary",
+        "postal"
+      ]
+    },
+    "2010vic": {
+      "seats": 82,
+      "exclusions": [
+        [
+          "Brunswick",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Gippsland East",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Melbourne",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Mildura",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Northcote",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Richmond",
+          "No Labor-Coalition category pair"
+        ]
+      ],
+      "categories": [
+        "absent",
+        "early",
+        "marked_as_voted",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2014vic": {
+      "seats": 81,
+      "exclusions": [
+        [
+          "Brunswick",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Melbourne",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Mildura",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Northcote",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Prahran",
+          "Known unavailable or inconsistent final category partition"
+        ],
+        [
+          "Richmond",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Shepparton",
+          "No Labor-Coalition category pair"
+        ]
+      ],
+      "categories": [
+        "absent",
+        "early",
+        "marked_as_voted",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2018vic": {
+      "seats": 76,
+      "exclusions": [
+        [
+          "https://itsitecoreblobvecprd01.blob.core.windows.net/public-files/historical-results/state2018/brunswickdistrict.html",
+          "No district heading"
+        ],
+        [
+          "Geelong",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Melbourne",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Mildura",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Morwell",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Northcote",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Pascoe Vale",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Prahran",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Preston",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Richmond",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Ripon",
+          "Known unavailable or inconsistent final category partition"
+        ],
+        [
+          "Shepparton",
+          "No Labor-Coalition category pair"
+        ]
+      ],
+      "categories": [
+        "absent",
+        "early",
+        "marked_as_voted",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2022vic": {
+      "seats": 72,
+      "exclusions": [
+        [
+          "Benambra",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Brunswick",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Footscray",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Hawthorn",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Kew",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Melbourne",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Mildura",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Mornington",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Northcote",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Pascoe Vale",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Prahran",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Preston",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Richmond",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Shepparton",
+          "No Labor-Coalition category pair"
+        ],
+        [
+          "Werribee",
+          "Published 2CP differs from final FP by more than 2%",
+          39462,
+          38603
+        ]
+      ],
+      "categories": [
+        "absent",
+        "early",
+        "marked_as_voted",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2015nsw": {
+      "seats": 93,
+      "exclusions": [],
+      "categories": [
+        "absent",
+        "early",
+        "ivote",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2019nsw": {
+      "seats": 93,
+      "exclusions": [],
+      "categories": [
+        "absent",
+        "early",
+        "ivote",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2023nsw": {
+      "seats": 91,
+      "exclusions": [
+        [
+          "Port Macquarie",
+          "No unique Labor-Coalition pairing"
+        ],
+        [
+          "Wagga Wagga",
+          "No unique Labor-Coalition pairing"
+        ]
+      ],
+      "categories": [
+        "absent",
+        "early",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2020qld": {
+      "seats": 85,
+      "exclusions": [
+        [
+          "Bundamba",
+          "Non-classic preference distribution"
+        ],
+        [
+          "Hill",
+          "Non-classic preference distribution"
+        ],
+        [
+          "Hinchinbrook",
+          "Non-classic preference distribution"
+        ],
+        [
+          "Maiwar",
+          "Non-classic preference distribution"
+        ],
+        [
+          "Mirani",
+          "Non-classic preference distribution"
+        ],
+        [
+          "Noosa",
+          "Non-classic preference distribution"
+        ],
+        [
+          "South Brisbane",
+          "Non-classic preference distribution"
+        ],
+        [
+          "Traeger",
+          "Non-classic preference distribution"
+        ]
+      ],
+      "categories": [
+        "absent",
+        "declaration_combined",
+        "declaration_early",
+        "early",
+        "mobile_or_institution",
+        "ordinary",
+        "postal",
+        "telephone"
+      ]
+    },
+    "2024qld": {
+      "seats": 85,
+      "exclusions": [
+        [
+          "Hill",
+          "Non-classic preference distribution"
+        ],
+        [
+          "Hinchinbrook",
+          "Non-classic preference distribution"
+        ],
+        [
+          "Maiwar",
+          "Non-classic preference distribution"
+        ],
+        [
+          "Mirani",
+          "Non-classic preference distribution"
+        ],
+        [
+          "Noosa",
+          "Non-classic preference distribution"
+        ],
+        [
+          "South Brisbane",
+          "Non-classic preference distribution"
+        ],
+        [
+          "Southern Downs",
+          "Non-classic preference distribution"
+        ],
+        [
+          "Traeger",
+          "Non-classic preference distribution"
+        ]
+      ],
+      "categories": [
+        "absent",
+        "declaration_combined",
+        "declaration_early",
+        "early",
+        "mobile_or_institution",
+        "ordinary",
+        "postal",
+        "telephone"
+      ]
+    },
+    "2017wa": {
+      "seats": 50,
+      "exclusions": [
+        [
+          "Baldivis",
+          "Incomplete indicative count",
+          0,
+          25012
+        ],
+        [
+          "Central Wheatbelt",
+          "Non-classic preference count"
+        ],
+        [
+          "Moore",
+          "Non-classic preference count"
+        ],
+        [
+          "Roe",
+          "Non-classic preference count"
+        ],
+        [
+          "Kalgoorlie",
+          "Non-classic preference count"
+        ],
+        [
+          "Kimberley",
+          "Incomplete indicative count",
+          0,
+          11719
+        ],
+        [
+          "North West Central",
+          "Non-classic preference count"
+        ],
+        [
+          "Albany",
+          "Incomplete indicative count",
+          0,
+          23586
+        ],
+        [
+          "Warren-Blackwood",
+          "Non-classic preference count"
+        ]
+      ],
+      "categories": [
+        "absent",
+        "early",
+        "mobile",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    },
+    "2021wa": {
+      "seats": 1,
+      "exclusions": [
+        [
+          "Armadale",
+          "Incomplete indicative count",
+          0,
+          24771
+        ],
+        [
+          "Bassendean",
+          "Incomplete indicative count",
+          0,
+          24194
+        ],
+        [
+          "Belmont",
+          "Incomplete indicative count",
+          0,
+          23739
+        ],
+        [
+          "Darling Range",
+          "Incomplete indicative count",
+          0,
+          26506
+        ],
+        [
+          "Forrestfield",
+          "Incomplete indicative count",
+          0,
+          22983
+        ],
+        [
+          "Kalamunda",
+          "Incomplete indicative count",
+          0,
+          25549
+        ],
+        [
+          "Maylands",
+          "Incomplete indicative count",
+          0,
+          24678
+        ],
+        [
+          "Midland",
+          "Incomplete indicative count",
+          0,
+          25366
+        ],
+        [
+          "Mirrabooka",
+          "Incomplete indicative count",
+          0,
+          22585
+        ],
+        [
+          "Morley",
+          "Incomplete indicative count",
+          0,
+          24783
+        ],
+        [
+          "Mount Lawley",
+          "Incomplete indicative count",
+          0,
+          24834
+        ],
+        [
+          "Swan Hills",
+          "Incomplete indicative count",
+          0,
+          24728
+        ],
+        [
+          "Thornlie",
+          "Incomplete indicative count",
+          0,
+          23600
+        ],
+        [
+          "West Swan",
+          "Incomplete indicative count",
+          0,
+          26477
+        ],
+        [
+          "Balcatta",
+          "Incomplete indicative count",
+          0,
+          23893
+        ],
+        [
+          "Burns Beach",
+          "Incomplete indicative count",
+          0,
+          24526
+        ],
+        [
+          "Butler",
+          "Incomplete indicative count",
+          0,
+          25737
+        ],
+        [
+          "Carine",
+          "Incomplete indicative count",
+          26166,
+          27061
+        ],
+        [
+          "Cottesloe",
+          "Incomplete indicative count",
+          0,
+          26946
+        ],
+        [
+          "Hillarys",
+          "Incomplete indicative count",
+          0,
+          25518
+        ],
+        [
+          "Joondalup",
+          "Incomplete indicative count",
+          0,
+          24299
+        ],
+        [
+          "Kingsley",
+          "Incomplete indicative count",
+          0,
+          26242
+        ],
+        [
+          "Landsdale",
+          "Incomplete indicative count",
+          0,
+          26293
+        ],
+        [
+          "Nedlands",
+          "Incomplete indicative count",
+          25282,
+          26142
+        ],
+        [
+          "Perth",
+          "Incomplete indicative count",
+          0,
+          26138
+        ],
+        [
+          "Scarborough",
+          "Incomplete indicative count",
+          0,
+          25362
+        ],
+        [
+          "Wanneroo",
+          "Incomplete indicative count",
+          0,
+          25578
+        ],
+        [
+          "Baldivis",
+          "Incomplete indicative count",
+          0,
+          26488
+        ],
+        [
+          "Bateman",
+          "Incomplete indicative count",
+          0,
+          26409
+        ],
+        [
+          "Bicton",
+          "Incomplete indicative count",
+          0,
+          24607
+        ],
+        [
+          "Cannington",
+          "Incomplete indicative count",
+          0,
+          23502
+        ],
+        [
+          "Cockburn",
+          "Incomplete indicative count",
+          0,
+          25908
+        ],
+        [
+          "Fremantle",
+          "Incomplete indicative count",
+          0,
+          25581
+        ],
+        [
+          "Jandakot",
+          "Incomplete indicative count",
+          0,
+          27844
+        ],
+        [
+          "Kwinana",
+          "Incomplete indicative count",
+          0,
+          23310
+        ],
+        [
+          "Riverton",
+          "Incomplete indicative count",
+          0,
+          25701
+        ],
+        [
+          "Rockingham",
+          "Incomplete indicative count",
+          0,
+          23759
+        ],
+        [
+          "South Perth",
+          "Incomplete indicative count",
+          0,
+          24973
+        ],
+        [
+          "Southern River",
+          "Incomplete indicative count",
+          0,
+          24640
+        ],
+        [
+          "Victoria Park",
+          "Incomplete indicative count",
+          0,
+          23039
+        ],
+        [
+          "Warnbro",
+          "Incomplete indicative count",
+          0,
+          25108
+        ],
+        [
+          "Willagee",
+          "Incomplete indicative count",
+          0,
+          23549
+        ],
+        [
+          "Central Wheatbelt",
+          "Incomplete indicative count",
+          0,
+          21262
+        ],
+        [
+          "Geraldton",
+          "Incomplete indicative count",
+          0,
+          21352
+        ],
+        [
+          "Moore",
+          "Non-classic preference count"
+        ],
+        [
+          "Roe",
+          "Non-classic preference count"
+        ],
+        [
+          "Kalgoorlie",
+          "Incomplete indicative count",
+          0,
+          14760
+        ],
+        [
+          "Kimberley",
+          "Incomplete indicative count",
+          0,
+          10665
+        ],
+        [
+          "North West Central",
+          "Incomplete indicative count",
+          7460,
+          7741
+        ],
+        [
+          "Pilbara",
+          "Incomplete indicative count",
+          0,
+          14873
+        ],
+        [
+          "Albany",
+          "Incomplete indicative count",
+          0,
+          23239
+        ],
+        [
+          "Bunbury",
+          "Incomplete indicative count",
+          0,
+          24463
+        ],
+        [
+          "Collie-Preston",
+          "Incomplete indicative count",
+          0,
+          25853
+        ],
+        [
+          "Dawesville",
+          "Incomplete indicative count",
+          0,
+          26019
+        ],
+        [
+          "Mandurah",
+          "Incomplete indicative count",
+          0,
+          24420
+        ],
+        [
+          "Murray-Wellington",
+          "Incomplete indicative count",
+          0,
+          25028
+        ],
+        [
+          "Vasse",
+          "Incomplete indicative count",
+          0,
+          26498
+        ],
+        [
+          "Warren-Blackwood",
+          "Incomplete indicative count",
+          24311,
+          25181
+        ]
+      ],
+      "categories": [
+        "absent",
+        "early",
+        "mobile",
+        "ordinary",
+        "postal"
+      ]
+    },
+    "2025wa": {
+      "seats": 49,
+      "exclusions": [
+        [
+          "Bassendean",
+          "Incomplete indicative count",
+          0,
+          26719
+        ],
+        [
+          "Bibra Lake",
+          "Incomplete indicative count",
+          0,
+          25485
+        ],
+        [
+          "Central Wheatbelt",
+          "Non-classic preference count"
+        ],
+        [
+          "Cottesloe",
+          "Non-classic preference count"
+        ],
+        [
+          "Fremantle",
+          "Non-classic preference count"
+        ],
+        [
+          "Kimberley",
+          "Incomplete indicative count",
+          0,
+          10547
+        ],
+        [
+          "Mid-West",
+          "Non-classic preference count"
+        ],
+        [
+          "Pilbara",
+          "Incomplete indicative count",
+          0,
+          18241
+        ],
+        [
+          "Roe",
+          "Non-classic preference count"
+        ],
+        [
+          "Thornlie",
+          "Incomplete indicative count",
+          0,
+          24902
+        ]
+      ],
+      "categories": [
+        "absent",
+        "early",
+        "mobile",
+        "ordinary",
+        "postal",
+        "provisional"
+      ]
+    }
+  }
+}

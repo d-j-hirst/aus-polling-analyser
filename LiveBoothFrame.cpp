@@ -7,6 +7,9 @@
 
 #include <algorithm>
 #include <optional>
+#include <wx/thread.h>
+
+wxDEFINE_EVENT(PA_SNAPSHOT_VIEW_READY, wxThreadEvent);
 
 namespace {
 constexpr int StatusLineHeight = 22;
@@ -45,7 +48,8 @@ enum ControlId {
 	CategoryLayout,
 	FilterText,
 	VerticalScroll,
-	HorizontalScroll
+	HorizontalScroll,
+	FollowLatest
 };
 
 LiveBoothFrame::LiveBoothFrame(ProjectFrame::Refresher refresher, PollingProject* project)
@@ -63,6 +67,8 @@ LiveBoothFrame::LiveBoothFrame(ProjectFrame::Refresher refresher, PollingProject
 		wxDefaultSize, wxSB_HORIZONTAL);
 
 	bindEventHandlers();
+	Bind(PA_SNAPSHOT_VIEW_READY, &LiveBoothFrame::OnViewerReady, this);
+	viewer = std::make_unique<LiveSnapshotViewer>([this] { wxQueueEvent(this, new wxThreadEvent(PA_SNAPSHOT_VIEW_READY)); });
 	refreshData();
 }
 
@@ -92,19 +98,10 @@ void LiveBoothFrame::refreshData()
 	simulationComboBox->SetSelection(selected);
 	snapshotSimulationId = selected == wxNOT_FOUND ? Simulation::InvalidId : snapshotSimulationIds.at(std::size_t(selected));
 	updatingControls = false;
-	// Release the old series before loading its replacement. Loading the full
-	// directory while the previous history remained alive doubled its peak
-	// memory use during long replays, including when this tab was hidden.
-	clearCachedViews();
-	loadResult = {};
-	loadResult = LiveSnapshot::loadFromProject(*project, snapshotSimulationId);
+	// Folder scanning and parsing belong to the viewer worker. The old
+	// presentation remains available while a replacement is prepared.
 	rebuildPresentation();
-	lastTooltipRow = -1;
-	lastTooltipColumn = -1;
-	if (dcPanel) dcPanel->UnsetToolTip();
-	updateToolbar();
-	layoutContents();
-	paint();
+
 }
 
 void LiveBoothFrame::OnPaint(wxPaintEvent& WXUNUSED(event))
@@ -145,8 +142,8 @@ void LiveBoothFrame::OnMouseMove(wxMouseEvent& event)
 		scrollY,
 		size.GetWidth(),
 		std::max(0, size.GetHeight() - originY));
-	if (hit.kind != LiveSnapshot::TableLayout::HitKind::Body) {
-		if (lastTooltipRow != -1) {
+	if (hit.kind == LiveSnapshot::TableLayout::HitKind::None) {
+		if (lastTooltipColumn != -1) {
 			dcPanel->UnsetToolTip();
 			lastTooltipRow = -1;
 			lastTooltipColumn = -1;
@@ -253,6 +250,10 @@ void LiveBoothFrame::OnRunSelected(wxCommandEvent&)
 {
 	if (updatingControls) return;
 	rememberRunSelection();
+	if (!loadResult.records.empty() && selectedFilename != loadResult.records.back().filename)
+		followLatest = false;
+	followLatestControl->SetValue(followLatest);
+	rebuildPresentation();
 	paint();
 }
 
@@ -480,6 +481,10 @@ void LiveBoothFrame::createChrome()
 	chromeSizer->Add(simulationComboBox, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 4);
 	chromeSizer->Add(modeLabel, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 8);
 	chromeSizer->Add(modeComboBox, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 4);
+	followLatestControl = new wxCheckBox(chrome, ControlId::FollowLatest, "Follow latest");
+	followLatestControl->SetValue(true);
+	followLatestControl->Bind(wxEVT_CHECKBOX, &LiveBoothFrame::OnFollowLatest, this);
+	chromeSizer->Add(followLatestControl, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 8);
 	chromeSizer->Add(inspectorBar, 0, wxALIGN_CENTER_VERTICAL);
 	chromeSizer->Add(parliamentBar, 0, wxALIGN_CENTER_VERTICAL);
 	chromeSizer->AddStretchSpacer(1);
@@ -631,7 +636,7 @@ void LiveBoothFrame::render(wxDC& dc)
 void LiveBoothFrame::renderStatus(wxDC& dc) const
 {
 	int y = 4;
-	dc.DrawText(wxString::FromUTF8(LiveSnapshot::formatStatusLine(loadResult)), wxPoint(8, y));
+	dc.DrawText(wxString::FromUTF8((viewerLoading ? "Updating view...  " : "") + LiveSnapshot::formatStatusLine(loadResult)), wxPoint(8, y));
 	y += StatusLineHeight;
 	if (!loadResult.warnings.empty()) {
 		auto const& warning = loadResult.warnings.front();
@@ -746,7 +751,9 @@ void LiveBoothFrame::renderSummaryTable(wxDC& dc, int originY) const
 		for (int column = firstCol; column < lastCol; ++column) {
 			auto const rect = tableLayout.headerRect(column, clampedX);
 			auto const background = headerColour(view.columns[column]);
-			drawCell(rect, view.columns[column].header, background, *wxBLACK, defaultBorder);
+			auto const& heading = view.columns[column];
+			drawCell(rect, heading.shortHeader.empty() ? heading.header : heading.shortHeader,
+				background, *wxBLACK, defaultBorder);
 		}
 		for (int row = visible.firstRow; row < visible.lastRow; ++row) {
 			for (int column = firstCol; column < lastCol; ++column) {
@@ -1032,214 +1039,102 @@ void LiveBoothFrame::clearCachedViews()
 	thresholdParties = {}; seatWinParties = {}; seatFpParties = {}; seatWinSeats = {};
 }
 
-void LiveBoothFrame::prepareSelectedView()
-{
-	// Retain only the table or graph currently displayed. Node Inspector needs
-	// the compact run metadata and builds none of the election-wide views.
-	clearCachedViews();
-	if (mode == Mode::Parliament) parliamentView = LiveSnapshot::buildParliamentView(loadResult.records);
-	else if (mode == Mode::SeatExpectations) seatView = LiveSnapshot::buildSeatExpectationView(loadResult.records);
-	else if (mode == Mode::Tpp) tppView = LiveSnapshot::buildTppView(loadResult.records);
-	else if (mode == Mode::VoteShares) voteShareView = LiveSnapshot::buildVoteShareView(loadResult.records);
-	else if (mode == Mode::Internal2pp) internal2ppView = LiveSnapshot::buildInternal2ppView(loadResult.records);
-	else if (mode == Mode::SeatThresholds) syncThresholdView();
-	else if (mode == Mode::SeatWinChance) syncSeatWinViews();
-	else if (mode == Mode::SeatFp) syncSeatFpViews();
-	else if (isCompletionMode()) syncCompletionViews();
-	else if (isCategoryStatMode()) syncCategoryStatViews();
+LiveBoothFrame::~LiveBoothFrame() { viewer.reset(); }
+
+void LiveBoothFrame::notifyCompletedExports(std::vector<std::filesystem::path> const& paths) {
+    // Paths are retained independently of replaceable selection requests, so
+    // coalescing a mode change cannot lose a newly published snapshot.
+    viewer->notifyExports(paths);
+    refreshData();
 }
 
-void LiveBoothFrame::rebuildPresentation()
-{
-	prepareSelectedView();
-	if (!showingSummaryMode()) return;
-	auto const& view = activeTableView();
-	if (summaryDisplay == SummaryDisplay::Table) {
-		tableLayout = LiveSnapshot::makeParliamentLayout(view);
-		if (isWideSeatTableMode()) tableLayout.frozenColumns = 1;
-		return;
-	}
-	if (isCompletionMode()) {
-		tableLayout.frozenColumns = 1;
-		graphModel = LiveSnapshot::makeCompletionGraph(completionGraphView);
-	}
-	else if (isCategoryStatMode()) {
-		tableLayout.frozenColumns = 1;
-		graphModel = LiveSnapshot::makeCategoryStatGraph(
-			categoryStatGraphView,
-			LiveSnapshot::categoryStatisticInteger(categoryGraphStatistic));
-	}
-	else if (mode == Mode::Internal2pp) {
-		graphModel = LiveSnapshot::makeInternal2ppGraph(view);
-	}
-	else if (mode == Mode::SeatWinChance || mode == Mode::SeatFp) {
-		tableLayout.frozenColumns = 1;
-		if (mode == Mode::SeatFp) {
-			graphModel = LiveSnapshot::makeSeatFpGraph(seatFpGraphView);
-		}
-		else {
-			graphModel = LiveSnapshot::makeSeatWinChanceGraph(
-				seatWinGraphView, !seatWinGraphAllParties);
-		}
-	}
-	else if (mode == Mode::VoteShares) {
-		graphModel = LiveSnapshot::makeVoteShareGraph(view);
-	}
-	else if (mode == Mode::Tpp) {
-		graphModel = LiveSnapshot::makeTppGraph(view);
-	}
-	else if (mode == Mode::SeatThresholds) {
-		graphModel = LiveSnapshot::makeSeatThresholdGraph(view);
-	}
-	else if (mode == Mode::SeatExpectations) {
-		graphModel = LiveSnapshot::makeSeatExpectationGraph(view);
-	}
-	else {
-		graphModel = LiveSnapshot::makeParliamentGraph(view);
-	}
+void LiveBoothFrame::OnFollowLatest(wxCommandEvent&) {
+    followLatest = followLatestControl->GetValue();
+    rebuildPresentation();
 }
 
-void LiveBoothFrame::syncThresholdView()
-{
-	thresholdParties = LiveSnapshot::listSeatThresholdParties(loadResult.records);
-	bool found = false;
-	for (auto const& option : thresholdParties) {
-		if (option.partyIndex == selectedThresholdPartyIndex) {
-			found = true;
-			break;
-		}
-	}
-	if (!found) {
-		selectedThresholdPartyIndex = 0;
-		found = false;
-		for (auto const& option : thresholdParties) {
-			if (option.partyIndex == 0) {
-				found = true;
-				break;
-			}
-		}
-		if (!found && !thresholdParties.empty()) {
-			selectedThresholdPartyIndex = thresholdParties.front().partyIndex;
-		}
-	}
-	thresholdView = LiveSnapshot::buildSeatThresholdView(
-		loadResult.records, selectedThresholdPartyIndex);
+void LiveBoothFrame::rebuildPresentation() {
+    if (!viewer) return;
+    LiveSnapshotViewer::Request request;
+    request.mode = static_cast<LiveSnapshotViewer::Mode>(mode);
+    request.graph = summaryDisplay == SummaryDisplay::Graph;
+    request.followLatest = followLatest; request.filename = selectedFilename;
+    request.seat = selectedSeatWinSeatName; request.groupByType = categoryGroupByType;
+    request.categoryStatistic = categoryGraphStatistic;
+    if (mode == Mode::SeatThresholds) request.party = selectedThresholdPartyIndex;
+    else if (mode == Mode::SeatFp) {
+        request.party = request.graph ? selectedSeatFpGraphPartyIndex : selectedSeatFpTablePartyIndex;
+        request.allParties = seatFpGraphAllParties;
+    } else {
+        request.party = request.graph ? selectedSeatWinGraphPartyIndex : selectedSeatWinTablePartyIndex;
+        request.allParties = seatWinGraphAllParties;
+    }
+    if (snapshotSimulationId != Simulation::InvalidId) {
+        auto const& settings = project->simulations().view(snapshotSimulationId).getSettings();
+        request.simulationName = settings.name; request.outputSet = settings.liveOutputFolder;
+        request.directory = project->paths().resolve(std::filesystem::path("live_runs") / LiveResultsInput::pathFromUtf8(settings.liveOutputFolder));
+        int sharing = 0;
+        for (auto const& [id, simulation] : project->simulations())
+            if (simulation.isLive() && simulation.getSettings().liveOutputFolder == settings.liveOutputFolder) ++sharing;
+        request.filterSimulationName = sharing > 1;
+        for (int index = 0; index < project->parties().count(); ++index) {
+            auto c = project->parties().viewByIndex(index).colour;
+            request.colours[index] = {c.r, c.g, c.b};
+        }
+    }
+    viewerLoading = true;
+    viewer->submit(++viewerGeneration, std::move(request));
 }
 
-void LiveBoothFrame::syncSeatWinViews()
-{
-	seatWinParties = LiveSnapshot::listSeatWinChanceParties(loadResult.records);
-	seatWinSeats = LiveSnapshot::listSeatWinChanceSeats(loadResult.records);
-
-	auto const partyExists = [](
-		std::vector<LiveSnapshot::ThresholdPartyOption> const& options, int partyIndex) {
-		for (auto const& option : options) {
-			if (option.partyIndex == partyIndex) return true;
-		}
-		return false;
-	};
-
-	if (!partyExists(seatWinParties, selectedSeatWinTablePartyIndex)) {
-		selectedSeatWinTablePartyIndex = 0;
-		if (!partyExists(seatWinParties, 0) && !seatWinParties.empty()) {
-			selectedSeatWinTablePartyIndex = seatWinParties.front().partyIndex;
-		}
-	}
-	if (!seatWinGraphAllParties &&
-		!partyExists(seatWinParties, selectedSeatWinGraphPartyIndex)) {
-		seatWinGraphAllParties = true;
-	}
-
-	bool seatFound = false;
-	for (auto const& name : seatWinSeats) {
-		if (name == selectedSeatWinSeatName) {
-			seatFound = true;
-			break;
-		}
-	}
-	if (!seatFound) {
-		selectedSeatWinSeatName = seatWinSeats.empty() ? "" : seatWinSeats.front();
-	}
-
-	std::optional<int> graphParty;
-	if (!seatWinGraphAllParties) graphParty = selectedSeatWinGraphPartyIndex;
-	if (summaryDisplay == SummaryDisplay::Table)
-		seatWinTableView = LiveSnapshot::buildSeatWinChanceView(loadResult.records, selectedSeatWinTablePartyIndex);
-	else seatWinGraphView = LiveSnapshot::buildSeatWinChanceGraphView(loadResult.records, selectedSeatWinSeatName, graphParty);
-}
-
-void LiveBoothFrame::syncSeatFpViews()
-{
-	seatFpParties = LiveSnapshot::listSeatFpParties(loadResult.records);
-	seatWinSeats = LiveSnapshot::listSeatWinChanceSeats(loadResult.records);
-
-	auto const partyExists = [](
-		std::vector<LiveSnapshot::ThresholdPartyOption> const& options, int partyIndex) {
-		for (auto const& option : options) {
-			if (option.partyIndex == partyIndex) return true;
-		}
-		return false;
-	};
-
-	if (!partyExists(seatFpParties, selectedSeatFpTablePartyIndex)) {
-		selectedSeatFpTablePartyIndex = 0;
-		if (!partyExists(seatFpParties, 0) && !seatFpParties.empty()) {
-			selectedSeatFpTablePartyIndex = seatFpParties.front().partyIndex;
-		}
-	}
-	if (!seatFpGraphAllParties &&
-		!partyExists(seatFpParties, selectedSeatFpGraphPartyIndex)) {
-		seatFpGraphAllParties = true;
-	}
-
-	bool seatFound = false;
-	for (auto const& name : seatWinSeats) {
-		if (name == selectedSeatWinSeatName) {
-			seatFound = true;
-			break;
-		}
-	}
-	if (!seatFound) {
-		selectedSeatWinSeatName = seatWinSeats.empty() ? "" : seatWinSeats.front();
-	}
-
-	std::optional<int> graphParty;
-	if (!seatFpGraphAllParties) graphParty = selectedSeatFpGraphPartyIndex;
-	if (summaryDisplay == SummaryDisplay::Table)
-		seatFpTableView = LiveSnapshot::buildSeatFpView(loadResult.records, selectedSeatFpTablePartyIndex);
-	else seatFpGraphView = LiveSnapshot::buildSeatFpGraphView(loadResult.records, selectedSeatWinSeatName, graphParty);
-}
-
-void LiveBoothFrame::syncCompletionViews()
-{
-	seatWinSeats = LiveSnapshot::listSeatWinChanceSeats(loadResult.records);
-
-	bool seatFound = false;
-	for (auto const& name : seatWinSeats) {
-		if (name == selectedSeatWinSeatName) {
-			seatFound = true;
-			break;
-		}
-	}
-	if (!seatFound) {
-		selectedSeatWinSeatName = seatWinSeats.empty() ? "" : seatWinSeats.front();
-	}
-
-	char const* const key = completionValueKey();
-	if (summaryDisplay == SummaryDisplay::Table)
-		completionTableView = LiveSnapshot::buildSeatCompletionView(loadResult.records, key);
-	else completionGraphView = LiveSnapshot::buildSeatCompletionGraphView(loadResult.records, selectedSeatWinSeatName, key);
-}
-
-void LiveBoothFrame::syncCategoryStatViews()
-{
-	char const* const key = categoryStatArrayKey();
-	auto const grouping = categoryGroupByType ?
-		LiveSnapshot::CategoryStatGrouping::ByCategory :
-		LiveSnapshot::CategoryStatGrouping::ByStatistic;
-	if (summaryDisplay == SummaryDisplay::Table)
-		categoryStatTableView = LiveSnapshot::buildCategoryStatTableView(loadResult.records, key, grouping);
-	else categoryStatGraphView = LiveSnapshot::buildCategoryStatGraphView(loadResult.records, key, categoryGraphStatistic);
+void LiveBoothFrame::OnViewerReady(wxThreadEvent&) {
+    auto completed = viewer->take();
+    if (!completed || completed->generation != viewerGeneration) return;
+    viewerLoading = false;
+    if (completed->error) {
+        try { std::rethrow_exception(completed->error); }
+        catch (std::exception const& error) { loadResult.errorMessage = error.what(); }
+        catch (...) { loadResult.errorMessage = "Could not prepare the snapshot view."; }
+        loadResult.status = LiveSnapshot::LoadStatus::UnreadableFolder;
+        paint(); return;
+    }
+    auto& result = *completed->result;
+    // Preserve the viewport, following appended history only when it was
+    // already at its latest edge. Tables never jump while inspecting old rows.
+    bool atEnd = verticalScroll->GetThumbPosition() + verticalScroll->GetThumbSize() >= verticalScroll->GetRange();
+    int oldX = scrollX, oldY = scrollY;
+    clearCachedViews();
+    dcPanel->UnsetToolTip(); lastTooltipRow = -1; lastTooltipColumn = -1;
+    loadResult = std::move(result.metadata); selectedFilename = std::move(result.filename);
+    selectedSeatWinSeatName = std::move(result.seat);
+    if (mode == Mode::SeatThresholds) { thresholdParties = std::move(result.parties); selectedThresholdPartyIndex = result.party; thresholdView = std::move(result.view); }
+    else if (mode == Mode::SeatFp) {
+        seatFpParties = std::move(result.parties); seatWinSeats = std::move(result.seats);
+        if (summaryDisplay == SummaryDisplay::Graph) { selectedSeatFpGraphPartyIndex = result.party; seatFpGraphAllParties = result.allParties; seatFpGraphView = std::move(result.view); }
+        else { selectedSeatFpTablePartyIndex = result.party; seatFpTableView = std::move(result.view); }
+    } else if (mode == Mode::SeatWinChance) {
+        seatWinParties = std::move(result.parties); seatWinSeats = std::move(result.seats);
+        if (summaryDisplay == SummaryDisplay::Graph) { selectedSeatWinGraphPartyIndex = result.party; seatWinGraphAllParties = result.allParties; seatWinGraphView = std::move(result.view); }
+        else { selectedSeatWinTablePartyIndex = result.party; seatWinTableView = std::move(result.view); }
+    } else if (isCompletionMode()) {
+        seatWinSeats = std::move(result.seats);
+        if (summaryDisplay == SummaryDisplay::Graph) completionGraphView = std::move(result.view);
+        else completionTableView = std::move(result.view);
+    } else if (isCategoryStatMode()) {
+        if (summaryDisplay == SummaryDisplay::Graph) categoryStatGraphView = std::move(result.view);
+        else categoryStatTableView = std::move(result.view);
+    } else if (mode == Mode::Parliament) parliamentView = std::move(result.view);
+    else if (mode == Mode::SeatExpectations) seatView = std::move(result.view);
+    else if (mode == Mode::Tpp) tppView = std::move(result.view);
+    else if (mode == Mode::VoteShares) voteShareView = std::move(result.view);
+    else if (mode == Mode::Internal2pp) internal2ppView = std::move(result.view);
+    graphModel = std::move(result.graph); tableLayout = std::move(result.layout);
+    scrollX = oldX; scrollY = oldY;
+    updateToolbar(); layoutContents();
+    if (followLatest && atEnd && showingSummaryTable()) {
+        scrollY = std::max(0, verticalScroll->GetRange() - verticalScroll->GetThumbSize());
+        applyScrollbars();
+    }
+    paint();
 }
 
 bool LiveBoothFrame::isSeatMetricMode() const
@@ -1426,8 +1321,16 @@ wxPen LiveBoothFrame::graphPen(LiveSnapshot::GraphSeries const& series) const
 
 wxString LiveBoothFrame::parliamentTooltip(LiveSnapshot::TableLayout::Hit const& hit) const
 {
-	if (hit.kind != LiveSnapshot::TableLayout::HitKind::Body) return {};
 	auto const& view = activeTableView();
+	// Headers explain abbreviated diagnostics; body cells retain the existing
+	// snapshot provenance tooltip. Hit testing already accounts for scrolling.
+	if (hit.kind == LiveSnapshot::TableLayout::HitKind::Header) {
+		if (hit.column < 0 || hit.column >= int(view.columns.size())) return {};
+		auto const& column = view.columns[hit.column];
+		if (column.explanation.empty()) return {};
+		return wxString::FromUTF8(column.header + "\n\n" + column.explanation);
+	}
+	if (hit.kind != LiveSnapshot::TableLayout::HitKind::Body) return {};
 	if (hit.row < 0 || hit.row >= int(view.rows.size())) return {};
 	if (hit.column >= 0 && hit.column < int(view.columns.size()) &&
 		view.columns[hit.column].kind == LiveSnapshot::ParliamentColumn::Kind::Separator) {

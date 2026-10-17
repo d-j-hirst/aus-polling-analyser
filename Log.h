@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <fstream>
 #include <map>
+#include <mutex>
 #include <optional>
 #include <set>
 #include <string>
@@ -21,9 +22,9 @@ public:
 
 	void clear();
 
-	void setFlushFlag(bool val) { doFlush_ = val; }
+	void setFlushFlag(bool val) { std::lock_guard lock(mutex_); doFlush_ = val; }
 	void setEnabled(bool enabled);
-	bool isEnabled() const { return enabled_; }
+	bool isEnabled() const { std::lock_guard lock(mutex_); return enabled_; }
 
 	template<typename T>
 	auto operator<<(const T& obj)
@@ -72,6 +73,8 @@ private:
 		if (enabled_ && doFlush_) fileStream_.flush();
 	}
 
+	// Container insertions call scalar insertions while holding this lock.
+	mutable std::recursive_mutex mutex_;
 	bool enabled_ = true;
 	bool doFlush_ = true;
 
@@ -84,6 +87,7 @@ template<typename T>
 auto Logger::operator<<(const T& obj)
 -> decltype(std::ofstream() << obj, *this)&
 {
+	std::lock_guard lock(mutex_);
 	if (!enabled_) return *this;
 	fileStream_ << obj;
 	flushIf();
@@ -95,6 +99,7 @@ template<typename T,
 auto Logger::operator<<(const T& obj)
 -> decltype(std::ofstream() << static_cast<int>(obj), *this)&
 {
+	std::lock_guard lock(mutex_);
 	if (!enabled_) return *this;
 	fileStream_ << static_cast<int>(obj);
 	flushIf();
@@ -105,6 +110,7 @@ template<typename T>
 auto Logger::operator<<(const T& obj)
 -> decltype(obj.FormatISODate(), *this)&
 {
+	std::lock_guard lock(mutex_);
 	if (!enabled_) return *this;
 	fileStream_ << obj.FormatISODate();
 	flushIf();
@@ -113,6 +119,7 @@ auto Logger::operator<<(const T& obj)
 
 template<typename T>
 inline Logger& Logger::operator<<(const typename std::vector<T>& obj) {
+	std::lock_guard lock(mutex_);
 	if (!enabled_) return *this;
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
@@ -131,6 +138,7 @@ inline Logger& Logger::operator<<(const typename std::vector<T>& obj) {
 
 template<typename T, typename U>
 inline Logger& Logger::operator<<(const typename std::set<T, U>& obj) {
+	std::lock_guard lock(mutex_);
 	if (!enabled_) return *this;
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
@@ -149,6 +157,7 @@ inline Logger& Logger::operator<<(const typename std::set<T, U>& obj) {
 
 template<typename T, typename U>
 inline Logger& Logger::operator<<(const typename std::map<T, U>& obj) {
+	std::lock_guard lock(mutex_);
 	if (!enabled_) return *this;
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
@@ -167,6 +176,7 @@ inline Logger& Logger::operator<<(const typename std::map<T, U>& obj) {
 
 template<typename T, typename U>
 inline Logger& Logger::operator<<(const typename std::unordered_map<T, U>& obj) {
+	std::lock_guard lock(mutex_);
 	if (!enabled_) return *this;
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
@@ -186,6 +196,7 @@ inline Logger& Logger::operator<<(const typename std::unordered_map<T, U>& obj) 
 template<typename T, int X>
 inline Logger& Logger::operator<<(const std::array<T, X>& obj)
 {
+	std::lock_guard lock(mutex_);
 	if (!enabled_) return *this;
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
@@ -205,6 +216,7 @@ inline Logger& Logger::operator<<(const std::array<T, X>& obj)
 template<typename T, typename U>
 inline Logger& Logger::operator<<(const std::pair<T, U>& obj)
 {
+	std::lock_guard lock(mutex_);
 	if (!enabled_) return *this;
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
@@ -217,6 +229,7 @@ inline Logger& Logger::operator<<(const std::pair<T, U>& obj)
 template<typename T, typename U, typename V>
 inline Logger& Logger::operator<<(const std::tuple<T, U, V>& obj)
 {
+	std::lock_guard lock(mutex_);
 	if (!enabled_) return *this;
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
@@ -228,6 +241,7 @@ inline Logger& Logger::operator<<(const std::tuple<T, U, V>& obj)
 
 template<typename T>
 inline Logger& Logger::operator<<(const std::optional<T>& obj) {
+	std::lock_guard lock(mutex_);
 	if (!enabled_) return *this;
 	if (obj) {
 		*this << obj.value();
@@ -238,6 +252,7 @@ inline Logger& Logger::operator<<(const std::optional<T>& obj) {
 }
 
 inline Logger& Logger::operator<<(const uint8_t& obj) {
+	std::lock_guard lock(mutex_);
 	if (!enabled_) return *this;
 	fileStream_ << static_cast<int>(obj);
 	flushIf();
@@ -245,6 +260,7 @@ inline Logger& Logger::operator<<(const uint8_t& obj) {
 }
 
 inline Logger& Logger::operator<<(const int8_t& obj) {
+	std::lock_guard lock(mutex_);
 	if (!enabled_) return *this;
 	fileStream_ << static_cast<int>(obj);
 	flushIf();

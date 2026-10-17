@@ -79,7 +79,9 @@ namespace {
 
 bool SimulationRun::run(
 	FeedbackFunc feedback,
-	ActionRequiredFunc actionRequired) {
+	ActionRequiredFunc actionRequired,
+	FeedbackFunc progress) {
+	progressFeedback = std::move(progress);
 	if (!actionRequired) actionRequired = feedback;
 	// Keep every phase of this run on the same local calendar date, even if a
 	// long simulation crosses midnight.
@@ -190,15 +192,19 @@ bool SimulationRun::run(
 	RetainedLiveState reportTransaction(sim.latestReport);
 	RetainedLiveState outcomesTransaction(project.outcomes());
 
+	reportProgress("Checking betting-odds calibration...");
 	if (!runBettingOddsCalibrations(feedback)) return false;
 
-	if (sim.isLiveAutomatic() && !sim.liveBaselineReport) {
+	if (sim.isLiveAutomatic() && (!sim.liveBaselineReport
+		|| sim.liveBaselineReport->liveBaselineTppMoments.mean.size() != std::size_t(project.seats().count()))) {
+		reportProgress("Calculating the live baseline...");
 		if (!runLiveBaselineSimulation(feedback)) return false;
 	}
 
 	auto const mainRunStart = std::chrono::steady_clock::now();
 
 	SimulationPreparation preparations(project, sim, *this);
+	reportProgress("Preparing the live model...");
 	try {
 		preparations.prepareForIterations();
 	}
@@ -209,9 +215,11 @@ bool SimulationRun::run(
 	}
 
 	const int cycleIterations = sim.settings.numIterations;
+	reportProgress("Calculating forecast iterations...");
 	if (!runIterations(*this, cycleIterations, 0, "simulation", feedback)) return false;
 
 	SimulationCompletion completion(project, sim, *this, cycleIterations);
+	reportProgress("Completing the forecast and writing snapshot exports...");
 	completion.completeRun(feedback, actionRequired);
 
 	auto const mainRunElapsed =

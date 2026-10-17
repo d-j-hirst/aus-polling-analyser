@@ -13,6 +13,17 @@ struct CurrentFile {
 	std::optional<std::string> timestamp;
 };
 
+struct PreloadFiles {
+	std::filesystem::path results;
+	std::filesystem::path pollingPlaces;
+};
+
+// A federal preload normally comes from its remote ZIP/cache. Offline replay
+// may instead name a workspace-relative or absolute XML with local:<path>.
+// Its companion replaces .xml with @polling_places.xml. Reading these files
+// keeps operator-normalized identities distinct from an unmodified remote cache.
+std::optional<PreloadFiles> localPreloadFiles(std::string_view source);
+
 struct SaReplaySequence {
 	std::filesystem::path targetPath;
 	std::filesystem::path statePath;

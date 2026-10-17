@@ -65,6 +65,7 @@ void DownloadFrame::setupToolbar()
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+	applyActivityPolicy();
 }
 
 void DownloadFrame::bindEventHandlers()
@@ -257,4 +258,5 @@ void DownloadFrame::collectCompleteData(bool skipPrompt)
 void DownloadFrame::updateInterface()
 {
 	// Do nothing for now
+	applyActivityPolicy();
 }

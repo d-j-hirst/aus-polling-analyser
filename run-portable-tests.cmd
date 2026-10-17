@@ -61,6 +61,8 @@ call :run ForecastSpecificationTests
 if errorlevel 1 goto :failure
 call :run LiveDataTests
 if errorlevel 1 goto :failure
+call :run LiveTppCompositionTests
+if errorlevel 1 goto :failure
 call :run LivePreferenceCorrectionTests
 if errorlevel 1 goto :failure
 call :run LiveResultsInputTests
@@ -73,11 +75,15 @@ call :run LiveSnapshotSequenceTests
 if errorlevel 1 goto :failure
 call :run LiveSnapshotDataTests
 if errorlevel 1 goto :failure
+call :run ResponsiveLiveTests
+if errorlevel 1 goto :failure
 call :run MacroTargetResolverTests
 if errorlevel 1 goto :failure
 call :run MajorPartyFpMathTests
 if errorlevel 1 goto :failure
 call :run RandomGeneratorTests
+if errorlevel 1 goto :failure
+call :run RegionalSwingMathTests
 if errorlevel 1 goto :failure
 call :run SharedInputLookupTests
 if errorlevel 1 goto :failure

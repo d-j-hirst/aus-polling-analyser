@@ -54,6 +54,8 @@ private:
 	void createDataTable();
 
 	void bindEventHandlers();
+	void OnResultKey(wxKeyEvent& event);
+	void copySelectedResults();
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& event);
@@ -63,15 +65,8 @@ private:
 
 	void OnConfigureSnapshotSequence(wxCommandEvent& event);
 	void OnRunSnapshotSequence(wxCommandEvent& event);
-	void OnNextSnapshot(wxTimerEvent& event);
-	void beginSnapshotRuns();
 	std::string snapshotElection() const;
 	void ensureSnapshotOutputFolders(std::string const& election);
-	void finishSnapshotSequence(std::string const& message);
-	bool runLiveSimulations(
-		std::optional<LiveResultsInput::CurrentFile> const& snapshot = {},
-		std::string* failureMessage = nullptr);
-	void finishLiveSimulationRun();
 
 	// Adds the currently entered result to the records
 	void OnAddResult(wxCommandEvent& event);
@@ -108,7 +103,7 @@ private:
 	bool resultPassesFilter(Outcome const& thisResult);
 
 	// Gets the backgroundcolour for the cell showing this result's swing
-	wxColour decideSwingColour(Outcome const& thisResult);
+	wxColour decideSwingColour(double swing);
 
 	wxColour decidePercentCountedColour(float percentCounted);
 
@@ -140,20 +135,6 @@ private:
 
 	// Allows actions in this frame to trigger refreshes in other frames
 	ProjectFrame::Refresher refresher;
-
-	// Timer-driven replay owns its progress UI and pins a resolved file list.
-	wxTimer snapshotTimer;
-	std::vector<LiveResultsInput::CurrentFile> snapshotFiles;
-	std::size_t snapshotIndex = 0;
-	bool snapshotRunning = false;
-	bool snapshotStopRequested = false;
-	std::optional<std::chrono::steady_clock::time_point> snapshotStartDeadline;
-	wxDialog* snapshotProgress = nullptr;
-	wxTextCtrl* snapshotStatus = nullptr;
-	wxGauge* snapshotGauge = nullptr;
-	wxButton* snapshotStop = nullptr;
-	wxButton* snapshotStartNow = nullptr;
-	std::unique_ptr<wxWindowDisabler> snapshotDisabler;
 
 	// Text box used to enter the name of a seat to input results for
 	wxTextCtrl* seatNameTextCtrl = nullptr;

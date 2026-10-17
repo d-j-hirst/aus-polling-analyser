@@ -16,6 +16,7 @@ public:
 
 class SimulationCollection {
 public:
+	friend class PollingProject; // Explicit worker-context cloning preserves IDs and owner references.
 
 	// Collection is a map between ID values and simulations
 	// IDs are not preserved between sessions, and are used to ensure

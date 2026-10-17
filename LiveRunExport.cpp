@@ -5,6 +5,7 @@
 #include "LiveAnalysisArchive.h"
 #include "LiveResultsInput.h"
 #include "LiveV2.h"
+#include "LiveTppDiagnostics.h"
 #include "Log.h"
 #include "PollingProject.h"
 #include "Simulation.h"
@@ -62,7 +63,8 @@ json number(double value)
 	return value;
 }
 
-json optionalNumber(std::optional<float> const& value)
+template<typename T>
+json optionalNumber(std::optional<T> const& value)
 {
 	if (!value) return nullptr;
 	return number(*value);
@@ -651,6 +653,10 @@ json liveAnalysisSummaryFrom(json const& analysis)
 			}
 		}
 	}
+	// Persist only small scalar diagnostics for the asynchronous history viewer.
+	// Detailed state and observation arrays remain in the analysis sidecar.
+	if (analysis.contains("tpp_integration"))
+		summary.update(LiveTppDiagnostics::viewerSummary(analysis["tpp_integration"]));
 	return summary;
 }
 
@@ -786,6 +792,143 @@ bool writeFileAtomically(
 
 } // namespace
 
+nlohmann::json LiveV2::Election::tppConversionDiagnostic() const
+{
+	// Compact current-snapshot robustness measures; no signed residual is fitted.
+	json result;
+	json calibration = json::array();
+	double matchedTotal = tppPooledPreferenceUnits();
+	for (auto const& [code, units] : tppMatchedPreferenceUnits()) {
+		double sd = LiveTppComposition::conversionSd(matchedTotal);
+		calibration.push_back({{"category_code", code}, {"matched_units", units}, {"full_pool_shared_sd_pp", sd}});
+	}
+	// Use actual received row weights, including measured rows with zero pool.
+	// RMS is a scale diagnostic, not the SD of a national aggregate.
+	double weight = 0, pool = 0, localVariance = 0, sharedVariance = 0;
+	for (auto const& row : *tppReceivedObservations) {
+		weight += row.comparisonWeight;
+		pool += row.comparisonWeight*row.unresolvedPreferenceFraction;
+		localVariance += row.comparisonWeight*row.localConversionSd*row.localConversionSd;
+		sharedVariance += row.comparisonWeight*row.sharedConversionSd*row.sharedConversionSd;
+	}
+	result["conversion_calibration"] = std::move(calibration);
+	result["conversion_matched_units"] = matchedTotal;
+	result["conversion_pool_percent"] = weight > 0 ? json(100*pool/weight) : json(nullptr);
+	result["conversion_local_sd"] = weight > 0 ? json(std::sqrt(localVariance/weight)) : json(nullptr);
+	result["conversion_shared_sd"] = weight > 0 ? json(std::sqrt(sharedVariance/weight)) : json(nullptr);
+	return result;
+}
+
+nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
+{
+	if (!tppIntegration) return nullptr;
+	auto const& update = *tppIntegration;
+	auto const& names = sim.getLiveBaselineReport()->seatName;
+	json result = {{"method", "joint_category_composition_v8"},
+		{"sparse_sample_vote_scale", LiveTppIntegration::SparseSampleVoteScale},
+		{"conversion_uncertainty_method", "preference_pool_cross_category"},
+		{"conversion_pool_variance", LiveTppComposition::ConversionPoolVariance},
+		{"conversion_local_variance_floor", LiveTppComposition::LocalConversionVarianceFloor},
+		{"conversion_local_evidence_rate", LiveTppComposition::LocalConversionEvidenceRate},
+		{"inferred_evidence_percent", optionalNumber(tppInferredEvidencePercent())},
+		{"composition_covariance_budget_scale", tppCompositionBudgetScale},
+		{"category_parameter_version", "historical_14_pairs_v1"},
+		{"category_departure_sd_multiplier", LiveTppComposition::CategoryDepartureSdMultiplier},
+		{"scale", "25_times_log_odds"}, {"observation_count", update.steps.size()}};
+	result.update(tppConversionDiagnostic());
+	// Archive the covariance needed for numerical comparisons, but never copy
+	// it into compact viewer history. The two new states are observation errors,
+	// not additional prior uncertainty about seat totals.
+	result["prior_covariance"] = update.prior.covariance;
+	result["reporting_order_initial_sd"] = LiveTppComposition::ReportingOrderInitialSd;
+	result["reporting_order_coverage_scale"] = LiveTppComposition::ReportingOrderCoverageScale;
+	result["reporting_order_correlation"] = LiveTppComposition::ReportingOrderCorrelation;
+	result["ordinary_fp_order_sd"] = LiveTppComposition::reportingOrderSd(tppOrdinaryReportingProgress, false);
+	result["ordinary_tcp_order_sd"] = LiveTppComposition::reportingOrderSd(tppOrdinaryReportingProgress, true);
+	result["ordinary_fp_order_coverage"] = tppOrdinaryReportingProgress.coverage(false);
+	result["ordinary_tcp_order_coverage"] = tppOrdinaryReportingProgress.coverage(true);
+	auto orderStart = names.size() + tppCategoryCodes.size();
+	json states = json::array();
+	for (std::size_t i = 0; i < update.prior.mean.size(); ++i) {
+		std::string name;
+		if (i < names.size()) name = names[i];
+		else if (i < orderStart) {
+			int code = tppCategoryCodes[i - names.size()];
+			name = code >= 100 ? std::string(LiveData::voteTypeName(LiveData::VoteType(code - 100)))
+				: std::string(LiveData::boothTypeName(LiveData::BoothType(code)));
+		}
+		else name = i == orderStart ? "Ordinary FP reporting order" : "Ordinary TCP reporting order";
+		states.push_back({{"name", name}, {"kind", i < names.size() ? "seat" :
+			(i < orderStart ? "shared_error" : "reporting_order")},
+			{"prior_mean", number(update.prior.mean[i])},
+			{"posterior_mean", number(update.posterior.mean[i])},
+			{"prior_variance", number(update.prior.covariance[i][i])},
+			{"posterior_variance", number(update.posterior.covariance[i][i])}});
+	}
+	result["states"] = std::move(states);
+	// Reference translations are not swings or recovered vote records. Export
+	// them separately so synthetic-history discrepancies remain inspectable.
+	json references = json::array();
+	double expected = tppExpectedVotes();
+	for (std::size_t s = 0; s < tppCategoryAccounts->size(); ++s)
+		references.push_back({{"seat", names.at(tppProjectSeatIndices.at(s))},
+			{"conversion_budget_fraction", expected > 0 ? tppCategoryAccounts->at(s).expectedVotes()/expected : 0},
+			{"shift", number(tppCategoryAccounts->at(s).referenceShift)}});
+	result["booth_reference_shifts"] = std::move(references);
+	json observations = json::array();
+	// Export the received category rows, before within-seat decorrelation.
+	// The update's numerical rows are linear combinations of these categories.
+	for (auto const& o : *tppReceivedObservations) {
+		json factors = json::array();
+		for (std::size_t i = names.size(); i < orderStart; ++i)
+			factors.push_back(number(o.h[i]));
+		json orderFactors = json::array();
+		for (std::size_t i = orderStart; i < o.h.size(); ++i)
+			orderFactors.push_back(number(o.h[i]));
+		observations.push_back({{"seat", names.at(o.seat)}, {"category_code", o.category},
+			{"seat_loading", number(o.h.at(o.seat))},
+			{"value", number(o.value)}, {"residual_variance", number(o.variance)},
+			{"inferred_fraction", number(o.inferredFraction)},
+			{"unresolved_preference_fraction", number(o.unresolvedPreferenceFraction)},
+			{"conversion_share_jacobian", number(o.conversionJacobian)},
+			{"comparison_weight", number(o.comparisonWeight)},
+			{"sample_votes", number(o.sampleVotes)},
+			{"sample_coverage", number(o.sampleCoverage)},
+			{"sparse_sample_variance", number(o.sparseSampleVariance)},
+			{"location_group", o.inferredLocations ? "includes_inferred" : "measured"},
+			{"local_matched_units", o.localMatchedUnits}, {"shared_matched_units", o.sharedMatchedUnits},
+			{"local_conversion_sd", o.localConversionSd}, {"shared_conversion_sd", o.sharedConversionSd},
+			{"conversion_variance", number(o.conversionVariance)},
+			{"shared_error_loadings", std::move(factors)},
+			{"reporting_order_loadings", std::move(orderFactors)}});
+	}
+	result["observations"] = std::move(observations);
+	// Use the same historical FP weights as the national histogram. This is a
+	// transformed-scale composition diagnostic, before finite-count bounds and
+	// sampled turnout; it is not a substitute for the exported TPP quantiles.
+	if (run.pastSeatResults.size() == names.size()) {
+		double total = 0, priorVariance = 0, posteriorVariance = 0, posteriorCentre = 0;
+		for (auto const& seat : run.pastSeatResults) total += seat.turnoutCount;
+		if (total > 0) {
+			for (std::size_t i = 0; i < names.size(); ++i) {
+				// Convert each seat centre back to vote share before aggregation.
+				// This is a prepared centre, not the mean of bounded simulation draws.
+				posteriorCentre += run.pastSeatResults[i].turnoutCount / total
+					* LiveTppComposition::share(update.posterior.mean[i]);
+				for (std::size_t j = 0; j < names.size(); ++j) {
+					double w = double(run.pastSeatResults[i].turnoutCount) * run.pastSeatResults[j].turnoutCount / (total * total);
+					priorVariance += w * update.prior.covariance[i][j];
+					posteriorVariance += w * update.posterior.covariance[i][j];
+				}
+			}
+			result["weighted_posterior_centre"] = posteriorCentre;
+			result["weighted_prior_sd"] = std::sqrt(std::max(0., priorVariance));
+			result["weighted_posterior_sd"] = std::sqrt(std::max(0., posteriorVariance));
+		}
+	}
+	return result;
+}
+
 nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 {
 	PartyNames const parties{sim.getLatestReport()};
@@ -881,6 +1024,16 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 			};
 		}
 		seatJson["tpp_all_booths_std_dev"] = number(seat.tppAllBoothsStdDev);
+		// Source weights explain which part of the shared conversion adjustment
+		// reaches this seat. They are not counts or extra turnout observations.
+		seatJson["estimated_tpp"] = {
+			{"expected_votes",number(seat.estimatedTppEvidence.expectedVotes)},
+			{"inferred_evidence_votes",number(seat.estimatedTppEvidence.inferredEvidenceVotes)},
+			{"observed_evidence_votes",number(seat.estimatedTppEvidence.observedEvidenceVotes)},
+			{"confidence",number(seat.estimatedTppEvidence.confidence())},
+			{"inferred_share",number(seat.estimatedTppEvidence.inferredShare())},
+			{"influence",number(seat.estimatedTppInfluence)}
+		};
 		seatJson["tcp_all_booths_std_dev"] = optionalNumber(seat.tcpAllBoothsStdDev);
 		seatJson["live_preference_flow_deviation"] =
 			number(seat.livePreferenceFlowDeviation);
@@ -918,6 +1071,18 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 			boothJson["same_seat"] = booth.sameSeat;
 			boothJson["tpp_votes_estimated"] =
 				parties.values(booth.tppVotesEstimated);
+			if (booth.node.preferenceFlowDeviation) {
+				auto historical = historicalPreferenceTransfer(booth);
+				if (historical) {
+					double reliability = LivePartialCount::historicalFlowReliability(historical->share());
+					// Retain the reason for reduced analytical confidence even when
+					// the comparison is too small to warrant an operator notice.
+					if (reliability < 1) boothJson["historical_preference_evidence"] = {
+						{"inferred_flow_percent",number(historical->share()*100)},
+						{"nonfinalist_votes",number(historical->votes)},
+						{"extrapolation_reliability",number(reliability)}};
+				}
+			}
 			if (newVoteContexts && !booth.futureFpShares.empty()) {
 				// Keep the two primary compositions and their influence available
 				// for replay inspection without recording draws or extra identities.
@@ -946,6 +1111,7 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 	}
 
 	json liveAnalysis;
+	liveAnalysis["tpp_integration"] = tppIntegrationDiagnostic();
 	liveAnalysis["election"] = std::move(electionJson);
 	liveAnalysis["regions"] = std::move(regions);
 	liveAnalysis["seats"] = std::move(seatsJson);
@@ -1015,7 +1181,7 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 	return liveAnalysis;
 }
 
-void LiveRunExport::exportCompletedAutomaticLiveRun(
+std::optional<std::filesystem::path> LiveRunExport::exportCompletedAutomaticLiveRun(
 	PollingProject& project,
 	Simulation const& sim,
 	SimulationRun const& run,
@@ -1025,12 +1191,12 @@ void LiveRunExport::exportCompletedAutomaticLiveRun(
 {
 	if (!actionRequired) actionRequired = feedback;
 	std::string const folder = sim.getSettings().liveOutputFolder;
-	if (folder.empty()) return;
+	if (folder.empty()) return std::nullopt;
 
 	auto const validationError = validateOutputFolder(folder);
 	if (validationError) {
 		reportExportFailure(feedback, actionRequired, *validationError);
-		return;
+		return std::nullopt;
 	}
 
 	auto const nativeFolder = LiveResultsInput::pathFromUtf8(folder);
@@ -1038,7 +1204,7 @@ void LiveRunExport::exportCompletedAutomaticLiveRun(
 		reportExportFailure(feedback, actionRequired,
 			"Live diagnostic output folder must be a single folder name, "
 			"not a path.");
-		return;
+		return std::nullopt;
 	}
 
 	try {
@@ -1047,7 +1213,7 @@ void LiveRunExport::exportCompletedAutomaticLiveRun(
 		if (!election) {
 			reportExportFailure(feedback, actionRequired,
 				"live analysis data was not available.");
-			return;
+			return std::nullopt;
 		}
 
 		auto const& report = sim.getLatestReport();
@@ -1101,7 +1267,7 @@ void LiveRunExport::exportCompletedAutomaticLiveRun(
 			reportExportFailure(feedback, actionRequired,
 				std::string("the live analysis sidecar could not be serialized: ") +
 					error.what());
-			return;
+			return std::nullopt;
 		}
 		analysis = json();
 
@@ -1113,7 +1279,7 @@ void LiveRunExport::exportCompletedAutomaticLiveRun(
 			reportExportFailure(feedback, actionRequired,
 				std::string("the report could not be serialized: ") +
 					error.what());
-			return;
+			return std::nullopt;
 		}
 
 		auto const outputDir = project.paths().resolve(
@@ -1123,13 +1289,13 @@ void LiveRunExport::exportCompletedAutomaticLiveRun(
 		if (directoryError) {
 			reportExportFailure(feedback, actionRequired,
 				"could not create " + relativeDir + ".");
-			return;
+			return std::nullopt;
 		}
 
 		auto const finalPath = outputDir / filename;
 		if (!writeFileAtomically(
 			finalPath, relativePath, serialised, feedback, actionRequired)) {
-			return;
+			return std::nullopt;
 		}
 
 		std::string const analysisFilename =
@@ -1142,13 +1308,15 @@ void LiveRunExport::exportCompletedAutomaticLiveRun(
 			analysisSerialised,
 			feedback,
 			actionRequired)) {
-			return;
+			return std::nullopt;
 		}
 
 		logger << "Wrote live diagnostic export to " << relativePath
 			<< " and " << analysisRelativePath << "\n";
+		return finalPath;
 	}
 	catch (std::exception const& error) {
 		reportExportFailure(feedback, actionRequired, error.what());
 	}
+	return std::nullopt;
 }

@@ -180,7 +180,8 @@ public:
 
 	bool run(
 		FeedbackFunc feedback = [](std::string) {},
-		ActionRequiredFunc actionRequired = {});
+		ActionRequiredFunc actionRequired = {},
+		FeedbackFunc progress = {});
 
 	std::string getTermCode() const;
 
@@ -196,9 +197,18 @@ public:
 	// from simulation iterations. Failed attempts expose diagnostics without
 	// replacing the previous successful report or retaining the failed model.
 	nlohmann::json inputDiagnostic() const;
+	std::optional<std::filesystem::path> completedSnapshotPath() const { return snapshotExport; }
+	void recordSnapshotExport(std::optional<std::filesystem::path> path) { snapshotExport = std::move(path); }
 	nlohmann::json inputRecoveryDetails() const { return inputIssues.details(); }
 
 private:
+	// Background jobs display stages without treating routine progress as an
+	// operator warning. Synchronous callers retain their existing feedback path.
+	FeedbackFunc progressFeedback;
+	void reportProgress(std::string message) const {
+		if (progressFeedback) progressFeedback(std::move(message));
+	}
+	std::optional<std::filesystem::path> snapshotExport;
 	LiveInputRecovery::Registry inputIssues;
 	std::vector<std::function<void()>> pendingLiveCommits;
 	bool inputRunCompleted = false;
@@ -288,6 +298,7 @@ private:
 	// Only the live baseline records these moments; ordinary forecasts keep the
 	// existing summaries. No simulation draws or per-snapshot history are held.
 	std::vector<LiveFpIntegration::MomentAccumulator> liveBaselineFpMoments;
+	LiveTppIntegration::Accumulator liveBaselineTppMoments;
 	std::vector<std::map<int, std::array<int, BucketCount>>> seatPartyFpDistribution;
 	std::vector<std::map<int, int>> seatPartyFpZeros; // frequency of seat total being actually zero, i.e. candidate didn't run
 	std::vector<double> coalitionWinPercent;

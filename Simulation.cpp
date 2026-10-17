@@ -104,7 +104,8 @@ bool Simulation::run(
 	PollingProject& project,
 	SimulationRun::FeedbackFunc feedback,
 	SimulationRun::ActionRequiredFunc actionRequired,
-	std::optional<LiveResultsInput::CurrentFile> snapshot)
+	std::optional<LiveResultsInput::CurrentFile> snapshot,
+	SimulationRun::FeedbackFunc progress)
 {
 	if (!actionRequired) actionRequired = feedback;
 	if (project.projections().idToIndex(settings.baseProjection) ==
@@ -119,7 +120,7 @@ bool Simulation::run(
 		return false;
 	}
 	auto nextRun = std::make_shared<SimulationRun>(project, *this, false, false, std::move(snapshot));
-	bool succeeded = nextRun->run(feedback, actionRequired);
+	bool succeeded = nextRun->run(feedback, actionRequired, std::move(progress));
 	if (isLiveAutomatic()) {
 		liveInputDiagnostic = nextRun->inputDiagnostic();
 		liveInputDetails = nextRun->inputRecoveryDetails();
@@ -258,8 +259,62 @@ std::optional<Simulation::Report> const& Simulation::getLiveBaselineReport() con
 
 std::vector<LiveData::BoothSnapshot> Simulation::getLiveBoothSnapshots() const
 {
-	if (!latestRun || !latestRun->getLiveElection()) return {};
+	if (!latestRun || !latestRun->getLiveElection()) return publishedBooths;
 	return latestRun->getLiveElection()->getBoothSnapshots();
+}
+
+Simulation Simulation::copyForLiveRun() const
+{
+	Simulation copy(settings);
+	copy.liveBaselineReport = liveBaselineReport;
+	copy.latestReport = latestReport;
+	copy.previousLiveSeats = previousLiveSeats;
+	copy.cachedOddsFinalMeans = cachedOddsFinalMeans;
+	copy.cachedOddsInputs = cachedOddsInputs;
+	copy.cachedOddsIterations = cachedOddsIterations;
+	copy.lastUpdated = lastUpdated;
+	return copy;
+}
+
+Simulation::PublishedLiveState Simulation::completedLiveState() const
+{
+	return {latestReport, liveBaselineReport, previousLiveSeats,
+		cachedOddsFinalMeans, cachedOddsInputs, cachedOddsIterations, lastUpdated,
+		getLiveBoothSnapshots(), liveInputDiagnostic, liveInputDetails};
+}
+
+std::shared_ptr<SimulationRun> Simulation::detachRetainedLiveRun()
+{
+	// Read-only GUI consumers need booth values, not the analyser that produced
+	// them. Keep those values before retiring an older synchronous run, so a new
+	// private calculation does not double the memory used by large elections.
+	if (latestRun) publishedBooths = getLiveBoothSnapshots();
+	return releaseRetainedLiveRun();
+}
+
+void Simulation::publishLiveState(PublishedLiveState state)
+{
+	latestReport = std::move(state.report);
+	liveBaselineReport = std::move(state.baseline);
+	previousLiveSeats = std::move(state.previousSeats);
+	cachedOddsFinalMeans = std::move(state.oddsMeans);
+	cachedOddsInputs = std::move(state.oddsInputs);
+	cachedOddsIterations = state.oddsIterations;
+	lastUpdated = state.updated;
+	publishedBooths = std::move(state.booths);
+	publishLiveDiagnostics(std::move(state.diagnostic), std::move(state.details));
+	latestRun.reset(); // Its project/simulation references belong to another owner.
+}
+
+void Simulation::publishLiveDiagnostics(nlohmann::json diagnostic, nlohmann::json details)
+{
+	liveInputDiagnostic = std::move(diagnostic);
+	liveInputDetails = std::move(details);
+}
+
+std::optional<std::filesystem::path> Simulation::completedSnapshotPath() const
+{
+	return latestRun ? latestRun->completedSnapshotPath() : std::nullopt;
 }
 
 Simulation::SavedReports const& Simulation::viewSavedReports() const
@@ -524,6 +579,10 @@ int Simulation::Report::getModalSeatFrequencyCount(int partyIndex) const
 
 double Simulation::Report::getPartyOne2pp() const
 {
+	// The national input draw precedes live seat updates. Display the completed
+	// forecast's mean, as in Display and Live Booths, rather than that old target.
+	// Legacy reports without a distribution retain their original fallback.
+	if (getTppSampleCount() > 0) return getTppSampleExpectation();
 	return partyOneSwing + prevElection2pp;
 }
 

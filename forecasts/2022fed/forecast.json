@@ -6,9 +6,9 @@
   "election_name": "2022 Federal Election",
   "election_settings": {
     "live_sources": {
-      "current_real_url": "ftp://mediafeed.aec.gov.au/27966/Detailed/Light/",
+      "current_real_url": "local:fed2022-replay.xml",
       "current_test_url": "",
-      "preload_url": "ftp://mediafeedarchive.aec.gov.au/27966/Detailed/Preload/aec-mediafeed-Detailed-Preload-27966-20220503123540.zip",
+      "preload_url": "local:downloads/2022fed-preload.xml",
       "previous_results_url": "ftp://mediafeedarchive.aec.gov.au/24310/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-24310-20190729153147.zip"
     },
     "previous_election_tpp": 48.470001220703125,
@@ -75,7 +75,7 @@
   ],
   "party_settings": {
     "major_party_one_id": "labor",
-    "major_party_two_id": "coalition"
+    "major_party_two_id": "liberals"
   },
   "projections": [
     {
@@ -127,7 +127,7 @@
       "id": "live-simulation",
       "mode": "live_automatic",
       "name": "Live Simulation",
-      "num_iterations": 25000,
+      "num_iterations": 10000,
       "report_mode": "live_forecast"
     }
   ]

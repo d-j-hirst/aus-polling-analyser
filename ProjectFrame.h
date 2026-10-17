@@ -22,6 +22,10 @@
 #include "wx/bookctrl.h"
 
 #include <memory>
+#include "LiveSimulationJob.h"
+#include <wx/timer.h>
+#include <wx/eventfilter.h>
+#include <wx/gauge.h>
 
 struct NewProjectData;
 
@@ -59,6 +63,12 @@ public:
 
 	// constructor to create a new project
 	ProjectFrame(ParentFrame* parent, NewProjectData newProjectData);
+	~ProjectFrame();
+	bool isLiveRunning() const { return bool(liveJob); }
+	bool isLiveProgressWindow(wxWindow const* window) const { return window == liveProgress; }
+	bool startLiveRun(std::vector<LiveSimulationJob::Input> inputs);
+	void stopLiveRun();
+	bool deferCloseForLiveRun();
 
 	class Refresher {
 	public:
@@ -71,6 +81,8 @@ public:
 		void refreshAnalysis() const;
 		void refreshMap() const;
 		void refreshLiveBooths() const;
+		bool startLiveRun(std::vector<LiveSimulationJob::Input> inputs) const { return projectFrame.startLiveRun(std::move(inputs)); }
+		bool isLiveRunning() const { return projectFrame.isLiveRunning(); }
 		// Gives a reference to the underlying notebook so that this
 		// can be used to construct children of the ProjectFrame
 		wxNotebook* notebook() const { return &projectFrame; }
@@ -105,6 +117,31 @@ public:
 	void editGeneralSettings();
 
 private:
+	void onLiveCompletion(wxThreadEvent& event);
+	void onLiveProgress(wxTimerEvent& event);
+	void updateLiveStatus(wxString const& message);
+	void dispatchLiveSnapshot();
+	void finishLiveJob(std::string message);
+	void updateLiveActivityPolicy();
+	void createLiveProgress();
+	void initialiseLiveJob(std::vector<LiveSimulationJob::Input> inputs, std::vector<Simulation::Id> ids);
+	void publishLiveUpdate(LiveSimulationUpdate& update);
+	void advanceLiveSequence(LiveSimulationUpdate const& update);
+	// Only the GUI thread owns these controls and sequence decisions. The job
+	// owns its separate project; queued completions contain detached values.
+	std::unique_ptr<LiveSimulationJob> liveJob;
+	std::unique_ptr<wxEventFilter> liveCommandFilter;
+	std::vector<LiveSimulationJob::Input> liveInputs;
+	std::size_t liveIndex = 0;
+	std::uint64_t liveGeneration = 0;
+	bool liveStopRequested = false, closeAfterLive = false;
+	std::string lastPublishedCode;
+	std::optional<std::string> liveFinishMessage;
+	wxTimer liveProgressTimer;
+	wxDialog* liveProgress = nullptr;
+	wxTextCtrl* liveStatus = nullptr;
+	wxGauge* liveGauge = nullptr;
+	wxButton* liveStop = nullptr;
 
 	// Base constructor, should not actually be called as it does not create a project.
 	// Delegated to by the above public constructors to avoid duplication of shared functions.

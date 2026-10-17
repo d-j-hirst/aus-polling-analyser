@@ -18,6 +18,14 @@ inline constexpr double ComparableTotalFraction = .02;
 // An observed flow supplies this many non-finalist votes' worth of evidence
 // before it receives half the weight. This limits dependence on a tiny batch.
 inline constexpr double PriorPreferenceVotes = 500;
+// Historical booth comparisons normally keep their full extrapolation weight.
+// Near-unanimous transfers are sensitive to tiny FP/TCP discrepancies, whose
+// effect becomes large on log odds. Preserve flows through the low 90s, then
+// gradually stop using an extreme historical comparison to train other votes.
+// This changes evidence weight, never the recorded TCP or a current matched
+// cohort's measured flow. The limits apply symmetrically to either finalist.
+inline constexpr double HistoricalFlowFullWeight = .92;
+inline constexpr double HistoricalFlowZeroWeight = .98;
 
 inline double total(Counts const& counts) {
     double result = 0;
@@ -33,6 +41,70 @@ inline double logOdds(double share) {
     return std::log(share/(1-share));
 }
 inline double inverseLogOdds(double value) { return 1/(1+std::exp(-value)); }
+
+inline double historicalFlowReliability(double share) {
+    double magnitude = std::max(share,1-share);
+    double x = std::clamp((magnitude-HistoricalFlowFullWeight)/
+        (HistoricalFlowZeroWeight-HistoricalFlowFullWeight),0.0,1.0);
+    // Smoothstep gives both joins a zero slope. A small count revision near
+    // either boundary cannot abruptly turn a comparison on or off.
+    return 1-x*x*(3-2*x);
+}
+
+// When one TCP finalist changes, reporting booths can compare the shared
+// finalist's current share with its old share. Usually several booths supply
+// that movement. A first small booth must contribute only a small fraction of
+// the seat's evidence: unreported and historically unmatched locations still
+// belong in the expected-vote denominator, though they supply no comparison.
+struct SharedFinalistTcpEvidence {
+    // This retains the existing discount for comparing different opponents.
+    static constexpr float MaximumConfidence = 0.1f;
+
+    void addBooth(float expectedVotes, float transformedSwing = 0.0f,
+        float comparisonWeight = 0.0f) {
+        expectedSeatVotes += expectedVotes;
+        weightedSwing += transformedSwing * comparisonWeight;
+        comparisonVotes += comparisonWeight;
+    }
+
+    bool available() const { return comparisonVotes > 0.0f; }
+    float meanSwing() const {
+        return available() ? weightedSwing / comparisonVotes : 0.0f;
+    }
+    float confidence() const {
+        return expectedSeatVotes > 0.0f
+            ? MaximumConfidence * std::sqrt(std::clamp(
+                comparisonVotes / expectedSeatVotes, 0.0f, 1.0f))
+            : 0.0f;
+    }
+
+private:
+    // Movement keeps its existing prior-vote/relevance weights. Coverage uses
+    // the projected FP total of every seat location, including declarations.
+    float weightedSwing = 0.0f;
+    float comparisonVotes = 0.0f;
+    float expectedSeatVotes = 0.0f;
+};
+
+struct PreferenceTransfer {
+    double votes = 0, received = 0; // Non-finalist FP pool and votes reaching first.
+    double share() const { return received/votes; }
+};
+
+inline std::optional<PreferenceTransfer> measureTransfer(Counts const& fp, Counts const& tcp,
+    int first, int second) {
+    double ft = total(fp), tt = total(tcp);
+    if (ft <= 0 || tt <= 0 || tcp.size() != 2 || !tcp.count(first) || !tcp.count(second)
+        || std::abs(ft-tt)/ft > ComparableTotalFraction) return {};
+    double preferences = ft-value(fp,first)-value(fp,second);
+    if (preferences <= 0) return {};
+    // Normal counts share an FP/TCP total. Retain the existing normalization
+    // for small discrepancies; the historical reliability guard uses this
+    // inferred share before half-vote smoothing conceals a near-boundary rate.
+    double received = value(tcp,first)*ft/tt-value(fp,first);
+    if (received < 0 || received > preferences) return {};
+    return PreferenceTransfer{preferences,received};
+}
 
 struct Evidence {
     Counts fp;
@@ -63,19 +135,14 @@ inline double expectedFirst(Counts const& fp, Flows const& flows, double offset)
 
 inline std::optional<Evidence> measure(Counts const& fp, Counts const& tcp,
     Flows const& flows, int first, int second, bool matchingCurrentTcp = false) {
-    double ft = total(fp), tt = total(tcp);
-    if (ft <= 0 || tt <= 0 || tcp.size() != 2 || !tcp.count(first) || !tcp.count(second)
-        || std::abs(ft-tt)/ft > ComparableTotalFraction) return {};
-    double preferences = ft-value(fp,first)-value(fp,second);
-    if (preferences <= 0) return {};
-    double received = value(tcp,first)*ft/tt-value(fp,first);
-    if (received < 0 || received > preferences) return {};
-    double expected = (expectedFirst(fp,flows,0)-value(fp,first))/preferences;
+    auto transfer = measureTransfer(fp,tcp,first,second);
+    if (!transfer) return {};
+    double expected = (expectedFirst(fp,flows,0)-value(fp,first))/transfer->votes;
     if (expected <= 0 || expected >= 1) return {};
     // Half a vote keeps genuine all-one-way tiny batches finite. It becomes
     // negligible for the large batches which can meaningfully train a flow.
-    double actual = (received+.5)/(preferences+1);
-    return Evidence{fp,first,second,logOdds(actual)-logOdds(expected),preferences,matchingCurrentTcp,{},{}};
+    double actual = (transfer->received+.5)/(transfer->votes+1);
+    return Evidence{fp,first,second,logOdds(actual)-logOdds(expected),transfer->votes,matchingCurrentTcp,{},{}};
 }
 
 inline std::optional<Counts> remainingCohort(Counts const& fp, Evidence const& evidence) {

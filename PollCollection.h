@@ -17,6 +17,7 @@ public:
 
 class PollCollection {
 public:
+	friend class PollingProject; // Explicit worker-context cloning preserves IDs and owner references.
 	friend class ProjectFiler;
 
 	// Collection is a map between ID values and polls

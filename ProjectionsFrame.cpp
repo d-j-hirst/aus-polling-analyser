@@ -46,6 +46,7 @@ void ProjectionsFrame::setupToolbar()
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+	applyActivityPolicy();
 }
 
 void ProjectionsFrame::setupDataTable()
@@ -234,4 +235,5 @@ void ProjectionsFrame::updateInterface() {
 	toolBar->EnableTool(ControlId::Edit, somethingSelected);
 	toolBar->EnableTool(ControlId::Remove, somethingSelected);
 	toolBar->EnableTool(ControlId::CollectData, somethingSelected);
+	applyActivityPolicy();
 }

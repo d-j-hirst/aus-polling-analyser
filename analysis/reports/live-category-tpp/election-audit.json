@@ -1,0 +1,551 @@
+{
+  "elections": {
+    "2025fed": {
+      "seats": 149,
+      "previous_sample_tpp": 52.15596983163691,
+      "current_sample_tpp": 55.248943620685665,
+      "sample_forecast": 51.49975778672112,
+      "forecast": 51.47051925086462,
+      "actual": 55.22,
+      "old_expected_weighted_total": 51.42794965716249,
+      "expected_weighted_total": 51.49975778672112,
+      "reconstructed_error": 3.7491858339645487,
+      "ordinary_based_total": 56.423017212743105,
+      "categories": {
+        "ordinary": {
+          "previous_share": 53.74676647014886,
+          "current_share": 58.06452600817858,
+          "previous_fraction": 0.4470891989603781,
+          "current_fraction": 0.40323557681183386,
+          "expected_share": 53.16446057498424,
+          "error_pp": 4.900065433194342,
+          "contribution_pp": 1.975880711369849,
+          "contrast_change": 0.0
+        },
+        "early": {
+          "previous_share": 50.88771295880786,
+          "current_share": 53.325528094606796,
+          "previous_fraction": 0.3710825205944279,
+          "current_fraction": 0.42030267057994336,
+          "expected_share": 50.30269514712081,
+          "error_pp": 3.0228329474859876,
+          "contribution_pp": 1.2705047605454023,
+          "contrast_change": -1.9391283187262247
+        },
+        "postal": {
+          "previous_share": 49.13616082866312,
+          "current_share": 51.6340907177678,
+          "previous_fraction": 0.1456949970943039,
+          "current_fraction": 0.13588731052703143,
+          "expected_share": 48.55137299449315,
+          "error_pp": 3.082717723274648,
+          "contribution_pp": 0.4189022205298054,
+          "contrast_change": -1.883168865872713
+        },
+        "absent": {
+          "previous_share": 57.46652056664064,
+          "current_share": 60.15857224684212,
+          "previous_fraction": 0.03160569244082828,
+          "current_fraction": 0.03233971411657623,
+          "expected_share": 56.89348559275334,
+          "error_pp": 3.265086654088776,
+          "contribution_pp": 0.10559196895907946,
+          "contrast_change": -1.602625196012641
+        },
+        "other": {
+          "previous_share": 59.1193624232801,
+          "current_share": 55.918103176106584,
+          "previous_fraction": 0.00452759091006181,
+          "current_fraction": 0.008234727964615161,
+          "expected_share": 58.55253476058717,
+          "error_pp": -2.6344315844805877,
+          "contribution_pp": -0.021693827439587723,
+          "contrast_change": -7.658341091494499
+        }
+      },
+      "previous": "2022fed",
+      "raw_trend": 51.936,
+      "raw_trend_ordinary_error_pp": 4.435404294729075
+    },
+    "2024qld": {
+      "seats": 84,
+      "previous_sample_tpp": 53.33683248320948,
+      "current_sample_tpp": 46.35807295368607,
+      "sample_forecast": 47.58489596702931,
+      "forecast": 47.426338292149545,
+      "actual": 46.2,
+      "old_expected_weighted_total": 47.70590043700962,
+      "expected_weighted_total": 47.58489596702931,
+      "reconstructed_error": -1.22682301334324,
+      "ordinary_based_total": 48.55199088646839,
+      "categories": {
+        "ordinary": {
+          "previous_share": 55.78521925069355,
+          "current_share": 50.9005522424573,
+          "previous_fraction": 0.2690719083006926,
+          "current_fraction": 0.26584347368720324,
+          "expected_share": 49.93105969271594,
+          "error_pp": 0.9694925497413607,
+          "contribution_pp": 0.257733267137107,
+          "contrast_change": 0.0
+        },
+        "early": {
+          "previous_share": 52.655537330398126,
+          "current_share": 44.53932986461783,
+          "previous_fraction": 0.42853641505158546,
+          "current_fraction": 0.5003887925397322,
+          "expected_share": 46.782305921372206,
+          "error_pp": -2.2429760567543795,
+          "contribution_pp": -1.122360080734854,
+          "contrast_change": -3.2299805822798557
+        },
+        "postal": {
+          "previous_share": 51.480122553149,
+          "current_share": 42.15985382940937,
+          "previous_fraction": 0.24703227387707347,
+          "current_fraction": 0.16669071446848435,
+          "expected_share": 45.61168954713457,
+          "error_pp": -3.4518357177251957,
+          "contribution_pp": -0.5753889620154463,
+          "contrast_change": -4.475326286784517
+        },
+        "absent": {
+          "previous_share": 54.71739357708355,
+          "current_share": 53.72209770026713,
+          "previous_fraction": 0.04054736261212309,
+          "current_fraction": 0.04629829698916783,
+          "expected_share": 48.85148267695324,
+          "error_pp": 4.8706150233138885,
+          "contribution_pp": 0.225501180869289,
+          "contrast_change": 3.908125511891069
+        },
+        "other": {
+          "previous_share": 55.75762306171298,
+          "current_share": 49.310734076759935,
+          "previous_fraction": 0.014812040158525363,
+          "current_fraction": 0.02077872231541239,
+          "expected_share": 49.90309093164731,
+          "error_pp": -0.5923568548873774,
+          "contribution_pp": -0.012308418599335848,
+          "contrast_change": -1.5619903914928965
+        }
+      },
+      "previous": "2020qld",
+      "raw_trend": 47.473,
+      "raw_trend_ordinary_error_pp": 0.922659957110497
+    },
+    "2023nsw": {
+      "seats": 86,
+      "previous_sample_tpp": 48.61305229503751,
+      "current_sample_tpp": 55.19305884869413,
+      "sample_forecast": 53.931261005926196,
+      "forecast": 52.994304414989436,
+      "actual": 54.26,
+      "old_expected_weighted_total": 53.66846440503621,
+      "expected_weighted_total": 53.93126100592619,
+      "reconstructed_error": 1.2617978427679337,
+      "ordinary_based_total": 55.94774195604668,
+      "categories": {
+        "ordinary": {
+          "previous_share": 49.04821617897949,
+          "current_share": 56.639631584361325,
+          "previous_fraction": 0.6120103687584608,
+          "current_fraction": 0.5062262016124488,
+          "expected_share": 54.62623394898624,
+          "error_pp": 2.0133976353750853,
+          "contribution_pp": 1.0192346372914156,
+          "contrast_change": 0.0
+        },
+        "early": {
+          "previous_share": 46.66738393673678,
+          "current_share": 53.225939969224974,
+          "previous_fraction": 0.22450162656879075,
+          "current_fraction": 0.3290397541724537,
+          "expected_share": 52.2523127897416,
+          "error_pp": 0.9736271794833726,
+          "contribution_pp": 0.32036204779282834,
+          "contrast_change": -1.062984378142735
+        },
+        "postal": {
+          "previous_share": 46.31767535957646,
+          "current_share": 50.51119912032792,
+          "previous_fraction": 0.08181124994922119,
+          "current_fraction": 0.08475650772991122,
+          "expected_share": 51.90148116499674,
+          "error_pp": -1.3902820446688153,
+          "contribution_pp": -0.11783545086572923,
+          "contrast_change": -3.430755357184197
+        },
+        "absent": {
+          "previous_share": 51.96254890528219,
+          "current_share": 58.338524192266554,
+          "previous_fraction": 0.06496448777081575,
+          "current_fraction": 0.062162142675364025,
+          "expected_share": 57.4979847057799,
+          "error_pp": 0.8405394864866551,
+          "contribution_pp": 0.052249735483260666,
+          "contrast_change": -1.1773886031555905
+        },
+        "other": {
+          "previous_share": 57.030236339448486,
+          "current_share": 61.71867973738645,
+          "previous_fraction": 0.01671226695271148,
+          "current_fraction": 0.01781539380982226,
+          "expected_share": 62.404217596623,
+          "error_pp": -0.6855378592365469,
+          "contribution_pp": -0.012213126933841582,
+          "contrast_change": -2.7674838630552183
+        }
+      },
+      "previous": "2019nsw",
+      "raw_trend": 53.28,
+      "postal_without_ivote": {
+        "previous_share": 39.60981459274975,
+        "current_share": 50.51119912032792,
+        "previous_fraction": 0.02975638248465931,
+        "current_fraction": 0.08475650772991122,
+        "expected_share": 45.64361930396098,
+        "error_pp": 4.867579816366941,
+        "contribution_pp": 0.4125590663318645,
+        "contrast_change": 3.4239825402191104
+      },
+      "raw_trend_ordinary_error_pp": 1.7287707341843728
+    },
+    "2022vic": {
+      "seats": 60,
+      "previous_sample_tpp": 56.70588067270097,
+      "current_sample_tpp": 53.670517216782365,
+      "sample_forecast": 53.199509418183766,
+      "forecast": 54.531057652118406,
+      "actual": 55.0,
+      "old_expected_weighted_total": 52.38241767291598,
+      "expected_weighted_total": 53.199509418183766,
+      "reconstructed_error": 0.4710077985985953,
+      "ordinary_based_total": 51.85895563237611,
+      "categories": {
+        "ordinary": {
+          "previous_share": 58.45695783438528,
+          "current_share": 54.45838958006494,
+          "previous_fraction": 0.48377182001938995,
+          "current_fraction": 0.3504969003917419,
+          "expected_share": 55.792574595279476,
+          "error_pp": -1.334185015214537,
+          "contribution_pp": -0.46762771238180423,
+          "contrast_change": 0.0
+        },
+        "early": {
+          "previous_share": 54.704575580821015,
+          "current_share": 53.33838067785729,
+          "previous_fraction": 0.3656950397628845,
+          "current_fraction": 0.49298497090608145,
+          "expected_share": 51.99715391396528,
+          "error_pp": 1.34122676389201,
+          "contribution_pp": 0.6612046371757603,
+          "contrast_change": 2.693575797417947
+        },
+        "postal": {
+          "previous_share": 50.33820835861777,
+          "current_share": 51.321621148915426,
+          "previous_fraction": 0.07545244668177763,
+          "current_fraction": 0.10738555146572529,
+          "expected_share": 47.6196978702384,
+          "error_pp": 3.701923278677029,
+          "contribution_pp": 0.3975330727645386,
+          "contrast_change": 5.052469959620445
+        },
+        "absent": {
+          "previous_share": 61.65226370330305,
+          "current_share": 56.62302207374679,
+          "previous_fraction": 0.06834293030531645,
+          "current_fraction": 0.044498649903113516,
+          "expected_share": 59.049251966169386,
+          "error_pp": -2.4262298924225973,
+          "contribution_pp": -0.10796395456738193,
+          "contrast_change": -1.1394364417014131
+        },
+        "other": {
+          "previous_share": 60.7356608478803,
+          "current_share": 55.493273542600896,
+          "previous_fraction": 0.006737763230631451,
+          "current_fraction": 0.004633927333337862,
+          "expected_share": 58.11270270481309,
+          "error_pp": -2.6194291622121924,
+          "contribution_pp": -0.012138244392517374,
+          "contrast_change": -1.321066365769294
+        }
+      },
+      "previous": "2018vic",
+      "raw_trend": 55.476,
+      "raw_trend_ordinary_error_pp": -2.2767478955363387
+    },
+    "2022fed": {
+      "seats": 150,
+      "previous_sample_tpp": 48.49493322822235,
+      "current_sample_tpp": 52.09987635070284,
+      "sample_forecast": 52.090083126840085,
+      "forecast": 52.12020727499989,
+      "actual": 52.13,
+      "old_expected_weighted_total": 51.38299503903537,
+      "expected_weighted_total": 52.09008312684008,
+      "reconstructed_error": 0.009793223862756977,
+      "ordinary_based_total": 51.05620372296223,
+      "categories": {
+        "ordinary": {
+          "previous_share": 50.44398081512039,
+          "current_share": 53.70577269777445,
+          "previous_fraction": 0.5361300872600891,
+          "current_fraction": 0.4478361647498898,
+          "expected_share": 54.737220564185876,
+          "error_pp": -1.0314478664114262,
+          "contribution_pp": -0.46191965663314977,
+          "contrast_change": 0.0
+        },
+        "early": {
+          "previous_share": 46.21244994959696,
+          "current_share": 50.833144125734755,
+          "previous_fraction": 0.3277825597563398,
+          "current_fraction": 0.3699530972646041,
+          "expected_share": 50.51264182322105,
+          "error_pp": 0.3205023025137024,
+          "contribution_pp": 0.11857081949538131,
+          "contrast_change": 1.3594528743671483
+        },
+        "postal": {
+          "previous_share": 42.391663443229035,
+          "current_share": 49.02369555125798,
+          "previous_fraction": 0.08503923379291622,
+          "current_fraction": 0.14605769559379456,
+          "expected_share": 46.644640862198074,
+          "error_pp": 2.379054689059906,
+          "contribution_pp": 0.3474792455757013,
+          "contrast_change": 3.4228724638729915
+        },
+        "absent": {
+          "previous_share": 53.69104633413241,
+          "current_share": 57.393709327548805,
+          "previous_fraction": 0.040370338317963626,
+          "current_fraction": 0.031636322560925315,
+          "expected_share": 57.93754556258804,
+          "error_pp": -0.5438362350392367,
+          "contribution_pp": -0.017204978552020488,
+          "contrast_change": 0.48195860126875867
+        },
+        "other": {
+          "previous_share": 49.66218896263585,
+          "current_share": 59.0242642478387,
+          "previous_fraction": 0.010677780872691245,
+          "current_fraction": 0.004516719830786164,
+          "expected_share": 53.96134362544882,
+          "error_pp": 5.062920622389882,
+          "contribution_pp": 0.022867793976844606,
+          "contrast_change": 6.193441548698419
+        }
+      },
+      "previous": "2019fed",
+      "raw_trend": 52.656,
+      "raw_trend_ordinary_error_pp": -1.5651148428255084
+    },
+    "2019fed": {
+      "seats": 143,
+      "previous_sample_tpp": 49.37371977801409,
+      "current_sample_tpp": 48.01051696570275,
+      "sample_forecast": 50.26528339430706,
+      "forecast": 50.725291154086776,
+      "actual": 48.47,
+      "old_expected_weighted_total": 49.952624162333805,
+      "expected_weighted_total": 50.26528339430706,
+      "reconstructed_error": -2.254766428604314,
+      "ordinary_based_total": 48.36615613584175,
+      "categories": {
+        "ordinary": {
+          "previous_share": 50.632778843958036,
+          "current_share": 49.93363329614778,
+          "previous_fraction": 0.6253904236802306,
+          "current_fraction": 0.5376392673657299,
+          "expected_share": 51.83698189502437,
+          "error_pp": -1.9033485988765904,
+          "contribution_pp": -1.0233149462415985,
+          "contrast_change": 0.0
+        },
+        "early": {
+          "previous_share": 47.34579549574617,
+          "current_share": 45.75214148389438,
+          "previous_fraction": 0.22951106840973728,
+          "current_fraction": 0.3258677396141188,
+          "expected_share": 48.54870239634819,
+          "error_pp": -2.7965609124538133,
+          "contribution_pp": -0.9113089832345217,
+          "contrast_change": -0.9022417433912173
+        },
+        "postal": {
+          "previous_share": 43.407454107696985,
+          "current_share": 41.87902167788026,
+          "previous_fraction": 0.08815637042175743,
+          "current_fraction": 0.08525968802214967,
+          "expected_share": 44.59504588118453,
+          "error_pp": -2.716024203304272,
+          "contribution_pp": -0.23156737623432985,
+          "contrast_change": -0.863209307895753
+        },
+        "absent": {
+          "previous_share": 53.562454157724595,
+          "current_share": 53.178600835066206,
+          "previous_fraction": 0.04559111325650079,
+          "current_fraction": 0.040548000330755715,
+          "expected_share": 54.759047209035955,
+          "error_pp": -1.5804463739697496,
+          "contribution_pp": -0.06408394009446708,
+          "contrast_change": 0.3135718507580656
+        },
+        "other": {
+          "previous_share": 50.52100381887616,
+          "current_share": 49.43329037979244,
+          "previous_fraction": 0.011351024231773919,
+          "current_fraction": 0.01068530466724591,
+          "expected_share": 51.725333850903816,
+          "error_pp": -2.292043471111377,
+          "contribution_pp": -0.02449118279939691,
+          "contrast_change": -0.38857719319449013
+        }
+      },
+      "previous": "2016fed",
+      "raw_trend": 51.178,
+      "raw_trend_ordinary_error_pp": -2.3565146512735993
+    },
+    "2018vic": {
+      "seats": 76,
+      "previous_sample_tpp": 50.76449575844776,
+      "current_sample_tpp": 56.37463128696843,
+      "sample_forecast": 53.90301902700159,
+      "forecast": 54.83881599096871,
+      "actual": 57.3,
+      "old_expected_weighted_total": 53.72773405715016,
+      "expected_weighted_total": 53.903019027001584,
+      "reconstructed_error": 2.471612259966842,
+      "ordinary_based_total": 57.046370396822745,
+      "categories": {
+        "ordinary": {
+          "previous_share": 51.74855947752004,
+          "current_share": 58.18766809840282,
+          "previous_fraction": 0.5844751478813326,
+          "current_fraction": 0.48105110120418426,
+          "expected_share": 55.05506716324843,
+          "error_pp": 3.132600935154386,
+          "contribution_pp": 1.5069411294892747,
+          "contrast_change": 0.0
+        },
+        "early": {
+          "previous_share": 49.52516695012922,
+          "current_share": 54.31353301579092,
+          "previous_fraction": 0.2597657337060889,
+          "current_fraction": 0.3695118753618521,
+          "expected_share": 52.84519988804937,
+          "error_pp": 1.4683331277415448,
+          "contribution_pp": 0.5425665276877122,
+          "contrast_change": -1.7136506146521735
+        },
+        "postal": {
+          "previous_share": 44.30085365902557,
+          "current_share": 49.91685240649161,
+          "previous_fraction": 0.0862162602227476,
+          "current_fraction": 0.07595364457601267,
+          "expected_share": 47.60094589338724,
+          "error_pp": 2.315906513104366,
+          "contribution_pp": 0.17590154016760184,
+          "contrast_change": -0.8719061582822585
+        },
+        "absent": {
+          "previous_share": 54.56770411463402,
+          "current_share": 61.65070000049663,
+          "previous_fraction": 0.05932434539326876,
+          "current_fraction": 0.066578141372206,
+          "expected_share": 57.838421921294085,
+          "error_pp": 3.8122780792025424,
+          "contribution_pp": 0.2538143889073088,
+          "contrast_change": 0.7754525754245227
+        },
+        "other": {
+          "previous_share": 58.43905409519943,
+          "current_share": 60.524803677456426,
+          "previous_fraction": 0.010218512796562093,
+          "current_fraction": 0.00690523748574497,
+          "expected_share": 61.62705777092792,
+          "error_pp": -1.102254093471494,
+          "contribution_pp": -0.0076113262850552,
+          "contrast_change": -4.3488490674922184
+        }
+      },
+      "previous": "2014vic",
+      "raw_trend": 54.874,
+      "raw_trend_ordinary_error_pp": 3.0973692883770596
+    }
+  },
+  "nsw_seats": {
+    "Ryde": {
+      "ordinary": 51.927558934780116,
+      "early": 48.059807760768955,
+      "postal": 45.189340813464234,
+      "total": 49.94685876239962,
+      "previous_ordinary": 40.93004338394794,
+      "previous_early": 41.14033706095448,
+      "previous_postal": 32.08245243128964,
+      "previous_postal_ivote": 39.273858921161825,
+      "remote_swing_minus_ordinary_pp": -5.082033658529767
+    },
+    "Terrigal": {
+      "ordinary": 51.61154332579619,
+      "early": 46.2499012091994,
+      "postal": 37.93670365803535,
+      "total": 48.77844537023468,
+      "previous_ordinary": 37.79238423970918,
+      "previous_early": 35.212725903614455,
+      "previous_postal": 26.475958612294583,
+      "previous_postal_ivote": 35.304297663686185,
+      "remote_swing_minus_ordinary_pp": -11.186753091737849
+    },
+    "Goulburn": {
+      "ordinary": 51.199040767386094,
+      "early": 46.92901550864248,
+      "postal": 39.49120304327152,
+      "total": 48.70575221238938,
+      "previous_ordinary": 46.4118013712861,
+      "previous_early": 47.592671495526204,
+      "previous_postal": 36.905559276624246,
+      "previous_postal_ivote": 43.67782055078472,
+      "remote_swing_minus_ordinary_pp": -8.973856903613196
+    },
+    "Miranda": {
+      "ordinary": 48.88692891162462,
+      "early": 46.26379734773287,
+      "postal": 42.59589652096343,
+      "total": 47.650717408707436,
+      "previous_ordinary": 34.695383789586685,
+      "previous_early": 35.69620253164557,
+      "previous_postal": 29.06100068540096,
+      "previous_postal_ivote": 35.12725344644751,
+      "remote_swing_minus_ordinary_pp": -6.72290204752202
+    },
+    "Holsworthy": {
+      "ordinary": 49.46908455320079,
+      "early": 49.31856899488927,
+      "postal": 47.92590660057396,
+      "total": 49.627143082434046,
+      "previous_ordinary": 45.43374245891408,
+      "previous_early": 50.38986354775828,
+      "previous_postal": 38.7274155538099,
+      "previous_postal_ivote": 46.254489481785534,
+      "remote_swing_minus_ordinary_pp": -2.3639249754982785
+    },
+    "Oatley": {
+      "ordinary": 49.849872391532806,
+      "early": 48.315441783649874,
+      "postal": 43.871866295264624,
+      "total": 49.20066152149945,
+      "previous_ordinary": 38.90712556782387,
+      "previous_early": 38.16873773708306,
+      "previous_postal": 32.03947368421053,
+      "previous_postal_ivote": 38.759292489105356,
+      "remote_swing_minus_ordinary_pp": -5.830173017549669
+    }
+  }
+}

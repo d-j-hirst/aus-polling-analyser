@@ -32,7 +32,8 @@ AnalysisFrame::AnalysisFrame(ProjectFrame::Refresher refresher, PollingProject* 
 	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Analysis", wxPoint(333, 0), project),
 	refresher(refresher)
 {
-
+	allowDuringLiveRun({ControlId::SelectElection, ControlId::SelectAnalysis,
+		ControlId::TextUp, ControlId::TextDown, ControlId::TextLeft, ControlId::TextRight});
 	refreshToolbar();
 
 	int toolbarHeight = toolBar->GetSize().GetHeight();
@@ -161,6 +162,7 @@ void AnalysisFrame::OnPaint(wxPaintEvent& WXUNUSED(event))
 }
 
 void AnalysisFrame::updateInterface() {
+	applyActivityPolicy();
 }
 
 void AnalysisFrame::refreshToolbar() {
@@ -223,6 +225,7 @@ void AnalysisFrame::refreshToolbar() {
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+	applyActivityPolicy();
 }
 
 void AnalysisFrame::render(wxDC& dc)

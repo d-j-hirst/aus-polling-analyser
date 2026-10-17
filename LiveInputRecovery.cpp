@@ -34,6 +34,7 @@ json describe(Issue const& issue) {
     static std::map<std::string,std::string> const labels{
         {"invalid_fp","Invalid first-preference count"},{"invalid_tcp","Invalid two-candidate count"},
         {"reconciliation_hold","FP/TCP reconciliation hold"},
+        {"historical_preference_limited","Historical preference evidence limited"},
         {"record_exceeds_enrolment","Service FP reaches enrolment"},{"district_exceeds_enrolment","District FP reaches enrolment"},
         {"tcp_district_exceeds_enrolment","District TCP reaches enrolment"},
         {"invalid_summary","Unreadable district summary"},

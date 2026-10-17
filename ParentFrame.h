@@ -27,10 +27,12 @@ public:
 	ParentFrame(const wxString& title);
 
 	wxWindow* accessNotebookPanel();
+	void refreshLiveActivityPolicy() { updateInterface(); }
 
 	friend class ProjectFrame;
 
 private:
+	void OnCloseWindow(wxCloseEvent& event);
 
 	// Calls on the frame to exit. This closes the whole program
 	void OnExit(wxCommandEvent& event);

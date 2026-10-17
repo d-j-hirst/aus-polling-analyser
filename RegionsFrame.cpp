@@ -57,6 +57,7 @@ void RegionsFrame::setupToolBar()
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+	applyActivityPolicy();
 }
 
 void RegionsFrame::setupDataTable()
@@ -213,4 +214,5 @@ void RegionsFrame::updateInterface() {
 	bool somethingSelected = (regionData->GetSelectedRow() != -1);
 	toolBar->EnableTool(ControlId::Edit, somethingSelected);
 	toolBar->EnableTool(ControlId::Remove, somethingSelected);
+	applyActivityPolicy();
 }

@@ -24,6 +24,7 @@ DisplayFrame::DisplayFrame(ProjectFrame::Refresher refresher, PollingProject* pr
 	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Display", wxPoint(333, 0), project),
 	refresher(refresher)
 {
+	allowDuringLiveRun({ControlId::SelectSimulation, ControlId::SelectSavedReport});
 	// *** Toolbar *** //
 
 	// Load the relevant bitmaps for the toolbar icons.
@@ -178,6 +179,7 @@ void DisplayFrame::OnPaint(wxPaintEvent& WXUNUSED(event))
 }
 
 void DisplayFrame::updateInterface() {
+	applyActivityPolicy();
 }
 
 void DisplayFrame::refreshToolbar() {
@@ -227,6 +229,7 @@ void DisplayFrame::refreshToolbar() {
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+	applyActivityPolicy();
 }
 
 void DisplayFrame::refreshSavedReports()
@@ -260,7 +263,7 @@ void DisplayFrame::refreshSavedReports()
 
 	selectSavedReportComboBox->Clear();
 	selectSavedReportComboBox->Append(saveReportArray);
-	selectSavedReportComboBox->SetSelection(selectedSaveReport);
+	selectSavedReportComboBox->SetSelection(selectedSaveReport + 1);
 	selectSavedReportComboBox->SetValue(comboBoxString);
 }
 

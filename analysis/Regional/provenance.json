@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored election-specific regional polling inputs.",
   "created_at_utc": "2026-07-23T23:21:58Z",
-  "updated_at_utc": "2026-10-12T09:37:12Z",
+  "updated_at_utc": "2026-10-13T13:06:22Z",
   "categories": {
     "regional_poll_inputs": {
       "description": "Election-specific regional poll breakdowns used by region_model.py.",
@@ -48,12 +48,12 @@
         "2028fed-polls-ON.csv": {
           "sha256": "017025e5640594f60167876fdc181a69d12118c6e05c94beaa7cfe7bd1a76e90",
           "size_bytes": 2220,
-          "recorded_mtime_utc": "2026-10-12T09:26:37.515036Z"
+          "recorded_mtime_utc": "2026-10-13T10:13:29.805670Z"
         },
         "2028fed-polls.csv": {
           "sha256": "7bcd5451a9ca61316a3e220cc3df455c517e56bb0d036ad05e95ea1a06d98a8e",
           "size_bytes": 3485,
-          "recorded_mtime_utc": "2026-10-12T09:26:41.565731Z"
+          "recorded_mtime_utc": "2026-10-13T10:13:35.396153Z"
         },
         "2028qld-polls-ON.csv": {
           "sha256": "948e26ac2d7c1b3f413d64aec71a58335881f830cea6224d892162a4984ea0c2",
@@ -290,6 +290,29 @@
           "scope": {
             "all": false,
             "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261013T130622Z-other-regional-poll-inputs-437fdbfd",
+          "recorded_at_utc": "2026-10-13T13:06:22Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 8,
+          "provenance_revision": 8,
+          "summary": "re-saved",
+          "files": [
+            "2028fed-polls-ON.csv",
+            "2028fed-polls.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic",
               "2028fed"
             ],
             "parties": [],

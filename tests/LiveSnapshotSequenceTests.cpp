@@ -38,6 +38,21 @@ int main() {
     settings.codes = parseCodes("260321183853\n260321190039\n");
     assert(resolve(available, settings.codes).back().path == folder / "el2026260321190039.xml");
     assert(parseCodes(codeText(settings.codes)) == settings.codes);
+    // Selecting a missing intermediate capture inserts it rather than making
+    // the replay invalid. Re-selecting the same timestamp is harmless, even
+    // when written using the alternative short/full-year convention.
+    auto inserted = settings.codes;
+    insertCode(available, inserted, "260321185746");
+    assert((inserted == std::vector<std::string>{"260321183853", "260321185746", "260321190039"}));
+    insertCode(available, inserted, "20260321185746");
+    assert(inserted.size() == 3);
+    auto fromEmpty = std::vector<std::string>{};
+    insertCode(available, fromEmpty, "260321185746");
+    insertCode(available, fromEmpty, "260321190039");
+    insertCode(available, fromEmpty, "260321183853");
+    assert(fromEmpty == inserted);
+    rejects([&] { insertCode(available, inserted, "260321183854"); });
+    assert(fromEmpty == inserted); // A failed addition preserves the selection.
     // Expansion excludes the starting entry and adds as many later entries as
     // requested or available. Reaching the end never interrupts configuration.
     settings.codes = {"260321183853"};

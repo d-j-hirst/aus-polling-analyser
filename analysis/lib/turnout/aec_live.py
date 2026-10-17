@@ -50,7 +50,7 @@ def integer(text):
     return int(text)
 
 
-def booth_metadata(path):
+def booth_metadata(path, event_id='31496'):
     """Retain the current preload's district, name and booth classification.
 
     Light results contain IDs but often omit names/types. The polling-district
@@ -58,8 +58,11 @@ def booth_metadata(path):
     """
     root = xml_root(path)
     event = root.find('a:PollingDistrictList/e:EventIdentifier', NS).get('Id')
-    if event != '31496':
-        raise ValueError('Current polling-place preload is not Federal 2025.')
+    # The 2025 experiment remains the default caller. Operational preparation
+    # for another federal election supplies its own event explicitly; a preload
+    # for the wrong election must never silently define its booth population.
+    if event != event_id:
+        raise ValueError('Unexpected current polling-place preload event: ' + event)
     result = {}
     for district in root.findall('a:PollingDistrictList/a:PollingDistrict', NS):
         seat = district.findtext('a:PollingDistrictIdentifier/a:Name', namespaces=NS)

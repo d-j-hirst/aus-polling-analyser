@@ -15,6 +15,7 @@ public:
 
 class ModelCollection {
 public:
+	friend class PollingProject; // Explicit worker-context cloning preserves IDs and owner references.
 	typedef int Id;
 	constexpr static Id InvalidId = -1;
 

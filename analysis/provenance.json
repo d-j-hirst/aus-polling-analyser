@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-10-03T06:21:47Z",
+  "updated_at_utc": "2026-10-16T23:04:13Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -516,10 +516,14 @@
         "lib/election_analysis/election_analysis_common.py",
         "lib/election_analysis/election_analysis_parties.py",
         "lib/election_analysis/election_analysis_regions.py",
-        "lib/election_analysis/election_analysis_seats.py"
+        "lib/election_analysis/regional_calibration.py",
+        "scripts/pipeline/regional_analysis.py",
+        "lib/election_analysis/election_analysis_seats.py",
+        "lib/elections/historical_tpp.py",
+        "scripts/diagnostics/collect_historical_tpp.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 5,
+      "semantic_revision": 8,
       "files": {
         "lib/election_analysis/election_analysis_common.py": {
           "sha256": "73592677cc34c03e24f7235fe8858fb04d967201fe287e1abfdf2629bc1b4a94",
@@ -532,19 +536,39 @@
           "recorded_mtime_utc": "2026-10-01T03:39:14.316652Z"
         },
         "lib/election_analysis/election_analysis_regions.py": {
-          "sha256": "2aea864ffb89c5bc992d0e1572699f3f413dc3146cb1715f2cfd851b08085f98",
-          "size_bytes": 14156,
-          "recorded_mtime_utc": "2026-10-01T03:39:14.321651Z"
+          "sha256": "37483e8b908341f764a96e13f0745eb925db263d5555c65e1de572626f1191af",
+          "size_bytes": 1090,
+          "recorded_mtime_utc": "2026-10-16T22:57:53.801965Z"
         },
         "lib/election_analysis/election_analysis_seats.py": {
-          "sha256": "504c743bd20dff8256b95bb13eaa0b83c61fe59cbc27167681d8dab5a4fe51e4",
-          "size_bytes": 32672,
-          "recorded_mtime_utc": "2026-10-01T03:39:14.331758Z"
+          "sha256": "20e6f99145dd1db0a2b5be65d8db12db387f1f0d450cb4094cb1f9b528163181",
+          "size_bytes": 32470,
+          "recorded_mtime_utc": "2026-10-16T21:36:08.689431Z"
+        },
+        "lib/election_analysis/regional_calibration.py": {
+          "sha256": "4c32bbaf7a2ace1cc54439cb9f53e55961ae55b8fa55ae40fd4e78af522d1b2f",
+          "size_bytes": 17381,
+          "recorded_mtime_utc": "2026-10-16T23:03:35.678259Z"
+        },
+        "lib/elections/historical_tpp.py": {
+          "sha256": "a79a353acf64ca7c42ec7d20a56cc3f96068545588d0789a2a0b6740a1446ab7",
+          "size_bytes": 3373,
+          "recorded_mtime_utc": "2026-10-16T21:35:54.796278Z"
+        },
+        "scripts/diagnostics/collect_historical_tpp.py": {
+          "sha256": "4e17b1731002d622635c813ea5497caa123ecbbfbc385b2a1277c5f7aa22cadd",
+          "size_bytes": 2297,
+          "recorded_mtime_utc": "2026-10-16T21:35:55.170799Z"
         },
         "scripts/pipeline/election_analysis.py": {
           "sha256": "51abeb4a6bfe3a05fcb1509e4c97d3b8ef9c8edc587276c07bd78ac07ecb4b0d",
           "size_bytes": 8019,
           "recorded_mtime_utc": "2026-10-01T05:03:09.046112Z"
+        },
+        "scripts/pipeline/regional_analysis.py": {
+          "sha256": "090da9ed33c19b31f6931cd52437203bf2da59cb32af2a264e5d48a12e4783e4",
+          "size_bytes": 3766,
+          "recorded_mtime_utc": "2026-10-16T23:01:16.635099Z"
         }
       },
       "events": [
@@ -825,9 +849,81 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261016T213818Z-coverage_extension-election-analysis-script-99d6c6ee",
+          "recorded_at_utc": "2026-10-16T21:38:18Z",
+          "change_type": "coverage_extension",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 6,
+          "provenance_revision": 7,
+          "summary": "Include official 2007-2025 federal statistical TPP results in historical seat swing analysis without replacing actual TCP contests.",
+          "files": [
+            "lib/election_analysis/election_analysis_seats.py",
+            "lib/elections/historical_tpp.py",
+            "scripts/diagnostics/collect_historical_tpp.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "source": {
+            "description": "AEC final division TPP downloads; per-election URLs and hashes in Data/federal-tpp-history-sources.json"
+          }
+        },
+        {
+          "id": "20261016T230211Z-methodology-election-analysis-script-083adc36",
+          "recorded_at_utc": "2026-10-16T23:02:11Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 7,
+          "provenance_revision": 8,
+          "summary": "Calibrate regional predictive uncertainty on wholly excluded elections, select the polling mixture with inner exclusions, and pool state variance adjustments; add standalone regional regeneration.",
+          "files": [
+            "lib/election_analysis/election_analysis_regions.py",
+            "lib/election_analysis/regional_calibration.py",
+            "scripts/pipeline/regional_analysis.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2022fed",
+              "2025fed",
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261016T230413Z-methodology-election-analysis-script-cc06ce8e",
+          "recorded_at_utc": "2026-10-16T23:04:13Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 8,
+          "provenance_revision": 9,
+          "summary": "Separate regional predictor stages and validate contrast inputs; finalise the excluded-election regional calibration implementation.",
+          "files": [
+            "lib/election_analysis/regional_calibration.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2022fed",
+              "2025fed",
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 6
+      "provenance_revision": 9
     },
     "poll_transform_script": {
       "description": "Vote-share transforms and bounds shared by Python analysis stages.",

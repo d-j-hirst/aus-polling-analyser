@@ -141,9 +141,12 @@ void LiveSnapshotSequenceDialog::preview() {
 void LiveSnapshotSequenceDialog::addSelected() {
     int index = availableList->GetSelection();
     if (index == wxNOT_FOUND) return;
-    auto text = sequenceInput->GetValue();
-    if (!text.empty() && !text.EndsWith("\n")) text += "\n";
-    sequenceInput->SetValue(text + wxString::FromUTF8(*available.at(std::size_t(index)).timestamp));
+    try {
+        auto codes = LiveSnapshotSequence::parseCodes(sequenceInput->GetValue().ToStdString());
+        LiveSnapshotSequence::insertCode(available, codes, *available.at(std::size_t(index)).timestamp);
+        sequenceInput->SetValue(wxString::FromUTF8(LiveSnapshotSequence::codeText(codes)));
+    }
+    catch (std::exception const& error) { status->SetLabel(wxString::FromUTF8(error.what())); }
 }
 
 void LiveSnapshotSequenceDialog::addNext() {

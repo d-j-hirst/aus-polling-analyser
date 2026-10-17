@@ -325,6 +325,22 @@ void checkRegistry() {
     assert(summary.at("affected_records") == 2 && summary.at("affected_districts") == 1);
     assert(summary.at("record") == "First" && summary.at("impact_votes") == 100);
     assert(registry.details().size() == 2);
+
+    // Historical evidence notices use the same persistent grouping, without
+    // labelling a genuine extreme flow as a malformed current count.
+    Registry historical;
+    Issue limited{"historical_preference_limited","North/ordinary/A","North","A",
+        "Previous FP: ALP 600, LNP 300, GRN 100. Previous TCP: ALP 697, LNP 300.",
+        "Check historical counts; counted TCP is retained.","2026-03-30T10:00:00",30,false,{},{}};
+    historical.add(limited); historical.add(limited);
+    limited.key="South/ordinary/B"; limited.district="South"; limited.name="B";
+    limited.impact=40; historical.add(limited);
+    auto row=historical.summary().at(0);
+    assert(row.at("label")=="Historical preference evidence limited");
+    assert(row.at("affected_records")==2 && row.at("affected_districts")==2);
+    assert(row.at("record")=="B" && !row.at("routine").get<bool>());
+    assert(row.at("rejected_total").is_null() && row.at("effective_total").is_null());
+    assert(historical.details().at(0).at("explanation").get<std::string>().find("Previous FP:")!=std::string::npos);
 }
 
 void checkFailedUpdateTransaction(std::filesystem::path const& folder) {

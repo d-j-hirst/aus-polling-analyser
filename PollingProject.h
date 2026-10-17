@@ -50,6 +50,12 @@ public:
 
 	~PollingProject();
 
+	// A live job owns its input collections. Their owner references must point
+	// at the new context, not the GUI project; retained runs are never copied.
+	std::unique_ptr<PollingProject> createLiveRunContext(std::vector<Simulation::Id> const& ids) const;
+	SeatCollection::SeatContainer liveSeatValues() const;
+	void publishLiveSeats(SeatCollection::SeatContainer values);
+
 	// Gets the name of the project.
 	std::string getName() const { return name; }
 
@@ -158,6 +164,7 @@ public:
 	void invalidateSimulationsFromProjection(Projection::Id projectionId);
 
 private:
+	void copyLiveRunInputsTo(PollingProject& target, std::vector<Simulation::Id> const& ids) const;
 
 	// Basic constructor that handles everything required by the project regardless of whether
 	// it is a new or existing project.

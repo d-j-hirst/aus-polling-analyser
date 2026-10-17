@@ -3,11 +3,13 @@
 #include "CountProgress.h"
 #include "LiveSimulationMath.h"
 #include "IndependentCandidacy.h"
+#include "CoalitionCandidacy.h"
 #include "LiveTurnoutMath.h"
 #include "MajorPartyFpMath.h"
 #include "SpecialPartyCodes.h"
 #include "PollingProject.h"
 #include "RandomGenerator.h"
+#include "RegionalSwingMath.h"
 #include "Simulation.h"
 #include "SimulationRun.h"
 #include "SourceLocation.h"
@@ -847,15 +849,19 @@ void SimulationIteration::determineBaseRegionalSwing(int regionIndex)
 		auto const& pollBehaviour = run.regionPollBehaviour.at(regionIndex);
 		auto const mixBehaviour = getAt(run.regionMixBehaviour, regionIndex,
 			SimulationRun::RegionMixBehaviour{});
-		float pollCoeff = pollBehaviour.overallSwingCoeff;
-		// Halve this as rough fudge factor for the fact it isn't backtested.
-		float pollIntercept = pollBehaviour.baseSwingDeviation * 0.5f;
-		float pollMedianDeviation = pollCoeff * pollRawDeviation + pollIntercept;
+		// Match the excluded-election calibration's partially pooled mean.
+		// National uncertainty remains in iterationOverallSwing; this estimates
+		// only the state's departure from that common national movement.
+		float pollMedianDeviation = float(RegionalSwingMath::pollingDeviation(
+			pollBehaviour.overallSwingCoeff, pollBehaviour.baseSwingDeviation,
+			run.generalPollBehaviour.overallSwingCoeff,
+			run.generalPollBehaviour.baseSwingDeviation, pollRawDeviation));
 		float naiveDeviation = medianNaiveSwing - iterationOverallSwing;
 		float mixCoeff = run.regionMixParameters.mixFactorA;
 		float mixTimeFactor = run.regionMixParameters.mixFactorB;
-		float quartersToElection = daysToElection / 91.315f;
-		float mixFactor = mixCoeff * exp(-mixTimeFactor * quartersToElection);
+		float quartersToElection = float(RegionalSwingMath::quartersUntilElection(daysToElection));
+		float mixFactor = float(RegionalSwingMath::pollingWeight(
+			mixCoeff, mixTimeFactor, quartersToElection));
 		float mixedDeviation = mix(naiveDeviation, pollMedianDeviation, mixFactor);
 		mixedDeviation -= mixBehaviour.bias;
 		float rmseCoeff = run.regionMixParameters.rmseA;
@@ -1852,14 +1858,14 @@ void SimulationIteration::determineNationalsShare(int seatIndex)
 	if (runningParties.empty() && !seat.coalitionCandidates.empty()) {
 		auto candidateRuns = [&](std::string const& partyCode,
 			int partyIndex) {
-			auto const candidate = seat.coalitionCandidates.find(partyCode);
-			if (candidate == seat.coalitionCandidates.end() ||
-				candidate->second <= 0.0f) return false;
-			if (candidate->second >= 1.0f) return true;
+			float const chance = CoalitionCandidacy::candidateChance(
+				runningParties,seat.coalitionCandidates,partyCode);
+			if (chance <= 0.0f) return false;
+			if (chance >= 1.0f) return true;
 			return variabilityUniform(
 				0.0f, 1.0f, seatIndex, partyIndex,
 				uint32_t(VariabilityTag::CoalitionCandidateParticipation)) <
-				candidate->second;
+					chance;
 		};
 		bool const majorCoalitionRuns =
 			candidateRuns(majorCoalitionCode, Mp::Two);
@@ -3367,6 +3373,40 @@ void SimulationIteration::incorporateLiveResults()
 			"Live result incorporation requires a generated live scenario.");
 	}
 
+	incorporateLiveTpp();
+
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex)
+		incorporateLiveSeatFp(seatIndex);
+}
+
+void SimulationIteration::incorporateLiveTpp()
+{
+	std::vector<double> prior;
+	for (float margin : partyOneNewTppMargin) prior.push_back(transformVoteShare(margin + 50.f));
+	auto conditioned = liveElection->integrateTpp(prior);
+	if (!conditioned) {
+		incorporateLegacyLiveTpp();
+		return;
+	}
+	if (conditioned->size() != prior.size()) throw InvalidIteration();
+	for (int s = 0; s < project.seats().count(); ++s) {
+		if (!std::isfinite(conditioned->at(s))) throw InvalidIteration();
+		double share = detransformVoteShare(float(conditioned->at(s)));
+		auto const& seat = project.seats().viewByIndex(s);
+		if (auto account = liveElection->getSeatVoteCountAccount(seat.name, LiveData::CountKind::Tpp)) {
+			// Conditioning already specifies the full-seat draw. Project only if
+			// counted lower bounds require it; another remaining-pool blend would
+			// distort the covariance and double the effect of ordinary evidence.
+			auto partition = LiveTurnoutMath::partitionAccount(*account, [](int party) { return party; });
+			auto shares = LiveFpIntegration::constrainToCounted(partition, {{0, share}, {1, 100 - share}});
+			share = shares.at(0);
+		}
+		partyOneNewTppMargin[s] = float(share - 50);
+	}
+}
+
+void SimulationIteration::incorporateLegacyLiveTpp()
+{
 	// Blend the prior seat TPP toward the live baseline, then add the independent
 	// election, region and seat deviations supplied by LiveV2. Deviations are
 	// additive on the transformed vote-share scale.
@@ -3422,8 +3462,6 @@ void SimulationIteration::incorporateLiveResults()
 		}
 	}
 
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex)
-		incorporateLiveSeatFp(seatIndex);
 }
 
 void SimulationIteration::prepareLiveFpCandidates(int seatIndex, LiveTurnoutMath::PartyAccount const& account)
@@ -4313,6 +4351,7 @@ void SimulationIteration::recordElectionTppVotes()
 
 void SimulationIteration::recordIterationResults()
 {
+	recordLiveTppBaseline();
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		recordSeatResult(seatIndex);
 		recordSeatPartyWinner(seatIndex);
@@ -4331,6 +4370,18 @@ void SimulationIteration::recordIterationResults()
 	recordSwingFactors();
 	recordMajorityResult();
 	recordPartySeatWinCounts();
+}
+
+void SimulationIteration::recordLiveTppBaseline()
+{
+	if (!recordedRun.doingLiveBaselineSimulation) return;
+	// Record one joint draw under the result mutex, never independent seat
+	// marginals. These are the same TPP draws reaching the live handoff, before
+	// observations; winner resolution does not change them.
+	std::vector<double> draw;
+	for (auto margin : partyOneNewTppMargin)
+		draw.push_back(transformVoteShare(margin + 50.f));
+	recordedRun.liveBaselineTppMoments.add(draw);
 }
 
 void SimulationIteration::recordVoteTotals()

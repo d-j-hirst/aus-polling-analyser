@@ -68,15 +68,18 @@ run_test()
 run_test DateTests
 run_test ForecastSpecificationTests
 run_test LiveDataTests
+run_test LiveTppCompositionTests
 run_test LivePreferenceCorrectionTests
 run_test LiveResultsInputTests
 run_test LiveRunExportTests
 run_test LiveAnalysisArchiveTests
 run_test LiveSnapshotSequenceTests
 run_test LiveSnapshotDataTests
+run_test ResponsiveLiveTests
 run_test MacroTargetResolverTests
 run_test MajorPartyFpMathTests
 run_test RandomGeneratorTests
+run_test RegionalSwingMathTests
 run_test SharedInputLookupTests
 run_test TerminalMacroFeedbackTests
 run_test LiveInputRecoveryTests "$ROOT_DIRECTORY"

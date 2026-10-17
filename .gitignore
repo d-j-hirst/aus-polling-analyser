@@ -384,6 +384,8 @@ analysis/betting_odds/tab-current.json
 /docs/planning/
 /docs/*-plan.md
 /downloads/turnout/
+# Downloaded category research responses and their hashed metadata are caches.
+/downloads/category-tpp-research/
 # Authorised live feeds and their close derivatives remain operator-local.
 /downloads/**/*.xml
 /downloads/**/*.XML

@@ -45,6 +45,7 @@ MapFrame::MapFrame(ProjectFrame::Refresher refresher, PollingProject* project)
 	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Map", wxPoint(333, 0), project),
 	refresher(refresher)
 {
+	allowDuringLiveRun({ControlId::SelectSeat, ControlId::ColourMode, ControlId::ShowPpvc});
 	refreshToolbar();
 	createDcPanel();
 	Layout();
@@ -64,7 +65,15 @@ void MapFrame::resetMouseOver() {
 }
 
 void MapFrame::refreshData() {
-	refreshToolbar();
+    int seat = selectedSeat, colour = selectedColourMode;
+    bool ppvcs = displayPpvcs;
+    refreshToolbar();
+    selectedSeat = std::clamp(seat, 0, int(selectSeatComboBox->GetCount())-1);
+    selectedColourMode = std::clamp(colour, 0, int(colourModeComboBox->GetCount())-1);
+    selectSeatComboBox->SetSelection(selectedSeat);
+    colourModeComboBox->SetSelection(selectedColourMode);
+    displayPpvcs = ppvcs; toolBar->ToggleTool(ControlId::ShowPpvc, ppvcs);
+    paint();
 }
 
 void MapFrame::refreshToolbar() {
@@ -109,6 +118,7 @@ void MapFrame::refreshToolbar() {
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+	applyActivityPolicy();
 }
 
 wxArrayString MapFrame::collectColourModeStrings() const
@@ -476,6 +486,7 @@ void MapFrame::OnPaint(wxPaintEvent& WXUNUSED(event))
 }
 
 void MapFrame::updateInterface() {
+	applyActivityPolicy();
 }
 
 void MapFrame::render(wxDC& dc) {

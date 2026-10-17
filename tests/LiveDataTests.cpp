@@ -1,22 +1,350 @@
 #include "../LiveData.h"
 #include "../LiveSimulationMath.h"
 #include "../IndependentCandidacy.h"
+#include "../CoalitionCandidacy.h"
 #include "../LivePartyMapping.h"
 #include "../LivePartialCount.h"
 #include "../LiveNewVotes.h"
 #include "../LiveFpEvidence.h"
 #include "../LiveFpIntegration.h"
+#include "../LiveEstimatedTpp.h"
+#include "../LiveTppSensitivity.h"
 #include "../LiveTurnoutMath.h"
 
 #include <cassert>
 #include <cmath>
 #include <iostream>
 
+void testJointTppIntegration()
+{
+    using namespace LiveTppIntegration;
+    // Ten independent seat priors and a perfectly shared error in the count.
+    // A local 50:50 blend would WIDEN the national SD (.316 -> .524).
+    Moments prior{Vector(11,0),Matrix(11,Vector(11,0))};
+    for (int i=0;i<11;++i) prior.covariance[i][i]=1;
+    std::vector<Observation> rows;
+    for (int i=0;i<10;++i) {
+        Observation row{Vector(11,0),2,1e-8};
+        row.h[i]=1; row.h[10]=1; rows.push_back(row);
+    }
+    auto joint=prepare(prior,rows);
+    double nationalVariance=0;
+    for (int i=0;i<10;++i) for (int j=0;j<10;++j)
+        nationalVariance+=joint.posterior.covariance[i][j]/100;
+    assert(std::abs(nationalVariance-1./11)<1e-8);
+    assert(std::abs(joint.posterior.mean[0]-2./11)<1e-8);
+
+    // T = total TPP, P = PPVC-minus-ordinary, D = declaration-minus-ordinary.
+    // Ordinary counting constrains T without assuming P/D are already known.
+    Moments category{{0,0,0},{{1.79*1.79,0,0},{0,25,0},{0,0,25}}};
+    double previous=category.covariance[0][0];
+    for (double sd : {20.,4.,2.,1.,.25}) {
+        auto update=prepare(category,{{{1,-.31,-.24},-2,sd*sd}});
+        double variance=update.posterior.covariance[0][0];
+        assert(variance<previous); previous=variance;
+        assert(update.posterior.mean[0]<0 && update.posterior.mean[0]>-2);
+        // Identical cumulative inputs always start from the fixed prior.
+        assert(prepare(category,{{{1,-.31,-.24},-2,sd*sd}}).posterior.mean==update.posterior.mean);
+    }
+    auto ordinary=prepare(category,{{{1,-.31,-.24},-2,.0625}});
+    assert(std::abs(std::sqrt(ordinary.posterior.covariance[0][0])-1.327)<.002);
+    auto more=prepare(category,{{{1,-.31,-.24},-2,.0625},{{1,.69,-.24},1,1}});
+    assert(more.posterior.covariance[0][0]<ordinary.posterior.covariance[0][0]);
+    assert(ordinary.posterior.covariance[1][1]>16); // Most PPVC uncertainty remains.
+    auto noData=prepare(category,{});
+    assert(condition(noData,{3,4,5},[](auto){assert(false);return 0.;})==Vector({3,4,5}));
+
+    // Verify the actual draw transform, including all covariance entries, with
+    // an exact finite orthogonal ensemble (no Monte Carlo tolerance/seed luck).
+    Moments two{{2,-1,0},{{4,2,0},{2,4,0},{0,0,9}}};
+    std::vector<Observation> observations{{{1,0,-.3},-3,4},{{0,1,-.2},2,1}};
+    auto update=prepare(two,observations);
+    Accumulator measured;
+    for (int axis=0;axis<5;++axis) for (double sign : {-1.,1.}) {
+        Vector z(5,0);z[axis]=sign*std::sqrt(5.);
+        Vector draw{2+2*z[0],-1+z[0]+std::sqrt(3.)*z[1],3*z[2]};
+        measured.add(condition(update,draw,[&](std::size_t i){return z[3+i];}));
+    }
+    auto actual=measured.finish();
+    for (int i=0;i<3;++i) {
+        assert(std::abs(actual.mean[i]-update.posterior.mean[i])<1e-10);
+        for (int j=0;j<3;++j)
+            assert(std::abs(actual.covariance[i][j]-update.posterior.covariance[i][j])<1e-10);
+    }
+    std::reverse(observations.begin(),observations.end());
+    auto reversed=prepare(two,observations);
+    for (int i=0;i<3;++i) {
+        assert(std::abs(reversed.posterior.mean[i]-update.posterior.mean[i])<1e-10);
+        for (int j=0;j<3;++j)
+            assert(std::abs(reversed.posterior.covariance[i][j]-update.posterior.covariance[i][j])<1e-10);
+    }
+
+    CategoryEvidence empty, tiny, many, one, complete, inconsistent;
+    empty.add(10000,0,1,0,0,10); assert(empty.weight==0 && empty.expected==10000);
+    tiny.add(10000,80,1,3,1,10);
+    assert(tiny.variance()>100); // One tiny location cannot override the prior.
+    one.add(10000,5000,1,3,0,10);
+    for(int i=0;i<10;++i) many.add(1000,500,1,3,0,10);
+    assert(many.variance()<one.variance()/9);
+    complete.add(10000,10000,1,3,0,10);assert(complete.variance()==.0001);
+    inconsistent.add(5000,2000,1,-30,0,10);
+    inconsistent.add(5000,2000,1,30,0,10);
+    assert(inconsistent.variance()>one.variance());
+    bool rejected=false;
+    try {prepare(two,{{{1,0,0},0,-1}});} catch(std::logic_error const&){rejected=true;}
+    assert(rejected);
+
+    // FP ahead of preferences remains evidence: preserve the 100 actual TCP
+    // votes and the retained cohort's allocation of the other 900 primaries.
+    auto partial=receivedComparison(1000,100,40,0,540,false).value();
+    assert(partial.votes==1000 && partial.inferredFraction==.9);
+    assert(std::abs(partial.transformedShare-25*std::log(580.25/420.25))<1e-10);
+    auto exhausted=receivedComparison(1000,800,400,0,0,true).value();
+    assert(exhausted.votes==800 && exhausted.inferredFraction==0 && exhausted.transformedShare==0);
+    auto fpOnly=receivedComparison(80,0,0,3,{},false).value();
+    assert(fpOnly.votes==80 && fpOnly.inferredFraction==1 && fpOnly.transformedShare==3);
+    assert(!receivedComparison(0,0,0,0,{},false));
+    auto permittedExcess=receivedComparison(995,1000,500,0,{},false).value();
+    assert(permittedExcess.votes==1000 && permittedExcess.inferredFraction==0);
+    auto genuineZero=receivedComparison(100,100,0,{}, {},false).value();
+    assert(std::isfinite(genuineZero.transformedShare) && genuineZero.transformedShare<0);
+    assert(genuineZero.samplingVariance>2500);
+    assert(receivedComparison(100,100,50,{}, {},false)->samplingVariance<25);
+    LiveTurnoutMath::PartyAccount fixed;
+    fixed.counted={{0,60},{1,40}};fixed.projected={{0,60},{1,40}};
+    auto constrained=LiveFpIntegration::constrainToCounted(fixed,{{0,1},{1,99}});
+    assert(constrained.at(0)==60 && constrained.at(1)==40);
+}
+
 static_assert(int(LiveData::VoteType::Invalid) == 0);
 static_assert(int(LiveData::VoteType::TIO) == 12);
 static_assert(int(LiveData::VoteType::MarkedAsVoted) == 13);
 static_assert(int(LiveData::BoothType::Normal) == 0);
 static_assert(int(LiveData::BoothType::Invalid) == 6);
+
+void testTppCategorySensitivity()
+{
+    using B = LiveData::BoothType;
+    using V = LiveData::VoteType;
+    using LiveTppSensitivity::prepare;
+    // Fictional centres have 10,000 votes awaiting TPP. Ordinary booths do
+    // not inherit the PPVC error, and a zero-sized/closed centre adds nothing.
+    std::vector<LiveTppSensitivity::Unit> units{
+        {B::Ppvc,V::Ordinary,6000,false},
+        {B::Ppvc,V::Ordinary,4000,false},
+        {B::Normal,V::Ordinary,2000,false},
+        {B::Ppvc,V::Ordinary,0,false},
+        {B::Hospital,V::Ordinary,100,false},
+        {B::Other,V::Postal,3000,false},
+    };
+    auto first = prepare(units,false);
+    assert(first.boothTypes.at(B::Ppvc) == 10000);
+    assert(first.boothTypes.at(B::Hospital) == 100);
+    assert(first.boothTypes.size() == 2 && first.voteTypes.empty());
+    // FP evidence refreshes the pair projections after initial preparation.
+    // Rebuilding at that boundary must replace, not double, their exposure.
+    auto refreshed = first;
+    for (int pass = 0; pass < 3; ++pass) refreshed = prepare(units,false);
+    assert(refreshed.boothTypes == first.boothTypes);
+    assert(refreshed.voteTypes == first.voteTypes);
+    double categorySd = 5, previousSeatVotes = 50000;
+    assert(std::abs(categorySd*refreshed.boothTypes.at(B::Ppvc)/previousSeatVotes-1) < 1e-9);
+
+    // Once direct classic TCP arrives, retain the existing direct-count path
+    // even if only part of that centre has preferences. Replace stale weights
+    // as well when the turnout target for another centre changes.
+    units[0].hasObservedTpp = true;
+    units[1].expectedVotes = 3500;
+    refreshed = prepare(units,false);
+    assert(refreshed.boothTypes.at(B::Ppvc) == 3500);
+    units[1].hasObservedTpp = true;
+    refreshed = prepare(units,false);
+    assert(!refreshed.boothTypes.contains(B::Ppvc));
+    assert(refreshed.boothTypes.at(B::Hospital) == 100);
+
+    // Optional-preferential declaration categories retain their old routing.
+    // A special booth type takes precedence, so one unit never counts twice.
+    auto optional = prepare(units,true);
+    assert(optional.voteTypes.at(V::Postal) == 3000);
+    std::vector<LiveTppSensitivity::Unit> unusual{
+        {B::Ppvc,V::PrePoll,500,false}, {B::Invalid,V::Invalid,700,false}};
+    optional = prepare(unusual,true);
+    assert(optional.boothTypes.at(B::Ppvc) == 500 && optional.voteTypes.empty());
+    auto empty = prepare({},false);
+    assert(empty.boothTypes.empty() && empty.voteTypes.empty());
+}
+
+void testRawTppSwing()
+{
+    LiveData::RawTppSwing raw;
+    assert(!raw.value());
+    // Fictional booths swing +10 and -10 points. Their current TCP sizes,
+    // rather than the previous election's sizes or model estimates, weight
+    // the result: (100*10 + 300*-10)/400 = -5 points.
+    raw.add({{0,60},{1,40}},{{0,500},{1,500}},10);
+    raw.add({{0,120},{10,180}},{{0,50},{10,50}},10);
+    assert(std::abs(*raw.value()+5) < .00001);
+    // Without a separately supplied FP comparison, non-classic pairings,
+    // absent/zero records and missing comparisons supply no raw swing.
+    raw.add({{0,90},{6,10}},{{0,50},{1,50}},10);
+    raw.add({{0,90},{1,10}},{{0,50},{2,50}},10);
+    raw.add({{0,0},{1,0}},{{0,50},{1,50}},10);
+    raw.add({{0,90},{1,10}},{},10);
+    assert(raw.countedVotes == 400);
+    assert(std::abs(*raw.value()+5) < .00001);
+    LiveData::RawTppSwing unanimous;
+    unanimous.add({{0,0},{1,80}},{{0,40},{1,40}},-1);
+    assert(*unanimous.value() == -50); // Genuine endpoints need no display smoothing.
+
+    // Early booth updates normally contain FP before TCP. Their unblended
+    // primary-derived TPP comparisons must be visible, with current FP weights.
+    LiveData::RawTppSwing early;
+    early.add({},{{0,500},{1,500}},10,100,60);
+    early.add({{0,0},{1,0}},{{0,50},{1,50}},10,300,40);
+    assert(early.countedVotes == 400 && *early.value() == -5);
+    // Both historical and current non-classic pairings can use the existing
+    // hypothetical Labor/Coalition shares derived from their measured FP.
+    LiveData::RawTppSwing hypothetical;
+    hypothetical.add({{6,70},{1,30}},{{0,20},{6,80}},10,200,55,52);
+    assert(hypothetical.countedVotes == 200 && *hypothetical.value() == 3);
+    // Direct TCP always takes precedence, without giving those votes a second
+    // FP weight or replacing their recorded share with an inferred value.
+    LiveData::RawTppSwing direct;
+    direct.add({{0,45},{1,55}},{{0,50},{1,50}},10,300,80,70);
+    assert(direct.countedVotes == 100 && *direct.value() == -5);
+    LiveData::RawTppSwing historicalFp;
+    historicalFp.add({{0,60},{1,40}},{},10,300,80,52);
+    assert(historicalFp.countedVotes == 100 && *historicalFp.value() == 8);
+
+    // A first 100-vote TCP batch must not replace a 10,000-vote FP account.
+    // Reuse the forecast's pending-preference allocator, rather than putting
+    // an arbitrary confidence weight on a whole-record TCP share.
+    using namespace LivePartialCount;
+    Counts fp{{0,4000},{1,4000},{2,2000}}, tinyTcp{{0,80},{1,20}};
+    Flows flows{{0,1},{1,0},{2,.8}};
+    double pending = pendingFirst(fp,tinyTcp,flows,0,{},0,1);
+    LiveData::RawTppSwing partial;
+    partial.add(tinyTcp,{{0,500},{1,500}},10,10000,80,{},pending);
+    assert(partial.countedVotes == 10000);
+    assert(std::abs(*partial.value()-6.24) < .00001); // 80 + 9,900*.56.
+    // Other FP-only booths retain their own weight independently of that TCP.
+    partial.add({},{{0,500},{1,500}},10,20000,50);
+    assert(partial.countedVotes == 30000);
+    assert(std::abs(*partial.value()-2.08) < .00001);
+    // Retained matched cohorts use the same residual primary composition and
+    // preference-flow evidence in this display as they do in the forecast.
+    Counts cohortFp{{0,40},{1,40},{2,20}}, cohortTcp{{0,56},{1,44}};
+    auto cohort = measure(cohortFp,cohortTcp,flows,0,1,true);
+    auto allocation = pendingFirst(fp,cohortTcp,flows,0,cohort,0,1);
+    LiveData::RawTppSwing matched;
+    matched.add(cohortTcp,{{0,500},{1,500}},10,10000,56,{},allocation);
+    assert(std::abs(*matched.value()-(56+allocation)/100+50) < .00001);
+    // On completion the pending pool is empty; use recorded TCP exactly,
+    // preserving a single 10,000-vote denominator and genuine FP/TCP differences.
+    LiveData::RawTppSwing complete;
+    complete.add({{0,5300},{1,4700}},{{0,50},{1,50}},10,10000,80,{},0);
+    assert(complete.countedVotes == 10000 && *complete.value() == 3);
+    LiveData::RawTppSwing smallExcess;
+    smallExcess.add({{0,5301},{1,4700}},{{0,50},{1,50}},10,10000,80);
+    assert(smallExcess.countedVotes == 10001);
+    // No received votes or no historical comparison remains blank, rather
+    // than presenting a baseline forecast as an observed result.
+    LiveData::RawTppSwing absent;
+    absent.add({},{{0,50},{1,50}},10,0,60);
+    absent.add({},{{0,50},{1,50}},10,100);
+    absent.add({},{},10,100,60);
+    absent.add({},{{0,50},{1,50}},10,100,std::numeric_limits<double>::quiet_NaN());
+    assert(!absent.value());
+}
+
+void testEstimatedTppSourceInfluence()
+{
+    using namespace LiveEstimatedTpp;
+    auto evidenceFor = [](double fp, double tpp = 0, bool opv = false) {
+        Evidence evidence;
+        evidence.add({100000,fp,tpp,fp/100000,tpp/100000,1,true,opv});
+        return evidence;
+    };
+
+    // Selected finalists with zero votes, including an ALP/NAT pair, contain
+    // exactly the same evidence as an empty map. Non-classic TCP is never an
+    // observed Labor/Coalition count; a genuine zero for one finalist is valid.
+    for (std::map<int,int> tcp : {std::map<int,int>{},{{0,0},{1,0}},{{0,0},{10,0}},{{6,80},{1,120}}}) {
+        Evidence none = evidenceFor(0,observedTppVotes(tcp,10));
+        assert(none.influence() == 0);
+        assert(evidenceFor(20000,observedTppVotes(tcp,10)).influence() == evidenceFor(20000).influence());
+    }
+    assert(observedTppVotes(std::map<int,int>{{0,0},{1,80}},10) == 80);
+    assert(observedTppVotes(std::map<int,int>{{0,30},{10,50}},10) == 80);
+    assert(observedTppVotes(std::map<int,int>{{1,30},{10,50}},10) == 0);
+
+    // A first ordinary 80-vote booth in a 100,000-vote seat is not a full-strength
+    // conversion estimate. Its completion/confidence is one locally, but every
+    // unreported booth must remain in the seat denominator.
+    Evidence tiny;
+    tiny.add({80,80,0,1,0,1,true});
+    tiny.add({99920,0,0,0,0,1,false});
+    assert(std::abs(tiny.influence()-evidenceFor(80).influence()) < 1e-10);
+    assert(tiny.influence() > 0 && tiny.influence() < .001);
+    assert(evidenceFor(1).influence() < tiny.influence());
+    assert(evidenceFor(1000).influence() > tiny.influence());
+    assert(evidenceFor(20000).influence() > evidenceFor(1000).influence());
+
+    // Partial declarations and FP ahead of preferences have the same source
+    // distinction. Advancing actual classic TPP displaces inferred evidence
+    // continuously; the first TCP vote cannot turn off the whole seat's error.
+    double previous = evidenceFor(20000).influence();
+    for (int tpp = 1; tpp <= 20000; ++tpp) {
+        auto partial = evidenceFor(20000,tpp);
+        assert(partial.influence() <= previous+1e-12);
+        assert(previous-partial.influence() < .001);
+        previous = partial.influence();
+    }
+    assert(previous == 0);
+    auto midway = evidenceFor(20000,10000);
+    assert(midway.inferredEvidenceVotes == 5000);
+    assert(midway.observedEvidenceVotes == 10000);
+    assert(midway.influence() > 0 && midway.influence() < evidenceFor(20000).influence());
+    assert(evidenceFor(1000,1005).influence() == 0); // Permitted small TCP excess.
+    assert(evidenceFor(0,1000).influence() == 0); // Direct TPP can arrive first.
+
+    // Quality-weighted evidence survives aggregation without overwriting the
+    // unreported denominator or letting a zero candidate declaration add weight.
+    Evidence mixed;
+    mixed.add({10000,10000,0,1,0,1,true});
+    mixed.add({10000,10000,10000,1,1,1,true});
+    mixed.add({80000,0,0,0,0,1,false});
+    assert(mixed.expectedVotes == 100000);
+    assert(mixed.inferredEvidenceVotes == 5000 && mixed.observedEvidenceVotes == 10000);
+    assert(std::abs(mixed.inferredShare()-1./3) < 1e-12);
+    Evidence discounted;
+    discounted.add({100000,20000,0,.2,0,.1,true});
+    assert(discounted.influence() < evidenceFor(20000).influence());
+    Evidence noComparison;
+    noComparison.add({100000,20000,0,.2,0,1,false});
+    assert(noComparison.influence() == 0);
+    Evidence closed;
+    closed.add({0,0,0,0,0,1,false});
+    assert(closed.expectedVotes == 0 && closed.influence() == 0);
+
+    // Exhaustion is not pending preferences. The retained OPV path uses the
+    // measured continuing-vote share when available and needs no extra FP gap.
+    assert(evidenceFor(20000,18000,true).influence() == 0);
+    assert(evidenceFor(20000,0,true).influence() > 0);
+    assert(evidenceFor(100000).influence() > .99); // Complete FP still is not TPP.
+
+    // Shared errors retain their common draw with seat-specific coefficients;
+    // counted candidates and totals remain protected by the finite-pool handoff.
+    LiveTurnoutMath::PartyAccount account{{{0,600},{1,400}},{{0,1200},{1,800}}};
+    for (double error : {-20.,0.,20.}) {
+        auto projected = LiveTurnoutMath::varyRemaining(account.projected,account.counted,
+            {{0,error*midway.influence()}});
+        assert(projected.at(0) >= 600 && projected.at(1) >= 400);
+        assert(std::abs(projected.at(0)+projected.at(1)-2000) < .001);
+    }
+    auto fixed = LiveTurnoutMath::varyRemaining({{0,600},{1,400}},account.counted,{{0,20}});
+    assert(fixed.at(0) == 600 && fixed.at(1) == 400);
+}
 
 void testHistoricalIndependentEligibility()
 {
@@ -35,6 +363,106 @@ void testHistoricalIndependentEligibility()
     // they do not need the unsuccessful-candidate flag.
     assert(usePreviousResult(true, true, false));
     assert(usePreviousResult(false, true, false));
+}
+
+void testKnownCoalitionBallot()
+{
+    using CoalitionCandidacy::candidateChance;
+    // Unsettled nominations use the configured chances. Once the actual
+    // ballot is known, retained estimates cannot remove or invent a candidate.
+    std::map<std::string,float> chances{{"LNP",1.f},{"NAT",.2f}};
+    assert(candidateChance({},chances,"NAT")==.2f);
+    assert(candidateChance({"LNP","NAT"},chances,"NAT")==1);
+    assert(candidateChance({"NAT"},chances,"LNP")==0);
+    assert(candidateChance({"NAT"},chances,"NAT")==1);
+    chances["LNP"]=0;
+    assert(candidateChance({"LNP","NAT"},chances,"LNP")==1);
+}
+
+void testSharedFinalistTcpCoverage() {
+    using LivePartialCount::SharedFinalistTcpEvidence;
+    // Fictional district: a 200-vote booth has an old 300-vote comparison.
+    // Another 79,800 votes belong to unreported or unmatched locations. A
+    // complete first booth must not receive the whole-seat confidence cap.
+    SharedFinalistTcpEvidence sparse;
+    sparse.addBooth(200.0f, 2.0f, 300.0f);
+    sparse.addBooth(40000.0f); // TCP not reported.
+    sparse.addBooth(39800.0f); // No compatible historical pair.
+    assert(sparse.available());
+    assert(sparse.meanSwing() == 2.0f);
+    assert(std::abs(sparse.confidence() - 0.006123724f) < 0.0000001f);
+    assert(LiveSimulationMath::evidenceWeight(sparse.confidence(), 14.0f) < 0.04f);
+
+    // Widespread observations strengthen the comparison normally. Unmatched
+    // locations dilute its coverage without fabricating a zero measured swing.
+    SharedFinalistTcpEvidence broad;
+    broad.addBooth(30000.0f, 2.0f, 30000.0f);
+    broad.addBooth(30000.0f, -4.0f, 30000.0f);
+    broad.addBooth(20000.0f);
+    assert(broad.meanSwing() == -1.0f);
+    assert(std::abs(broad.confidence() - 0.08660254f) < 0.0000001f);
+    assert(broad.confidence() > sparse.confidence());
+
+    SharedFinalistTcpEvidence none;
+    none.addBooth(80000.0f);
+    none.addBooth(0.0f); // An unavailable service with no expected votes.
+    assert(!none.available() && none.confidence() == 0.0f);
+    SharedFinalistTcpEvidence complete;
+    complete.addBooth(80000.0f, 0.0f, 90000.0f);
+    assert(complete.available() && complete.meanSwing() == 0.0f);
+    assert(complete.confidence() == SharedFinalistTcpEvidence::MaximumConfidence);
+    SharedFinalistTcpEvidence empty;
+    assert(!empty.available() && empty.confidence() == 0.0f);
+}
+
+void testHistoricalPreferenceReliability() {
+    using namespace LivePartialCount;
+    // Ordinary and legitimately strong low-90s flows keep their full weight.
+    // A historical rate closer to unanimity loses only extrapolation weight;
+    // the current measured preference cohort uses the usual calculation.
+    for (double p : {.15,.5,.85,.90,.92}) assert(historicalFlowReliability(p)==1);
+    assert(std::abs(historicalFlowReliability(.93)-25.0/27)<1e-12);
+    assert(std::abs(historicalFlowReliability(.95)-.5)<1e-12);
+    for (double p : {0.0,.01,.02,.98,.99,1.0}) assert(historicalFlowReliability(p)==0);
+    double last = 1;
+    for (int step = 0; step <= 600; ++step) {
+        double p = .92+step*.0001;
+        double reliability = historicalFlowReliability(p);
+        assert(reliability>=0 && reliability<=last);
+        assert(std::abs(reliability-historicalFlowReliability(1-p))<1e-12);
+        last = reliability;
+    }
+    // The slope also vanishes at either join. Count revisions cannot create
+    // a discontinuous switch just above 92% or just below 98%.
+    assert(1-historicalFlowReliability(.920001)<1e-8);
+    assert(historicalFlowReliability(.979999)<1e-8);
+
+    // Fictional prior: a three-vote mismatch raises an already strong inferred
+    // transfer from 97% to about 99.1%. The comparison is measurable but cannot
+    // train extrapolation. No historical or current integer record is changed.
+    Counts oldFp{{0,600},{1,300},{2,100}}, oldTcp{{0,697},{1,300}};
+    auto old = measureTransfer(oldFp,oldTcp,0,1);
+    assert(old && old->votes==100);
+    assert(std::abs(old->received-(697000.0/997-600))<1e-12);
+    assert(old->share()>.98 && historicalFlowReliability(old->share())==0);
+    assert(!measureTransfer(oldFp,{},0,1));
+    assert(!measureTransfer(oldFp,{{0,650},{1,300}},0,1)); // Beyond total-comparability allowance.
+    assert(!measureTransfer({{0,600},{1,400}},{{0,600},{1,400}},0,1)); // No transferable pool.
+    assert(!measureTransfer(oldFp,{{0,850},{1,150}},0,1)); // Gain exceeds available preferences.
+
+    Flows flows{{0,1},{1,0},{2,.8},{3,.5}};
+    Counts currentFp{{0,400},{1,400},{2,100},{3,100}}, currentTcp{{0,535},{1,465}};
+    auto current = measure(currentFp,currentTcp,flows,0,1,true);
+    assert(current && current->matchingCurrentTcp && current->preferenceVotes==200);
+    double expectedOffset=logOdds(135.5/201)-logOdds(.65);
+    assert(std::abs(current->offset-expectedOffset)<1e-12);
+    // Even when the old comparison has zero reliability, retain the current
+    // observation, its 500-vote shrinkage and the fully counted pair exactly.
+    assert(std::abs(evidenceOffset(0,current,0,1)-200.0/700*expectedOffset)<1e-12);
+    assert(pendingFirst(currentFp,currentTcp,flows,0,current,0,1)==0);
+    assert(currentTcp.at(0)==535 && currentTcp.at(1)==465);
+    auto oneWay = measure({{0,40},{1,40},{2,1}},{{0,41},{1,40}},flows,0,1,true);
+    assert(oneWay && std::isfinite(oneWay->offset) && oneWay->preferenceVotes==1);
 }
 
 void testNewVoteComposition() {
@@ -302,6 +730,39 @@ void testFpPrecisionIntegration() {
     auto combined = group(moments,0,[](int id) { return id == 2 ? 0 : id; });
     assert(combined.present && combined.variance<1e-12);
 
+    // Many zero-only draws can leave a tiny positive log-odds variance and a
+    // mean just above the numerical floor. The candidate is still absent from
+    // that prior and must borrow its source group's uncertainty when observed.
+    MomentAccumulator zeroOnly;
+    for (int sample = 0; sample < 10000; ++sample) {
+        float offset = sample % 2 ? 3.f : -3.f;
+        zeroOnly.add({{0,40.f},{1,0.f},{7,45.f-offset},{-1,15.f+offset}});
+    }
+    auto zeroMoments = zeroOnly.finish();
+    auto missing = group(zeroMoments,1,identity);
+    assert(missing.present && missing.allZero);
+    assert(!group(zeroMoments,0,identity).allZero);
+    // Tiny but positive support remains a real distribution, even if the
+    // finite transform uses the same floor as a zero observation.
+    MomentAccumulator tinyPositive;
+    tinyPositive.add({{1,0.0000001f}});
+    assert(!group(tinyPositive.finish(),1,identity).allZero);
+
+    LiveData::FpIntegrationInformation newcomer;
+    newcomer.baseline = zeroMoments;
+    newcomer.count.shareMean = {{0,.4},{1,.14},{7,.32},{-1,.14}};
+    for (auto const& [party,p] : newcomer.count.shareMean) {
+        newcomer.count.logOddsMean[party] = logOdds(p);
+        newcomer.count.logOddsVariance[party] = .01;
+    }
+    newcomer.evidenceGate = 1;
+    LiveTurnoutMath::PartyAccount newcomerAccount{
+        {{0,40.f},{1,100.f},{7,50.f},{-1,10.f}},
+        {{0,4000.f},{1,1400.f},{7,3200.f},{-1,1400.f}}};
+    auto learned = integrate(newcomerAccount,
+        {{0,40.f},{1,1.f},{7,44.f},{-1,15.f}},newcomer,identity,identity);
+    assert(learned.at(1)>5); // Not frozen at its 1% counted lower bound.
+
     // Broad early count draws earn less weight than a narrow pre-election prior.
     // This single precision weight also bounds the independent blended variance.
     for (double rawVariance : {.001,.04,1.,10.}) {
@@ -374,7 +835,14 @@ void testFpPrecisionIntegration() {
 
 int main()
 {
+    testJointTppIntegration();
+    testTppCategorySensitivity();
+	testRawTppSwing();
+	testEstimatedTppSourceInfluence();
+	testSharedFinalistTcpCoverage();
     testHistoricalIndependentEligibility();
+	testHistoricalPreferenceReliability();
+    testKnownCoalitionBallot();
     testIndependentPooling();
     testFpPrecisionIntegration();
     testFpDisagreementEndpoints();

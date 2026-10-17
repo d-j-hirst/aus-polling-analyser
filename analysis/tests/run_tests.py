@@ -27,8 +27,11 @@ CI_TEST_MODULES = (
     'test_live_analysis_archive',
     'test_backfill_live_snapshot_summary',
     'test_election_data',
+    'test_historical_tpp',
     'test_election_store',
     'test_election_analysis',
+    'test_election_analysis_regions',
+    'test_regional_calibration',
     'test_region_model',
     'test_region_model_provenance',
     'test_pipeline_registry',
@@ -73,6 +76,8 @@ CI_TEST_MODULES = (
     'test_turnout_sa_operational',
     'test_turnout_published_operational',
     'test_turnout_prepare_live',
+    'test_category_tpp_relationships',
+    'test_tpp_composition_calibration',
 )
 
 

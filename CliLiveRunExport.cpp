@@ -1,6 +1,6 @@
 #include "LiveRunExport.h"
 
-void LiveRunExport::exportCompletedAutomaticLiveRun(
+std::optional<std::filesystem::path> LiveRunExport::exportCompletedAutomaticLiveRun(
 	PollingProject&,
 	Simulation const&,
 	SimulationRun const&,
@@ -8,4 +8,5 @@ void LiveRunExport::exportCompletedAutomaticLiveRun(
 	FeedbackFunc,
 	ActionRequiredFunc)
 {
+	return std::nullopt;
 }

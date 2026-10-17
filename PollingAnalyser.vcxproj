@@ -149,7 +149,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <OutputFile>vc_mswu\PollingAnalyser.exe</OutputFile>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>$(POLLING_ANALYSER_WX)\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libcurl_a.lib;wxmsw31u_core.lib;wxbase31u.lib;wxtiff.lib;wxjpeg.lib;wxpng.lib;wxzlib.lib;wxregexu.lib;wxexpat.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;wxmsw31u_adv.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
@@ -196,7 +196,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <OutputFile>vc_mswuddll\PollingAnalyser.exe</OutputFile>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>$(POLLING_ANALYSER_WX_LEGACY)\lib\vc_dll;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>wxmsw30ud_core.lib;wxbase30ud.lib;wxtiffd.lib;wxjpegd.lib;wxpngd.lib;wxzlibd.lib;wxregexud.lib;wxexpatd.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
@@ -239,7 +239,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <OutputFile>vc_mswudll\PollingAnalyser.exe</OutputFile>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>$(POLLING_ANALYSER_WX_LEGACY)\lib\vc_dll;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>wxmsw30u_core.lib;wxbase30u.lib;wxtiff.lib;wxjpeg.lib;wxpng.lib;wxzlib.lib;wxregexu.lib;wxexpat.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
@@ -287,13 +287,15 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <OutputFile>vc_mswud\PollingAnalyser.exe</OutputFile>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>$(POLLING_ANALYSER_WX)\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libcurl_a.lib;wxmsw31ud_core.lib;wxbase31ud.lib;wxtiffd.lib;wxjpegd.lib;wxpngd.lib;wxzlibd.lib;wxregexud.lib;wxexpatd.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;wxmsw31ud_adv.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LargeAddressAware>true</LargeAddressAware>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="LiveSnapshotViewer.cpp" />
+    <ClCompile Include="LiveSimulationJob.cpp" />
     <ClCompile Include="AnalysisFrame.cpp" />
     <ClCompile Include="AnalysisFrameRenderer.cpp" />
     <ClCompile Include="$(POLLING_ANALYSER_DLIB)\dlib\all\source.cpp" />
@@ -324,6 +326,7 @@
     <ClCompile Include="LivePreparationBridge.cpp" />
     <ClCompile Include="LiveBoothFrame.cpp" />
     <ClCompile Include="LiveV2.cpp" />
+    <ClCompile Include="LiveTppPreparation.cpp" />
     <ClCompile Include="LiveFpPreparation.cpp" />
     <ClCompile Include="LiveTurnoutPreparation.cpp" />
     <ClCompile Include="LiveInputWarningPanel.cpp" />
@@ -414,6 +417,9 @@
     <ClCompile Include="VisualiserFrame.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="LiveSnapshotViewer.h" />
+    <ClInclude Include="LiveSimulationJob.h" />
+    <ClInclude Include="BackgroundTask.h" />
     <ClInclude Include="AnalysisFrame.h" />
     <ClInclude Include="AnalysisFrameRenderer.h" />
     <ClInclude Include="Beep.h" />
@@ -445,6 +451,12 @@
     <ClInclude Include="LiveTurnoutMath.h" />
     <ClInclude Include="LivePartialCount.h" />
     <ClInclude Include="LiveFpEvidence.h" />
+    <ClInclude Include="LiveEstimatedTpp.h" />
+    <ClInclude Include="LiveTppIntegration.h" />
+    <ClInclude Include="LiveTppDiagnostics.h" />
+    <ClInclude Include="LiveTppComposition.h" />
+    <ClInclude Include="LiveTppCompositionParameters.h" />
+    <ClInclude Include="LiveTppSensitivity.h" />
     <ClInclude Include="LiveFpIntegration.h" />
     <ClInclude Include="LiveNewVotes.h" />
     <ClInclude Include="LivePartyMapping.h" />
@@ -519,7 +531,9 @@
 	<ClInclude Include="LiveResultsInput.h" />
 	<ClInclude Include="LiveSimulationMath.h" />
 	<ClInclude Include="IndependentCandidacy.h" />
+	<ClInclude Include="CoalitionCandidacy.h" />
 	<ClInclude Include="MajorPartyFpMath.h" />
+	<ClInclude Include="RegionalSwingMath.h" />
 	<ClInclude Include="LivePreparationBridge.h" />
 	<ClInclude Include="WorkspacePaths.h" />
     <ClInclude Include="General.h" />

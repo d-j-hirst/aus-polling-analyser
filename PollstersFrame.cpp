@@ -64,6 +64,7 @@ void PollstersFrame::setupToolbar()
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+	applyActivityPolicy();
 }
 
 void PollstersFrame::setupDataTable()
@@ -206,4 +207,5 @@ void PollstersFrame::updateInterface() {
 	bool somethingSelected = (pollsterData->GetSelectedRow() != -1);
 	toolBar->EnableTool(ControlId::Edit, somethingSelected);
 	toolBar->EnableTool(ControlId::Remove, somethingSelected);
+	applyActivityPolicy();
 }

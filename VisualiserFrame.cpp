@@ -58,6 +58,7 @@ VisualiserFrame::VisualiserFrame(ProjectFrame::Refresher refresher, PollingProje
 	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Visualiser", wxPoint(333, 0), project),
 	refresher(refresher)
 {
+	allowDuringLiveRun({ControlId::TogglePolls, ControlId::ToggleModels, ControlId::ToggleHouseEffects, ControlId::ToggleProjections, ControlId::SelectModel, ControlId::SelectProjection, ControlId::SelectParty, ControlId::ModelDisplayMode});
 	refreshToolbar();
 	createDcPanel();
 	bindEventHandlers();
@@ -239,6 +240,7 @@ void VisualiserFrame::refreshPartyChoice() {
 	selectPartyComboBox->Append(arrayString);
 	selectPartyComboBox->SetValue(partyBoxString);
 	toolBar->Realize();
+	applyActivityPolicy();
 }
 
 void VisualiserFrame::refreshToolbar() {
@@ -321,6 +323,7 @@ void VisualiserFrame::refreshToolbar() {
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+	applyActivityPolicy();
 }
 
 void VisualiserFrame::createDcPanel()
@@ -350,6 +353,7 @@ void VisualiserFrame::bindEventHandlers()
 }
 
 void VisualiserFrame::updateInterface() {
+	applyActivityPolicy();
 }
 
 void VisualiserFrame::render(wxDC& dc) {

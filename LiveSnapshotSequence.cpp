@@ -132,6 +132,19 @@ std::vector<LiveResultsInput::CurrentFile> resolve(
     return result;
 }
 
+void insertCode(std::vector<LiveResultsInput::CurrentFile> const& available,
+    std::vector<std::string>& codes, std::string const& code) {
+    // Adding from the available list should work equally at the beginning,
+    // middle or end. Validate before changing the editor's selection, and use
+    // the same full-year keys as replay validation for both timestamp formats.
+    resolve(available, codes);
+    resolve(available, {code});
+    auto key = timeKey(code);
+    auto position = std::lower_bound(codes.begin(), codes.end(), key,
+        [](auto const& existing, auto const& target) { return timeKey(existing) < target; });
+    if (position == codes.end() || timeKey(*position) != key) codes.insert(position, code);
+}
+
 void appendNext(std::vector<LiveResultsInput::CurrentFile> const& available,
     std::vector<std::string>& codes, std::size_t count) {
     if (codes.empty()) throw ConfigurationError("Enter a starting code, or add one from the available list first.");

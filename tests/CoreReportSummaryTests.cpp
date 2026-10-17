@@ -2,6 +2,8 @@
 #include "../SpecialPartyCodes.h"
 
 #include <iostream>
+#include <cassert>
+#include <cmath>
 #include <string>
 
 namespace {
@@ -60,6 +62,14 @@ int main()
 		{ OthersIndex, {{150, 2}} },
 	};
 	report.tppFrequency = {{520, 2}};
+	// An unchanged input target cannot describe a completed live forecast.
+	// Prefer its actual TPP distribution; older reports retain their fallback.
+	report.prevElection2pp = 48.47f;
+	report.partyOneSwing = 3.81;
+	assert(std::abs(report.getPartyOne2pp()-52.05) < .00001);
+	auto legacy = report;
+	legacy.tppFrequency.clear();
+	assert(std::abs(legacy.getPartyOne2pp()-52.28) < .00001);
 
 	auto const output = formatCoreReportSummary(
 		"now-cast-simulation", "Now-cast Simulation", report);

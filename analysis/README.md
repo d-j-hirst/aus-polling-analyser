@@ -501,6 +501,40 @@ source errors can be corrected publicly. The numerical checks remain advisory:
 published percentages are rounded, so small differences from vote-count
 calculations are expected and displayed for review.
 
+Federal regional prediction uncertainty is calibrated on whole elections
+excluded from fitting, including a separate exclusion when selecting the
+polling weight. See [regional forecast uncertainty](../docs/regional-uncertainty.md)
+for the mean rule, variance interpretation and standalone non-Stan regeneration
+command. Regional calibration can be regenerated without rerunning seat analysis.
+
+### Statistical TPP in non-classic federal seats
+
+Historical seat-swing analysis also reads `Data/federal-tpp-history.csv` to
+include seats whose actual final pair was not Labor versus the Coalition.
+The AEC publishes a separate statistical TPP count for these seats. Its
+redistribution-adjusted swing is comparable with other districts; the actual
+TCP candidates and winners remain unchanged for candidate and incumbency work.
+Classic counts retain their existing historical inputs.
+
+The maintained table covers all federal divisions from 2007 to 2025. Source
+URLs and response hashes are in `Data/federal-tpp-history-sources.json`.
+For example, see the [AEC 2019 division TPP table](https://results.aec.gov.au/24310/Website/HouseTppByDivision-24310-NAT.htm).
+The download's swing follows its first party column, whose order changes
+between elections; it does not follow the party leading in each division.
+
+From the repository root, rebuild a review copy using cached downloads:
+
+```powershell
+.\analysis\.venv-win\Scripts\python.exe -B analysis/scripts/diagnostics/collect_historical_tpp.py --output-dir cli-build/historical-tpp-review
+```
+
+Add `--download` to obtain missing public source files. Omit `--output-dir`
+only when intentionally refreshing the maintained table, and record the
+corresponding source-provenance change. Routine seat analysis reads this table
+without network access. It must be regenerated, followed by a new simulation
+baseline, before the additional history changes forecast priors; refreshing
+the table alone does not alter an existing baseline or saved replay.
+
 ## File Permissions
 
 If having problems with file permissions in WSL2, try following commands, replacing any c/C with the drive letter you're using (if not C):

@@ -46,7 +46,7 @@ void LiveInputWarningPanel::rebuildRows() {
     auto const& issues = diagnostic.at("issues");
     bool completed = diagnostic.value("completed",false);
     heading->SetLabel(wxString::FromUTF8(completed
-        ? "Forecast completed. Input recovery warnings (select a row for affected records):"
+        ? "Forecast completed. Input warnings (select a row for affected records):"
         : "Update failed; previous forecast retained. " + diagnostic.value("failure",std::string{})));
     heading->SetForegroundColour(completed ? wxColour(140,65,0) : wxColour(160,0,0));
     int infoTypes = 0;
@@ -84,11 +84,17 @@ void LiveInputWarningPanel::showDetails(wxListEvent& event) {
     std::ostringstream text;
     for (auto const& issue : details) if (issue.at("type") == displayedTypes[index]) {
         text << issue.at("district").get<std::string>() << " / " << issue.at("record").get<std::string>() << "\n"
-            << issue.at("explanation").get<std::string>() << "\n"
-            << "Rejected: " << countsText(issue.at("rejected")) << "\n"
-            << "Effective: " << countsText(issue.at("effective")) << "\n"
-            << issue.at("action").get<std::string>() << "\n";
-        if (!issue.at("observed_at").get<std::string>().empty()) text << "Accepted observation time: " << issue.at("observed_at").get<std::string>() << "\n";
+            << issue.at("explanation").get<std::string>() << "\n";
+        // Recovery cases expose replacement counts. Evidence notices retain
+        // the measured account and explain their historical figures instead;
+        // absent replacement fields must not imply that counts are unavailable.
+        if (!issue.at("rejected").is_null() || !issue.at("effective").is_null())
+            text << "Rejected: " << countsText(issue.at("rejected")) << "\n"
+                 << "Effective: " << countsText(issue.at("effective")) << "\n";
+        text << issue.at("action").get<std::string>() << "\n";
+        if (!issue.at("observed_at").get<std::string>().empty())
+            text << (issue.at("type") == "historical_preference_limited" ? "Current input time: " : "Accepted observation time: ")
+                 << issue.at("observed_at").get<std::string>() << "\n";
         text << "\n";
     }
     detailText->SetValue(wxString::FromUTF8(text.str()));

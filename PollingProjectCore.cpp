@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <utility>
 #include <vector>
+#include <thread>
 
 namespace {
 	constexpr char ConfigFilename[] = "config.cfg";
@@ -25,6 +26,57 @@ PollingProject::PollingProject(WorkspacePaths workspacePaths)
 {}
 
 PollingProject::~PollingProject() = default;
+
+std::unique_ptr<PollingProject> PollingProject::createLiveRunContext(std::vector<Simulation::Id> const& ids) const
+{
+	auto context = std::unique_ptr<PollingProject>(new PollingProject(workspacePaths));
+	copyLiveRunInputsTo(*context, ids);
+	context->configObj.limitBackgroundSimulationThreads(std::thread::hardware_concurrency());
+	return context;
+}
+
+void PollingProject::copyLiveRunInputsTo(PollingProject& target, std::vector<Simulation::Id> const& ids) const
+{
+	// Constructing the empty context binds every collection to its new owner.
+	// Copy only values and ID counters. GUI-only lazy coordinators and callbacks
+	// stay empty, and fitted data is copied once rather than for each snapshot.
+	target.name = name; target.electionName = electionName;
+	target.lastFileName = lastFileName; target.configObj = configObj;
+	target.valid = valid;
+	target.partyCollection.parties = partyCollection.parties;
+	target.partyCollection.nextId = partyCollection.nextId;
+	target.partyCollection.othersPreferenceFlow = partyCollection.othersPreferenceFlow;
+	target.partyCollection.othersExhaustRate = partyCollection.othersExhaustRate;
+	target.pollsterCollection.pollsters = pollsterCollection.pollsters;
+	target.pollsterCollection.nextId = pollsterCollection.nextId;
+	target.pollCollection.polls = pollCollection.polls;
+	target.pollCollection.nextId = pollCollection.nextId;
+	target.pollCollection.sourceFile = pollCollection.sourceFile;
+	target.modelCollection.models = modelCollection.models;
+	target.modelCollection.nextId = modelCollection.nextId;
+	target.projectionCollection.projections = projectionCollection.projections;
+	target.projectionCollection.nextId = projectionCollection.nextId;
+	target.regionCollection.regions = regionCollection.regions;
+	target.regionCollection.nextId = regionCollection.nextId;
+	target.seatCollection.seats = seatCollection.seats;
+	target.seatCollection.nextId = seatCollection.nextId;
+	target.seatCollection.configuredImportSource = seatCollection.configuredImportSource;
+	target.seatCollection.strictImportSource = seatCollection.strictImportSource;
+	target.outcomeCollection = outcomeCollection;
+	target.simulationCollection.nextId = simulationCollection.nextId;
+	for (auto id : ids)
+		target.simulationCollection.simulations.emplace(id, simulations().view(id).copyForLiveRun());
+}
+
+SeatCollection::SeatContainer PollingProject::liveSeatValues() const { return seatCollection.seats; }
+
+void PollingProject::publishLiveSeats(SeatCollection::SeatContainer values) {
+	// Imported seat parameters accompany completed reports. Keeping the GUI
+	// collection object itself preserves its owner and existing page pointers.
+	seatCollection.seats = std::move(values);
+	if (!seatCollection.seats.empty())
+		seatCollection.nextId = std::max(seatCollection.nextId, seatCollection.seats.rbegin()->first + 1);
+}
 
 void PollingProject::refreshCalc2PP()
 {

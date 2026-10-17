@@ -74,6 +74,9 @@ private:
 	void correctMajorPartyFpBias(bool accountForSeatNormalisation = false);
 	void solveTerminalFpReconciliation();
 	void incorporateLiveResults();
+	void incorporateLiveTpp();
+	void incorporateLegacyLiveTpp();
+	void recordLiveTppBaseline();
 	void incorporateLiveSeatFp(int seatIndex);
 	void prepareLiveFpCandidates(int seatIndex, LiveTurnoutMath::PartyAccount const& account);
 	void conditionLiveFpPrior(int seatIndex);

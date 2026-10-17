@@ -3,6 +3,8 @@
 import tempfile
 from pathlib import Path
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from lib.turnout import aec_live, ppvc_sizes
 from scripts.turnout import turnout_ppvc_reporting
@@ -19,6 +21,27 @@ def election(seat, booths, declarations=0):
 
 
 class AecLiveTests(unittest.TestCase):
+    def test_current_preload_event_is_explicit_for_another_election(self):
+        # One fictional booth verifies the reusable identity reader without
+        # relying on private 2022/2025 feeds. The usual default still rejects a
+        # different election instead of silently importing its polling places.
+        xml = '''<MediaFeed xmlns="http://www.aec.gov.au/xml/schema/mediafeed"
+            xmlns:eml="urn:oasis:names:tc:evs:schema:eml"><PollingDistrictList>
+            <eml:EventIdentifier Id="99998"/><PollingDistrict>
+            <PollingDistrictIdentifier><Name>Example District</Name></PollingDistrictIdentifier>
+            <PollingPlaces><PollingPlace><PollingPlaceIdentifier Id="42"
+            Name="Example Centre" Classification="PrePollVotingCentre"/></PollingPlace></PollingPlaces>
+            </PollingDistrict></PollingDistrictList></MediaFeed>'''
+        with TemporaryDirectory() as directory:
+            path = Path(directory)/'preload.xml'
+            path.write_text(xml)
+            with self.assertRaises(ValueError):
+                aec_live.booth_metadata(path)
+            data = aec_live.booth_metadata(path, event_id='99998')
+        self.assertEqual(data['42']['seat_name'], 'Example District')
+        self.assertEqual(data['42']['classification'], 'PrePollVotingCentre')
+        self.assertIsNone(data['42']['position'])
+
     def test_rockingham_calibration_exception_is_election_specific(self):
         for identifier in ('58768', '97689'):
             self.assertTrue(aec_live.calibration_exclusion_reason('31496', 'Brand', identifier))

@@ -14,6 +14,7 @@ Logger::Logger()
 }
 
 void Logger::clear() {
+	std::lock_guard lock(mutex_);
 	if (!enabled_) return;
 	fileStream_.close();
 	fileStream_.open(LogFileName);
@@ -21,6 +22,7 @@ void Logger::clear() {
 
 void Logger::setEnabled(bool enabled)
 {
+	std::lock_guard lock(mutex_);
 	if (enabled_ == enabled) return;
 	enabled_ = enabled;
 	if (!enabled_) {

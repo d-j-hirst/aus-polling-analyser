@@ -2,11 +2,25 @@
 
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 #include <vector>
 
 namespace LiveSimulationMath {
 
 constexpr float EvidenceEpsilon = 0.0000001f;
+
+// The live hierarchy uses this confidence response when accepting observed
+// movement. Keep the same response available to source-specific uncertainty:
+// many votes with comparable history should have more influence than one
+// small booth. This is distinct from the simulator's baseline blend below.
+inline float observationWeight(float confidence, float strength = 250.0f)
+{
+	if (!std::isfinite(confidence) || !std::isfinite(strength) || strength < 0.0f)
+		throw std::runtime_error("Cannot weight invalid live-election evidence.");
+	float const boundedConfidence = std::clamp(confidence, 0.0f, 1.0f);
+	return std::min(1.0f, 1.01f - 1.01f /
+		(1.0f + std::pow(boundedConfidence, 1.6f) * strength));
+}
 
 // Normalize the existing live-evidence sigmoid so its endpoints are exact.
 inline float evidenceWeight(float effectiveConfidence, float slope = 12.0f)

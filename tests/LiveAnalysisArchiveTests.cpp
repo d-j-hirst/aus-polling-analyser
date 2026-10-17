@@ -54,7 +54,9 @@ int main(int argc, char** argv) try {
         {"seats", json::array({{{"name", "Example Seat"}, {"region_name", "Example Region"}, {"node", node}}})},
         {"booths", json::array({{{"name", "Example PPVC"}, {"seat_name", "Example Seat"},
             {"vote_type", "Ordinary"}, {"booth_type", "PPVC"}, {"coords", { -33.123456789, 151.123456789}},
-            {"same_seat", true}, {"node", node}}})},
+            {"same_seat", true}, {"node", node},
+            {"historical_preference_evidence", {{"inferred_flow_percent", 97.25},
+                {"nonfinalist_votes", 200}, {"extrapolation_reliability", .04296875}}}}})},
         {"turnout", {{"allocation_parameters", {{"coefficient", .12345678901234567}}},
             {"seats", json::array({{{"name", "Example Seat"}, {"mean_total", 119233.2387}}})},
             {"units", json::array({{{"seat", "Example Seat"}, {"name", "Example PPVC"},
@@ -65,6 +67,10 @@ int main(int argc, char** argv) try {
         {"unknown_party", {{"party_index", -4}, {"name", nullptr}, {"abbreviation", nullptr}}},
         {"escaped_text", json::parse("\"\\u00c9\\n\\\"quoted\\\"\"")}
     };
+    source["seats"][0]["estimated_tpp"] = {
+        {"expected_votes",100000}, {"inferred_evidence_votes",5000},
+        {"observed_evidence_votes",10000}, {"confidence",.15},
+        {"inferred_share",1./3}, {"influence",.30987654321}};
     for (int i = 0; i < 70; ++i) source["extra_field_" + std::to_string(i)] = i;
     auto const serialised = LiveAnalysisArchive::serialize(source);
     auto const packet = json::parse(serialised);
@@ -79,7 +85,15 @@ int main(int argc, char** argv) try {
     CHECK(identities.at("booths").at(0).at("seat_ref") == 0);
     CHECK(data.at("seats").at(0).at("name_seat_ref") == 0);
     CHECK(data.at("seats").at(0).at("region_name_ref") == 0);
+    auto const& inferred = data.at("seats").at(0).at("estimated_tpp");
+    CHECK(inferred.at("inferred_evidence_votes") == 5000);
+    CHECK(inferred.at("observed_evidence_votes") == 10000);
+    CHECK(std::abs(inferred.at("influence").get<double>()-.309877) < 1e-12);
     CHECK(data.at("booths").at(0).at("booth_identity_ref") == 0);
+    auto const& historical = data.at("booths").at(0).at("historical_preference_evidence");
+    CHECK(historical.at("inferred_flow_percent") == 97.25);
+    CHECK(historical.at("nonfinalist_votes") == 200);
+    CHECK(std::abs(historical.at("extrapolation_reliability").get<double>()-.0429688)<1e-12);
     CHECK(data.at("turnout").at("units").at(0).at("name_booth_ref") == 0);
     CHECK(data.at("preference_rechecking").at("seats").at(0).at("booths").at(0).at("booth_name_ref") == 0);
     auto const& restoredNode = data.at("seats").at(0).at("node");

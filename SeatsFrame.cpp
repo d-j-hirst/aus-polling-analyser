@@ -97,6 +97,7 @@ void SeatsFrame::setupToolBar()
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+	applyActivityPolicy();
 }
 
 void SeatsFrame::setupDataTable()
@@ -244,4 +245,5 @@ void SeatsFrame::updateInterface() {
 	toolBar->EnableTool(ControlId::Edit, somethingSelected);
 	toolBar->EnableTool(ControlId::Remove, somethingSelected);
 	toolBar->EnableTool(ControlId::ShowResults, somethingSelected);
+	applyActivityPolicy();
 }

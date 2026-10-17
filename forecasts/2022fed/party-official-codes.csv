@@ -1,12 +1,10 @@
 party_id,official_code
 labor,ALP
 labor,CLR
-coalition,LIB
-coalition,LP
-coalition,NAT
-coalition,LNP
-coalition,CLP
-coalition,NP
+liberals,LIB
+liberals,LP
+liberals,LNP
+liberals,CLP
 greens,GRN
 greens,GVIC
 united-australia-party,UAP
@@ -21,3 +19,5 @@ one-nation,ONP
 one-nation,PHON
 democrats,DEM
 democratic-labour-party,DLP
+national,NAT
+national,NP

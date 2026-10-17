@@ -185,6 +185,30 @@ GraphLineStyle parliamentGraphStyle(ParliamentColumn const& column)
 	return GraphLineStyle::Solid;
 }
 
+std::vector<int> countingDayGraphRows(ParliamentView const& view)
+{
+	// Normally graphs show the counting period plus its same-day baseline. A
+	// much older zero-count feed is useful in the table, but makes election night
+	// unreadable on the time axis. Choose the first day with received votes;
+	// before any votes arrive, use the latest known zero-count day instead.
+	std::string firstCountingDay, latestZeroDay;
+	for (auto const& row : view.rows) {
+		if (!row.countingStarted || !snapshotCodeTimeSeconds(row.snapshotCode)) continue;
+		auto day = row.snapshotCode.substr(0,8);
+		if (*row.countingStarted && (firstCountingDay.empty() || day < firstCountingDay)) firstCountingDay = day;
+		if (!*row.countingStarted && day > latestZeroDay) latestZeroDay = day;
+	}
+	auto const& start = firstCountingDay.empty() ? latestZeroDay : firstCountingDay;
+	std::vector<int> rows;
+	for (int index = 0; index < int(view.rows.size()); ++index) {
+		auto const& code = view.rows[index].snapshotCode;
+		// With no progress metadata, or an unrecognised clock, preserve the
+		// legacy view rather than guessing an election date from a large gap.
+		if (start.empty() || !snapshotCodeTimeSeconds(code) || code.substr(0,8) >= start) rows.push_back(index);
+	}
+	return rows;
+}
+
 GraphModel makeGraphFromView(
 	ParliamentView const& view,
 	bool yIsPercent,
@@ -195,9 +219,11 @@ GraphModel makeGraphFromView(
 {
 	GraphModel model;
 	model.yIsPercent = yIsPercent;
-	model.xLabels.reserve(view.rows.size());
-	model.xTimes.reserve(view.rows.size());
-	for (auto const& row : view.rows) {
+	auto const rows = countingDayGraphRows(view);
+	model.xLabels.reserve(rows.size());
+	model.xTimes.reserve(rows.size());
+	for (int index : rows) {
+		auto const& row = view.rows[index];
 		model.xLabels.push_back(formatSnapshotTimestamp(row.snapshotCode));
 		auto const time = snapshotCodeTimeSeconds(row.snapshotCode);
 		model.xTimes.push_back(time ? double(*time) : std::numeric_limits<double>::quiet_NaN());
@@ -221,8 +247,8 @@ GraphModel makeGraphFromView(
 		series.style = outcomeLineStyles ?
 			parliamentGraphStyle(header) : GraphLineStyle::Solid;
 		series.columnIndex = column;
-		series.values.reserve(view.rows.size());
-		for (int row = 0; row < int(view.rows.size()); ++row) {
+		series.values.reserve(rows.size());
+		for (int row : rows) {
 			if (row >= int(view.cells.size()) ||
 				column >= int(view.cells[row].size())) {
 				series.values.push_back(std::nullopt);

@@ -14,6 +14,7 @@
 #include <wx/gauge.h>
 #include <wx/utils.h>
 #include <wx/valnum.h>
+#include <wx/clipbrd.h>
 
 #include <filesystem>
 #include <exception>
@@ -22,6 +23,10 @@
 #include <set>
 
 namespace {
+
+// Keep cell population, labels and browsing anchors tied to the same columns.
+enum ResultColumn { ResultSeatName, RawSwing, EstimatedSwing, Counted, TcpBasis, Updated,
+	ProjectedMargin, PartyOneProbability, PartyTwoProbability, OtherProbability, Status, ColumnCount };
 
 // Reloaded projects can contain counted results before a live simulation has
 // produced a report. Forecast cells stay blank until that seat's data exists.
@@ -37,6 +42,81 @@ bool hasWinProbabilities(Simulation::Report const* report, int seat)
 		std::size_t(seat) < report->partyOneWinProportion.size() &&
 		std::size_t(seat) < report->partyTwoWinProportion.size() &&
 		std::size_t(seat) < report->othersWinProportion.size();
+}
+
+struct ResultRowIdentity {
+	std::string seat, updated;
+	bool operator==(ResultRowIdentity const&) const = default;
+};
+
+ResultRowIdentity resultRowIdentity(wxGrid& grid, int row) {
+	if (row < 0 || row >= grid.GetNumberRows()) return {};
+	return {grid.GetCellValue(row,ResultSeatName).ToStdString(), grid.GetCellValue(row,Updated).ToStdString()};
+}
+
+struct ResultsBrowseState {
+	int x = 0, y = 0, unitY = 1, offsetY = 0, cursorColumn = -1;
+	ResultRowIdentity anchor, cursor;
+	std::vector<std::pair<ResultRowIdentity,std::vector<bool>>> selection;
+};
+
+ResultsBrowseState captureResultsBrowsing(wxGrid& grid) {
+	ResultsBrowseState state;
+	int unitX = 1;
+	grid.GetViewStart(&state.x,&state.y);
+	grid.GetScrollPixelsPerUnit(&unitX,&state.unitY);
+	int top = grid.YToRow(state.y * state.unitY);
+	state.anchor = resultRowIdentity(grid,top);
+	if (top >= 0) state.offsetY = state.y * state.unitY - grid.CellToRect(top,0).GetTop();
+	state.cursor = resultRowIdentity(grid,grid.GetGridCursorRow());
+	state.cursorColumn = grid.GetGridCursorCol();
+	// Retain selected cells by outcome identity, not row number: inserting a
+	// completed snapshot at the top must not silently select different seats.
+	if (grid.IsSelection()) for (int row = 0; row < grid.GetNumberRows(); ++row) {
+		std::vector<bool> columns(grid.GetNumberCols());
+		bool selected = false;
+		for (int column = 0; column < grid.GetNumberCols(); ++column)
+			selected |= columns[column] = grid.IsInSelection(row,column);
+		if (selected) state.selection.emplace_back(resultRowIdentity(grid,row),std::move(columns));
+	}
+	return state;
+}
+
+void restoreResultsBrowsing(wxGrid& grid, ResultsBrowseState const& state) {
+	auto find = [&](ResultRowIdentity const& identity) {
+		int sameSeat = -1;
+		if (identity.seat.empty()) return sameSeat;
+		for (int row = 0; row < grid.GetNumberRows(); ++row) {
+			auto value = resultRowIdentity(grid,row);
+			if (value == identity) return row;
+			if (sameSeat < 0 && value.seat == identity.seat) sameSeat = row;
+		}
+		// In Latest/Significant/Key the old outcome is replaced by its seat's
+		// new result. Stay with that seat when the exact old row is no longer shown.
+		return sameSeat;
+	};
+	std::map<int,std::vector<bool>> selected;
+	for (auto const& [identity,columns] : state.selection)
+		if (int row = find(identity); row >= 0) selected[row] = columns;
+	grid.ClearSelection();
+	for (auto it = selected.begin(); it != selected.end();) {
+		int firstRow = it->first, lastRow = firstRow;
+		auto columns = it->second;
+		while (++it != selected.end() && it->first == lastRow + 1 && it->second == columns) lastRow = it->first;
+		// Merge neighbouring rows/columns so a large rectangular selection is
+		// restored with a few blocks rather than thousands of individual cells.
+		for (int column = 0; column < int(columns.size()); ++column) if (columns[column]) {
+			int firstColumn = column;
+			while (column + 1 < int(columns.size()) && columns[column + 1]) ++column;
+			grid.SelectBlock(firstRow,firstColumn,lastRow,column,true);
+		}
+	}
+	if (int cursor = find(state.cursor); cursor >= 0 && state.cursorColumn >= 0)
+		grid.SetGridCursor(cursor,state.cursorColumn);
+	int y = state.y;
+	if (int top = find(state.anchor); top >= 0)
+		y = (grid.CellToRect(top,0).GetTop() + state.offsetY) / std::max(1,state.unitY);
+	grid.Scroll(state.x,y);
 }
 
 }
@@ -65,8 +145,9 @@ enum ControlId {
 // frame constructor
 ResultsFrame::ResultsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
 	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Results", wxPoint(0, 0), project),
-	refresher(refresher), snapshotTimer(this)
+	refresher(refresher)
 {
+	allowDuringLiveRun({ControlId::Filter});
 	refreshToolbar();
 	createSummaryBar();
 	createDataTable();
@@ -102,6 +183,7 @@ void ResultsFrame::createDataTable()
 
 void ResultsFrame::bindEventHandlers()
 {
+	resultsData->Bind(wxEVT_KEY_DOWN, &ResultsFrame::OnResultKey, this);
 	// Need to resize controls if this frame is resized.
 	Bind(wxEVT_SIZE, &ResultsFrame::OnResize, this, ControlId::Frame);
 
@@ -109,12 +191,47 @@ void ResultsFrame::bindEventHandlers()
 	Bind(wxEVT_TOOL, &ResultsFrame::OnRunLiveSimulations, this, ControlId::RunLiveSimulations);
 	Bind(wxEVT_BUTTON, &ResultsFrame::OnConfigureSnapshotSequence, this, ControlId::ConfigureSnapshotSequence);
 	Bind(wxEVT_BUTTON, &ResultsFrame::OnRunSnapshotSequence, this, ControlId::RunSnapshotSequence);
-	Bind(wxEVT_TIMER, &ResultsFrame::OnNextSnapshot, this, snapshotTimer.GetId());
 	Bind(wxEVT_TOOL, &ResultsFrame::OnAddResult, this, ControlId::AddResult);
 	Bind(wxEVT_TOOL, &ResultsFrame::OnAddFromScript, this, ControlId::AddFromScript);
 	Bind(wxEVT_TOOL, &ResultsFrame::OnNonClassic, this, ControlId::NonClassic);
 	Bind(wxEVT_COMBOBOX, &ResultsFrame::OnFilterSelection, this, ControlId::Filter);
 	Bind(wxEVT_TOOL, &ResultsFrame::OnClearAll, this, ControlId::ClearAll);
+}
+
+void ResultsFrame::OnResultKey(wxKeyEvent& event) {
+	if (event.CmdDown() && (event.GetKeyCode() == 'C' || event.GetKeyCode() == 'c')) copySelectedResults();
+	else event.Skip();
+}
+
+void ResultsFrame::copySelectedResults() {
+	// Copying displayed text is a viewing action, including during a run. The
+	// grid is never editable; Ctrl+C does not touch counted outcomes or reports.
+	if (!resultsData->GetNumberRows()) return;
+	int top = resultsData->GetNumberRows(), bottom = -1;
+	int left = resultsData->GetNumberCols(), right = -1;
+	auto include = [&](int row, int column) {
+		top = std::min(top,row); bottom = std::max(bottom,row);
+		left = std::min(left,column); right = std::max(right,column);
+	};
+	// wxWidgets 3.1's coordinate array exposes indexed access, not iterators.
+	auto cells = resultsData->GetSelectedCells();
+	for (std::size_t i = 0; i < cells.size(); ++i) include(cells[i].GetRow(),cells[i].GetCol());
+	auto tops = resultsData->GetSelectionBlockTopLeft(), bottoms = resultsData->GetSelectionBlockBottomRight();
+	for (std::size_t i = 0; i < tops.size(); ++i) { include(tops[i].GetRow(),tops[i].GetCol()); include(bottoms[i].GetRow(),bottoms[i].GetCol()); }
+	for (auto row : resultsData->GetSelectedRows()) { include(row,0); include(row,resultsData->GetNumberCols()-1); }
+	for (auto column : resultsData->GetSelectedCols()) { include(0,column); include(resultsData->GetNumberRows()-1,column); }
+	bool selected = bottom >= 0;
+	if (!selected) include(resultsData->GetGridCursorRow(),resultsData->GetGridCursorCol());
+	if (top < 0 || left < 0 || bottom < 0 || right < 0) return;
+	wxString text;
+	for (int row = top; row <= bottom; ++row) {
+		if (row != top) text += "\n";
+		for (int column = left; column <= right; ++column) {
+			if (column != left) text += "\t";
+			if (!selected || resultsData->IsInSelection(row,column)) text += resultsData->GetCellValue(row,column);
+		}
+	}
+	if (wxTheClipboard->Open()) { wxTheClipboard->SetData(new wxTextDataObject(text)); wxTheClipboard->Close(); }
 }
 
 void ResultsFrame::OnResize(wxSizeEvent & WXUNUSED(event))
@@ -149,59 +266,13 @@ void ResultsFrame::refreshInputWarnings()
 
 void ResultsFrame::OnRunLiveSimulations(wxCommandEvent& WXUNUSED(event))
 {
-	if (snapshotRunning) return;
+	if (refresher.isLiveRunning()) return;
 	if (wxGetKeyState(WXK_SHIFT)) {
 		wxCommandEvent command;
 		OnRunSnapshotSequence(command);
 		return;
 	}
-	runLiveSimulations();
-	finishLiveSimulationRun();
-	if (project->config().getBeepOnCompletion()) beep();
-}
-
-bool ResultsFrame::runLiveSimulations(
-	std::optional<LiveResultsInput::CurrentFile> const& snapshot,
-	std::string* failureMessage)
-{
-	// Both controls use the same simulation selection and calculation. Only
-	// feedback delivery differs: unattended replay must never open a prompt.
-	bool allSucceeded = true;
-	for (auto& [key, simulation] : project->simulations()) {
-		if (!simulation.isLive()) continue;
-		bool succeeded;
-		if (snapshot) {
-			bool actionRequired = false;
-			std::string feedback;
-			auto record = [&](std::string message) {
-				logger << message << "\n";
-				if (!feedback.empty()) feedback += "\n\n";
-				feedback += message;
-			};
-			succeeded = simulation.run(*project, record,
-				[&](std::string message) { actionRequired = true; record(std::move(message)); }, snapshot);
-			// Some exports report an action-required failure after the numerical
-			// run succeeded. Keep that report, but do not silently advance.
-			if (!succeeded || actionRequired) {
-				if (failureMessage) *failureMessage = simulation.getSettings().name + ":\n" + feedback;
-				return false;
-			}
-		}
-		else succeeded = simulation.run(*project, [](std::string message) { wxMessageBox(message); });
-		allSucceeded = allSucceeded && succeeded;
-	}
-	return allSucceeded;
-}
-
-void ResultsFrame::finishLiveSimulationRun()
-{
-	refreshData();
-	refresher.refreshSeatData();
-	refresher.refreshLiveBooths();
-	refresher.refreshDisplay();
-	refresher.refreshMap();
-	Refresh();
-	Update();
+	refresher.startLiveRun({std::nullopt});
 }
 
 std::string ResultsFrame::snapshotElection() const
@@ -248,7 +319,7 @@ void ResultsFrame::ensureSnapshotOutputFolders(std::string const& election)
 
 void ResultsFrame::OnConfigureSnapshotSequence(wxCommandEvent& WXUNUSED(event))
 {
-	if (snapshotRunning) return;
+	if (refresher.isLiveRunning()) return;
 	try {
 		auto settings = project->snapshotSequence();
 		auto election = snapshotElection();
@@ -265,147 +336,36 @@ void ResultsFrame::OnConfigureSnapshotSequence(wxCommandEvent& WXUNUSED(event))
 	}
 }
 
-void ResultsFrame::OnRunSnapshotSequence(wxCommandEvent& WXUNUSED(event))
+void ResultsFrame::OnRunSnapshotSequence(wxCommandEvent&)
 {
-	if (snapshotRunning) return;
-	// This modeless progress window is also the error display: starting or
-	// advancing a sequence never requires dismissing a message box.
-	if (snapshotProgress) snapshotProgress->Destroy();
-	snapshotProgress = new wxDialog(this, wxID_ANY, "Live snapshot sequence", wxDefaultPosition,
-		wxSize(650, 320), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
-	auto layout = new wxBoxSizer(wxVERTICAL);
-	snapshotStatus = new wxTextCtrl(snapshotProgress, wxID_ANY, "Preparing sequence...",
-		wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
-	snapshotGauge = new wxGauge(snapshotProgress, wxID_ANY, 1);
-	snapshotStartNow = new wxButton(snapshotProgress, wxID_ANY, "Start now");
-	snapshotStop = new wxButton(snapshotProgress, wxID_ANY, "Cancel sequence");
-	layout->Add(snapshotStatus, 1, wxEXPAND | wxALL, 10);
-	layout->Add(snapshotGauge, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-	auto buttons = new wxBoxSizer(wxHORIZONTAL);
-	buttons->Add(snapshotStartNow, 0, wxRIGHT, 8);
-	buttons->Add(snapshotStop);
-	layout->Add(buttons, 0, wxALIGN_RIGHT | wxALL, 10);
-	snapshotProgress->SetSizer(layout);
-	snapshotProgress->CentreOnParent();
-	snapshotStartNow->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-		if (snapshotRunning && snapshotStartDeadline) beginSnapshotRuns();
-	});
-	snapshotStop->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-		if (snapshotRunning) {
-			if (snapshotStartDeadline) { finishSnapshotSequence("Cancelled before running any snapshots."); return; }
-			snapshotStopRequested = true;
-			snapshotStop->Disable();
-		}
-		else { snapshotProgress->Destroy(); snapshotProgress = nullptr; }
-	});
-	snapshotProgress->Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& event) {
-		if (snapshotRunning) {
-			if (snapshotStartDeadline) finishSnapshotSequence("Cancelled before running any snapshots.");
-			else snapshotStopRequested = true;
-			event.Veto();
-		}
-		else { snapshotProgress = nullptr; event.Skip(); }
-	});
-	snapshotProgress->Show();
-	try {
-		auto settings = project->snapshotSequence();
-		if (settings.election != snapshotElection())
-			throw LiveSnapshotSequence::ConfigurationError("Configure and save a sequence for this election first.");
-		if (settings.codes.empty()) throw LiveSnapshotSequence::ConfigurationError("No snapshot codes are selected. Use Configure snapshot sequence first.");
-		auto available = LiveSnapshotSequence::discover(LiveSnapshotSequence::directory(project->paths().root(), settings), settings.election);
-		if (!available.error.empty()) { finishSnapshotSequence(available.error); return; }
-		snapshotFiles = LiveSnapshotSequence::resolve(available.files, settings.codes);
-		ensureSnapshotOutputFolders(settings.election);
-		for (auto const& [key, simulation] : project->simulations()) {
-			if (!simulation.isLive()) continue;
-			if (!simulation.isLiveAutomatic()) throw LiveSnapshotSequence::ConfigurationError("Manual live simulations are not supported by the current live pipeline.");
-			if (auto error = LiveRunExport::validateOutputFolder(simulation.getSettings().liveOutputFolder))
-				throw LiveSnapshotSequence::ConfigurationError(*error);
-		}
-		snapshotIndex = 0;
-		snapshotStopRequested = false;
-		snapshotRunning = true;
-		snapshotGauge->SetRange(int(snapshotFiles.size()));
-		// Keep configuration and project lifetime fixed while replay runs. The
-		// progress window remains enabled for stopping between snapshots.
-		snapshotDisabler = std::make_unique<wxWindowDisabler>(snapshotProgress);
-		// The calculation waits for its workers on the GUI thread. Give the
-		// user time to position this window while the event loop is responsive,
-		// without introducing re-entrant event processing during a simulation.
-		snapshotStartDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
-		snapshotStatus->ChangeValue("Starting in 10 seconds.\n\nMove or resize this window to keep the results visible, or select Start now.");
-		snapshotTimer.StartOnce(1000);
-	}
-	catch (std::exception const& error) { finishSnapshotSequence(error.what()); }
-}
-
-void ResultsFrame::beginSnapshotRuns()
-{
-	// Both the countdown and Start now use this single transition. Stop the
-	// waiting timer before scheduling the first run, so it can only start once.
-	snapshotTimer.Stop();
-	snapshotStartDeadline.reset();
-	snapshotStartNow->Hide();
-	snapshotStop->SetLabel("Stop after current snapshot");
-	snapshotProgress->Layout();
-	snapshotTimer.StartOnce(100);
-}
-
-void ResultsFrame::OnNextSnapshot(wxTimerEvent& WXUNUSED(event))
-{
-	if (!snapshotRunning) return;
-	if (snapshotStopRequested) { finishSnapshotSequence("Stopped after " + std::to_string(snapshotIndex) + " completed snapshots."); return; }
-	if (snapshotStartDeadline) {
-		// Use elapsed time rather than timer ticks: dragging a native window can
-		// delay a timer event, but should not add extra seconds to the countdown.
-		auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
-			*snapshotStartDeadline - std::chrono::steady_clock::now()).count();
-		if (remaining <= 0) { beginSnapshotRuns(); return; }
-		snapshotStatus->ChangeValue(wxString::FromUTF8("Starting in " + std::to_string((remaining + 999) / 1000) +
-			" seconds.\n\nMove or resize this window to keep the results visible, or select Start now."));
-		snapshotTimer.StartOnce(int(std::min<int64_t>(1000, remaining)));
-		return;
-	}
-	auto const& selected = snapshotFiles.at(snapshotIndex);
-	snapshotStatus->ChangeValue(wxString::FromUTF8("Running " + *selected.timestamp + " (" +
-		std::to_string(snapshotIndex + 1) + "/" + std::to_string(snapshotFiles.size()) + ")\n" +
-		LiveResultsInput::pathToUtf8(selected.path.filename())));
-	snapshotProgress->Update();
-	try {
-		std::string failure;
-		if (!runLiveSimulations(selected, &failure)) {
-			finishLiveSimulationRun();
-			finishSnapshotSequence("Stopped at " + *selected.timestamp + ".\n" + failure);
-			return;
-		}
-		++snapshotIndex;
-		snapshotGauge->SetValue(int(snapshotIndex));
-		finishLiveSimulationRun();
-		if (snapshotIndex == snapshotFiles.size()) {
-			finishSnapshotSequence("Completed " + std::to_string(snapshotIndex) + " snapshots. Results are available in Live Booths.");
-			if (project->config().getBeepOnCompletion()) beep();
-		}
-		// A fresh event, rather than a synchronous loop or wxYield, allows paint
-		// and stop events to finish before the next expensive simulation starts.
-		else snapshotTimer.StartOnce(100);
-	}
-	catch (std::exception const& error) {
-		finishSnapshotSequence("Stopped at " + *selected.timestamp + ".\n" + error.what());
-	}
-}
-
-void ResultsFrame::finishSnapshotSequence(std::string const& message)
-{
-	snapshotTimer.Stop();
-	snapshotRunning = false;
-	snapshotStartDeadline.reset();
-	snapshotDisabler.reset();
-	snapshotStatus->ChangeValue(wxString::FromUTF8(message));
-	snapshotStop->SetLabel("Close");
-	snapshotStop->Enable();
-	snapshotStartNow->Hide();
-	snapshotProgress->Layout();
-	logger << "Live snapshot sequence: " << message << "\n";
+    if (refresher.isLiveRunning()) return;
+    try {
+        auto settings = project->snapshotSequence();
+        if (settings.election != snapshotElection())
+            throw LiveSnapshotSequence::ConfigurationError("Configure and save a sequence for this election first.");
+        if (settings.codes.empty())
+            throw LiveSnapshotSequence::ConfigurationError("No snapshot codes are selected. Use Configure snapshot sequence first.");
+        auto available = LiveSnapshotSequence::discover(
+            LiveSnapshotSequence::directory(project->paths().root(), settings), settings.election);
+        if (!available.error.empty()) {
+            wxMessageBox(wxString::FromUTF8(available.error), "Cannot run snapshot sequence", wxOK | wxICON_ERROR, this);
+            return;
+        }
+        auto files = LiveSnapshotSequence::resolve(available.files, settings.codes);
+        ensureSnapshotOutputFolders(settings.election);
+        for (auto const& [id, simulation] : project->simulations()) {
+            if (!simulation.isLive()) continue;
+            if (!simulation.isLiveAutomatic())
+                throw LiveSnapshotSequence::ConfigurationError("Manual live simulations are not supported by the current live pipeline.");
+            if (auto error = LiveRunExport::validateOutputFolder(simulation.getSettings().liveOutputFolder))
+                throw LiveSnapshotSequence::ConfigurationError(*error);
+        }
+        std::vector<LiveSimulationJob::Input> inputs;
+        for (auto& file : files) inputs.push_back(std::move(file));
+        refresher.startLiveRun(std::move(inputs));
+    } catch (std::exception const& error) {
+        wxMessageBox(wxString::FromUTF8(error.what()), "Cannot run snapshot sequence", wxOK | wxICON_ERROR, this);
+    }
 }
 
 void ResultsFrame::OnAddResult(wxCommandEvent& WXUNUSED(event))
@@ -525,7 +485,7 @@ void ResultsFrame::addResultToResultData(Outcome result)
 	// trying to display them
 	if (result.seat >= project->seats().count() || result.seat < 0) return;
 	auto seat = project->seats().viewByIndex(result.seat);
-	wxColour swingColour = decideSwingColour(result);
+	wxColour swingColour = decideSwingColour(result.partyOneSwing);
 	float percentCounted = result.getPercentCountedEstimate();
 	wxColour percentCountedColour = decidePercentCountedColour(result.getPercentCountedEstimate());
 	wxColour swingBasisColour = decidePercentCountedColour(result.tcpSwingBasis);
@@ -536,35 +496,39 @@ void ResultsFrame::addResultToResultData(Outcome result)
 
 	resultsData->AppendRows(1);
 	int row = resultsData->GetNumberRows() - 1;
-	resultsData->SetCellValue(row, 0, seat.name);
-	resultsData->SetCellValue(row, 1,
+	resultsData->SetCellValue(row, ResultSeatName, seat.name);
+	resultsData->SetCellValue(row, RawSwing,
+		std::isfinite(result.rawPartyOneSwing) ? formatFloat(result.rawPartyOneSwing, 1) : "");
+	resultsData->SetCellBackgroundColour(row, RawSwing, decideSwingColour(result.rawPartyOneSwing));
+	resultsData->SetCellValue(row, EstimatedSwing,
         std::isfinite(result.partyOneSwing) ? formatFloat(result.partyOneSwing, 1) : "");
-	resultsData->SetCellBackgroundColour(row, 1, swingColour);
-	resultsData->SetCellValue(row, 2, formatFloat(percentCounted, 1));
-	resultsData->SetCellBackgroundColour(row, 2, percentCountedColour);
-	resultsData->SetCellValue(row, 3, formatFloat(result.tcpSwingBasis, 1));
-	resultsData->SetCellBackgroundColour(row, 3, swingBasisColour);
+	resultsData->SetCellBackgroundColour(row, EstimatedSwing, swingColour);
+	resultsData->SetCellValue(row, Counted, formatFloat(percentCounted, 1));
+	resultsData->SetCellBackgroundColour(row, Counted, percentCountedColour);
+	resultsData->SetCellValue(row, TcpBasis, formatFloat(result.tcpSwingBasis, 1));
+	resultsData->SetCellBackgroundColour(row, TcpBasis, swingBasisColour);
 	resultsData->SetCellValue(
-		row, 4, result.updateTime.formatIsoTimeLocal());
-	resultsData->SetCellValue(row, 5, projectedMarginString);
-	resultsData->SetCellBackgroundColour(row, 5, projectedMarginColour);
+		row, Updated, result.updateTime.formatIsoTimeLocal());
+	resultsData->SetCellValue(row, ProjectedMargin, projectedMarginString);
+	resultsData->SetCellBackgroundColour(row, ProjectedMargin, projectedMarginColour);
 	if (hasWinProbabilities(report, result.seat)) {
-		resultsData->SetCellValue(row, 6, formatFloat(report->partyOneWinProportion[result.seat] * 100.0f, 2));
-		resultsData->SetCellValue(row, 7, formatFloat(report->partyTwoWinProportion[result.seat] * 100.0f, 2));
-		resultsData->SetCellValue(row, 8, formatFloat(report->othersWinProportion[result.seat] * 100.0f, 2));
+		resultsData->SetCellValue(row, PartyOneProbability, formatFloat(report->partyOneWinProportion[result.seat] * 100.0f, 2));
+		resultsData->SetCellValue(row, PartyTwoProbability, formatFloat(report->partyTwoWinProportion[result.seat] * 100.0f, 2));
+		resultsData->SetCellValue(row, OtherProbability, formatFloat(report->othersWinProportion[result.seat] * 100.0f, 2));
 	}
 	else {
-		resultsData->SetCellValue(row, 6, "");
-		resultsData->SetCellValue(row, 7, "");
-		resultsData->SetCellValue(row, 8, "");
+		resultsData->SetCellValue(row, PartyOneProbability, "");
+		resultsData->SetCellValue(row, PartyTwoProbability, "");
+		resultsData->SetCellValue(row, OtherProbability, "");
 	}
-	resultsData->SetCellValue(row, 9, statusString);
-	resultsData->SetCellBackgroundColour(row, 9, statusColour);
+	resultsData->SetCellValue(row, Status, statusString);
+	resultsData->SetCellBackgroundColour(row, Status, statusColour);
 	resultsData->Refresh();
 }
 
 void ResultsFrame::updateInterface()
 {
+	applyActivityPolicy();
 }
 
 void ResultsFrame::refreshToolbar()
@@ -638,6 +602,7 @@ void ResultsFrame::refreshToolbar()
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+	applyActivityPolicy();
 }
 
 void ResultsFrame::refreshSummaryBar()
@@ -647,13 +612,12 @@ void ResultsFrame::refreshSummaryBar()
 
 void ResultsFrame::refreshTable()
 {
-	resultsData->BeginBatch(); // prevent updates while doing a lot of grid modifications
-
-	resetTableColumns();
-
-	addTableData();
-
-	resultsData->EndBatch(); // refresh grid data on screen
+	auto browsing = captureResultsBrowsing(*resultsData);
+    resultsData->BeginBatch();
+    resetTableColumns(); addTableData();
+    resultsData->EnableEditing(false);
+    resultsData->EndBatch();
+	restoreResultsBrowsing(*resultsData,browsing);
 }
 
 bool ResultsFrame::resultPassesFilter(Outcome const& thisResult)
@@ -696,13 +660,13 @@ bool ResultsFrame::resultPassesFilter(Outcome const& thisResult)
 	return true;
 }
 
-wxColour ResultsFrame::decideSwingColour(Outcome const& thisResult)
+wxColour ResultsFrame::decideSwingColour(double swing)
 {
-	if (std::isnan(thisResult.partyOneSwing)) return wxColour(255, 255, 255);
-	Party::Colour swingPartyColour = (thisResult.partyOneSwing > 0.0f ?
+	if (!std::isfinite(swing)) return wxColour(255, 255, 255);
+	Party::Colour swingPartyColour = (swing > 0.0 ?
 		project->parties().viewByIndex(0).colour : project->parties().viewByIndex(1).colour);
 	Party::Colour inverseColour = Party::Colour{ 255 - swingPartyColour.r, 255 - swingPartyColour.g, 255 - swingPartyColour.b };
-	float incSw = std::min(1.0f, float(abs(thisResult.partyOneSwing)) * 0.08f);
+	float incSw = std::min(1.0f, float(abs(swing)) * 0.08f);
 	return wxColour(255 - int(inverseColour.r * incSw), 255 - int(inverseColour.g * incSw), 255 - int(inverseColour.b * incSw));
 }
 
@@ -859,27 +823,14 @@ Simulation::Report const* ResultsFrame::latestReport()
 void ResultsFrame::resetTableColumns()
 {
 	if (!resultsData->GetNumberCols()) {
-		resultsData->CreateGrid(0, int(10), wxGrid::wxGridSelectCells);
-		resultsData->SetColLabelValue(0, "Seat Name");
-		resultsData->SetColLabelValue(1, "ALP Swing");
-		resultsData->SetColLabelValue(2, "Count %");
-		resultsData->SetColLabelValue(3, "Tcp Basis");
-		resultsData->SetColLabelValue(4, "Updated");
-		resultsData->SetColLabelValue(5, "Proj. Margin");
-		resultsData->SetColLabelValue(6, "ALP prob.");
-		resultsData->SetColLabelValue(7, "LNP prob.");
-		resultsData->SetColLabelValue(8, "Other prob.");
-		resultsData->SetColLabelValue(9, "Status");
-		resultsData->SetColSize(0, 100);
-		resultsData->SetColSize(1, 40);
-		resultsData->SetColSize(2, 60);
-		resultsData->SetColSize(3, 60);
-		resultsData->SetColSize(4, 60);
-		resultsData->SetColSize(5, 85);
-		resultsData->SetColSize(6, 70);
-		resultsData->SetColSize(7, 70);
-		resultsData->SetColSize(8, 70);
-		resultsData->SetColSize(9, 150);
+		resultsData->CreateGrid(0, ColumnCount, wxGrid::wxGridSelectCells);
+		char const* labels[ColumnCount] = {"Seat Name", "Raw Swing", "Est. Swing", "Count %",
+			"Tcp Basis", "Updated", "Proj. Margin", "ALP prob.", "LNP prob.", "Other prob.", "Status"};
+		int const widths[ColumnCount] = {100,75,75,60,60,60,85,70,70,70,150};
+		for (int column = 0; column < ColumnCount; ++column) {
+			resultsData->SetColLabelValue(column,labels[column]);
+			resultsData->SetColSize(column,widths[column]);
+		}
 		resultsData->SetRowLabelSize(0);
 	}
 
@@ -891,22 +842,22 @@ void ResultsFrame::addTableData()
 	PA_LOG_VAR("Adding table data\n");
 	std::vector<bool> seenSeat;
 	seenSeat.resize(project->seats().count(), false);
-	int numAdded = 0;
+	int numAdded = 0, seenCount = 0;
 	constexpr int MaxResultsShown = 1000;
-	for (int i = 0; i < project->outcomes().count(); ++i) {
-		Outcome thisResult = project->outcomes().get(i);
+	for (auto const& thisResult : project->outcomes()) {
 		// Saved results can refer to seats that are not loaded yet. Reject those
 		// before either accessing the seat or tracking which seats were displayed.
 		if (thisResult.seat < 0 || thisResult.seat >= project->seats().count()) continue;
 		if (filter != Filter::AllResults) {
 			if (seenSeat[thisResult.seat]) continue;
 			seenSeat[thisResult.seat] = true;
+			++seenCount;
 		}
 
 		if (resultPassesFilter(thisResult)) {
 			addResultToResultData(thisResult);
 			++numAdded;
 		}
-		if (numAdded >= MaxResultsShown) break;
+		if (numAdded >= MaxResultsShown || (filter != Filter::AllResults && seenCount == project->seats().count())) break;
 	}
 }

@@ -65,7 +65,14 @@ struct MomentAccumulator {
     }
 };
 
-struct Distribution { double mean = 0, variance = 0; bool present = false; };
+struct Distribution {
+    double mean = 0, variance = 0;
+    bool present = false;
+    // A candidate absent in every baseline draw has no measured prior width.
+    // Keep this identity separate from a genuinely precise positive share;
+    // subtracting log-odds moments can leave round-off even for all zeros.
+    bool allZero = false;
+};
 template<class Classify>
 Distribution group(LiveData::FpDistributionMoments const& moments, int id, Classify classify) {
     std::vector<int> members;
@@ -75,7 +82,7 @@ Distribution group(LiveData::FpDistributionMoments const& moments, int id, Class
     if (members.empty()) return {};
     if (members.size() == 1) {
         int candidate = members.front();
-        return {moments.logOddsMean.at(candidate), moments.logOddsVariance.at(candidate), true};
+        return {moments.logOddsMean.at(candidate), moments.logOddsVariance.at(candidate), true, share == 0};
     }
     // A named candidate uses its exact draw moments. For a combined group,
     // transform the summed shares and their covariance by the local derivative
@@ -86,7 +93,7 @@ Distribution group(LiveData::FpDistributionMoments const& moments, int id, Class
         if (it != moments.shareCovariance.end()) variance += it->second;
     }
     double p = std::clamp(share,ShareFloor,1-ShareFloor);
-    return {logOdds(p),std::max(0.,variance)/std::pow(p*(1-p),2),true};
+    return {logOdds(p),std::max(0.,variance)/std::pow(p*(1-p),2),true,share == 0};
 }
 inline double countWeight(double baselineVariance, double countVariance, double gate) {
     // A finite count must earn influence through both precision and breadth.
@@ -179,7 +186,7 @@ std::map<int,float> integrate(LiveTurnoutMath::PartyAccount const& account,
         // An observed configured candidate can have no separate pre-election
         // slot. Its share was supplied from generic Others, so use that source's
         // width too. Do not infer infinite precision from an absent candidate.
-        if (!baseline.present || (baseline.variance == 0 && baseline.mean <= logOdds(0)))
+        if (!baseline.present || baseline.allZero)
             baseline = group(information.baseline,-1,priorClassify);
         double p = prior.contains(id) ? prior.at(id)/100. : 0;
         double live = account.projected.contains(id) ? account.projected.at(id)/total : 0;

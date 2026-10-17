@@ -1,0 +1,5 @@
+# Optional figure dependencies for the native non-Stan research environment.
+# Retain its existing NumPy version; newer contourpy releases require NumPy 2.
+numpy==1.26.4
+matplotlib==3.9.4
+contourpy==1.3.1

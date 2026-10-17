@@ -5,15 +5,19 @@
 #include "SeatCollection.h"
 
 #include <array>
+#include <limits>
+#include <optional>
 
 class Seat;
 
 class Outcome {
 public:
 	Outcome() {}
-	Outcome(Seat::Id seat, double partyOneSwing, double percentCounted, double tcpSwingBasis, std::size_t boothsIn, std::size_t totalBooths)
+	Outcome(Seat::Id seat, double partyOneSwing, double percentCounted, double tcpSwingBasis, std::size_t boothsIn, std::size_t totalBooths,
+		std::optional<double> rawSwing = {})
 		: seat(seat), partyOneSwing(partyOneSwing), percentCounted(percentCounted), tcpSwingBasis(tcpSwingBasis),
-		boothsIn(boothsIn), totalBooths(totalBooths), updateTime(Timestamp::now()) {}
+		boothsIn(boothsIn), totalBooths(totalBooths), updateTime(Timestamp::now()),
+		rawPartyOneSwing(rawSwing.value_or(partyOneSwing)) {}
 	Seat::Id seat = -1;
 	double partyOneSwing = 0.0;
 	double percentCounted = 0.0;
@@ -21,6 +25,10 @@ public:
 	int boothsIn = 0;
 	int totalBooths = 0;
 	Timestamp updateTime;
+	// Live preparation supplies the observed swing separately from its seat-wide
+	// estimate. Manual entries supply their entered swing for both. Older saved
+	// outcomes cannot reconstruct an observed swing, so leave that column blank.
+	double rawPartyOneSwing = std::numeric_limits<double>::quiet_NaN();
 
 	std::string getUpdateTimeString() const {
 		if (!updateTime.isValid()) return "";

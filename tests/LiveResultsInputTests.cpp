@@ -23,6 +23,15 @@ void write(std::filesystem::path const& path, std::string const& contents)
 
 int main()
 {
+	// Ordinary remote preloads keep their existing acquisition. Local replay
+	// paths preserve Unicode and directory components when naming the companion.
+	assert(!LiveResultsInput::localPreloadFiles("ftp://example.test/preload.zip"));
+	auto local = LiveResultsInput::localPreloadFiles("local:downloads/example-preload.xml");
+	assert(local && local->results == std::filesystem::path("downloads/example-preload.xml"));
+	assert(local->pollingPlaces == std::filesystem::path("downloads/example-preload@polling_places.xml"));
+	auto unicode = LiveResultsInput::localPreloadFiles("local:folder with spaces/vo\xC4\xBE" "by.xml");
+	assert(unicode && LiveResultsInput::pathToUtf8(unicode->pollingPlaces.filename()) == "vo\xC4\xBE" "by@polling_places.xml");
+
 	// ZIP replay must select booth-level lower-house results, not an aggregate
 	// or upper-house file stored alongside them in a VEC collection.
 	assert(LiveResultsInput::isSnapshotResultsXml("Media feed/State2022mediafilelitepplh_20221126_180329.XML", "vic"));

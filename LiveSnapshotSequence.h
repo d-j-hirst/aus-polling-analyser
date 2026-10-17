@@ -49,6 +49,10 @@ std::string codeText(std::vector<std::string> const& codes);
 std::vector<LiveResultsInput::CurrentFile> resolve(
     std::vector<LiveResultsInput::CurrentFile> const& available,
     std::vector<std::string> const& codes);
+// Inserts an available code chronologically; selecting an existing timestamp
+// is a no-op. Invalid existing editor text is left untouched for correction.
+void insertCode(std::vector<LiveResultsInput::CurrentFile> const& available,
+    std::vector<std::string>& codes, std::string const& code);
 // Adds up to count entries after the final selected entry. The starting entry
 // is excluded; fewer remaining entries are all added, and exhaustion is a no-op.
 void appendNext(std::vector<LiveResultsInput::CurrentFile> const& available,

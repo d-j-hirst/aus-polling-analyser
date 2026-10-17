@@ -77,7 +77,8 @@
 // Version 65: save each simulation's current-results input directory
 // Version 66: save each simulation's live diagnostic output folder
 // Version 67: save the project-level live snapshot sequence
-constexpr int VersionNum = 67;
+// Version 68: retain raw result swings separately from live estimates and TCP progress
+constexpr int VersionNum = 68;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -972,6 +973,8 @@ void ProjectFiler::saveOutcomes(SaveFileOutput& saveOutput)
 		saveOutput.outputAsType<int32_t>(thisOutcome.boothsIn);
 		saveOutput.outputAsType<int32_t>(thisOutcome.totalBooths);
 		saveOutput << thisOutcome.updateTime.toLegacyJulianDay();
+		saveOutput << thisOutcome.rawPartyOneSwing;
+		saveOutput << thisOutcome.tcpSwingBasis;
 	}
 }
 
@@ -987,6 +990,12 @@ void ProjectFiler::loadOutcomes(SaveFileInput& saveInput, [[maybe_unused]] int v
 		thisOutcome.totalBooths = saveInput.extract<int32_t>();
 		thisOutcome.updateTime =
 			Timestamp::fromLegacyJulianDay(saveInput.extract<double>());
+		// Earlier files contain only the estimated swing. Do not relabel that as
+		// raw evidence; newly generated results retain both values on reload.
+		if (versionNum >= 68) {
+			saveInput >> thisOutcome.rawPartyOneSwing;
+			saveInput >> thisOutcome.tcpSwingBasis;
+		}
 		project.outcomeCollection.add(thisOutcome);
 	}
 }

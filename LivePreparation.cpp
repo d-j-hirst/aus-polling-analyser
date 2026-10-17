@@ -221,6 +221,10 @@ void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simu
 		if (settings.preloadUrl.empty()) {
 			throw Exception("No preload URL has been configured.");
 		}
+		if (auto files = LiveResultsInput::localPreloadFiles(settings.preloadUrl)) {
+			requireLiveInputFile(files->results, missingFiles);
+			requireLiveInputFile(files->pollingPlaces, missingFiles);
+		}
 		if (!snapshot && settings.currentRealUrl.empty() && settings.currentTestUrl.empty()) {
 			throw Exception("No current-results URL has been configured.");
 		}
@@ -311,11 +315,12 @@ void LivePreparation::recordCountedOutcomes()
 		auto seat = project.seats().viewByIndex(seatIndex);
 		project.outcomes().add(Outcome(
 			seatIndex,
-			run.liveElection->getSeatRawTppSwing(seat.name),
+			run.liveElection->getSeatEstimatedTppSwing(seat.name),
 			run.liveElection->getSeatFpCompletion(seat.name) * 100.0f,
 			run.liveElection->getSeatTcpCompletion(seat.name) * 100.0f,
 			0,
-			40
+			40,
+			run.liveElection->getSeatRawTppSwing(seat.name)
 		));
 	}
 }
@@ -390,6 +395,12 @@ void LivePreparation::parsePreviousResults()
 void LivePreparation::downloadPreload()
 {
 	if (run.regionCode != "fed") return;
+	// Remote preloads retain the normal cache/download path below. A local
+	// normalized roster is read explicitly, without impersonating that cache.
+	if (auto files = LiveResultsInput::localPreloadFiles(sim.settings.preloadUrl)) {
+		xmlFilename = LiveResultsInput::pathToUtf8(files->results);
+		return;
+	}
 	ResultsDownloader resultsDownloader;
 	std::string mangledName = cachedUrlFilename(sim.settings.preloadUrl);
 	std::filesystem::path mangledPath(mangledName);
@@ -446,6 +457,10 @@ void LivePreparation::downloadPollingPlaces()
 	// Polling places data contains location data that is used to estimate
 	// votes for booths that don't have a previous-election match.
 	if (run.regionCode != "fed") return;
+	if (auto files = LiveResultsInput::localPreloadFiles(sim.settings.preloadUrl)) {
+		xmlFilename = LiveResultsInput::pathToUtf8(files->pollingPlaces);
+		return;
+	}
 	ResultsDownloader resultsDownloader;
 	std::string mangledName = cachedUrlFilename(
 		sim.settings.preloadUrl, "@polling_places.xml");

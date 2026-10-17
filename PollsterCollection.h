@@ -18,6 +18,7 @@ public:
 
 class PollsterCollection {
 public:
+	friend class PollingProject; // Explicit worker-context cloning preserves IDs and owner references.
 	// Collection is a map between ID values and pollsters
 	// IDs are not preserved between sessions, and are used to ensure
 	// consistent display with pollster deletions etc. while making sure references

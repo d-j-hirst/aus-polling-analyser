@@ -12,6 +12,15 @@
 
 namespace LiveResultsInput {
 
+std::optional<PreloadFiles> localPreloadFiles(std::string_view source)
+{
+	if (!source.starts_with("local:")) return std::nullopt;
+	auto results = pathFromUtf8(source.substr(6));
+	auto companion = results.stem();
+	companion += "@polling_places.xml";
+	return PreloadFiles{results, results.parent_path() / companion};
+}
+
 bool isSnapshotResultsXml(std::string_view memberName, std::string_view regionCode)
 {
 	// Match member names without extracting their paths. Case normalization

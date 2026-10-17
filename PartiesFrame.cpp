@@ -77,6 +77,7 @@ void PartiesFrame::setupToolBar()
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+	applyActivityPolicy();
 }
 
 void PartiesFrame::setupDataTable()
@@ -266,4 +267,5 @@ void PartiesFrame::updateInterface() {
 	bool somethingSelected = (partyData->GetSelectedRow() != -1);
 	toolBar->EnableTool(ControlId::Edit, somethingSelected);
 	toolBar->EnableTool(ControlId::Remove, somethingSelected);
+	applyActivityPolicy();
 }

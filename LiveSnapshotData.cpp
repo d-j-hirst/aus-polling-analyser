@@ -1033,6 +1033,25 @@ PartyColour coalitionSeatColour(std::vector<PartyIdentity> const& catalog)
 	return {0, 51, 153};
 }
 
+std::optional<bool> countingStarted(SnapshotRecord const& record)
+{
+	// Use received count progress, not a forecast movement or a particular seat's
+	// first booth. Zero-only early feeds still provide a baseline on election day.
+	auto const* report = simulationReport(record);
+	if (!report) return {};
+	bool known = false;
+	for (auto key : {"seat_fp_completion", "seat_tcp_completion"}) {
+		if (!report->contains(key) || !report->at(key).is_array()) continue;
+		for (auto const& value : report->at(key)) {
+			auto number = parseNumber(value);
+			if (number.kind != NumberKind::Finite) continue;
+			known = true;
+			if (number.value > 0) return true;
+		}
+	}
+	return known ? std::optional<bool>(false) : std::nullopt;
+}
+
 ParliamentRow makeTableRow(
 	SnapshotRecord const& record, ParliamentSelection const& selection)
 {
@@ -1045,6 +1064,7 @@ ParliamentRow makeTableRow(
 	row.completedAt = record.completedAt;
 	row.duplicateCount = selection.duplicateCount;
 	row.recordIndex = selection.recordIndex;
+	row.countingStarted = countingStarted(record);
 	return row;
 }
 
@@ -1321,6 +1341,14 @@ LoadResult loadDirectory(
 	return result;
 }
 
+std::optional<SnapshotRecord> readRecord(std::filesystem::path const& path, std::string& warning)
+{
+	std::ifstream stream(path, std::ios::binary);
+	if (!stream) { warning = "could not open file."; return {}; }
+	try { return parseRecord(LiveResultsInput::pathToUtf8(path.filename()), parseSnapshotJson(stream), warning); }
+	catch (json::exception const& error) { warning = std::string("malformed JSON: ") + error.what(); return {}; }
+}
+
 LoadResult loadFromProject(PollingProject const& project, int simulationId)
 {
 	Simulation const* selected = nullptr;
@@ -1496,15 +1524,7 @@ ParliamentView buildParliamentView(std::vector<SnapshotRecord> const& records)
 	view.cells.reserve(selections.size());
 	for (auto const& selection : selections) {
 		auto const& record = records[selection.recordIndex];
-		ParliamentRow row;
-		row.snapshotCode = record.snapshotCode;
-		row.timestampLabel = formatSnapshotTimestamp(record.snapshotCode);
-		row.duplicate = selection.duplicateCount > 1;
-		if (row.duplicate) row.timestampLabel += "*";
-		row.selectedFilename = record.filename;
-		row.completedAt = record.completedAt;
-		row.duplicateCount = selection.duplicateCount;
-		row.recordIndex = selection.recordIndex;
+		ParliamentRow row = makeTableRow(record,selection);
 
 		std::vector<CellValue> cells;
 		cells.reserve(view.columns.size());
@@ -2548,24 +2568,63 @@ ParliamentView buildInternal2ppView(std::vector<SnapshotRecord> const& records)
 	ParliamentColumn snapshot;
 	snapshot.kind = ParliamentColumn::Kind::Snapshot;
 	snapshot.header = "Snapshot";
+	snapshot.explanation = "Source snapshot time. Each row contains the diagnostics from that completed forecast.";
 	snapshot.includeInGraph = false;
 	view.columns.push_back(std::move(snapshot));
 
 	struct Spec {
 		char const* header;
 		char const* key;
+		bool graph;
+		char const* shortHeader;
+		char const* explanation;
 	};
+	// Keep names and explanations together so compact headers remain useful
+	// without requiring the reader to consult modelling documentation. Constants
+	// stay in the exported diagnostics rather than occupying table columns.
 	Spec const specs[] = {
-		{"Internal projected 2PP", "projected_2pp"},
-		{"Raw 2PP deviation", "raw_2pp_deviation"}
+		{"Internal projected 2PP", "projected_2pp", true, "Int. 2PP",
+			"Labor's projected two-party-preferred share from the internal live vote accounts, including estimated uncounted votes. Compare with the joint centre to see the effect of integration with the pre-election forecast."},
+		{"Raw 2PP deviation", "raw_2pp_deviation", true, "Raw dev.",
+			"Observed two-party-preferred movement relative to the expected movement, including FP-derived estimates. Negative means worse for Labor than expected; this is not the swing from the previous election. Uses 25 times log odds, approximately percentage points near 50% TPP."},
+		{"Joint centre 2PP (%)", "tpp_joint_centre", false, "Joint 2PP",
+			"Labor's seat estimates after the joint update, converted to vote shares and aggregated. Includes the prior and correlations. This precedes simulation count bounds and turnout/recheck draws, so it can differ from the final forecast median."},
+		{"Joint SD (z)", "tpp_posterior_sd", false, "Joint SD",
+			"Standard deviation of the weighted seat total after the joint update, including correlations between seats. Lower means less remaining uncertainty. The z scale is 25 times log odds, approximately percentage points near 50% TPP."},
+		{"Variance retained (%)", "tpp_variance_retained_percent", false, "Var. left %",
+			"Remaining variance as a percentage of the pre-election variance: 100 times (joint SD / prior SD) squared. Lower values mean the count has removed more uncertainty; this is a variance ratio, not an SD ratio."},
+		{"FP-derived (%)", "tpp_inferred_percent", false, "FP est. %",
+			"Percentage of received, quality-weighted TPP evidence inferred from first preferences rather than measured TCP. High values indicate greater reliance on preference conversion. The denominator is the evidence used, not all expected votes."},
+		{"Unresolved preferences (%)", "tpp_conversion_pool_percent", false, "Pref. pool %",
+			"Comparison-weighted percentage of evidence consisting of non-major first preferences still requiring an estimated transfer to TPP. Measured TPP contributes zero. A larger pool exposes the estimate to more conversion uncertainty."},
+		{"Local conversion SD (z)", "tpp_conversion_local_sd", false, "Local SD",
+			"Typical district-level FP-to-TPP conversion uncertainty, measured as the comparison-weighted root mean square of observation SDs. Local matches reduce it. This is not the national aggregate SD. z is 25 times log odds, approximately percentage points near 50%."},
+		{"Shared conversion SD (z)", "tpp_conversion_shared_sd", false, "Shared SD",
+			"Typical shared FP-to-TPP conversion uncertainty before district-budget scaling, measured as the comparison-weighted root mean square of observation SDs. Pooled matches reduce it. This is not the national aggregate SD. z is 25 times log odds, approximately percentage points near 50%."},
+		{"Matched preference units", "tpp_conversion_matched_units", false, "Pref. units",
+			"Effective matched FP/TCP locations across all categories. Each location contributes at most one unit, reduced for small preference pools or unreliable comparisons. More units support more precise preference conversion; these are not vote counts."},
+		{"Ordinary FP order SD (z)", "tpp_fp_order_sd", false, "FP ord. SD",
+			"Input allowance for ordinary reporting-order error in rows using FP-derived TPP. It protects against the reported booths being unrepresentative and shrinks with coverage. This is before conditioning, not a posterior SD. z is approximately percentage points near 50% TPP."},
+		{"Ordinary TCP order SD (z)", "tpp_tcp_order_sd", false, "TCP ord. SD",
+			"Input allowance for ordinary reporting-order error in wholly measured TCP rows. The smaller TCP-ready sample can be less representative than the FP sample. This shrinks with coverage and is not a posterior SD. z is approximately percentage points near 50% TPP."},
+		{"Ordinary FP coverage (%)", "tpp_fp_order_coverage_percent", false, "FP cov. %",
+			"The smaller of ordinary vote coverage and booth coverage for FP-reported evidence. Booth coverage averages each booth's reported fraction; denominators include unreported ordinary booths. Greater coverage reduces the FP reporting-order allowance."},
+		{"Ordinary TCP coverage (%)", "tpp_tcp_order_coverage_percent", false, "TCP cov. %",
+			"The smaller of ordinary vote coverage and booth coverage for measured TPP evidence, excluding the inferred fraction. Denominators include unreported ordinary booths. Greater coverage reduces the TCP reporting-order allowance."},
+		{"Category covariance scale (%)", "tpp_category_budget_percent", false, "Cat. scale %",
+			"Percentage of historical shared category covariance retained within the baseline uncertainty budget. Usually 100%; it can fall when the full category covariance would exceed that budget. This scales variance, not SD, and is not a counting-progress measure."}
 	};
 	for (int index = 0; index < int(sizeof(specs) / sizeof(specs[0])); ++index) {
 		ParliamentColumn column;
 		column.kind = ParliamentColumn::Kind::Internal2pp;
 		column.header = specs[index].header;
+		column.shortHeader = specs[index].shortHeader;
+		column.explanation = specs[index].explanation;
 		column.category = specs[index].key;
 		column.colour = categoryPaletteColour(index);
-		column.includeInGraph = true;
+		// These diagnostics have different units. Keep the existing graph's
+		// series; the extra quick-check measures belong in the table.
+		column.includeInGraph = specs[index].graph;
 		view.columns.push_back(std::move(column));
 	}
 
@@ -2591,7 +2650,11 @@ ParliamentView buildInternal2ppView(std::vector<SnapshotRecord> const& records)
 				summary->contains(column.category)) {
 				number = parseNumber((*summary)[column.category]);
 			}
-			cells.push_back(cellFromSeatNumber(number));
+			// New diagnostics were not recorded in older archives. An absent
+			// uncertainty or evidence fraction must not look like a measured zero.
+			if (column.category.starts_with("tpp_") && number.kind == NumberKind::Omitted)
+				cells.push_back(CellValue{});
+			else cells.push_back(cellFromSeatNumber(number));
 		}
 		view.rows.push_back(std::move(row));
 		view.cells.push_back(std::move(cells));

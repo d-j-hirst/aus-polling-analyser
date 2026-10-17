@@ -14,6 +14,8 @@
 #include "LiveSnapshotData.h"
 #include "LiveSnapshotGraph.h"
 #include "LiveSnapshotTable.h"
+#include "LiveSnapshotViewer.h"
+#include <wx/checkbox.h>
 #include "PollingProject.h"
 #include "ProjectFrame.h"
 
@@ -21,12 +23,20 @@ class LiveBoothFrame : public GenericChildFrame
 {
 public:
 	LiveBoothFrame(ProjectFrame::Refresher refresher, PollingProject* project);
+	~LiveBoothFrame();
+	void notifyCompletedExports(std::vector<std::filesystem::path> const& paths);
 
 	void paint();
 
 	void refreshData();
 
 private:
+	void OnViewerReady(wxThreadEvent& event);
+	void OnFollowLatest(wxCommandEvent& event);
+	std::unique_ptr<LiveSnapshotViewer> viewer;
+	std::uint64_t viewerGeneration = 0;
+	bool viewerLoading = false, followLatest = true;
+	wxCheckBox* followLatestControl = nullptr;
 	enum class Mode {
 		NodeInspector,
 		Parliament,
@@ -80,13 +90,7 @@ private:
 	void restoreShadingCombo();
 	void restoreLayoutCombo();
 	void clearCachedViews();
-	void prepareSelectedView();
 	void rebuildPresentation();
-	void syncThresholdView();
-	void syncSeatWinViews();
-	void syncSeatFpViews();
-	void syncCompletionViews();
-	void syncCategoryStatViews();
 	bool isSeatMetricMode() const;
 	bool isCompletionMode() const;
 	bool isCategoryStatMode() const;

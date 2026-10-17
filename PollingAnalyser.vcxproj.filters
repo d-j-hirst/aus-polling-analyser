@@ -1,6 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="LiveSnapshotViewer.cpp" />
+    <ClCompile Include="LiveSimulationJob.cpp" />
     <ClCompile Include="PollingAnalyser.cpp" />
     <ClCompile Include="ProjectFrame.cpp">
       <Filter>Source Files</Filter>
@@ -296,6 +298,7 @@
     <ClCompile Include="LiveInputWarningPanel.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
+    <ClCompile Include="LiveTppPreparation.cpp" />
     <ClCompile Include="LiveFpPreparation.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
@@ -399,6 +402,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="LiveSnapshotViewer.h" />
+    <ClInclude Include="LiveSimulationJob.h" />
+    <ClInclude Include="BackgroundTask.h" />
     <ClInclude Include="PollingProject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -514,6 +520,12 @@
 	  <Filter>Header Files\Utility</Filter>
 	</ClInclude>
 	<ClInclude Include="IndependentCandidacy.h">
+	  <Filter>Header Files\Utility</Filter>
+	</ClInclude>
+	<ClInclude Include="CoalitionCandidacy.h">
+	  <Filter>Header Files\Utility</Filter>
+	</ClInclude>
+	<ClInclude Include="RegionalSwingMath.h">
 	  <Filter>Header Files\Utility</Filter>
 	</ClInclude>
 	<ClInclude Include="MajorPartyFpMath.h">
@@ -757,6 +769,16 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LiveFpEvidence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveEstimatedTpp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveTppIntegration.h" />
+    <ClInclude Include="LiveTppDiagnostics.h" />
+    <ClInclude Include="LiveTppComposition.h" />
+    <ClInclude Include="LiveTppCompositionParameters.h" />
+    <ClInclude Include="LiveTppSensitivity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LiveFpIntegration.h">

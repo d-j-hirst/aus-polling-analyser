@@ -24,8 +24,34 @@
 #include <wx/sizer.h>
 #include <wx/textctrl.h>
 #include <wx/utils.h>
+#include <wx/wupdlock.h>
+#include <wx/thread.h>
+#include <wx/log.h>
+#include "Beep.h"
+#include "Log.h"
+
+wxDEFINE_EVENT(PA_LIVE_COMPLETED, wxThreadEvent);
 
 namespace {
+// A disabled toolbar is not sufficient: accelerators and queued commands can
+// still arrive. Read-only commands are explicitly registered by each page.
+class LiveCommandFilter : public wxEventFilter {
+public:
+    explicit LiveCommandFilter(ProjectFrame& owner) : owner(owner) {}
+    int FilterEvent(wxEvent& event) override {
+        if (!owner.isLiveRunning()) return Event_Skip;
+        if (event.GetEventType() != wxEVT_MENU && event.GetEventType() != wxEVT_BUTTON) return Event_Skip;
+        auto* window = dynamic_cast<wxWindow*>(event.GetEventObject());
+        for (auto* current = window; current; current = current->GetParent()) {
+			if (event.GetEventType() == wxEVT_BUTTON && owner.isLiveProgressWindow(current)) return Event_Skip;
+            if (auto* page = dynamic_cast<GenericChildFrame*>(current))
+                return page->allowsLiveAction(event.GetId()) ? Event_Skip : Event_Processed;
+        }
+        return event.GetId() == wxID_EXIT || event.GetId() == wxID_ABOUT ? Event_Skip : Event_Processed;
+    }
+private:
+    ProjectFrame& owner;
+};
 	class MacroWarningsDialog : public wxDialog {
 	public:
 		explicit MacroWarningsDialog(wxWindow* parent) :
@@ -322,10 +348,14 @@ void ProjectFrame::editGeneralSettings()
 
 // Constructor for the ProjectFrame without creating a project. Only used as a delegate for the above constructors.
 ProjectFrame::ProjectFrame(ParentFrame* parent, int WXUNUSED(dummyInt))
-	: parent(parent), wxNotebook(parent->accessNotebookPanel(), wxID_ANY)
+	: wxNotebook(parent->accessNotebookPanel(), wxID_ANY), liveProgressTimer(this), parent(parent)
 {
 	SetSize(parent->GetClientSize());
 	Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, &ProjectFrame::OnSwitch, this, this->GetId());
+	Bind(PA_LIVE_COMPLETED, &ProjectFrame::onLiveCompletion, this);
+	Bind(wxEVT_TIMER, &ProjectFrame::onLiveProgress, this, liveProgressTimer.GetId());
+	liveCommandFilter = std::make_unique<LiveCommandFilter>(*this);
+	wxEvtHandler::AddFilter(liveCommandFilter.get());
 }
 
 ProjectFrame::Refresher ProjectFrame::createRefresher()
@@ -412,4 +442,187 @@ void ProjectFrame::cancelConstructionFromFile()
 	message->ShowModal();
 
 	throw LoadProjectFailedException();
+}
+
+ProjectFrame::~ProjectFrame() {
+	liveProgressTimer.Stop();
+	liveJob.reset();
+	if (liveCommandFilter) wxEvtHandler::RemoveFilter(liveCommandFilter.get());
+}
+
+bool ProjectFrame::startLiveRun(std::vector<LiveSimulationJob::Input> inputs) {
+	if (isLiveRunning() || inputs.empty()) return false;
+	std::vector<Simulation::Id> ids;
+	for (auto const& [id, simulation] : project->simulations())
+		if (simulation.isLive()) ids.push_back(id);
+	if (ids.empty()) return false;
+	try {
+		initialiseLiveJob(std::move(inputs),std::move(ids));
+		createLiveProgress();
+		updateLiveActivityPolicy();
+		liveProgressTimer.Start(200);
+		CallAfter(&ProjectFrame::dispatchLiveSnapshot);
+		return true;
+	} catch (std::exception const& error) {
+		liveJob.reset(); updateLiveActivityPolicy();
+		wxMessageBox(wxString::FromUTF8(error.what()), "Cannot start live simulation", wxOK | wxICON_ERROR, this);
+		return false;
+	}
+}
+
+void ProjectFrame::initialiseLiveJob(std::vector<LiveSimulationJob::Input> inputs, std::vector<Simulation::Id> ids) {
+	// Capture configured inputs once, before any calculation starts. Neither
+	// later tab selections nor temporary calibration reports alter that context.
+	liveJob = std::make_unique<LiveSimulationJob>(*project,ids,[this] {
+		wxQueueEvent(this,new wxThreadEvent(PA_LIVE_COMPLETED));
+	},[] {
+		// File/ZIP failures must not open GUI logging dialogs on the worker.
+		// The readers still report their normal structured input diagnostics.
+		thread_local wxLogStderr workerLog;
+		wxLog::SetThreadActiveTarget(&workerLog);
+	});
+	std::vector<std::shared_ptr<SimulationRun>> retired;
+	for (auto id : ids) retired.push_back(project->simulations().access(id).detachRetainedLiveRun());
+	liveJob->retire(std::move(retired));
+	liveInputs = std::move(inputs); liveIndex = 0; liveStopRequested = false;
+	++liveGeneration; lastPublishedCode.clear();
+}
+
+void ProjectFrame::createLiveProgress() {
+	if (liveProgress) liveProgress->Destroy();
+	liveProgress = new wxDialog(this, wxID_ANY,
+		liveInputs.size() > 1 ? "Live snapshot sequence" : "Live simulations",
+		wxDefaultPosition, wxSize(650, 320), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
+	auto* layout = new wxBoxSizer(wxVERTICAL);
+	liveStatus = new wxTextCtrl(liveProgress, wxID_ANY, "Preparing live run...",
+		wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
+	liveGauge = new wxGauge(liveProgress, wxID_ANY, int(liveInputs.size()));
+	liveStop = new wxButton(liveProgress, wxID_ANY, "Stop after current snapshot");
+	layout->Add(liveStatus, 1, wxEXPAND | wxALL, 10);
+	layout->Add(liveGauge, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+	layout->Add(liveStop, 0, wxALIGN_RIGHT | wxALL, 10);
+	liveProgress->SetSizer(layout); liveProgress->CentreOnParent();
+	liveStop->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+		if (isLiveRunning()) stopLiveRun();
+		else { liveProgress->Destroy(); liveProgress = nullptr; }
+	});
+	liveProgress->Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& event) {
+		if (isLiveRunning()) { stopLiveRun(); event.Veto(); }
+		else { liveProgress = nullptr; event.Skip(); }
+	});
+	liveProgress->Show();
+}
+
+void ProjectFrame::dispatchLiveSnapshot() {
+	if (!liveJob) return;
+	if (liveStopRequested) { finishLiveJob("Stopped after " + std::to_string(liveIndex) + " completed snapshots."); return; }
+	if (!liveJob->submit(liveGeneration, liveInputs.at(liveIndex)))
+		finishLiveJob("Could not dispatch the next live snapshot.");
+}
+
+void ProjectFrame::stopLiveRun() {
+	if (!liveJob) return;
+	liveStopRequested = true;
+	if (liveStop) { liveStop->SetLabel("Stopping after current snapshot..."); liveStop->Disable(); }
+}
+
+bool ProjectFrame::deferCloseForLiveRun() {
+	if (!liveJob) return false;
+	closeAfterLive = true; stopLiveRun(); return true;
+}
+
+void ProjectFrame::onLiveProgress(wxTimerEvent&) {
+	// A timer event already queued before Stop() can arrive during worker
+	// cleanup, after the final input index has advanced beyond the sequence.
+	if (!liveJob || !liveStatus || liveFinishMessage || liveIndex >= liveInputs.size()) return;
+	auto const& input = liveInputs.at(liveIndex);
+	std::string code = input ? input->timestamp.value_or("selected feed") : "current feed";
+	updateLiveStatus(wxString::FromUTF8("Running " + code + " (" +
+		std::to_string(liveIndex + 1) + "/" + std::to_string(liveInputs.size()) + ")\n" +
+		"Completed: " + std::to_string(liveIndex) + " of " + std::to_string(liveInputs.size()) + " snapshots\n" +
+		"Last published: " + (lastPublishedCode.empty() ? "no snapshot in this job yet" : lastPublishedCode) +
+		"\n\n" + liveJob->progress()));
+}
+
+void ProjectFrame::updateLiveStatus(wxString const& message) {
+	// The timer polls throughout each simulation phase, often finding the same
+	// status. Leave that text untouched, and hold native repaints while replacing
+	// a changed message so the cleared control is never shown between messages.
+	if (!liveStatus || liveStatus->GetValue() == message) return;
+	wxWindowUpdateLocker lock(liveStatus);
+	liveStatus->ChangeValue(message);
+}
+
+void ProjectFrame::onLiveCompletion(wxThreadEvent&) {
+	if (!liveJob) return;
+	auto completed = liveJob->take();
+	if (!completed || completed->generation != liveGeneration) return;
+	if (completed->error) {
+		try { std::rethrow_exception(completed->error); }
+		catch (std::exception const& error) { finishLiveJob(error.what()); }
+		catch (...) { finishLiveJob("Unknown live-worker failure."); }
+		return;
+	}
+	auto& update = *completed->result;
+	if (update.finished) {
+		finishLiveJob(liveFinishMessage.value_or("Live run finished."));
+		return;
+	}
+	publishLiveUpdate(update);
+	advanceLiveSequence(update);
+}
+
+void ProjectFrame::publishLiveUpdate(LiveSimulationUpdate& update) {
+	for (auto const& simulation : update.simulations)
+		if (simulation.completed) lastPublishedCode = simulation.completed->report.dateCode;
+	LiveSimulationJob::publish(*project, update);
+	liveJob->retire(std::move(update.retiredRuns));
+	// Publication precedes every refresh; no page observes calibration's
+	// temporary reports or counted outcomes from an unfinished calculation.
+	resultsFrame->refreshData(); seatsFrame->refreshDataTable();
+	simulationsFrame->refreshDataTable(); displayFrame->refreshData(); displayFrame->paint();
+	mapFrame->refreshData();
+	if (liveBoothFrame) liveBoothFrame->notifyCompletedExports(update.exports);
+}
+
+void ProjectFrame::advanceLiveSequence(LiveSimulationUpdate const& update) {
+	// Keep successful preceding simulations on a failure. A stop request is
+	// checked at dispatch, after all simulations in this snapshot have finished.
+	if (!update.succeeded) {
+		auto const& input = liveInputs.at(liveIndex);
+		finishLiveJob("Stopped at " + (input ? input->timestamp.value_or("the current snapshot") : "the current feed") + ".\n" + update.failure);
+		return;
+	}
+	++liveIndex; liveGauge->SetValue(int(liveIndex));
+	if (liveIndex == liveInputs.size()) {
+		finishLiveJob("Completed " + std::to_string(liveIndex) + " snapshots. Results are available in Live Booths.");
+	} else CallAfter(&ProjectFrame::dispatchLiveSnapshot);
+}
+
+void ProjectFrame::finishLiveJob(std::string message) {
+	liveProgressTimer.Stop();
+	if (liveJob && !liveFinishMessage) {
+		liveFinishMessage = message;
+		updateLiveStatus("Finishing live run...");
+		if (liveJob->finish(liveGeneration)) return;
+	}
+	liveJob.reset(); // Worker is between tasks; joining never waits for a calculation here.
+	liveFinishMessage.reset();
+	updateLiveActivityPolicy();
+	if (liveIndex == liveInputs.size() && !liveStopRequested && project->config().getBeepOnCompletion()) beep();
+	updateLiveStatus(wxString::FromUTF8(message));
+	if (liveStop) { liveStop->SetLabel("Close"); liveStop->Enable(); }
+	logger << "Live simulation job: " << message << "\n";
+	if (closeAfterLive) {
+		closeAfterLive = false;
+		// The event belongs to the parent. Capture that window directly so a
+		// queued project switch cannot leave a callback referring to this page.
+		parent->CallAfter([frame = parent] { frame->Close(); });
+	}
+}
+
+void ProjectFrame::updateLiveActivityPolicy() {
+	for (std::size_t i = 0; i < GetPageCount(); ++i)
+		if (auto* page = dynamic_cast<GenericChildFrame*>(GetPage(i))) page->refreshActivityPolicy();
+	parent->refreshLiveActivityPolicy();
 }

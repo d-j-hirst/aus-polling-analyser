@@ -90,7 +90,10 @@ namespace {
 				seat.incumbent != parties.indexToId(national)) return false;
 			if (seat.name == "Mildura" &&
 				(seat.candidateNames.at("Jade Benham") != "NAT" ||
-					seat.candidateNames.at("Paul Matheson") != "LNP")) return false;
+					seat.candidateNames.at("Paul Matheson") != "LNP" ||
+					!seat.nationalsCoalitionShare ||
+					std::abs(*seat.nationalsCoalitionShare -
+						12808.f / (12808.f + 3686.f)) > 0.000001f)) return false;
 		}
 		return true;
 	}

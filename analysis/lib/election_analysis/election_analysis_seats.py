@@ -22,6 +22,7 @@ from lib.election_analysis.election_analysis_common import (
     collect_election_data,
     has_material_independent_vote,
 )
+from lib.elections.historical_tpp import load_tpp_history, seat_tpp
 from lib.shared.election_code import ElectionCode
 from lib.shared.poll_transform import detransform_vote_share, transform_vote_share
 from lib.shared.sample_kurtosis import calc_rmse, one_tail_kurtosis, two_tail_kurtosis
@@ -39,6 +40,7 @@ MAJOR_PARTIES = frozenset({
 # Core seat-level historical calculations
 
 def analyse_seat_swings(elections, seat_types, seat_regions, by_elections):
+    tpp_history = load_tpp_history()
     alp_swings = {}
     federals = {}
     margins = {}
@@ -81,17 +83,13 @@ def analyse_seat_swings(elections, seat_types, seat_regions, by_elections):
             old_seat_result = (old_results.seat_by_name(this_seat_name,
                                include_name_changes=True)
                                if old_results is not None else None)
-            # Check seat has a classic 2cp swing
-            if len(this_seat_result.tcp) != 2:
-                continue
-            if this_seat_result.tcp[0].party not in MAJOR_PARTIES:
-                continue
-            if this_seat_result.tcp[1].party not in MAJOR_PARTIES:
-                continue
-            if 'Labor' not in (this_seat_result.tcp[0].party,
-                                this_seat_result.tcp[1].party):
-                continue
-            if this_seat_result.tcp[0].swing is None:
+            # Most seats supply TPP through their actual final pair. Non-classic
+            # federal seats have a separate official TPP count: use that for
+            # swings, without inventing a major-party winner or candidate.
+            this_tpp = seat_tpp(this_election, this_seat_result, tpp_history)
+            previous_tpp = (seat_tpp(previous_election, previous_seat_result, tpp_history)
+                            if previous_results is not None else None)
+            if this_tpp is None:
                 continue
 
             # Check previous results has a classic 2cp swing
@@ -176,12 +174,9 @@ def analyse_seat_swings(elections, seat_types, seat_regions, by_elections):
                 if old_winner_party != previous_winner_party:
                     temp_sophomore_party = 1 if previous_seat_result.tcp[0].party == 'Labor' else -1
 
-            temp_previous_swing = None
-            if previous_seat_result is not None and len(previous_seat_result.tcp) == 2:
-                if previous_seat_result.tcp[0].swing is not None:
-                    temp_previous_swing = previous_seat_result.tcp[0].swing
-                    if previous_seat_result.tcp[0].party != 'Labor':
-                        temp_previous_swing *= -1
+            # Previous TPP remains informative even when the actual contest
+            # was non-classic; incumbency checks above still use the real pair.
+            temp_previous_swing = previous_tpp.swing if previous_tpp is not None else None
 
             temp_by_election_swing = 0
             by_election_tag = (this_election.year(), this_seat_name)
@@ -208,12 +203,10 @@ def analyse_seat_swings(elections, seat_types, seat_regions, by_elections):
             #                 temp_lnp_contest = third_party_result
 
 
-            alp_swing = (this_seat_result.tcp[0].swing
-                         if this_seat_result.tcp[0].party == 'Labor'
-                         else -this_seat_result.tcp[0].swing)
+            alp_swing = this_tpp.swing
             alp_swings[this_election][this_seat_region].append(alp_swing)
             federals[this_election][this_seat_region].append(1 if this_election.region() == "fed" else 0)
-            margins[this_election][this_seat_region].append(abs(this_seat_result.tcp[0].percent - 50))
+            margins[this_election][this_seat_region].append(abs(this_tpp.percent - 50))
             incumbent_retirement_urbans[this_election][this_seat_region].append(temp_incumbent_retirement
                 if seat_types[(this_seat_name, this_election.region())] <= 1 else 0)
             incumbent_retirement_regionals[this_election][this_seat_region].append(temp_incumbent_retirement

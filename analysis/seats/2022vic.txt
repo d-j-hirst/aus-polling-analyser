@@ -725,6 +725,7 @@ bSophomoreCandidate=1
 bSophomoreParty=1
 sBettingOdds=IND,1.25
 sRunningParties=ALP,LNP,NAT,GRN,OTH***,IND**
+fNationalsCoalitionShare=0.7765247969
 sTcpChange=NAT,0.70
 sCandidateNames=Ali Cupper,IND;Jade Benham,NAT;Katie Clements,GRN;Stella Zigouras,ALP;Paul Matheson,LNP
 fKnownPrepollPercent=41.4

@@ -15,7 +15,7 @@ struct TableMetrics {
 	int seatColumnWidth = 96;
 	int seatNameColumnWidth = 96;
 	int categoryStatColumnWidth = 120;
-	int internal2ppColumnWidth = 168;
+	int internal2ppColumnWidth = 84;
 	int separatorColumnWidth = 18;
 	int coalitionColumnWidth = 168;
 };

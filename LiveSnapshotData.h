@@ -92,6 +92,9 @@ struct ParliamentRow {
 	std::string completedAt;
 	int duplicateCount = 1;
 	std::size_t recordIndex = 0;
+	// Election-wide progress identifies the counting day for graph ranges.
+	// Unknown for older archives without progress metadata; tables keep all rows.
+	std::optional<bool> countingStarted;
 };
 
 struct ParliamentColumn {
@@ -122,6 +125,10 @@ struct ParliamentColumn {
 	std::string category;
 	std::optional<PartyColour> colour;
 	bool includeInGraph = true;
+	// Compact table labels leave full names available to graphs and tooltips.
+	// Explanations describe diagnostic meaning without enlarging every column.
+	std::string shortHeader;
+	std::string explanation;
 };
 
 struct CellValue {
@@ -160,6 +167,10 @@ LoadResult loadDirectory(
 	std::string outputSet);
 
 LoadResult loadFromProject(PollingProject const& project, int simulationId = -1);
+
+// The viewer consumes a newly committed record independently of the full
+// folder loader. Parsing and slimming are identical in both entry points.
+std::optional<SnapshotRecord> readRecord(std::filesystem::path const& path, std::string& warning);
 
 // Replace catalog colours for parties present in `colours`. Snapshot files keep
 // the colours from the run that produced them; Live Booths should follow the

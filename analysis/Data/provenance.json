@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-10-12T09:37:51Z",
+  "updated_at_utc": "2026-10-16T21:38:18Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -88,12 +88,12 @@
         "poll-data-*.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 72,
+      "semantic_revision": 73,
       "files": {
         "poll-data-fed.csv": {
           "sha256": "90da4c91d312c66b9e6d957719dfc1a83157b11ca735142c29684f257c8c88b7",
           "size_bytes": 286759,
-          "recorded_mtime_utc": "2026-10-12T09:28:39.634095Z"
+          "recorded_mtime_utc": "2026-10-13T10:13:24.294514Z"
         },
         "poll-data-nsw.csv": {
           "sha256": "ae8c780dce86256fe1095b6471f48cceaa1b4b65d18a1bd452d7f0562060beab",
@@ -101,9 +101,9 @@
           "recorded_mtime_utc": "2026-09-18T02:11:54.524617Z"
         },
         "poll-data-qld.csv": {
-          "sha256": "335322fd80a075011c748c5ae0c7c326b3e1be871d028cdd0fd077d4f5bdb2d6",
-          "size_bytes": 23450,
-          "recorded_mtime_utc": "2026-09-09T12:16:27.659424Z"
+          "sha256": "9463b2994fe2dcb0e418cda8e4c6bdae517eb099da4428ac76547c956e7d56f1",
+          "size_bytes": 23505,
+          "recorded_mtime_utc": "2026-10-14T00:06:45.739679Z"
         },
         "poll-data-sa.csv": {
           "sha256": "4f752c9819b6dfd31c9019996beef3c6a8c9a79d660da0449a9d7f722f384bb6",
@@ -113,7 +113,7 @@
         "poll-data-vic.csv": {
           "sha256": "019104f488f556c296d57ee2b1951e12c27b98b47c2252b1ef7fd3a0a8246766",
           "size_bytes": 38159,
-          "recorded_mtime_utc": "2026-10-12T09:30:23.009592Z"
+          "recorded_mtime_utc": "2026-10-13T10:13:18.691211Z"
         },
         "poll-data-wa.csv": {
           "sha256": "d09f6b3606e7b2cfb27c3c17ce9e44f378c9d7c94eea774af6b0b3fb35974bf5",
@@ -1799,9 +1799,53 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261013T130622Z-other-raw-poll-data-3460325f",
+          "recorded_at_utc": "2026-10-13T13:06:22Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 72,
+          "provenance_revision": 72,
+          "summary": "re-saved",
+          "files": [
+            "poll-data-fed.csv",
+            "poll-data-vic.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic",
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261014T000922Z-new_polling-raw-poll-data-f79566be",
+          "recorded_at_utc": "2026-10-14T00:09:22Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 73,
+          "provenance_revision": 73,
+          "summary": "ResolvePM",
+          "files": [
+            "poll-data-qld.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028qld"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 72
+      "provenance_revision": 73
     },
     "poll_model_configuration": {
       "description": "Party coverage, discontinuities and sampling settings used by fp_model.py.",
@@ -2288,15 +2332,27 @@
         "seat-regions.csv",
         "by-elections.csv",
         "tpp-fed-regions.csv",
-        "region-polls-fed.csv"
+        "region-polls-fed.csv",
+        "federal-tpp-history.csv",
+        "federal-tpp-history-sources.json"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 2,
+      "semantic_revision": 3,
       "files": {
         "by-elections.csv": {
           "sha256": "1582e6f9fad43b96af2fe32d3f7226c66de012881da06aa8fe8da3db89d9611e",
           "size_bytes": 3907,
           "recorded_mtime_utc": "2025-07-20T10:05:17.154977Z"
+        },
+        "federal-tpp-history-sources.json": {
+          "sha256": "16040b01b679a108b2c854ab736346bf17873789b88c544dead2818c5769340e",
+          "size_bytes": 1557,
+          "recorded_mtime_utc": "2026-10-16T21:36:08.875381Z"
+        },
+        "federal-tpp-history.csv": {
+          "sha256": "311bb0095009b9912b99ec6ec32b37339c2b296362990441f46eaa965aa8abb0",
+          "size_bytes": 25517,
+          "recorded_mtime_utc": "2026-10-16T21:36:08.875381Z"
         },
         "region-polls-fed.csv": {
           "sha256": "b45ff7cb8ee4b7f0a92df1dee48dad1e2b99efa01060527ca8943c7c3c7ef98c",
@@ -2363,8 +2419,32 @@
               "analyse_elections"
             ]
           }
+        },
+        {
+          "id": "20261016T213818Z-coverage_extension-seat-analysis-inputs-20f25873",
+          "recorded_at_utc": "2026-10-16T21:38:18Z",
+          "change_type": "coverage_extension",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Include official 2007-2025 federal statistical TPP results in historical seat swing analysis without replacing actual TCP contests.",
+          "files": [
+            "federal-tpp-history-sources.json",
+            "federal-tpp-history.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "source": {
+            "description": "AEC final division TPP downloads; per-election URLs and hashes in Data/federal-tpp-history-sources.json"
+          }
         }
-      ]
+      ],
+      "provenance_revision": 3
     }
   }
 }

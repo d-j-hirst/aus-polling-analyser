@@ -1,0 +1,37 @@
+{
+  "2007": {
+    "url": "https://results.aec.gov.au/13745/Website/Downloads/HouseTppByDivisionDownload-13745.csv",
+    "sha256": "2b64ac146d41eab2b204d9b8b36add2dca64f3eb205cf7e50bb2cc195ac5b6c3",
+    "divisions": 150
+  },
+  "2010": {
+    "url": "https://results.aec.gov.au/15508/Website/Downloads/HouseTppByDivisionDownload-15508.csv",
+    "sha256": "434720fdf7946bc5f8b746376c2d76c059635dd5d6faceec91af08a75464d3f4",
+    "divisions": 150
+  },
+  "2013": {
+    "url": "https://results.aec.gov.au/17496/Website/Downloads/HouseTppByDivisionDownload-17496.csv",
+    "sha256": "ab68f96c8189e4b6b599564287a3f97cf81ecfa9b2bbd791151bb3b251ccb42b",
+    "divisions": 150
+  },
+  "2016": {
+    "url": "https://results.aec.gov.au/20499/Website/Downloads/HouseTppByDivisionDownload-20499.csv",
+    "sha256": "0375626f85197221b54f52f29a3737ae374d37ec4ae739867706708037006a9b",
+    "divisions": 150
+  },
+  "2019": {
+    "url": "https://results.aec.gov.au/24310/Website/Downloads/HouseTppByDivisionDownload-24310.csv",
+    "sha256": "33fb2d43a91cf3591b96b3fddb985199fbd14e48b130117a5ffe8a2dbefedeb2",
+    "divisions": 151
+  },
+  "2022": {
+    "url": "https://results.aec.gov.au/27966/Website/Downloads/HouseTppByDivisionDownload-27966.csv",
+    "sha256": "7782fd17727f8f0b79ac8415e88bdb2a958616d8adb15beb7c69a969de20e09a",
+    "divisions": 151
+  },
+  "2025": {
+    "url": "https://results.aec.gov.au/31496/Website/Downloads/HouseTppByDivisionDownload-31496.csv",
+    "sha256": "6f48350be330f9d3424137f94b8f936dee47840f1eb2731606ce5ce673ebdde4",
+    "divisions": 150
+  }
+}

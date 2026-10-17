@@ -1,4 +1,5 @@
 #include "SimulationPreparation.h"
+#include "CoalitionCandidacy.h"
 
 #include "LivePreparationBridge.h"
 #include "PollingProject.h"
@@ -427,6 +428,7 @@ void SimulationPreparation::resetSeatSpecificOutput()
 	run.seatPartyWins.assign(seatCount, {});
 	run.cumulativeSeatPartyFpShare.assign(seatCount, {});
 	if (run.doingLiveBaselineSimulation) run.liveBaselineFpMoments.assign(seatCount, {});
+	if (run.doingLiveBaselineSimulation) run.liveBaselineTppMoments = {};
 	run.seatPartyFpDistribution.assign(seatCount, {});
 	run.seatPartyFpZeros.assign(seatCount, {});
 	run.seatTcpDistribution.assign(seatCount, {});
@@ -1764,8 +1766,8 @@ void SimulationPreparation::loadRegionPollBehaviours()
 		auto const values = splitString(line, ",");
 		requireColumns(values, 3, fileName, "regional polling row");
 		if (values[0] == "all") {
-			// Retained for possible shrinkage of noisy region-specific
-			// estimates, but not currently used by the simulation.
+			// The simulation and calibration both blend these pooled coefficients
+			// equally with the state's own fitted polling relationship.
 			run.generalPollBehaviour.overallSwingCoeff = parseFiniteFloat(
 				values[1], fileName, "overall polling coefficient");
 			run.generalPollBehaviour.baseSwingDeviation = parseFiniteFloat(
@@ -2149,12 +2151,6 @@ void SimulationPreparation::validateCoalitionSeatSettings() const
 			throw Exception(label +
 				" configures Coalition candidates, but the election has no NAT party.");
 		}
-		if (!seat.runningParties.empty() &&
-			!seat.coalitionCandidates.empty()) {
-			throw Exception(label +
-				" cannot set both sRunningParties and sCoalitionCandidates.");
-		}
-
 		bool hasGuaranteedCandidate = false;
 		for (auto const& [partyCode, probability] :
 			seat.coalitionCandidates) {
@@ -2172,15 +2168,15 @@ void SimulationPreparation::validateCoalitionSeatSettings() const
 			hasGuaranteedCandidate = hasGuaranteedCandidate ||
 				probability == 1.0f;
 		}
-		if (!seat.coalitionCandidates.empty() && !hasGuaranteedCandidate) {
+		if (seat.runningParties.empty() &&
+			!seat.coalitionCandidates.empty() && !hasGuaranteedCandidate) {
 			throw Exception(label +
 				" must give at least one Coalition candidate probability 1.");
 		}
 
 		auto candidateChance = [&](std::string const& code) {
-			auto const candidate = seat.coalitionCandidates.find(code);
-			return candidate == seat.coalitionCandidates.end() ?
-				0.0f : candidate->second;
+			return CoalitionCandidacy::candidateChance(
+				seat.runningParties,seat.coalitionCandidates,code);
 		};
 		bool const bothCanRun =
 			candidateChance(majorCoalitionCode) > 0.0f &&
@@ -2193,7 +2189,7 @@ void SimulationPreparation::validateCoalitionSeatSettings() const
 				" can run both Coalition parties but has no usable historical "
 				"share; set fNationalsCoalitionShare.");
 		}
-		if (!seat.coalitionCandidates.empty() &&
+		if (seat.runningParties.empty() && !seat.coalitionCandidates.empty() &&
 			seat.nationalsCoalitionShare && !bothCanRun) {
 			throw Exception(label +
 				" sets fNationalsCoalitionShare although both Coalition "

@@ -2,6 +2,7 @@
 
 #include <cctype>
 #include <functional>
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -64,7 +65,9 @@ inline std::optional<std::string> validateOutputFolder(std::string_view folder)
 	return std::nullopt;
 }
 
-void exportCompletedAutomaticLiveRun(
+// Successful paths let the viewer append this record without rescanning the
+// directory or interpreting feedback text. Existing callers may ignore it.
+std::optional<std::filesystem::path> exportCompletedAutomaticLiveRun(
 	PollingProject& project,
 	Simulation const& sim,
 	SimulationRun const& run,

@@ -570,6 +570,271 @@
           "support": "single category identity"
         }
       }
+    },
+    "2022fed/earlier_only": {
+      "schema_version": 3,
+      "model_version": "proportional-prior-6",
+      "rates": {
+        "drift_log_odds": -0.04235281886188636,
+        "units": "natural log odds",
+        "common_covariance": [
+          [
+            0.029910605718904894,
+            0.0003713082227964849
+          ],
+          [
+            0.0003713082227964849,
+            0.030114362809811154
+          ]
+        ],
+        "local_covariance": [
+          [
+            0.009311623797417923,
+            0.0025838547317642837
+          ],
+          [
+            0.0025838547317642837,
+            0.032222353729370976
+          ]
+        ],
+        "training_elections": [
+          "2007fed",
+          "2008wa",
+          "2009qld",
+          "2010fed",
+          "2010sa",
+          "2010vic",
+          "2012qld",
+          "2013fed",
+          "2013wa",
+          "2014sa",
+          "2014vic",
+          "2015qld",
+          "2016fed",
+          "2017qld",
+          "2017wa",
+          "2018sa",
+          "2018vic",
+          "2019fed",
+          "2020qld",
+          "2021wa",
+          "2022sa"
+        ],
+        "stable_formality_elections": 18,
+        "broad_default": false
+      },
+      "controls": {
+        "early": {
+          "factor": 0.9957425861742004,
+          "common_sd": 0.028490586393744122,
+          "local_sd": null,
+          "training_elections": [
+            "2013fed",
+            "2016fed",
+            "2019fed"
+          ],
+          "fallback": "",
+          "broad_default": false,
+          "resident_distribution": {
+            "relative_sd": 0.14826724792554263,
+            "fitted_units": "centered logarithms of resident shares of the national count",
+            "training_elections": [
+              "2013fed",
+              "2016fed",
+              "2019fed"
+            ],
+            "broad_default": false
+          },
+          "measure": "federal_prepoll_national",
+          "observation_status": "contemporaneous",
+          "cutoff": [
+            "2022-05-20",
+            "2022-05-20"
+          ]
+        },
+        "postal": {
+          "factor": 0.8118958395786474,
+          "common_sd": 0.02188401889989436,
+          "local_sd": null,
+          "training_elections": [
+            "2007fed",
+            "2010fed",
+            "2013fed",
+            "2016fed",
+            "2019fed"
+          ],
+          "fallback": "",
+          "broad_default": false,
+          "resident_distribution": {
+            "relative_sd": 0.14600938122588406,
+            "fitted_units": "centered logarithms of resident shares of the national count",
+            "training_elections": [
+              "2013fed",
+              "2016fed",
+              "2019fed"
+            ],
+            "broad_default": false
+          },
+          "measure": "postal_applications_cumulative",
+          "observation_status": "contemporaneous",
+          "cutoff": [
+            "2022-05-20",
+            "2022-05-20"
+          ]
+        }
+      },
+      "compositions": {
+        "early": {
+          "common_covariance": [
+            [
+              0.0031877719194362726,
+              -0.0031877719194362726
+            ],
+            [
+              -0.0031877719194362726,
+              0.0031877719194362726
+            ]
+          ],
+          "local_covariance": [
+            [
+              0.015448513663279073,
+              -0.015448513663279073
+            ],
+            [
+              -0.015448513663279073,
+              0.015448513663279073
+            ]
+          ],
+          "units": "centred natural log proportions",
+          "total_anchor": "early_declaration",
+          "training_elections": [
+            "2013fed",
+            "2016fed",
+            "2019fed"
+          ],
+          "mean_training_log_errors": [
+            [
+              -0.0001517276815409273,
+              0.00015172768154092886
+            ],
+            [
+              -0.01799308681021429,
+              0.01799308681021429
+            ],
+            [
+              0.07779312080526975,
+              -0.07779312080526975
+            ]
+          ],
+          "mean_training_share_changes": [
+            [
+              -0.1216199546189182,
+              0.1216199546189182
+            ],
+            [
+              -0.05092416889271417,
+              0.050924168892714165
+            ],
+            [
+              -0.034712396657720905,
+              0.034712396657720905
+            ]
+          ],
+          "support": "historical moments"
+        },
+        "postal": {
+          "common_covariance": [
+            [
+              0
+            ]
+          ],
+          "local_covariance": [
+            [
+              0
+            ]
+          ],
+          "training_elections": [],
+          "support": "single category identity"
+        },
+        "remainder": {
+          "common_covariance": [
+            [
+              0.011097209045060313,
+              0.007723299372621666,
+              -0.018820508417681982
+            ],
+            [
+              0.007723299372621664,
+              0.007296539161847979,
+              -0.015019838534469646
+            ],
+            [
+              -0.018820508417681982,
+              -0.015019838534469646,
+              0.03384034695215163
+            ]
+          ],
+          "local_covariance": [
+            [
+              0.014908177779429014,
+              0.006981004471286036,
+              -0.02188918225071505
+            ],
+            [
+              0.006981004471286036,
+              0.011516149107342348,
+              -0.018497153578628387
+            ],
+            [
+              -0.02188918225071505,
+              -0.018497153578628384,
+              0.04038633582934343
+            ]
+          ],
+          "units": "centred natural log proportions",
+          "total_anchor": null,
+          "training_elections": [
+            "2013fed",
+            "2016fed",
+            "2019fed"
+          ],
+          "mean_training_log_errors": [
+            [
+              -0.14607482672625524,
+              -0.09767684530699433,
+              0.2437516720332496
+            ],
+            [
+              -0.02092151120555248,
+              -0.06974399768830693,
+              0.09066550889385938
+            ],
+            [
+              0.020465909603315433,
+              -0.013714481434706076,
+              -0.006751428168609356
+            ]
+          ],
+          "mean_training_share_changes": [
+            [
+              -0.002875615766891061,
+              0.001572855654400646,
+              0.00130276011249041
+            ],
+            [
+              0.0032574331409584542,
+              -0.004066366839686492,
+              0.000808933698728041
+            ],
+            [
+              0.0015995172596382106,
+              -0.0016023942641699583,
+              2.877004531748406e-06
+            ]
+          ],
+          "support": "historical moments"
+        }
+      }
     }
   },
   "ppvc_starting_sizes": {

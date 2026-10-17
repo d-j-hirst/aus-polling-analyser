@@ -66,8 +66,8 @@ wxWindow* ParentFrame::accessNotebookPanel()
 
 void ParentFrame::OnExit(wxCommandEvent&)
 {
-	// The argument is true in order to force the program to close.
-	Close(true);
+	// Normal closure may defer destruction until a live worker has finished.
+	Close();
 }
 
 void ParentFrame::OnAbout(wxCommandEvent&)
@@ -215,7 +215,7 @@ void ParentFrame::setupToolBar()
 {
 	// Load the relevant bitmaps for the toolbar icons.
 	wxLogNull something;
-	wxBitmap toolBarBitmaps[3];
+	wxBitmap toolBarBitmaps[4];
 	toolBarBitmaps[0] = wxBitmap("bitmaps\\new.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[1] = wxBitmap("bitmaps\\open.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[2] = wxBitmap("bitmaps\\save.png", wxBITMAP_TYPE_PNG);
@@ -235,6 +235,7 @@ void ParentFrame::setupToolBar()
 
 void ParentFrame::bindEventHandlers()
 {
+	Bind(wxEVT_CLOSE_WINDOW, &ParentFrame::OnCloseWindow, this);
 	// Bind events to the menus just added.
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnNew, this, int(Item::New));
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnOpen, this, int(Item::Open));
@@ -256,7 +257,11 @@ void ParentFrame::bindEventHandlers()
 
 void ParentFrame::updateInterface() {
 	bool projectExists = notebook != nullptr;
-	toolBar->EnableTool(int(Tool::Save), projectExists);
+	bool busy = notebook && notebook->isLiveRunning();
+	for (int id : {int(Item::New), int(Item::Open), int(Item::Save), int(Item::SaveAs), int(Item::ExportForecastConfiguration), int(Item::RunMacro), int(Item::UpdateMacro)})
+		GetMenuBar()->Enable(id, !busy);
+	for (int id : {int(Tool::New), int(Tool::Open), int(Tool::GeneralSettings)}) toolBar->EnableTool(id, !busy);
+	toolBar->EnableTool(int(Tool::Save), projectExists && !busy);
 }
 
 NewProjectData ParentFrame::receiveNewProjectInfoFromUser()
@@ -288,4 +293,14 @@ std::string ParentFrame::receiveOpenProjectPathnameFromUser()
 		return "";     // the user changed their mind...
 
 	return openFileDialog->GetPath().ToStdString();
+}
+
+void ParentFrame::OnCloseWindow(wxCloseEvent& event) {
+    if (notebook && notebook->deferCloseForLiveRun()) {
+        // Keep the window, event sink and project alive until publication and
+        // worker joining finish. A normal close never blocks the GUI waiting.
+        if (event.CanVeto()) event.Veto();
+        return;
+    }
+    event.Skip();
 }
