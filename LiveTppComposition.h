@@ -23,8 +23,36 @@ constexpr double CategoryDepartureSdMultiplier = 1.1;
 // 2022 federal non-classic conversion errors suggest K about 29--30; 35 is a
 // conservative working scale, not a multi-election coverage guarantee.
 constexpr double ConversionPoolVariance = 35;
+// Greens conversion is materially more stable than the mixed non-major pool.
+// Historical strength/history predictions had about .5--.6 seat-TPP points RMS
+// error in two later federal elections. K=4 gives 1.10 points local SD for a
+// 30% Greens pool with no local matches, before the separate .60-point shared
+// allowance. This is a conservative working scale, not a fitted optimum.
+// Other parties retain K=35 until comparable evidence supports a distinction.
+constexpr double GreensConversionPoolVariance = 4;
 constexpr double LocalConversionVarianceFloor = .2;
 constexpr double LocalConversionEvidenceRate = 2;
+// Working shared FLOW errors, in preference percentage points. Greens' fitted
+// historical means still left roughly 1 point of weighted flow bias in two
+// later-election tests; use 2 points SD. Substantial independent populations
+// differed from classic independent references by several points in all three
+// studied elections; use 5. These protect population transfer, not sampling
+// error, and are conservative settings rather than fitted coverage guarantees.
+constexpr double GreensTransferFlowSd = 2;
+constexpr double IndependentTransferFlowSd = 5;
+constexpr std::size_t PartyTransferFactors = 2;
+
+inline Moments withPartyTransfer(Moments prior) {
+    // Two independent unit-normal errors, shared by all exposed observations.
+    // Appending observation errors preserves the original seat/category prior.
+    // Unlike a per-seat precision bound, this retains the true local scale.
+    auto start = prior.mean.size();
+    prior.mean.resize(start + PartyTransferFactors, 0);
+    for (auto& row : prior.covariance) row.resize(prior.mean.size(), 0);
+    prior.covariance.resize(prior.mean.size(), Vector(prior.mean.size()));
+    for (std::size_t i = start; i < prior.mean.size(); ++i) prior.covariance[i][i] = 1;
+    return prior;
+}
 
 template<class Counts>
 inline double preferencePoolFraction(Counts const& fp, int nationals) {
@@ -313,12 +341,14 @@ struct Extension {
     std::size_t seats = 0;
     Vector seatMeans;
     Matrix regression, root;
+    Vector extraMeans;
 };
 
 inline Extension prepareExtension(Moments const& prior, std::size_t seats) {
     // Append category draws CONDITIONAL on the actual baseline seat draw. An
     // independent normal here would undo the very covariance prepared above.
-    Extension result{seats, Vector(prior.mean.begin(), prior.mean.begin()+seats), {}, {}};
+    Extension result{seats, Vector(prior.mean.begin(), prior.mean.begin()+seats), {}, {},
+        Vector(prior.mean.begin()+seats, prior.mean.end())};
     Matrix baseline(seats, Vector(seats)), root;
     for (std::size_t i = 0; i < seats; ++i)
         std::copy_n(prior.covariance[i].begin(), seats, baseline[i].begin());
@@ -345,7 +375,7 @@ inline Vector extend(Extension const& extension, Vector state, Normal normal) {
     Vector noise(extension.root.size());
     for (std::size_t i = 0; i < noise.size(); ++i) noise[i] = normal(i);
     for (std::size_t c = 0; c < noise.size(); ++c)
-        state.push_back(dot(extension.regression[c], delta) + dot(extension.root[c], noise));
+        state.push_back(extension.extraMeans[c] + dot(extension.regression[c], delta) + dot(extension.root[c], noise));
     return state;
 }
 
@@ -380,51 +410,83 @@ inline ObservationBlock observationBlock(std::vector<Observation> rows,
     return {std::move(rows), std::move(covariance)};
 }
 
-inline void allowForConversionUncertainty(ObservationBlock& block, double budgetFraction) {
-    // The existing FP conversion already corrects preferences using measured
-    // FP/TCP pairs. Do not fit another election-wide signed correction from
-    // discrepancies between different districts' forecast and count patterns.
-    // Local uncertainty is NOT inflated by the number of districts. Only the
-    // residual uncertainty of the shared correction uses a precision budget;
-    // that residual shrinks with matched locations across all categories.
-    if (!std::isfinite(budgetFraction) || budgetFraction <= 0 || budgetFraction > 1)
-        throw std::logic_error("Invalid TPP conversion precision budget.");
-    for (auto& row : block.rows) {
-        double q = row.unresolvedPreferenceFraction;
-        if (!std::isfinite(q) || q < 0 || q > row.inferredFraction + 1e-10
-            || !std::isfinite(row.conversionJacobian) || row.conversionJacobian <= 0)
-            throw std::logic_error("Invalid unresolved preference exposure.");
-        double exposure = std::sqrt(q)*row.conversionJacobian;
-        row.localConversionSd = exposure*std::sqrt(ConversionPoolVariance
-            * localConversionRetention(row.localMatchedUnits));
-        // Keep the existing shared precision budget, without a local residual
-        // floor: many measured districts can establish the common correction.
-        row.sharedConversionSd = exposure*conversionSd(row.sharedMatchedUnits);
-    }
+inline void prepareConversionScales(Observation& row) {
+    // Normally measured TPP has no conversion exposure. FP-derived TPP keeps
+    // uncertainty only for unresolved preference ballots; known major-party
+    // FPs and reporting-order uncertainty are accounted for elsewhere.
+    double q = row.unresolvedPreferenceFraction;
+    if (!std::isfinite(q) || q < 0 || q > row.inferredFraction + 1e-10
+        || !std::isfinite(row.conversionJacobian) || row.conversionJacobian <= 0)
+        throw std::logic_error("Invalid unresolved preference exposure.");
+    double exposure = std::sqrt(q)*row.conversionJacobian;
+    // Keep the existing shared precision budget, without a local residual
+    // floor: many measured districts can establish the common correction.
+    row.sharedConversionSd = exposure*conversionSd(row.sharedMatchedUnits);
+    // A common flow error changes seat TPP in proportion to the party's
+    // unresolved primary share (q), NOT sqrt(q). Keep Greens and independent
+    // errors separate; the existing local pool variance still scales with q.
+    // Direct TPP removes this exposure. Unrelated classic booths cannot
+    // demonstrate that the same correction transfers to these voter pools.
+    double greens = row.greensPreferenceFraction, independent = row.independentPreferenceFraction;
+    if (!std::isfinite(greens) || !std::isfinite(independent) || greens < 0 || independent < 0 ||
+        greens+independent > q+1e-10)
+        throw std::logic_error("Invalid party conversion exposure.");
+    if (!std::isfinite(row.inferredFraction) || row.inferredFraction < 0 || row.inferredFraction > 1)
+        throw std::logic_error("Invalid inferred preference fraction.");
+    double retention = localConversionRetention(row.localMatchedUnits);
+    row.greensLocalConversionSd = row.conversionJacobian
+        * std::sqrt(GreensConversionPoolVariance*greens*retention);
+    row.otherLocalConversionSd = row.conversionJacobian
+        * std::sqrt(ConversionPoolVariance*std::max(0., q-greens)*retention);
+    row.localConversionSd = std::hypot(row.greensLocalConversionSd, row.otherLocalConversionSd);
+    row.greensTransferSd = greens*row.conversionJacobian*GreensTransferFlowSd;
+    row.independentTransferSd = independent*row.conversionJacobian*IndependentTransferFlowSd;
+}
+
+inline void addLocalConversionCovariance(ObservationBlock& block, double budgetFraction) {
+    // Local party errors correlate across categories within the same district.
+    // Retain the older general-correction precision bound, which shrinks with
+    // matched booths and protects the established sparse early-count response.
+    // Persistent party-transfer errors are instead explicit shared states;
+    // adding them here too would double count them and destroy local precision.
     for (std::size_t i = 0; i < block.rows.size(); ++i) {
-        double f = block.rows[i].inferredFraction;
-        if (!std::isfinite(f) || f < 0 || f > 1)
-            throw std::logic_error("Invalid inferred TPP fraction.");
         for (std::size_t j = 0; j < block.rows.size(); ++j) {
             auto const& a = block.rows[i]; auto const& b = block.rows[j];
             // q already includes the fraction pending TCP. Applying f again
             // would turn the intended linear variance taper into a cubic one.
-            double extra = a.localConversionSd*b.localConversionSd
+            double extra = a.greensLocalConversionSd*b.greensLocalConversionSd
+                + a.otherLocalConversionSd*b.otherLocalConversionSd
                 + a.sharedConversionSd*b.sharedConversionSd/budgetFraction;
             block.covariance.at(i).at(j) += extra;
-            if (i == j) block.rows[i].conversionVariance = extra;
+            if (i == j) block.rows[i].conversionVariance = extra
+                + a.greensTransferSd*a.greensTransferSd + a.independentTransferSd*a.independentTransferSd;
         }
     }
-    // District budget fractions are their shares of ALL expected votes,
-    // including unreported districts. They sum to one. For any weighted sum
-    // of observations, Cauchy-Schwarz gives sum(x_s^2/a_s) >= (sum x_s)^2.
-    // Thus the enlarged blocks cover even perfectly correlated remaining
-    // shared errors, including between categories. The local term is shared
-    // within a district too; extra category rows cannot duplicate precision.
-    // Unlike a fixed election-wide allowance, thousands of matched locations
-    // now establish a robust correction rather than leaving FP mostly unused.
-    // All of it enters BEFORE conditioning, so no extra draw noise widens the
-    // posterior afterwards. Direct TCP (f=0) receives no conversion allowance.
+}
+
+inline void allowForConversionUncertainty(ObservationBlock& block, double budgetFraction) {
+    if (!std::isfinite(budgetFraction) || budgetFraction <= 0 || budgetFraction > 1)
+        throw std::logic_error("Invalid TPP conversion precision budget.");
+    for (auto& row : block.rows) prepareConversionScales(row);
+    addLocalConversionCovariance(block, budgetFraction);
+}
+
+inline void applyPartyTransfer(ObservationBlock& block, std::size_t factorStart,
+    Matrix const& covariance = {{1,0},{0,1}}) {
+    // The same two state indices are used for EVERY seat. Their calibration
+    // comes from matched accounts and is held fixed by the seat update. Never
+    // feed these residual means back into the underlying booth conversion or
+    // the next snapshot's prior.
+    for (auto& row : block.rows) {
+        row.h.at(factorStart) = row.greensTransferSd;
+        row.h.at(factorStart+1) = row.independentTransferSd;
+        // Residual covariance excludes these explicit factors. The marginal
+        // diagnostic does include their calibrated covariance, including the
+        // ambiguity between Greens and independent contributions in mixed pools.
+        double g = row.greensTransferSd, i = row.independentTransferSd;
+        row.conversionVariance += g*g*(covariance[0][0]-1)
+            + i*i*(covariance[1][1]-1) + 2*g*i*covariance[0][1];
+    }
 }
 
 inline double share(double transformed) { return 100/(1+std::exp(-transformed/25)); }

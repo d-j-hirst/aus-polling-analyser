@@ -794,7 +794,8 @@ bool writeFileAtomically(
 
 nlohmann::json LiveV2::Election::tppConversionDiagnostic() const
 {
-	// Compact current-snapshot robustness measures; no signed residual is fitted.
+	// Compact current-snapshot robustness measures. These describe observation
+	// uncertainty, not a measured signed preference-flow correction.
 	json result;
 	json calibration = json::array();
 	double matchedTotal = tppPooledPreferenceUnits();
@@ -809,7 +810,11 @@ nlohmann::json LiveV2::Election::tppConversionDiagnostic() const
 		weight += row.comparisonWeight;
 		pool += row.comparisonWeight*row.unresolvedPreferenceFraction;
 		localVariance += row.comparisonWeight*row.localConversionSd*row.localConversionSd;
-		sharedVariance += row.comparisonWeight*row.sharedConversionSd*row.sharedConversionSd;
+		auto const& covariance = tppTransferCalibration->factors.covariance;
+		sharedVariance += row.comparisonWeight*(row.sharedConversionSd*row.sharedConversionSd
+			+ row.greensTransferSd*row.greensTransferSd*covariance[0][0]
+			+ row.independentTransferSd*row.independentTransferSd*covariance[1][1]
+			+ 2*row.greensTransferSd*row.independentTransferSd*covariance[0][1]);
 	}
 	result["conversion_calibration"] = std::move(calibration);
 	result["conversion_matched_units"] = matchedTotal;
@@ -824,10 +829,15 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 	if (!tppIntegration) return nullptr;
 	auto const& update = *tppIntegration;
 	auto const& names = sim.getLiveBaselineReport()->seatName;
-	json result = {{"method", "joint_category_composition_v8"},
+	json result = {{"method", "joint_category_composition_v11"},
 		{"sparse_sample_vote_scale", LiveTppIntegration::SparseSampleVoteScale},
-		{"conversion_uncertainty_method", "preference_pool_cross_category"},
+		{"conversion_uncertainty_method", "matched_conversion_with_external_transfer_states"},
+		{"greens_transfer_flow_sd_pp", LiveTppComposition::GreensTransferFlowSd},
+		{"independent_transfer_flow_sd_pp", LiveTppComposition::IndependentTransferFlowSd},
+		{"greens_strength_slope", LivePartyConversion::GreensStrengthSlope},
+		{"greens_history_retention", LivePartyConversion::GreensHistoryRetention},
 		{"conversion_pool_variance", LiveTppComposition::ConversionPoolVariance},
+		{"greens_conversion_pool_variance", LiveTppComposition::GreensConversionPoolVariance},
 		{"conversion_local_variance_floor", LiveTppComposition::LocalConversionVarianceFloor},
 		{"conversion_local_evidence_rate", LiveTppComposition::LocalConversionEvidenceRate},
 		{"inferred_evidence_percent", optionalNumber(tppInferredEvidencePercent())},
@@ -836,8 +846,30 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 		{"category_departure_sd_multiplier", LiveTppComposition::CategoryDepartureSdMultiplier},
 		{"scale", "25_times_log_odds"}, {"observation_count", update.steps.size()}};
 	result.update(tppConversionDiagnostic());
+	// These factors are calibrated solely from matched current FP/TPP accounts,
+	// before conditioning seats. Export the source accounts so prior disagreement
+	// can be distinguished from an actual held-out conversion residual.
+	json matched = json::array();
+	for (std::size_t s = 0; s < tppTransferCalibration->districts.size(); ++s) {
+		auto const& a = tppTransferCalibration->districts[s];
+		if (a.pool <= 0) continue;
+		matched.push_back({{"seat", seats[s].name}, {"locations", a.locations},
+			{"preference_votes", a.pool}, {"expected_alp_preferences", a.expected},
+			{"observed_alp_preferences", a.observed}, {"total_mismatch", a.mismatch},
+			{"group_votes", a.groups}});
+	}
+	result["matched_transfer_calibration"] = {{"districts", std::move(matched)},
+		{"district_flow_sd_pp", LivePartyConversion::CalibrationDistrictFlowSd},
+		{"other_flow_sd_pp", LivePartyConversion::CalibrationOtherFlowSd},
+		{"transfer_variance_floor", LivePartyConversion::TransferVarianceFloor},
+		{"factor_mean", tppTransferCalibration->factors.mean},
+		{"factor_covariance", tppTransferCalibration->factors.covariance}};
+	result["greens_transfer_error_pp"] = tppTransferCalibration->factors.mean[0]*LiveTppComposition::GreensTransferFlowSd;
+	result["independent_transfer_error_pp"] = tppTransferCalibration->factors.mean[1]*LiveTppComposition::IndependentTransferFlowSd;
+	result["greens_transfer_error_sd_pp"] = std::sqrt(tppTransferCalibration->factors.covariance[0][0])*LiveTppComposition::GreensTransferFlowSd;
+	result["independent_transfer_error_sd_pp"] = std::sqrt(tppTransferCalibration->factors.covariance[1][1])*LiveTppComposition::IndependentTransferFlowSd;
 	// Archive the covariance needed for numerical comparisons, but never copy
-	// it into compact viewer history. The two new states are observation errors,
+	// it into compact viewer history. Reporting-order and transfer states are observation errors,
 	// not additional prior uncertainty about seat totals.
 	result["prior_covariance"] = update.prior.covariance;
 	result["reporting_order_initial_sd"] = LiveTppComposition::ReportingOrderInitialSd;
@@ -848,6 +880,7 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 	result["ordinary_fp_order_coverage"] = tppOrdinaryReportingProgress.coverage(false);
 	result["ordinary_tcp_order_coverage"] = tppOrdinaryReportingProgress.coverage(true);
 	auto orderStart = names.size() + tppCategoryCodes.size();
+	auto transferStart = orderStart + LiveTppComposition::ReportingOrderFactors;
 	json states = json::array();
 	for (std::size_t i = 0; i < update.prior.mean.size(); ++i) {
 		std::string name;
@@ -857,9 +890,10 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 			name = code >= 100 ? std::string(LiveData::voteTypeName(LiveData::VoteType(code - 100)))
 				: std::string(LiveData::boothTypeName(LiveData::BoothType(code)));
 		}
-		else name = i == orderStart ? "Ordinary FP reporting order" : "Ordinary TCP reporting order";
+		else if (i < transferStart) name = i == orderStart ? "Ordinary FP reporting order" : "Ordinary TCP reporting order";
+		else name = i == transferStart ? "Greens conversion error" : "Independent conversion error";
 		states.push_back({{"name", name}, {"kind", i < names.size() ? "seat" :
-			(i < orderStart ? "shared_error" : "reporting_order")},
+			(i < orderStart ? "shared_error" : (i < transferStart ? "reporting_order" : "party_transfer"))},
 			{"prior_mean", number(update.prior.mean[i])},
 			{"posterior_mean", number(update.posterior.mean[i])},
 			{"prior_variance", number(update.prior.covariance[i][i])},
@@ -883,13 +917,20 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 		for (std::size_t i = names.size(); i < orderStart; ++i)
 			factors.push_back(number(o.h[i]));
 		json orderFactors = json::array();
-		for (std::size_t i = orderStart; i < o.h.size(); ++i)
+		for (std::size_t i = orderStart; i < transferStart; ++i)
 			orderFactors.push_back(number(o.h[i]));
+		json transferFactors = json::array();
+		for (std::size_t i = transferStart; i < o.h.size(); ++i)
+			transferFactors.push_back(number(o.h[i]));
 		observations.push_back({{"seat", names.at(o.seat)}, {"category_code", o.category},
 			{"seat_loading", number(o.h.at(o.seat))},
 			{"value", number(o.value)}, {"residual_variance", number(o.variance)},
 			{"inferred_fraction", number(o.inferredFraction)},
 			{"unresolved_preference_fraction", number(o.unresolvedPreferenceFraction)},
+			{"greens_preference_fraction", number(o.greensPreferenceFraction)},
+			{"independent_preference_fraction", number(o.independentPreferenceFraction)},
+			{"greens_transfer_sd", number(o.greensTransferSd)},
+			{"independent_transfer_sd", number(o.independentTransferSd)},
 			{"conversion_share_jacobian", number(o.conversionJacobian)},
 			{"comparison_weight", number(o.comparisonWeight)},
 			{"sample_votes", number(o.sampleVotes)},
@@ -898,11 +939,20 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 			{"location_group", o.inferredLocations ? "includes_inferred" : "measured"},
 			{"local_matched_units", o.localMatchedUnits}, {"shared_matched_units", o.sharedMatchedUnits},
 			{"local_conversion_sd", o.localConversionSd}, {"shared_conversion_sd", o.sharedConversionSd},
+			{"greens_local_conversion_sd", o.greensLocalConversionSd},
+			{"other_local_conversion_sd", o.otherLocalConversionSd},
 			{"conversion_variance", number(o.conversionVariance)},
 			{"shared_error_loadings", std::move(factors)},
-			{"reporting_order_loadings", std::move(orderFactors)}});
+			{"reporting_order_loadings", std::move(orderFactors)},
+			{"party_transfer_loadings", std::move(transferFactors)}});
 	}
 	result["observations"] = std::move(observations);
+	// These are district priors before existing booth and observed corrections,
+	// not counted preferences. Raw candidate IDs distinguish returning independents.
+	json partyPriors = json::array();
+	for (auto const& seat : seats) for (auto const& [party, flow] : seat.partyPreferenceFlows)
+		partyPriors.push_back({{"seat", seat.name}, {"party", party}, {"alp_flow_percent", 100*flow}});
+	result["party_conversion_priors"] = std::move(partyPriors);
 	// Use the same historical FP weights as the national histogram. This is a
 	// transformed-scale composition diagnostic, before finite-count bounds and
 	// sampled turnout; it is not a substitute for the exported TPP quantiles.

@@ -656,7 +656,201 @@ void testMeasuredLocationsRemainInformative() {
     assert(direct.variance(100) > direct.variance());
 }
 
+void testPartyTransferUncertainty() {
+    Observation row{{1},0,.01};
+    row.inferredFraction = 1;
+    row.unresolvedPreferenceFraction = .6;
+    row.greensPreferenceFraction = .2;
+    row.independentPreferenceFraction = .3;
+    row.sharedMatchedUnits = 100000;
+    row.localMatchedUnits = 20;
+    ObservationBlock block{{row},{{.01}}};
+    allowForConversionUncertainty(block,.1);
+    checkClose(block.rows[0].greensTransferSd,.4);
+    checkClose(block.rows[0].independentTransferSd,1.5);
+    assert(block.rows[0].sharedConversionSd < .02);
+    // Abundant unrelated booths shrink the general correction, not the
+    // population-transfer floor. Partial actual TPP removes both group errors.
+    auto half = row;
+    half.inferredFraction *= .5;
+    half.unresolvedPreferenceFraction *= .5;
+    half.greensPreferenceFraction *= .5;
+    half.independentPreferenceFraction *= .5;
+    ObservationBlock partial{{half},{{.01}}};
+    allowForConversionUncertainty(partial,.1);
+    checkClose(partial.rows[0].greensTransferSd,.2);
+    assert(partial.covariance[0][0] < block.covariance[0][0]);
+    // Group errors are absent from the residual block: their exact shared
+    // state loadings supply the covariance. Budget scaling affects only the
+    // older general correction, not a group's local precision.
+    checkClose(block.rows[0].conversionVariance, block.covariance[0][0]-.01+.16+2.25);
+    auto direct = row;
+    direct.inferredFraction=direct.unresolvedPreferenceFraction=0;
+    direct.greensPreferenceFraction=direct.independentPreferenceFraction=0;
+    ObservationBlock measured{{direct},{{.01}}}; allowForConversionUncertainty(measured,.1);
+    checkClose(measured.covariance[0][0],.01);
+    block.rows[0].h.resize(3);
+    applyPartyTransfer(block,1);
+    auto update=prepare(withPartyTransfer({{0},{{9}}}),decorrelate(block.rows,block.covariance));
+    assert(update.posterior.covariance[0][0] <= 9);
+}
+
+void testPartySensitiveLocalPrecision() {
+    // The same counted FP movement is more informative when its preference
+    // pool is Greens than when it belongs to an unfamiliar independent. This
+    // is evidence-quality weighting, not a rule favouring a swing's direction.
+    auto compare = [](bool greens, double matches, double movement) {
+        Observation row{{1,0,0},movement,.01};
+        row.inferredFraction=1; row.unresolvedPreferenceFraction=.4;
+        row.greensPreferenceFraction=greens ? .4 : 0;
+        row.independentPreferenceFraction=greens ? 0 : .4;
+        row.sharedMatchedUnits=100000; row.localMatchedUnits=matches;
+        ObservationBlock block{{row},{{.01}}};
+        allowForConversionUncertainty(block,.5); applyPartyTransfer(block,1);
+        return prepare(withPartyTransfer({{0},{{9}}}),decorrelate(block.rows,block.covariance));
+    };
+    auto green=compare(true,0,8), independent=compare(false,0,8);
+    assert(green.posterior.mean[0] > 6);
+    assert(independent.posterior.mean[0] < 3);
+    assert(green.posterior.covariance[0][0] < independent.posterior.covariance[0][0]);
+    assert(compare(true,10,8).posterior.covariance[0][0] < green.posterior.covariance[0][0]);
+    checkClose(compare(true,0,-8).posterior.mean[0],-green.posterior.mean[0]);
+
+    // Keep different local voter pools distinct across categories. A measured
+    // row has no exposure, and partial TCP smoothly removes the party pool.
+    Observation a{{1,0,0},0,.01}, b=a;
+    a.inferredFraction=b.inferredFraction=1;
+    a.unresolvedPreferenceFraction=b.unresolvedPreferenceFraction=.4;
+    a.greensPreferenceFraction=.4; b.independentPreferenceFraction=.4;
+    a.sharedMatchedUnits=b.sharedMatchedUnits=100000;
+    ObservationBlock mixed{{a,b},{{.01,0},{0,.01}}};
+    allowForConversionUncertainty(mixed,.5);
+    checkClose(mixed.rows[0].localConversionSd* mixed.rows[0].localConversionSd,1.6);
+    checkClose(mixed.rows[1].localConversionSd* mixed.rows[1].localConversionSd,14);
+    checkClose(mixed.covariance[0][1],mixed.rows[0].sharedConversionSd*mixed.rows[1].sharedConversionSd/.5);
+    double previous=9;
+    for (int i=0;i<=100;++i) {
+        auto r=a; r.inferredFraction=1-i/100.;
+        r.unresolvedPreferenceFraction=r.greensPreferenceFraction=.4*r.inferredFraction;
+        ObservationBlock partial{{r},{{.01}}};
+        allowForConversionUncertainty(partial,.5); applyPartyTransfer(partial,1);
+        auto next=prepare(withPartyTransfer({{0},{{9}}}),decorrelate(partial.rows,partial.covariance));
+        assert(next.posterior.covariance[0][0] <= previous+1e-10);
+        previous=next.posterior.covariance[0][0];
+    }
+}
+
+void testExactPartyTransferCovariance() {
+    // Two fictional districts: verify that the small-block latent-state path
+    // is exactly equivalent to a dense observation covariance across districts.
+    Moments prior=withPartyTransfer({{0,1},{{9,2},{2,6}}});
+    Observation a{{1,0,0,0},5,.2}, b{{0,1,0,0},-2,.3};
+    a.inferredFraction=b.inferredFraction=1;
+    a.unresolvedPreferenceFraction=b.unresolvedPreferenceFraction=.5;
+    a.greensPreferenceFraction=.3; a.independentPreferenceFraction=.2;
+    b.greensPreferenceFraction=.4; b.independentPreferenceFraction=.1;
+    a.sharedMatchedUnits=b.sharedMatchedUnits=1000;
+    ObservationBlock first{{a},{{.2}}}, second{{b},{{.3}}};
+    allowForConversionUncertainty(first,.3); allowForConversionUncertainty(second,.7);
+    applyPartyTransfer(first,2); applyPartyTransfer(second,2);
+    auto rows=decorrelate(first.rows,first.covariance);
+    auto more=decorrelate(second.rows,second.covariance); rows.insert(rows.end(),more.begin(),more.end());
+    auto actual=prepare(prior,rows);
+    Matrix H{first.rows[0].h,second.rows[0].h};
+    auto cross=mappedCovariance(H,prior.covariance); // H*P*H'
+    cross[0][0]+=first.covariance[0][0]; cross[1][1]+=second.covariance[0][0];
+    checkClose(cross[0][1],2+.6*.8+1*.5); // baseline plus shared group covariance
+    Matrix root; assert(factor(cross,root));
+    Vector innovation{5,-3};
+    for (std::size_t i=0;i<4;++i) {
+        Vector ph{dot(prior.covariance[i],H[0]),dot(prior.covariance[i],H[1])};
+        auto gain=covarianceSolve(root,ph);
+        checkClose(actual.posterior.mean[i],prior.mean[i]+dot(gain,innovation));
+        for (std::size_t j=0;j<4;++j)
+            checkClose(actual.posterior.covariance[i][j],prior.covariance[i][j]
+                -dot(gain,{dot(prior.covariance[j],H[0]),dot(prior.covariance[j],H[1])}));
+    }
+    std::reverse(rows.begin(),rows.end());
+    auto reversed=prepare(prior,rows);
+    for (std::size_t i=0;i<4;++i) checkClose(reversed.posterior.mean[i],actual.posterior.mean[i]);
+
+    // Scenario draws use the same extra states and covariance as diagnostics.
+    auto extension=prepareExtension(prior,2);
+    Matrix seatRoot; assert(factor({{9,2},{2,6}},seatRoot));
+    Accumulator samples;
+    for (int axis=0;axis<6;++axis) for (double sign : {-1.,1.}) {
+        Vector z(6); z[axis]=std::sqrt(6.)*sign;
+        Vector seats{3*z[0],1+seatRoot[1][0]*z[0]+seatRoot[1][1]*z[1]};
+        auto state=extend(extension,seats,[&](std::size_t i){return z[2+i];});
+        samples.add(condition(actual,state,[&](std::size_t i){return z[4+i];}));
+    }
+    auto moments=samples.finish();
+    for (std::size_t i=0;i<4;++i) {
+        checkClose(moments.mean[i],actual.posterior.mean[i]);
+        for (std::size_t j=0;j<4;++j) checkClose(moments.covariance[i][j],actual.posterior.covariance[i][j]);
+    }
+}
+
+void testExternallyCalibratedFactors() {
+    // A wildly surprising seat result cannot teach an external flow error.
+    // Conditional uncertainty remains shared across seats, not thrown away.
+    Moments prior{{0,1,.3,-.2},{{9,2,0,0},{2,6,0,0},{0,0,.8,-.1},{0,0,-.1,.7}}};
+    std::vector<Observation> rows{{{1,0,.8,.2},10,.5},{{0,1,.5,1},-5,.7}};
+    auto result=prepareWithExternalFactors(prior,rows,2);
+    for (std::size_t i=2;i<4;++i) {
+        checkClose(result.posterior.mean[i],prior.mean[i]);
+        for (std::size_t j=2;j<4;++j) checkClose(result.posterior.covariance[i][j],prior.covariance[i][j]);
+    }
+    auto changed=prior;changed.mean[0]=-30;
+    auto other=prepareWithExternalFactors(changed,rows,2);
+    checkClose(other.posterior.mean[2],.3);
+    checkClose(other.posterior.mean[3],-.2);
+    // Dense conditional calculation: K=P H'/(H P H'+R), with factor
+    // uncertainty propagated AFTER computing this gain, not used to weaken it.
+    Matrix seatCov{{9,2},{2,6}}, S{{9.5,2},{2,6.7}},root;
+    assert(factor(S,root));
+    Matrix K{covarianceSolve(root,{9,2}),covarianceSolve(root,{2,6})};
+    Vector residual{10-.8*.3-.2*(-.2),-6-.5*.3-1*(-.2)};
+    Matrix F{{.8,.2},{.5,1}}, B(2,Vector(2));
+    for (std::size_t i=0;i<2;++i) {
+        checkClose(result.posterior.mean[i],prior.mean[i]+dot(K[i],residual));
+        for (std::size_t j=0;j<2;++j) for (std::size_t k=0;k<2;++k) B[i][j]+=K[i][k]*F[k][j];
+    }
+    for (std::size_t i=0;i<2;++i) for (std::size_t j=0;j<2;++j) {
+        double covariance=seatCov[i][j]-dot(K[i],seatCov[j]);
+        for (std::size_t a=0;a<2;++a) for (std::size_t b=0;b<2;++b)
+            covariance+=B[i][a]*prior.covariance[2+a][2+b]*B[j][b];
+        checkClose(result.posterior.covariance[i][j],covariance);
+    }
+    std::reverse(rows.begin(),rows.end());
+    auto reversed=prepareWithExternalFactors(prior,rows,2);
+    for (std::size_t i=0;i<4;++i) {
+        checkClose(result.posterior.mean[i],reversed.posterior.mean[i]);
+        for (std::size_t j=0;j<4;++j) checkClose(result.posterior.covariance[i][j],reversed.posterior.covariance[i][j]);
+    }
+    auto extension=prepareExtension(prior,2);
+    Matrix seatRoot;assert(factor(seatCov,seatRoot));
+    Accumulator samples;
+    for (int axis=0;axis<6;++axis) for (double sign : {-1.,1.}) {
+        Vector z(6);z[axis]=std::sqrt(6.)*sign;
+        auto state=extend(extension,{3*z[0],1+seatRoot[1][0]*z[0]+seatRoot[1][1]*z[1]},
+            [&](std::size_t i){return z[2+i];});
+        samples.add(condition(result,state,[&](std::size_t i){return z[4+i];}));
+    }
+    auto actual=samples.finish();
+    for (std::size_t i=0;i<4;++i) {
+        checkClose(result.posterior.mean[i],actual.mean[i]);
+        for (std::size_t j=0;j<4;++j) checkClose(result.posterior.covariance[i][j],actual.covariance[i][j]);
+    }
+    auto none=prepareWithExternalFactors(prior,{},2);
+    assert(none.posterior.mean==prior.mean && none.posterior.covariance==prior.covariance);
+}
+
 int main() {
+    testExternallyCalibratedFactors();
+    testPartySensitiveLocalPrecision();
+    testExactPartyTransferCovariance();
+    testPartyTransferUncertainty();
     testCountScaleAccounting();
     testAlignedSyntheticComparisons();
     testPartialReferenceTranslation();

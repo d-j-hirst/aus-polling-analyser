@@ -121,12 +121,19 @@ struct Observation {
     // h maps seat totals and category contrasts to this received category's
     // comparison. Variance is residual reporting-location uncertainty, before
     // any confidence phase-in. Category contrasts belong in h; conversion
-    // uncertainty is integrated into the within-seat observation covariance.
+    // uncertainty has local covariance and explicit shared party-transfer states.
     Vector h;
     double value = 0, variance = 0;
     int seat = -1, category = 0; // Diagnostic identities, not matrix positions.
     double inferredFraction = 0, conversionVariance = 0; // Raw-row diagnostics only.
     double localConversionSd = 0, sharedConversionSd = 0;
+    // Local party components are separate so a Greens-heavy category does not
+    // acquire the uncertainty of an unrelated independent-heavy category.
+    double greensLocalConversionSd = 0, otherLocalConversionSd = 0;
+    // Separate population-transfer errors survive abundant unrelated classic
+    // evidence. Fractions are unresolved Greens/independent FP per received vote.
+    double greensPreferenceFraction = 0, independentPreferenceFraction = 0;
+    double greensTransferSd = 0, independentTransferSd = 0;
     double localMatchedUnits = 0, sharedMatchedUnits = 0;
     bool inferredLocations = false;
     // Quality-weighted fraction of comparison votes still requiring an
@@ -191,6 +198,57 @@ inline Update prepare(Moments prior, std::vector<Observation> const& observation
     return result;
 }
 
+inline Update prepareWithExternalFactors(Moments prior,
+    std::vector<Observation> const& observations, std::size_t start) {
+    // Conversion factors are learned from matched FP/TPP accounts separately.
+    // Condition seats/categories for each possible factor value, then retain
+    // uncertainty across those values. Seat-prior disagreement cannot change
+    // the factor distribution. Ordinary joint factors still condition normally.
+    auto n = prior.mean.size();
+    if (start > n) throw std::logic_error("Invalid external TPP factor boundary.");
+    if (prior.covariance.size() != n) throw std::logic_error("Missing external TPP covariance.");
+    for (std::size_t i = 0; i < n; ++i) {
+        if (prior.covariance[i].size() != n) throw std::logic_error("Invalid external TPP covariance shape.");
+        for (double value : prior.covariance[i])
+            if (!std::isfinite(value)) throw std::logic_error("Invalid external TPP covariance.");
+        if (prior.covariance[i][i] < 0) throw std::logic_error("Negative external TPP variance.");
+    }
+    auto conditional = prior;
+    for (std::size_t i = 0; i < n; ++i) {
+        if (prior.covariance.at(i).size() != n)
+            throw std::logic_error("Invalid external TPP covariance shape.");
+        for (std::size_t j = start; j < n; ++j) {
+            if (i < start && (prior.covariance[i][j] != 0 || prior.covariance[j][i] != 0))
+                throw std::logic_error("External TPP factors must start independently.");
+            conditional.covariance[i][j] = conditional.covariance[j][i] = 0;
+        }
+    }
+    auto result = prepare(std::move(conditional), observations);
+    // The scenario path applies these same gains while leaving the external
+    // factors fixed. Propagate their sensitivity to obtain matching diagnostics;
+    // adding independent noise afterwards would lose cross-seat correlations.
+    Matrix sensitivity(n, Vector(n-start));
+    for (std::size_t j = start; j < n; ++j) sensitivity[j][j-start] = 1;
+    for (auto const& step : result.steps) {
+        Vector exposure(n-start);
+        for (std::size_t j = 0; j < exposure.size(); ++j)
+            for (std::size_t i = 0; i < n; ++i)
+                exposure[j] += step.observation.h[i]*sensitivity[i][j];
+        for (std::size_t i = 0; i < n; ++i)
+            for (std::size_t j = 0; j < exposure.size(); ++j)
+                sensitivity[i][j] -= step.gain[i]*exposure[j];
+    }
+    for (std::size_t i = 0; i < n; ++i) for (std::size_t j = 0; j <= i; ++j) {
+        double extra = 0;
+        for (std::size_t a = start; a < n; ++a) for (std::size_t b = start; b < n; ++b)
+            extra += sensitivity[i][a-start]*prior.covariance[a][b]*sensitivity[j][b-start];
+        result.posterior.covariance[i][j] += extra;
+        result.posterior.covariance[j][i] = result.posterior.covariance[i][j];
+    }
+    result.prior = std::move(prior);
+    return result;
+}
+
 template<class Normal>
 Vector condition(Update const& update, Vector state, Normal normal) {
     if (state.size() != update.prior.mean.size()) throw std::logic_error("Invalid TPP scenario dimension.");
@@ -252,6 +310,7 @@ struct CategoryEvidence {
     double baselineFirst = 0, weightedObservedShare = 0, weightedBaselineShare = 0;
     double matchedPreferenceUnits = 0;
     double unresolvedPreferenceWeight = 0;
+    double greensPreferenceWeight = 0, independentPreferenceWeight = 0;
     void add(double target, double received, double quality, double deviation,
         double inferredFraction, double locationSd, std::optional<double> sampleVariance = {}) {
         if (!std::isfinite(target) || target < 0 || !std::isfinite(received) || received < 0

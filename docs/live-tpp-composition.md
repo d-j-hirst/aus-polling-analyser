@@ -126,9 +126,11 @@ contrast priors (SD 5 on the transformed scale).
 
 The existing conversion of first preferences into TPP remains the point estimate.
 It already adjusts configured preference flows using measured FP/TCP comparisons
-where those are available. The joint update does not fit another election-wide
-signed conversion error from differences between districts' results and priors.
-Such differences can reflect reporting order or genuine regional movements.
+where those are available. The joint update also allows shared uncertainty about
+transferring those relationships to Greens and independent voter pools. Conditional
+shared-error means can reflect disagreement with the seat priors; they are not
+measured preference-flow corrections and are never fed back into booth conversion.
+Such disagreement can also reflect reporting order or genuine regional movements.
 
 FP-derived comparisons retain the existing averaging weight
 `1 - 0.5 f`, where `f` is the fraction inferred. Their reporting-location and
@@ -154,10 +156,13 @@ transferred votes contribute half a fully reliable location, and a very large
 booth contributes at most one. Large vote totals do not replace location breadth.
 
 Local variance in percentage-points-squared is
-`35 * q * (0.2 + 0.8 / (1 + 2 * E))`, with `E` effective matches in the same
-district, pooled across categories. Variance scales linearly with the pool,
-SD with its square root. A 50% unresolved pool has local SD 4.18 points without matches, 2.35 with
-three, and 2.04 with ten. The residual fraction 0.2 protects against systematic
+`(4*qG + 35*(q-qG)) * (0.2 + 0.8 / (1 + 2 * E))`, with `qG` the unresolved
+Greens fraction and `E` effective matches in the same district, pooled across
+categories. Variance scales linearly with each pool, SD with its square root.
+A 30% Greens pool has local SD 1.10 points without matches; the same other-party
+pool has SD 3.24. Greens and other local errors have separate within-district
+covariance components so categories with unlike voter pools do not inherit
+each other's error. The residual fraction 0.2 protects against systematic
 differences between matched and unmeasured locations. It does not prevent
 convergence when measured TPP removes the unresolved pool.
 
@@ -166,8 +171,12 @@ in 27 federal 2022 non-classic seats suggested approximately 29 per unit pool.
 Prospective booth estimates checked against later complete TCP with unchanged
 FP vectors support a substantial evidence reduction with a residual allowance.
 These are diagnostic calibration results, not multi-election coverage guarantees.
+The Greens coefficient 4 is a conservative working reduction supported by
+roughly .5--.6 points RMS error in historical strength/history predictions of
+the Greens contribution to non-classic seat TPP in two later federal elections.
+It retains substantial uncertainty alongside the shared allowance below.
 
-Shared variance is `35 * q / (1 + G)`, with `G` effective matches across the
+General shared variance is `35 * q / (1 + G)`, with `G` effective matches across the
 election, pooled across categories. It has no local residual floor: measured
 districts can establish the common correction even where an individual district
 has no matches. Ordinary-booth matches therefore also support PPVC and
@@ -178,17 +187,48 @@ Convert both variances to the
 `25 * log odds` scale using derivative `2500 / (p * (100 - p))`, where `p` is the
 aligned observation percentage, using the same endpoint clamp as the transform.
 
-The local allowance is correlated within a district. Only the shared allowance
-uses the conservative precision budget `a`: expected district votes divided by
-all expected election votes, including unreported services. Added covariance is
-`local_sd_i * local_sd_j + shared_sd_i * shared_sd_j / a`. These SDs already
-include the unresolved pool and scale conversion: do not multiply by the inferred
-fraction again. Since district shares sum to one, the shared budget covers
-perfectly correlated residual errors without fitting their sign from seat results.
-All allowances enter before conditioning, not as extra noise afterwards.
-Underlying central FP-to-TPP conversions are unchanged, but changing their
-precision can change posterior means. No additional runtime snapshot history
-or signed residual correction is introduced.
+There are also separate shared population-transfer allowances for Greens and
+independent preferences. Even many classic booths cannot establish how well
+their corrections transfer to different voter groups in non-classic contests.
+For unresolved Greens and independent primary fractions `qG` and `qI`, their
+initial SDs in seat TPP points are `2*qG` and `5*qI`. These are conservative working
+flow-error scales, not precisely fitted cross-election correlations. For example,
+an unresolved independent share of 30% has a 1.5-point shared TPP allowance.
+These components start with zero means. Matched FP/TPP accounts can update their
+means and covariance, while retaining half the initial variance for transfer to
+different campaigns. They do not
+impose a tactical-voting adjustment or assume all independents have equal mean
+flows. [Historical party conversion](live-party-conversion.md) describes the
+evidence, mean adjustments and limitations. Measured TPP removes all exposure.
+
+The local allowance is correlated within a district. The general correction
+alone retains the conservative precision budget `a`: expected district votes
+divided by all expected election votes, including unreported services. Added
+within-district residual covariance is
+`local_greens_i*local_greens_j + local_other_i*local_other_j + general_i*general_j/a`.
+All SDs here are transformed, including the unresolved pool and share derivative;
+do not multiply by the inferred fraction again. The general bound preserves the
+existing sparse-count protection and shrinks with pooled matching evidence.
+
+Greens and independent transfer errors instead enter through two shared
+states. Their observation loadings are `greens_i` and `independent_i`.
+Writing these two loadings as a vector `F_i`, their calibrated covariance `U`
+produces `F_i * U * F_j'` across any two observations,
+including different districts. This avoids magnifying a modest shared error
+into an enormous local error. The states are appended to the existing prior
+without changing its seat covariance and sampled through the same conditional
+draw path. Small within-seat blocks still suffice for numerical decorrelation.
+
+Only matched conversion evidence can move these states away from zero. Source
+predictions include the Greens strength relationship, historical corrections
+and broad observed corrections with the tested district held out. A joint fit
+allows for other-party error rather than attributing every mixed-pool residual
+to Greens. See the calibration details in [historical party conversion](live-party-conversion.md).
+Exported state means retain their original scale: multiply by 2 or 5 to obtain
+equivalent flow percentage points. Positive means the conversion prediction was
+too high for Labor. These means never modify the underlying booth flow
+estimates or the next snapshot's prior. All allowances enter before conditioning;
+there is no extra noise afterwards and no additional snapshot history.
 
 Within each district/category, wholly measured locations and locations still
 requiring conversion form separate observations of the same category movement.
@@ -204,8 +244,9 @@ if new counts reveal greater heterogeneity or revise existing records.
 All uncertainty enters before conditioning, so the same calculation determines
 the mean's response and remaining covariance. No independent noise is added
 afterwards. Direct TCP receives no conversion allowance and a fully measured
-count retains its existing completion behaviour. Existing FP-to-TPP estimates,
-preference-flow corrections and snapshot-history requirements are unchanged.
+count retains its existing completion behaviour. Existing measured
+preference-flow corrections and snapshot-history requirements are retained;
+the historical party-flow priors are applied before those corrections.
 
 ## Extrapolating small received samples
 
@@ -328,27 +369,35 @@ fully counted limits and a fictional regional-miss regression. It also checks
 removal of the overlapping FP variance penalty, cross-category matched-location
 precision, reporting coverage and shared reporting-order covariance, sparse-sample
 attenuation and its complete-count limit, preservation
-of measured information when FP-only locations arrive, the shared covariance bound,
+of measured information when FP-only locations arrive, the general shared covariance bound,
 no artificial precision from splitting observations, smooth replacement by TCP,
-absence of a cross-district conversion-bias learner, and scenario moments. It is included
+party-sensitive local precision, exact shared-factor versus dense covariance,
+order-independent conditioning, and scenario moments. It is included
 in the portable C++ test runners. Python calibration tests use fictional data.
 
 Private analysis exports identify this implementation as
-`joint_category_composition_v8`, record its covariance-budget scale and each
+`joint_category_composition_v11`, record its covariance-budget scale and each
 seat's booth-reference shift, and retain
 readable observations before numerical decorrelation. Their residual variances
-include local category variation and the conversion allowance. Each raw row
+include local category variation and local/general conversion allowances. The
+party-transfer contribution is represented by its shared state loadings and is
+excluded from residual variance to avoid counting it twice. `conversion_variance`
+includes all conversion components on the marginal observation diagonal. Each raw row
 also reports its measured/inferred location group, inferred fraction, local
 and shared effective matched-location counts, both conversion SDs, and the
 resulting conversion variance. Each observation also records its received sample
 votes, category coverage and added sparse-sample variance; the export records
 the 5,000-vote setting as `sparse_sample_vote_scale`. The conversion method is
-`preference_pool_cross_category`: row precision uses pooled matches, while
+`matched_conversion_with_external_transfer_states`: row precision uses pooled matches, while
 category summaries retain separate match counts for inspection. The export also
-includes the full prior covariance and separate reporting-order loadings, states,
+includes the full prior covariance and separate reporting-order and party-transfer loadings, states,
 coverage and parameter settings for reproducible numerical comparisons. These
 large arrays stay in the analysis sidecar, outside compact viewer history.
-There is no conversion-error state or posterior conversion mean. Simulated
+The two party-transfer states have kind `party_transfer`; their means and
+covariance come only from the matched-account calibration and remain unchanged
+by the seat update. `matched_transfer_calibration` records the contributing
+districts, expected/observed preference allocations, group sizes, total mismatches
+and working uncertainty settings. Simulated
 turnout and rechecking responses
 remain separate; the old additive TPP composition noise remains disabled.
 
@@ -367,8 +416,10 @@ but are not displayed as columns:
 | FP-derived (%) | Inferred fraction of received, quality-weighted TPP evidence. Its denominator is the evidence used by the update, not all expected election ballots. |
 | Unresolved pref. % | Comparison-weighted unresolved preference percentage, including measured observations with zero pool. |
 | Local conv. SD (z) | Comparison-weighted RMS local conversion SD across observations; not a national aggregate SD. |
-| Shared conv. SD (z) | From v6, comparison-weighted RMS shared conversion SD before district-budget scaling, including pool exposure. Older archives use the earlier unexposed category summary. |
+| Shared conv. SD (z) | Comparison-weighted RMS shared conversion SD including pool exposure. General correction is shown before its budget scaling; from v10 the party-transfer factors use direct cross-seat covariance without budget scaling. Older archives retain their original meanings. |
 | Matched pref. units | Sum of effective matched locations across all categories. Category-specific and district-specific counts are in the analysis sidecar. |
+| GRN/IND err. | Shared residual flow error from held-out-district FP/TPP comparisons. Positive means the conversion predicted too many Labor preferences. Units are percentage points of that party's preference flow, not seat TPP. |
+| GRN/IND err. SD | Remaining uncertainty in those flow errors, including the retained classic-to-non-classic transfer allowance. |
 | Ordinary FP/TCP order SD (z) | Current input SDs for shared ordinary reporting-order errors, before conditioning; not posterior SDs. |
 | Ordinary FP/TCP coverage (%) | The smaller of election-wide vote and location coverage for each reporting sample; denominators include unreported ordinary booths. |
 | Category cov. scale (%) | Percentage of the historical shared category covariance retained within the baseline covariance budget; 100 means no reduction. It can fall below 100 when the full category covariance does not fit that budget, so it remains visible. |
@@ -380,15 +431,20 @@ full analysis-file reads. Older snapshots without these fields show blank cells;
 they are not retrospectively calculated. The existing graph series remain
 unchanged because the new columns mix shares, transformed units and ratios.
 
-Conditioning reduces the covariance for a fixed prior and compatible cumulative
-evidence. This does not guarantee every reported percentile width decreases:
+Conditioning at a fixed conversion-error value reduces covariance for a fixed
+prior and compatible cumulative evidence. Propagating uncertainty over the
+externally calibrated errors does not guarantee monotonic marginal covariance.
+Nor does this guarantee every reported percentile width decreases:
 turnout/rechecks, changed input accounts, bounded transforms and simulation
 sampling also affect the displayed distribution. A full replay is needed to
 assess the centre and interval coverage in actual election sequences.
 
 The conversion allowance is intentionally conservative and needs replay checks
-for practical information loss as well as interval coverage. Fixing a latent
-error's distribution and adding its variation after conditioning can instead
-increase forecast variance; that alternative is not used.
+for practical information loss as well as interval coverage. From v11, its
+distribution is learned from matched accounts separately; the scenario update
+keeps each shared error draw fixed while conditioning seat/category draws.
+Diagnostics propagate that same sensitivity and covariance. This avoids learning
+a conversion error from seat-prior disagreement, but is a deliberately modular
+calculation rather than an unrestricted joint Bayesian posterior.
 Shared early reporting-order uncertainty is handled separately from the
 historical final-category calibration, using the working settings above.

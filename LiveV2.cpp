@@ -58,11 +58,6 @@ constexpr int VariabilityPreparationThreads = 24;
 // enums start at the same values and otherwise produce identical keys.
 constexpr std::uint64_t LiveVariabilityDomain = 0x4c69766556320001ULL;
 
-// Arbitrary offset to ensure independent candidates don't clash with real party IDs
-// Candidate IDs are 5-digit (or shorter) numbers, so this offset makes it easy to spot
-// what the original EC ID was if necessary.
-constexpr int IndependentPartyIdOffset = 100000;
-
 namespace {
 
 std::vector<std::string> normalizeCandidateNameTokens(std::string const& name) {
@@ -809,6 +804,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   loadEstimatedPreferenceFlows();
   initializePartyMappings(previousElection, currentElection);
   createNodesFromElectionData(previousElection, currentElection);
+  preparePartyConversionPriors(previousElection, currentElection);
   calculateTppEstimates(true); // This is done now so that we can observe deviations from preference flows
   aggregate(); // preliminary, for calculating preference flow and seat fp totals
   calculatePreferenceFlowDeviations();
@@ -1003,6 +999,7 @@ void Election::createNodesFromElectionData(
           sameSeat
       ));
       auto& liveSeat = seats.at(seatIndex);
+      booths.back().previousPreferenceSeat = previousSeatName;
       liveSeat.booths.push_back(int(booths.size()) - 1);
     }
 
@@ -1064,6 +1061,7 @@ void Election::createNodesFromElectionData(
       );
 
       auto& liveSeat = seats.at(seatIndex);
+      if (previousSeatPtr) booths.back().previousPreferenceSeat = (*previousSeatPtr)->name;
       liveSeat.booths.push_back(int(booths.size()) - 1);
     }
   }
@@ -1090,6 +1088,120 @@ std::vector<Node const*> Election::getThisAndParents(T& child) const {
   return parents;
 }
 
+void Election::preparePartyConversionPriors(Results2::Election const& previousElection,
+  Results2::Election const& currentElection) {
+  // Historical candidate destinations are available for some compulsory-
+  // preferential elections. Unsupported systems keep the existing conversion;
+  // optional exhaustion needs its own denominator and is not fitted here.
+  if (optionalPreferential) return;
+  std::ifstream input("analysis/Data/historical-party-tpp-flows.csv");
+  if (!input) throw std::runtime_error("Cannot open historical party TPP flows.");
+  auto history = LivePartyConversion::readHistory(input, previousElection.termCode, currentElection.termCode);
+  if (history.records.empty()) return;
+  prepareHistoricalBoothFlows(history, previousElection);
+  prepareDistrictPartyFlows(history, currentElection);
+}
+
+void Election::prepareHistoricalBoothFlows(LivePartyConversion::History const& history,
+  Results2::Election const& previousElection) {
+  // Re-express old booth residuals against the party-flow rule used for current
+  // conversion, avoiding a second addition of the Greens district effect.
+  // Keep the original historical residual here even when its forward reuse is
+  // discounted: an exceptional old campaign still belongs to the old account.
+  // Observed old TPP itself remains unchanged.
+  for (auto& booth : booths) {
+    if (auto green = history.find(booth.previousPreferenceSeat, "GRN"); green && history.hasGreens)
+      booth.previousPartyPreferenceFlows[run.grnPartyIndex] = LivePartyConversion::greensFlow(
+        LivePartyConversion::logistic(history.greensLevel), green->strength(),
+        history.greensResidual(*green), history);
+    for (auto const& [party, votes] : booth.node.fpVotesPrevious) {
+      if (party < IndependentPartyIdOffset) continue;
+      auto candidate = previousElection.candidates.find(party-IndependentPartyIdOffset);
+      if (candidate == previousElection.candidates.end()) continue;
+      auto row = history.find(booth.previousPreferenceSeat, "IND",
+        LivePartyConversion::candidateKey(candidate->second.name));
+      if (row) booth.previousPartyPreferenceFlows[party] = LivePartyConversion::logistic(row->flow());
+    }
+  }
+}
+
+double Election::districtGreensStrength(Seat const& seat, int party) const {
+  double total = 0, green = 0;
+  for (int index : seat.booths) {
+    total += booths[index].node.totalFpVotesCurrent();
+    green += LivePartialCount::value(booths[index].node.fpVotesCurrent, party);
+  }
+  // Read the district baseline directly because party priors precede the
+  // observed-swing hierarchy. No TPP estimate feeds back into this strength.
+  double prior = .1;
+  if (sim.getLiveBaselineReport()) {
+    auto const& report = *sim.getLiveBaselineReport();
+    auto found = std::find(report.seatName.begin(), report.seatName.end(), seat.name);
+    if (found != report.seatName.end()) {
+      auto const& bands = report.seatFpProbabilityBand.at(found-report.seatName.begin());
+      if (bands.contains(party) && !bands.at(party).empty())
+        prior = bands.at(party).at((bands.at(party).size()-1)/2)*.01;
+    }
+  }
+  return LivePartyConversion::phasedStrength(prior, green, total);
+}
+
+double Election::districtGreensResidual(Seat const& seat, LivePartyConversion::History const& history) const {
+  // Redistribution carries each matched booth's source-district offset into
+  // the new district. Missing/new booth history adds no invented offset.
+  // A campaign-specific residual can be discounted for forward reuse without
+  // changing the historical booth flows used to reconstruct the older account.
+  // Keep its votes in the denominator: exclusion must not amplify other sources.
+  double weighted = 0, total = 0;
+  for (int index : seat.booths) {
+    auto const& booth = booths[index];
+    double votes = booth.node.totalVotesPrevious();
+    total += votes;
+    if (auto row = history.find(booth.previousPreferenceSeat, "GRN"))
+      weighted += votes*history.forwardGreensResidual(*row);
+  }
+  return total > 0 ? weighted/total : 0;
+}
+
+void Election::prepareDistrictPartyFlows(LivePartyConversion::History const& history,
+  Results2::Election const& currentElection) {
+  for (auto& seat : seats) {
+    if (history.hasGreens && preferenceFlowMap.contains(run.grnPartyIndex))
+      seat.partyPreferenceFlows[run.grnPartyIndex] = LivePartyConversion::greensFlow(
+        preferenceFlowMap.at(run.grnPartyIndex)*.01, districtGreensStrength(seat, run.grnPartyIndex),
+        districtGreensResidual(seat, history), history);
+    prepareReturningIndependentFlows(seat, history, currentElection);
+  }
+}
+
+void Election::prepareReturningIndependentFlows(Seat& seat, LivePartyConversion::History const& history,
+  Results2::Election const& currentElection) {
+  // Returning independents retain their own electorate. New candidates do
+  // not inherit a predecessor's preferences, even in the same district.
+  std::set<std::string> sources{seat.name};
+  for (int index : seat.booths) sources.insert(booths[index].previousPreferenceSeat);
+  auto currentSeat = std::find_if(currentElection.seats.begin(), currentElection.seats.end(),
+    [&](auto const& entry) { return entry.second.name == seat.name; });
+  if (currentSeat == currentElection.seats.end()) return;
+  for (auto const& [id, votes] : currentSeat->second.fpVotes) {
+    auto candidate = currentElection.candidates.find(id);
+    if (candidate == currentElection.candidates.end() || candidate->second.party != Results2::Candidate::Independent) continue;
+    LivePartyConversion::Record const* matched = nullptr;
+    bool ambiguous = false;
+    auto key = LivePartyConversion::candidateKey(candidate->second.name);
+    for (auto const& source : sources) if (auto row = history.find(source, "IND", key)) {
+      if (matched) ambiguous = true;
+      matched = row;
+    }
+    if (!matched || ambiguous) continue;
+    double base = preferenceFlowMap.at(PartyCollection::InvalidIndex)*.01;
+    double previous = prevPreferenceOverrides.contains(PartyCollection::InvalidIndex)
+      ? prevPreferenceOverrides.at(PartyCollection::InvalidIndex)*.01 : base;
+    seat.partyPreferenceFlows[id+IndependentPartyIdOffset] =
+      LivePartyConversion::returningIndependentFlow(*matched, base, previous);
+  }
+}
+
 LivePartialCount::Flows Election::classicPreferenceFlows(Booth const& booth,
   int coalitionParty, bool previous) const {
   LivePartialCount::Flows flows;
@@ -1099,11 +1211,16 @@ LivePartialCount::Flows Election::classicPreferenceFlows(Booth const& booth,
   std::set<int> candidates;
   for (auto const& [party,votes] : counts) candidates.insert(party);
   if (!previous) candidates.insert(booth.node.runningParties.begin(),booth.node.runningParties.end());
+  if (!previous) for (auto const& [party, share] : booth.node.fpShares) candidates.insert(party);
   for (int party : candidates) {
     double rate = 0;
     if (party == 0) rate = 1;
     else if (party == coalitionParty) rate = 0;
     else if (party == 1 || party == natPartyIndex) rate = CoalitionLeakagePercent*.01;
+    else if (previous && booth.previousPartyPreferenceFlows.contains(party))
+      rate = booth.previousPartyPreferenceFlows.at(party);
+    else if (!previous && seats.at(booth.parentSeatId).partyPreferenceFlows.contains(party))
+      rate = seats.at(booth.parentSeatId).partyPreferenceFlows.at(party);
     else if (previous && prevPreferenceOverrides.contains(party)) rate = prevPreferenceOverrides.at(party)*.01;
     else if (preferenceFlowMap.contains(party)) rate = preferenceFlowMap.at(party)*.01;
     else rate = preferenceFlowMap.at(PartyCollection::InvalidIndex)*.01;
@@ -1372,6 +1489,38 @@ std::map<int,float> Election::projectCountedTpp(int boothIndex, double contextSh
   return {{0,float(first)},{1,float(expectedPairVotes-first)}};
 }
 
+double Election::estimateBoothTpp(Booth const& booth) const {
+  // Use one set of party priors for observed-offset measurement, inferred TPP,
+  // pending preferences and future declaration votes. Measured TCP is never
+  // replaced by this estimate. The established OPV limitations are unchanged.
+  auto flows = classicPreferenceFlows(booth, coalitionFinalist(booth));
+  double offset = preferencePriorOffset(booth);
+  double first = 0;
+  for (auto const& [party, share] : booth.node.fpShares) {
+    double flow = flows.at(party);
+    if (flow > 0 && flow < 1)
+      flow = LivePartialCount::inverseLogOdds(LivePartialCount::logOdds(flow)+offset);
+    first += detransformVoteShare(share)*flow;
+  }
+  return first;
+}
+
+void Election::calculatePreviousTpp(Booth& booth) const {
+  auto const& n = booth.node;
+  if (n.totalTcpVotesPrevious() > 0 && isTppSet(n.tcpVotesPrevious, natPartyIndex)) {
+    booth.node.tppSharePrevious = transformVoteShare(std::clamp(
+      100.0f*n.tcpVotesPrevious.at(0)/n.totalTcpVotesPrevious(), 1.0f, 99.0f));
+  } else if (n.totalVotesPrevious() > 0) {
+    int coalition = n.fpVotesPrevious.contains(natPartyIndex) &&
+      LivePartialCount::value(n.fpVotesPrevious, natPartyIndex) > LivePartialCount::value(n.fpVotesPrevious, 1)
+      ? natPartyIndex : 1;
+    double first = LivePartialCount::expectedFirst(n.fpVotesPrevious,
+      classicPreferenceFlows(booth, coalition, true), 0);
+    booth.node.tppSharePrevious = transformVoteShare(float(std::clamp(
+      100*first/n.totalVotesPrevious(), 1.0, 99.0)));
+  }
+}
+
 void Election::calculateTppEstimates(bool withTpp) {
   for (auto& booth : booths) {
     // Pass one handles only observed TPP booths and records preference-flow
@@ -1379,111 +1528,8 @@ void Election::calculateTppEstimates(bool withTpp) {
     // without observed TPP and estimates their TPP from FP votes.
     if (booth.node.tppShare.has_value() != withTpp) continue;
 
-    // The preference flows vary in each booth from the overall election flows, so we need to calculate an
-    // offset value to properly compare each booth to the baseline
-    // The offset should be applied to the new estimated tpp estimate before calculating
-    // the estimated swing
-    std::optional<float> prevPreferenceRateOffset = preferenceRateOffset(booth,false);
-
-    // Calculate estimate of party one's share of the TPP based on the FP votes
-    // This currently assumes every FP vote reaches one of the final two. It is
-    // not OPV-compatible: preferenceExhaustMap is loaded but must be applied to
-    // both the Labor allocation and continuing-vote denominator before this is
-    // used for an OPV election.
-    float partyOneShare = 0.0f;
-    for (auto const& [partyId, share] : booth.node.fpShares) {
-
-      auto applyOffset = [this, &booth, prevPreferenceRateOffset](float flow) {
-        if (flow == 0.0f || flow == 100.0f) return flow;
-        auto const& thisAndParents = getThisAndParents(booth);
-        float preferenceFlowDeviation = prevPreferenceRateOffset.value_or(0.0f);
-        for (auto const& parent : thisAndParents) {
-          preferenceFlowDeviation += parent->specificPreferenceFlowDeviation.value_or(0.0f);
-        }
-        return detransformVoteShare(
-          transformVoteShare(flow) + preferenceFlowDeviation);
-      };
-
-      // work out which coalition party will make the TPP here
-      int preferredCoalitionParty = 1;
-      if (booth.node.fpVotesCurrent.contains(natPartyIndex)) {
-        if (!booth.node.fpVotesCurrent.contains(1)) {
-          preferredCoalitionParty = natPartyIndex;
-        }
-        else if (booth.node.fpVotesCurrent.at(natPartyIndex) > booth.node.fpVotesCurrent.at(1)) {
-          preferredCoalitionParty = natPartyIndex;
-        }
-      }
-      // now allocate preferences for non-major parties
-      if (partyId == preferredCoalitionParty) {
-        // This party will make the TPP, so will have zero preferences to Labor
-        continue;
-      }
-      else if (partyId == natPartyIndex || partyId == 1) {
-        // Other coalition party's votes, assume some leakage to Labor
-        partyOneShare += detransformVoteShare(share) * applyOffset(20.0f) * 0.01f;
-      }
-      else if (preferenceFlowMap.contains(partyId)) {
-        partyOneShare += detransformVoteShare(share) * applyOffset(preferenceFlowMap.at(partyId)) * 0.01f;
-      }
-      else {
-        partyOneShare += detransformVoteShare(share)
-          * applyOffset(preferenceFlowMap.at(PartyCollection::InvalidIndex)) * 0.01f;
-      }
-    }
-
-    int previousTotal = booth.node.totalVotesPrevious();
-    if (
-      booth.node.totalTcpVotesPrevious() > 0
-      && isTppSet(booth.node.tcpVotesPrevious, natPartyIndex)
-    ) {
-      // TPP share is directly available for this booth, so record it
-      float previousShare = transformVoteShare(std::clamp(
-        static_cast<float>(booth.node.tcpVotesPrevious.at(0))
-          / static_cast<float>(booth.node.totalTcpVotesPrevious()) * 100.0f,
-        1.0f, 99.0f));
-      booth.node.tppSharePrevious = previousShare;
-    } else if (previousTotal > 0) {
-      // work out which coalition party would have made the TPP here
-      int preferredCoalitionParty = 1;
-      if (booth.node.fpVotesPrevious.contains(natPartyIndex)) {
-        if (!booth.node.fpVotesPrevious.contains(1)) {
-          preferredCoalitionParty = natPartyIndex;
-        }
-        else if (booth.node.fpVotesPrevious.at(natPartyIndex) > booth.node.fpVotesPrevious.at(1)) {
-          preferredCoalitionParty = natPartyIndex;
-        }
-      }
-
-      // Estimate the previous election's TPP share if not available
-      float partyOnePreferenceEstimatePercent = 0.0f;
-
-      for (auto const& [partyId, votes] : booth.node.fpVotesPrevious) {
-        float share = static_cast<float>(votes) / static_cast<float>(previousTotal) * 100.0f;
-        // now allocate preferences for non-major parties
-        if (partyId == preferredCoalitionParty) {
-          // This party will make the TPP, so will have zero preferences to Labor
-          continue;
-        }
-        else if (partyId == natPartyIndex || partyId == 1) {
-          // Other coalition party's votes, assume some leakage to Labor
-          partyOnePreferenceEstimatePercent += share * CoalitionLeakagePercent * 0.01f;
-        }
-        else if (prevPreferenceOverrides.contains(partyId)) {
-          // Override preference flow when it differed from the current election.
-          partyOnePreferenceEstimatePercent += share * prevPreferenceOverrides.at(partyId) * 0.01f;
-        }
-        else if (preferenceFlowMap.contains(partyId)) {
-          partyOnePreferenceEstimatePercent += share * preferenceFlowMap.at(partyId) * 0.01f;
-        }
-        else {
-          partyOnePreferenceEstimatePercent += share
-            * preferenceFlowMap.at(PartyCollection::InvalidIndex) * 0.01f;
-        }
-      }
-      booth.node.tppSharePrevious = transformVoteShare(
-        std::clamp(partyOnePreferenceEstimatePercent, 1.0f, 99.0f));
-    }
+    double partyOneShare = estimateBoothTpp(booth);
+    calculatePreviousTpp(booth);
 
     if (partyOneShare > 0.0f && partyOneShare < 100.0f) {
       calculatePreferenceFlowEvidence(booth);

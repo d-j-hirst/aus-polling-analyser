@@ -455,6 +455,7 @@
     <ClInclude Include="LiveTppIntegration.h" />
     <ClInclude Include="LiveTppDiagnostics.h" />
     <ClInclude Include="LiveTppComposition.h" />
+    <ClInclude Include="LivePartyConversion.h" />
     <ClInclude Include="LiveTppCompositionParameters.h" />
     <ClInclude Include="LiveTppSensitivity.h" />
     <ClInclude Include="LiveFpIntegration.h" />

@@ -6,6 +6,7 @@ ForecastSpecificationProjectAdapterTests
 ForecastSpecificationTests
 LiveDataTests
 LiveTppCompositionTests
+LivePartyConversionTests
 LivePreferenceCorrectionTests
 LiveResultsInputTests
 LiveRunExportTests

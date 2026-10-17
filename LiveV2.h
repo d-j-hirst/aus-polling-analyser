@@ -4,6 +4,7 @@
 #include "LiveFpEvidence.h"
 #include "LiveEstimatedTpp.h"
 #include "LiveTppComposition.h"
+#include "LivePartyConversion.h"
 
 #include "ElectionData.h"
 #include "General.h"
@@ -25,6 +26,10 @@ class Simulation;
 class SimulationRun;
 
 namespace LiveV2 {
+
+// Raw independent candidates occupy their own range, distinct from configured
+// parties and other registered parties created by the feed adapter.
+inline constexpr int IndependentPartyIdOffset = 100000;
 
 class Election;
 
@@ -161,6 +166,11 @@ public:
   // so we use this to make sure they're treated differently
   bool sameSeat = false; 
 
+  // Source district survives redistribution matching; historical party flows
+  // must follow the old booth's electorate, not its new district's name.
+  std::string previousPreferenceSeat;
+  std::map<int, double> previousPartyPreferenceFlows;
+
   Node node;
 };
 
@@ -170,6 +180,7 @@ public:
   // A generic emerging/recontest possibility has no identified candidate to
   // compare and supplies no pooling baseline; it still receives local updates.
   double independentPoolingBaselineShare = 0;
+  std::map<int, double> partyPreferenceFlows; // Prepared district priors, fractions.
   Seat(Results2::Seat const& seat, int parentRegionIndex);
 
   void log(Election const& election, bool includeBooths = false) const;
@@ -533,6 +544,9 @@ private:
   double tppBoothBaseline(int boothIndex) const;
   double tppSeatReferenceShift(int seatIndex, double priorShare) const;
   double tppBoothMatchedPreferenceUnit(int boothIndex) const;
+  void prepareMatchedConversion();
+  double heldOutPreferenceOffset(int excludedSeat) const;
+  LivePartyConversion::MatchedAccount matchedConversionAccount(int seatIndex) const;
   std::map<int, LiveTppIntegration::CategoryEvidence> tppCategoryEvidence(int seatIndex, double referenceShift,
     std::optional<bool> inferredLocations = {}) const;
   void appendTppBoothEvidence(int boothIndex, double referenceShift,
@@ -556,6 +570,7 @@ private:
   std::shared_ptr<std::vector<TppCategoryAccount> const> tppCategoryAccounts;
   std::shared_ptr<std::vector<LiveTppIntegration::Observation> const> tppReceivedObservations;
   std::shared_ptr<LiveTppComposition::Extension const> tppPriorExtension;
+  std::shared_ptr<LivePartyConversion::Calibration const> tppTransferCalibration;
   double tppCompositionBudgetScale = 1;
   LiveTppIntegration::ReportingProgress tppOrdinaryReportingProgress;
   template<typename T, typename U>
@@ -565,6 +580,16 @@ private:
   void getNatPartyIndex();
 
   void loadEstimatedPreferenceFlows();
+  void preparePartyConversionPriors(Results2::Election const& previousElection,
+    Results2::Election const& currentElection);
+  void prepareHistoricalBoothFlows(LivePartyConversion::History const& history,
+    Results2::Election const& previousElection);
+  void prepareDistrictPartyFlows(LivePartyConversion::History const& history,
+    Results2::Election const& currentElection);
+  void prepareReturningIndependentFlows(Seat& seat, LivePartyConversion::History const& history,
+    Results2::Election const& currentElection);
+  double districtGreensStrength(Seat const& seat, int party) const;
+  double districtGreensResidual(Seat const& seat, LivePartyConversion::History const& history) const;
 
   // Raw electoral-commission data is only needed while constructing the
   // derived live model. Scenarios copy that model without retaining the raw
@@ -581,6 +606,8 @@ private:
   std::vector<Node const*> getThisAndParents(T& child) const;
 
   void calculateTppEstimates(bool withTpp);
+  double estimateBoothTpp(Booth const& booth) const;
+  void calculatePreviousTpp(Booth& booth) const;
   void calculatePreferenceFlowEvidence(Booth& booth);
   std::optional<LivePartialCount::PreferenceTransfer> historicalPreferenceTransfer(Booth const& booth) const;
   void reportLimitedHistoricalPreferenceEvidence(std::string const& sourceTime);

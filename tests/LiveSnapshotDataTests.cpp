@@ -1313,8 +1313,17 @@ int main()
 	assert(poolSummary.at("tpp_conversion_pool_variance") == 35.0);
 	assert(poolSummary.at("tpp_conversion_pool_percent") == 18.0);
 	assert(poolSummary.at("tpp_conversion_local_sd") == 2.1);
+	auto transferSummary = LiveTppDiagnostics::viewerSummary({
+		{"greens_transfer_error_pp", -.4}, {"greens_transfer_error_sd_pp", 1.7},
+		{"independent_transfer_error_pp", .8}, {"independent_transfer_error_sd_pp", 4.2},
+		{"matched_transfer_calibration", {{"districts", json::array({"not retained"})}}}});
+	assert(transferSummary.size() == 4);
+	assert(transferSummary.at("tpp_greens_transfer_error_pp") == -.4);
+	assert(transferSummary.at("tpp_independent_transfer_error_sd_pp") == 4.2);
+	assert(!transferSummary.contains("matched_transfer_calibration"));
 	biasLate["live_analysis_summary"].update(integrationSummary);
 	biasLate["live_analysis_summary"].update(poolSummary);
+	biasLate["live_analysis_summary"].update(transferSummary);
 	assert(LiveTppDiagnostics::viewerSummary(nullptr).empty());
 	assert(!LiveTppDiagnostics::viewerSummary({{"weighted_prior_sd", 0},
 		{"weighted_posterior_sd", 0}}).contains("tpp_variance_retained_percent"));
@@ -1428,7 +1437,7 @@ int main()
 	assert(voteCountGraph.series[2].values[1] == 50.0);
 
 	auto internal2pp = buildInternal2ppView(biasRecords);
-	assert(internal2pp.columns.size() == 16);
+	assert(internal2pp.columns.size() == 20);
 	assert(internal2pp.columns[0].kind == ParliamentColumn::Kind::Snapshot);
 	assert(internal2pp.columns[1].kind == ParliamentColumn::Kind::Internal2pp);
 	assert(internal2pp.columns[1].header == "Internal projected 2PP");
@@ -1441,7 +1450,7 @@ int main()
 	assert(internal2pp.cells[0][2].percent == -1.8);
 	assert(internal2pp.cells[1][1].percent == 56.25);
 	assert(internal2pp.cells[1][2].percent == -0.5);
-	for (int column = 3; column < 16; ++column) {
+	for (int column = 3; column < 20; ++column) {
 		assert(internal2pp.cells[0][column].kind == CellValue::Kind::Text);
 		assert(internal2pp.cells[0][column].text.empty());
 		assert(!internal2pp.columns[column].includeInGraph);
@@ -1454,11 +1463,15 @@ int main()
 	assert(internal2pp.cells[1][8].percent == 2.1);
 	assert(internal2pp.cells[1][9].percent == .12);
 	assert(internal2pp.cells[1][10].percent == 420.0);
-	assert(internal2pp.cells[1][11].percent == .8);
-	assert(internal2pp.cells[1][12].percent == 1.2);
-	assert(internal2pp.cells[1][13].percent == 6.0);
-	assert(internal2pp.cells[1][14].percent == 1.0);
-	assert(internal2pp.cells[1][15].percent == 80.0);
+	assert(internal2pp.cells[1][11].percent == -.4);
+	assert(internal2pp.cells[1][12].percent == 1.7);
+	assert(internal2pp.cells[1][13].percent == .8);
+	assert(internal2pp.cells[1][14].percent == 4.2);
+	assert(internal2pp.cells[1][15].percent == .8);
+	assert(internal2pp.cells[1][16].percent == 1.2);
+	assert(internal2pp.cells[1][17].percent == 6.0);
+	assert(internal2pp.cells[1][18].percent == 1.0);
+	assert(internal2pp.cells[1][19].percent == 80.0);
 	assert(internal2pp.columns[1].colour);
 	assert(internal2pp.columns[2].colour);
 	assert(internal2pp.columns[1].colour->r != internal2pp.columns[2].colour->r ||
@@ -1539,7 +1552,7 @@ int main()
 		CompletionChangeBorder::None);
 
 	auto omittedInternal = buildInternal2ppView(compactLoaded.records);
-	assert(omittedInternal.columns.size() == 16);
+	assert(omittedInternal.columns.size() == 20);
 	assert(omittedInternal.cells[0][1].percent == 0.0);
 	assert(omittedInternal.cells[0][1].text == formatSeatExpectation(0.0));
 	assert(omittedInternal.cells[0][2].percent == 0.0);

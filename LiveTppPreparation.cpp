@@ -3,6 +3,7 @@
 #include "PollingProject.h"
 #include "LiveFpIntegration.h"
 #include "SimulationRun.h"
+#include "LiveSimulationMath.h"
 
 #include <algorithm>
 #include <numeric>
@@ -17,6 +18,23 @@ int categoryCode(LiveV2::Booth const& booth) {
 }
 
 constexpr std::uint32_t CategoryDrawTag = 70, ObservationDrawTag = 71;
+
+struct PreferencePool {
+    // Same confidence-weighted aggregation as the live preference hierarchy,
+    // restricted to scalar preference evidence. Unreported seats stay in the
+    // coverage denominator. No results or project objects are copied.
+    double expected = 0, weight = 0, sum = 0;
+    void add(double target, double relevance, double confidence, std::optional<float> deviation) {
+        expected += target;
+        if (!deviation) return;
+        double w = target*relevance*confidence;
+        weight += w; sum += w * *deviation;
+    }
+    double confidence() const { return expected > 0 ? weight/expected : 0; }
+    std::optional<float> deviation() const {
+        return weight > 0 ? std::optional<float>(float(sum/weight)) : std::nullopt;
+    }
+};
 
 double transformedCounts(std::map<int, float> const& votes) {
     double total = 0;
@@ -34,12 +52,78 @@ void LiveV2::Election::prepareTppIntegration() {
     identifyTppIntegrationSeats();
     prepareTppCategoryAccounts();
     prepareTppReportingOrder();
+    prepareMatchedConversion();
     auto prior = tppJointPrior();
     tppPriorExtension = std::make_shared<LiveTppComposition::Extension const>(
         LiveTppComposition::prepareExtension(prior, sim.getLiveBaselineReport()->liveBaselineTppMoments.mean.size()));
     auto observations = tppJointObservations();
     tppIntegration = std::make_shared<LiveTppIntegration::Update const>(
-        LiveTppIntegration::prepare(std::move(prior), observations));
+        LiveTppIntegration::prepareWithExternalFactors(std::move(prior), observations,
+            sim.getLiveBaselineReport()->liveBaselineTppMoments.mean.size()
+                + tppCategoryCodes.size() + LiveTppComposition::ReportingOrderFactors));
+}
+
+double LiveV2::Election::heldOutPreferenceOffset(int excludedSeat) const {
+    // A matched district must not train the broad correction used to assess
+    // its own prediction. Recreate only the election/region flow hierarchy
+    // with that district omitted. The tested seat and booth corrections are
+    // also excluded; unobserved destination seats have neither available.
+    std::vector<PreferencePool> regions(largeRegions.size());
+    for (std::size_t s = 0; s < seats.size(); ++s) if (int(s) != excludedSeat) {
+        auto const& seat = seats[s];
+        auto const& n = seat.node;
+        // Preparation normally already has turnout projections. Retain the
+        // aggregation fallback for a historical or newly reported district.
+        double target = n.totalFpVotesProjected();
+        if (target <= 0) target = n.totalVotesPrevious() > 0
+            ? n.totalVotesPrevious() : n.totalFpVotesCurrent();
+        regions.at(seat.parentRegionIndex).add(target,
+            n.relevanceModifier,n.preferenceFlowConfidence,n.preferenceFlowDeviation);
+    }
+    PreferencePool election;
+    for (std::size_t r = 0; r < regions.size(); ++r)
+        election.add(regions[r].expected,largeRegions[r].node.relevanceModifier,
+            regions[r].confidence(),regions[r].deviation());
+    constexpr float FlowConfidenceStrength = 200; // existing preference hierarchy
+    double overall = election.deviation().value_or(0)*LiveSimulationMath::observationWeight(
+        float(election.confidence()),FlowConfidenceStrength);
+    auto const& region = regions.at(seats.at(excludedSeat).parentRegionIndex);
+    double regional = region.deviation() ? (*region.deviation()-overall)*
+        LiveSimulationMath::observationWeight(float(region.confidence()),FlowConfidenceStrength) : 0;
+    return (overall+regional)/25;
+}
+
+LivePartyConversion::MatchedAccount LiveV2::Election::matchedConversionAccount(int seatIndex) const {
+    LivePartyConversion::MatchedAccount account;
+    double broadOffset = heldOutPreferenceOffset(seatIndex);
+    for (int index : seats.at(seatIndex).booths) {
+        auto const& booth = booths[index];
+        // Require the existing valid current FP/TPP match, not an earlier
+        // partial cohort or a non-classic TCP. OPV is excluded by the caller.
+        if (tppBoothMatchedPreferenceUnit(index) <= 0) continue;
+        auto previous = historicalPreferenceTransfer(booth);
+        if (!previous) continue;
+        double quality = booth.node.relevanceModifier*
+            LivePartialCount::historicalFlowReliability(previous->share());
+        int coalition = coalitionFinalist(booth);
+        double offset = preferenceRateOffset(booth,false).value_or(0)/25+broadOffset;
+        account.add(booth.node.fpVotesCurrent,booth.node.tcpVotesCurrent,
+            classicPreferenceFlows(booth,coalition),offset,coalition,
+            run.grnPartyIndex,IndependentPartyIdOffset,quality);
+    }
+    return account;
+}
+
+void LiveV2::Election::prepareMatchedConversion() {
+    // Fit only errors remaining after the existing strength/history and broad
+    // observed preference corrections. Actual TPP provides the target; the
+    // pre-election seat TPP prior never enters this calibration.
+    std::vector<LivePartyConversion::MatchedAccount> accounts(seats.size());
+    if (!optionalPreferential)
+        for (std::size_t s = 0; s < seats.size(); ++s) accounts[s] = matchedConversionAccount(int(s));
+    tppTransferCalibration = std::make_shared<LivePartyConversion::Calibration const>(
+        LivePartyConversion::calibrate(std::move(accounts),
+            LiveTppComposition::GreensTransferFlowSd,LiveTppComposition::IndependentTransferFlowSd));
 }
 
 void LiveV2::Election::identifyTppIntegrationSeats() {
@@ -100,7 +184,9 @@ LiveTppIntegration::Moments LiveV2::Election::tppJointPrior() {
     auto mixtures = tppReferenceMixtures();
     auto result = LiveTppComposition::jointPrior(baseline, covariance, mixtures);
     tppCompositionBudgetScale = result.budgetScale;
-    return LiveTppComposition::withReportingOrder(std::move(result.moments));
+    auto prior = LiveTppComposition::withPartyTransfer(
+        LiveTppComposition::withReportingOrder(std::move(result.moments)));
+    return LivePartyConversion::applyCalibration(std::move(prior), *tppTransferCalibration);
 }
 
 void LiveV2::Election::prepareTppReportingOrder() {
@@ -252,6 +338,14 @@ void LiveV2::Election::appendTppBoothEvidence(int index, double referenceShift,
     // their full non-major pool. Use the same weights as the comparison itself.
     evidence.unresolvedPreferenceWeight += comparisonWeight*received->inferredFraction
         * LiveTppComposition::preferencePoolFraction(n.fpVotesCurrent, natPartyIndex);
+    // Raw independent identities remain separate from registered minor parties.
+    // The shared factors cover possible common campaign-selection error, without
+    // asserting that a rural independent has the same mean as an urban one.
+    if (fp > 0) for (auto const& [party, votes] : n.fpVotesCurrent) {
+        double weight = comparisonWeight*received->inferredFraction*votes/fp;
+        if (party == run.grnPartyIndex) evidence.greensPreferenceWeight += weight;
+        else if (party >= IndependentPartyIdOffset) evidence.independentPreferenceWeight += weight;
+    }
     evidence.weightedObservedShare += comparisonWeight*LiveTppComposition::share(received->transformedShare);
     evidence.weightedBaselineShare += comparisonWeight*baselineShare;
 }
@@ -327,6 +421,9 @@ LiveTppComposition::ObservationBlock LiveV2::Election::tppSeatObservations(int s
     auto block = LiveTppComposition::observationBlock(std::move(rows), localExposures,
         LiveTppComposition::categoryCovariance(prepared.codes, run.regionCode, true, std::stoi(run.yearCode)));
     LiveTppComposition::allowForConversionUncertainty(block, prepared.expectedVotes()/electionExpected);
+    auto transferStart = sim.getLiveBaselineReport()->liveBaselineTppMoments.mean.size()
+        + tppCategoryCodes.size() + LiveTppComposition::ReportingOrderFactors;
+    LiveTppComposition::applyPartyTransfer(block, transferStart, tppTransferCalibration->factors.covariance);
     return block;
 }
 
@@ -335,7 +432,7 @@ LiveV2::Election::tppSeatObservationRows(int s, double matchedUnits) const {
     auto const& baseline = sim.getLiveBaselineReport()->liveBaselineTppMoments;
     auto n = baseline.mean.size();
     auto orderStart = n + tppCategoryCodes.size();
-    auto dimension = orderStart + LiveTppComposition::ReportingOrderFactors;
+    auto dimension = orderStart + LiveTppComposition::ReportingOrderFactors + LiveTppComposition::PartyTransferFactors;
     auto const& prepared = tppCategoryAccounts->at(s);
     if (prepared.codes.empty()) return {};
     auto const& account = prepared.account;
@@ -367,6 +464,8 @@ LiveV2::Election::tppSeatObservationRows(int s, double matchedUnits) const {
         observation.inferredFraction = evidence.inferredWeight / evidence.weight;
         double observed = LiveTppComposition::observedShare(evidence);
         observation.unresolvedPreferenceFraction = evidence.unresolvedPreferenceWeight/evidence.weight;
+        observation.greensPreferenceFraction = evidence.greensPreferenceWeight/evidence.weight;
+        observation.independentPreferenceFraction = evidence.independentPreferenceWeight/evidence.weight;
         observation.comparisonWeight = evidence.weight;
         observation.conversionJacobian = LiveTppComposition::conversionShareJacobian(observed);
         observation.value = account.seatLoading*baseline.mean[p] + LiveTppComposition::transform(observed)

@@ -1,0 +1,770 @@
+term,seat,party,candidate_key,fp,formal,alp,classic,forward_residual_weight
+2019fed,Adelaide,GRN,barbara pocock,16853,107181,14657,1,1
+2019fed,Aston,GRN,asher cookson,8867,100090,7018,1,1
+2019fed,Ballarat,GRN,karen mcaloon,9077,102683,7745,1,1
+2019fed,Ballarat,IND,alex graham,1645,102683,788,1,1
+2019fed,Ballarat,IND,nick shady,2288,102683,978,1,1
+2019fed,Banks,GRN,dragone gianluca,5339,91730,4437,1,1
+2019fed,Barker,GRN,hillam rosa,7229,105666,4676,1,1
+2019fed,Barton,GRN,connor parissis,8123,89907,6822,1,1
+2019fed,Bass,GRN,hall tom,7202,68733,6243,1,1
+2019fed,Bass,IND,lambert todd,2607,68733,1370,1,1
+2019fed,Bean,GRN,davis johnathan,12168,92939,10535,1,1
+2019fed,Bean,IND,christie jamie,7683,92939,4402,1,1
+2019fed,Bendigo,GRN,holian robert,11381,101661,10152,1,1
+2019fed,Bennelong,GRN,qiu yue zhang,9116,96305,7371,1,1
+2019fed,Berowra,GRN,monica tan,11157,93947,8788,1,1
+2019fed,Berowra,IND,gallagher mick,2104,93947,1070,1,1
+2019fed,Berowra,IND,roger woodward,495,93947,241,1,1
+2019fed,Blair,GRN,duncan michelle,8325,95925,6460,1,1
+2019fed,Blair,IND,karandrews simone,3849,95925,2405,1,1
+2019fed,Blair,IND,john turner,2118,95925,939,1,1
+2019fed,Blaxland,GRN,james rooney,4329,80808,3502,1,1
+2019fed,Bonner,GRN,barbara bell,11010,94187,8708,1,1
+2019fed,Boothby,GRN,rozitis stef,13224,110577,11104,1,1
+2019fed,Boothby,IND,jones trevor,2843,110577,1744,1,1
+2019fed,Bowman,GRN,emerald moon,11795,98339,8682,1,1
+2019fed,Braddon,GRN,parsons phill,3384,69973,2908,1,1
+2019fed,Braddon,IND,brakey craig,7619,69973,3238,1,1
+2019fed,Braddon,IND,brett michael smith,1203,69973,683,1,1
+2019fed,Bradfield,GRN,adams tony,13177,96143,10098,1,1
+2019fed,Brand,GRN,freeman jody,9863,88841,7676,1,1
+2019fed,Brisbane,GRN,andrew bartlett,22807,101957,19292,1,1
+2019fed,Bruce,GRN,garad rhonda,6801,93040,5402,1,1
+2019fed,Burt,GRN,collins simone,8285,88040,6794,1,1
+2019fed,Burt,IND,naomi nation,1149,88040,675,1,1
+2019fed,Calare,GRN,luke stephanie,6315,104288,4693,1,1
+2019fed,Calwell,GRN,morgan polly,5893,87452,4857,1,1
+2019fed,Canberra,GRN,hollo tim,20144,86403,18772,1,1
+2019fed,Canberra,IND,bohm tim,4062,86403,2461,1,1
+2019fed,Canning,GRN,jodie moffat,6840,90892,5107,1,1
+2019fed,Capricornia,GRN,bambrick paul,4307,88967,3017,1,1
+2019fed,Capricornia,IND,ken murray,2211,88967,1032,1,1
+2019fed,Casey,GRN,game jenny lopata,10919,99828,9482,1,1
+2019fed,Casey,IND,charleton peter,2302,99828,921,1,1
+2019fed,Chifley,GRN,brent john robertson,4604,91006,3268,1,1
+2019fed,Chifley,IND,ammar aziz khan,1581,91006,854,1,1
+2019fed,Chisholm,GRN,arthur luke,11235,94920,9672,1,1
+2019fed,Chisholm,IND,dobby ian,2319,94920,894,1,1
+2019fed,Clark,GRN,juniper shaw,6458.0,67461,5895.0,0,1
+2019fed,Clark,IND,andrew wilkie,33761.0,67461,24231.0,0,1
+2019fed,Cook,GRN,doig jon,6406,94023,5219,1,1
+2019fed,Cooper,GRN,david risstrom,20605.0,97481,19309.0,0,1
+2019fed,Cooper,IND,lieshout teresa van,1660.0,97481,1148.0,0,1
+2019fed,Corangamite,GRN,northeast simon,9184,101620,7955,1,1
+2019fed,Corangamite,IND,cole damien,5131,101620,3538,1,1
+2019fed,Corio,GRN,amber forbes,12902,98752,10526,1,1
+2019fed,Cowan,GRN,cooper mark,8551,84853,6815,1,1
+2019fed,Cowper,GRN,edwards lauren,6264.0,105528,4887.0,0,1
+2019fed,Cowper,IND,allan green,1451.0,105528,676.0,0,1
+2019fed,Cowper,IND,oakeshott robert,25847.0,105528,17862.0,0,1
+2019fed,Cunningham,GRN,huxtable rowan,15196,100677,13312,1,1
+2019fed,Curtin,GRN,cameron pidgeon,13847,89062,11227,1,1
+2019fed,Curtin,IND,louise stewart,6902,89062,3613,1,1
+2019fed,Dawson,GRN,imogen lindenberg,4009,88851,3160,1,1
+2019fed,Dawson,IND,lachlan queenan,2478,88851,1315,1,1
+2019fed,Deakin,GRN,sophia sun,8730,97269,7411,1,1
+2019fed,Deakin,IND,janson vickie,1614,97269,667,1,1
+2019fed,Dickson,GRN,benedict coyne,9675,96948,7995,1,1
+2019fed,Dickson,IND,prohaska thor,2302,96948,1378,1,1
+2019fed,Dobell,GRN,rickard scott,7579,101453,6167,1,1
+2019fed,Dobell,IND,francis gregory stephenson,3176,101453,1764,1,1
+2019fed,Dunkley,GRN,emily green,8125,96828,6903,1,1
+2019fed,Durack,GRN,johani mamid,6287,77721,4655,1,1
+2019fed,Eden-Monaro,GRN,mcginlay pat,8715,99259,7582,1,1
+2019fed,Eden-Monaro,IND,holgate james,1883,99259,914,1,1
+2019fed,Eden-Monaro,IND,david sheldon william,2247,99259,1087,1,1
+2019fed,Fadden,GRN,scott turner,8747,97212,6417,1,1
+2019fed,Fairfax,GRN,etheridge sue,12291,97640,9497,1,1
+2019fed,Fairfax,IND,australie sinim,1318,97640,690,1,1
+2019fed,Farrer,GRN,dean moss,4529.0,97249,3409.0,0,1
+2019fed,Farrer,IND,francis kevin mack,19926.0,97249,8666.0,0,1
+2019fed,Farrer,IND,brian mills,1255.0,97249,565.0,0,1
+2019fed,Fenner,GRN,andrew braddock,12492,86633,10932,1,1
+2019fed,Fisher,GRN,burton tracy,12289,99048,9573,1,1
+2019fed,Flinders,GRN,lesslie nathan,6599,96952,5542,1,1
+2019fed,Flinders,IND,banks julia,13367,96952,9838,1,1
+2019fed,Flinders,IND,beveridge susie,948,96952,575,1,1
+2019fed,Flinders,IND,dreger harry,940,96952,287,1,1
+2019fed,Flynn,GRN,baker jaiben,2744,89457,2183,1,1
+2019fed,Flynn,IND,murray peterson,1994,89457,956,1,1
+2019fed,Flynn,IND,duncan george scott,1384,89457,732,1,1
+2019fed,Forde,GRN,kirsty petersen,7987,91534,5536,1,1
+2019fed,Forrest,GRN,boshammer nerilee,11645,90462,8248,1,1
+2019fed,Forrest,IND,alexander marsden,1238,90462,616,1,1
+2019fed,Fowler,GRN,lee seamus,4633,83664,3448,1,1
+2019fed,Franklin,GRN,darko kit,11420,70261,10010,1,1
+2019fed,Fraser,GRN,rebecca scorgie,7645,92559,6221,1,1
+2019fed,Fraser,IND,tran van,5306,92559,3136,1,1
+2019fed,Fremantle,GRN,hutchinson jesse,14574,91103,12404,1,1
+2019fed,Gellibrand,GRN,bernadette thomas,16303,98531,14046,1,1
+2019fed,Gilmore,GRN,carmel mary mccallum,10740,107677,9365,1,1
+2019fed,Gilmore,IND,grant schultz,7585,107677,4099,1,1
+2019fed,Gippsland,GRN,deb foskey,5835,96678,4392,1,1
+2019fed,Gippsland,IND,buckley sonia,3043,96678,1190,1,1
+2019fed,Goldstein,GRN,pennicuik sue,13951,99336,11544,1,1
+2019fed,Goldstein,IND,casley john tiger,1349,99336,651,1,1
+2019fed,Gorton,GRN,harkirat singh,6730,94641,5492,1,1
+2019fed,Gorton,IND,bingham jarrod,8363,94641,4950,1,1
+2019fed,Grayndler,GRN,casey jim,21607.0,95814,19715.0,0,1
+2019fed,Greenway,GRN,atkins damien,5256,95507,4015,1,1
+2019fed,Grey,GRN,candace champion,4760,103447,3290,1,1
+2019fed,Grey,IND,carmody richard,1797,103447,928,1,1
+2019fed,Griffith,GRN,chandler mather max,23562,99617,20346,1,1
+2019fed,Groom,GRN,alyce nelligan,7598,95448,5327,1,1
+2019fed,Hasluck,GRN,anne lee miles,9651,84200,7705,1,1
+2019fed,Herbert,GRN,blackadder sam,6721,91917,5456,1,1
+2019fed,Higgins,GRN,ball jason,22573,100478,18834,1,1
+2019fed,Hindmarsh,GRN,farrell matt,11966,108955,9667,1,1
+2019fed,Hinkler,GRN,anne jackson,3422,92067,2560,1,1
+2019fed,Hinkler,IND,david norman,1327,92067,678,1,1
+2019fed,Hinkler,IND,moe turaga,2583,92067,1480,1,1
+2019fed,Hinkler,IND,adrian jacob wone,735,92067,462,1,1
+2019fed,Holt,GRN,jess wheelock,6735,94687,5163,1,1
+2019fed,Hotham,GRN,gonsalvez jess,8722,95868,7336,1,1
+2019fed,Hughes,GRN,mitchell shakespeare,6631,95491,5501,1,1
+2019fed,Hughes,IND,bryan matt,1988,95491,1048,1,1
+2019fed,Hume,GRN,david powell,5224,102442,3891,1,1
+2019fed,Hume,IND,huw kingston mostyn,6068,102442,3915,1,1
+2019fed,Hunter,GRN,janet murray,7007,102026,5297,1,1
+2019fed,Indi,GRN,helen robinson,4255.0,100956,2928.0,0,1
+2019fed,Indi,IND,haines helen,32664.0,100956,19019.0,0,1
+2019fed,Isaacs,GRN,kim samiotis,10822,96837,7580,1,1
+2019fed,Jagajaga,GRN,kennedy paul,13929,97767,12079,1,1
+2019fed,Kennedy,GRN,burness lyle,4751.0,91948,3514.0,0,1
+2019fed,Kingsford Smith,GRN,cruz james,11418,94376,9981,1,1
+2019fed,Kingston,GRN,mortier nikki,9764,106081,7852,1,1
+2019fed,Kooyong,GRN,burnside julian,21035.0,99029,18159.0,0,1
+2019fed,Kooyong,IND,bill chandler,669.0,99029,448.0,0,1
+2019fed,Kooyong,IND,oliver yates,8890.0,99029,6346.0,0,1
+2019fed,Kooyong,IND,angelina zubac,539.0,99029,296.0,0,1
+2019fed,La Trobe,GRN,amy gregorovich,7752,98689,5812,1,1
+2019fed,Lalor,GRN,dessi jay,7273,93478,5712,1,1
+2019fed,Leichhardt,GRN,gary oliver,9340,89785,7370,1,1
+2019fed,Leichhardt,IND,anderson chad,2562,89785,1470,1,1
+2019fed,Lilley,GRN,john meyer,13539,96605,11384,1,1
+2019fed,Lindsay,GRN,best nick,4781,97403,3701,1,1
+2019fed,Lindsay,IND,mark tyndall,2785,97403,1488,1,1
+2019fed,Lingiari,GRN,george hanna,3991,48434,3214,1,1
+2019fed,Lingiari,IND,hamish macfarlane,2123,48434,825,1,1
+2019fed,Longman,GRN,dejun simone,6684,99549,5194,1,1
+2019fed,Lyne,GRN,stuart watson,6589,101180,4924,1,1
+2019fed,Lyne,IND,jeremy john miller,5169,101180,2569,1,1
+2019fed,Lyons,GRN,gary whisson,6765,71564,6002,1,1
+2019fed,Macarthur,GRN,jayden rivera,4397,99504,3359,1,1
+2019fed,Mackellar,GRN,pru wawn,11283,98262,9361,1,1
+2019fed,Mackellar,IND,alice thompson,11975,98262,7613,1,1
+2019fed,Macnamara,GRN,hodgins may steph,23534,97092,20587,1,1
+2019fed,Macnamara,IND,o rourke ruby,1108,97092,497,1,1
+2019fed,Macnamara,IND,chris wallis,918,97092,478,1,1
+2019fed,Macquarie,GRN,kingsley liu,8870,96951,7901,1,1
+2019fed,Makin,GRN,stephanie stewart,9211,106704,7098,1,1
+2019fed,Mallee,GRN,nicole rowan,3297,93827,2385,1,1
+2019fed,Mallee,IND,kingston ray,8621,93827,2757,1,1
+2019fed,Mallee,IND,cecilia moar,2761,93827,1068,1,1
+2019fed,Mallee,IND,jason mark modica,8795,93827,5217,1,1
+2019fed,Maranoa,GRN,chidley emmeline,3177.0,92760,2213.0,0,1
+2019fed,Maribyrnong,GRN,james williams,14943,100924,12780,1,1
+2019fed,Mayo,GRN,anne bourne,10436.0,112676,8560.0,0,1
+2019fed,McEwen,GRN,barker neil,8026,96128,6982,1,1
+2019fed,McEwen,IND,hyndman james robert,1552,96128,715,1,1
+2019fed,McMahon,GRN,astrid neill o,4218,85393,3279,1,1
+2019fed,McPherson,GRN,alan quinn,10167,92521,8049,1,1
+2019fed,McPherson,IND,kaff michael,1648,92521,867,1,1
+2019fed,Melbourne,GRN,adam bandt,45876.0,93064,39004.0,0,0
+2019fed,Melbourne,IND,blake dave,1154.0,93064,444.0,0,1
+2019fed,Menzies,GRN,humphreys robert,10264,98326,8461,1,1
+2019fed,Mitchell,GRN,lawrence murphy,7955,98636,6066,1,1
+2019fed,Monash,GRN,hornstra william,7047,100481,5900,1,1
+2019fed,Monash,IND,fozard michael stewart,2870,100481,1596,1,1
+2019fed,Monash,IND,john verhoeven,2723,100481,1554,1,1
+2019fed,Moncrieff,GRN,sally spain,8900,91919,6622,1,1
+2019fed,Moore,GRN,daniel vujcich,10735,88779,8263,1,1
+2019fed,Moore,IND,murphy ziggi,2390,88779,1300,1,1
+2019fed,Moreton,GRN,brien o patsy,15189,90642,12951,1,1
+2019fed,New England,GRN,lonergan tony,4311.0,97320,3319.0,0,1
+2019fed,New England,IND,adam blakester,13804.0,97320,9588.0,0,1
+2019fed,New England,IND,ledger natasha,3071.0,97320,1970.0,0,1
+2019fed,New England,IND,rob taber,3702.0,97320,2019.0,0,1
+2019fed,Newcastle,GRN,john mackenzie,16038,103067,14038,1,1
+2019fed,Nicholls,GRN,freeman nickee,4011,95292,2837,1,1
+2019fed,Nicholls,IND,andrew bock,4581,95292,1853,1,1
+2019fed,Nicholls,IND,hicks nigel,1749,95292,655,1,1
+2019fed,Nicholls,IND,jeremy parker,1772,95292,577,1,1
+2019fed,North Sydney,GRN,daniel keogh,13193,96836,10868,1,1
+2019fed,North Sydney,IND,arthur chesterfield evans,4295,96836,2591,1,1
+2019fed,O'Connor,GRN,blake gilmour nelson,7245,85957,5755,1,1
+2019fed,Oxley,GRN,purcell steven,10535,90523,8332,1,1
+2019fed,Page,GRN,dan reid,12634,108151,10604,1,1
+2019fed,Page,IND,fiona leviny,5240,108151,2259,1,1
+2019fed,Parkes,GRN,david paull,3921,93952,2481,1,1
+2019fed,Parkes,IND,landers will,6730,93952,3248,1,1
+2019fed,Parramatta,GRN,bradley phil,6131,84670,5072,1,1
+2019fed,Paterson,GRN,davis jan,7439,107819,6050,1,1
+2019fed,Pearce,GRN,eugene marshall,8676,99923,6519,1,1
+2019fed,Pearce,IND,butland colin,1456,99923,743,1,1
+2019fed,Perth,GRN,caroline perks,16552,87706,14304,1,1
+2019fed,Petrie,GRN,jason kennedy,8877,101597,6798,1,1
+2019fed,Rankin,GRN,cotter neil,7709,84864,6192,1,1
+2019fed,Reid,GRN,charles jago,7575,93728,6441,1,1
+2019fed,Richmond,GRN,lyon michael,20384,100320,17663,1,1
+2019fed,Richmond,IND,karam ray,1566,100320,677,1,1
+2019fed,Riverina,GRN,bayles michael,6254,100941,4167,1,1
+2019fed,Robertson,GRN,cath connor,7601,96061,6408,1,1
+2019fed,Robertson,IND,abrahams david fraser,2915,96061,1776,1,1
+2019fed,Ryan,GRN,jake schoermer,19621,96426,16564,1,1
+2019fed,Scullin,GRN,cynthia smith,6128,91809,4963,1,1
+2019fed,Scullin,IND,akram albarri yassin,1605,91809,842,1,1
+2019fed,Shortland,GRN,campbell wylie,8256,99980,6782,1,1
+2019fed,Solomon,GRN,parish timothy,6521,55084,5213,1,1
+2019fed,Solomon,IND,adams fraser sue,2684,55084,1094,1,1
+2019fed,Spence,GRN,daniel jury,7330,101629,5499,1,1
+2019fed,Spence,IND,herbert nathan,5473,101629,2821,1,1
+2019fed,Stirling,GRN,cullity judith,10439,86779,8212,1,1
+2019fed,Sturt,GRN,boundy paul,12263,109732,9904,1,1
+2019fed,Sturt,IND,larcombe nick,2906,109732,1713,1,1
+2019fed,Swan,GRN,cramer liberty,10367,84137,8649,1,1
+2019fed,Sydney,GRN,matthew thompson,17134,94815,15176,1,1
+2019fed,Tangney,GRN,martin spencer,9319,83419,7545,1,1
+2019fed,Tangney,IND,horton jillian,1933,83419,1184,1,1
+2019fed,Tangney,IND,paul stephen waddy,307,83419,143,1,1
+2019fed,Wannon,GRN,taylor zephlyn,6590,103889,5372,1,1
+2019fed,Wannon,IND,alex dyson,10797,103889,6318,1,1
+2019fed,Warringah,GRN,glanville kristyn,5647.0,92123,4765.0,0,1
+2019fed,Warringah,IND,moylan susan,1111.0,92123,730.0,0,1
+2019fed,Warringah,IND,steggall zali,40034.0,92123,30871.0,0,1
+2019fed,Watson,GRN,bhaldraithe de emmet,5982,84250,5137,1,1
+2019fed,Wentworth,GRN,dominic kanak wy,6759.0,89754,5536.0,0,1
+2019fed,Wentworth,IND,brockman drake matthew,516.0,89754,335.0,0,1
+2019fed,Wentworth,IND,kerryn phelps,29109.0,89754,20085.0,0,1
+2019fed,Werriwa,GRN,signe westerberg,5060,94229,3643,1,1
+2019fed,Werriwa,IND,michael white,2135,94229,1059,1,1
+2019fed,Whitlam,GRN,dixon jamie,9461,102671,7270,1,1
+2019fed,Wide Bay,GRN,bryar daniel,9330,93872,7480,1,1
+2019fed,Wide Bay,IND,jerome tim,4220,93872,2005,1,1
+2019fed,Wills,GRN,adam pulford,25575.0,96090,23589.0,0,1
+2019fed,Wright,GRN,girard shannon,6951,96893,5401,1,1
+2019fed,Wright,IND,innes larkin,5165,96893,2937,1,1
+2022fed,Adelaide,GRN,galdies rebecca,22666,112764,20270,1,1
+2022fed,Aston,GRN,asher cookson,11855,98160,10128,1,1
+2022fed,Ballarat,GRN,barnes john,14076,96500,12191,1,1
+2022fed,Ballarat,IND,alex graham,2044,96500,1139,1,1
+2022fed,Banks,GRN,hanna natalie,8063,92045,6669,1,1
+2022fed,Barker,GRN,hillam rosa,7841,105799,5886,1,1
+2022fed,Barker,IND,fry maddy,3190,105799,1625,1,1
+2022fed,Barker,IND,pannell vince,1913,105799,875,1,1
+2022fed,Barton,GRN,taylor vandijk,11441,91623,9972,1,1
+2022fed,Bass,GRN,cecily rosol,7614,68609,6646,1,1
+2022fed,Bass,IND,george razay,3450,68609,1719,1,1
+2022fed,Bean,GRN,jane kathryn savery,14559,98394,13048,1,1
+2022fed,Bean,IND,christie jamie,8023,98394,5445,1,1
+2022fed,Bendigo,GRN,cate sinclair,14026,99779,12843,1,1
+2022fed,Bendigo,IND,james laurie,4319,99779,2196,1,1
+2022fed,Bennelong,GRN,adams tony,11395,99648,9501,1,1
+2022fed,Berowra,GRN,salitra tania,14536,93306,11934,1,1
+2022fed,Berowra,IND,benjamin caswell,1802,93306,1074,1,1
+2022fed,Berowra,IND,roger woodward,904,93306,494,1,1
+2022fed,Blair,GRN,danielle mutton,13113,104247,10749,1,1
+2022fed,Blaxland,GRN,eisler linda,5187,81677,4115,1,1
+2022fed,Bonner,GRN,bernard lakey,16144,96374,13582,1,1
+2022fed,Boothby,GRN,carter jeremy,17285,113707,14591,1,1
+2022fed,Boothby,IND,busuttil paul,1048,113707,408,1,1
+2022fed,Boothby,IND,dyer jo,7441,113707,6018,1,1
+2022fed,Bowman,GRN,ian mazlin,13241,101692,10352,1,1
+2022fed,Braddon,GRN,briggs darren,4745,70598,3972,1,1
+2022fed,Braddon,IND,anthony craig garland,5538,70598,3314,1,1
+2022fed,Bradfield,GRN,cousins martin,8960.0,96704,7454.0,0,1
+2022fed,Bradfield,IND,boele nicolette,20198.0,96704,14514.0,0,1
+2022fed,Bradfield,IND,janine kitson,3018.0,96704,2012.0,0,1
+2022fed,Brand,GRN,heather lonsdale,10900,95681,9294,1,1
+2022fed,Brisbane,GRN,bates stephen,29641.0,108798,26206.0,0,1
+2022fed,Bruce,GRN,kirwan matthew,9273,95290,7498,1,1
+2022fed,Burt,GRN,daniel garlett,9004,91550,7308,1,1
+2022fed,Calare,GRN,kay nankervis,4891.0,107319,3767.0,0,1
+2022fed,Calare,IND,hook kate,21891.0,107319,13407.0,0,1
+2022fed,Calwell,GRN,abboud natalie,8277,84995,6436,1,1
+2022fed,Canberra,GRN,hollo tim,22795.0,92322,21472.0,0,1
+2022fed,Canberra,IND,bohm tim,4772.0,92322,3121.0,0,1
+2022fed,Canning,GRN,jodie moffat,7659,94264,6302,1,1
+2022fed,Canning,IND,ashley elphin williams,1708,94264,1042,1,1
+2022fed,Capricornia,GRN,jones mick,5302,90292,4286,1,1
+2022fed,Capricornia,IND,ken murray,3048,90292,1698,1,1
+2022fed,Casey,GRN,game jenny,12894,99621,10831,1,1
+2022fed,Casey,IND,cole craig,3455,99621,1181,1,1
+2022fed,Casey,IND,claire ferres miles,8307,99621,6866,1,1
+2022fed,Chifley,GRN,selventhiran sujan,5622,97189,4352,1,1
+2022fed,Chifley,IND,ammar khan,1839,97189,920,1,1
+2022fed,Chisholm,GRN,newman sarah,12130,96518,10879,1,1
+2022fed,Chisholm,IND,dominique murphy,1590,96518,902,1,1
+2022fed,Chisholm,IND,tseng wayne,757,96518,447,1,1
+2022fed,Clark,GRN,janet shelley,8861.0,65894,8088.0,0,1
+2022fed,Clark,IND,andrew wilkie,30005.0,65894,21687.0,0,1
+2022fed,Cook,GRN,catherine dyson,9685,97817,7963,1,1
+2022fed,Cooper,GRN,celeste liddle,25648.0,93750,24135.0,0,1
+2022fed,Corangamite,GRN,alex marshall,15349,100967,13812,1,1
+2022fed,Corio,GRN,northeast simon,14450,96944,12739,1,1
+2022fed,Cowan,GRN,isabella tripp,9829,99684,8499,1,1
+2022fed,Cowper,GRN,nott timothy,6518.0,111236,4937.0,0,1
+2022fed,Cowper,IND,caz heise,29206.0,111236,19952.0,0,1
+2022fed,Cunningham,GRN,dylan green,22011,101671,19577,1,1
+2022fed,Curtin,GRN,cameron pidgeon,10889.0,105037,9381.0,0,1
+2022fed,Curtin,IND,chaney kate,30942.0,105037,20988.0,0,1
+2022fed,Dawson,GRN,creen paula,6675,92573,5274,1,1
+2022fed,Deakin,GRN,humphreys rob,13904,100269,12535,1,1
+2022fed,Deakin,IND,liu qian,1271,100269,743,1,1
+2022fed,Dickson,GRN,batten vinnie,12871,99029,11161,1,1
+2022fed,Dickson,IND,alan buchbach,2222,99029,1063,1,1
+2022fed,Dickson,IND,prohaska thor,1618,99029,1049,1,1
+2022fed,Dobell,GRN,cath connor,8700,101717,7400,1,1
+2022fed,Dunkley,GRN,brien liam o,9898,95722,8831,1,1
+2022fed,Dunkley,IND,bergwerf darren,3698,95722,1873,1,1
+2022fed,Durack,GRN,bianca mcneair,8457,89523,6643,1,1
+2022fed,Eden-Monaro,GRN,harris vivian,9376,101517,8646,1,1
+2022fed,Eden-Monaro,IND,andrew thaler,2044,101517,1181,1,1
+2022fed,Fadden,GRN,sally spain,11353,105771,8890,1,1
+2022fed,Fadden,IND,brooker gordon stewart,4407,105771,2834,1,1
+2022fed,Fairfax,GRN,etheridge sue,13862,103659,11464,1,1
+2022fed,Fairfax,IND,australie barbara sinim,733,103659,443,1,1
+2022fed,Fairfax,IND,barry smith,1423,103659,751,1,1
+2022fed,Farrer,GRN,davern eli,9163,100582,6609,1,1
+2022fed,Farrer,IND,amanda duncan strelec,3189,100582,1694,1,1
+2022fed,Fenner,GRN,natasa sojic,15294,91281,13631,1,1
+2022fed,Fisher,GRN,renay wells,14981,108494,12116,1,1
+2022fed,Flinders,GRN,colin lane,9293,98902,7946,1,1
+2022fed,Flinders,IND,connor despi o,7163,98902,5024,1,1
+2022fed,Flinders,IND,russell sarah,5189,98902,4034,1,1
+2022fed,Flynn,GRN,bambrick paul,4007,92311,3203,1,1
+2022fed,Flynn,IND,duncan scott,3745,92311,1953,1,1
+2022fed,Forde,GRN,hall jordan,9319,94612,7280,1,1
+2022fed,Forde,IND,christopher greaves,2973,94612,1677,1,1
+2022fed,Forrest,GRN,christine terrantroy,12780,95090,10462,1,1
+2022fed,Fowler,GRN,avery howard,4191.0,85903,3268.0,0,1
+2022fed,Fowler,IND,dai le,25346.0,85903,9164.0,0,1
+2022fed,Franklin,GRN,darko jade,12370,71259,11232,1,1
+2022fed,Fraser,GRN,bella mitchell sears,17078,92101,15249,1,1
+2022fed,Fremantle,GRN,felicity townsend,17790,98053,15904,1,1
+2022fed,Gellibrand,GRN,rodoreda suzette,15241,92197,12449,1,1
+2022fed,Gilmore,GRN,carmel mccallum,11417,111705,10048,1,1
+2022fed,Gilmore,IND,digiglio nina,4721,111705,2478,1,1
+2022fed,Gippsland,GRN,marjorie thorpe,8545,100906,6696,1,1
+2022fed,Goldstein,GRN,alana galli mcrostie,7683.0,98087,6226.0,0,1
+2022fed,Goldstein,IND,daniel zoe,33815.0,98087,25845.0,0,1
+2022fed,Gorton,GRN,morris praise,8325,92434,6907,1,1
+2022fed,Gorton,IND,j loncar steven,2341,92434,1226,1,1
+2022fed,Grayndler,GRN,jacobs rachael,20846.0,94573,19422.0,0,1
+2022fed,Grayndler,IND,kilham sarina,1973.0,94573,1385.0,0,1
+2022fed,Greenway,GRN,atkins damien,7086,100539,5960,1,1
+2022fed,Greenway,IND,bosi guerrino riccardo umberto,3272,100539,1640,1,1
+2022fed,Greenway,IND,love nanda preet singh,1615,100539,882,1,1
+2022fed,Grey,GRN,tim white,6994,103118,5473,1,1
+2022fed,Grey,IND,carmody richard,1332,103118,768,1,1
+2022fed,Grey,IND,habermann liz,11613,103118,6630,1,1
+2022fed,Griffith,GRN,chandler mather max,36771.0,106310,32114.0,0,1
+2022fed,Groom,GRN,berry mickey,5616.0,96004,4212.0,0,1
+2022fed,Groom,IND,holt suzie,7932.0,96004,4345.0,0,1
+2022fed,Groom,IND,kirstie smolenski,6858.0,96004,3547.0,0,1
+2022fed,Hasluck,GRN,brendan sturcke,10826,98513,9007,1,1
+2022fed,Hasluck,IND,jeanene williams,3318,98513,1886,1,1
+2022fed,Hawke,GRN,lynda wheelock,7785,87184,6617,1,1
+2022fed,Hawke,IND,bingham james jarrod,6908,87184,3342,1,1
+2022fed,Herbert,GRN,humphreys scott,7596,92440,6265,1,1
+2022fed,Herbert,IND,clare steven,942,92440,422,1,1
+2022fed,Herbert,IND,angela egan,2983,92440,1903,1,1
+2022fed,Higgins,GRN,semmens sonya,21632,95511,19326,1,1
+2022fed,Hindmarsh,GRN,o patrick sullivan,15310,110343,12631,1,1
+2022fed,Hinkler,GRN,andrew mclean,5562,101406,4419,1,1
+2022fed,Hinkler,IND,dempsey jack,13236,101406,6803,1,1
+2022fed,Holt,GRN,mathew sujit,7583,88896,6156,1,1
+2022fed,Holt,IND,ragupathy ravi,2673,88896,1756,1,1
+2022fed,Hotham,GRN,louisa willoughby,12408,100202,10948,1,1
+2022fed,Hughes,GRN,pete thompson,6118,96909,5090,1,1
+2022fed,Hughes,IND,linda seymour,3138,96909,1922,1,1
+2022fed,Hughes,IND,georgia steele,13891,96909,9659,1,1
+2022fed,Hume,GRN,karen stewart,5194,104762,4241,1,1
+2022fed,Hume,IND,ackery penny,16045,104762,11982,1,1
+2022fed,Hume,IND,dona meneripitiyage sheneli,1124,104762,755,1,1
+2022fed,Hunter,GRN,janet murray,9562,107727,7926,1,1
+2022fed,Hunter,IND,bonds stuart,6126,107727,2014,1,1
+2022fed,Hunter,IND,fulvio laruffa scott,1929,107727,698,1,1
+2022fed,Indi,GRN,benjamin gilbert,3626.0,101564,3136.0,0,1
+2022fed,Indi,IND,haines helen,41319.0,101564,27852.0,0,1
+2022fed,Isaacs,GRN,alex breskin,12621,98184,11058,1,1
+2022fed,Jagajaga,GRN,chase liz,16855,101243,15653,1,1
+2022fed,Jagajaga,IND,mustaf zahra,3150,101243,2296,1,1
+2022fed,Kennedy,GRN,cox jennifer,6013.0,93604,4753.0,0,1
+2022fed,Kennedy,IND,jen sackley,2981.0,93604,1449.0,0,1
+2022fed,Kingsford Smith,GRN,davis stuart,16401,97466,13978,1,1
+2022fed,Kingston,GRN,john photakis,13603,109362,11962,1,1
+2022fed,Kingston,IND,de jonge rob,2963,109362,1949,1,1
+2022fed,Kooyong,GRN,mitchem piers,6461.0,102517,5393.0,0,1
+2022fed,Kooyong,IND,anderson will,265.0,102517,123.0,0,1
+2022fed,Kooyong,IND,monique ryan,41303.0,102517,33239.0,0,1
+2022fed,La Trobe,GRN,michael schilling,9980,91672,8209,1,1
+2022fed,Lalor,GRN,boddeke jack,9192,88522,7554,1,1
+2022fed,Lalor,IND,aijaz moinuddin,2535,88522,1833,1,1
+2022fed,Leichhardt,GRN,musumeci phillip,9143,91707,7598,1,1
+2022fed,Lilley,GRN,melissa stevens,16916,99007,14749,1,1
+2022fed,Lindsay,GRN,morssink pieter,8404,104726,6816,1,1
+2022fed,Lingiari,GRN,blair mcfarland,5018,45812,3845,1,1
+2022fed,Lingiari,IND,adamson agars imelda,409,45812,209,1,1
+2022fed,Lingiari,IND,gravener michael setford,948,45812,505,1,1
+2022fed,Longman,GRN,earl snijders,7814,108065,6431,1,1
+2022fed,Lyne,GRN,attenborough karl,8422,107248,6673,1,1
+2022fed,Lyne,IND,attkins steve,5574,107248,2530,1,1
+2022fed,Lyne,IND,joanne pearce,3820,107248,1622,1,1
+2022fed,Lyons,GRN,johnstone liz,8382,73338,7299,1,1
+2022fed,Macarthur,GRN,jayden rivera,8584,111127,6216,1,1
+2022fed,Mackellar,GRN,ethan hrnjak,6032.0,98991,4694.0,0,1
+2022fed,Mackellar,IND,scamps sophie,37724.0,98991,25820.0,0,1
+2022fed,Macnamara,GRN,hodgins may steph,27587,93031,24898,1,1
+2022fed,Macnamara,IND,b john myers,1835,93031,851,1,1
+2022fed,Macquarie,GRN,hickey tony,9115,95452,8403,1,1
+2022fed,Makin,GRN,emma mustaca,12317,107642,10243,1,1
+2022fed,Mallee,GRN,mccoll sam,5463,102229,4092,1,1
+2022fed,Mallee,IND,baldwin sophie,10256,102229,4815,1,1
+2022fed,Mallee,IND,claudia haenel,2196,102229,1014,1,1
+2022fed,Maranoa,GRN,ellisa parker,4533,93115,3545,1,1
+2022fed,Maribyrnong,GRN,pryor rhonda,15278,93968,13796,1,1
+2022fed,Mayo,GRN,elliott greg,13705.0,116214,11947.0,0,1
+2022fed,McEwen,GRN,barker neil,13524,95719,11269,1,1
+2022fed,McMahon,GRN,astrid neill o,4922,84742,3988,1,1
+2022fed,McPherson,GRN,scott turner,14971,97083,11910,1,1
+2022fed,Melbourne,GRN,adam bandt,47883.0,96506,45012.0,0,1
+2022fed,Melbourne,IND,robson scott,1094.0,96506,609.0,0,1
+2022fed,Menzies,GRN,bill pheasant,14289,101019,12374,1,1
+2022fed,Mitchell,GRN,cox matt,12796,108193,10472,1,1
+2022fed,Monash,GRN,mat morgan,9533,96712,7837,1,1
+2022fed,Monash,IND,deb leonard,10372,96712,7292,1,1
+2022fed,Moncrieff,GRN,april broadbent,11850,98178,9504,1,1
+2022fed,Moore,GRN,cooper mark,14902,104531,12359,1,1
+2022fed,Moreton,GRN,claire garton,19250,92556,16975,1,1
+2022fed,New England,GRN,carol sparks,7524,97272,6423,1,1
+2022fed,New England,IND,ledger natasha,2708,97272,1613,1,1
+2022fed,New England,IND,matt sharpham,7659,97272,3502,1,1
+2022fed,Newcastle,GRN,charlotte mccabe,21195,105627,19278,1,1
+2022fed,Nicholls,GRN,christoe ian,3058.0,95191,2320.0,0,1
+2022fed,Nicholls,IND,priestly rob,24287.0,95191,12153.0,0,1
+2022fed,North Sydney,GRN,armstrong heather,8308.0,97118,7042.0,0,1
+2022fed,North Sydney,IND,jane kylea tink,24477.0,97118,17072.0,0,1
+2022fed,O'Connor,GRN,giz watson,10284,96718,8429,1,1
+2022fed,Oxley,GRN,asha worsteling,13595,95412,11185,1,1
+2022fed,Page,GRN,kashmir miller,8863,104569,7520,1,1
+2022fed,Page,IND,hanabeth luke,13734,104569,9091,1,1
+2022fed,Parkes,GRN,frail trish,4214,89080,3032,1,1
+2022fed,Parkes,IND,howe stuart,2191,89080,1073,1,1
+2022fed,Parramatta,GRN,bradley phil,7546,84265,6471,1,1
+2022fed,Parramatta,IND,christou steve,2982,84265,1477,1,1
+2022fed,Paterson,GRN,ihlein louise,8677,114885,7386,1,1
+2022fed,Pearce,GRN,donna nelson,10416,94916,8621,1,1
+2022fed,Perth,GRN,caroline perks,22621,102081,20451,1,1
+2022fed,Petrie,GRN,simon will,12169,106513,9909,1,1
+2022fed,Rankin,GRN,cotter neil,9394,87822,7476,1,1
+2022fed,Reid,GRN,charles jago,9184,97976,8020,1,1
+2022fed,Reid,IND,baini natalie,2994,97976,1744,1,1
+2022fed,Richmond,GRN,mandy nolan,25216,99784,22218,1,1
+2022fed,Richmond,IND,jones nathan,1974,99784,971,1,1
+2022fed,Richmond,IND,patrick sharples terry,1274,99784,705,1,1
+2022fed,Richmond,IND,david warth,2341,99784,959,1,1
+2022fed,Riverina,GRN,michael organ,6349,98664,4888,1,1
+2022fed,Riverina,IND,ciavarella darren,2701,98664,1429,1,1
+2022fed,Robertson,GRN,mcgrath shelly,9642,96210,8384,1,1
+2022fed,Ryan,GRN,brown elizabeth watson,30003.0,99316,26448.0,0,1
+2022fed,Scullin,GRN,patchouli paterson,9953,91122,8486,1,1
+2022fed,Shortland,GRN,grierson kim,9910,100299,8542,1,1
+2022fed,Shortland,IND,basil paynter,2554,100299,1422,1,1
+2022fed,Solomon,GRN,aiya carttling goodrich,8164,55125,6946,1,1
+2022fed,Spence,GRN,david deex,12052,106227,9716,1,1
+2022fed,Sturt,GRN,katie mccusker,18454,112610,16215,1,1
+2022fed,Swan,GRN,clint uink,14861,100036,13058,1,1
+2022fed,Sydney,GRN,chetan sahai,23732.0,103125,21892.0,0,1
+2022fed,Tangney,GRN,abdul adam razak,12876,107548,11094,1,1
+2022fed,Wannon,GRN,hilary mcallister,6444.0,101101,5356.0,0,1
+2022fed,Wannon,IND,alex dyson,19504.0,101101,12909.0,0,1
+2022fed,Wannon,IND,garner graham,2346.0,101101,992.0,0,1
+2022fed,Warringah,GRN,glanville kristyn,6910.0,93334,5672.0,0,1
+2022fed,Warringah,IND,steggall zali,41832.0,93334,30000.0,0,1
+2022fed,Watson,GRN,bradley schott,8200,85727,7062,1,1
+2022fed,Wentworth,GRN,dominic kanak wy,7410.0,88923,6307.0,0,1
+2022fed,Wentworth,IND,allegra spender,31810.0,88923,22082.0,0,1
+2022fed,Werriwa,GRN,apurva shukla,6772,100631,5339,1,1
+2022fed,Whitlam,GRN,dixon jamie,11779,109337,9610,1,1
+2022fed,Wide Bay,GRN,armstrong craig,9088,95703,7399,1,1
+2022fed,Wide Bay,IND,jacobi kelli,4106,95703,1896,1,1
+2022fed,Wide Bay,IND,jerome tim,2737,95703,1445,1,1
+2022fed,Wills,GRN,jefford sarah,25793.0,91198,24419.0,0,1
+2022fed,Wright,GRN,nicole thompson,12107,105933,9622,1,1
+2025fed,Adelaide,GRN,mat monti,21642.0,114089,20083.0,1,1
+2025fed,Aston,GRN,reuben steen,12669.0,109849,11522.0,1,1
+2025fed,Aston,IND,grondman mark,2439.0,109849,1827.0,1,1
+2025fed,Aston,IND,andrew williams,2104.0,109849,1287.0,1,1
+2025fed,Ballarat,GRN,barnes john,14984.0,104540,13686.0,1,1
+2025fed,Ballarat,IND,luke parker,2934.0,104540,1666.0,1,1
+2025fed,Banks,GRN,hanna natalie,11756.0,98935,10495.0,1,1
+2025fed,Banks,IND,coyne john,1995.0,98935,1340.0,1,1
+2025fed,Barker,GRN,major moogy sumner,8866.0,108714,7264.0,1,1
+2025fed,Barker,IND,hillam rosa,1891.0,108714,1136.0,1,1
+2025fed,Barker,IND,ian penno,1516.0,108714,748.0,1,1
+2025fed,Barker,IND,cody scholes,2963.0,108714,1781.0,1,1
+2025fed,Barton,GRN,bahsa manal,15885.0,99951,14033.0,1,1
+2025fed,Bass,GRN,charlene mclennan,9229.0,71594,8248.0,1,1
+2025fed,Bass,IND,george razay,3852.0,71594,2186.0,1,1
+2025fed,Bean,GRN,carter sam,9757.0,102700,8932.0,0,1
+2025fed,Bean,IND,jessie price,27120.0,102700,20071.0,0,1
+2025fed,Bendigo,GRN,avery barnett dacey,12079.0,106617,11029.0,1,1
+2025fed,Bendigo,IND,david vincent,1121.0,106617,572.0,1,1
+2025fed,Bennelong,GRN,adam hart,12931.0,109812,11749.0,1,1
+2025fed,Berowra,GRN,cousins martin,13781.0,115568,12196.0,1,1
+2025fed,Berowra,IND,brown tina,13135.0,115568,9686.0,1,1
+2025fed,Berowra,IND,roger woodward,1236.0,115568,630.0,1,1
+2025fed,Blair,GRN,paul toner,12104.0,116953,10669.0,1,1
+2025fed,Blaxland,GRN,omar sakr,6854.0,86886,5995.0,1,1
+2025fed,Blaxland,IND,ahmed ouf,16302.0,86886,14265.0,1,1
+2025fed,Bonner,GRN,li wen,12314.0,99106,11152.0,1,1
+2025fed,Boothby,GRN,joanna wells,20046.0,117339,18368.0,1,1
+2025fed,Bowman,GRN,kristie lockhart,12689.0,107987,10771.0,1,1
+2025fed,Bowman,IND,holloway shaun,3375.0,107987,2106.0,1,1
+2025fed,Braddon,GRN,erin morrow,6318.0,74840,5688.0,1,1
+2025fed,Braddon,IND,adam martin,6174.0,74840,3884.0,1,1
+2025fed,Brand,GRN,freeman jody,12412.0,93793,10814.0,1,1
+2025fed,Brisbane,GRN,bates stephen,28663.0,110745,26739.0,1,1
+2025fed,Bruce,GRN,garad rhonda,13213.0,109494,12042.0,1,1
+2025fed,Bullwinkel,GRN,abbey bishop,11728.0,104664,10424.0,1,1
+2025fed,Burt,GRN,abdul adam razak,11336.0,98691,9835.0,1,1
+2025fed,Burt,IND,ashok kumar tewatia,2150.0,98691,1332.0,1,1
+2025fed,Calare,GRN,ben parker,3753.0,106267,3018.0,0,1
+2025fed,Calare,IND,andrew gee,25172.0,106267,8961.0,0,1
+2025fed,Calare,IND,hook kate,16756.0,106267,11227.0,0,1
+2025fed,Calwell,GRN,garcha kaur ravneet,7439.0,89831,6453.0,0,1
+2025fed,Calwell,IND,carly moore,10735.0,89831,6197.0,0,1
+2025fed,Calwell,IND,moslih samim,6155.0,89831,5545.0,0,1
+2025fed,Calwell,IND,ragupathy ravi,501.0,89831,273.0,0,1
+2025fed,Calwell,IND,joseph youhana,9628.0,89831,4379.0,0,1
+2025fed,Canberra,GRN,isabel mudford,18504.0,93405,17655.0,0,1
+2025fed,Canberra,IND,claire miles,10187.0,93405,7250.0,0,1
+2025fed,Canning,GRN,cahill jordan,8967.0,100647,7382.0,1,1
+2025fed,Capricornia,GRN,jones mick,6101.0,98658,4895.0,1,1
+2025fed,Casey,GRN,blair merran,12107.0,110563,11023.0,1,1
+2025fed,Casey,IND,claire ferres miles,11590.0,110563,9266.0,1,1
+2025fed,Chifley,GRN,pal singh sukhjinder,8724.0,89414,7485.0,1,1
+2025fed,Chifley,IND,burns leigh,1519.0,89414,928.0,1,1
+2025fed,Chisholm,GRN,randall tim,14086.0,112696,12512.0,1,1
+2025fed,Chisholm,IND,davies kath,6685.0,112696,5103.0,1,1
+2025fed,Clark,GRN,janet shelley,8908.0,67531,8006.0,0,1
+2025fed,Clark,IND,andrew wilkie,33011.0,67531,25380.0,0,1
+2025fed,Cook,GRN,martin moore,10575.0,106364,9150.0,1,1
+2025fed,Cooper,GRN,burnett tara,27123.0,107586,25966.0,0,1
+2025fed,Corangamite,GRN,mitch pope,14925.0,104020,13792.0,1,1
+2025fed,Corangamite,IND,kate lockhart,4565.0,104020,3579.0,1,1
+2025fed,Corio,GRN,emilie flynn,17491.0,110227,15339.0,1,1
+2025fed,Corio,IND,de john lorenzo,3930.0,110227,1922.0,1,1
+2025fed,Cowan,GRN,count matthew,10367.0,96141,9056.0,1,1
+2025fed,Cowan,IND,mcdonald wade,3417.0,96141,1875.0,1,1
+2025fed,Cowper,GRN,firefly wendy,4552.0,107735,3671.0,0,1
+2025fed,Cowper,IND,daley zeke,892.0,107735,465.0,0,1
+2025fed,Cowper,IND,caz heise,31616.0,107735,22477.0,0,1
+2025fed,Cunningham,GRN,jess whittaker,23584.0,115474,21127.0,1,1
+2025fed,Curtin,GRN,hemsley kitty,8235.0,105348,7334.0,0,1
+2025fed,Curtin,IND,chaney kate,33952.0,105348,25638.0,0,1
+2025fed,Dawson,GRN,creen paula,6944.0,98468,5517.0,1,1
+2025fed,Deakin,GRN,amy mills,13758.0,115507,12446.0,1,1
+2025fed,Deakin,IND,jess ness,8253.0,115507,6499.0,1,1
+2025fed,Dickson,GRN,batten vinnie,8061.0,105579,7573.0,1,1
+2025fed,Dickson,IND,ellie smith,12874.0,105579,10560.0,1,1
+2025fed,Dobell,GRN,cooper george simon,10647.0,103427,8993.0,1,1
+2025fed,Dunkley,GRN,maber matt,12649.0,109174,11663.0,1,1
+2025fed,Dunkley,IND,robert thurley,3230.0,109174,1865.0,1,1
+2025fed,Durack,GRN,brendan sturcke,7196.0,87962,5927.0,1,1
+2025fed,Eden-Monaro,GRN,emma goward,10739.0,107088,9907.0,1,1
+2025fed,Eden-Monaro,IND,brian fisher,1701.0,107088,1073.0,1,1
+2025fed,Eden-Monaro,IND,andrew evan thaler,2499.0,107088,1026.0,1,1
+2025fed,Fadden,GRN,andrew stimson,10359.0,111398,8660.0,1,1
+2025fed,Fadden,IND,brooker stewart,3124.0,111398,2089.0,1,1
+2025fed,Fairfax,GRN,etheridge sue,11351.0,111048,9775.0,1,1
+2025fed,Fairfax,IND,mckeown paul,1819.0,111048,862.0,1,1
+2025fed,Fairfax,IND,francine wiig,13085.0,111048,9515.0,1,1
+2025fed,Farrer,GRN,august hendrie richard,5085.0,103063,4245.0,0,1
+2025fed,Farrer,IND,michelle milthorpe,20567.0,103063,13135.0,0,1
+2025fed,Fenner,GRN,dani hunterford,15492.0,94460,14270.0,1,1
+2025fed,Fisher,GRN,renay wells,11396.0,118472,9473.0,1,1
+2025fed,Fisher,IND,jones keryn,19296.0,118472,11867.0,1,1
+2025fed,Flinders,GRN,adam frogley,7305.0,114923,6400.0,0,1
+2025fed,Flinders,IND,ben smith,24406.0,114923,17476.0,0,1
+2025fed,Flinders,IND,joseph toscano,980.0,114923,561.0,0,1
+2025fed,Flynn,GRN,bambrick paul,5547.0,97543,4451.0,1,1
+2025fed,Flynn,IND,anderson john,3130.0,97543,1941.0,1,1
+2025fed,Flynn,IND,duncan scott,1741.0,97543,918.0,1,1
+2025fed,Forde,GRN,kirsty petersen,12280.0,107528,10223.0,1,1
+2025fed,Forde,IND,chris greaves,3186.0,107528,1812.0,1,1
+2025fed,Forrest,GRN,beardman georgia,7840.0,99457,6699.0,1,1
+2025fed,Forrest,IND,chapman sue,18206.0,99457,12779.0,1,1
+2025fed,Fowler,GRN,avery howard jacob,6288.0,92938,5466.0,0,1
+2025fed,Fowler,IND,dai le,31108.0,92938,18117.0,0,1
+2025fed,Franklin,GRN,fitzgerald owen,8016.0,76462,7258.0,0,1
+2025fed,Franklin,IND,blomeley brendan,3822.0,76462,1794.0,0,1
+2025fed,Franklin,IND,george peter,16586.0,76462,13088.0,0,1
+2025fed,Fraser,GRN,huong truong,27171.0,107467,22711.0,0,1
+2025fed,Fremantle,GRN,amy warne,11802.0,102130,10719.0,0,1
+2025fed,Fremantle,IND,hulett kate,23500.0,102130,17177.0,0,1
+2025fed,Gellibrand,GRN,krishna pandi ponraj,17933.0,105202,15788.0,1,1
+2025fed,Gilmore,GRN,debbie killian,7932.0,111053,7299.0,1,1
+2025fed,Gilmore,IND,dezarnaulds kate,8371.0,111053,6339.0,1,1
+2025fed,Gippsland,GRN,hine rochelle,8897.0,104758,7039.0,1,1
+2025fed,Goldstein,GRN,alana galli mcrostie,8320.0,115673,7382.0,0,1
+2025fed,Goldstein,IND,daniel zoe,35533.0,115673,28652.0,0,1
+2025fed,Gorton,GRN,bao huynh thuc,12244.0,113430,10198.0,1,1
+2025fed,Grayndler,GRN,hannah thomas,27847.0,110878,26736.0,0,1
+2025fed,Grayndler,IND,bradbury david,2566.0,110878,1730.0,0,1
+2025fed,Greenway,GRN,palaniappan subramanian,11018.0,102755,9432.0,1,1
+2025fed,Greenway,IND,robert stuckey,2711.0,102755,1252.0,1,1
+2025fed,Grey,GRN,franco hardwick kathryn,6323.0,106881,5142.0,1,1
+2025fed,Grey,IND,anita kuss,18745.0,106881,11359.0,1,1
+2025fed,Griffith,GRN,chandler mather max,34570.0,109212,32083.0,0,1
+2025fed,Groom,GRN,alyce nelligan,5757.0,103219,4642.0,0,1
+2025fed,Groom,IND,holt suzie,17694.0,103219,10634.0,0,1
+2025fed,Groom,IND,kirstie smolenski,3701.0,103219,2034.0,0,1
+2025fed,Hasluck,GRN,matson tamica,11912.0,95551,10478.0,1,1
+2025fed,Hawke,GRN,newman sarah,10178.0,103817,9142.0,1,1
+2025fed,Herbert,GRN,chris evans,9228.0,98362,7708.0,1,1
+2025fed,Hindmarsh,GRN,matthew wright,15246.0,112471,13865.0,1,1
+2025fed,Hindmarsh,IND,evans hall jake,1786.0,112471,1034.0,1,1
+2025fed,Hinkler,GRN,andrew mclean,8000.0,109370,5522.0,1,1
+2025fed,Hinkler,IND,brien michael o,3201.0,109370,1635.0,1,1
+2025fed,Holt,GRN,payal tiwari,11122.0,99233,9959.0,1,1
+2025fed,Hotham,GRN,barry martin,15780.0,106211,14488.0,1,1
+2025fed,Hughes,GRN,catherine dyson elizabeth,11221.0,98295,9918.0,1,1
+2025fed,Hume,GRN,bruce steve,8455.0,99467,7087.0,1,1
+2025fed,Hume,IND,mclean peter,4435.0,99467,2829.0,1,1
+2025fed,Hunter,GRN,louise stokes,8286.0,111672,6872.0,0,1
+2025fed,Indi,GRN,alysia regan,3839.0,105761,3078.0,0,1
+2025fed,Indi,IND,haines helen,44723.0,105761,29864.0,0,1
+2025fed,Indi,IND,mark mcfarlane,1520.0,105761,461.0,0,1
+2025fed,Isaacs,GRN,kirwan matthew,15200.0,108181,13507.0,1,1
+2025fed,Jagajaga,GRN,jy sandford,17334.0,111099,16269.0,1,1
+2025fed,Jagajaga,IND,chris kearney,5167.0,111099,3866.0,1,1
+2025fed,Jagajaga,IND,abdi mohamed,1518.0,111099,702.0,1,1
+2025fed,Kennedy,GRN,carole stanford,5761.0,97162,4741.0,0,1
+2025fed,Kennedy,IND,clare steven,1625.0,97162,863.0,0,1
+2025fed,Kingsford Smith,GRN,brown keiron,13440.0,99132,12196.0,1,1
+2025fed,Kingsford Smith,IND,elsa parker,3557.0,99132,2290.0,1,1
+2025fed,Kingston,GRN,john photakis,15149.0,112695,13697.0,1,1
+2025fed,Kooyong,GRN,carter jackie,8900.0,114868,7836.0,0,1
+2025fed,Kooyong,IND,monique ryan,38955.0,114868,32463.0,0,1
+2025fed,La Trobe,GRN,jamie longmuir,13386.0,103618,11209.0,1,1
+2025fed,Lalor,GRN,owen parris,15181.0,99284,13233.0,1,1
+2025fed,Lalor,IND,aijaz moinuddin,2101.0,99284,1358.0,1,1
+2025fed,Leichhardt,GRN,musumeci phillip,8776.0,94480,7864.0,1,1
+2025fed,Leichhardt,IND,miller norman,1659.0,94480,930.0,1,1
+2025fed,Lilley,GRN,melissa stevens,17294.0,105440,15989.0,1,1
+2025fed,Lindsay,GRN,aaron david mcallister,9416.0,98146,8065.0,1,1
+2025fed,Lindsay,IND,jim saleam,1099.0,98146,592.0,1,1
+2025fed,Lingiari,GRN,blair mcfarland,4646.0,45632,3918.0,1,1
+2025fed,Longman,GRN,gabrielle unverzagt,12014.0,121929,10077.0,1,1
+2025fed,Lyne,GRN,ferrier tom,6977.0,109350,5820.0,1,1
+2025fed,Lyne,IND,jeremy miller,16943.0,109350,10144.0,1,1
+2025fed,Lyons,GRN,alistair allan,8362.0,76832,7458.0,1,1
+2025fed,Lyons,IND,angela offord,2462.0,76832,1624.0,1,1
+2025fed,Macarthur,GRN,frankie scott,12012.0,93536,10509.0,1,1
+2025fed,Mackellar,GRN,ethan hrnjak,6858.0,111847,5644.0,0,1
+2025fed,Mackellar,IND,cotton lisa,2297.0,111847,778.0,0,1
+2025fed,Mackellar,IND,scamps sophie,42482.0,111847,30495.0,0,1
+2025fed,Mackellar,IND,mandeep singh,702.0,111847,294.0,0,1
+2025fed,Macnamara,GRN,semmens sonya,25561.0,100338,23871.0,1,1
+2025fed,Macnamara,IND,jb myers,1841.0,100338,1002.0,1,1
+2025fed,Macquarie,GRN,morgan terry,13666.0,109705,12649.0,1,1
+2025fed,Makin,GRN,moore samuel,13134.0,106148,11223.0,1,1
+2025fed,Mallee,GRN,nicole rowan,9477.0,103707,6443.0,1,1
+2025fed,Maranoa,GRN,elizabeth johnston,5032.0,97687,3833.0,0,1
+2025fed,Maribyrnong,GRN,james williams,23594.0,111197,21638.0,1,1
+2025fed,Mayo,GRN,dawson genevieve scott,17048.0,125182,15207.0,0,1
+2025fed,McEwen,GRN,marley mcleod mcrae,11611.0,104616,10508.0,1,1
+2025fed,McMahon,GRN,ben hammond,8923.0,97835,7589.0,1,1
+2025fed,McMahon,IND,camenzuli matthew,9613.0,97835,3226.0,1,1
+2025fed,McPherson,GRN,amanda kennealy,8175.0,97215,7066.0,1,1
+2025fed,McPherson,IND,faye michelle,1221.0,97215,571.0,1,1
+2025fed,McPherson,IND,bartlett erchana murray,13366.0,97215,8489.0,1,1
+2025fed,Melbourne,GRN,adam bandt,38457.0,97448,36650.0,0,1
+2025fed,Melbourne,IND,anthony koutoufides,3204.0,97448,1670.0,0,1
+2025fed,Melbourne,IND,smith tim,1615.0,97448,920.0,0,1
+2025fed,Menzies,GRN,bill pheasant,11998.0,109430,10653.0,1,1
+2025fed,Menzies,IND,stella yee,6966.0,109430,5256.0,1,1
+2025fed,Mitchell,GRN,ben speechly,15044.0,109553,12292.0,1,1
+2025fed,Monash,GRN,steele terence,5062.0,102520,4529.0,1,1
+2025fed,Monash,IND,broadbent russell,10450.0,102520,2777.0,1,1
+2025fed,Monash,IND,deb leonard,17529.0,102520,13140.0,1,1
+2025fed,Moncrieff,GRN,sally spain,9558.0,100326,7738.0,1,1
+2025fed,Moncrieff,IND,arrowsmith nicole,7641.0,100326,4099.0,1,1
+2025fed,Moncrieff,IND,ali waddah weld,1393.0,100326,882.0,1,1
+2025fed,Moore,GRN,mccarthy scott,11877.0,106837,10549.0,1,1
+2025fed,Moore,IND,barton nathan,6762.0,106837,4328.0,1,1
+2025fed,Moreton,GRN,naji remah,20332.0,93831,18751.0,1,1
+2025fed,New England,GRN,wales wendy,9023.0,114346,7283.0,1,1
+2025fed,New England,IND,ledger natasha,4240.0,114346,2441.0,1,1
+2025fed,Newcastle,GRN,charlotte mccabe,24061.0,108266,21757.0,0,1
+2025fed,Nicholls,GRN,eade shelby,8235.0,105450,6257.0,1,1
+2025fed,O'Connor,GRN,giz watson,10014.0,100115,8289.0,1,1
+2025fed,Oxley,GRN,brandan holt,13979.0,104062,12155.0,1,1
+2025fed,Page,GRN,luke robinson,16265.0,107594,13978.0,1,1
+2025fed,Page,IND,colless jordan,1431.0,107594,916.0,1,1
+2025fed,Page,IND,richard wells,2260.0,107594,1458.0,1,1
+2025fed,Parkes,GRN,frail trish,6404.0,104887,4951.0,1,1
+2025fed,Parkes,IND,howe stuart,2597.0,104887,1076.0,1,1
+2025fed,Parramatta,GRN,liz tilly,11766.0,97190,10516.0,1,1
+2025fed,Parramatta,IND,maa malini,1018.0,97190,655.0,1,1
+2025fed,Parramatta,IND,lee quinn tanya,1499.0,97190,943.0,1,1
+2025fed,Paterson,GRN,johns paul,8219.0,108704,7415.0,1,1
+2025fed,Paterson,IND,holding rod,1360.0,108704,925.0,1,1
+2025fed,Paterson,IND,penfold philip,10565.0,108704,5865.0,1,1
+2025fed,Paterson,IND,april maree scott,1220.0,108704,875.0,1,1
+2025fed,Pearce,GRN,alonzo d nicholas,11640.0,98093,9416.0,1,1
+2025fed,Perth,GRN,greer sophie,24467.0,99756,22064.0,1,1
+2025fed,Petrie,GRN,nikil paul,13802.0,116792,11791.0,1,1
+2025fed,Rankin,GRN,joshua riethmuller,10032.0,91669,8514.0,1,1
+2025fed,Reid,GRN,joanna somerville,11680.0,101217,10122.0,1,1
+2025fed,Reid,IND,commerford steven,3098.0,101217,2202.0,1,1
+2025fed,Richmond,GRN,mandy nolan,27783.0,104952,24971.0,1,1
+2025fed,Richmond,IND,kevin loughrey,1754.0,104952,467.0,1,1
+2025fed,Richmond,IND,ian james mckenzie,977.0,104952,420.0,1,1
+2025fed,Riverina,GRN,pheonix valxori,4767.0,105837,3853.0,1,1
+2025fed,Riverina,IND,baikie barbara,1858.0,105837,1243.0,1,1
+2025fed,Riverina,IND,davis jake,1812.0,105837,686.0,1,1
+2025fed,Riverina,IND,gooden james,5080.0,105837,1701.0,1,1
+2025fed,Riverina,IND,grant hardwick,1861.0,105837,835.0,1,1
+2025fed,Riverina,IND,jenny rolfe,6909.0,105837,4412.0,1,1
+2025fed,Robertson,GRN,cheryl wallace,9119.0,101463,8183.0,1,1
+2025fed,Robertson,IND,bellamy lisa,3376.0,101463,2234.0,1,1
+2025fed,Ryan,GRN,brown elizabeth watson,29986.0,103462,27823.0,0,1
+2025fed,Scullin,GRN,loki sangarya,9090.0,96545,7739.0,1,1
+2025fed,Shortland,GRN,doyle therese,12257.0,108108,10457.0,1,1
+2025fed,Shortland,IND,james pheils,4805.0,108108,3095.0,1,1
+2025fed,Solomon,GRN,jonathan parry,6167.0,60130,4862.0,1,1
+2025fed,Solomon,IND,davies janey,693.0,60130,323.0,1,1
+2025fed,Solomon,IND,phil scott,7501.0,60130,5060.0,1,1
+2025fed,Spence,GRN,luke skinner,16166.0,111582,12488.0,1,1
+2025fed,Spence,IND,hanton kym,2749.0,111582,1607.0,1,1
+2025fed,Sturt,GRN,katie mccusker,18295.0,117137,16430.0,1,1
+2025fed,Sturt,IND,cooper verity,8413.0,117137,6081.0,1,1
+2025fed,Swan,GRN,clint uink,17186.0,98280,15622.0,1,1
+2025fed,Sydney,GRN,luc velez,23162.0,107249,21640.0,0,1
+2025fed,Tangney,GRN,eric hayward,14410.0,110991,12153.0,1,1
+2025fed,Wannon,GRN,gazzard kate,3427.0,108403,2805.0,0,1
+2025fed,Wannon,IND,atkinson bernadine,794.0,108403,427.0,0,1
+2025fed,Wannon,IND,alex dyson,34012.0,108403,24215.0,0,1
+2025fed,Warringah,GRN,bonnie harvey,10051.0,114895,8912.0,0,1
+2025fed,Warringah,IND,david michael spratt,1171.0,114895,503.0,0,1
+2025fed,Warringah,IND,steggall zali,45590.0,114895,35490.0,0,1
+2025fed,Watson,GRN,brewer jocelyn,7399.0,82834,6396.0,0,1
+2025fed,Watson,IND,basyouny ziad,12209.0,82834,9988.0,0,1
+2025fed,Watson,IND,khan zain,1055.0,82834,595.0,0,1
+2025fed,Wentworth,GRN,nick ward,11241.0,110431,10310.0,0,1
+2025fed,Wentworth,IND,michael richmond,1347.0,110431,544.0,0,1
+2025fed,Wentworth,IND,allegra spender,40284.0,110431,29779.0,0,1
+2025fed,Werriwa,GRN,castle janet rebecca,9747.0,87614,7314.0,1,1
+2025fed,Werriwa,IND,daoud jamal,2232.0,87614,1382.0,1,1
+2025fed,Whitlam,GRN,dixon jamie,13558.0,109316,10852.0,1,1
+2025fed,Whitlam,IND,ben britton,5246.0,109316,1965.0,1,1
+2025fed,Whitlam,IND,butterfield glenn,1905.0,109316,1057.0,1,1
+2025fed,Whitlam,IND,moylan paddy,2211.0,109316,1231.0,1,1
+2025fed,Wide Bay,GRN,buhse emma,9080.0,105058,7500.0,1,1
+2025fed,Wide Bay,IND,casey iddon,5090.0,105058,3129.0,1,1
+2025fed,Wills,GRN,ratnam samantha,38834.0,109781,37159.0,0,1
+2025fed,Wright,GRN,nicole thompson,11128.0,116880,9223.0,1,1
