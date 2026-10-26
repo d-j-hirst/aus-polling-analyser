@@ -465,6 +465,34 @@ void testHistoricalPreferenceReliability() {
     assert(oneWay && std::isfinite(oneWay->offset) && oneWay->preferenceVotes==1);
 }
 
+void testUnmatchedBoothFpProjection() {
+    using namespace LivePartialCount;
+    // A Baringa-sized FP-only booth. These illustrative flows give 3201 Labor
+    // TPP votes; even a very low surrounding forecast cannot remove its 2555
+    // counted Labor primaries or override the estimate when all FP is received.
+    Counts fp{{0,2555},{1,1998},{2,1067}};
+    Flows flows{{0,1},{1,0},{2,646.0/1067}};
+    double n=total(fp);
+    for (double context : {.01,.422464, .7,.99}) {
+        assert(std::abs(projectFpOnly(fp,flows,0,n,context)-3201) < 1e-9);
+        // Only 100 genuinely unreceived voters inherit the surrounding share.
+        assert(std::abs(projectFpOnly(fp,flows,0,n+100,context)-3201-100*context) < 1e-9);
+        // Preference scenarios retain both major-party primary lower bounds.
+        for (double offset : {-100.,-2.,0.,2.,100.}) {
+            double first=projectFpOnly(fp,flows,offset,n,context);
+            assert(first >= fp.at(0) && n-first >= fp.at(1));
+        }
+    }
+    // No FP gives the context alone; all-major FPs leave no preference pool.
+    assert(projectFpOnly({},flows,0,1000,.42) == 420);
+    assert(projectFpOnly({{0,60},{1,40}},flows,100,100,.01) == 60);
+    // With a separate National finalist, Liberal primary votes may transfer;
+    // the named finalists' own primaries remain fixed as in ordinary conversion.
+    Flows splitCoalition{{0,1},{1,.1},{7,0},{2,.8}};
+    Counts splitFp{{0,40},{1,20},{7,30},{2,10}};
+    assert(projectFpOnly(splitFp,splitCoalition,0,100,.01) == 50);
+}
+
 void testNewVoteComposition() {
     using namespace LiveNewVotes;
     using LivePartialCount::Counts;
@@ -833,8 +861,58 @@ void testFpPrecisionIntegration() {
     assert(renamed==strong);
 }
 
+void testRevisedTcpAccount() {
+    using namespace LivePartialCount;
+    // Currimundi's FP reallocated 300 primaries while TCP still described the
+    // preliminary batch. Only -1 ON and +2 Greens need estimated transfers.
+    TcpBasis basis{{{0,1122},{1,2862},{2,466},{4,299}},{{0,1557},{1,3192}},
+        {{2,{{0,362},{1,104}}},{4,{{0,73},{1,226}}}}};
+    Counts fp{{0,1422},{1,2562},{2,468},{4,298}};
+    Flows flows{{0,1},{1,0},{2,.8},{4,.25}};
+    assert(validBasis(basis));
+    assert(!reviseTcp(basis.fp,basis.tcp,basis,flows,0,0,1));
+    auto revised = reviseTcp(fp,basis.tcp,basis,flows,0,0,1);
+    assert(revised && revised->votes == 4750);
+    assert(std::abs(revised->first-(1857-73.0/299+2*362.0/466)) < 1e-9);
+    assert(revised->uncertainVotes() == 3);
+    auto bounds = revisedLowerBounds(fp,basis.tcp,basis);
+    assert(bounds.at(0) == 1856 && bounds.at(1) == 2891);
+    auto composition = LiveTurnoutMath::prepareUnitComposition(
+        {{0,float(revised->first)},{1,float(revised->votes-revised->first)}},bounds,revised->votes);
+    assert(std::abs(composition.base.at(0)-revised->first) < .001);
+    assert(std::abs(composition.base.at(0)+composition.base.at(1)-4750) < .001);
+    for (int count : {1,7,300}) {
+        auto changed = basis.fp;
+        changed[0] += count; changed[1] -= count;
+        auto exact = reviseTcp(changed,basis.tcp,basis,flows,0,0,1,3);
+        assert(exact && exact->first == 1557+count && exact->uncertainVotes() == 0);
+    }
+    auto removed = basis.fp; removed[2] = 0;
+    for (double draw : {-100.0,0.0,100.0}) {
+        auto r = reviseTcp(removed,basis.tcp,basis,flows,0,0,1,draw);
+        assert(r && r->first == 1557-362 && r->uncertainVotes() == 0);
+        auto varied = reviseTcp(fp,basis.tcp,basis,flows,0,0,1,draw);
+        assert(varied->first >= varied->lower && varied->first <= varied->upper);
+        assert(varied->first >= fp.at(0) && varied->votes-varied->first >= fp.at(1));
+    }
+    assert(!reviseTcp(fp,{{0,1850},{1,2900}},basis,flows,0,0,1)); // New TCP supersedes old.
+    auto malformed = basis; malformed.transfers[2][0]++;
+    assert(!validBasis(malformed));
+    auto generic = basis; generic.transfers.clear();
+    auto oldEvidence = measure(generic.fp,generic.tcp,flows,0,1);
+    assert(oldEvidence);
+    auto estimated = reviseTcp(fp,generic.tcp,generic,flows,oldEvidence->offset,0,1);
+    assert(estimated && estimated->first > 1856 && estimated->first < 1859);
+    auto added = basis.fp; added[0] += 500;
+    auto addition = reviseTcp(added,basis.tcp,basis,flows,0,0,1);
+    assert(addition && addition->first == 2057 && addition->uncertainVotes() == 0);
+    auto reverse = reviseTcp(fp,basis.tcp,basis,{{0,0},{1,1},{2,.2},{4,.75}},0,1,0);
+    assert(reverse && std::abs(reverse->first+revised->first-4750) < 1e-9);
+}
+
 int main()
 {
+    testRevisedTcpAccount();
     testJointTppIntegration();
     testTppCategorySensitivity();
 	testRawTppSwing();
@@ -848,6 +926,7 @@ int main()
     testFpDisagreementEndpoints();
     testCompetingFpEvidence();
     testNewVoteComposition();
+    testUnmatchedBoothFpProjection();
     // Fictional batches: earlier urban primaries favour the first finalist;
     // later rural primaries favour the second. Transfer only the measured
     // preference relationship, retaining each later candidate's own primaries.

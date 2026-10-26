@@ -71,19 +71,6 @@ std::vector<double> condition(std::vector<double> const& shares, std::vector<dou
     }
     return result;
 }
-// Divide a finite remaining vote total between booth and declaration additions.
-// Base is the original booth estimate, requested is its adjusted amount, and
-// declaration is the competing aggregate estimate. Shift the original booth
-// proportion smoothly in log odds: a larger request increases its allocation
-// while preserving a positive declaration remainder when both were possible.
-std::pair<double, double> reserve(double base, double requested, double declaration, double budget) {
-    double reference = base+declaration > 0 ? base/(base+declaration) : 0;
-    if (reference == 0) return {0, budget};
-    if (reference == 1) return {budget, 0};
-    double ratio = budget > 0 ? requested/budget/reference : 0;
-    double shifted = odds(reference)+std::log(ratio)/(1-reference);
-    return {budget*logistic(shifted), budget*logistic(-shifted)};
-}
 bool eav(Unit const& u) { return u.eav || u.name.rfind("EAV ", 0) == 0; }
 
 // Stable per-unit permutations provide a balanced quantile grid without tying
@@ -157,10 +144,10 @@ namespace {
 // This workspace is discarded after preparation; it is not snapshot history.
 struct CountUpdateWorkspace {
     Broad result;
-    Matrix adjustedExpected, originalExpected, ownAdditions, groupAdditions;
+    Matrix adjustedExpected, ownAdditions, groupAdditions;
     std::vector<std::vector<std::size_t>> unitsByGroup;
     std::vector<double> groupCounted;
-    std::vector<bool> boothOnlyGroups, openGroups, completeSeats;
+    std::vector<bool> hasBooths, openGroups, completeSeats;
 };
 
 // Validate measured units, classify their completion and assemble group lookup
@@ -179,12 +166,11 @@ CountUpdateWorkspace classifyCountUnits(Prior const& prior, std::vector<Unit> co
     result.complete.resize(units.size());
     result.compensation.assign(units.size(),0);
     work.adjustedExpected = zeros(samples,units.size());
-    work.originalExpected = zeros(samples,units.size());
     work.ownAdditions = zeros(samples,units.size());
     work.groupAdditions = zeros(samples,seats*groups);
     work.unitsByGroup.resize(seats*groups);
     work.groupCounted.resize(seats*groups);
-    work.boothOnlyGroups.assign(seats*groups,true);
+    work.hasBooths.resize(seats*groups);
     work.openGroups.resize(seats*groups);
     work.completeSeats = finalised;
     for (std::size_t j = 0; j < units.size(); ++j) {
@@ -198,10 +184,10 @@ CountUpdateWorkspace classifyCountUnits(Prior const& prior, std::vector<Unit> co
         result.counted[unit.seat] += unit.counted;
         result.complete[j] = unit.closed || unit.acceptedComplete.value_or(
             (unit.kind != "declaration" && unit.counted > 0) || finalised[unit.seat]);
-        work.boothOnlyGroups[group] = work.boothOnlyGroups[group] && unit.kind != "declaration";
+        work.hasBooths[group] = work.hasBooths[group] || unit.kind != "declaration";
         work.openGroups[group] = work.openGroups[group] || !result.complete[j];
         for (std::size_t r = 0; r < samples; ++r)
-            work.adjustedExpected[r][j] = work.originalExpected[r][j] = prior.counts[r][group]*unit.weight;
+            work.adjustedExpected[r][j] = prior.counts[r][group]*unit.weight;
     }
     return work;
 }
@@ -223,7 +209,9 @@ void requireCountedVotesBelowEnrolment(std::string const& district, double count
 
 // Resolve the formal-total parent first. A completed count is exactly its
 // measured total; otherwise condition the original total/enrolment distribution
-// above that lower bound. An empty configuration does not establish completion.
+// above that lower bound. This is a conditioning parent, not a required final
+// budget: the returned total is rebuilt from service accounts. An empty
+// configuration does not establish completion.
 void conditionDistrictTotals(Prior const& prior, CountUpdateWorkspace& work) {
     auto samples = prior.totals.size(), groups = prior.groups.size();
     auto& result = work.result;
@@ -303,8 +291,9 @@ void calculatePpvcCompensation(Prior const& prior, std::vector<Unit> const& unit
 }
 
 // Apply size changes on count/enrolment log odds, then condition an unfinished
-// unit's original count/formal-total share above its measured count. Retain this
-// own-unit estimate before allocating any aggregate group allowance.
+// unit's original count/formal-total share above its measured count. This
+// retains the established conditioning and correlations in the prior. The
+// resulting service size is not a weight for filling a district shortfall.
 void conditionUnitAdditions(Prior const& prior, std::vector<Unit> const& units,
     double ppvcFactor, CountUpdateWorkspace& work) {
     auto samples = prior.totals.size();
@@ -330,13 +319,15 @@ void conditionUnitAdditions(Prior const& prior, std::vector<Unit> const& units,
     }
 }
 
-// Historically combined groups retain their supported aggregate distribution.
-// Booth-only groups instead use the unfinished booths' own sizes, so a small
-// service cannot inherit all votes missing from a larger centre's expectation.
+// Declaration-only groups retain their aggregate distribution and internal
+// split. Groups containing physical booths instead use each service's own size:
+// historical grouping does not mean a missing booth voter is a provisional or
+// telephone voter. Keep the original joint draws, including synthetic SA sizes,
+// rather than treating these finer estimates as known or independent counts.
 void conditionGroupAdditions(Prior const& prior, CountUpdateWorkspace& work) {
     auto samples = prior.totals.size(), groups = prior.groups.size();
     for (std::size_t k = 0; k < work.unitsByGroup.size(); ++k) {
-        if (!work.openGroups[k] || work.boothOnlyGroups[k]) continue;
+        if (!work.openGroups[k] || work.hasBooths[k]) continue;
         auto seat = k/groups;
         std::vector<double> shares(samples), lower(samples);
         for (std::size_t r = 0; r < samples; ++r) {
@@ -349,46 +340,162 @@ void conditionGroupAdditions(Prior const& prior, CountUpdateWorkspace& work) {
     }
 }
 
-// Share each district's remaining formal total between booth-only estimates
-// and supported aggregate groups. Within a mixed group, reserve booth sizes
-// first and divide the rest among its unfinished declarations. Counted votes
-// are lower bounds throughout; completed units receive no estimated additions.
-void allocateDistrictRemainders(Prior const& prior, std::vector<Unit> const& units, CountUpdateWorkspace& work) {
+// Allocate within supported declaration-only groups; otherwise retain each
+// unfinished service's count-conditioned size. The district total is an output
+// of these accounts, not a budget that forces a shortfall in completed booths
+// onto unrelated unfinished services. Each prior row keeps its joint uncertainty.
+void assembleServiceAdditions(Prior const& prior, std::vector<Unit> const& units, CountUpdateWorkspace& work) {
     auto samples = prior.totals.size(), groups = prior.groups.size();
-    for (std::size_t s = 0; s < prior.seats.size(); ++s) for (std::size_t r = 0; r < samples; ++r) {
-        if (work.completeSeats[s]) continue;
-        double originalBooths = 0, requestedBooths = 0, combinedGroups = 0;
-        for (std::size_t k = s*groups; k < (s+1)*groups; ++k) {
-            combinedGroups += work.groupAdditions[r][k];
-            if (work.boothOnlyGroups[k]) for (auto j : work.unitsByGroup[k]) if (!work.result.complete[j]) {
-                originalBooths += work.originalExpected[r][j];
-                requestedBooths += work.ownAdditions[r][j];
-            }
+    for (std::size_t k = 0; k < work.unitsByGroup.size(); ++k) {
+        if (work.completeSeats[k/groups] || !work.openGroups[k]) continue;
+        for (std::size_t r = 0; r < samples; ++r) {
+            double own = 0;
+            for (auto j : work.unitsByGroup[k]) own += work.ownAdditions[r][j];
+            for (auto j : work.unitsByGroup[k])
+                work.result.remaining[r][j] = work.hasBooths[k] ? work.ownAdditions[r][j]
+                    : (own > 0 ? work.ownAdditions[r][j]*work.groupAdditions[r][k]/own : 0);
         }
-        if (originalBooths+combinedGroups <= 0) throw std::runtime_error("Unfinished turnout district has no remaining supported units.");
-        auto [boothBudget, aggregateBudget] = reserve(originalBooths,requestedBooths,combinedGroups,
-            work.result.totals[r][s]-work.result.counted[s]);
-        for (std::size_t k = s*groups; k < (s+1)*groups; ++k) {
-            if (work.boothOnlyGroups[k]) {
-                for (auto j : work.unitsByGroup[k]) if (!work.result.complete[j])
-                    work.result.remaining[r][j] = requestedBooths > 0 ? work.ownAdditions[r][j]*boothBudget/requestedBooths : 0;
-                continue;
+    }
+    // Reject an unsupported configuration, while allowing genuine completed
+    // accounts. Counted votes are never removed to make a projection fit.
+    for (std::size_t s = 0; s < prior.seats.size(); ++s) if (!work.completeSeats[s]) {
+        bool supported = false;
+        for (std::size_t k = s*groups; k < (s+1)*groups; ++k)
+            for (auto j : work.unitsByGroup[k]) supported = supported || (!work.result.complete[j] && units[j].weight > 0);
+        if (!supported) throw std::runtime_error("Unfinished turnout district has no remaining supported units.");
+    }
+}
+
+// Separate lower-bound fits can oversubscribe enrolment. This numerical guard
+// reserves 1% of the still-uncounted electorate as unused capacity for the late
+// count model; normally it does nothing. Unlike the old formal-total ceiling,
+// it permits both higher and lower turnout. Never reduce a measured vote.
+void constrainAdditionsToEnrolment(Prior const& prior, CountUpdateWorkspace& work) {
+    for (std::size_t s = 0; s < prior.seats.size(); ++s) for (std::size_t r = 0; r < prior.totals.size(); ++r) {
+        double requested = 0;
+        for (std::size_t k = s*prior.groups.size(); k < (s+1)*prior.groups.size(); ++k)
+            for (auto j : work.unitsByGroup[k]) requested += work.result.remaining[r][j];
+        double capacity = (prior.enrolment[s]-work.result.counted[s])*(1-UncountedEnrolmentHeadroom);
+        if (requested <= capacity) continue;
+        for (std::size_t k = s*prior.groups.size(); k < (s+1)*prior.groups.size(); ++k)
+            for (auto j : work.unitsByGroup[k]) work.result.remaining[r][j] *= capacity/requested;
+    }
+}
+
+// Use actual voting categories, not historical combined groups: ordinary
+// booths may share an input group with provisional/telephone services without
+// those services becoming interchangeable. Splitting one physical category
+// into more booths must not give it more transfer capacity or more weight.
+std::string transferCategory(Unit const& unit) {
+    return unit.kind == "declaration" ? "service/"+unit.category
+        : unit.kind+"/"+std::to_string(unit.group);
+}
+struct TransferCategory {
+    std::vector<std::size_t> units;
+    double spread = TransferCategorySpreadFloor;
+};
+double spreadAroundMean(std::vector<double> const& values) {
+    double centre = mean(values), variance = 0;
+    for (double value : values) variance += (value-centre)*(value-centre)/values.size();
+    return std::sqrt(variance);
+}
+std::vector<TransferCategory> transferCategories(Prior const& prior,
+    std::vector<Unit> const& units, CountUpdateWorkspace const& work, std::size_t seat) {
+    std::map<std::string,TransferCategory> grouped;
+    for (std::size_t j = 0; j < units.size(); ++j) {
+        auto const& unit = units[j];
+        if (unit.seat == seat && !work.result.complete[j] && unit.transferExclusionReason.empty())
+            grouped[transferCategory(unit)].units.push_back(j);
+    }
+    std::vector<TransferCategory> result;
+    for (auto& entry : grouped) {
+        auto& category = entry.second;
+        std::vector<double> shares;
+        for (std::size_t r = 0; r < prior.totals.size(); ++r) {
+            double original = 0;
+            for (auto j : category.units)
+                original += prior.counts[r][seat*prior.groups.size()+units[j].group]*units[j].weight;
+            if (original > 0 && original < prior.enrolment[seat]) shares.push_back(odds(original/prior.enrolment[seat]));
+        }
+        // A genuinely absent size baseline cannot supply a transfer estimate.
+        // Ordinary unmatched/replaced booths with positive starting sizes can.
+        if (shares.size() != prior.totals.size()) continue;
+        // Broad own-size uncertainty is not unlimited evidence for transfer.
+        // Combine its precision with a common proportional-transfer restraint;
+        // otherwise very uncertain small services absorb implausibly large
+        // residuals while better-known, much larger categories hardly move.
+        // This regularises only the response, never the original size draws.
+        double rawSpread = std::max(TransferCategorySpreadFloor,spreadAroundMean(shares));
+        category.spread = std::max(TransferCategorySpreadFloor,1/std::sqrt(
+            1/(rawSpread*rawSpread)+1/(TransferPlausibilitySpread*TransferPlausibilitySpread)));
+        result.push_back(std::move(category));
+    }
+    return result;
+}
+
+// Compare two coherent district accounts. Transfer restores the conditioned
+// expected total, moving ONLY unfinished, eligible category additions. Turnout
+// change retains their own sizes. A shared log-odds displacement allocates the
+// gap once, with more movement allowed in categories whose sizes are uncertain.
+// As remaining capacity dwindles, the required displacement grows: a completed
+// category cannot absorb a shortfall, even if its original total was very large.
+void chooseTurnoutExplanation(Prior const& prior, std::vector<Unit> const& units, CountUpdateWorkspace& work) {
+    auto samples = prior.totals.size(), seats = prior.seats.size();
+    auto& result = work.result;
+    result.transferProbability = zeros(samples,seats);
+    result.transferSelected = zeros(samples,seats);
+    for (std::size_t s = 0; s < seats; ++s) {
+        if (work.completeSeats[s] || result.counted[s] == 0) continue;
+        auto categories = transferCategories(prior,units,work,s);
+        if (categories.empty()) continue;
+        std::vector<double> logTotals;
+        for (auto const& row : prior.totals) logTotals.push_back(std::log(row[s]));
+        double turnoutSpread = std::max(TurnoutChangeSpreadFloor,spreadAroundMean(logTotals));
+        // Fixed, independently permuted midpoint quantiles avoid resampling
+        // noise on repeated snapshots. This is a mixture across preparation
+        // outcomes, not an average of two vote accounts within every outcome.
+        auto choices = uniforms(prior.election+"/"+prior.seats[s]+"/turnout-transfer",samples,20261025);
+        for (std::size_t r = 0; r < samples; ++r) {
+            std::vector<double> additions(categories.size()), transformed(categories.size());
+            double ownTotal = result.counted[s], eligible = 0;
+            for (std::size_t j = 0; j < units.size(); ++j)
+                if (units[j].seat == s) ownTotal += result.remaining[r][j];
+            for (std::size_t c = 0; c < categories.size(); ++c) {
+                for (auto j : categories[c].units) additions[c] += result.remaining[r][j];
+                eligible += additions[c];
             }
-            if (!work.openGroups[k]) continue;
-            double budget = combinedGroups > 0 ? aggregateBudget*work.groupAdditions[r][k]/combinedGroups : 0;
-            double boothAdditions = 0, declarationAdditions = 0, originalGroupBooths = 0;
-            for (auto j : work.unitsByGroup[k]) if (!work.result.complete[j]) {
-                if (units[j].kind == "declaration") declarationAdditions += work.ownAdditions[r][j];
-                else {
-                    boothAdditions += work.ownAdditions[r][j];
-                    originalGroupBooths += work.originalExpected[r][j];
-                }
+            double fixed = ownTotal-eligible;
+            double parent = prior.enrolment[s]-fixed;
+            double target = result.totals[r][s]-fixed;
+            if (!(eligible > 0 && parent > eligible && target > 0 && target < parent)) continue;
+            if (std::abs(target-eligible) < 1e-8) continue;
+            for (std::size_t c = 0; c < categories.size(); ++c)
+                if (additions[c] > 0) transformed[c] = odds(additions[c]/parent);
+            auto proposed = [&](std::size_t c, double shift) {
+                return additions[c] > 0 ? parent*logistic(transformed[c]+shift*categories[c].spread*categories[c].spread) : 0.;
+            };
+            double low = -1024, high = 1024;
+            for (int iteration = 0; iteration < 56; ++iteration) {
+                double middle = (low+high)/2, total = 0;
+                for (std::size_t c = 0; c < categories.size(); ++c) total += proposed(c,middle);
+                if (total < target) low = middle; else high = middle;
             }
-            auto [groupBoothBudget,declarationBudget] = reserve(originalGroupBooths,boothAdditions,declarationAdditions,budget);
-            for (auto j : work.unitsByGroup[k]) if (!work.result.complete[j])
-                work.result.remaining[r][j] = units[j].kind == "declaration"
-                    ? (declarationAdditions > 0 ? work.ownAdditions[r][j]*declarationBudget/declarationAdditions : 0)
-                    : (boothAdditions > 0 ? work.ownAdditions[r][j]*groupBoothBudget/boothAdditions : 0);
+            double shift = (low+high)/2, transferCost = 0;
+            for (std::size_t c = 0; c < categories.size(); ++c)
+                transferCost += additions[c]/eligible*std::pow(shift*categories[c].spread,2);
+            double turnoutError = std::log(ownTotal/result.totals[r][s])/turnoutSpread;
+            // Initial regularisation, not fitted coefficients: 3:1 transfer
+            // odds for a negligible discrepancy; Gaussian transfer cost and
+            // a Student-t(4) turnout cost. The heavier turnout tail ensures
+            // extreme required category changes favour an overall size change.
+            double logOdds = std::log(TransferPriorOdds)-.5*transferCost
+                +.5*(TurnoutChangeDegreesFreedom+1)*std::log1p(turnoutError*turnoutError/TurnoutChangeDegreesFreedom);
+            double probability = logistic(logOdds);
+            result.transferProbability[r][s] = probability;
+            if (choices[r] >= probability) continue;
+            result.transferSelected[r][s] = 1;
+            for (std::size_t c = 0; c < categories.size(); ++c) if (additions[c] > 0)
+                for (auto j : categories[c].units) result.remaining[r][j] *= proposed(c,shift)/additions[c];
         }
     }
 }
@@ -402,6 +509,10 @@ Broad assembleUpdatedCounts(Prior const& prior, std::vector<Unit> const& units, 
         work.result.unitCounts[r][j] = units[j].counted+work.result.remaining[r][j];
         work.result.counts[r][units[j].seat*groups+units[j].group] += work.result.unitCounts[r][j];
     }
+    for (std::size_t r = 0; r < prior.totals.size(); ++r)
+        for (std::size_t s = 0; s < prior.seats.size(); ++s)
+            work.result.totals[r][s] = std::accumulate(work.result.counts[r].begin()+s*groups,
+                work.result.counts[r].begin()+(s+1)*groups,0.);
     work.result.ownRemaining = std::move(work.ownAdditions);
     return std::move(work.result);
 }
@@ -420,7 +531,9 @@ Broad update(Prior const& prior, std::vector<Unit> const& units, std::vector<boo
     calculatePpvcCompensation(prior,units,work);
     conditionUnitAdditions(prior,units,ppvcFactor,work);
     conditionGroupAdditions(prior,work);
-    allocateDistrictRemainders(prior,units,work);
+    assembleServiceAdditions(prior,units,work);
+    constrainAdditionsToEnrolment(prior,work);
+    chooseTurnoutExplanation(prior,units,work);
     return assembleUpdatedCounts(prior,units,work);
 }
 
@@ -690,6 +803,15 @@ std::vector<Unit> makeAllocationGroups(Prior const& p, std::vector<Unit> const& 
     return groups;
 }
 
+// Mixed groups already retain each service's own estimate. Exclude them from
+// aggregate-allowance release, including its shared-capacity normalization, so
+// a change in another declaration cannot quietly inflate these services again.
+std::set<std::pair<std::size_t,std::size_t>> groupsWithBooths(std::vector<Unit> const& units) {
+    std::set<std::pair<std::size_t,std::size_t>> groups;
+    for (auto const& unit : units) if (unit.kind != "declaration") groups.emplace(unit.seat,unit.group);
+    return groups;
+}
+
 bool measureAllocationWeights(Prior const& p, std::vector<Unit> const& units,
     std::vector<Evidence> const& evidence, std::vector<double> const& completed, Result& result) {
     // Ordinary progress retains the aggregate allowance. Slowing groups gradually
@@ -700,16 +822,17 @@ bool measureAllocationWeights(Prior const& p, std::vector<Unit> const& units,
     result.balancedRemainingMeans.assign(units.size(),0);
     result.allocationStrength.assign(units.size(),0);
     result.allocationWeight.assign(units.size(),0);
+    auto directGroups = groupsWithBooths(units);
     bool active = false;
     for (std::size_t j = 0; j < units.size(); ++j) {
         for (auto const& row : broad.remaining) result.balancedRemainingMeans[j] += row[j]/m;
-        if (units[j].kind != "declaration" || broad.complete[j]) continue;
+        if (units[j].kind != "declaration" || broad.complete[j] || directGroups.count({units[j].seat,units[j].group})) continue;
         double strength = evidence[units[j].seat*g+units[j].group].strength;
         double weight = -std::expm1(-std::pow(strength/AllocationProgressScale,2));
         if (!completed.empty()) {
             // Completed booths can help release an old total allowance only
             // where the historical group supports one actual declaration
-            // category. Mixed SA groups retain their existing evidence rule.
+            // category. Mixed groups already use their own sizes.
             auto const& unit = units[j]; bool compatible = true; double counted = 0, own = 0;
             for (std::size_t k = 0; k < units.size(); ++k) if (units[k].seat == unit.seat && units[k].group == unit.group) {
                 compatible = compatible && units[k].kind == "declaration" && units[k].category == unit.category;
@@ -734,10 +857,12 @@ void releaseDistrictAllowances(Prior const& p, std::vector<Unit> const& units, R
     // become unused capacity instead of pushing them into another category.
     auto& broad = result.broad;
     auto m = p.totals.size(), n = p.seats.size();
+    auto directGroups = groupsWithBooths(units);
     for (std::size_t s = 0; s < n; ++s) {
         std::vector<std::size_t> columns;
         bool localActive = false;
-        for (std::size_t j = 0; j < units.size(); ++j) if (units[j].seat == s && units[j].kind == "declaration" && !broad.complete[j]) {
+        for (std::size_t j = 0; j < units.size(); ++j) if (units[j].seat == s && units[j].kind == "declaration" && !broad.complete[j]
+            && !directGroups.count({units[j].seat,units[j].group})) {
             columns.push_back(j); localActive = localActive || result.allocationWeight[j] != 0;
         }
         if (!localActive) continue;

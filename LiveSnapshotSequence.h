@@ -44,6 +44,9 @@ struct Discovery {
     std::string error;
 };
 Discovery discover(std::filesystem::path const& folder, std::string const& election);
+// Convert clipboard/file line endings to LF without changing codes, spacing or
+// blank lines. Input is UTF-8; Unicode line separators are accepted as well.
+std::string normalizeCodeLineEndings(std::string_view text);
 std::vector<std::string> parseCodes(std::string_view text);
 std::string codeText(std::vector<std::string> const& codes);
 std::vector<LiveResultsInput::CurrentFile> resolve(

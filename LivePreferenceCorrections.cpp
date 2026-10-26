@@ -129,6 +129,11 @@ Fit fitWithout(std::vector<Vector> const& x, std::vector<double> const& y,
     return fit;
 }
 
+double boundedRevision(Mixture const& mixture, double transformedShare) {
+    return std::clamp(mixture.pool * logistic(transformedShare) - mixture.gain,
+        mixture.revisionLower,mixture.revisionUpper);
+}
+
 double sample(Mixture const& mixture, std::mt19937_64& engine,
     std::student_t_distribution<double>& student) {
     // Student-t(5) scale here is the experiment's raw t scale, not an SD.
@@ -147,7 +152,7 @@ double sample(Mixture const& mixture, std::mt19937_64& engine,
         scale = mixture.backgroundScale;
     }
     else if (choice >= mixture.broadProbability + mixture.backgroundProbability + mixture.routineProbability) return 0;
-    return mixture.pool * logistic(location + scale * student(engine)) - mixture.gain;
+    return boundedRevision(mixture, location + scale * student(engine));
 }
 
 // 32-point Gauss-Legendre quadrature in Student-t(5) cumulative probability.
@@ -176,9 +181,9 @@ constexpr std::array<double, 32> QuadratureWeights = {
 
 void moments(Mixture& mixture) {
     for (std::size_t i = 0; i < StudentNodes.size(); ++i) {
-        double const routine = mixture.pool * logistic(mixture.original + mixture.routineScale * StudentNodes[i]) - mixture.gain;
-        double const background = mixture.pool * logistic(mixture.original + mixture.backgroundScale * StudentNodes[i]) - mixture.gain;
-        double const broad = mixture.pool * logistic(mixture.broadCentre + mixture.broadScale * StudentNodes[i]) - mixture.gain;
+        double const routine = boundedRevision(mixture, mixture.original + mixture.routineScale * StudentNodes[i]);
+        double const background = boundedRevision(mixture, mixture.original + mixture.backgroundScale * StudentNodes[i]);
+        double const broad = boundedRevision(mixture, mixture.broadCentre + mixture.broadScale * StudentNodes[i]);
         mixture.expectedRevision += QuadratureWeights[i] * (mixture.routineProbability * routine
             + mixture.backgroundProbability * background + mixture.broadProbability * broad);
         mixture.revisionSecondMoment += QuadratureWeights[i] * (mixture.routineProbability * routine * routine
@@ -212,6 +217,16 @@ std::vector<Mixture> prepare(std::vector<Observation> const& observations) {
         mixture.booth = row.booth;
         mixture.pool = row.formal - row.fpA - row.fpB;
         mixture.gain = row.gainA;
+        mixture.revisionLower = -mixture.gain;
+        mixture.revisionUpper = mixture.pool-mixture.gain;
+        if (row.revisionLimits) {
+            auto const& limits = *row.revisionLimits;
+            if (!std::isfinite(limits.lower) || !std::isfinite(limits.upper)
+                || limits.lower > 0 || limits.upper < 0)
+                throw std::runtime_error("Invalid surviving preference correction limits.");
+            mixture.revisionLower = std::max(mixture.revisionLower,limits.lower);
+            mixture.revisionUpper = std::min(mixture.revisionUpper,limits.upper);
+        }
         mixture.original = mixture.broadCentre = mixture.prediction = y[i];
         double const logSize = std::log(row.formal / 1000);
         double const share = logistic(y[i]);
@@ -266,6 +281,13 @@ std::vector<Mixture> prepare(std::vector<Observation> const& observations) {
             mixture.broadCentre = y[i] + mixture.fraction * gap;
             mixture.broadScale = std::exp(LogBroadScatter) * mixture.scatter;
         }
+        // Normally a discrepant count can move towards its peers. An explicit,
+        // reconciled official recheck has already tested the reported allocation:
+        // retain it as peer evidence, but do not interpret its unusual flow as
+        // a reason to undo the recheck. Centred background/routine uncertainty
+        // remains, with the usual conditional probabilities below.
+        mixture.directedCorrectionSuppressed = row.recheckedReconciledPair;
+        if (mixture.directedCorrectionSuppressed) mixture.broadProbability = 0;
         // With no other measured booth, a seat trend cannot be estimated. It
         // still retains both reported-flow recheck components. For comparable
         // booths, select the directed component first, then background or

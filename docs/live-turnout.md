@@ -49,11 +49,19 @@ A recount can temporarily reset FP while TCP still reports the larger earlier co
 
 The small comparison allowances cannot authorize a district TCP total at or above enrolment. That independent parent contradiction also restores compatible earlier preferences or treats them as unreported, while preserving valid current FP.
 
+Compulsory-preferential TCP must also accommodate each finalist's own primary votes. Before checking this, the model allows all ballots still awaiting preferences to belong to that finalist, then applies the same `max(10 votes, 5% of FP)` allowance. For example, 1,000 FP and 400 TCP votes leave 600 ballots unprocessed: a finalist's smaller TCP is normal within that gap. But with 1,000 FP and 1,000 TCP, a finalist with 500 primaries and only 400 TCP votes has a clear contradiction. The whole TCP record needs recovery; individual candidate entries are never patched to make it fit.
+
+Where a feed explicitly identifies count rounds, a usable FP recheck takes priority over incompatible preliminary TCP. ECQ's selected official rounds provide this information; feeds and older caches without it retain an unspecified stage. A substantially smaller unfinished recheck still retains the existing hold until it catches up or a reconciled official pair confirms the correction. With no clear stage advantage, a candidate-level contradiction can hold the previous coherent FP/TCP pair even if the total FP count has not fallen. Any independently restored TCP must fit the effective FP, including its finalist primaries; otherwise TCP is unavailable and FP-based estimation supplies uncertain preferences.
+
+An earlier compatible FP/TCP pair can remain evidence about preference flow after its TCP becomes unavailable. Its source times and measured vectors remain historical; it supplies no counted lower bound, completion or fresh progress. For a comparable-sized FP recheck, corrected primaries can replace the old composition while the measured flow retains its existing sample-size weight. A cohort that is no longer contained in current FP cannot be subtracted as a batch, and a changed finalist pairing cannot borrow the old pair's flow.
+
 The private cache at `forecasts/<election>/live-snapshots/accepted-counts/` stores integer candidate counts, identities, status, completion information and original observation times. It starts empty for a real election. Matching uses election, district, booth/category role and candidate identities, rather than array positions. Earlier forecast exports and aggregate turnout history cannot supply accepted candidate-count fallbacks. Repeated source times replace their cache record atomically; a content fingerprint distinguishes source revisions. Recovery reads only earlier sources and keeps only the needed count state in memory.
 
 Fresh counting history omits restored or unavailable records. A category-group observation is also omitted if any of its available services needed recovery, so restored counts do not manufacture counting events or pauses locally or in measurements shared across districts. Restored FP retains its earlier validated completion status; an unavailable count cannot acquire completion from the rejected source. Accepted-count and turnout-history writes are queued during preparation and performed only after a successful main calculation.
 
 The **Results** tab retains a non-modal warning panel, with one row per issue type and a worst example measured in votes. Selecting a row opens affected-record details, including rejected/effective counts and any restored source time. Routine incomplete counting is hidden behind an informational checkbox. Private snapshot metadata contains compact summaries for **Live Booths**; the analysis sidecar contains the detailed recovery records. Count history is never embedded in `.pol2` projects.
+
+ECQ normally withdraws its indicative TCP round while official rechecks replace it. Once the district has official FP records and no indicative TCP records, missing TCP restored from compatible history does not generate a withdrawal warning. This source-specific publication status suppresses only that notice: the restored counts and their original times are unchanged, incompatibilities and malformed counts still undergo normal recovery, and other feed readers retain their existing warnings.
 
 Unreadable XML, missing essential identities or required source-time metadata, and uninterpretable source structure stop the update. There is no numerical percentage cutoff for rejecting a source. The previous forecast and counted outcomes remain intact, and that attempt writes no new accepted history or snapshot exports. A replay continues after recoverable errors and stops after a failed update. Configuration errors and internal calculation failures keep their normal failure paths. Statistical detection of unusual but possible results is separate from this recovery mechanism.
 
@@ -201,9 +209,21 @@ These are coefficients of changes in log odds, rather than fractions of a vote-c
 
 A known closure contributes no expected additions or voter-behaviour evidence. In particular, its recorded zero does not suggest that other districts have more counting left. This exclusion also applies when all services in a category group are unavailable; a group with an open service still supplies progress evidence. An open service that has reported zero remains evidence that counting has not started.
 
-When the ordinary/early categories largely finish, an open declaration category can initially receive a large **remaining allowance**: the difference between its group's expected final total and the votes already counted. As the group's counting settles, the model gradually gives more influence to the unfinished category's own size estimate and reduces an excessive group allowance. The district's projected formal total can decrease as a result. This uses actual group counts, including PPVCs within a historically combined early-vote group. Evidence that the whole group is settling is measured separately from evidence that one declaration category is slowing.
+Turnout updating compares two explanations for a discrepancy between the expected district total and the sum of its service estimates. **Category transfer** restores the expected total by adjusting unfinished categories. **Turnout change** retains their own estimates and accepts a different district total. A completed booth contributes its measured count in both explanations. All services from a prior draw remain together, preserving shared turnout uncertainty. Existing bounded conditioning excludes estimates below received votes.
 
-For example, a combined early-vote group expected to contain 20,000 formal votes might have 18,000 PPVC votes and 100 early-absent votes counted. Keeping the group expectation fixed would assign all 1,900 remaining votes to early absents. If that category's own expected final count is only 300, its own remaining estimate is 200. Repeated quiet group counts gradually move the remaining estimate towards that smaller amount, while preserving the 18,100 votes already counted. This is a smooth adjustment, not a rule declaring the category finished.
+Historical groups containing both physical booths and declaration services are split using the supplied service weights. Their remaining votes are estimated separately. For example, a combined group might initially contain 18,000 expected booth votes and 300 expected provisional votes. If the booths finish at 16,000, increasing provisional votes by 2,000 is an extreme change; turnout change receives almost all the weight. If substantial early or postal votes remain, a much smaller proportional adjustment across those categories may instead be plausible. A partial count conditions that service above votes already received; completion removes its transfer capacity.
+
+The transfer calculation is category-agnostic. Physical booths in the same kind/group form one category; declaration services use their explicit category identities. The gap is allocated once across all eligible remaining categories, using a common displacement in natural log odds of additions versus available electorate, multiplied by each category's response variance. The starting size spread comes from its prior outcomes. Its precision is combined with a common 0.25 log-odds transfer restraint, then floored at 0.20: `response_sd = max(0.20, 1 / sqrt(1 / max(0.20, prior_sd)^2 + 1 / 0.25^2))`. This restraint applies only to transfer, preserving the original size uncertainty. Otherwise an uncertain small service could absorb much more of a shortfall than a large, better-known category. The transfer cost is the remaining-vote-weighted mean squared displacement in units of the response spread. Small or nearly finished categories therefore have little capacity; subdividing a category into more booths does not increase its influence.
+
+The competing turnout cost uses the log ratio of the own-estimate total to the expected total, divided by the prior log-total spread with a 0.15 floor. Starting odds favour transfer 3:1. Its score declines as `exp(-transfer_cost / 2)`; the turnout score follows the relative density of a Student-t distribution with four degrees of freedom. This heavier tail allows exceptional overall changes instead of forcing exceptional changes into unfinished categories. These are initial response settings, not coefficients fitted to election outcomes or additions to the original prior variance. In a fictional 3,000-vote district with a 1,000-vote unfinished category and 10,000 enrolled electors, required category increases of 10%, 25%, 60% and 120% give approximately 73%, 61%, 17% and 0.1% transfer weight. The percentages depend on the count account and its uncertainty; they are not universal thresholds.
+
+Each district samples one explanation per joint preparation outcome. Fixed, independently permuted midpoint quantiles make repeated snapshots reproducible. Main simulation draws reuse those selected rows, retaining both explanations rather than replacing every outcome with their weighted-average count. Small mixture probabilities may not be represented by a finite preparation ensemble; diagnostics report both the average calculated probability and the fraction actually selected. This choice uses no additional snapshot history.
+
+An optional nonempty `transfer_exclusion_reason` on a prepared service excludes it from this transfer calculation while retaining its own size distribution and actual votes. Set it on each affected service to exclude a category, for example one introduced without a comparable baseline. Absent fields default to normal eligibility. A category with no positive starting size is ineligible; an unmatched booth name with a positive starting size is not automatically excluded. No category names are excluded by default. Synthetic SA sizes retain the uncertainty in their supplied joint prior draws.
+
+Turnout can move above or below its original formal-total estimate. Independently conditioned estimates that would exhaust enrolment are reduced in their additions only, reserving 1% of the still-uncounted electorate for numerical headroom in the late-count model. This physical guard is separate from the choice of explanation and never removes counted votes. Version-6 and version-7 frozen priors remain readable by the version-8 updater; no input regeneration or `.pol2` change is required. Snapshot diagnostics include `turnout_explanation_parameters`, district `category_transfer_probability` and `category_transfer_selected_fraction`, and service exclusion reasons.
+
+Declaration-only groups still retain their supported aggregate distribution and internal allocation. Progress can gradually release an excessive allocation within such a group. Mixed booth/declaration groups already use service estimates, so they are excluded from this allocation-release calculation and its shared-capacity adjustment. Actual service counting activity, receipt deadlines and late-batch uncertainty continue to apply to them.
 
 The model keeps two kinds of late-count uncertainty separate. Routine expected additions recede as counting slows and the receipt timetable passes. Exceptional additions remain possible with a low, gradually declining probability. There is also a district-wide outcome with exactly no new first-preference votes. Completion flags make that outcome certain; quietness alone does not.
 
@@ -334,6 +354,14 @@ matched swing. Recorded classic TCP is not shifted; for partial TCP only the
 pending-preference estimate changes reference. These aligned comparisons are
 private to the joint update and do not alter received counts or raw swings.
 
+Category comparisons retain their source: actual historical counts, an explicit
+synthetic category allocation, or no category baseline. A seat-wide fallback
+cannot teach a category swing. Unsupported categories contribute received votes
+locally after joint conditioning, without extrapolating their bias across the
+seat or election. Synthetic comparisons retain shared and local baseline error
+even at completion. See [category baseline provenance](live-tpp-composition.md#category-baseline-provenance)
+for the accounting example, uncertainty scales and exported diagnostics.
+
 The update applies the same covariance calculation to means and uncertainty.
 Election/regional movements are propagated through baseline cross-seat covariance,
 not added a second time from the already-blended live hierarchy. There is no
@@ -372,7 +400,22 @@ votes expected.
 The comparison uses ordinary booths and PPVCs with exactly matching FP and TCP
 totals, the district's reported pair, and possible preference gains. Unfinished
 preferences, other services and exhausted OPV counts do not supply a measured
-flow. The preference flow is a finalist's TCP minus their own FP, divided by FP
+flow. When FP has been revised but TCP still belongs to a retained original
+matched batch, that original pair continues to supply the outlier comparison.
+Every predictor, including the minor-party mix, uses the original FP account;
+combining old TCP with revised FP would invent a measured preference flow.
+
+The correction transfers only surviving, allocated preferences. Its limits are
+the revised counted lower bounds minus each finalist's current FP votes. The
+separate revision model still owns uncertainty about changed transfers, so the
+outlier correction cannot remove a finalist's own primaries or double-count
+the changed batch. These limits apply both to diagnostic moments and actual
+draws, and the opposing transfer updates counted and projected accounts
+together. For example, Cooper's 25-vote FP revision retains protection against
+its original anomalous preference count; removing the entire non-finalist pool
+instead leaves no surviving preferences for this correction to move.
+
+The preference flow is a finalist's TCP minus their own FP, divided by FP
 for all candidates outside the finalist pair. The regression relates its log
 odds to that finalist's transformed primary share, the largest non-finalist
 party's share of the preference pool, and PPVC status. These predictors have
@@ -382,6 +425,19 @@ limits unusual peers' influence, and the comparison scatter gives more weight
 to booths of similar formal size. Sparse comparisons retain fitting uncertainty;
 a booth with no comparable peer receives both reported-flow recheck components,
 but no regression-directed correction.
+
+When both effective FP and TCP records are explicitly marked rechecked, and
+pass these same reconciliation checks, the directed correction is disabled.
+That status travels with a retained matched pair through later FP revisions;
+a later FP-only recheck cannot certify a preliminary TCP. Older accepted-count
+caches remain readable, but a missing pair-status field supplies no evidence
+of an official recheck. A newly reconciled current pair uses its current stages.
+This currently uses Queensland's explicit official-count stages; a late date,
+100% completion or repeated unchanged count does not establish recheck status.
+The booth remains in other booths' comparisons. Routine and background components
+retain their reported-flow centres, scales and conditional probabilities. Restored
+counts retain their original stage, so official FP paired with preliminary TCP
+does not qualify. Feeds without explicit stages retain the usual behaviour.
 
 The four possible outcomes distinguish uncertainty about a count from evidence
 that its allocation is wrong:
@@ -451,10 +507,16 @@ For a classic pair the transfer changes TPP; for another pair it changes TCP and
 does not invent an observed classic TPP.
 
 The analysis JSON records `live_analysis.preference_rechecking`, with version
-`live-preference-rechecking-2`, calibration identity, preparation time, exclusions,
+`live-preference-rechecking-4`, calibration identity, preparation time, exclusions,
 and per-booth probabilities, relative discrepancy, conditional movement and
 expected revision in candidate votes. `broad_probability` is the absolute
-regression-directed probability; `background_probability` is the separate
+regression-directed probability; `directed_correction_suppressed_rechecked_pair`
+identifies reconciled rechecked pairs for which that probability is zero.
+`uses_retained_tcp_basis` identifies temporarily revised accounts: `formal_votes`
+then describes the original measured batch, and `current_fp_votes` the current
+FP total. `revision_lower_votes` and `revision_upper_votes` give the permitted
+opposing transfer to the first finalist after accounting for surviving votes.
+`background_probability` is the separate
 reported-flow component. They are separate from `routine_probability` and
 `unchanged_probability`, and the four weights sum to one. The three
 `*_log_odds_scale` fields describe their Student-t scales. The diagnostic also

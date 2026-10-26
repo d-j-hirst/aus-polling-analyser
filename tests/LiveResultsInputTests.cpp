@@ -40,6 +40,13 @@ int main()
 	assert(!LiveResultsInput::isSnapshotResultsXml("State2022mediafilelitepplh_20221126_180329.zip", "vic"));
 	assert(LiveResultsInput::isSnapshotResultsXml("xml/aec-mediafeed-results-detailed-light-31496.xml", "fed"));
 	assert(!LiveResultsInput::isSnapshotResultsXml("State2022mediafilelitepplh_20221126_180329.xml", "fed"));
+	assert(LiveResultsInput::isSnapshotResultsXml("publicResults.xml", "qld"));
+	assert(LiveResultsInput::isSnapshotResultsXml("archive/PUBLICRESULTS.XML", "qld"));
+	assert(LiveResultsInput::isSnapshotResultsXml("archive\\publicResults.xml", "qld"));
+	assert(!LiveResultsInput::isSnapshotResultsXml("otherResults.xml", "qld"));
+	assert(!LiveResultsInput::isSnapshotResultsXml("publicResults.xml.bak", "qld"));
+	assert(!LiveResultsInput::isSnapshotResultsXml("not_publicResults.xml", "qld"));
+	assert(!LiveResultsInput::isSnapshotResultsXml("publicResults.xml", "fed"));
 
 	assert(LiveResultsInput::defaultDirectory() == "<HOME>/Downloads");
 	auto const defaultDirectory = LiveResultsInput::resolveDirectory(

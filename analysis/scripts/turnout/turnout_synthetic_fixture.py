@@ -33,15 +33,15 @@ def make_fixture():
     counts = base[None, :, :] * factors[:, None, :]
     draws = dict(counts=counts, totals=counts.sum(axis=2))
     units = []
-    specs = [('Ordinary A', 0, 'ordinary', .55, True, False),
+    specs = [('Ordinary A', 0, 'ordinary', .54, True, False),
              ('Ordinary B', 0, 'ordinary', .45, True, False),
              ('PPVC A', 1, 'ppvc', .46, True, False),
              ('PPVC B', 1, 'ppvc', .39, True, False),
              ('New PPVC', 1, 'ppvc', .14, False, False),
              ('EAV service', 1, 'ppvc', .01, False, True),
              ('Postal', 2, 'declaration', 1., True, False),
-             ('Absent', 3, 'declaration', .7, True, False),
-             ('Provisional', 3, 'declaration', .3, True, False)]
+             ('Absent', 3, 'declaration', 1., True, False),
+             ('Provisional', 0, 'declaration', .01, True, False)]
     for seat, name in enumerate(names):
         for label, group, kind, weight, matched, eav in specs:
             units.append(dict(seat_index=seat, seat_name=name, group_index=group,
@@ -86,6 +86,12 @@ def make_fixture():
             types = observation['seats'][u['seat_name']]['vote_types']
             category = late_counts.category_key(u)
             types[category] = types.get(category, 0) + u['counted']
+        # Include received aggregate progress as well as service counts. This
+        # checks that quiet mixed groups cannot release/reinflate service sizes.
+        grouped = allocation.group_observation(current, inputs)
+        for name, row in grouped.items():
+            observation['seats'][name]['vote_types'].update({
+                key: value for key, value in row['vote_types'].items() if key.startswith('allocation:')})
         history.append(observation)
         expected = cpp_contract.expected(election, inputs, draws, current, history,
                                          count_draws=4, seed=seed, ppvc_factor=factor)

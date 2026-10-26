@@ -34,6 +34,7 @@ json describe(Issue const& issue) {
     static std::map<std::string,std::string> const labels{
         {"invalid_fp","Invalid first-preference count"},{"invalid_tcp","Invalid two-candidate count"},
         {"reconciliation_hold","FP/TCP reconciliation hold"},
+        {"tcp_fp_revision","TCP awaiting FP correction"},
         {"historical_preference_limited","Historical preference evidence limited"},
         {"record_exceeds_enrolment","Service FP reaches enrolment"},{"district_exceeds_enrolment","District FP reaches enrolment"},
         {"tcp_district_exceeds_enrolment","District TCP reaches enrolment"},
@@ -86,6 +87,30 @@ bool tcpExceedsFp(Record const& record) {
     return tcp-fp > std::max(AbsoluteTcpAllowance,RelativeTcpAllowance*fp);
 }
 
+struct PrimaryConflict {
+    int candidate;
+    std::int64_t deficit;
+};
+
+std::optional<PrimaryConflict> primaryConflict(Record const& record, Count const& tcpCount) {
+    if (!record.fp.votes || !tcpCount.votes || total(tcpCount.votes) <= 0) return {};
+    auto fp = total(record.fp.votes), tcp = total(tcpCount.votes);
+    // Usually preferences only add to a finalist's primaries. In an unfinished
+    // batch, however, ALL pending ballots could belong to that finalist, so
+    // first allow the full FP/TCP gap. This preserves ordinary partial counts
+    // and declaration batches without pretending we know their primary mix.
+    auto pending = std::max<std::int64_t>(0,fp-tcp);
+    double allowance = std::max(AbsoluteTcpAllowance,RelativeTcpAllowance*fp);
+    std::optional<PrimaryConflict> worst;
+    for (auto const& [candidate,votes] : *tcpCount.votes) {
+        auto primary = record.fp.votes->find(candidate);
+        if (primary == record.fp.votes->end()) continue; // Identity validation owns this error.
+        auto deficit = std::int64_t(primary->second)-votes-pending;
+        if (deficit > allowance && (!worst || deficit > worst->deficit)) worst = PrimaryConflict{candidate,deficit};
+    }
+    return worst;
+}
+
 // Declaration TCP can legitimately lag FP while batches are being processed.
 // Ordinary/PPVC partial TCP retains LiveV2's existing 95% comparability rule.
 // Exhaustion under OPV is not a missing-preferences error. A small allowance
@@ -96,11 +121,24 @@ std::string invalidTcp(Record const& record, bool opv, bool& routine) {
     if (!record.tcp.votes || tcp == 0) return {};
     if (!record.fp.votes || fp == 0) { routine = true; return "TCP is present before usable FP."; }
     if (auto reason = invalidTcpCandidates(record); !reason.empty()) return reason;
+    // A known older batch is valid counted evidence about that batch. The
+    // forecast reconciles its candidate-level FP changes continuously; it must
+    // not be validated as if these two accounts described the same ballots.
+    if (!opv && hasCurrentTcpBasis(record)) return {};
     if (!opv && tcpExceedsFp(record))
         return "TCP exceeds FP beyond the allowance for small count differences.";
     if (!opv && record.role != "declaration" && tcp < OrdinaryTcpComparableFraction*fp) {
         routine = true; return "The ordinary/PPVC TCP count is not yet comparable with its FP count.";
     }
+    if (!opv) if (auto conflict = primaryConflict(record,record.tcp))
+        return "TCP candidate " + std::to_string(conflict->candidate) +
+            " reports " + std::to_string(record.tcp.votes->at(conflict->candidate)) +
+            " votes against " + std::to_string(record.fp.votes->at(conflict->candidate)) +
+            " FP, with " + std::to_string(std::max<std::int64_t>(0,fp-tcp)) +
+            " ballots still awaiting preferences (" + std::to_string(conflict->deficit) +
+            " votes beyond that allowance)." +
+            (record.fp.stage == CountStage::Rechecked && record.tcp.stage == CountStage::Preliminary
+                ? " Keeping rechecked FP and recovering the incompatible preliminary TCP." : "");
     return {};
 }
 
@@ -119,6 +157,25 @@ Record const* compatiblePrevious(Record const& record, RecordIndex const& previo
     auto const* old = found->second;
     return old->identity == record.identity && old->district == record.district && old->role == record.role &&
         old->candidates == record.candidates && old->closed == record.closed ? old : nullptr;
+}
+
+void attachTcpBasis(Record& record, Record const* old) {
+    if (hasCurrentTcpBasis(record)) {
+        if (record.tcpBasis->fp == *record.fp.votes && explicitlyRecheckedPair(record.fp.metadata(),record.tcp.metadata()))
+            record.tcpBasis->recheckedReconciledPair = true;
+        return;
+    }
+    record.tcpBasis.reset();
+    // A new TCP vector or explicitly later count round supersedes the old
+    // association. A repeated vector keeps its original FP, including through
+    // successive corrections; never re-anchor it to an intermediate revision.
+    if (!old || !record.tcp.votes || !old->tcp.votes || *record.tcp.votes != *old->tcp.votes ||
+        record.tcp.stage > old->tcp.stage) return;
+    if (hasCurrentTcpBasis(*old)) record.tcpBasis = old->tcpBasis;
+    else if (old->fp.votes && LivePartialCount::validBasis({*old->fp.votes,*old->tcp.votes,{}}))
+        record.tcpBasis = PreferenceCohort{*old->fp.votes,*old->tcp.votes,old->fp.observedAt,old->tcp.observedAt,{},
+            explicitlyRecheckedPair(old->fp.metadata(),old->tcp.metadata())};
+    if (!hasCurrentTcpBasis(record)) record.tcpBasis.reset();
 }
 
 struct PreviousCounts {
@@ -151,8 +208,10 @@ void recordRecovery(Registry& registry, Record const& record, std::string type,
     Count const& rejected, Count const& effective, std::string reason, bool routine = false) {
     double impact = rejected.votes ? std::abs(double(total(rejected.votes)-total(effective.votes))) :
         (effective.votes ? double(total(effective.votes)) : record.expected);
-    if (type == "invalid_tcp" && rejected.votes)
+    if (type == "invalid_tcp" && rejected.votes) {
         impact = std::abs(double(total(rejected.votes)-total(record.fp.votes)));
+        if (auto conflict = primaryConflict(record,rejected)) impact = std::max(impact,double(conflict->deficit));
+    }
     if (!std::isfinite(impact)) impact = record.expected;
     std::string action = effective.status == Status::Restored
         ? "Using the previous accepted count; inspect or correct the source record."
@@ -175,6 +234,9 @@ void holdUnreconciledCounts(Result& result, RecordIndex const& previous) {
             old->fp.observedAt >= result.snapshot.sourceTime || old->tcp.observedAt >= result.snapshot.sourceTime) continue;
         auto rejectedFp = record.fp;
         auto rejectedTcp = record.tcp;
+        auto conflict = primaryConflict(record,rejectedTcp);
+        double impact = std::max(std::abs(double(total(old->fp.votes)-total(rejectedFp.votes))),
+            conflict ? double(conflict->deficit) : 0.);
         replaceCount(record.fp,&old->fp,result.snapshot.sourceTime);
         replaceCount(record.tcp,&old->tcp,result.snapshot.sourceTime);
         // A rejected current account cannot make its restored votes final or
@@ -182,13 +244,14 @@ void holdUnreconciledCounts(Result& result, RecordIndex const& previous) {
         // remain attached to the accepted observations.
         result.snapshot.districts.at(record.district).finalised = false;
         result.issues.add({"reconciliation_hold",record.key,record.district,record.name,
-            "FP fell to " + std::to_string(total(rejectedFp.votes)) +
-                " while TCP reports " + std::to_string(total(rejectedTcp.votes)) +
+            "Current FP reports " + std::to_string(total(rejectedFp.votes)) +
+                " and TCP reports " + std::to_string(total(rejectedTcp.votes)) +
+                "; their totals or finalist primaries do not reconcile" +
                 ". Retaining the earlier account of " + std::to_string(total(record.fp.votes)) +
                 " FP and " + std::to_string(total(record.tcp.votes)) + " TCP votes until the current counts reconcile.",
             "Holding the previous accepted FP/TCP account; check recount progress or correct the source. "
                 "TCP observation: " + record.tcp.observedAt + ".",
-            record.fp.observedAt,double(total(record.fp.votes)-total(rejectedFp.votes)),false,
+            record.fp.observedAt,impact,false,
             rejectedFp.votes,record.fp.votes});
     }
 }
@@ -275,11 +338,18 @@ void recoverTcpRecords(Result& result, RecordIndex const& previous) {
         auto rejected = record.tcp;
         auto old = compatiblePrevious(record,previous);
         replaceCount(record.tcp,old ? &old->tcp : nullptr,result.snapshot.sourceTime);
+        attachTcpBasis(record,old);
         // A previously valid TCP may be incompatible with newly corrected FP.
         // Validate against the effective current account, not the old FP map.
         bool ignored = false;
         if (!invalidTcp(record,result.snapshot.optionalPreferential,ignored).empty())
             replaceCount(record.tcp,nullptr,result.snapshot.sourceTime);
+        // Normally an absent previously reported record deserves a warning.
+        // ECQ's known indicative-to-official publication transition is routine:
+        // suppress only the notice after a compatible fallback has survived all
+        // normal checks. Counts, source clocks and other elections are unchanged.
+        if (reason.empty() && !rejected.votes && record.expectedTcpWithdrawal &&
+            record.tcp.status == Status::Restored) continue;
         if (!reason.empty() || record.tcp.status == Status::Restored)
             recordRecovery(result.issues,record,routine ? "incomplete_tcp" : "invalid_tcp",
                 rejected,record.tcp,reason.empty() ? "The previously reported TCP record is absent from this source." : reason,routine);
@@ -416,19 +486,36 @@ bool fpFits(Record const& record, Count const& count, double enrolment) {
 }
 
 bool reconciliationNeeded(Record const& record, bool optionalPreferential) {
-    // FP arriving ahead of TCP is routine. This hold addresses the opposite
-    // contradiction, including an explicit FP reset to zero. Malformed or
-    // missing records retain independent recovery, and OPV is unchanged.
+    // FP arriving ahead of TCP is routine. Holds cover an FP reset or an
+    // impossible finalist-primary account; malformed/missing counts retain
+    // independent recovery. Stage priority is decided against the earlier
+    // account below, and OPV keeps its established handling.
     if (optionalPreferential || record.closed || !record.fp.fresh() || !record.tcp.fresh() ||
         !invalidFp(record).empty() || !record.tcp.error.empty() ||
         !invalidTcpCandidates(record).empty()) return false;
-    return tcpExceedsFp(record);
+    return tcpExceedsFp(record) || primaryConflict(record,record.tcp).has_value();
+}
+
+bool tcpContradictsPrimaries(Record const& record, bool optionalPreferential) {
+    return !optionalPreferential && record.fp.votes && record.tcp.votes &&
+        invalidFp(record).empty() && invalidTcpCandidates(record).empty() &&
+        primaryConflict(record,record.tcp).has_value();
+}
+
+bool recheckHasPriority(Record const& record, Record const& previous) {
+    // A known recheck usually supersedes a preliminary account. Stage alone
+    // cannot certify an unfinished recheck: a substantially reduced FP total
+    // still needs the existing reconciliation hold until its pair catches up.
+    return record.fp.stage != CountStage::Unspecified && record.tcp.stage != CountStage::Unspecified &&
+        record.fp.stage > record.tcp.stage && total(record.fp.votes) > 0 &&
+        total(previous.fp.votes)-total(record.fp.votes) <=
+            std::max(AbsoluteTcpAllowance,RelativeTcpAllowance*total(record.fp.votes));
 }
 
 bool reconciliationFits(Record const& record, Record const& previous,
     double enrolment, bool optionalPreferential) {
-    if (!reconciliationNeeded(record,optionalPreferential) ||
-        total(previous.fp.votes) <= total(record.fp.votes) ||
+    if (!reconciliationNeeded(record,optionalPreferential) || recheckHasPriority(record,previous) ||
+        (!tcpContradictsPrimaries(record,optionalPreferential) && total(previous.fp.votes) <= total(record.fp.votes)) ||
         !fpFits(record,previous.fp,enrolment) || total(previous.tcp.votes) == 0) return false;
     auto earlierParent = record;
     earlierParent.fp = previous.fp;
@@ -442,6 +529,8 @@ Result recover(Snapshot current, std::optional<Snapshot> const& previous,
         canonicalTime(previous->sourceTime) < current.sourceTime ? &*previous : nullptr;
     auto records = indexPrevious(old);
     Result result{std::move(current),{}};
+    if (!result.snapshot.optionalPreferential) for (auto& record : result.snapshot.records)
+        attachTcpBasis(record,compatiblePrevious(record,records));
     auto reconciledHistory = selectEarlierCounts(result.snapshot,old,records,history,HistoryAccount::Reconciled);
     holdUnreconciledCounts(result,reconciledHistory.records);
     auto fpHistory = selectEarlierCounts(result.snapshot,old,records,history,HistoryAccount::FirstPreferences);
@@ -455,6 +544,18 @@ Result recover(Snapshot current, std::optional<Snapshot> const& previous,
     recoverDistrictTcpAccounts(result,tcpHistory.records);
     checkEffectiveAccounts(result);
     validateCompletion(result);
+    for (auto& record : result.snapshot.records) {
+        if (!hasCurrentTcpBasis(record)) record.tcpBasis.reset();
+        else if (record.tcpBasis->fp != *record.fp.votes) {
+            double changed = 0;
+            for (auto const& [candidate,votes] : *record.fp.votes)
+                changed += std::abs(votes-LivePartialCount::value(record.tcpBasis->fp,candidate));
+            result.issues.add({"tcp_fp_revision",record.key,record.district,record.name,
+                "Published TCP belongs to an earlier first-preference account.",
+                "Retaining that measured batch and estimating only its FP revisions until updated TCP arrives.",
+                record.tcpBasis->tcpTime,changed,true,record.tcp.votes,record.tcp.votes});
+        }
+    }
     return result;
 }
 

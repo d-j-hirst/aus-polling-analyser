@@ -835,6 +835,181 @@
           "support": "historical moments"
         }
       }
+    },
+    "2024qld/earlier_only": {
+      "schema_version": 3,
+      "model_version": "proportional-prior-6",
+      "rates": {
+        "drift_log_odds": -0.04866915148721385,
+        "units": "natural log odds",
+        "common_covariance": [
+          [
+            0.029779676630346478,
+            -0.0006384215919571837
+          ],
+          [
+            -0.0006384215919571837,
+            0.027491262633486484
+          ]
+        ],
+        "local_covariance": [
+          [
+            0.009297338205131386,
+            0.0026849146634941937
+          ],
+          [
+            0.0026849146634941937,
+            0.03548953615424808
+          ]
+        ],
+        "training_elections": [
+          "2007fed",
+          "2008wa",
+          "2009qld",
+          "2010fed",
+          "2010sa",
+          "2010vic",
+          "2012qld",
+          "2013fed",
+          "2013wa",
+          "2014sa",
+          "2014vic",
+          "2015qld",
+          "2016fed",
+          "2017qld",
+          "2017wa",
+          "2018sa",
+          "2018vic",
+          "2019fed",
+          "2020qld",
+          "2021wa",
+          "2022fed",
+          "2022sa",
+          "2022vic"
+        ],
+        "stable_formality_elections": 20,
+        "broad_default": false
+      },
+      "controls": {
+        "postal": {
+          "factor": 0.7710869527613119,
+          "common_sd": 0.08552832258530581,
+          "local_sd": null,
+          "training_elections": [
+            "2007fed",
+            "2008wa",
+            "2015qld",
+            "2020qld"
+          ],
+          "fallback": "",
+          "broad_default": true,
+          "resident_distribution": {
+            "relative_sd": 0.2,
+            "fitted_units": "centered logarithms of resident shares of the national count",
+            "training_elections": [],
+            "broad_default": true
+          },
+          "measure": "postal_ballots_issued_cumulative",
+          "observation_status": "contemporaneous",
+          "cutoff": [
+            "2024-10-26",
+            "2024-10-26"
+          ]
+        },
+        "early": {
+          "factor": 0.958399808798972,
+          "common_sd": 0.0958399808798972,
+          "local_sd": null,
+          "training_elections": [
+            "2020qld"
+          ],
+          "fallback": "Single comparable ECQ election; assumed broad common and district allocation errors.",
+          "broad_default": true,
+          "resident_distribution": {
+            "relative_sd": 0.2,
+            "training_elections": [],
+            "broad_default": true
+          },
+          "measure": "prepoll_votes_cast_cumulative",
+          "observation_status": "contemporaneous",
+          "cutoff": [
+            "2024-10-26",
+            "2024-10-26"
+          ]
+        }
+      },
+      "compositions": {
+        "postal": {
+          "common_covariance": [
+            [
+              0
+            ]
+          ],
+          "local_covariance": [
+            [
+              0
+            ]
+          ],
+          "training_elections": [],
+          "support": "single category identity"
+        },
+        "remainder": {
+          "common_covariance": [
+            [
+              0.08220097694658271,
+              -0.08220097694658271
+            ],
+            [
+              -0.08220097694658271,
+              0.08220097694658271
+            ]
+          ],
+          "local_covariance": [
+            [
+              0.02489652224655869,
+              -0.02489652224655869
+            ],
+            [
+              -0.02489652224655869,
+              0.02489652224655869
+            ]
+          ],
+          "units": "centred natural log proportions",
+          "total_anchor": null,
+          "training_elections": [],
+          "mean_training_log_errors": [],
+          "mean_training_share_changes": [],
+          "support": "broad composition default"
+        },
+        "early": {
+          "common_covariance": [
+            [
+              0.08220097694658271,
+              -0.08220097694658271
+            ],
+            [
+              -0.08220097694658271,
+              0.08220097694658271
+            ]
+          ],
+          "local_covariance": [
+            [
+              0.02489652224655869,
+              -0.02489652224655869
+            ],
+            [
+              -0.02489652224655869,
+              0.02489652224655869
+            ]
+          ],
+          "units": "centred natural log proportions",
+          "total_anchor": null,
+          "training_elections": [],
+          "mean_training_log_errors": [],
+          "mean_training_share_changes": [],
+          "support": "broad composition default"
+        }
+      }
     }
   },
   "ppvc_starting_sizes": {

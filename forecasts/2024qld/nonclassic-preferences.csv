@@ -1,0 +1,7 @@
+source_party_id,first_target_code,second_target_code,preference_to_first
+labor,LNP,ONP,55
+labor,GRN,LNP,80
+labor,KAP,LNP,75
+liberal-national-party,ALP,GRN,60
+liberal-national-party,ALP,ONP,40
+liberal-national-party,KAP,ALP,75

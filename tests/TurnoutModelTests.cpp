@@ -38,6 +38,12 @@ void checkOperationalInputs(std::filesystem::path const& root) {
     // the explicit configuration rather than silently discarding that count.
     value["inactive_contests"] = {{{"seat","Example Postponed"}, {"status","postponed"}, {"reason","Polling was postponed."}}};
     auto artifact = TurnoutModelIO::read(value);
+    auto legacy = value; legacy["count_model"] = "live-counts-6";
+    compare(artifact.prior.counts,TurnoutModelIO::read(legacy).prior.counts,"existing frozen count inputs");
+    legacy["count_model"] = "live-counts-7";
+    compare(artifact.prior.counts,TurnoutModelIO::read(legacy).prior.counts,"version 7 frozen count inputs");
+    legacy["count_model"] = "live-counts-unknown";
+    rejects([&] { TurnoutModelIO::read(legacy); });
     std::map<std::string,double> population;
     for (auto const& name : artifact.prior.seats) population[name] = 0;
     TurnoutModelIO::validateDistrictPopulation(artifact,population);
@@ -431,6 +437,93 @@ void checkCompletedCountAccounts() {
     }
 }
 
+void checkIndependentServiceSizes() {
+    // Identical service accounts must not inherit a booth shortfall, whether
+    // historical inputs combine those services (QLD/SA) or separate them.
+    for (bool mixed : {false,true}) {
+        TurnoutModel::Prior p;
+        p.seats = {"Example"}; p.subdivisions = {"Example state"}; p.enrolment = {5000};
+        p.groups = mixed ? std::vector<std::string>{"ordinary_other","postal"}
+            : std::vector<std::string>{"ordinary","provisional","telephone","postal"};
+        p.totals = {{2320},{2980}};
+        p.counts = mixed ? TurnoutModel::Matrix{{1920,400},{2380,600}}
+            : TurnoutModel::Matrix{{1800,80,40,400},{2200,120,60,600}};
+        std::vector<TurnoutModel::Unit> units(4);
+        std::vector<std::string> names = {"Booth","Provisional","Telephone","Postal"};
+        std::vector<double> weights = {.94,.04,.02,1};
+        for (std::size_t j = 0; j < units.size(); ++j) {
+            auto& u = units[j]; u.name = u.category = names[j];
+            u.kind = j == 0 ? "ordinary" : "declaration";
+            u.group = mixed ? (j < 3 ? 0 : 1) : j;
+            u.weight = mixed ? weights[j] : 1; u.matched = true;
+        }
+        p.units = units;
+        auto origin = TurnoutModel::update(p,units,{false});
+        for (double counted : {900.,800.}) {
+            units[0].counted = counted;
+            auto result = TurnoutModel::update(p,units,{false});
+            for (std::size_t r = 0; r < p.totals.size(); ++r) {
+                for (std::size_t j = 1; j < units.size(); ++j)
+                    compare(origin.unitCounts[r][j],result.unitCounts[r][j],"retain service uncertainty");
+                compare(origin.totals[r][0]-origin.unitCounts[r][0]+counted,
+                    result.totals[r][0],"district follows actual booth size");
+            }
+        }
+        // Partial counts, genuine zero closures, finalisation and enrolment
+        // constraints still override size estimates without erasing real votes.
+        units[1].counted = 125; units[2].closed = true;
+        auto partial = TurnoutModel::update(p,units,{false});
+        for (auto const& row : partial.unitCounts) { assert(row[1] >= 125); assert(row[2] == 0); }
+        auto final = TurnoutModel::update(p,units,{true});
+        for (auto const& row : final.totals) assert(row[0] == 925);
+        units[0].counted = 4874;
+        auto bounded = TurnoutModel::update(p,units,{false});
+        for (std::size_t r = 0; r < p.totals.size(); ++r) {
+            assert(bounded.totals[r][0] < 5000 && bounded.totals[r][0] > 4999);
+            assert(bounded.unitCounts[r][0] == 4874 && bounded.unitCounts[r][1] >= 125);
+        }
+    }
+}
+
+void checkTurnoutTransfer() {
+    // A completed booth is short by 250 votes. Either the unfinished service
+    // is correspondingly larger, or turnout is lower. Retain both possibilities
+    // in preparation and in actual main-simulation count draws.
+    TurnoutModel::Prior p;
+    p.election = "example"; p.seats = {"Example"}; p.subdivisions = {"X"};
+    p.groups = {"ordinary","service"}; p.enrolment = {10000};
+    p.totals.assign(256,{3000}); p.counts.assign(256,{2000,1000});
+    TurnoutModel::Unit booth, service;
+    booth.name = booth.category = "Booth"; booth.kind = "ordinary"; booth.weight = 1;
+    service.name = service.category = "Service"; service.kind = "declaration"; service.weight = 1; service.group = 1;
+    p.units = {booth,service};
+    booth.counted = 1750;
+    auto r = TurnoutModel::prepare(p,{booth,service},{false},{});
+    assert(r.broad.transferProbability.front()[0] > .5 && r.broad.transferProbability.front()[0] < .8);
+    auto plan = TurnoutModel::makeDrawPlan(r,{booth,service},p.enrolment);
+    bool sawTransfer = false, sawTurnout = false;
+    for (unsigned long long seed = 0; seed < 512; ++seed) {
+        auto counts = TurnoutModel::drawUnitCounts(r,plan,seed);
+        assert(counts[0] == 1750);
+        assert(std::abs(counts[1]-1000) < 1e-6 || std::abs(counts[1]-1250) < 1e-6);
+        sawTransfer = sawTransfer || std::abs(counts[1]-1250) < 1e-6;
+        sawTurnout = sawTurnout || std::abs(counts[1]-1000) < 1e-6;
+    }
+    assert(sawTransfer && sawTurnout);
+    // Severe shortfalls, or reductions almost eliminating a category, favour
+    // an overall turnout change. An explicit exclusion preserves its own count.
+    booth.counted = 800;
+    auto extreme = TurnoutModel::update(p,{booth,service},{false});
+    assert(extreme.transferProbability.front()[0] < .02);
+    booth.counted = 2900;
+    auto excess = TurnoutModel::update(p,{booth,service},{false});
+    for (auto const& row : excess.totals) assert(std::abs(row[0]-3900) < 1e-6);
+    booth.counted = 1750; service.transferExclusionReason = "New service without a comparable category.";
+    auto excluded = TurnoutModel::update(p,{booth,service},{false});
+    for (auto const& row : excluded.unitCounts) assert(row[1] == 1000);
+    for (auto const& row : excluded.transferProbability) assert(row[0] == 0);
+}
+
 void checkDistrictEnrolmentConflicts() {
     // A valid completed booth retains every counted vote. A contradictory
     // input must identify its district and figures, including when the feed
@@ -565,6 +658,8 @@ void check(std::filesystem::path const& path) {
         compare(expected.at("remaining"),actual.broad.remaining,label+"/unit remaining");
         compare(expected.at("own_remaining"),actual.broad.ownRemaining,label+"/own unit remaining");
         compare(expected.at("balanced_remaining_means"),actual.balancedRemainingMeans,label+"/imposed allowance");
+        compare(expected.at("transfer_probability"),actual.broad.transferProbability,label+"/transfer probability");
+        compare(expected.at("transfer_selected"),actual.broad.transferSelected,label+"/transfer branch");
         compare(expected.at("allocation_evidence"),actual.allocationStrength,label+"/whole-group evidence");
         compare(expected.at("allocation_weight"),actual.allocationWeight,label+"/allocation progress weight");
         compare(expected.at("totals"),actual.totals,label+"/late totals");
@@ -639,6 +734,8 @@ int main(int argc, char** argv) {
         checkClosedProgress();
         checkCompletedCountAccounts();
         checkDistrictEnrolmentConflicts();
+        checkIndependentServiceSizes();
+        checkTurnoutTransfer();
         checkCountDraws();
         check(root/"tests/fixtures/turnout/synthetic-turnout-v1.json");
         // Operators can additionally check a private source-backed fixture.

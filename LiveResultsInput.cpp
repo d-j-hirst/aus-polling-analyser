@@ -31,6 +31,12 @@ bool isSnapshotResultsXml(std::string_view memberName, std::string_view regionCo
 	if (name.size() < 4 || name.substr(name.size() - 4) != ".xml") return false;
 	if (regionCode == "fed") return name.find("aec-mediafeed-results-detailed") != std::string::npos;
 	if (regionCode == "vic") return name.find("mediafilelitepplh_") != std::string::npos;
+	// ECQ bundles the state election and any concurrent local elections in one
+	// publicResults.xml. Election identity is checked after reading that document.
+	if (regionCode == "qld") {
+		auto const separator = name.find_last_of("/\\");
+		return name.substr(separator == std::string::npos ? 0 : separator + 1) == "publicresults.xml";
+	}
 	return false;
 }
 

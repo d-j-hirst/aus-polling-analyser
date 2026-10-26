@@ -163,11 +163,11 @@ void LiveSnapshotViewer::buildView(Request& request, Presentation& result) const
     switch (request.mode) {
     case Mode::NodeInspector: return;
     case Mode::Parliament: result.view = buildParliamentView(records); break;
-    case Mode::SeatExpectations: result.view = buildSeatExpectationView(records); break;
+    case Mode::SeatExpectations: preparePartySummary(request, result); break;
     case Mode::SeatThresholds: result.view = buildSeatThresholdView(records, request.party); break;
     case Mode::Tpp: result.view = buildTppView(records); break;
-    case Mode::VoteShares: result.view = buildVoteShareView(records); break;
-    case Mode::Internal2pp: result.view = buildInternal2ppView(records); break;
+    case Mode::VoteShares: preparePartySummary(request, result); break;
+    case Mode::Internal2pp: prepareInternal2pp(request, result); break;
     case Mode::SeatWinChance:
         result.view = request.graph ? buildSeatWinChanceGraphView(records, request.seat, graphParty) : buildSeatWinChanceView(records, request.party); break;
     case Mode::SeatFp:
@@ -185,6 +185,43 @@ void LiveSnapshotViewer::buildView(Request& request, Presentation& result) const
     result.layout = makeParliamentLayout(result.view);
     if (seatMetric || completion || request.mode == Mode::BoothTypeBias || request.mode == Mode::VoteTypeBias
         || request.mode == Mode::Internal2pp) result.layout.frozenColumns = 1;
+}
+
+void LiveSnapshotViewer::preparePartySummary(Request& request, Presentation& result) const {
+    result.view = request.mode == Mode::SeatExpectations ?
+        LiveSnapshot::buildSeatExpectationView(history.records) : LiveSnapshot::buildVoteShareView(history.records);
+    auto const partyKind = request.mode == Mode::SeatExpectations ?
+        LiveSnapshot::ParliamentColumn::Kind::PartySeats : LiveSnapshot::ParliamentColumn::Kind::PartyVoteShare;
+    // Use the actual plotted columns, including minor parties with no
+    // threshold series. Keep table columns intact; only graph visibility changes.
+    for (auto const& column : result.view.columns) {
+        if (column.kind == partyKind)
+            result.parties.push_back({column.partyIndex, column.header, column.colour});
+    }
+    // A series switch can remove the selected party. Return to the default
+    // rather than leaving an empty graph, while preserving valid selections
+    // across new snapshots and table/graph switches.
+    if (std::none_of(result.parties.begin(), result.parties.end(),
+        [&](auto const& party) { return party.partyIndex == request.party; }))
+        request.allParties = true;
+    result.party = request.party;
+    result.allParties = request.allParties;
+    if (request.graph && !request.allParties) {
+        for (auto& column : result.view.columns)
+            column.includeInGraph = column.kind == partyKind
+                && column.partyIndex == request.party;
+    }
+}
+
+void LiveSnapshotViewer::prepareInternal2pp(Request const& request, Presentation& result) const {
+    result.view = LiveSnapshot::buildInternal2ppView(history.records);
+    // The table keeps every diagnostic. The graph displays one metric at a
+    // time because an absolute TPP and a deviation have different origins.
+    if (!request.graph) return;
+    auto const key = request.internal2ppMetric == Internal2ppMetric::Projected ?
+        "projected_2pp" : "raw_2pp_deviation";
+    for (auto& column : result.view.columns)
+        column.includeInGraph = column.category == key;
 }
 
 void LiveSnapshotViewer::buildGraph(Request const& request, Presentation& result) const {

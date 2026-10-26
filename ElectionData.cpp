@@ -41,6 +41,20 @@ namespace {
 
 using CandidateMatchKey = std::pair<std::string, std::string>;
 
+Results2::VoteType qecVoteType(std::string const& name)
+{
+  // Physical ordinary/early/mobile venues are booth records. Statewide service
+  // labels are category records, using the same classification in both years.
+  // In particular, early absents must not be compared with election-day absents.
+  using V = Results2::VoteType;
+  if (name == "Absent Early Voting") return V::PrePoll;
+  if (name == "Absent Election Day") return V::Absent;
+  if (name == "Postal Declaration Votes") return V::Postal;
+  if (name == "In Person Declaration Votes") return V::Provisional;
+  if (name == "Telephone Voting" || name == "Telephone Voting - Early Voting") return V::Telephone;
+  return V::Ordinary;
+}
+
 [[noreturn]] void throwInvalidXml(
   std::string const& context,
   std::string const& problem)
@@ -121,6 +135,223 @@ int requiredIntAttribute(
   auto const result = element.QueryIntAttribute(attributeName, &value);
   return checkedXmlInteger(
     result, value, context + "/@" + attributeName, minimum);
+}
+
+using QecBoothAccounts = std::map<int, tinyxml2::XMLElement const*>;
+using QecCandidateCounts = std::map<std::string, int>;
+std::optional<LiveInputRecovery::PreferenceCohort> qecTcpBasis(
+  tinyxml2::XMLElement const& booth, std::map<int,int> const& tcp,
+  std::function<int(std::string const&)> const& candidateId) {
+  // ECQ's indicative details identify the primary batch actually distributed,
+  // even after the separate FP round has been rechecked. Optional malformed
+  // details cannot establish this association; normal count recovery still
+  // handles the published vectors independently.
+  auto details = booth.FirstChildElement("indicativeCountDetails");
+  auto stamp = booth.Attribute("lastUpdated");
+  if (!details || !stamp) return {};
+  LiveInputRecovery::PreferenceCohort result;
+  result.tcp = tcp;
+  try { result.fpTime = result.tcpTime = LiveInputRecovery::canonicalTime(stamp); }
+  catch (std::exception const&) { return {}; }
+  auto read = [](tinyxml2::XMLElement const* element) -> std::optional<int> {
+    int count = 0;
+    if (!element || !element->GetText()) return {};
+    std::string_view text(element->GetText());
+    auto parsed = std::from_chars(text.data(),text.data()+text.size(),count);
+    if (parsed.ec != std::errc{} || parsed.ptr != text.data()+text.size() || count < 0) return {};
+    return count;
+  };
+  auto identify = [&](tinyxml2::XMLElement const& element) {
+    auto name = element.Attribute("ballotName");
+    return name ? candidateId(name) : -1;
+  };
+  for (auto row = details->FirstChildElement("selectedCandidate"); row; row = row->NextSiblingElement("selectedCandidate")) {
+    int candidate = identify(*row);
+    auto primary = read(row->FirstChildElement("primaryVotes"));
+    auto preferences = row->FirstChildElement("afterPreferences");
+    auto after = read(preferences ? preferences->FirstChildElement("count") : nullptr);
+    if (candidate < 0 || !primary || !after || !tcp.contains(candidate) || tcp.at(candidate) != *after ||
+      !result.fp.emplace(candidate,*primary).second) return {};
+  }
+  for (auto row = details->FirstChildElement("otherCandidate"); row; row = row->NextSiblingElement("otherCandidate")) {
+    int candidate = identify(*row);
+    auto exhausted = read(row->FirstChildElement("exhausted"));
+    if (candidate < 0 || !exhausted || *exhausted != 0 || !result.fp.emplace(candidate,0).second) return {};
+    for (auto transfer = row->FirstChildElement("preferenceCount"); transfer; transfer = transfer->NextSiblingElement("preferenceCount")) {
+      int finalist = identify(*transfer);
+      auto count = read(transfer);
+      if (!count || !tcp.contains(finalist) || !result.transfers[candidate].emplace(finalist,*count).second) return {};
+      if (*count > std::numeric_limits<int>::max()-result.fp[candidate]) return {};
+      result.fp[candidate] += *count;
+    }
+  }
+  if (!LivePartialCount::validBasis({result.fp,result.tcp,result.transfers})) return {};
+  return result;
+}
+struct QecAccounts {
+  QecBoothAccounts fp, tcp;
+  bool indicativeWithdrawn = false;
+};
+
+QecBoothAccounts qecRoundAccounts(tinyxml2::XMLElement const& district,
+  char const* name, char const* field)
+{
+  // An empty round/booth placeholder carries no account. Published vectors of
+  // zeros remain records; their suitability depends on the other count rounds.
+  QecBoothAccounts accounts;
+  for (auto round = district.FirstChildElement("countRound"); round; round = round->NextSiblingElement("countRound")) {
+    auto label = round->Attribute("countName");
+    if (!label || std::string_view(label) != name) continue;
+    auto booths = round->FirstChildElement("booths");
+    for (auto booth = booths ? booths->FirstChildElement("booth") : nullptr;
+      booth; booth = booth->NextSiblingElement("booth")) {
+      if (auto count = booth->FirstChildElement(field); count && count->FirstChildElement("candidate"))
+        accounts[requiredIntAttribute(*booth, "id", "QEC count booth", 0)] = booth;
+    }
+  }
+  return accounts;
+}
+
+std::optional<QecCandidateCounts> qecComparableCounts(
+  tinyxml2::XMLElement const& booth, char const* field)
+{
+  // This read only decides which round is further through its count. Invalid
+  // fields cannot establish a partial recheck or a reconciled correction; they
+  // still go through the normal parser/recovery path rather than becoming zero.
+  auto account = booth.FirstChildElement(field);
+  if (!account) return std::nullopt;
+  QecCandidateCounts counts;
+  for (auto candidate = account->FirstChildElement("candidate"); candidate;
+    candidate = candidate->NextSiblingElement("candidate")) {
+    auto name = candidate->Attribute("ballotName");
+    auto count = candidate->FirstChildElement("count");
+    if (!name || !*name || !count || !count->GetText()) return std::nullopt;
+    std::string_view value(count->GetText());
+    while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front()))) value.remove_prefix(1);
+    while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back()))) value.remove_suffix(1);
+    int votes = 0;
+    auto parsed = std::from_chars(value.data(), value.data() + value.size(), votes);
+    if (value.empty() || parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size() ||
+      votes < 0 || !counts.emplace(name, votes).second) return std::nullopt;
+  }
+  return counts.empty() ? std::nullopt : std::optional{std::move(counts)};
+}
+
+double qecCountTotal(QecCandidateCounts const& counts)
+{
+  double total = 0;
+  for (auto const& [name, votes] : counts) total += votes;
+  return total;
+}
+
+bool qecSameCandidates(QecCandidateCounts const& first, QecCandidateCounts const& second)
+{
+  return first.size() == second.size() && std::equal(first.begin(), first.end(), second.begin(),
+    [](auto const& a, auto const& b) { return a.first == b.first; });
+}
+
+bool qecClearlySmaller(double count, double comparison)
+{
+  // Use the same small-difference allowance as FP/TCP recovery: a few votes of
+  // rechecking need not delay an official correction. A substantially smaller
+  // recheck, however, may only cover some batches of the preliminary account.
+  return comparison - count > std::max(LiveInputRecovery::AbsoluteTcpAllowance,
+    LiveInputRecovery::RelativeTcpAllowance * count);
+}
+
+std::set<int> qecReconciledOfficialBooths(tinyxml2::XMLElement const& district,
+  QecBoothAccounts const& officialFp, QecBoothAccounts const& officialTcp)
+{
+  // Normally official counts catch up with preliminary counts. A substantially
+  // lower correction is also usable once official FP and TCP independently
+  // account for the same votes. Require the complete FP ballot and two actual
+  // finalists; partial vectors must not certify each other's smaller totals.
+  std::set<std::string> roster;
+  if (auto candidates = district.FirstChildElement("candidates")) {
+    for (auto candidate = candidates->FirstChildElement("candidate"); candidate;
+      candidate = candidate->NextSiblingElement("candidate"))
+      roster.emplace(requiredAttribute(*candidate, "ballotName", "QEC candidates"));
+  }
+  std::set<int> reconciled;
+  for (auto const& [id, booth] : officialFp) {
+    if (!officialTcp.contains(id)) continue;
+    auto fp = qecComparableCounts(*booth, "primaryVoteResults");
+    auto tcp = qecComparableCounts(*officialTcp.at(id), "twoCandidateVotes");
+    if (!fp || !tcp || tcp->size() != 2 || fp->size() != roster.size()) continue;
+    bool compatible = true;
+    for (auto const& name : roster) compatible = compatible && fp->contains(name);
+    for (auto const& [name, votes] : *tcp)
+      compatible = compatible && fp->contains(name) && !qecClearlySmaller(votes, fp->at(name));
+    auto fpTotal = qecCountTotal(*fp), tcpTotal = qecCountTotal(*tcp);
+    if (compatible && !qecClearlySmaller(fpTotal, tcpTotal) && !qecClearlySmaller(tcpTotal, fpTotal))
+      reconciled.insert(id);
+  }
+  return reconciled;
+}
+
+QecBoothAccounts qecPreferCompletedRechecks(QecBoothAccounts preliminary,
+  QecBoothAccounts const& official, std::set<int> const& reconciled, char const* field)
+{
+  // Selection uses the two accounts already in this source, so starting a replay
+  // in the middle of rechecking does not depend on having seen earlier feeds.
+  // Never add the two rounds: they describe overlapping ballots, not new votes.
+  for (auto const& [id, booth] : official) {
+    if (preliminary.contains(id) && !reconciled.contains(id)) {
+      auto oldCount = qecComparableCounts(*preliminary.at(id), field);
+      auto newCount = qecComparableCounts(*booth, field);
+      // A changed TCP pairing is a different count, not a smaller recheck of
+      // the same account. Incomplete/changed identities also need normal recovery.
+      if (oldCount && newCount && qecSameCandidates(*oldCount, *newCount) &&
+        qecClearlySmaller(qecCountTotal(*newCount), qecCountTotal(*oldCount))) continue;
+    }
+    preliminary[id] = booth;
+  }
+  return preliminary;
+}
+
+QecAccounts qecBoothAccounts(tinyxml2::XMLElement const& district)
+{
+  auto preliminaryFp = qecRoundAccounts(district, "Unofficial Preliminary Count", "primaryVoteResults");
+  auto preliminaryTcp = qecRoundAccounts(district, "Unofficial Indicative Count", "twoCandidateVotes");
+  auto officialFp = qecRoundAccounts(district, "Official First Preference Count", "primaryVoteResults");
+  auto officialTcp = qecRoundAccounts(district, "Official Distribution of Preferences Count", "twoCandidateVotes");
+  auto reconciled = qecReconciledOfficialBooths(district, officialFp, officialTcp);
+  // During the normal initial count, missing TCP still means unreported data.
+  // ECQ later withdraws the entire indicative round while official accounts
+  // replace it booth by booth. Only that explicit recheck stage suppresses
+  // warnings about an absent record; malformed/present TCP keeps normal checks.
+  bool withdrawn = preliminaryTcp.empty() && !officialFp.empty();
+  return {qecPreferCompletedRechecks(std::move(preliminaryFp), officialFp, reconciled, "primaryVoteResults"),
+    qecPreferCompletedRechecks(std::move(preliminaryTcp), officialTcp, reconciled, "twoCandidateVotes"), withdrawn};
+}
+
+void noteQecTcpWithdrawals(Results2::Election& election, int seat, QecAccounts const& accounts) {
+  if (!accounts.indicativeWithdrawn) return;
+  for (auto const& [id, booth] : accounts.fp) {
+    (void)booth;
+    if (accounts.tcp.contains(id)) continue;
+    int boothId = id + seat*100000;
+    auto found = election.booths.find(boothId);
+    if (found == election.booths.end()) continue; // Same preload boundary as count reading.
+    election.expectedLiveTcpWithdrawals.insert(Results2::Election::countKey(
+      seat,boothId,qecVoteType(found->second.name)));
+  }
+}
+
+void noteQecCountStage(Results2::Election& election, tinyxml2::XMLElement const& booth,
+  int seat, int boothId, Results2::VoteType type, bool tcp)
+{
+  // The selected round already passed the preliminary/partial-recheck choice.
+  // Preserve that provenance for shared recovery; merely receiving a newer
+  // export does not establish a more authoritative count. Aggregated services
+  // inherit the least advanced of their contributing source rounds.
+  auto round = booth.Parent()->Parent()->ToElement();
+  auto name = std::string_view(round->Attribute("countName"));
+  auto stage = name.starts_with("Official ") ? LiveInputRecovery::CountStage::Rechecked
+    : LiveInputRecovery::CountStage::Preliminary;
+  auto key = std::make_pair(Results2::Election::countKey(seat,boothId,type),tcp);
+  auto [found, inserted] = election.liveCountStages.emplace(key,stage);
+  if (!inserted) found->second = std::min(found->second,stage);
 }
 
 float requiredFloatText(
@@ -1063,10 +1294,15 @@ void Results2::Election::preloadQec([[maybe_unused]] nlohmann::json const& resul
     {"Pauline Hanson's One Nation Queensland Division", "ON"},
     {"Katter's Australian Party (KAP)", "KAP"},
     {"Family First Queensland", "FF"},
+    {"Clive Palmer's United Australia Party", "UAP"},
+    {"United Australia Party", "UAP"},
     {"Independent", "IND"}
   };
   auto const& ecq = requiredChild(zeros, "ecq", "QEC preload");
   auto const& election = requiredChild(ecq, "election", "QEC preload/ecq");
+  // Current-election rosters establish the identity before the first snapshot.
+  // Historical JSON uses this roster only for matching, not as its election ID.
+  if (results.is_null()) id = requiredIntAttribute(election, "id", "QEC preload/ecq/election", 1);
   auto const& districts = requiredChild(election, "districts", "QEC preload/ecq/election");
   auto currentDistrict = districts.FirstChildElement("district");
   if (!currentDistrict) throwInvalidXml("QEC preload/ecq/election/districts", "missing <district>");
@@ -1130,13 +1366,14 @@ void Results2::Election::preloadQec([[maybe_unused]] nlohmann::json const& resul
         booth.name.find("Early Voting Centre") != std::string::npos) {
         booth.type = Booth::Type::Ppvc;
       }
+      if (booth.name == "Mobile Polling") booth.type = Booth::Type::Hospital;
       booth.parentSeat = seat.id;
       booths[booth.id] = booth;
       currentBooth = currentBooth->NextSiblingElement("booth");
-      if (results.is_null()) {
-        // If there are no results - we're doing the current election,
-        // we won't need to do a booth alignment so adding booths to seats
-        // need to happen here
+      if (results.is_null() && qecVoteType(booth.name) == VoteType::Ordinary) {
+        // Current physical booths are ready for direct use. Declaration labels
+        // remain in the source lookup but belong to category accounts, not this
+        // list: including them here as well would count their votes twice.
         seat.booths.push_back(booth.id);
       }
     }
@@ -1206,24 +1443,20 @@ void Results2::Election::preloadQec([[maybe_unused]] nlohmann::json const& resul
           Candidate candidate;
           candidate.id = dummyCandidateId;
           candidate.name = candidateName;
-          if (partyNameToPartyId.contains(party)) {
-            candidate.party = partyNameToPartyId[party];
+          // Usually the party also stands at this election. If it does not,
+          // retain its affiliation: a withdrawn minor party is not an independent.
+          if (!partyNameToPartyId.contains(party)) {
+            int historicalId = partyIdCounter++;
+            partyNameToPartyId[party] = historicalId;
+            parties[historicalId] = Party{historicalId, party, shortCodes.contains(party) ? shortCodes.at(party) : ""};
           }
-          else {
-            candidate.party = -1;
-          }
+          candidate.party = partyNameToPartyId.at(party);
           candidates[candidate.id] = candidate;
           --dummyCandidateId;
         }
       }
       for (auto const& [boothName, boothValue] : seatValue["booths"].items()) {
-        VoteType voteType = VoteType::Ordinary;
-        if (boothName == "Absent Early Voting") voteType = VoteType::Absent;
-        if (boothName == "Absent Election Day") voteType = VoteType::Absent;
-        if (boothName == "Postal Declaration Votes") voteType = VoteType::Postal;
-        if (boothName == "In Person Declaration Votes") voteType = VoteType::Provisional;
-        if (boothName == "Telephone Voting") voteType = VoteType::Telephone;
-        if (boothName == "Telephone Voting - Early Voting") voteType = VoteType::Telephone;
+        VoteType voteType = qecVoteType(boothName);
         if (voteType != VoteType::Ordinary) {
           auto fps = boothValue["fp"];
           for (auto const& [fpCandIndex, fpVotes] : fps.items()) {
@@ -1666,6 +1899,7 @@ bool Results2::Election::allocate2022saDeclarationVotes(int seatId, std::string 
 
   auto makeBoothJson = [&](std::vector<int> const& fpVotes, std::array<int, 2> const& tcpVotes) {
     nlohmann::json boothJson;
+    boothJson["synthetic_category_baseline"] = true;
     for (size_t candidatePos = 0; candidatePos < candidateIds.size(); ++candidatePos) {
       boothJson["fp"][std::to_string(orderedCandidateIndices[candidatePos])] = fpVotes[candidatePos];
     }
@@ -1681,6 +1915,7 @@ bool Results2::Election::allocate2022saDeclarationVotes(int seatId, std::string 
       seatBooths[boothName] = boothJson;
       return;
     }
+    seatBooths[boothName]["synthetic_category_baseline"] = true;
     for (auto const& [fpCandIndex, fpVotesValue] : boothJson["fp"].items()) {
       seatBooths[boothName]["fp"][fpCandIndex] = int(seatBooths[boothName]["fp"].value(fpCandIndex, 0)) + int(fpVotesValue);
     }
@@ -1972,6 +2207,8 @@ void Results2::Election::preloadEcsa([[maybe_unused]] nlohmann::json const& resu
       allocate2022saDeclarationVotes(seatId, seatName, adjustedSeatValue, indexToId);
       for (auto const& [boothName, boothValue] : adjustedSeatValue["booths"].items()) {
         auto voteType = getBoothVoteTypeEcsa(boothName);
+        if (boothValue.value("synthetic_category_baseline", false) && voteType != VoteType::Ordinary)
+          seats[seatId].syntheticBaselineTypes.insert(voteType);
         if (voteType != VoteType::Ordinary) {
           auto fps = boothValue["fp"];
           for (auto const& [fpCandIndex, fpVotes] : fps.items()) {
@@ -2029,6 +2266,7 @@ void Results2::Election::preloadEcsa([[maybe_unused]] nlohmann::json const& resu
         booth.parentSeat = seatId;
         booth.id = boothId;
         booth.name = boothName;
+        booth.syntheticBaseline = boothValue.value("synthetic_category_baseline", false);
         auto fps = boothValue["fp"];
         for (auto const& [fpCandIndex, fpVotes] : fps.items()) {
           int fpCandIndexI = std::stoi(fpCandIndex);
@@ -2148,7 +2386,9 @@ void Results2::Election::clearLiveCountRecords() {
   for (auto& [boothId,booth] : booths) {
     booth.fpVotes.clear(); booth.tcpVotes.clear(); booth.tcpVotesCandidate.clear(); booth.tppVotes.clear();
   }
-  invalidLiveCounts.clear(); liveCountStatus.clear(); presentLiveCounts.clear();
+  invalidLiveCounts.clear(); liveCountStatus.clear(); presentLiveCounts.clear(); liveCountStages.clear();
+  expectedLiveTcpWithdrawals.clear();
+  liveTcpBases.clear();
   sourceTime.clear();
 }
 
@@ -2558,19 +2798,29 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
   // PA_LOG_VAR(id);
 }
 
+bool Results2::Election::matchesSnapshotElection(tinyxml2::XMLDocument const& xml, Format format) const
+{
+  tinyxml2::XMLElement const* event = nullptr;
+  char const* attribute = "Id";
+  if (format == Format::QEC) {
+    // Check the same first election that the QEC count reader consumes. A
+    // matching council election elsewhere in the bundle cannot authorize it.
+    auto root = xml.FirstChildElement("ecq");
+    event = root ? root->FirstChildElement("election") : nullptr;
+    attribute = "id";
+  }
+  else if (format == Format::AEC || format == Format::VEC) {
+    auto root = xml.FirstChildElement("MediaFeed");
+    auto results = format == Format::VEC ? root : (root ? root->FirstChildElement("Results") : nullptr);
+    event = results ? results->FirstChildElement("eml:EventIdentifier") : nullptr;
+  }
+  int sourceId = -1;
+  return event && event->QueryIntAttribute(attribute, &sourceId) == tinyxml2::XML_SUCCESS && sourceId == id;
+}
+
 void Results2::Election::updateQec(tinyxml2::XMLDocument const& xml)
 {
   // This is a pure update, assumes you've already used the preload
-  const std::map<std::string, std::string> shortCodes = {
-    {"Queensland Greens", "GRN"},
-    {"Australian Labor Party (State of Queensland)", "ALP"},
-    {"The Liberal Party of Australia, New South Wales Division", "LNP"},
-    {"Pauline Hanson's One Nation Queensland Division", "ON"},
-    {"Katter's Australian Party (KAP)", "KAP"},
-    {"Family First Queensland", "FF"},
-    {"Independent", "IND"}
-  };
-
   auto const& ecq = requiredChild(xml, "ecq", "QEC results");
   sourceTime.clear();
   if (auto stamp = ecq.FirstChildElement("generationDateTime"); stamp && stamp->GetText())
@@ -2591,84 +2841,64 @@ void Results2::Election::updateQec(tinyxml2::XMLDocument const& xml)
     auto const seatContext = "QEC results/district[" + std::to_string(seat.id) + "]";
     seat.enrolment = requiredIntAttribute(*currentDistrict, "enrolment", seatContext, 0);
 
-    // Locate rounds by name: an early feed may omit the indicative count, and
-    // relying on sibling order makes that absence look like malformed XML.
-    tinyxml2::XMLElement const* fps = nullptr;
-    tinyxml2::XMLElement const* tcps = nullptr;
-    for (auto const* countRound = currentDistrict->FirstChildElement("countRound");
-      countRound; countRound = countRound->NextSiblingElement("countRound")) {
-      auto const* countName = countRound->Attribute("countName");
-      if (!countName) continue;
-      if (std::string_view(countName) == "Unofficial Preliminary Count") fps = countRound;
-      else if (std::string_view(countName) == "Unofficial Indicative Count") tcps = countRound;
-    }
-
-    auto getBoothVoteType = [](std::string boothName) {
-      if (boothName == "Mobile Polling") return VoteType::PrePoll;
-      if (boothName == "Telephone Voting") return VoteType::Telephone;
-      if (boothName == "Telephone Voting - Early Voting") return VoteType::Telephone;
-      if (boothName == "Postal Declaration Votes") return VoteType::Postal;
-      if (boothName == "In Person Declaration Votes") return VoteType::Provisional;
-      if (boothName == "Absent Election Day") return VoteType::Absent;
-      if (boothName == "Absent Early Voting") return VoteType::PrePoll;
-      return VoteType::Ordinary;
-    };
-
-    // Extract booth fp results
-    auto const* fpBooths = fps ? fps->FirstChildElement("booths") : nullptr;
-    if (fpBooths) {
-      auto currentFpBooth = fpBooths->FirstChildElement("booth");
-      for (; currentFpBooth; currentFpBooth = currentFpBooth->NextSiblingElement("booth")) {
-        if (!currentFpBooth->FirstChildElement("primaryVoteResults")) continue;
-        auto boothId = requiredIntAttribute(*currentFpBooth, "id",
-          seatContext + "/preliminary/booths/booth", 0) + seat.id * 100000;
-        if (!booths.contains(boothId)) continue; // ignore booths not in preload
-        Booth& booth = booths[boothId];
-        auto currentCandidate = currentFpBooth->FirstChildElement("primaryVoteResults")->FirstChildElement("candidate");
-        for (; currentCandidate; currentCandidate = currentCandidate->NextSiblingElement("candidate")) {
-          auto candidateName = requiredAttribute(*currentCandidate, "ballotName",
-            seatContext + "/preliminary/booths/booth/primaryVoteResults/candidate");
-          auto const candidateKey = qecCandidateKey(seat.id, candidateName);
-          if (!candidateNameToId.contains(candidateKey)) continue;
-          auto candidateId = candidateNameToId[candidateKey];
-          auto votes = readCount(currentCandidate->FirstChildElement("count"),
-            seatContext + "/preliminary/booths/booth/primaryVoteResults/candidate/count",
-            seat.id, booth.id, getBoothVoteType(booth.name), false);
-          booth.fpVotes[candidateId] = votes;
-          seat.fpVotes[candidateId][getBoothVoteType(booth.name)] += votes;
-        }
+    // Choose complete source records first, then read each chosen candidate
+    // vector once. Recovery subsequently reconciles FP and TCP independently.
+    auto const accounts = qecBoothAccounts(*currentDistrict);
+    noteQecTcpWithdrawals(*this,seat.id,accounts);
+    for (auto const& [sourceId, currentFpBooth] : accounts.fp) {
+      (void)sourceId;
+      auto boothId = requiredIntAttribute(*currentFpBooth, "id",
+        seatContext + "/preliminary/booths/booth", 0) + seat.id * 100000;
+      if (!booths.contains(boothId)) continue; // ignore booths not in preload
+      Booth& booth = booths[boothId];
+      auto currentCandidate = currentFpBooth->FirstChildElement("primaryVoteResults")->FirstChildElement("candidate");
+      noteQecCountStage(*this,*currentFpBooth,seat.id,booth.id,qecVoteType(booth.name),false);
+      for (; currentCandidate; currentCandidate = currentCandidate->NextSiblingElement("candidate")) {
+        auto candidateName = requiredAttribute(*currentCandidate, "ballotName",
+          seatContext + "/preliminary/booths/booth/primaryVoteResults/candidate");
+        auto const candidateKey = qecCandidateKey(seat.id, candidateName);
+        if (!candidateNameToId.contains(candidateKey)) continue;
+        auto candidateId = candidateNameToId[candidateKey];
+        auto votes = readCount(currentCandidate->FirstChildElement("count"),
+          seatContext + "/preliminary/booths/booth/primaryVoteResults/candidate/count",
+          seat.id, booth.id, qecVoteType(booth.name), false);
+        booth.fpVotes[candidateId] = votes;
+        seat.fpVotes[candidateId][qecVoteType(booth.name)] += votes;
       }
     }
 
-    // Extract booth tcp results
-    auto const* tcpBooths = tcps ? tcps->FirstChildElement("booths") : nullptr;
-    if (tcpBooths) {
-      auto currentTcpBooth = tcpBooths->FirstChildElement("booth");
-      for (; currentTcpBooth; currentTcpBooth = currentTcpBooth->NextSiblingElement("booth")) {
-        if (!currentTcpBooth->FirstChildElement("twoCandidateVotes")) continue;
-        auto boothId = requiredIntAttribute(*currentTcpBooth, "id",
-          seatContext + "/indicative/booths/booth", 0) + seat.id * 100000;
-        if (!booths.contains(boothId)) continue; // ignore booths not in preload
-        Booth& booth = booths[boothId];
-        auto currentCandidate = currentTcpBooth->FirstChildElement("twoCandidateVotes")->FirstChildElement("candidate");
-        for (; currentCandidate; currentCandidate = currentCandidate->NextSiblingElement("candidate")) {
-          auto candidateName = requiredAttribute(*currentCandidate, "ballotName",
-            seatContext + "/indicative/booths/booth/twoCandidateVotes/candidate");
-          auto const candidateKey = qecCandidateKey(seat.id, candidateName);
-          if (!candidateNameToId.contains(candidateKey)) continue;
-          auto candidateId = candidateNameToId[candidateKey];
-          int partyId = candidates.at(candidateId).party;
-          auto votes = readCount(currentCandidate->FirstChildElement("count"),
-            seatContext + "/indicative/booths/booth/twoCandidateVotes/candidate/count",
-            seat.id, booth.id, getBoothVoteType(booth.name), true);
-          booth.tcpVotes[partyId] = votes;
-          // Recovery and later party mapping share candidate-level accounts.
-          // Keep these alongside the older party totals in the QEC adapter.
-          booth.tcpVotesCandidate[candidateId] = votes;
-          seat.tcpVotes[partyId][getBoothVoteType(booth.name)] += votes;
-          seat.tcpVotesCandidate[candidateId][getBoothVoteType(booth.name)] += votes;
-        }
+    for (auto const& [sourceId, currentTcpBooth] : accounts.tcp) {
+      (void)sourceId;
+      auto boothId = requiredIntAttribute(*currentTcpBooth, "id",
+        seatContext + "/indicative/booths/booth", 0) + seat.id * 100000;
+      if (!booths.contains(boothId)) continue; // ignore booths not in preload
+      Booth& booth = booths[boothId];
+      auto currentCandidate = currentTcpBooth->FirstChildElement("twoCandidateVotes")->FirstChildElement("candidate");
+      noteQecCountStage(*this,*currentTcpBooth,seat.id,booth.id,qecVoteType(booth.name),true);
+      for (; currentCandidate; currentCandidate = currentCandidate->NextSiblingElement("candidate")) {
+        auto candidateName = requiredAttribute(*currentCandidate, "ballotName",
+          seatContext + "/indicative/booths/booth/twoCandidateVotes/candidate");
+        auto const candidateKey = qecCandidateKey(seat.id, candidateName);
+        if (!candidateNameToId.contains(candidateKey)) continue;
+        auto candidateId = candidateNameToId[candidateKey];
+        int partyId = candidates.at(candidateId).party;
+        auto votes = readCount(currentCandidate->FirstChildElement("count"),
+          seatContext + "/indicative/booths/booth/twoCandidateVotes/candidate/count",
+          seat.id, booth.id, qecVoteType(booth.name), true);
+        booth.tcpVotes[partyId] = votes;
+        // Recovery and later party mapping share candidate-level accounts.
+        // Keep these alongside the older party totals in the QEC adapter.
+        booth.tcpVotesCandidate[candidateId] = votes;
+        seat.tcpVotes[partyId][qecVoteType(booth.name)] += votes;
+        seat.tcpVotesCandidate[candidateId][qecVoteType(booth.name)] += votes;
       }
+      auto basis = qecTcpBasis(*currentTcpBooth,
+        std::map<int,int>(booth.tcpVotesCandidate.begin(),booth.tcpVotesCandidate.end()),[&](std::string const& candidateName) {
+        auto found = candidateNameToId.find(qecCandidateKey(seat.id,candidateName));
+        return found == candidateNameToId.end() ? -1 : found->second;
+      });
+      if (basis && basis->tcpTime <= LiveInputRecovery::canonicalTime(sourceTime))
+        liveTcpBases[countKey(seat.id,booth.id,qecVoteType(booth.name))] = std::move(*basis);
     }
 
     seats[seat.id] = seat;

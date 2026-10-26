@@ -258,6 +258,7 @@ void testRepeatedPublication(PollingProject& source) {
 nlohmann::json snapshot(std::string code, std::string simulation = "First") {
     return {{"format_version",2}, {"run",{{"snapshot_code",code},{"completed_at","2030-01-01T20:00:00+11:00"},
         {"simulation_name",simulation},{"term_code","2030fed"},{"output_set","test"}}},
+        {"live_analysis_summary",{{"projected_2pp",52.0},{"raw_2pp_deviation",-1.4}}},
         {"simulation_report",{{"seat_name",{"Example"}},
             {"seat_party_win_percent", {{{{"party_index",0},{"value",50}}}}},
             {"seat_party_mean_fp_share", {{{{"party_index",0},{"value",40}}}}}}}};
@@ -308,6 +309,25 @@ void testViewer(std::filesystem::path const& root) {
         auto presentation = waitForCompletion(viewer,generation);
         assert(presentation && !presentation->error && presentation->result->parsedRecords == parses + 1);
     }
+    // Metric changes reuse the compact history and leave the full diagnostic
+    // table available. Each graph must contain only the requested series and
+    // fit its own level, including an unchanged absolute series around 52%.
+    request.mode = LiveSnapshotViewer::Mode::Internal2pp; request.graph = true;
+    assert(viewer.submit(90,request)); auto projected = waitForCompletion(viewer,90);
+    assert(!projected->error && projected->result->graph.series.size() == 1);
+    assert(projected->result->graph.series.front().label == "Internal projected 2PP");
+    assert(projected->result->graph.yMin > 51 && projected->result->graph.yMax < 53);
+    request.internal2ppMetric = LiveSnapshotViewer::Internal2ppMetric::RawDeviation;
+    assert(viewer.submit(91,request)); auto deviation = waitForCompletion(viewer,91);
+    assert(!deviation->error && deviation->result->graph.series.size() == 1);
+    assert(deviation->result->graph.series.front().label == "Raw 2PP deviation");
+    assert(deviation->result->graph.yMax < 0);
+    request.graph = false;
+    assert(viewer.submit(92,request)); auto fullTable = waitForCompletion(viewer,92);
+    assert(!fullTable->error && fullTable->result->view.columns.size() == 20);
+    assert(fullTable->result->view.columns[1].includeInGraph && fullTable->result->view.columns[2].includeInGraph);
+    assert(fullTable->result->parsedRecords == parses + 1);
+
     // A duplicate capture is appended without rereading the old series, and
     // the existing ordering/grouping code still chooses one presentation row.
     auto duplicatePath = folder / "snapshot_20300101200000__duplicate.json";

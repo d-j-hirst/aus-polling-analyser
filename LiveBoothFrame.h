@@ -69,6 +69,7 @@ private:
 	void OnSeatSelected(wxCommandEvent& event);
 	void OnShadingSelected(wxCommandEvent& event);
 	void OnLayoutSelected(wxCommandEvent& event);
+	void OnInternal2ppMetricSelected(wxCommandEvent& event);
 	void OnVerticalScroll(wxScrollEvent& event);
 	void OnHorizontalScroll(wxScrollEvent& event);
 
@@ -137,6 +138,8 @@ private:
 	wxComboBox* shadingComboBox = nullptr;
 	wxStaticText* layoutLabel = nullptr;
 	wxComboBox* layoutComboBox = nullptr;
+	wxStaticText* internal2ppMetricLabel = nullptr;
+	wxComboBox* internal2ppMetricComboBox = nullptr;
 
 	wxPanel* dcPanel = nullptr;
 	wxScrollBar* verticalScroll = nullptr;
@@ -160,6 +163,16 @@ private:
 	LiveSnapshot::ParliamentView categoryStatTableView;
 	LiveSnapshot::ParliamentView categoryStatGraphView;
 	LiveSnapshot::ParliamentView internal2ppView;
+	LiveSnapshotViewer::Internal2ppMetric internal2ppMetric = LiveSnapshotViewer::Internal2ppMetric::Projected;
+	// Each aggregate graph remembers its own filter across view changes.
+	struct PartyGraphSelection {
+		std::vector<LiveSnapshot::ThresholdPartyOption> parties;
+		int party = 0;
+		bool allParties = true;
+	};
+	PartyGraphSelection expectationSelection, voteShareSelection;
+	PartyGraphSelection& partySummarySelection();
+	bool isPartySummaryMode() const;
 	std::vector<LiveSnapshot::ThresholdPartyOption> thresholdParties;
 	std::vector<LiveSnapshot::ThresholdPartyOption> seatWinParties;
 	std::vector<LiveSnapshot::ThresholdPartyOption> seatFpParties;

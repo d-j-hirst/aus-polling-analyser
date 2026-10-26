@@ -15,6 +15,7 @@ public:
     enum class Mode { NodeInspector, Parliament, SeatExpectations, SeatThresholds,
         Tpp, VoteShares, SeatWinChance, SeatFp, FpCounted, TppSwingBasis,
         TcpSwingBasis, BoothTypeBias, VoteTypeBias, Internal2pp };
+    enum class Internal2ppMetric { Projected, RawDeviation };
     struct Request {
         std::filesystem::path directory;
         std::string simulationName, outputSet;
@@ -26,6 +27,7 @@ public:
         int party = 0;
         std::string seat, filename;
         LiveSnapshot::CategoryStatistic categoryStatistic = LiveSnapshot::CategoryStatistic::Bias;
+        Internal2ppMetric internal2ppMetric = Internal2ppMetric::Projected;
     };
     struct Presentation {
         LiveSnapshot::LoadResult metadata;
@@ -53,6 +55,8 @@ private:
     void refreshRecords(Request const& request, std::vector<std::filesystem::path> const& files, bool replaceInventory);
     Presentation metadataFor(Request const& request) const;
     void buildView(Request& request, Presentation& result) const;
+    void preparePartySummary(Request& request, Presentation& result) const;
+    void prepareInternal2pp(Request const& request, Presentation& result) const;
     void buildGraph(Request const& request, Presentation& result) const;
     std::string seriesKey;
     LiveSnapshot::LoadResult history;

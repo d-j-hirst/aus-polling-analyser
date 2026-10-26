@@ -2,6 +2,7 @@
 
 #include "json.h"
 #include "TurnoutModel.h"
+#include "LivePartialCount.h"
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -17,6 +18,10 @@
 namespace LiveInputRecovery {
 using Counts = std::map<int, int>;
 enum class Status { Current, Restored, Unavailable };
+// A count's source stage survives recovery independently of its observation
+// clock. Most feeds do not identify stages; only an explicit later count round
+// can establish that a recheck has priority over a preliminary account.
+enum class CountStage { Unspecified, Preliminary, Rechecked };
 // These are count-comparability allowances, not likelihood thresholds. Small
 // asynchronous rechecking differences can be genuine. Ordinary booths normally
 // report complete pairs; declaration batches and OPV exhaustion behave differently.
@@ -28,9 +33,18 @@ struct CountMetadata {
     Status status = Status::Unavailable;
     std::string observedAt;
     bool available = false, complete = false;
+    CountStage stage = CountStage::Unspecified;
     bool fresh() const { return available && status == Status::Current; }
 };
 using RecordStatuses = std::map<std::string,std::pair<CountMetadata,CountMetadata>>;
+
+// Use the effective records' stages, including restored records' original
+// stages. A newer source's official label cannot promote preliminary fallback
+// counts. Count reconciliation remains the consuming model's responsibility.
+inline bool explicitlyRecheckedPair(CountMetadata const& fp, CountMetadata const& tcp) {
+    return fp.available && tcp.available && fp.stage == CountStage::Rechecked
+        && tcp.stage == CountStage::Rechecked;
+}
 
 struct Count {
     std::optional<Counts> votes;
@@ -38,14 +52,19 @@ struct Count {
     std::string observedAt;
     std::string error;
     bool complete = false; // Validated ordinary/PPVC completion, or explicit closure.
+    CountStage stage = CountStage::Unspecified;
     bool fresh() const { return status == Status::Current && votes.has_value(); }
-    CountMetadata metadata() const { return {status,observedAt,votes.has_value(),complete}; }
+    CountMetadata metadata() const { return {status,observedAt,votes.has_value(),complete,stage}; }
 };
 // A matched preference batch retains measured integer accounts and their
 // original observation times. It contains no fitted flow or forecast values.
 struct PreferenceCohort {
     Counts fp, tcp;
     std::string fpTime, tcpTime;
+    LivePartialCount::Transfers transfers;
+    // Preserve explicit recheck status with this pair. An unrelated later FP
+    // stage cannot certify old TCP, or erase a previously reconciled recheck.
+    bool recheckedReconciledPair = false;
 };
 struct Record {
     std::string key, district, name, role, identity;
@@ -54,7 +73,24 @@ struct Record {
     double expected = 0;
     bool closed = false;
     std::optional<PreferenceCohort> matchedPreferences;
+    // Original FP/transfer account belonging to the current TCP. Unlike the
+    // most recent useful flow measurement, this must follow an unchanged TCP
+    // through later FP revisions and source withdrawal/recovery.
+    std::optional<PreferenceCohort> tcpBasis;
+    // Source-only publication status, never inherited from cached counts.
+    // ECQ withdraws indicative TCP while official rechecking is in progress.
+    bool expectedTcpWithdrawal = false;
 };
+inline bool hasCurrentTcpBasis(Record const& record) {
+    if (!record.tcpBasis || !record.fp.votes || !record.tcp.votes || record.closed ||
+        LivePartialCount::total(*record.fp.votes) <= 0) return false;
+    auto const& basis = *record.tcpBasis;
+    if (basis.tcp != *record.tcp.votes || basis.fp.size() != record.fp.votes->size() ||
+        !LivePartialCount::validBasis({basis.fp,basis.tcp,basis.transfers})) return false;
+    for (auto const& [candidate,votes] : basis.fp)
+        if (!record.fp.votes->contains(candidate)) return false;
+    return true;
+}
 struct District {
     double enrolment = 0;
     bool finalised = false;
@@ -80,6 +116,7 @@ struct Snapshot {
 // comparable earlier account, not the sequence of parsed source documents.
 struct PreferenceHistory {
     std::optional<PreferenceCohort> matchingCurrentTcp, previousAligned;
+    std::optional<PreferenceCohort> tcpBasis;
 };
 using PreferenceHistories = std::map<std::string,PreferenceHistory>;
 PreferenceHistories loadPreferenceHistory(std::filesystem::path const& folder,
@@ -122,10 +159,15 @@ Result recover(Snapshot current, std::optional<Snapshot> const& previous,
     CountHistoryLookup const& history = {});
 bool fpFits(Record const& record, Count const& count, double enrolment);
 bool tcpFits(Record const& record, Count const& count, bool optionalPreferential);
-// A temporary FP reset is established only by a contradictory current pair and
-// a larger earlier accepted FP account with usable preferences. A lower pair
-// that reconciles passes through normally; this is not a monotonic-count rule.
+// A temporary FP reset needs a larger earlier accepted account. A contradiction
+// within finalist primaries can also hold a coherent older pair when neither
+// current count has a clear source-stage advantage. Reconciled corrections
+// still pass through; this is not a monotonic-count rule.
 bool reconciliationNeeded(Record const& record, bool optionalPreferential);
+// A candidate-level contradiction can require a hold even when the aggregate
+// FP count did not fall. This also controls whether older joint history is useful.
+bool tcpContradictsPrimaries(Record const& record, bool optionalPreferential);
+bool recheckHasPriority(Record const& record, Record const& previous);
 bool reconciliationFits(Record const& record, Record const& previous,
     double enrolment, bool optionalPreferential);
 // Only checked current measurements can refresh the counting clock. A group

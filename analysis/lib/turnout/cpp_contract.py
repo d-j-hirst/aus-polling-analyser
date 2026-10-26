@@ -18,7 +18,8 @@ def unit_rows(units):
                  category=late_counts.category_key(u), kind=u['kind'], weight=u['weight'],
                  counted=u['counted'], matched=u['matched'], eav=live.is_eav(u),
                  closed=bool(u.get('closed_reason')), excluded=bool(u.get('calibration_exclusion_reason')),
-                 closure_reason=u.get('closed_reason') or '', exclusion_reason=u.get('calibration_exclusion_reason') or '')
+                 closure_reason=u.get('closed_reason') or '', exclusion_reason=u.get('calibration_exclusion_reason') or '',
+                 transfer_exclusion_reason=u.get('transfer_exclusion_reason') or '')
             for u in units]
 
 
@@ -70,6 +71,7 @@ def artifact(election, inputs, parameters, draws, units, history, provenance, *,
 def expected(election, inputs, draws, units, history, *, count_draws=8, seed=20261002,
              finalised=(), ppvc_factor=1., postal_deadline=None):
     """Prepare the Python reference account on the C++ quantile grid."""
+    inputs = dict(inputs, election_code=election)
     broad = live.update(draws,inputs,units,finalised_seats=finalised,unreported_ppvc_factor=ppvc_factor)
     subdivisions = dict(zip(inputs['seat_names'],inputs.get('subdivisions',[None]*len(inputs['seat_names']))))
     deadline = late_schedule.RECEIPT_DEADLINES.get(election)
@@ -92,11 +94,15 @@ def expected(election, inputs, draws, units, history, *, count_draws=8, seed=202
             capacity=prepared['unused_capacity'][:,k].tolist(), reference=prepared['reference_additions'][:,k].tolist(),
             reference_odds=prepared['reference_log_odds'][:,k].tolist(),small_odds=prepared['small_log_odds'][:,k].tolist(),
             batch_odds=prepared['batch_log_odds'][:,k].tolist()))
+    direct_groups = allocation._groups_with_booths(units)
     return dict(broad_totals=broad['totals'].tolist(),broad_counts=broad['counts'].reshape(len(draws['totals']),-1).tolist(),
         remaining=broad['remaining'].tolist(),own_remaining=broad['own_remaining'].tolist(),
+        transfer_probability=broad['transfer_probability'].tolist(),transfer_selected=broad['transfer_selected'].tolist(),
         balanced_remaining_means=balanced_means.tolist(),allocation_weight=weights.tolist(),
         allocation_evidence=[grouped.get((u['seat_name'],'Postal' if u['group']=='postal' else 'allocation:'+u['group']),0.)
-                             if u['kind']=='declaration' and not broad['complete'][j] else 0. for j,u in enumerate(units)],
+                             if u['kind']=='declaration' and not broad['complete'][j]
+                             and (u['seat_index'],u['group_index']) not in direct_groups
+                             else 0. for j,u in enumerate(units)],
         totals=result['totals'].tolist(),
         counts=result['counts'].reshape(len(result['totals']),-1).tolist(),unit_means=result['unit_means'].tolist(),
         no_addition_probability=result['no_addition_probability'].tolist(),mean_totals=late_counts.prediction_mean(result).tolist(),

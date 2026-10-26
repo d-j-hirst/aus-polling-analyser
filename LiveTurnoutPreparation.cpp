@@ -168,13 +168,14 @@ TurnoutCompositionInputs collectTurnoutComposition(std::vector<LiveV2::Seat> con
             unit.projectedFp = booth.node.fpVotesProjected; unit.projectedTpp = booth.node.tppVotesProjected; unit.projectedTcp = booth.node.tcpVotesProjected;
             for (auto const& [p, v] : booth.node.fpVotesCurrent) if (v > 0) { unit.fp[mapParty(p)] += v; input.fp[mapParty(p)] += v; }
             bool classic = hasClassicPair(booth.node.tcpVotesCurrent, natPartyIndex);
-            for (auto const& [p, v] : booth.node.tcpVotesCurrent) if (v > 0) {
+            auto bounds = booth.tcpLowerBounds();
+            for (auto const& [p, v] : bounds) if (v > 0) {
                 if (classic) { unit.tpp[p == natPartyIndex ? 1 : p] += v; input.tpp[p == natPartyIndex ? 1 : p] += v; }
                 else if (!seat.node.tcpVotesProjected.empty()) unit.tcp[mapParty(p)] += v;
+                input.tcp[mapParty(p)] += v;
             }
             unitInputs.push_back(std::move(unit));
         }
-        for (auto const& [p, v] : seat.node.tcpVotesCurrent) if (v > 0) input.tcp[mapParty(p)] += v;
         if (std::abs(total(input.projectedFp) - expected) > std::max(.001, expected * 1e-6))
             throw std::runtime_error("Turnout FP account does not reconcile in " + seat.name);
         inputs.projections.push_back({{"seat",seat.name},{"counted_fp",seat.node.totalFpVotesCurrent()},
@@ -296,8 +297,10 @@ void refreshPairBoothProgress(std::vector<LiveV2::Booth>& booths,
         auto& booth = booths[b]; auto& n = booth.node;
         double expected = countAccount.fpTarget(b);
         bool classic = hasClassicPair(n.tcpVotesCurrent, natPartyIndex) && n.totalTcpVotesCurrent() > 0;
-        double pairExpected = LiveTurnoutMath::pairTarget(expected, n.totalFpVotesCurrent(), n.totalTcpVotesCurrent());
-        float pairProgress = float(LiveTurnoutMath::completion(n.totalTcpVotesCurrent(), pairExpected));
+        double measured = n.totalTcpVotesCurrent();
+        if (booth.hasTcpRevision()) measured = total(booth.tcpLowerBounds());
+        double pairExpected = LiveTurnoutMath::pairTarget(expected, n.totalFpVotesCurrent(), measured);
+        float pairProgress = float(LiveTurnoutMath::completion(measured, pairExpected));
         n.tcpCompletion = pairProgress;
         n.tppCompletion = classic ? pairProgress : 0;
         if (classic) n.tppConfidence = pairProgress;
@@ -375,7 +378,7 @@ float LiveV2::Election::turnoutFpTarget(int boothIndex) const {
 float LiveV2::Election::turnoutPairTarget(int boothIndex) const {
     auto const& booth = readBooths().at(boothIndex);
     return float(LiveTurnoutMath::pairTarget(turnout->fpTarget(boothIndex),
-        booth.node.totalFpVotesCurrent(), booth.node.totalTcpVotesCurrent()));
+        booth.node.totalFpVotesCurrent(), booth.hasTcpRevision() ? booth.node.totalFpVotesCurrent() : booth.node.totalTcpVotesCurrent()));
 }
 
 std::optional<LiveData::VoteCountAccount> LiveV2::Election::getSeatVoteCountAccount(

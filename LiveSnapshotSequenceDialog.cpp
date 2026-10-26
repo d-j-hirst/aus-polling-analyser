@@ -1,6 +1,8 @@
 #include "LiveSnapshotSequenceDialog.h"
 
 #include "LiveSnapshotData.h"
+#include <wx/clipbrd.h>
+#include <wx/dataobj.h>
 #include <wx/dirdlg.h>
 #include <wx/spinctrl.h>
 
@@ -62,6 +64,7 @@ LiveSnapshotSequenceDialog::LiveSnapshotSequenceDialog(wxWindow* parent,
 
     folderInput->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { scan(); });
     sequenceInput->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { preview(); });
+    sequenceInput->Bind(wxEVT_TEXT_PASTE, &LiveSnapshotSequenceDialog::pasteSequence, this);
     add->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { addSelected(); });
     availableList->Bind(wxEVT_LISTBOX_DCLICK, [this](wxCommandEvent&) { addSelected(); });
     next->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { addNext(); });
@@ -82,8 +85,27 @@ LiveSnapshotSequence::Settings LiveSnapshotSequenceDialog::selection() const {
     defaultSettings.folder.clear();
     selected.folder = path.lexically_normal() == LiveSnapshotSequence::directory(root, defaultSettings).lexically_normal()
         ? "" : LiveSnapshotSequence::portableFolder(root, path);
-    selected.codes = LiveSnapshotSequence::parseCodes(sequenceInput->GetValue().ToStdString());
+    selected.codes = LiveSnapshotSequence::parseCodes(sequenceInput->GetValue().ToStdString(wxConvUTF8));
     return selected;
+}
+
+void LiveSnapshotSequenceDialog::pasteSequence(wxClipboardTextEvent& event) {
+    // Normal typing and SetValue already use wxWidgets' native newline
+    // conversion. Windows' default paste bypasses it: lone LF stays in the
+    // value (so parsing works) but displays without a line break. Read text
+    // without changing the clipboard, then insert through the same converted
+    // path as other edits. WriteText replaces only the selection, retains undo
+    // and emits the normal text event to refresh the resolved sequence.
+    wxString text;
+    {
+        wxClipboardLocker clipboard;
+        if (!clipboard) { event.Skip(); return; }
+        wxTextDataObject data;
+        if (!wxTheClipboard->GetData(data)) { event.Skip(); return; }
+        text = data.GetText();
+    }
+    sequenceInput->WriteText(wxString::FromUTF8(
+        LiveSnapshotSequence::normalizeCodeLineEndings(text.ToStdString(wxConvUTF8))));
 }
 
 void LiveSnapshotSequenceDialog::scan(bool notifyError) {
@@ -121,7 +143,7 @@ void LiveSnapshotSequenceDialog::preview() {
         return;
     }
     try {
-        auto codes = LiveSnapshotSequence::parseCodes(sequenceInput->GetValue().ToStdString());
+        auto codes = LiveSnapshotSequence::parseCodes(sequenceInput->GetValue().ToStdString(wxConvUTF8));
         auto selected = LiveSnapshotSequence::resolve(available, codes);
         std::string text;
         for (auto const& file : selected)
@@ -142,7 +164,7 @@ void LiveSnapshotSequenceDialog::addSelected() {
     int index = availableList->GetSelection();
     if (index == wxNOT_FOUND) return;
     try {
-        auto codes = LiveSnapshotSequence::parseCodes(sequenceInput->GetValue().ToStdString());
+        auto codes = LiveSnapshotSequence::parseCodes(sequenceInput->GetValue().ToStdString(wxConvUTF8));
         LiveSnapshotSequence::insertCode(available, codes, *available.at(std::size_t(index)).timestamp);
         sequenceInput->SetValue(wxString::FromUTF8(LiveSnapshotSequence::codeText(codes)));
     }
@@ -153,7 +175,7 @@ void LiveSnapshotSequenceDialog::addNext() {
     // Expand the shortcut now, rather than at replay time, so newly received
     // files cannot silently extend or alter an already saved sequence.
     try {
-        auto codes = LiveSnapshotSequence::parseCodes(sequenceInput->GetValue().ToStdString());
+        auto codes = LiveSnapshotSequence::parseCodes(sequenceInput->GetValue().ToStdString(wxConvUTF8));
         LiveSnapshotSequence::appendNext(available, codes, std::size_t(nextCount->GetValue()));
         sequenceInput->SetValue(wxString::FromUTF8(LiveSnapshotSequence::codeText(codes)));
     }

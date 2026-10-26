@@ -24,10 +24,113 @@ std::vector<LivePreferenceCorrections::Observation> exampleSeat() {
     rows.push_back({24, 18000, 8000, 6000, 2600, 200, true});
     return rows;
 }
+
+void checkRetainedPairProtection() {
+    using namespace LivePreferenceCorrections;
+    using namespace LivePartialCount;
+    // Cooper's 26 October 2024 23:01 matched accounts. The PPVC later gained
+    // only 25 FP votes while retaining its erroneous TCP. Previously that
+    // small revision removed its roughly 1,417-vote outlier correction.
+    std::vector<Observation> rows{
+        {520,6927,2508,2529,1729,180,true}, // Returning Officer Cooper
+        {521,1141,410,357,334,323,false}, {522,1070,447,303,278,268,false},
+        {523,1061,429,378,224,206,false}, {524,595,219,191,168,155,false},
+        {526,934,328,289,297,280,false}, {527,1184,519,346,276,264,false},
+        {528,903,352,272,265,247,false}, {529,339,125,71,122,127,false},
+        {530,5184,2017,1908,1057,1007,true}, {531,378,178,112,77,72,false},
+        {532,847,259,316,251,232,false}, {533,1268,493,344,385,366,false},
+        {534,595,222,174,188,181,false}, {535,1233,521,328,344,325,false}};
+    TcpBasis basis{{{0,2508},{1,2529},{2,1729},{4,102},{7,59}},{{0,2688},{1,4239}},{}};
+    Counts revisedFp{{0,2516},{1,2542},{2,1733},{4,102},{7,59}};
+    auto before = prepare(rows).front();
+    assert(before.broadProbability > .999 && before.peers == 14);
+    assert(before.expectedRevision > 1400 && before.expectedRevision < 1430);
+    auto matched = matchedCounts(basis.fp,basis.tcp,nullptr,false);
+    assert(matched && !matched->retainedBasis && !matched->limits(0,1,basis.fp));
+    // A current official label must not certify the retained preliminary pair.
+    auto retained = matchedCounts(revisedFp,basis.tcp,&basis,true);
+    assert(retained && retained->retainedBasis && !retained->recheckedReconciledPair);
+    assert(retained->fp == basis.fp && retained->tcp == basis.tcp);
+    auto& row = rows.front();
+    row.formal = total(retained->fp); row.fpA = retained->fp.at(0); row.fpB = retained->fp.at(1);
+    row.otherParty = retained->fp.at(2); row.gainA = retained->tcp.at(0)-row.fpA;
+    row.recheckedReconciledPair = retained->recheckedReconciledPair;
+    row.revisionLimits = retained->limits(0,1,revisedFp);
+    auto after = prepare(rows).front();
+    assert(after.expectedRevision == before.expectedRevision);
+    assert(after.broadProbability == before.broadProbability);
+    assert(after.revisionLower == -180 && after.revisionUpper == 1710);
+
+    // The correction must reach both scenario accounts. The four changed
+    // non-finalist votes still have their independent revision uncertainty;
+    // a preference correction neither adds voters nor changes that allowance.
+    Flows flows{{0,1},{1,0},{2,.85},{4,.4},{7,.5}};
+    auto distribution = compress({after},123);
+    for (std::uint64_t seed=0; seed<200; ++seed) {
+        auto revised = reviseTcp(revisedFp,basis.tcp,basis,flows,0,0,1,double(seed%7)-3);
+        assert(revised && revised->uncertainVotes() == 4);
+        auto counted = retained->guaranteed;
+        std::map<int,double> projected{{0,revised->first},{1,revised->votes-revised->first}};
+        auto additionsA = projected.at(0)-counted.at(0), additionsB = projected.at(1)-counted.at(1);
+        transfer(counted,projected,0,1,draw(distribution,seed));
+        assert(counted.at(0) >= revisedFp.at(0) && counted.at(1) >= revisedFp.at(1));
+        assert(std::abs(projected.at(0)+projected.at(1)-6952) < 1e-8);
+        assert(std::abs(projected.at(0)-counted.at(0)-additionsA) < 1e-8);
+        assert(std::abs(projected.at(1)-counted.at(1)-additionsB) < 1e-8);
+    }
+    assert(basis.tcp.at(0) == 2688 && revisedFp.at(0) == 2516);
+
+    // Candidate revisions can preserve the total yet invalidate the current
+    // pairing. Continue to use the original mix; a corrected new TCP supersedes it.
+    auto equalTotal = basis.fp; equalTotal.at(0) += 300; equalTotal.at(1) -= 300;
+    auto sameSize = matchedCounts(equalTotal,basis.tcp,&basis,false);
+    assert(sameSize && sameSize->fp.at(0) == 2508);
+    Counts newTcp{{0,4144},{1,2808}};
+    assert(!matchedCounts(revisedFp,newTcp,&basis,false));
+    auto official = matchedCounts(revisedFp,newTcp,nullptr,true);
+    assert(official && official->recheckedReconciledPair && !official->retainedBasis);
+    assert(!matchedCounts(revisedFp,basis.tcp,nullptr,false));
+    auto changedRoster = revisedFp; changedRoster.erase(7);
+    assert(!matchedCounts(changedRoster,basis.tcp,&basis,false));
+
+    // Large removals cannot leave the old pool free to move votes that have
+    // disappeared. Clip moments and actual draws identically to the surviving
+    // guaranteed preferences; bounds are symmetric when finalists are reversed.
+    auto reducedFp = revisedFp; reducedFp.at(2) -= 500;
+    auto reduced = matchedCounts(reducedFp,basis.tcp,&basis,false);
+    assert(reduced);
+    row.revisionLimits = reduced->limits(0,1,reducedFp);
+    auto reverse = reduced->limits(1,0,reducedFp);
+    assert(reverse->lower == -row.revisionLimits->upper && reverse->upper == -row.revisionLimits->lower);
+    auto limited = prepare(rows).front();
+    assert(limited.expectedRevision < after.expectedRevision);
+    auto limitedDistribution = compress({limited},234);
+    for (std::uint64_t seed=0; seed<200; ++seed) {
+        double change = draw(limitedDistribution,seed);
+        assert(change >= row.revisionLimits->lower && change <= row.revisionLimits->upper);
+    }
+    reducedFp.at(2) = reducedFp.at(4) = reducedFp.at(7) = 0;
+    auto emptyPool = matchedCounts(reducedFp,basis.tcp,&basis,false);
+    assert(emptyPool);
+    row.revisionLimits = emptyPool->limits(0,1,reducedFp);
+    auto none = prepare(rows).front();
+    assert(none.expectedRevision == 0 && none.revisionSecondMoment == 0);
+    assert(draw(compress({none},345),1) == 0);
+
+    // A previously verified pair keeps its own recheck protection through a
+    // subsequent revision, even when the current metadata lacks that status.
+    basis.recheckedReconciledPair = true;
+    auto verified = matchedCounts(revisedFp,basis.tcp,&basis,false);
+    assert(verified && verified->recheckedReconciledPair);
+    row.revisionLimits = verified->limits(0,1,revisedFp);
+    row.recheckedReconciledPair = verified->recheckedReconciledPair;
+    assert(prepare(rows).front().broadProbability == 0);
+}
 }
 
 int main() {
     using namespace LivePreferenceCorrections;
+    checkRetainedPairProtection();
     assert(prepare({}).empty());
     assert(draw(compress({}, 1), 2) == 0);
     auto rows = exampleSeat();
@@ -38,6 +141,23 @@ int main() {
     assert(outlier.peers == 24 && outlier.discrepancy > 5);
     assert(outlier.broadProbability > .95 && outlier.fraction > .95);
     assert(outlier.expectedRevision > 1500);
+    // An explicit reconciled recheck keeps its measured flow even when the
+    // regression strongly disagrees. It still trains every other booth's fit.
+    auto recheckedRows = rows;
+    recheckedRows.back().recheckedReconciledPair = true;
+    auto rechecked = prepare(recheckedRows);
+    assert(rechecked.back().directedCorrectionSuppressed);
+    assert(rechecked.back().broadProbability == 0);
+    assert(rechecked.back().routineProbability > 0 && rechecked.back().backgroundProbability > 0);
+    assert(rechecked.back().routineScale == outlier.routineScale);
+    assert(rechecked.back().backgroundScale == outlier.backgroundScale);
+    assert(std::abs(rechecked.back().expectedRevision) < outlier.expectedRevision / 10);
+    for (std::size_t i=0; i+1<rows.size(); ++i) {
+        assert(rechecked[i].prediction == mixtures[i].prediction);
+        assert(rechecked[i].broadProbability == mixtures[i].broadProbability);
+    }
+    recheckedRows.back().recheckedReconciledPair = false;
+    assert(prepare(recheckedRows).back().expectedRevision == outlier.expectedRevision);
     for (auto const& mixture : mixtures) {
         assert(mixture.broadProbability >= 0 && mixture.routineProbability >= 0 && mixture.backgroundProbability > 0);
         assert(mixture.broadProbability + mixture.backgroundProbability + mixture.routineProbability <= 1 + 1e-12);

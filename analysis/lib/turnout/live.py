@@ -2,7 +2,8 @@
 
 This research updater estimates additions to counted votes. Reported ordinary
 booths are complete; declaration counts are lower bounds. It deliberately
-does not learn a downward district-total change from early reporting booths.
+does not infer a common size change from early reporting booths. District totals
+follow the measured booths plus the estimates for unfinished services.
 Unreported booths retain size-based estimates rather than inheriting an entire
 category shortfall. Reliable larger PPVCs allow conservative compensation.
 The bounded marginal conditioning below is an approximation, not a fitted
@@ -17,7 +18,7 @@ from scipy.special import log_ndtr, ndtri_exp
 from lib.turnout import prior
 
 
-MODEL_VERSION = 'live-counts-6'
+MODEL_VERSION = 'live-counts-8'
 
 # These are prediction slopes in log odds, not correlations or fractions of a
 # vote-count deficit. Federal 2025 reliable matches give 95% district-bootstrap
@@ -305,7 +306,6 @@ def _adjust_expected_sizes(work, units, changes, compensation, compensation_orde
     complete = work.complete
     weights = np.array([u['weight'] for u in units])
     expected = group_prior[:, seat_indices, group_indices] * weights
-    original_expected = expected.copy()
     starting = eav_starting_counts(expected, units)
     if compensation_order not in ('before_pool', 'after_pool'):
         raise ValueError('Choose compensation before_pool or after_pool.')
@@ -335,7 +335,7 @@ def _adjust_expected_sizes(work, units, changes, compensation, compensation_orde
         parent = roll[seat_indices[selected]]
         expected[:, selected] = parent * prior.rate_percent(
             prior.rate_log_odds(100 * expected[:, selected] / parent) + np.log(unreported_ppvc_factor)) / 100
-    work.expected, work.original_expected, work.shifts = expected, original_expected, shifts
+    work.expected, work.shifts = expected, shifts
 
 
 def _condition_unit_additions(work):
@@ -347,17 +347,14 @@ def _condition_unit_additions(work):
     expected = work.expected
     counted = work.counted
     complete = work.complete
-    totals = work.totals
-    total_prior = work.total_prior
     seat_indices = work.seat_indices
     additions = expected.copy()
     partial = ~complete & (counted > 0)
     if partial.any():
-        parent = totals[:, seat_indices[partial]]
-        # Use the immutable expected share of the original parent. Introducing
-        # a changed parent in this starting share could make a prior unit exceed
-        # its parent before the counted lower-bound calculation even begins.
-        share = expected[:, partial] / total_prior[:, seat_indices[partial]]
+        # Retain the original share and existing counted lower-bound update.
+        # The conditioned parent is not a budget that these services must fill.
+        parent = work.totals[:, seat_indices[partial]]
+        share = expected[:, partial] / work.total_prior[:, seat_indices[partial]]
         conditional = condition_share_above(share, counted[partial] / parent)
         additions[:, partial] = parent * conditional - counted[partial]
     additions[:, complete] = 0
@@ -367,13 +364,11 @@ def _condition_unit_additions(work):
 def _condition_group_additions(work, units):
     """Condition historically supported combined groups above their current counts.
 
-    Booth-only groups instead use their unfinished booths' own sizes. Combined
-    groups keep aggregate history when no defensible finer division exists.
+    Groups containing booths use each unfinished service's own size.
+    Declaration-only groups retain their aggregate history and internal split.
     """
     seats = work.seats
     group_prior = work.group_prior
-    total_prior = work.total_prior
-    totals = work.totals
     counted = work.counted
     complete = work.complete
     seat_indices = work.seat_indices
@@ -382,79 +377,75 @@ def _condition_group_additions(work, units):
     group_columns = {}
     group_counted = np.zeros(group_prior.shape[1:])
     group_open = np.zeros(group_prior.shape[1:], dtype=bool)
-    pure_booth_group = np.zeros(group_prior.shape[1:], dtype=bool)
+    has_booths = np.zeros(group_prior.shape[1:], dtype=bool)
     for seat in range(seats):
         for group in range(group_prior.shape[2]):
             columns = (seat_indices == seat) & (group_indices == group)
             group_columns[seat, group] = columns
             group_counted[seat, group] = counted[columns].sum()
             group_open[seat, group] = (~complete[columns]).any()
-            pure_booth_group[seat, group] = columns.any() and booth_kind[columns].all()
-    # SA's early/remaining groups mix booths with declarations because the old
-    # election has no defensible finer splits. Keep those aggregate estimates.
-    # Federal ordinary and ordinary-prepoll groups have actual booth support,
-    # so they instead use the expected sizes of their remaining centres.
+            has_booths[seat, group] = booth_kind[columns].any()
+    # Keep aggregate conditioning for declaration-only groups. A historically
+    # combined booth/declaration group instead uses its services' own sizes,
+    # including their existing joint uncertainty. A booth shortfall is not
+    # evidence for additional provisional/telephone/early-absent voters.
     aggregate_additions = np.zeros_like(group_prior)
     for group in range(group_prior.shape[2]):
-        active = group_open[:, group] & ~pure_booth_group[:, group]
+        active = group_open[:, group] & ~has_booths[:, group]
         if active.any():
-            conditional = condition_share_above(group_prior[:, active, group] / total_prior[:, active],
-                                                group_counted[active, group] / totals[:, active])
-            aggregate_additions[:, active, group] = totals[:, active] * conditional - group_counted[active, group]
+            conditional = condition_share_above(group_prior[:, active, group] / work.total_prior[:, active],
+                                                group_counted[active, group] / work.totals[:, active])
+            aggregate_additions[:, active, group] = work.totals[:, active] * conditional - group_counted[active, group]
     work.booth_kind, work.group_columns = booth_kind, group_columns
-    work.group_open, work.pure_booth_group = group_open, pure_booth_group
+    work.group_open, work.has_booths = group_open, has_booths
     work.aggregate_additions = aggregate_additions
 
 
 def _allocate_remaining_votes(work, units):
-    """Share the remaining district total between booth and declaration estimates.
+    """Keep service estimates without forcing them to fill a district shortfall.
 
-    Completed services retain exactly their counted votes. Unfinished services
-    compete for a finite total, using their own size estimates as weights.
+    Declaration-only groups retain their supported aggregate and internal split.
+    Physical-booth and mixed groups retain each unfinished service's own size.
+    District totals are rebuilt afterwards, preserving the original joint draws.
     """
-    samples = work.samples
-    seats = work.seats
-    additions = work.additions
-    original_expected = work.original_expected
-    seat_indices = work.seat_indices
-    group_indices = work.group_indices
-    group_prior = work.group_prior
-    complete = work.complete
-    count_complete = work.count_complete
-    booth_kind = work.booth_kind
-    group_columns = work.group_columns
-    group_open = work.group_open
-    pure_booth_group = work.pure_booth_group
-    aggregate_additions = work.aggregate_additions
-    totals_remaining = work.totals - work.seat_counted
-    remaining = np.zeros_like(additions)
-    for seat in range(seats):
-        if count_complete[seat]:
+    remaining = np.zeros_like(work.additions)
+    for seat in range(work.seats):
+        if work.count_complete[seat]:
             continue
-        direct = (seat_indices == seat) & ~complete & pure_booth_group[seat, group_indices]
-        booth_amount = additions[:, direct].sum(axis=1)
-        aggregate_amount = aggregate_additions[:, seat].sum(axis=1)
-        base_booth_amount = original_expected[:, direct].sum(axis=1)
-        if ((base_booth_amount + aggregate_amount) <= 0).any():
+        supported = any(u['seat_index'] == seat and not work.complete[j] and u['weight'] > 0
+                        for j, u in enumerate(units))
+        if not supported:
             raise ValueError('An unfinished district has no supported remaining units.')
-        booth_budget, aggregate_budget = reserve_booths(base_booth_amount, booth_amount, aggregate_amount,
-                                                       totals_remaining[:, seat])
-        scale = np.divide(booth_budget, booth_amount, out=np.zeros(samples), where=booth_amount > 0)
-        remaining[:, direct] = additions[:, direct] * scale[:, None]
-        for group in range(group_prior.shape[2]):
-            if pure_booth_group[seat, group] or not group_open[seat, group]:
+        for group in range(work.group_prior.shape[2]):
+            columns = work.group_columns[seat, group]
+            if not work.group_open[seat, group]:
                 continue
-            budget = aggregate_budget * np.divide(aggregate_additions[:, seat, group], aggregate_amount,
-                                                   out=np.zeros(samples), where=aggregate_amount > 0)
-            columns = group_columns[seat, group] & ~complete
-            booths, declarations = columns & booth_kind, columns & ~booth_kind
-            b, d = additions[:, booths].sum(axis=1), additions[:, declarations].sum(axis=1)
-            base = original_expected[:, booths].sum(axis=1)
-            b_budget, d_budget = reserve_booths(base, b, d, budget)
-            for selected, amount, assigned in ((booths, b, b_budget), (declarations, d, d_budget)):
-                scale = np.divide(assigned, amount, out=np.zeros(samples), where=amount > 0)
-                remaining[:, selected] = additions[:, selected] * scale[:, None]
+            own = work.additions[:, columns]
+            if work.has_booths[seat, group]:
+                remaining[:, columns] = own
+            else:
+                amount = own.sum(axis=1)
+                scale = np.divide(work.aggregate_additions[:, seat, group], amount,
+                                  out=np.zeros(work.samples), where=amount > 0)
+                remaining[:, columns] = own * scale[:, None]
     work.remaining = remaining
+
+
+def _constrain_additions_to_enrolment(work):
+    """Guard against independently conditioned estimates exceeding enrolment.
+
+    Keep 1% of the uncounted electorate unused for numerical headroom in the
+    later bounded addition model. Normally inactive, this guard changes only
+    additions and permits turnout above or below the original formal total.
+    """
+    from lib.turnout.transfer import UNCOUNTED_ENROLMENT_HEADROOM
+    for seat in range(work.seats):
+        columns = work.seat_indices == seat
+        requested = work.remaining[:, columns].sum(axis=1)
+        capacity = (work.roll[seat] - work.seat_counted[seat]) * (1-UNCOUNTED_ENROLMENT_HEADROOM)
+        scale = np.minimum(1., np.divide(capacity, requested,
+                                        out=np.ones(work.samples), where=requested > 0))
+        work.remaining[:, columns] *= scale[:, None]
 
 
 def _assemble_count_update(work, units, compensation_order):
@@ -467,8 +458,6 @@ def _assemble_count_update(work, units, compensation_order):
     remaining = work.remaining
     additions = work.additions
     group_prior = work.group_prior
-    total_prior = work.total_prior
-    totals = work.totals
     seats = work.seats
     seat_indices = work.seat_indices
     group_indices = work.group_indices
@@ -481,8 +470,9 @@ def _assemble_count_update(work, units, compensation_order):
     for group in range(group_prior.shape[2]):
         for seat in range(seats):
             groups[:, seat, group] = final_counts[:, (seat_indices == seat) & (group_indices == group)].sum(axis=1)
+    totals = groups.sum(axis=2)
     diagnostics = dict(
-        prior_total_below_count_fraction=float(np.mean(total_prior < seat_counted)),
+        prior_total_below_count_fraction=float(np.mean(work.total_prior < seat_counted)),
         maximum_accounting_error=float(np.max(np.abs(groups.sum(axis=2) - totals))),
         minimum_open_addition=float(remaining[:, ~complete].min()) if (~complete).any() else None,
         complete_booths=int(complete.sum()), finalised_districts=int(finalised.sum()),
@@ -495,6 +485,7 @@ def _assemble_count_update(work, units, compensation_order):
     # Preserve the existing count-conditioned calculation instead of repeating
     # every declaration marginal fit during preparation.
     return dict(totals=totals, counts=groups, unit_counts=final_counts, remaining=remaining,own_remaining=additions,
+                transfer_probability=work.transfer_probability, transfer_selected=work.transfer_selected,
                 counted=seat_counted, complete=complete, diagnostics=diagnostics)
 
 
@@ -506,13 +497,12 @@ def update(draws, inputs, units, finalised_seats=(), changes=None, compensation=
     Complete booths and known closures have no estimated additions. Partial
     declarations retain a positive remaining estimate after their lower bound
     is applied on the log-odds scale. Estimate unfinished booths from their own
-    sizes, allowing limited PPVC compensation. Groups containing only booths
-    can revise their expectations from that evidence. Mixed aggregate groups
-    retain their supported prior totals: assumed finer weights must not
-    override historical early/postal evidence. Reserve booth sizes smoothly
-    within the appropriate remaining pool; declarations divide the rest. This leaves
-    the district-total rule unchanged, including its implicit assumption that
-    declarations absorb changes in ordinary/PPVC counts.
+    sizes, allowing limited PPVC compensation. Declaration-only groups retain
+    their supported aggregate distribution. Mixed groups retain the separate
+    service estimates already present in each prior draw, rather than pushing a
+    completed booth's shortfall into unfinished declarations. The district total
+    follows either these own-size accounts or a sampled, jointly allocated
+    category-transfer explanation, according to their relative plausibility.
 
     There is no previous-update input: revisiting a snapshot, skipping an
     intermediate snapshot or receiving a downward revision uses the same path.
@@ -527,6 +517,9 @@ def update(draws, inputs, units, finalised_seats=(), changes=None, compensation=
     _condition_unit_additions(work)
     _condition_group_additions(work, units)
     _allocate_remaining_votes(work, units)
+    _constrain_additions_to_enrolment(work)
+    from lib.turnout import transfer
+    transfer.choose(work, inputs, units)
     return _assemble_count_update(work, units, compensation_order)
 
 

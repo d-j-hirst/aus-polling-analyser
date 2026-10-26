@@ -57,7 +57,9 @@ Discovery discover(std::filesystem::path const& folder,
         pattern = std::regex("^aec-mediafeed-(?:results-)?detailed(?:-light)?-[0-9]+-([0-9]{14})\\.(?:zip|xml)$", std::regex::icase);
     else if (election.size() == 7 && election.substr(4) == "vic")
         pattern = std::regex("^state" + election.substr(0, 4) + "mediafilelitepplh_([0-9]{8})_([0-9]{6})\\.(?:zip|xml)$", std::regex::icase);
-    else return {{}, "Snapshot sequences currently support SA, Federal and Victorian feeds."};
+    else if (election.size() == 7 && election.substr(4) == "qld")
+        pattern = std::regex("^([0-9]{14})_publicresults\\.(?:zip|xml)$", std::regex::icase);
+    else return {{}, "Snapshot sequences currently support SA, Federal, Victorian and Queensland feeds."};
 
     std::error_code error;
     auto folderName = LiveResultsInput::pathToUtf8(folder);
@@ -99,8 +101,34 @@ Discovery discover(std::filesystem::path const& folder,
     return result;
 }
 
+std::string normalizeCodeLineEndings(std::string_view text) {
+    // Most lists use Windows CRLF or plain LF. Clipboard text can also contain
+    // lone CR or Unicode line/paragraph separators. Keep their visible lines
+    // and the parser's code boundaries consistent, without repairing invalid
+    // codes or changing the user's ordering and blank-line layout.
+    std::string normalized;
+    normalized.reserve(text.size());
+    for (std::size_t index = 0; index < text.size();) {
+        auto remaining = text.substr(index);
+        std::size_t separatorLength = 0;
+        if (remaining.front() == '\r')
+            separatorLength = remaining.size() > 1 && remaining[1] == '\n' ? 2 : 1;
+        else if (remaining.substr(0, 2) == "\xC2\x85") // Unicode next line.
+            separatorLength = 2;
+        else if (remaining.substr(0, 3) == "\xE2\x80\xA8" ||
+            remaining.substr(0, 3) == "\xE2\x80\xA9") // Line / paragraph separator.
+            separatorLength = 3;
+        if (separatorLength) {
+            normalized += '\n';
+            index += separatorLength;
+        }
+        else normalized += text[index++];
+    }
+    return normalized;
+}
+
 std::vector<std::string> parseCodes(std::string_view text) {
-    std::istringstream input{std::string(text)};
+    std::istringstream input{normalizeCodeLineEndings(text)};
     std::vector<std::string> codes;
     std::string code;
     while (input >> code) { timeKey(code); codes.push_back(code); }

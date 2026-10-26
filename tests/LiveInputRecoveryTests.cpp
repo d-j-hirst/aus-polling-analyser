@@ -1,5 +1,6 @@
 #include "../LiveInputRecovery.h"
 #include "../RetainedLiveState.h"
+#include "../LivePartialCount.h"
 #ifdef LIVE_INPUT_PARSER_TESTS
 #include "../LiveInputAdapter.h"
 #endif
@@ -71,6 +72,34 @@ void checkLocalRecovery() {
     now.records[0].fp.votes = Counts{{11,180}};
     assert(!recover(now,{}).snapshot.records[0].fp.votes); // Missing candidate is not a measured zero.
     assert(total(recover(now,old).snapshot.records[0].fp.votes) == 300);
+}
+
+void checkExpectedTcpWithdrawal() {
+    // Ordinary feeds still warn when a previously reported vector disappears.
+    // Only a reader's current, explicit ECQ-recheck tag silences that notice;
+    // the recovered values, original clock and compatibility checks stay intact.
+    auto old = recover(example(),{}).snapshot;
+    auto now = example("2026-03-30T09:00:00");
+    auto& record = now.records.front();
+    record.tcp.votes.reset();
+    auto hasWarning = [&](Result const& result) {
+        for (auto const& issue : result.issues.details())
+            if (issue.at("key") == record.key && issue.at("type") == "invalid_tcp") return true;
+        return false;
+    };
+    assert(hasWarning(recover(now,old)));
+    record.expectedTcpWithdrawal = true;
+    auto result = recover(now,old);
+    assert(!hasWarning(result));
+    assert(result.snapshot.records.front().tcp.votes == old.records.front().tcp.votes);
+    assert(result.snapshot.records.front().tcp.status == Status::Restored);
+    assert(result.snapshot.records.front().tcp.observedAt == old.sourceTime);
+    record.tcp.error = "Malformed TCP";
+    assert(hasWarning(recover(now,old))); // Present/malformed data is still exceptional.
+    record.tcp.error.clear();
+    record.fp.votes = Counts{{11,280},{12,20}};
+    result = recover(now,old);
+    assert(!result.snapshot.records.front().tcp.votes); // Cannot silence a count into compatibility.
 }
 
 void checkPreferenceHistory(std::filesystem::path const& folder) {
@@ -192,6 +221,123 @@ void checkDistrictRecoveryAndProcedures() {
 bool hasIssue(Result const& result, std::string const& type) {
     auto rows = result.issues.summary();
     return std::any_of(rows.begin(),rows.end(),[&](auto const& row) { return row.at("type") == type; });
+}
+
+void checkRecheckedPrimaryRecovery(std::filesystem::path const& folder) {
+    // A fictional completed booth changes its primary composition on recheck,
+    // while the preliminary TCP still describes the old primaries. Totals are
+    // unchanged, so aggregate FP/TCP checks alone cannot establish the conflict.
+    auto source = example();
+    auto& booth = source.records.front();
+    booth.candidates = {11,12,13};
+    booth.fp.votes = Counts{{11,30},{12,150},{13,20}};
+    booth.tcp.votes = Counts{{11,45},{12,155}};
+    booth.fp.stage = booth.tcp.stage = CountStage::Preliminary;
+    auto old = recover(source,{}).snapshot;
+    commit(folder,old);
+    auto current = source; current.sourceTime = "2026-03-30T09:00:00";
+    current.records.front().fp.votes = Counts{{11,110},{12,70},{13,20}};
+    current.records.front().fp.stage = CountStage::Rechecked;
+    auto recovered = recover(current,old);
+    auto const& effective = recovered.snapshot.records.front();
+    assert(effective.fp.fresh() && effective.fp.votes == current.records.front().fp.votes);
+    assert(effective.fp.stage == CountStage::Rechecked);
+    assert(effective.tcp.votes && hasCurrentTcpBasis(effective));
+    assert(hasIssue(recovered,"tcp_fp_revision"));
+    assert(!hasIssue(recovered,"reconciliation_hold"));
+
+    // With no authority advantage, keep an earlier coherent pair. Unknown
+    // stages (including older caches) do not acquire invented priority.
+    auto ambiguous = current;
+    ambiguous.records.front().fp.stage = CountStage::Preliminary;
+    auto held = recover(ambiguous,old);
+    assert(held.snapshot.records.front().fp.votes == old.records.front().fp.votes);
+    assert(held.snapshot.records.front().tcp.votes == old.records.front().tcp.votes);
+    assert(hasIssue(held,"reconciliation_hold"));
+    ambiguous.records.front().fp.stage = ambiguous.records.front().tcp.stage = CountStage::Unspecified;
+    assert(hasIssue(recover(ambiguous,old),"reconciliation_hold"));
+    assert(!recover(ambiguous,{}).snapshot.records.front().tcp.votes);
+
+    // All pending ballots could be a finalist's primaries. Such partial TCP
+    // remains valid even when it is far below that finalist's full FP count.
+    auto partial = current;
+    partial.records.front().tcp.votes = Counts{{11,20},{12,30}};
+    partial.records.front().role = "declaration";
+    partial.records.front().key = "North/declaration/School";
+    assert(recover(partial,{}).snapshot.records.front().tcp.fresh());
+    auto exhausted = current; exhausted.optionalPreferential = true;
+    assert(recover(exhausted,{}).snapshot.records.front().tcp.fresh());
+    auto smallDifference = current;
+    smallDifference.records.front().tcp.votes = Counts{{11,100},{12,100}};
+    assert(recover(smallDifference,{}).snapshot.records.front().tcp.fresh()); // Exactly 10 votes.
+    smallDifference.records.front().tcp.votes = Counts{{11,99},{12,101}};
+    assert(!recover(smallDifference,{}).snapshot.records.front().tcp.votes);
+
+    // Even an official-stage label cannot make a tiny unfinished recheck
+    // supersede a fuller earlier account. The established reset hold remains.
+    auto reset = current;
+    reset.records.front().fp.votes = Counts{{11,1},{12,1},{13,0}};
+    assert(hasIssue(recover(reset,old),"reconciliation_hold"));
+
+    // The old pair remains the basis of the TCP, rather than being falsely
+    // paired with revised FP. Only the changed votes need a new estimate.
+    auto history = loadPreferenceHistory(folder,recovered.snapshot);
+    assert(!loadPreferenceHistory(folder/"empty",recovered.snapshot).at(booth.key).previousAligned);
+    auto const& selected = history.at(booth.key).matchingCurrentTcp;
+    assert(selected && history.at(booth.key).tcpBasis);
+    assert(selected->fp == *old.records.front().fp.votes && selected->tcp == *old.records.front().tcp.votes);
+    auto flow = LivePartialCount::measure(selected->fp,selected->tcp,{{11,1},{12,0},{13,.5}},11,12);
+    assert(flow && !LivePartialCount::remainingCohort(*effective.fp.votes,*flow));
+    auto predicted = LivePartialCount::expectedFirst(*effective.fp.votes,{{11,1},{12,0},{13,.5}},
+        LivePartialCount::evidenceOffset(0,flow,11,12));
+    assert(predicted > 110 && predicted < 130);
+    retainPreferenceHistory(recovered.snapshot,history);
+    commit(folder,recovered.snapshot);
+    auto later = recovered.snapshot; later.sourceTime = "2026-03-30T10:00:00";
+    auto saved = loadPrevious(folder,later.election,later.sourceTime);
+    assert(saved && saved->records.front().fp.stage == CountStage::Rechecked);
+    assert(saved->records.front().tcp.votes && saved->records.front().tcpBasis);
+    assert(loadPreferenceHistory(folder,later).at(booth.key).matchingCurrentTcp->tcpTime == old.sourceTime);
+    auto changedPair = later;
+    changedPair.records.front().tcp.votes = Counts{{11,120},{13,80}};
+    assert(!loadPreferenceHistory(folder,changedPair).at(booth.key).previousAligned);
+
+    auto corrected = current; corrected.sourceTime = "2026-03-30T11:00:00";
+    corrected.records.front().tcp.votes = Counts{{11,120},{12,80}};
+    corrected.records.front().tcp.stage = CountStage::Rechecked;
+    auto accepted = recover(corrected,recovered.snapshot);
+    assert(accepted.snapshot.records.front().tcp.fresh() && !hasIssue(accepted,"invalid_tcp"));
+
+    auto malformed = current; malformed.records.front().fp.error = "Unreadable recheck";
+    assert(recover(malformed,old).snapshot.records.front().fp.stage == CountStage::Preliminary);
+    // If an older TCP really fits the corrected FP, ordinary historical
+    // selection may restore it. An incompatible nearest entry must not block
+    // that search, and the restored count retains its original clock.
+    auto earlier = old; earlier.sourceTime = "2026-03-30T07:00:00";
+    earlier.records.front().fp.votes = current.records.front().fp.votes;
+    earlier.records.front().tcp.votes = Counts{{11,120},{12,80}};
+    for (auto& r : earlier.records) r.fp.observedAt = r.tcp.observedAt = earlier.sourceTime;
+    commit(folder,earlier);
+    auto invalidNewTcp = current;
+    invalidNewTcp.records.front().tcp.votes = Counts{{11,10},{12,190}};
+    auto fallback = recover(invalidNewTcp,old,[&](auto const& effective,auto previous,auto account) {
+        return loadEarlierCounts(folder,effective,previous,account);
+    });
+    assert(fallback.snapshot.records.front().fp.fresh());
+    assert(fallback.snapshot.records.front().tcp.votes == earlier.records.front().tcp.votes);
+    assert(fallback.snapshot.records.front().tcp.status == Status::Restored);
+    assert(fallback.snapshot.records.front().tcp.observedAt == earlier.sourceTime);
+
+    // Existing private count caches predate stage metadata. Their counts and
+    // clocks remain readable, but reload must leave the stage unspecified.
+    auto legacyFile = folder/"2026-03-30T08-00-00.json";
+    json legacy;
+    { std::ifstream input(legacyFile); input >> legacy; }
+    for (auto& r : legacy["records"]) for (auto field : {"fp","tcp"}) r[field].erase("stage");
+    { std::ofstream output(legacyFile); output << legacy; }
+    auto legacySource = loadPrevious(folder,source.election,"2026-03-30T08:30:00");
+    assert(legacySource && legacySource->records.front().fp.votes == old.records.front().fp.votes);
+    assert(legacySource->records.front().fp.stage == CountStage::Unspecified);
 }
 
 void checkReconciliationHold() {
@@ -567,6 +713,155 @@ void checkReconciliationHistory(std::filesystem::path const& folder) {
 }
 
 #ifdef LIVE_INPUT_PARSER_TESTS
+void checkSnapshotElectionIdentity() {
+    // The source must identify the very account the count reader will consume,
+    // before any counts or history can be updated. ECQ bundles may also contain
+    // a council election; its identifier cannot stand in for the state one.
+    Results2::Election election("fictional"); election.id = 99;
+    using Format = Results2::Election::Format;
+    auto matches = [&](char const* text, Format format) {
+        tinyxml2::XMLDocument document;
+        assert(document.Parse(text) == tinyxml2::XML_SUCCESS);
+        return election.matchesSnapshotElection(document, format);
+    };
+    assert(matches("<ecq><election id='99'/><election id='100'/></ecq>", Format::QEC));
+    assert(!matches("<ecq><election id='100'/><election id='99'/></ecq>", Format::QEC));
+    assert(!matches("<ecq><election/></ecq>", Format::QEC));
+    assert(!matches("<ecq><election id='broken'/></ecq>", Format::QEC));
+    assert(!matches("<ecq/>", Format::QEC));
+    assert(matches("<MediaFeed><Results><eml:EventIdentifier Id='99'/></Results></MediaFeed>", Format::AEC));
+    assert(matches("<MediaFeed><eml:EventIdentifier Id='99'/></MediaFeed>", Format::VEC));
+    assert(!matches("<MediaFeed><eml:EventIdentifier Id='100'/></MediaFeed>", Format::VEC));
+    assert(!matches("<MediaFeed><Results><eml:EventIdentifier Id='100'/></Results></MediaFeed>", Format::AEC));
+    assert(!matches("<MediaFeed><eml:EventIdentifier Id='99'/></MediaFeed>", Format::QEC));
+}
+
+std::string qecFixtureRound(char const* name, char const* field,
+    std::vector<std::string> const& values, std::vector<std::string> const& names) {
+    std::string xml = "<countRound countName='" + std::string(name) + "'><booths><booth id='7' name='School'><" + field + ">";
+    for (size_t i = 0; i < values.size(); ++i)
+        xml += "<candidate ballotName='" + names.at(i) + "'><count>" + values[i] + "</count></candidate>";
+    return xml + "</" + field + "></booth></booths></countRound>";
+}
+
+Results2::Election qecRecheckFixture(std::vector<std::string> const& officialFp,
+    std::vector<std::string> const& officialTcp = {},
+    std::vector<std::string> const& tcpNames = {"One", "Two"}, bool preliminary = true,
+    std::string const& details = "") {
+    // Every call is a fresh read, with no accepted-count history. The retained
+    // preliminary account must come from this source rather than a past run.
+    std::vector<std::string> const names = {"One", "Two", "Three"};
+    std::string xml = "<ecq><generationDateTime>2026-03-30T09:00:00</generationDateTime><election id='99'><districts><district number='1' districtName='North' enrolment='10000'><candidates>";
+    for (auto const& name : names) xml += "<candidate ballotName='" + name + "' party='Independent'/>";
+    xml += "</candidates>";
+    if (preliminary) {
+        xml += qecFixtureRound("Unofficial Preliminary Count", "primaryVoteResults", {"600", "300", "100"}, names);
+        auto tcpRound = qecFixtureRound("Unofficial Indicative Count", "twoCandidateVotes", {"650", "350"}, names);
+        tcpRound.insert(tcpRound.find("</booth>"),details);
+        tcpRound.insert(tcpRound.find(" name='School'")," lastUpdated='2026-03-30T08:00:00'");
+        xml += tcpRound;
+    }
+    xml += qecFixtureRound("Official First Preference Count", "primaryVoteResults", officialFp, names);
+    xml += qecFixtureRound("Official Distribution of Preferences Count", "twoCandidateVotes", officialTcp, tcpNames);
+    xml += "</district></districts></election></ecq>";
+    tinyxml2::XMLDocument feed;
+    assert(feed.Parse(xml.c_str()) == tinyxml2::XML_SUCCESS);
+    auto election = Results2::Election::createQec(json(),feed,"fictional");
+    election.updateLive(feed,Results2::Election::Format::QEC);
+    return election;
+}
+
+void checkQecPartialRechecks() {
+    std::string details = "<indicativeCountDetails>"
+        "<selectedCandidate ballotName='One'><primaryVotes>600</primaryVotes><afterPreferences><count>650</count></afterPreferences></selectedCandidate>"
+        "<selectedCandidate ballotName='Two'><primaryVotes>300</primaryVotes><afterPreferences><count>350</count></afterPreferences></selectedCandidate>"
+        "<otherCandidate ballotName='Three'><preferenceCount ballotName='One'>50</preferenceCount><preferenceCount ballotName='Two'>50</preferenceCount><exhausted>0</exhausted></otherCandidate>"
+        "</indicativeCountDetails>";
+    auto revised = qecRecheckFixture({"700","200","100"},{},{"One","Two"},true,details);
+    auto const key = Results2::Election::countKey(1,100007,Results2::VoteType::Ordinary);
+    assert(revised.liveTcpBases.contains(key));
+    auto const& basis = revised.liveTcpBases.at(key);
+    assert(LivePartialCount::validBasis({basis.fp,basis.tcp,basis.transfers}));
+    assert(basis.fp != Counts(revised.booths.at(100007).fpVotes.begin(),revised.booths.at(100007).fpVotes.end()));
+    auto official = qecRecheckFixture({"700","200","100"},{"750","250"},{"One","Two"},true,details);
+    assert(official.liveTcpBases.empty()); // Selected official TCP supersedes the indicative account.
+    auto bad = details; bad.replace(bad.find(">50<"),4,">50.5<");
+    assert(qecRecheckFixture({"700","200","100"},{},{"One","Two"},true,bad).liveTcpBases.empty());
+    auto fpTotal = [](auto const& e) { return e.seats.at(1).totalVotesFp(); };
+    auto tcpTotal = [](auto const& e) {
+        int total = 0;
+        for (auto const& [id, votes] : e.booths.at(100007).tcpVotesCandidate) total += votes;
+        return total;
+    };
+    // A tiny or reset official batch must not replace a complete preliminary
+    // account. FP and TCP can catch up separately without adding rounds together.
+    auto partial = qecRecheckFixture({"2", "8", "0"});
+    assert(fpTotal(partial) == 1000 && tcpTotal(partial) == 1000);
+    auto fpKey = std::make_pair(Results2::Election::countKey(1,100007,Results2::VoteType::Ordinary),false);
+    auto tcpKey = std::make_pair(fpKey.first,true);
+    assert(partial.liveCountStages.at(fpKey) == CountStage::Preliminary);
+    assert(fpTotal(qecRecheckFixture({"0", "0", "0"})) == 1000);
+    auto caughtUp = qecRecheckFixture({"610", "300", "100"}, {"66", "34"});
+    assert(fpTotal(caughtUp) == 1010 && tcpTotal(caughtUp) == 1000);
+    assert(caughtUp.liveCountStages.at(fpKey) == CountStage::Rechecked);
+    assert(caughtUp.liveCountStages.at(tcpKey) == CountStage::Preliminary);
+    // The existing allowance is max(10 votes, 5% of the new count). These two
+    // values lie immediately either side of its relative comparison boundary.
+    assert(fpTotal(qecRecheckFixture({"551", "300", "100"})) == 1000);
+    assert(fpTotal(qecRecheckFixture({"553", "300", "100"})) == 953);
+
+    // A complete, consistent official pair permits a real downward correction,
+    // including an explicit zero. Merely having both fields is not sufficient.
+    auto corrected = qecRecheckFixture({"300", "200", "100"}, {"360", "240"});
+    assert(fpTotal(corrected) == 600 && tcpTotal(corrected) == 600);
+    assert(corrected.liveCountStages.at(tcpKey) == CountStage::Rechecked);
+    auto mismatch = qecRecheckFixture({"300", "200", "100"}, {"300", "200"});
+    assert(fpTotal(mismatch) == 1000 && tcpTotal(mismatch) == 1000);
+    auto impossibleFlow = qecRecheckFixture({"500", "50", "50"}, {"100", "500"});
+    assert(fpTotal(impossibleFlow) == 1000 && tcpTotal(impossibleFlow) == 1000);
+    auto zero = qecRecheckFixture({"0", "0", "0"}, {"0", "0"});
+    assert(fpTotal(zero) == 0 && tcpTotal(zero) == 0);
+    auto officialOnly = qecRecheckFixture({"300", "200", "100"}, {"360", "240"}, {"One", "Two"}, false);
+    assert(fpTotal(officialOnly) == 600 && tcpTotal(officialOnly) == 600);
+    auto withdrawn = qecRecheckFixture({"600", "300", "100"}, {}, {"One", "Two"}, false);
+    assert(withdrawn.expectedLiveTcpWithdrawals.contains(fpKey.first));
+    assert(partial.expectedLiveTcpWithdrawals.empty());
+    assert(officialOnly.expectedLiveTcpWithdrawals.empty());
+
+    // Malformed and incomplete candidate vectors must reach ordinary recovery;
+    // they cannot be treated as measured small counts during round selection.
+    auto malformed = qecRecheckFixture({"broken", "200", "100"});
+    assert(!malformed.invalidLiveCounts.empty());
+    auto omitted = qecRecheckFixture({"300", "300"}, {"350", "250"});
+    assert(omitted.booths.at(100007).fpVotes.size() == 2 && tcpTotal(omitted) == 1000);
+    auto changedPair = qecRecheckFixture({"600", "300", "100"}, {"180", "120"}, {"One", "Three"});
+    assert(tcpTotal(changedPair) == 300 && changedPair.booths.at(100007).tcpVotesCandidate.contains(3));
+}
+
+void checkSyntheticCategoryProvenance() {
+    tinyxml2::XMLDocument preload;
+    std::string xml = "<HouseOfAssemblyDetail><districts><district><district_name>Example</district_name><district_id>1</district_id><first_preferences>";
+    for (int id : {1,2}) {
+        xml += "<candidate><candidate_name>Candidate " + std::to_string(id) + "</candidate_name><candidate_id>" + std::to_string(id)
+            + "</candidate_id><affiliation>" + (id == 1 ? std::string("ALP") : std::string("LIB")) + "</affiliation><polling_places>";
+        for (auto const& [booth,name] : std::map<int,std::string>{{11,"School"},{12,"Example Early Voting Centre"}})
+            xml += "<polling_place><polling_place_id>"+std::to_string(booth)+"</polling_place_id><polling_place_name>"+name+"</polling_place_name></polling_place>";
+        xml += "</polling_places></candidate>";
+    }
+    xml += "</first_preferences></district></districts></HouseOfAssemblyDetail>";
+    assert(preload.Parse(xml.c_str()) == tinyxml2::XML_SUCCESS);
+    json history = {{"Example", {
+        {"candidates",{{"0",{{"name","Candidate 1"},{"party","ALP"}}},{"1",{{"name","Candidate 2"},{"party","LIB"}}}}},
+        {"booths",{{"School",{{"fp",{{"0",100},{"1",100}}},{"tcp",{{"0",100},{"1",100}}}}},
+                   {"Declaration Votes",{{"fp",{{"0",1000},{"1",1000}}},{"tcp",{{"0",1000},{"1",1000}}}}}}}
+    }}};
+    auto election=Results2::Election::createEcsa(history,preload,"fictional");
+    assert(!election.booths.at(11).syntheticBaseline);
+    assert(election.booths.at(12).syntheticBaseline);
+    assert(election.seats.at(1).syntheticBaselineTypes.contains(Results2::VoteType::Postal));
+    assert(!election.seats.at(1).syntheticBaselineTypes.contains(Results2::VoteType::Ordinary));
+}
+
 void checkParserAndAdapter() {
     Results2::Election election("fictional");
     election.sourceTime = "2026-03-30T08:00:00";
@@ -580,12 +875,17 @@ void checkParserAndAdapter() {
     Results2::Booth booth; booth.id = 7; booth.parentSeat = 1; booth.name = "School";
     booth.fpVotes = {{11,180},{12,120}}; booth.tcpVotesCandidate = {{11,190},{12,110}};
     election.booths.emplace(7,booth); seat.booths.push_back(7); election.seats.emplace(1,seat);
+    election.liveCountStages[{Results2::Election::countKey(1,7,Results2::VoteType::Ordinary),false}] = CountStage::Rechecked;
+    election.expectedLiveTcpWithdrawals.insert(Results2::Election::countKey(1,7,Results2::VoteType::Ordinary));
     TurnoutModelIO::Artifact artifact;
     artifact.prior.election = "fictional"; artifact.prior.seats = {"North"}; artifact.prior.groups = {"other"};
     artifact.prior.enrolment = {1000}; artifact.prior.counts = {{600}};
     TurnoutModel::Unit unit; unit.name = "School"; unit.kind = "ordinary"; unit.weight = .5;
     artifact.prior.units.push_back(unit); unit.name = "Postal"; unit.kind = "declaration"; artifact.prior.units.push_back(unit);
     auto source = LiveInputAdapter::identify(election,artifact,"source");
+    assert(source.records.front().fp.stage == CountStage::Rechecked);
+    assert(source.records.front().expectedTcpWithdrawal);
+    assert(!source.records.back().expectedTcpWithdrawal);
     auto old = recover(source,{}).snapshot;
     source.sourceTime = "2026-03-30T09:00:00"; source.records[0].fp.error = "Malformed";
     auto recovered = recover(source,old);
@@ -594,6 +894,21 @@ void checkParserAndAdapter() {
     assert(election.booths.at(7).totalVotesFp() == 300);
     assert(!election.liveCountStatus.at("North/ordinary/School").first.fresh());
     assert(election.liveCountStatus.at("North/ordinary/School").first.status == Status::Restored);
+    auto const& effectiveStatus = election.liveCountStatus.at("North/ordinary/School");
+    assert(effectiveStatus.first.stage == CountStage::Rechecked);
+    assert(!explicitlyRecheckedPair(effectiveStatus.first,effectiveStatus.second));
+    // Only two available, explicitly rechecked effective records qualify.
+    // Restored preliminary TCP must not inherit a newer source's official tag.
+    auto fpStatus = effectiveStatus.first, tcpStatus = effectiveStatus.second;
+    tcpStatus.stage = CountStage::Preliminary;
+    tcpStatus.status = Status::Restored;
+    assert(!explicitlyRecheckedPair(fpStatus,tcpStatus));
+    tcpStatus.stage = CountStage::Rechecked;
+    assert(explicitlyRecheckedPair(fpStatus,tcpStatus));
+    tcpStatus.available = false;
+    assert(!explicitlyRecheckedPair(fpStatus,tcpStatus));
+    tcpStatus.available = true; fpStatus.stage = CountStage::Unspecified;
+    assert(!explicitlyRecheckedPair(fpStatus,tcpStatus));
     assert(election.liveCountStatus.at("North/ordinary/School").first.observedAt == old.sourceTime);
     assert(election.liveCountStatus.at("North/declaration/Postal").first.fresh());
     // Identifiable count errors are ordinary recovery status, not exceptions.
@@ -640,6 +955,45 @@ void checkParserAndAdapter() {
         LiveInputAdapter::apply(qec,recover(measured,{}).snapshot);
         assert(qec.seats.at(1).totalVotesFp() == 300);
     }
+    // An official recheck replaces only the booth with an actual published
+    // account. Empty placeholders must not erase the other booth's preliminary
+    // count. Final TCP can arrive without the indicative round still existing.
+    auto& district = *qecFeed.FirstChildElement("ecq")->FirstChildElement("election")->FirstChildElement("districts")->FirstChildElement("district");
+    auto secondBooth = qecBooth; secondBooth.id = 100008; secondBooth.name = "Hall";
+    qec.booths.emplace(secondBooth.id, secondBooth);
+    qec.seats.at(1).booths.push_back(secondBooth.id);
+    auto preliminaryBooths = district.FirstChildElement("countRound")->FirstChildElement("booths");
+    auto copied = preliminaryBooths->FirstChildElement("booth")->DeepClone(&qecFeed)->ToElement();
+    copied->SetAttribute("id", 8); preliminaryBooths->InsertEndChild(copied);
+    tinyxml2::XMLDocument official;
+    official.Parse("<root><countRound countName='Official First Preference Count'><booths><booth id='7'><primaryVoteResults><candidate ballotName='One'><count>170</count></candidate><candidate ballotName='Two'><count>120</count></candidate></primaryVoteResults></booth><booth id='8'/></booths></countRound><countRound countName='Official Distribution of Preferences Count'><booths><booth id='7'><twoCandidateVotes><candidate ballotName='One'><count>180</count></candidate><candidate ballotName='Two'><count>110</count></candidate></twoCandidateVotes></booth></booths></countRound></root>");
+    for (auto round = official.RootElement()->FirstChildElement(); round; round = round->NextSiblingElement())
+        district.InsertEndChild(round->DeepClone(&qecFeed));
+    district.DeleteChild(district.FirstChildElement("countRound")->NextSiblingElement("countRound"));
+    qec.updateLive(qecFeed,Results2::Election::Format::QEC);
+    assert(qec.booths.at(100007).fpVotes.at(11) == 170);
+    assert(qec.booths.at(100008).fpVotes.at(11) == 180);
+    assert(qec.booths.at(100007).tcpVotesCandidate.at(11) == 180);
+    assert(qec.seats.at(1).totalVotesFp() == 590);
+
+    // Category labels are represented once, separately from physical booths.
+    // Early absents use PrePoll in both years; mobile polling is a physical
+    // service, and historical parties retain their identities when not running.
+    tinyxml2::XMLDocument roster;
+    roster.Parse("<ecq><election id='99'><districts><district number='1' districtName='North District' enrolment='1000'><candidates><candidate ballotName='One' party='Australian Labor Party (State of Queensland)'/><candidate ballotName='Two' party='Liberal National Party of Queensland'/></candidates><countRound><booths><booth id='7' name='School'/><booth id='8' name='Mobile Polling'/><booth id='9' name='Absent Early Voting'/><booth id='10' name='Postal Declaration Votes'/></booths></countRound></district></districts></election></ecq>");
+    auto rosterElection = Results2::Election::createQec(nlohmann::json(),roster,"fictional");
+    assert(rosterElection.id == 99); // Identity is available before the first update.
+    assert(rosterElection.matchesSnapshotElection(qecFeed, Results2::Election::Format::QEC));
+    assert(rosterElection.seats.at(1).booths == std::vector<int>({100007,100008}));
+    assert(rosterElection.booths.at(100008).type == Results2::Booth::Type::Hospital);
+    auto history = nlohmann::json::parse(R"json({"North District":{"candidates":{"0":{"name":"One","party":"Australian Labor Party (State of Queensland)"},"1":{"name":"Old","party":"Clive Palmer's United Australia Party"}},"booths":{"Absent Early Voting":{"fp":{"0":40,"1":60},"tcp":{"0":45,"1":55}},"Mobile Polling":{"fp":{"0":10,"1":20},"tcp":{"0":15,"1":15}}}}})json");
+    auto priorQec = Results2::Election::createQec(history,roster,"fictional");
+    int historicalCandidate = 0;
+    for (auto const& [id, candidate] : priorQec.candidates)
+        if (candidate.name == "Old") historicalCandidate = id;
+    assert(priorQec.parties.at(priorQec.candidates.at(historicalCandidate).party).shortCode == "UAP");
+    assert(priorQec.seats.at(1).fpVotes.at(historicalCandidate).at(Results2::VoteType::PrePoll) == 60);
+    assert(priorQec.seats.at(1).totalVotesFp() == 130);
     tinyxml2::XMLDocument emptySource;
     rejected = false;
     try { qec.updateLive(emptySource,Results2::Election::Format::WAEC); }
@@ -662,18 +1016,122 @@ void checkParserAndAdapter() {
 #endif
 }
 
+void checkTcpRevisionBasis(std::filesystem::path const& folder) {
+    auto initial = example();
+    initial.records.resize(1); initial.districts["North"].enrolment = 10000;
+    auto& booth = initial.records.front();
+    booth.candidates = {11,12,13,14};
+    booth.fp.votes = Counts{{11,1122},{12,2862},{13,466},{14,299}};
+    booth.tcp.votes = Counts{{11,1557},{12,3192}};
+    booth.fp.stage = booth.tcp.stage = CountStage::Preliminary;
+    booth.tcpBasis = PreferenceCohort{*booth.fp.votes,*booth.tcp.votes,initial.sourceTime,initial.sourceTime,
+        {{13,{{11,362},{12,104}}},{14,{{11,73},{12,226}}}}};
+    auto old = recover(initial,{}).snapshot;
+    auto changed = initial; changed.sourceTime = "2026-03-30T09:00:00";
+    changed.records[0].fp.votes = Counts{{11,1422},{12,2562},{13,468},{14,298}};
+    changed.records[0].fp.stage = CountStage::Rechecked;
+    // Starting directly at the corrected snapshot can use the embedded source
+    // details. Replaying via history must give precisely the same association.
+    auto direct = recover(changed,{}).snapshot;
+    auto recovered = recover(changed,old).snapshot;
+    assert(hasCurrentTcpBasis(direct.records[0]));
+    assert(recovered.records[0].fp.votes == changed.records[0].fp.votes);
+    assert(recovered.records[0].tcpBasis->fp == *old.records[0].fp.votes);
+    assert(!recovered.records[0].tcpBasis->recheckedReconciledPair);
+    commit(folder,recovered);
+    auto next = changed; next.sourceTime = "2026-03-30T10:00:00";
+    next.records[0].tcpBasis.reset();
+    auto saved = loadCompatiblePrevious(folder,next);
+    assert(saved && saved->records[0].tcpBasis->transfers == old.records[0].tcpBasis->transfers);
+    auto repeat = recover(next,saved).snapshot;
+    assert(repeat.records[0].tcpBasis->fp == *old.records[0].fp.votes);
+    auto history = loadPreferenceHistory(folder,repeat);
+    assert(history.at(booth.key).matchingCurrentTcp->fp == *old.records[0].fp.votes);
+    // An equal total with a large candidate revision must never become a false
+    // matched pair. Neither are candidate contradictions grounds to discard a
+    // known older batch; the forecast instead revises that batch's account.
+    next.records[0].fp.votes = Counts{{11,1800},{12,2184},{13,466},{14,299}};
+    auto equal = recover(next,recovered).snapshot;
+    assert(hasCurrentTcpBasis(equal.records[0]) && equal.records[0].tcp.votes);
+    auto equalHistory = loadPreferenceHistory(folder,equal);
+    assert(equalHistory.at(booth.key).matchingCurrentTcp->fp == *old.records[0].fp.votes);
+    next.records[0].tcp.votes.reset(); next.records[0].expectedTcpWithdrawal = true;
+    auto withdrawal = recover(next,recovered).snapshot;
+    assert(withdrawal.records[0].tcp.status == Status::Restored);
+    assert(hasCurrentTcpBasis(withdrawal.records[0]));
+    next.records[0].fp = changed.records[0].fp;
+    next.records[0].tcp.votes = Counts{{11,1850},{12,2900}};
+    next.records[0].tcp.stage = CountStage::Rechecked;
+    auto final = recover(next,recovered).snapshot;
+    assert(!final.records[0].tcpBasis && final.records[0].tcp.status == Status::Current);
+    auto finalHistory = loadPreferenceHistory(folder,final);
+    assert(finalHistory.at(booth.key).matchingCurrentTcp->fp == *final.records[0].fp.votes);
+    assert(finalHistory.at(booth.key).matchingCurrentTcp->recheckedReconciledPair);
+    // Optional-preferential elections retain their existing exhaustion rules.
+    next.optionalPreferential = true;
+    assert(loadPreferenceHistory(folder,next).empty());
+}
+
+void checkRetainedRecheckStatus(std::filesystem::path const& folder) {
+    // A verified pair remains verified if only FP changes later. This status
+    // belongs to that original account, including after save/reload/withdrawal.
+    auto source = example(); source.records.resize(1);
+    auto& record = source.records.front();
+    record.candidates = {11,12,13};
+    record.fp.votes = Counts{{11,180},{12,120},{13,100}};
+    record.tcp.votes = Counts{{11,260},{12,140}};
+    record.fp.stage = record.tcp.stage = CountStage::Rechecked;
+    auto original = recover(source,{}).snapshot;
+    auto changed = source; changed.sourceTime = "2026-03-30T09:00:00";
+    changed.records[0].fp.votes->at(13) += 5;
+    auto revised = recover(changed,original).snapshot;
+    assert(revised.records[0].tcpBasis->recheckedReconciledPair);
+    commit(folder,revised);
+    auto next = changed; next.sourceTime = "2026-03-30T10:00:00";
+    auto saved = loadCompatiblePrevious(folder,next);
+    assert(saved && saved->records[0].tcpBasis->recheckedReconciledPair);
+    auto repeated = recover(next,saved).snapshot;
+    auto history = loadPreferenceHistory(folder,repeated);
+    assert(history.at(record.key).tcpBasis->recheckedReconciledPair);
+    retainPreferenceHistory(repeated,history);
+    assert(repeated.records[0].matchedPreferences->recheckedReconciledPair);
+    next.records[0].tcp.votes.reset(); next.records[0].expectedTcpWithdrawal = true;
+    auto withdrawn = recover(next,revised).snapshot;
+    assert(withdrawn.records[0].tcpBasis->recheckedReconciledPair);
+
+    // Existing accepted-state files remain readable. Without saved provenance
+    // an unmatched pair cannot be promoted just because its latest stages say
+    // rechecked; the ordinary unknown-stage outlier protection remains available.
+    auto file = folder/"2026-03-30T09-00-00.json";
+    json legacy;
+    { std::ifstream input(file); input >> legacy; }
+    legacy["records"][0]["tcp_basis"].erase("rechecked_reconciled_pair");
+    { std::ofstream output(file); output << legacy; }
+    auto restored = loadPrevious(folder,source.election,next.sourceTime);
+    assert(restored && restored->records[0].tcpBasis);
+    assert(!restored->records[0].tcpBasis->recheckedReconciledPair);
+    assert(restored->records[0].tcpBasis->fp == *original.records[0].fp.votes);
+}
+
 int main(int argc, char** argv) {
     auto root = argc > 1 ? std::filesystem::path(argv[1]) : std::filesystem::current_path();
     auto folder = root/"cli-build"/"input-recovery-tests";
     std::filesystem::remove_all(folder);
     checkLocalRecovery(); checkDistrictRecoveryAndProcedures(); checkRegistry();
+    checkExpectedTcpWithdrawal();
     checkReconciliationHold();
     checkFreshProgressEvidence();
     checkHistory(folder); checkFailedUpdateTransaction(folder);
     checkOlderCompatibleCounts(folder/"older-compatible");
     checkReconciliationHistory(folder/"reconciliation");
     checkPreferenceHistory(folder/"preferences");
+    checkTcpRevisionBasis(folder/"tcp-revision");
+    checkRetainedRecheckStatus(folder/"retained-recheck-status");
+    checkRecheckedPrimaryRecovery(folder/"rechecked-primaries");
 #ifdef LIVE_INPUT_PARSER_TESTS
+    checkSnapshotElectionIdentity();
+    checkQecPartialRechecks();
+    checkSyntheticCategoryProvenance();
     checkParserAndAdapter();
 #endif
     std::filesystem::remove_all(folder);

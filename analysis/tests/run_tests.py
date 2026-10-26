@@ -77,6 +77,8 @@ CI_TEST_MODULES = (
     'test_turnout_sa_operational',
     'test_turnout_published_operational',
     'test_turnout_prepare_live',
+    'test_turnout_transfer',
+    'test_prepare_qld_live',
     'test_category_tpp_relationships',
     'test_tpp_composition_calibration',
 )

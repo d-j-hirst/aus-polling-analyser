@@ -71,6 +71,11 @@ def group_evidence(history,units,inputs,postal_deadline=None,progress_options=No
     return _index_group_strengths(pseudo, evidence)
 
 
+def _groups_with_booths(units):
+    """Mixed groups already use service sizes, so have no allowance to release."""
+    return {(u['seat_index'], u['group_index']) for u in units if u['kind'] != 'declaration'}
+
+
 def _allocation_release_weights(prepared, units, evidence, scale, direction_scale):
     """Map whole-group slowing to each unfinished declaration's influence weight.
 
@@ -79,9 +84,11 @@ def _allocation_release_weights(prepared, units, evidence, scale, direction_scal
     """
     if not np.isfinite(scale) or scale <= 0 or not np.isfinite(direction_scale) or direction_scale <= 0:
         raise ValueError('Allocation response scales must be finite and positive.')
+    direct_groups = _groups_with_booths(units)
     weights = np.zeros(len(units))
     for j,u in enumerate(units):
-        if u['kind'] == 'declaration' and not prepared['complete'][j]:
+        if (u['kind'] == 'declaration' and not prepared['complete'][j]
+                and (u['seat_index'], u['group_index']) not in direct_groups):
             key = 'Postal' if u['group'] == 'postal' else 'allocation:'+u['group']
             strength = evidence.get((u['seat_name'],key),0.)
             weights[j] = -np.expm1(-(strength/scale)**2)
@@ -102,9 +109,12 @@ def _release_declaration_counts(result, prepared, inputs, units, own, weights, d
     strengthens, an unfinished category can approach its own prior size without
     receiving all votes missing from the larger aggregate group.
     """
+    # Do not let the denominator of this adjustment change services whose own
+    # size was already retained by the broad updater.
+    direct_groups = _groups_with_booths(units)
     for s in range(len(inputs['seat_names'])):
         columns = [j for j,u in enumerate(units) if u['seat_index'] == s and u['kind'] == 'declaration'
-                   and not prepared['complete'][j]]
+                   and not prepared['complete'][j] and (s, u['group_index']) not in direct_groups]
         if not columns or not weights[columns].any():
             continue
         base = prepared['remaining'][:,columns]

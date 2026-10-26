@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <iterator>
 #include <optional>
 #include <string>
 
@@ -14,6 +15,17 @@
 namespace LivePartialCount {
 using Counts = std::map<int,int>;
 using Flows = std::map<int,double>; // Fractions reaching the first finalist.
+using Transfers = std::map<int,Counts>; // Source candidate -> counted finalist votes.
+
+// This is the FP batch actually used for a published TCP, not whichever FP
+// happens to accompany it in a later feed. Optional transfer details preserve
+// Queensland's measured candidate flows without retaining the source XML.
+struct TcpBasis {
+    Counts fp, tcp;
+    Transfers transfers;
+    // This status belongs to the matched pair, not a later FP-only recheck.
+    bool recheckedReconciledPair = false;
+};
 inline constexpr double ComparableTotalFraction = .02;
 // An observed flow supplies this many non-finalist votes' worth of evidence
 // before it receives half the weight. This limits dependence on a tiny batch.
@@ -131,6 +143,110 @@ inline double expectedFirst(Counts const& fp, Flows const& flows, double offset)
     for (auto const& [candidate,votes] : fp)
         result += votes*preferenceRate(candidate,flows,offset);
     return result;
+}
+
+inline bool validBasis(TcpBasis const& basis) {
+    if (basis.tcp.size() != 2 || total(basis.fp) <= 0 || total(basis.fp) != total(basis.tcp)) return false;
+    for (auto const& [candidate,votes] : basis.fp) if (votes < 0) return false;
+    for (auto const& [candidate,votes] : basis.tcp)
+        if (!basis.fp.contains(candidate) || votes < value(basis.fp,candidate)) return false;
+    if (basis.transfers.empty()) return true;
+    std::map<int,double> reconstructed;
+    for (auto const& [candidate,votes] : basis.fp) {
+        if (basis.tcp.contains(candidate)) { reconstructed[candidate] += votes; continue; }
+        auto row = basis.transfers.find(candidate);
+        if (row == basis.transfers.end() || total(row->second) != votes) return false;
+        for (auto const& [finalist,count] : row->second) {
+            if (count < 0 || !basis.tcp.contains(finalist)) return false;
+            reconstructed[finalist] += count;
+        }
+    }
+    for (auto const& [candidate,counts] : basis.transfers)
+        if (!basis.fp.contains(candidate) || basis.tcp.contains(candidate)) return false;
+    if (reconstructed.size() != basis.tcp.size()) return false;
+    for (auto const& [candidate,votes] : basis.tcp)
+        if (!reconstructed.contains(candidate) || reconstructed.at(candidate) != votes) return false;
+    return true;
+}
+
+struct RevisedTcp {
+    double votes = 0, first = 0;
+    // Feasible bounds on transfers affected by the revision. Finalists' own
+    // revised primaries are exact. Removed ballots may be highly unrepresentative:
+    // uncertainty scales with batch size, not its square root.
+    double lower = 0, upper = 0;
+    double uncertainVotes() const { return upper-lower; }
+};
+
+inline std::optional<RevisedTcp> reviseTcp(Counts const& fp, Counts const& tcp,
+    TcpBasis const& basis, Flows const& flows, double offset, int first, int second,
+    double variation = 0) {
+    if (!validBasis(basis) || tcp != basis.tcp || !tcp.contains(first) || !tcp.contains(second)
+        || fp.size() != basis.fp.size() || fp == basis.fp) return {};
+    for (auto const& [candidate,votes] : fp)
+        if (votes < 0 || !basis.fp.contains(candidate) || !flows.contains(candidate)) return {};
+    // Swapping finalist order describes the same sampled allocation.
+    if (first > second) variation = -variation;
+    double pool = total(fp)-value(fp,first)-value(fp,second);
+    double gain = value(tcp,first)-value(basis.fp,first);
+    double lower = gain, upper = gain;
+    for (auto const& [candidate,votes] : fp) {
+        if (candidate == first || candidate == second) continue;
+        double delta = votes-value(basis.fp,candidate);
+        if (delta == 0) continue;
+        double rate = preferenceRate(candidate,flows,offset);
+        auto detail = basis.transfers.find(candidate);
+        if (detail != basis.transfers.end() && value(basis.fp,candidate) > 0)
+            rate = value(detail->second,first)/value(basis.fp,candidate);
+        double lo = 0, hi = std::abs(delta);
+        if (delta < 0 && detail != basis.transfers.end()) {
+            // A removal cannot take more votes than this candidate originally
+            // transferred to either finalist, even in an extreme scenario.
+            lo = std::max(0.0,-delta-value(detail->second,second));
+            hi = std::min(-delta,value(detail->second,first));
+        }
+        double change = std::clamp(std::abs(delta)*rate,lo,hi);
+        if (variation != 0 && hi > lo) {
+            // A unit-normal draw moves over the feasible batch range on log
+            // odds. There is no switch to a whole-booth FP-only distribution.
+            double fraction = (change-lo)/(hi-lo);
+            change = lo+(hi-lo)*inverseLogOdds(logOdds(fraction)+2*variation);
+        }
+        if (delta > 0) { gain += change; lower += lo; upper += hi; }
+        else { gain -= change; lower -= hi; upper -= lo; }
+    }
+    double primary = value(fp,first);
+    lower = primary+std::clamp(lower,0.0,pool);
+    upper = primary+std::clamp(upper,0.0,pool);
+    return RevisedTcp{total(fp),std::clamp(primary+gain,lower,upper),lower,upper};
+}
+
+inline std::map<int,double> revisedLowerBounds(Counts const& fp, Counts const& tcp, TcpBasis const& basis) {
+    if (tcp.size() != 2) return {};
+    int first = tcp.begin()->first, second = std::next(tcp.begin())->first;
+    Flows neutral;
+    for (auto const& [candidate,votes] : fp)
+        neutral[candidate] = candidate == first ? 1 : candidate == second ? 0 : .5;
+    // The feasible endpoints do not depend on a flow prior. Turnout/count
+    // constraints use these bounds, never the obsolete published TCP totals
+    // and never the estimated centre as though it had been counted.
+    auto revised = reviseTcp(fp,tcp,basis,neutral,0,first,second);
+    return revised ? std::map<int,double>{{first,revised->lower},{second,revised->votes-revised->upper}}
+        : std::map<int,double>{};
+}
+
+inline double projectFpOnly(Counts const& fp, Flows const& flows, double offset,
+    double expectedVotes, double futureFirstShare) {
+    // Received primaries already identify the major parties' own voters.
+    // Preference uncertainty moves only transfers from other candidates; a
+    // low seat/category projection cannot take away these counted primaries.
+    // expectedVotes is the turnout target, and futureFirstShare (0..1) is the
+    // surrounding estimate for voters whose FP has not yet been reported.
+    // Normally a reported physical booth has no such future pool. Keeping the
+    // two pools separate also handles an incomplete booth without extrapolating
+    // its first batch to everyone still to arrive.
+    double futureVotes = std::max(0.0, expectedVotes-total(fp));
+    return expectedFirst(fp,flows,offset) + futureVotes*futureFirstShare;
 }
 
 inline std::optional<Evidence> measure(Counts const& fp, Counts const& tcp,

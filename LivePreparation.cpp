@@ -541,12 +541,9 @@ void LivePreparation::acquireSnapshot(LiveResultsInput::CurrentFile const& snaps
 	if (run.regionCode == "sa") loadEcsaXmlDocument(xml, xmlFilename);
 	else {
 		loadLiveXml(xml, xmlFilename);
-		auto root = xml.FirstChildElement("MediaFeed");
-		// Both formats identify the election before counts are parsed, but VEC
-		// places that identifier directly below MediaFeed rather than Results.
-		auto results = run.regionCode == "vic" ? root : (root ? root->FirstChildElement("Results") : nullptr);
-		auto event = results ? results->FirstChildElement("eml:EventIdentifier") : nullptr;
-		if (!event || !event->Attribute("Id") || event->IntAttribute("Id", -1) != currentElection.id)
+		auto format = run.regionCode == "qld" ? Results2::Election::Format::QEC :
+			run.regionCode == "vic" ? Results2::Election::Format::VEC : Results2::Election::Format::AEC;
+		if (!currentElection.matchesSnapshotElection(xml, format))
 			throw Exception("The snapshot election identifier does not match the configured preload.");
 	}
 	if (!snapshot.timestamp) throw Exception("The selected snapshot has no timestamp code.");

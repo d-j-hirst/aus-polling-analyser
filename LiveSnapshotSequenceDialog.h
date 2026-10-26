@@ -14,6 +14,7 @@ public:
 private:
     void scan(bool notifyError = false);
     void preview();
+    void pasteSequence(wxClipboardTextEvent& event);
     void addSelected();
     void addNext();
     std::filesystem::path root;

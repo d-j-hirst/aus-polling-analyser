@@ -829,8 +829,12 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 	if (!tppIntegration) return nullptr;
 	auto const& update = *tppIntegration;
 	auto const& names = sim.getLiveBaselineReport()->seatName;
-	json result = {{"method", "joint_category_composition_v11"},
+	json result = {{"method", "joint_category_composition_v18"},
+        {"evidence_group_partition", "squared_odds_information"},
+        {"evidence_group_half_weight_gap", LiveTppIntegration::EvidenceGroupHalfWeightGap},
 		{"sparse_sample_vote_scale", LiveTppIntegration::SparseSampleVoteScale},
+		{"comparison_completion_start", LiveTppIntegration::ComparisonCompletionStart},
+		{"comparison_completion_curve", "smoothstep"},
 		{"conversion_uncertainty_method", "matched_conversion_with_external_transfer_states"},
 		{"greens_transfer_flow_sd_pp", LiveTppComposition::GreensTransferFlowSd},
 		{"independent_transfer_flow_sd_pp", LiveTppComposition::IndependentTransferFlowSd},
@@ -874,6 +878,7 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 	result["prior_covariance"] = update.prior.covariance;
 	result["reporting_order_initial_sd"] = LiveTppComposition::ReportingOrderInitialSd;
 	result["reporting_order_coverage_scale"] = LiveTppComposition::ReportingOrderCoverageScale;
+	result["reporting_order_compensation_strength"] = LiveTppComposition::ReportingOrderCompensationStrength;
 	result["reporting_order_correlation"] = LiveTppComposition::ReportingOrderCorrelation;
 	result["ordinary_fp_order_sd"] = LiveTppComposition::reportingOrderSd(tppOrdinaryReportingProgress, false);
 	result["ordinary_tcp_order_sd"] = LiveTppComposition::reportingOrderSd(tppOrdinaryReportingProgress, true);
@@ -881,6 +886,9 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 	result["ordinary_tcp_order_coverage"] = tppOrdinaryReportingProgress.coverage(true);
 	auto orderStart = names.size() + tppCategoryCodes.size();
 	auto transferStart = orderStart + LiveTppComposition::ReportingOrderFactors;
+	auto syntheticStart = transferStart+LiveTppComposition::PartyTransferFactors;
+	std::vector<int> liveIndex(names.size());
+	for (std::size_t s = 0; s < tppProjectSeatIndices.size(); ++s) liveIndex[tppProjectSeatIndices[s]] = int(s);
 	json states = json::array();
 	for (std::size_t i = 0; i < update.prior.mean.size(); ++i) {
 		std::string name;
@@ -891,11 +899,13 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 				: std::string(LiveData::boothTypeName(LiveData::BoothType(code)));
 		}
 		else if (i < transferStart) name = i == orderStart ? "Ordinary FP reporting order" : "Ordinary TCP reporting order";
-		else name = i == transferStart ? "Greens conversion error" : "Independent conversion error";
+		else if (i < syntheticStart) name = i == transferStart ? "Greens conversion error" : "Independent conversion error";
+		else name = "Synthetic category baseline " + std::to_string(tppSyntheticCategoryCodes.at(i-syntheticStart));
 		states.push_back({{"name", name}, {"kind", i < names.size() ? "seat" :
-			(i < orderStart ? "shared_error" : (i < transferStart ? "reporting_order" : "party_transfer"))},
+			(i < orderStart ? "shared_error" : (i < transferStart ? "reporting_order" : (i < syntheticStart ? "party_transfer" : "synthetic_baseline")))},
 			{"prior_mean", number(update.prior.mean[i])},
 			{"posterior_mean", number(update.posterior.mean[i])},
+			{"accounted_posterior_mean", number(i < names.size() ? accountedTpp(liveIndex[i],update.posterior.mean[i]) : update.posterior.mean[i])},
 			{"prior_variance", number(update.prior.covariance[i][i])},
 			{"posterior_variance", number(update.posterior.covariance[i][i])}});
 	}
@@ -909,6 +919,21 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 			{"conversion_budget_fraction", expected > 0 ? tppCategoryAccounts->at(s).expectedVotes()/expected : 0},
 			{"shift", number(tppCategoryAccounts->at(s).referenceShift)}});
 	result["booth_reference_shifts"] = std::move(references);
+	json baselines = json::array(), directCounts = json::array();
+	for (std::size_t s = 0; s < tppCategoryAccounts->size(); ++s) {
+		auto const& account = tppCategoryAccounts->at(s);
+		if (account.direct.votes > 0) directCounts.push_back({{"seat",seats[s].name},
+			{"received_votes",account.direct.votes},{"measured_first_votes",account.direct.first},
+			{"inferred_votes",account.direct.inferredVotes},{"inferred_first_votes",account.direct.inferredFirst},
+			{"inferred_share_variance",account.direct.conversionVariance}});
+		for (auto const& [code,source] : account.sources)
+			baselines.push_back({{"seat",seats[s].name},{"category_code",code},
+				{"source",LiveTppComposition::baselineSourceName(source)}});
+	}
+	result["category_baselines"] = std::move(baselines);
+	result["direct_category_counts"] = std::move(directCounts);
+	result["synthetic_baseline_local_sd"] = LiveTppComposition::SyntheticBaselineSd;
+	result["synthetic_baseline_shared_sd"] = LiveTppComposition::SyntheticBaselineSharedSd;
 	json observations = json::array();
 	// Export the received category rows, before within-seat decorrelation.
 	// The update's numerical rows are linear combinations of these categories.
@@ -920,8 +945,10 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 		for (std::size_t i = orderStart; i < transferStart; ++i)
 			orderFactors.push_back(number(o.h[i]));
 		json transferFactors = json::array();
-		for (std::size_t i = transferStart; i < o.h.size(); ++i)
+		for (std::size_t i = transferStart; i < syntheticStart; ++i)
 			transferFactors.push_back(number(o.h[i]));
+		json syntheticFactors = json::array();
+		for (std::size_t i = syntheticStart; i < o.h.size(); ++i) syntheticFactors.push_back(number(o.h[i]));
 		observations.push_back({{"seat", names.at(o.seat)}, {"category_code", o.category},
 			{"seat_loading", number(o.h.at(o.seat))},
 			{"value", number(o.value)}, {"residual_variance", number(o.variance)},
@@ -936,7 +963,13 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 			{"sample_votes", number(o.sampleVotes)},
 			{"sample_coverage", number(o.sampleCoverage)},
 			{"sparse_sample_variance", number(o.sparseSampleVariance)},
-			{"location_group", o.inferredLocations ? "includes_inferred" : "measured"},
+			{"category_fp_coverage", number(o.categoryFpCoverage)},
+			{"comparison_quality_floor", number(o.comparisonQualityFloor)},
+			{"restored_comparison_fraction", number(o.restoredComparisonFraction)},
+			{"compensation_reporting_order_sd", number(o.compensationReportingOrderSd)},
+			{"unfaded_location_variance", number(o.unfadedLocationVariance)},
+			{"retained_small_sample_variance", number(o.retainedSmallSampleVariance)},
+			{"location_group", o.fpDerivedGroup ? "includes_inferred" : "measured"},
 			{"local_matched_units", o.localMatchedUnits}, {"shared_matched_units", o.sharedMatchedUnits},
 			{"local_conversion_sd", o.localConversionSd}, {"shared_conversion_sd", o.sharedConversionSd},
 			{"greens_local_conversion_sd", o.greensLocalConversionSd},
@@ -944,7 +977,9 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 			{"conversion_variance", number(o.conversionVariance)},
 			{"shared_error_loadings", std::move(factors)},
 			{"reporting_order_loadings", std::move(orderFactors)},
-			{"party_transfer_loadings", std::move(transferFactors)}});
+			{"party_transfer_loadings", std::move(transferFactors)},
+			{"synthetic_baseline_sd", o.syntheticBaselineSd},
+			{"synthetic_baseline_loadings", std::move(syntheticFactors)}});
 	}
 	result["observations"] = std::move(observations);
 	// These are district priors before existing booth and observed corrections,
@@ -964,12 +999,22 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 				// Convert each seat centre back to vote share before aggregation.
 				// This is a prepared centre, not the mean of bounded simulation draws.
 				posteriorCentre += run.pastSeatResults[i].turnoutCount / total
-					* LiveTppComposition::share(update.posterior.mean[i]);
+					* LiveTppComposition::share(accountedTpp(liveIndex[i],update.posterior.mean[i]));
 				for (std::size_t j = 0; j < names.size(); ++j) {
 					double w = double(run.pastSeatResults[i].turnoutCount) * run.pastSeatResults[j].turnoutCount / (total * total);
 					priorVariance += w * update.prior.covariance[i][j];
-					posteriorVariance += w * update.posterior.covariance[i][j];
+					posteriorVariance += w * update.posterior.covariance[i][j]
+						* accountedTppDerivative(liveIndex[i],update.posterior.mean[i])
+						* accountedTppDerivative(liveIndex[j],update.posterior.mean[j]);
 				}
+			}
+			for (std::size_t i = 0; i < names.size(); ++i) {
+				auto const& account = tppCategoryAccounts->at(liveIndex[i]);
+				double amount = std::max(account.expectedVotes(),account.direct.votes);
+				if (amount <= 0) continue;
+				double exposure = run.pastSeatResults[i].turnoutCount/total*account.direct.inferredVotes/amount
+					* LiveTppComposition::conversionShareJacobian(LiveTppComposition::share(accountedTpp(liveIndex[i],update.posterior.mean[i])));
+				posteriorVariance += exposure*exposure*account.direct.conversionVariance;
 			}
 			result["weighted_posterior_centre"] = posteriorCentre;
 			result["weighted_prior_sd"] = std::sqrt(std::max(0., priorVariance));
@@ -1155,6 +1200,18 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 					{"nonfinalist_votes",number(evidence.preferenceVotes)},
 					{"flow_log_odds_offset",number(evidence.offset)},
 					{"fp_votes",parties.values(evidence.fp)}};
+			}
+			if (booth.hasTcpRevision()) {
+				auto const& basis = *booth.tcpBasis;
+				int first = basis.tcp.begin()->first, second = std::next(basis.tcp.begin())->first;
+				if (auto revised = revisedBoothTcp(booth,first,second)) {
+					boothJson["tcp_fp_revision"] = {{"original_fp",parties.values(basis.fp)},
+						{"original_tcp",parties.values(basis.tcp)},
+						{"estimated_tcp",parties.values(std::map<int,double>{{first,revised->first},{second,revised->votes-revised->first}})},
+						{"lower_bounds",parties.values(LivePartialCount::revisedLowerBounds(booth.node.fpVotesCurrent,basis.tcp,basis))},
+						{"uncertain_transfer_votes",number(revised->uncertainVotes())},
+						{"candidate_transfers_available",!basis.transfers.empty()}};
+				}
 			}
 			boothJson["node"] = serializeNode(booth.node, parties);
 			boothsJson.push_back(std::move(boothJson));

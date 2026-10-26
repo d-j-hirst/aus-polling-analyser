@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-10-16T23:58:33Z",
+  "updated_at_utc": "2026-10-24T21:48:29Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 37,
+      "semantic_revision": 41,
       "files": {
         "2019fed.txt": {
           "sha256": "014946dc77548034140f78ad66a062f1c59a6d070122cea4c7dcb8bd4525b321",
@@ -45,9 +45,9 @@
           "recorded_mtime_utc": "2023-03-25T04:45:05.036649Z"
         },
         "2024qld.txt": {
-          "sha256": "e5302502be940cf260d413e3483d1d3045edeaf974b9360eb7f30c201575a9a0",
-          "size_bytes": 21805,
-          "recorded_mtime_utc": "2024-10-25T13:02:24.535014Z"
+          "sha256": "07968d84187f7c2b24c716800180f4f6342e8b5b418f33a7c8938866839d424a",
+          "size_bytes": 21786,
+          "recorded_mtime_utc": "2026-10-22T03:31:54.525072Z"
         },
         "2025fed.txt": {
           "sha256": "bf4000b90170552b1e548a32bc7562f52ea1cec547c56e0a0b91ed2c48935464",
@@ -65,9 +65,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "b6be218f6e0b532bec2ce126e8ba4fd1b258be07bd7318e6089e5a1c8cdaf8c0",
-          "size_bytes": 22889,
-          "recorded_mtime_utc": "2026-10-16T21:05:07.341862Z"
+          "sha256": "339f101c23db2072f18459c03478f75d7b21a61298ebe92288a9100e885dcdad",
+          "size_bytes": 23250,
+          "recorded_mtime_utc": "2026-10-24T21:48:29.286237Z"
         },
         "2027nsw.txt": {
           "sha256": "9066c05124dc34153f7b56e0d6c2a7238d5a40e3e1edb7965d74778378c4120a",
@@ -883,9 +883,108 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261020T130134Z-other-forecast-seats-c1473800",
+          "recorded_at_utc": "2026-10-20T13:01:34Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 38,
+          "provenance_revision": 38,
+          "summary": "Seat odds update",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261021T090603Z-source_refresh-forecast-seats-55ed6dfe",
+          "recorded_at_utc": "2026-10-21T09:06:03Z",
+          "change_type": "source_refresh",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 39,
+          "provenance_revision": 39,
+          "summary": "Apply the approved 21 October 2026 candidate audit: add Kerry Macdonald (ALP, Mornington); William Billings (LNP, Dandenong), Hamza Al Katranji (LNP, Preston), Gav Ronan (LNP, Wendouree); Lauren Granger-Brown (GRN, Sunbury), Vanessa Muradian (GRN, Warrandyte); Steven Mitchell (ONP, Ashwood), Andrew Hirst (ONP, Cranbourne), David Laird (ONP, Kew). Replace Grant Hutchinson with Toby Wooldridge (LNP, Croydon). Use official party display names. Preserve independent ratings and returning flags, pending candidates, incumbency and Coalition settings. Preserve pre-existing odds edits; the registered fingerprint includes the current working file.",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          },
+          "source": {
+            "description": "Official candidate profiles checked for the 21 October 2026 audit: https://vicliberal.org.au/team/toby-wooldridge ; https://vicliberal.org.au/team/william-billings ; https://vicliberal.org.au/team/hamza-al-katranji ; https://vicliberal.org.au/team/gav-ronan ; https://www.viclabor.org.au/our-team/kerry-macdonald ; https://greens.org.au/vic/person/lauren-granger-brown ; https://greens.org.au/vic/person/vanessa-muradian ; https://vic.onenation.org.au/steven-mitchell ; https://vic.onenation.org.au/andrew-hirst ; https://vic.onenation.org.au/david-laird .",
+            "uri": "https://vicliberal.org.au/team/toby-wooldridge",
+            "coverage_through": "2026-10-21"
+          }
+        },
+        {
+          "id": "20261022T034115Z-source_refresh-forecast-seats-47e2d6c8",
+          "recorded_at_utc": "2026-10-22T03:41:15Z",
+          "change_type": "source_refresh",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 40,
+          "provenance_revision": 40,
+          "summary": "Reconcile the 2024 Queensland ballot roster with the ECQ preload: correct candidate identities and IND/OTH multiplicity; retain the merged LNP and existing prominent-independent settings.",
+          "files": [
+            "2024qld.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2024qld"
+            ],
+            "parties": [],
+            "stages": []
+          },
+          "source": {
+            "description": "ECQ 2024 State General Election candidate roster, zerofile.xml retained from the official media feed.",
+            "uri": "https://www.ecq.qld.gov.au/elections/election-events/2024-election-events/2024-state-general-election",
+            "coverage_through": "2024-10-26"
+          }
+        },
+        {
+          "id": "20261024T214829Z-source_refresh-forecast-seats-c5f573bd",
+          "recorded_at_utc": "2026-10-24T21:48:29Z",
+          "change_type": "source_refresh",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 41,
+          "provenance_revision": 41,
+          "summary": "Add Caroline White as the named independent for Clarinda in 2026vic, with bConfirmedProminentIndependent=1, bPreviousIndRunning=1 and viability IND,-1. Preserve every other candidate, independent rating, pending-candidate decision, incumbency and Coalition setting, and all existing betting-odds lines. The registered fingerprint also retains the pre-existing working-file odds edits.",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          },
+          "source": {
+            "description": "Caroline White campaign biography and candidacy, checked in the 25 October 2026 audit; 2022 first-preference result of 3,167 votes (7.8%) corroborated by https://www.abc.net.au/news/elections/vic/2022/guide/clar . Returning-independent inclusion at viability -1 explicitly approved by the user.",
+            "uri": "https://votecaroline.com/about-caroline/",
+            "coverage_through": "2026-10-25"
+          }
         }
       ],
-      "provenance_revision": 37
+      "provenance_revision": 41
     }
   }
 }

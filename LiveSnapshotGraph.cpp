@@ -199,12 +199,24 @@ std::vector<int> countingDayGraphRows(ParliamentView const& view)
 		if (!*row.countingStarted && day > latestZeroDay) latestZeroDay = day;
 	}
 	auto const& start = firstCountingDay.empty() ? latestZeroDay : firstCountingDay;
+	// Keep the normal three-week postcount, through midnight at the end of
+	// day 21. Later archival corrections remain in tables but must not stretch
+	// the graph. Use the same received-count day as the existing lower bound;
+	// without counting evidence we cannot establish this upper bound yet.
+	auto const countingDayStart = snapshotCodeTimeSeconds(firstCountingDay + "000000");
+	constexpr std::int64_t secondsPerDay = 24 * 60 * 60;
+	constexpr std::int64_t postcountDays = 21;
+	auto const endExclusive = countingDayStart ?
+		std::optional<std::int64_t>(*countingDayStart + (postcountDays + 1) * secondsPerDay) : std::nullopt;
 	std::vector<int> rows;
 	for (int index = 0; index < int(view.rows.size()); ++index) {
 		auto const& code = view.rows[index].snapshotCode;
+		auto const time = snapshotCodeTimeSeconds(code);
 		// With no progress metadata, or an unrecognised clock, preserve the
 		// legacy view rather than guessing an election date from a large gap.
-		if (start.empty() || !snapshotCodeTimeSeconds(code) || code.substr(0,8) >= start) rows.push_back(index);
+		if (!start.empty() && time && code.substr(0,8) < start) continue;
+		if (time && endExclusive && *time >= *endExclusive) continue;
+		rows.push_back(index);
 	}
 	return rows;
 }
@@ -352,7 +364,7 @@ GraphModel makeCompletionGraph(ParliamentView const& view)
 	return model;
 }
 
-GraphModel makeCategoryStatGraph(ParliamentView const& view, bool integerLabels)
+GraphModel makeCategoryStatGraph(ParliamentView const& view, bool integerLabels, bool includeZero)
 {
 	auto model = makeGraphFromView(view, false, false, false, false);
 	model.yIsPercent = false;
@@ -381,7 +393,16 @@ GraphModel makeCategoryStatGraph(ParliamentView const& view, bool integerLabels)
 		model.yMax = 1.0;
 		return model;
 	}
-	if (minValue >= 0.0) {
+	if (!includeZero) {
+		// Internal diagnostics need to reveal small movements around their own
+		// level, often 50 for TPP. A small minimum span also keeps an unchanged
+		// or single-snapshot series readable without exaggerating rounding noise.
+		double const span = std::max(0.2, maxValue - minValue);
+		double const centre = (minValue + maxValue) * 0.5;
+		model.yMin = centre - span * 0.55;
+		model.yMax = centre + span * 0.55;
+	}
+	else if (minValue >= 0.0) {
 		model.yMin = 0.0;
 		double const padded = maxValue * 1.05;
 		if (!(padded > 0.0)) model.yMax = 1.0;
@@ -400,7 +421,7 @@ GraphModel makeCategoryStatGraph(ParliamentView const& view, bool integerLabels)
 
 GraphModel makeInternal2ppGraph(ParliamentView const& view)
 {
-	return makeCategoryStatGraph(view, false);
+	return makeCategoryStatGraph(view, false, false);
 }
 
 int GraphLayout::yForValue(double value) const

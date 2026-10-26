@@ -160,6 +160,20 @@ public:
   // Prepared once from compatible accepted counts. Main scenarios share this
   // frozen measurement, never retaining source documents or disk history.
   std::optional<LivePartialCount::Evidence> preferenceEvidence;
+  std::optional<LivePartialCount::TcpBasis> tcpBasis;
+  bool hasTcpRevision() const {
+    if (!tcpBasis || tcpBasis->tcp != node.tcpVotesCurrent || tcpBasis->fp == node.fpVotesCurrent ||
+      tcpBasis->fp.size() != node.fpVotesCurrent.size() || node.totalFpVotesCurrent() <= 0) return false;
+    for (auto const& [candidate,votes] : tcpBasis->fp)
+      if (!node.fpVotesCurrent.contains(candidate)) return false;
+    return true;
+  }
+  std::map<int,double> tcpLowerBounds() const {
+    // Share the same guaranteed vote account between turnout and recheck
+    // scenarios; neither may reinstate the obsolete TCP after an FP revision.
+    return hasTcpRevision() ? LivePartialCount::revisedLowerBounds(node.fpVotesCurrent,node.tcpVotesCurrent,*tcpBasis)
+      : std::map<int,double>(node.tcpVotesCurrent.begin(),node.tcpVotesCurrent.end());
+  }
   // Scratch shares of genuinely new voters, with raw ballot identities. FP
   // and pair preparation consume the same composition; preparation samples
   // own separate copies. Main draws use the prepared seat-level responses.
@@ -171,6 +185,7 @@ public:
 
   // Source district survives redistribution matching; historical party flows
   // must follow the old booth's electorate, not its new district's name.
+  bool syntheticPreviousCategory = false;
   std::string previousPreferenceSeat;
   std::map<int, double> previousPartyPreferenceFlows;
 
@@ -183,6 +198,7 @@ public:
   // A generic emerging/recontest possibility has no identified candidate to
   // compare and supplies no pooling baseline; it still receives local updates.
   double independentPoolingBaselineShare = 0;
+  std::map<int, LiveTppComposition::CategoryHistory> categoryHistory;
   std::map<int, double> partyPreferenceFlows; // Prepared district priors, fractions.
   Seat(Results2::Seat const& seat, int parentRegionIndex);
 
@@ -540,6 +556,7 @@ private:
   void prepareTppIntegration();
   void identifyTppIntegrationSeats();
   void prepareTppCategoryAccounts();
+  void prepareMatchedCategoryHistory(int seatIndex);
   void prepareTppReportingOrder();
   LiveTppIntegration::Moments tppJointPrior();
   LiveTppIntegration::Matrix tppReferenceMixtures() const;
@@ -552,18 +569,29 @@ private:
     double matchedUnits) const;
   std::pair<std::vector<LiveTppIntegration::Observation>, LiveTppIntegration::Matrix>
     tppSeatObservationRows(int seatIndex, double matchedUnits) const;
+  // Expected final continuing votes: turnout mean FP under compulsory
+  // preferences, projected continuing TPP count under optional preferences.
   double tppBoothTarget(int boothIndex) const;
+  // Prior booth expectation in 25*log-odds units: previous booth TPP plus
+  // baseline seat swing, or baseline seat absolute TPP when unmatched.
   double tppBoothBaseline(int boothIndex) const;
+  void prepareCategoryHistory(int seatIndex, Results2::Seat const& previousSeat,
+    Results2::Election const& previousElection, Results2::Election const& currentElection);
+
   double tppSeatReferenceShift(int seatIndex, double priorShare) const;
   double tppBoothMatchedPreferenceUnit(int boothIndex) const;
   void prepareMatchedConversion();
   double heldOutPreferenceOffset(int excludedSeat) const;
   LivePartyConversion::MatchedAccount matchedConversionAccount(int seatIndex) const;
+  // seatIndex is the live seat-vector index. referenceShift aligns its booth
+  // expectations to the pre-count baseline on the transformed scale. The source
+  // group partitions information by TCP coverage, never by map coordinates;
+  // qualityFloors supplies category-specific minimum comparison weights [0,1].
   std::map<int, LiveTppIntegration::CategoryEvidence> tppCategoryEvidence(int seatIndex, double referenceShift,
-    std::optional<bool> inferredLocations = {}) const;
+    LiveTppIntegration::EvidenceSourceGroup sourceGroup = LiveTppIntegration::EvidenceSourceGroup::All, std::map<int, double> const& qualityFloors = {}) const;
   void appendTppBoothEvidence(int boothIndex, double referenceShift,
     std::map<int, LiveTppIntegration::CategoryEvidence>& categories,
-    std::optional<bool> inferredLocations) const;
+    LiveTppIntegration::EvidenceSourceGroup sourceGroup, std::map<int, double> const& qualityFloors) const;
   double tppScenarioCountChange(int seatIndex) const;
   float preparedTppShare(int seatIndex) const;
   nlohmann::json tppIntegrationDiagnostic() const;
@@ -571,14 +599,31 @@ private:
   std::shared_ptr<LiveTppIntegration::Update const> tppIntegration;
   std::vector<int> tppProjectSeatIndices;
   std::vector<int> tppCategoryCodes;
+  std::vector<int> tppSyntheticCategoryCodes;
   struct TppCategoryAccount {
     double referenceShift = 0;
+    std::map<int, LiveTppComposition::BaselineSource> sources;
+    LiveTppComposition::DirectVotes direct;
     std::map<int, LiveTppIntegration::CategoryEvidence> evidence;
     std::array<std::map<int, LiveTppIntegration::CategoryEvidence>, 2> observationEvidence;
+    // Only the current preparation's compact sums are retained. Historical
+    // weighting supplies the small-sample variance bound after completion lifts
+    // comparison weights; it is not another observation or prior draw.
+    std::map<int, LiveTppIntegration::CategoryEvidence> unfadedEvidence;
+    std::array<std::map<int, LiveTppIntegration::CategoryEvidence>, 2> unfadedObservationEvidence;
+    std::map<int, LiveTppIntegration::ReportingProgress> fpProgress;
     std::vector<int> codes;
     LiveTppComposition::Account account;
     double expectedVotes() const;
   };
+  TppCategoryAccount prepareTppCategoryAccount(int seatIndex);
+  void identifySyntheticTppCategories(std::vector<TppCategoryAccount> const& accounts);
+  void prepareDirectTppVotes(int seatIndex, TppCategoryAccount& account) const;
+  double accountedTpp(int seatIndex, double transformed, bool sample = false) const;
+  double accountedTppDerivative(int seatIndex, double transformed) const;
+  void applyTppCategoryCompletion(int seatIndex, TppCategoryAccount& account) const;
+  void applyTppObservationCoverage(TppCategoryAccount const& account, int group, int code,
+    LiveTppIntegration::Observation& observation) const;
   std::shared_ptr<std::vector<TppCategoryAccount> const> tppCategoryAccounts;
   std::shared_ptr<std::vector<LiveTppIntegration::Observation> const> tppReceivedObservations;
   std::shared_ptr<LiveTppComposition::Extension const> tppPriorExtension;
@@ -632,13 +677,24 @@ private:
 
   void preparePreferenceCohorts(Results2::Election const& previousElection,
     Results2::Election const& currentElection, LiveInputRecovery::PreferenceHistories const& history);
+  void prepareUnreportedPreferenceCohorts(Results2::Election const& previousElection,
+    Results2::Election const& currentElection, LiveInputRecovery::PreferenceHistories const& history);
+  void preparePreferenceCohort(Booth& booth, Results2::Election const& previousElection,
+    Results2::Election const& currentElection, LiveInputRecovery::PreferenceHistory const& history);
   LivePartialCount::Flows classicPreferenceFlows(Booth const& booth, int coalitionParty, bool previous = false) const;
   LivePartialCount::Flows pairPreferenceFlows(Booth const& booth, int first, int second) const;
   std::optional<float> preferenceRateOffset(Booth const& booth, bool current) const;
   double preferencePriorOffset(Booth const& booth, bool includeLocal = true) const;
   std::map<int,float> projectCountedTpp(int boothIndex, double contextShare);
   std::optional<double> rawPendingFirstVotes(Booth const& booth) const;
+  void prepareTcpBases(Results2::Election const& previousElection, Results2::Election const& currentElection,
+    LiveInputRecovery::PreferenceHistories const& history);
+  std::optional<LivePartialCount::RevisedTcp> revisedBoothTcp(Booth const& booth,
+    int first, int second, double variation = 0) const;
+  std::optional<LiveTppIntegration::ReceivedTpp> receivedBoothTpp(Booth const& booth) const;
   std::map<int,float> projectDeclarationTpp(int boothIndex);
+  bool usesUnmatchedFpTpp(Booth const& booth) const;
+  double projectUnmatchedBoothTpp(int boothIndex, double futureShare, double preferenceVariation) const;
   int coalitionFinalist(Booth const& booth) const;
   double futurePreferenceOffset(Booth const& booth, int first, int second) const;
 
@@ -784,7 +840,7 @@ private:
 
   // Rechecking is independent of additions. Prepare its distributions once
   // from current comparable booths, then change only scenario pair accounts.
-  void preparePreferenceCorrections();
+  void preparePreferenceCorrections(LiveInputRecovery::RecordStatuses const& countStatuses);
   void applyPreferenceCorrections(int iterationIndex);
 
   void generateVariability(int iterationIndex);

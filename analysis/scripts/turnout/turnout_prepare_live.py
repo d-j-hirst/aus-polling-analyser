@@ -93,6 +93,9 @@ def _validate_service_settings(config, n, g):
         for flag, reason in (('closed', 'closure_reason'), ('excluded', 'exclusion_reason')):
             if bool(unit[flag]) != bool(unit[reason]):
                 raise ValueError('A service exception must record its reason.')
+        reason = unit.get('transfer_exclusion_reason', '')
+        if not isinstance(reason, str) or (reason and not reason.strip()):
+            raise ValueError('A transfer exclusion must be an explanatory string, or empty.')
 
 
 def _validate_sampling_settings(config):

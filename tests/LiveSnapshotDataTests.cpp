@@ -428,7 +428,8 @@ int main()
 	// election-night graph into a few pixels. All graph modes share this range.
 	std::vector<SnapshotRecord> checkpoint;
 	for (auto const& [code,progress] : std::vector<std::pair<std::string,double>>{
-		{"20220503123548",0},{"20220521170100",0},{"20220521180101",.001},{"20220522120000",.7}}) {
+		{"20220503123548",0},{"20220521170100",0},{"20220521180101",.001},{"20220522120000",.7},
+		{"20220611235959",.99},{"20220612000000",.99},{"20220719103300",1}}) {
 		SnapshotRecord record;
 		record.snapshotCode = code;
 		record.document = snapshotDocument(code,"",json::array({outcome(0,75)}),
@@ -437,14 +438,22 @@ int main()
 		checkpoint.push_back(std::move(record));
 	}
 	auto checkpointTable = buildParliamentView(checkpoint);
-	assert(checkpointTable.rows.size() == 4);
+	assert(checkpointTable.rows.size() == 7);
 	assert(checkpointTable.rows[0].countingStarted == false);
 	assert(checkpointTable.rows[2].countingStarted == true);
 	auto checkpointGraph = makeParliamentGraph(checkpointTable);
-	assert(checkpointGraph.xLabels.size() == 3);
+	assert(checkpointGraph.xLabels.size() == 4);
 	assert(checkpointGraph.xTimes.front() == snapshotCodeTimeSeconds("20220521170100"));
+	// Include all of the day three weeks after counting starts, but exclude
+	// the following midnight and much later corrections from every graph.
+	assert(checkpointGraph.xTimes.back() == snapshotCodeTimeSeconds("20220611235959"));
 	assert(checkpointGraph.series[0].values.size() == checkpointGraph.xTimes.size());
-	auto checkpointLayout = layoutParliamentGraph(checkpointGraph,1000,600);
+	// Keep the original election-night spacing check on its short window;
+	// the separate three-week boundary assertions above cover a longer span.
+	auto firstCountDay = checkpointTable;
+	firstCountDay.rows.resize(4);
+	firstCountDay.cells.resize(4);
+	auto checkpointLayout = layoutParliamentGraph(makeParliamentGraph(firstCountDay),1000,600);
 	assert(checkpointLayout.xPixels[1]-checkpointLayout.xPixels[0] > 50);
 	// While still waiting for the first count, show the latest pre-count day.
 	checkpoint.resize(2);
@@ -455,7 +464,7 @@ int main()
 	assert(makeParliamentGraph(buildParliamentView(checkpoint)).xLabels.size() == 1);
 	checkpointTable.rows[0].countingStarted.reset();
 	for (auto& row : checkpointTable.rows) row.countingStarted.reset();
-	assert(makeParliamentGraph(checkpointTable).xLabels.size() == 4);
+	assert(makeParliamentGraph(checkpointTable).xLabels.size() == 7);
 	assert(graph.series.size() == view.columns.size() - 1);
 	assert(graph.series[0].label == "ALP Majority");
 	assert(graph.series[0].style == GraphLineStyle::Solid);
@@ -1494,6 +1503,19 @@ int main()
 	assert(internalGraph.series[0].colour.r != internalGraph.series[1].colour.r ||
 		internalGraph.series[0].colour.g != internalGraph.series[1].colour.g ||
 		internalGraph.series[0].colour.b != internalGraph.series[1].colour.b);
+	// A selected absolute metric must zoom around its values rather than retain
+	// either the deviation series or a forced zero baseline. Negative deviation
+	// values likewise retain their own scale without requiring zero in the plot.
+	auto selectedInternal = internal2pp;
+	selectedInternal.columns[2].includeInGraph = false;
+	auto projectedGraph = makeInternal2ppGraph(selectedInternal);
+	assert(projectedGraph.series.size() == 1 && projectedGraph.yMin > 50);
+	assert(projectedGraph.yMin < 54.5 && projectedGraph.yMax > 56.25);
+	selectedInternal.columns[1].includeInGraph = false;
+	selectedInternal.columns[2].includeInGraph = true;
+	auto deviationGraph = makeInternal2ppGraph(selectedInternal);
+	assert(deviationGraph.series.size() == 1 && deviationGraph.yMax < 0);
+	assert(deviationGraph.yMin < -1.8 && deviationGraph.yMax > -.5);
 
 	auto compactDir = root / "compact-summary";
 	std::filesystem::create_directories(compactDir);

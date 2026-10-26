@@ -1,0 +1,22 @@
+{
+  "election": "2024qld",
+  "previous_election": "2020qld",
+  "parameter_preset": "2024qld/earlier_only",
+  "preparation_samples": 256,
+  "count_draws": 8,
+  "seed": 20261022,
+  "operational_counts": {
+    "early": 1620434,
+    "postal": 692180
+  },
+  "operational_sources": {
+    "early": "https://antonygreen.com.au/early-voting-and-how-tonights-queensland-election-night-count-might-unfold/",
+    "postal": "https://antonygreen.com.au/early-voting-and-how-tonights-queensland-election-night-count-might-unfold/"
+  },
+  "schedule": {
+    "poll_close": "2024-10-26T18:00:00",
+    "postal_deadline": "2024-11-05T18:00:00",
+    "receipt_deadline": "2024-11-05T18:00:00",
+    "ppvc_reporting_decay": true
+  }
+}

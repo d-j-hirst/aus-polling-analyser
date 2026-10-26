@@ -49,7 +49,8 @@ enum ControlId {
 	FilterText,
 	VerticalScroll,
 	HorizontalScroll,
-	FollowLatest
+	FollowLatest,
+	Internal2ppMetric
 };
 
 LiveBoothFrame::LiveBoothFrame(ProjectFrame::Refresher refresher, PollingProject* project)
@@ -272,7 +273,13 @@ void LiveBoothFrame::OnPartySelected(wxCommandEvent&)
 {
 	if (updatingControls) return;
 	int const selection = partyComboBox->GetSelection();
-	if (mode == Mode::SeatThresholds) {
+	if (isPartySummaryMode()) {
+		auto& filter = partySummarySelection();
+		filter.allParties = selection <= 0;
+		if (selection > 0 && selection <= int(filter.parties.size()))
+			filter.party = filter.parties[selection - 1].partyIndex;
+	}
+	else if (mode == Mode::SeatThresholds) {
 		if (selection >= 0 && selection < int(thresholdParties.size())) {
 			selectedThresholdPartyIndex = thresholdParties[selection].partyIndex;
 		}
@@ -301,6 +308,14 @@ void LiveBoothFrame::OnPartySelected(wxCommandEvent&)
 	rebuildPresentation();
 	layoutContents();
 	paint();
+}
+
+void LiveBoothFrame::OnInternal2ppMetricSelected(wxCommandEvent&)
+{
+	if (updatingControls) return;
+	internal2ppMetric = internal2ppMetricComboBox->GetSelection() == 1 ?
+		LiveSnapshotViewer::Internal2ppMetric::RawDeviation : LiveSnapshotViewer::Internal2ppMetric::Projected;
+	rebuildPresentation();
 }
 
 void LiveBoothFrame::OnSeatSelected(wxCommandEvent&)
@@ -362,6 +377,7 @@ void LiveBoothFrame::bindEventHandlers()
 	Bind(wxEVT_COMBOBOX, &LiveBoothFrame::OnSeatSelected, this, ControlId::SeatFocus);
 	Bind(wxEVT_COMBOBOX, &LiveBoothFrame::OnShadingSelected, this, ControlId::ShadingMode);
 	Bind(wxEVT_COMBOBOX, &LiveBoothFrame::OnLayoutSelected, this, ControlId::CategoryLayout);
+	Bind(wxEVT_COMBOBOX, &LiveBoothFrame::OnInternal2ppMetricSelected, this, ControlId::Internal2ppMetric);
 	auto const hookArrows = [this](wxWindow* window) {
 		window->Bind(wxEVT_CHAR_HOOK, &LiveBoothFrame::OnCharHook, this);
 	};
@@ -374,6 +390,7 @@ void LiveBoothFrame::bindEventHandlers()
 	hookArrows(seatComboBox);
 	hookArrows(shadingComboBox);
 	hookArrows(layoutComboBox);
+	hookArrows(internal2ppMetricComboBox);
 	hookArrows(dcPanel);
 	dcPanel->Bind(wxEVT_PAINT, &LiveBoothFrame::OnPaint, this, ControlId::DcPanel);
 	dcPanel->Bind(wxEVT_MOTION, &LiveBoothFrame::OnMouseMove, this, ControlId::DcPanel);
@@ -462,10 +479,21 @@ void LiveBoothFrame::createChrome()
 	layoutChoices.push_back("By statistic");
 	layoutComboBox = new wxComboBox(parliamentBar, ControlId::CategoryLayout, "By booth type",
 		wxDefaultPosition, wxSize(150, 30), layoutChoices, wxCB_READONLY);
+	// Keep this choice local to the viewer. New snapshots and switches between
+	// table and graph retain it without changing the saved forecast or its data.
+	internal2ppMetricLabel = new wxStaticText(parliamentBar, wxID_ANY, "Metric:");
+	wxArrayString internal2ppChoices;
+	internal2ppChoices.push_back("Internal projected 2PP");
+	internal2ppChoices.push_back("Raw 2PP deviation");
+	internal2ppMetricComboBox = new wxComboBox(parliamentBar, ControlId::Internal2ppMetric, "Internal projected 2PP",
+		wxDefaultPosition, wxSize(200, 30), internal2ppChoices, wxCB_READONLY);
+	internal2ppMetricComboBox->SetToolTip("Projected 2PP is an absolute percentage. Raw deviation measures departure from the pre-count baseline on the transformed share scale.");
 
 	auto* parliamentSizer = new wxBoxSizer(wxHORIZONTAL);
 	parliamentSizer->Add(viewLabel, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 8);
 	parliamentSizer->Add(viewComboBox, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
+	parliamentSizer->Add(internal2ppMetricLabel, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 12);
+	parliamentSizer->Add(internal2ppMetricComboBox, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
 	parliamentSizer->Add(partyLabel, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 12);
 	parliamentSizer->Add(partyComboBox, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
 	parliamentSizer->Add(seatLabel, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 12);
@@ -509,6 +537,7 @@ void LiveBoothFrame::updateToolbar()
 	else if (mode == Mode::Parliament) modeComboBox->SetSelection(1);
 	else modeComboBox->SetSelection(0);
 	viewComboBox->SetSelection(summaryDisplay == SummaryDisplay::Graph ? 1 : 0);
+	internal2ppMetricComboBox->SetSelection(internal2ppMetric == LiveSnapshotViewer::Internal2ppMetric::RawDeviation ? 1 : 0);
 
 	runComboBox->Clear();
 	for (auto const& record : loadResult.records) {
@@ -521,12 +550,14 @@ void LiveBoothFrame::updateToolbar()
 	restoreLayoutCombo();
 
 	bool const inspector = mode == Mode::NodeInspector;
-	bool const showParty = mode == Mode::SeatThresholds || isSeatMetricMode();
+	bool const showParty = mode == Mode::SeatThresholds || isSeatMetricMode() ||
+		(isPartySummaryMode() && summaryDisplay == SummaryDisplay::Graph);
 	bool const showSeat = (isSeatMetricMode() || isCompletionMode()) &&
 		summaryDisplay == SummaryDisplay::Graph;
 	bool const showShading = isSeatMetricMode() &&
 		summaryDisplay == SummaryDisplay::Table;
 	bool const showLayout = isCategoryStatMode();
+	bool const showInternal2ppMetric = mode == Mode::Internal2pp && summaryDisplay == SummaryDisplay::Graph;
 	auto* sizer = chrome->GetSizer();
 	sizer->Show(inspectorBar, inspector);
 	sizer->Show(parliamentBar, !inspector);
@@ -539,6 +570,8 @@ void LiveBoothFrame::updateToolbar()
 	parliamentSizer->Show(shadingComboBox, showShading);
 	parliamentSizer->Show(layoutLabel, showLayout);
 	parliamentSizer->Show(layoutComboBox, showLayout);
+	parliamentSizer->Show(internal2ppMetricLabel, showInternal2ppMetric);
+	parliamentSizer->Show(internal2ppMetricComboBox, showInternal2ppMetric);
 	parliamentBar->Layout();
 	chrome->Layout();
 	updatingControls = false;
@@ -929,6 +962,18 @@ void LiveBoothFrame::restoreRunSelection()
 void LiveBoothFrame::restorePartyCombo()
 {
 	partyComboBox->Clear();
+	if (isPartySummaryMode()) {
+		auto const& filter = partySummarySelection();
+		partyComboBox->Append("All parties");
+		int selected = 0;
+		for (int index = 0; index < int(filter.parties.size()); ++index) {
+			partyComboBox->Append(wxString::FromUTF8(filter.parties[index].label));
+			if (!filter.allParties && filter.parties[index].partyIndex == filter.party)
+				selected = index + 1;
+		}
+		partyComboBox->SetSelection(selected);
+		return;
+	}
 	if (mode == Mode::SeatThresholds) {
 		int selected = 0;
 		for (int index = 0; index < int(thresholdParties.size()); ++index) {
@@ -1036,7 +1081,7 @@ void LiveBoothFrame::clearCachedViews()
 	seatFpTableView = {}; seatFpGraphView = {}; completionTableView = {};
 	completionGraphView = {}; categoryStatTableView = {}; categoryStatGraphView = {};
 	internal2ppView = {}; graphModel = {}; tableLayout = {};
-	thresholdParties = {}; seatWinParties = {}; seatFpParties = {}; seatWinSeats = {};
+	expectationSelection.parties = {}; voteShareSelection.parties = {}; thresholdParties = {}; seatWinParties = {}; seatFpParties = {}; seatWinSeats = {};
 }
 
 LiveBoothFrame::~LiveBoothFrame() { viewer.reset(); }
@@ -1061,7 +1106,13 @@ void LiveBoothFrame::rebuildPresentation() {
     request.followLatest = followLatest; request.filename = selectedFilename;
     request.seat = selectedSeatWinSeatName; request.groupByType = categoryGroupByType;
     request.categoryStatistic = categoryGraphStatistic;
-    if (mode == Mode::SeatThresholds) request.party = selectedThresholdPartyIndex;
+    request.internal2ppMetric = internal2ppMetric;
+    if (isPartySummaryMode()) {
+        auto const& filter = partySummarySelection();
+        request.party = filter.party;
+        request.allParties = filter.allParties;
+    }
+    else if (mode == Mode::SeatThresholds) request.party = selectedThresholdPartyIndex;
     else if (mode == Mode::SeatFp) {
         request.party = request.graph ? selectedSeatFpGraphPartyIndex : selectedSeatFpTablePartyIndex;
         request.allParties = seatFpGraphAllParties;
@@ -1123,9 +1174,15 @@ void LiveBoothFrame::OnViewerReady(wxThreadEvent&) {
         if (summaryDisplay == SummaryDisplay::Graph) categoryStatGraphView = std::move(result.view);
         else categoryStatTableView = std::move(result.view);
     } else if (mode == Mode::Parliament) parliamentView = std::move(result.view);
-    else if (mode == Mode::SeatExpectations) seatView = std::move(result.view);
+    else if (isPartySummaryMode()) {
+        auto& filter = partySummarySelection();
+        filter.parties = std::move(result.parties);
+        filter.party = result.party;
+        filter.allParties = result.allParties;
+        if (mode == Mode::SeatExpectations) seatView = std::move(result.view);
+        else voteShareView = std::move(result.view);
+    }
     else if (mode == Mode::Tpp) tppView = std::move(result.view);
-    else if (mode == Mode::VoteShares) voteShareView = std::move(result.view);
     else if (mode == Mode::Internal2pp) internal2ppView = std::move(result.view);
     graphModel = std::move(result.graph); tableLayout = std::move(result.layout);
     scrollX = oldX; scrollY = oldY;
@@ -1135,6 +1192,16 @@ void LiveBoothFrame::OnViewerReady(wxThreadEvent&) {
         applyScrollbars();
     }
     paint();
+}
+
+bool LiveBoothFrame::isPartySummaryMode() const
+{
+    return mode == Mode::SeatExpectations || mode == Mode::VoteShares;
+}
+
+LiveBoothFrame::PartyGraphSelection& LiveBoothFrame::partySummarySelection()
+{
+    return mode == Mode::SeatExpectations ? expectationSelection : voteShareSelection;
 }
 
 bool LiveBoothFrame::isSeatMetricMode() const

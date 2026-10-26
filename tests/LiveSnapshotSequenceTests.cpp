@@ -38,6 +38,25 @@ int main() {
     settings.codes = parseCodes("260321183853\n260321190039\n");
     assert(resolve(available, settings.codes).back().path == folder / "el2026260321190039.xml");
     assert(parseCodes(codeText(settings.codes)) == settings.codes);
+    // Clipboard line endings must preserve both the visible code boundaries
+    // and the parsed selection. CRLF is one break, not an extra blank line;
+    // actual blank lines and unfinished/invalid user text remain untouched.
+    auto lineCodes = std::vector<std::string>{"20241025201257", "20241026181622"};
+    for (std::string separator : {"\n", "\r\n", "\r", "\xC2\x85", "\xE2\x80\xA8", "\xE2\x80\xA9"}) {
+        auto pasted = lineCodes[0] + separator + lineCodes[1] + separator;
+        auto normalized = normalizeCodeLineEndings(pasted);
+        assert(normalized == codeText(lineCodes) + "\n");
+        assert(parseCodes(pasted) == lineCodes);
+        assert(parseCodes(normalized) == lineCodes);
+        assert(normalizeCodeLineEndings(normalized) == normalized);
+    }
+    assert(normalizeCodeLineEndings("\r\n 20241025201257\r\n\r20241026181622\t\n") ==
+        "\n 20241025201257\n\n20241026181622\t\n");
+    assert(parseCodes("\r\n 20241025201257\r\n\r20241026181622\t\n") == lineCodes);
+    assert(normalizeCodeLineEndings("").empty());
+    assert(normalizeCodeLineEndings("unfinished code") == "unfinished code");
+    rejects([&] { parseCodes(lineCodes[0] + lineCodes[1]); });
+    rejects([&] { parseCodes(lineCodes[0] + "\\n" + lineCodes[1]); });
     // Selecting a missing intermediate capture inserts it rather than making
     // the replay invalid. Re-selecting the same timestamp is harmless, even
     // when written using the alternative short/full-year convention.
@@ -118,6 +137,31 @@ int main() {
     appendNext(vicDiscovery.files, vicCodes, 20);
     assert(vicCodes.back() == "20221205140012" && vicCodes.size() == 2);
     assert(resolve(vicDiscovery.files, vicCodes).front().path.filename() == "State2022mediafilelitepplh_20221126_180329.xml");
+
+    // Queensland captures timestamp a fixed-name publicResults document.
+    // Only top-level captures of the configured year belong in the editor;
+    // archived duplicates and the un-timestamped working file stay excluded.
+    auto queensland = root / "queensland";
+    std::filesystem::create_directory(queensland);
+    touch(queensland / "20241026190000_publicResults.zip");
+    touch(queensland / "20241026180000_publicResults.xml");
+    touch(queensland / "20241026183000_PUBLICRESULTS.ZIP");
+    touch(queensland / "20201031180000_publicResults.zip");
+    touch(queensland / "publicResults.xml");
+    touch(queensland / "20241026181500_otherResults.zip");
+    std::filesystem::create_directory(queensland / "no-data-change");
+    touch(queensland / "no-data-change/20241026180000_publicResults.xml");
+    auto qldDiscovery = discover(queensland, "2024qld");
+    assert(qldDiscovery.error.empty() && qldDiscovery.files.size() == 3);
+    auto qldCodes = std::vector<std::string>{"20241026180000", "20241026190000"};
+    insertCode(qldDiscovery.files, qldCodes, "20241026183000");
+    assert(qldCodes.size() == 3 && qldCodes[1] == "20241026183000");
+    assert(resolve(qldDiscovery.files, qldCodes).back().path.filename() == "20241026190000_publicResults.zip");
+    touch(queensland / "20241026180000_publicResults.zip");
+    assert(!discover(queensland, "2024qld").error.empty());
+    std::filesystem::remove(queensland / "20241026180000_publicResults.zip");
+    touch(queensland / "20241032180000_publicResults.zip");
+    assert(!discover(queensland, "2024qld").error.empty());
     // Remove only this test's newly-created, uniquely-named temporary tree.
     std::filesystem::remove_all(root);
     std::cout << "Snapshot discovery, sequence selection and saved-project settings checks passed.\n";

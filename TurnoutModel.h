@@ -11,7 +11,7 @@
 // for each snapshot, including when counted votes have been revised downwards.
 namespace TurnoutModel {
 using Matrix = std::vector<std::vector<double>>;
-inline constexpr char CountVersion[] = "live-counts-6";
+inline constexpr char CountVersion[] = "live-counts-8";
 inline constexpr char ProgressVersion[] = "live-late-counts-4";
 inline constexpr char ScheduleVersion[] = "live-declaration-schedule-1";
 inline constexpr char AllocationVersion[] = "live-allocation-1";
@@ -21,6 +21,14 @@ inline constexpr char AllocationVersion[] = "live-allocation-1";
 // receive more of that influence than increases. Neither is a completion cutoff.
 inline constexpr double AllocationProgressScale = .5;
 inline constexpr double AllocationDirectionScale = .5;
+// Starting regularisation for competing size explanations, not fitted turnout
+// errors. Historical prior spread can increase either minimum response scale.
+inline constexpr double TransferCategorySpreadFloor = .20; // Natural log odds.
+inline constexpr double TransferPlausibilitySpread = .25; // Restraint on transfer, not on own size.
+inline constexpr double TurnoutChangeSpreadFloor = .15;    // Natural log total.
+inline constexpr double TransferPriorOdds = 3;
+inline constexpr double TurnoutChangeDegreesFreedom = 4;
+inline constexpr double UncountedEnrolmentHeadroom = .01;
 
 struct Unit {
     std::size_t seat = 0, group = 0;
@@ -28,6 +36,11 @@ struct Unit {
     std::string closureReason, exclusionReason;
     double weight = 0, counted = 0; // Starting fraction of its group; measured formal votes.
     bool matched = false, eav = false, closed = false, excluded = false;
+    // Empty normally. An explicit category-transfer exclusion (for example a
+    // newly introduced service with no comparable size baseline) leaves its
+    // own estimate and counted votes intact. Unmatched booth names alone do
+    // not establish that a voting category is new.
+    std::string transferExclusionReason;
     // Runtime-only checked FP completion. The input boundary supplies this for
     // live runs so a restored count retains its accepted completion, while an
     // unavailable count cannot inherit a rejected source's finalisation flag.
@@ -69,6 +82,11 @@ struct Broad {
     std::vector<double> counted;      // district: sum of measured unit counts.
     std::vector<double> compensation; // unit: PPVC adjustment in log odds of count/enrolment.
     std::vector<bool> complete;       // unit: reported booth, known closure or district final flag.
+    // One competing-explanation probability per prior outcome and district.
+    // The branch is sampled coherently for the whole district, once per joint
+    // preparation row; main simulation draws retain that row's chosen account.
+    Matrix transferProbability;
+    Matrix transferSelected;
 };
 struct Evidence {
     // Strength is a response score, not a completion probability. Activity is

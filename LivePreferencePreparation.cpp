@@ -9,17 +9,28 @@
 #include <map>
 #include <numeric>
 
-void LiveV2::Election::preparePreferenceCorrections() {
-    // Only the current source contributes to preference expectations. Previous
-    // elections and frozen turnout origins are unnecessary; later snapshots
-    // were used only to calibrate the fixed correction mixture offline.
+namespace {
+bool hasRecheckedPair(LiveInputRecovery::RecordStatuses const& statuses,
+    std::string const& seat, LiveV2::Booth const& booth) {
+    auto role = booth.boothType == Results2::Booth::Type::Ppvc ? "ppvc" : "ordinary";
+    auto found = statuses.find(seat + "/" + role + "/" + booth.name);
+    return found != statuses.end()
+        && LiveInputRecovery::explicitlyRecheckedPair(found->second.first,found->second.second);
+}
+}
+
+void LiveV2::Election::preparePreferenceCorrections(LiveInputRecovery::RecordStatuses const& countStatuses) {
+    // Compare the measured pairs behind the current forecast, including an
+    // original pair retained through an FP revision. No additional history or
+    // previous-election counts are needed; later snapshots were used only to
+    // calibrate the fixed correction mixture offline.
     auto const started = std::chrono::steady_clock::now();
     using json = nlohmann::json;
     auto prepared = std::make_shared<PreferenceCorrectionPreparation>();
     prepared->seats.resize(seats.size());
     prepared->countedTpp.resize(seats.size());
     prepared->countedTcp.resize(seats.size());
-    json diagnostic = {{"version", "live-preference-rechecking-2"},
+    json diagnostic = {{"version", "live-preference-rechecking-4"},
         {"size_response_votes", LivePreferenceCorrections::SizeResponseScale},
         {"aggregate_samples", LivePreferenceCorrections::AggregateSamples},
         {"maximum_explicit_booths_per_seat", LivePreferenceCorrections::ExplicitBooths},
@@ -36,15 +47,17 @@ void LiveV2::Election::preparePreferenceCorrections() {
     for (std::size_t s = 0; s < seats.size(); ++s) {
         auto const& seat = seats[s];
         auto mapParty = [&](int party) { return party == seat.liveIndependentPartyIndex ? run.indPartyIndex : party; };
-        // Retain all counted pair votes, including declarations that this
-        // regression does not attempt to revise. The adjusted account is an
-        // exact copy until a scenario draws an opposing preference transfer.
+        // Use the forecast's counted constraints, including revised FP/TCP
+        // guarantees. Reconstructing them from raw TCP would resurrect obsolete
+        // candidate floors whenever ANY booth participates in this regression.
         for (int b : seat.booths) {
-            auto const& tcp = readBooths()[b].node.tcpVotesCurrent;
-            if (tcp.size() == 2 && tcp.contains(0) && (tcp.contains(1) || tcp.contains(natPartyIndex)))
-                for (auto const& [p, v] : tcp) prepared->countedTpp[s][p == natPartyIndex ? 1 : p] += v;
+            auto bounds = readBooths()[b].tcpLowerBounds();
+            bool classic = bounds.size() == 2 && bounds.contains(0) && (bounds.contains(1) || bounds.contains(natPartyIndex));
+            for (auto const& [p,v] : bounds) {
+                if (classic) prepared->countedTpp[s][p == natPartyIndex ? 1 : p] += v;
+                prepared->countedTcp[s][mapParty(p)] += v;
+            }
         }
-        for (auto const& [p, v] : seat.node.tcpVotesCurrent) prepared->countedTcp[s][mapParty(p)] += v;
         if (seat.node.tcpVotesCurrent.size() != 2) continue;
         auto& state = prepared->seats[s];
         int const rawA = seat.node.tcpVotesCurrent.contains(0) ? 0
@@ -59,6 +72,7 @@ void LiveV2::Election::preparePreferenceCorrections() {
         if (!projected.contains(state.partyA) || !projected.contains(state.partyB)) continue;
         std::vector<LivePreferenceCorrections::Observation> observations;
         std::map<int, double> otherTotals;
+        std::map<std::size_t,LivePreferenceCorrections::MatchedCounts> matchedAccounts;
         for (int b : seat.booths) {
             auto const& booth = readBooths()[b];
             auto const& n = booth.node;
@@ -69,27 +83,31 @@ void LiveV2::Election::preparePreferenceCorrections() {
             if (n.tcpVotesCurrent.size() != 2 || !n.tcpVotesCurrent.contains(rawA) || !n.tcpVotesCurrent.contains(rawB)) {
                 exclude("missing_or_different_pair"); continue;
             }
-            // Exact parent agreement excludes unfinished preferences and OPV
-            // exhaustion rather than mistaking them for a counting anomaly.
-            if (n.totalFpVotesCurrent() != n.totalTcpVotesCurrent()) {
-                exclude("fp_tcp_totals_differ"); continue;
-            }
-            if (!n.fpVotesCurrent.contains(rawA) || !n.fpVotesCurrent.contains(rawB)) {
-                exclude("missing_fp_finalist"); continue;
-            }
-            double const fpA = n.fpVotesCurrent.at(rawA), fpB = n.fpVotesCurrent.at(rawB);
-            double const formal = n.totalFpVotesCurrent(), pool = formal - fpA - fpB;
+            // Ordinary complete pairs use their current primaries. A temporary
+            // revision uses the original matched primaries for every predictor,
+            // including the minor-party mix. Its separately estimated changed
+            // votes are not another observed flow or another outlier allowance.
+            auto measured = LivePreferenceCorrections::matchedCounts(n.fpVotesCurrent,n.tcpVotesCurrent,
+                booth.hasTcpRevision() ? &*booth.tcpBasis : nullptr,hasRecheckedPair(countStatuses,seat.name,booth));
+            if (!measured) { exclude("no_matching_preference_account"); continue; }
+            auto const& fp = measured->fp;
+            auto const& tcp = measured->tcp;
+            double const fpA = fp.at(rawA), fpB = fp.at(rawB);
+            double const formal = LivePartialCount::total(fp), pool = formal - fpA - fpB;
             if (!(pool > 0)) { exclude("no_other_candidate_preferences"); continue; }
-            double const gain = n.tcpVotesCurrent.at(rawA) - fpA;
+            double const gain = tcp.at(rawA) - fpA;
             if (gain < 0 || gain > pool) { exclude("tcp_contradicts_candidate_fp"); continue; }
             observations.push_back({std::size_t(b), formal, fpA, fpB, 0, gain, booth.boothType == Results2::Booth::Type::Ppvc});
-            for (auto const& [p, v] : n.fpVotesCurrent) if (p != rawA && p != rawB) otherTotals[p] += v;
+            observations.back().recheckedReconciledPair = measured->recheckedReconciledPair;
+            observations.back().revisionLimits = measured->limits(rawA,rawB,n.fpVotesCurrent);
+            for (auto const& [p, v] : fp) if (p != rawA && p != rawB) otherTotals[p] += v;
+            matchedAccounts.emplace(std::size_t(b),*measured);
         }
         if (observations.empty()) continue;
         auto const largestOther = std::max_element(otherTotals.begin(), otherTotals.end(),
             [](auto const& a, auto const& b) { return a.second < b.second; })->first;
         for (auto& observation : observations) {
-            auto const& fp = readBooths()[observation.booth].node.fpVotesCurrent;
+            auto const& fp = matchedAccounts.at(observation.booth).fp;
             if (fp.contains(largestOther)) observation.otherParty = fp.at(largestOther);
         }
         auto const mixtures = LivePreferenceCorrections::prepare(observations);
@@ -103,10 +121,15 @@ void LiveV2::Election::preparePreferenceCorrections() {
             bool const explicitDraw = std::any_of(state.distribution.explicitBooths.begin(), state.distribution.explicitBooths.end(),
                 [&](auto const& item) { return item.booth == mixture.booth; });
             seatDiagnostic["booths"].push_back({{"booth", readBooths()[mixture.booth].name},
-                {"formal_votes", readBooths()[mixture.booth].node.totalFpVotesCurrent()}, {"preference_pool", mixture.pool},
+                {"formal_votes", LivePartialCount::total(matchedAccounts.at(mixture.booth).fp)},
+                {"current_fp_votes", readBooths()[mixture.booth].node.totalFpVotesCurrent()},
+                {"uses_retained_tcp_basis", matchedAccounts.at(mixture.booth).retainedBasis},
+                {"revision_lower_votes", mixture.revisionLower}, {"revision_upper_votes", mixture.revisionUpper},
+                {"preference_pool", mixture.pool},
                 {"reported_preference_gain_a", mixture.gain}, {"predicted_preference_share", 1 / (1 + std::exp(-mixture.prediction))},
                 {"comparison_peers", mixture.peers}, {"size_matched_discrepancy", mixture.discrepancy},
                 {"broad_probability", mixture.broadProbability}, {"routine_probability", mixture.routineProbability},
+                {"directed_correction_suppressed_rechecked_pair", mixture.directedCorrectionSuppressed},
                 {"background_probability", mixture.backgroundProbability},
                 {"unchanged_probability", 1 - mixture.broadProbability - mixture.backgroundProbability - mixture.routineProbability},
                 {"routine_log_odds_scale", mixture.routineScale}, {"background_log_odds_scale", mixture.backgroundScale},

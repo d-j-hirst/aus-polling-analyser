@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 
-from lib.turnout import allocation, allocation_experiment, late_counts, live
+from lib.turnout import allocation, late_counts, live
 from tests.test_turnout_live_prototype import live_case
 
 
@@ -21,11 +21,13 @@ class AllocationTests(unittest.TestCase):
         history = [dict(source_time=f'2025-05-{day:02d}T18:00:00',seats=seats) for day in range(3,11)]
         return inputs,draws,units,prepared,history
 
-    def test_reuses_the_unscaled_estimate_from_the_existing_count_update(self):
-        inputs,draws,units,prepared,_ = self.case()
-        original = allocation_experiment.own_additions(draws,prepared,units,units)
-        columns = [j for j,u in enumerate(units) if u['kind']=='declaration']
-        np.testing.assert_allclose(prepared['own_remaining'][:,columns],original[:,columns],atol=1e-10)
+    def test_reuses_own_estimates_after_rebuilding_the_district_total(self):
+        inputs, draws, units, prepared, history = self.case()
+        # Progress reuses the retained own estimates. Reconstructing them from
+        # the revised district total would reintroduce cross-service coupling.
+        combined = live.update_with_progress(draws, inputs, units, history)
+        np.testing.assert_array_equal(combined['allocation_prediction']['own_remaining'],
+                                      prepared['own_remaining'])
 
     def test_quiet_history_releases_allowances_without_changing_counts_or_booths(self):
         inputs,draws,units,prepared,history = self.case()

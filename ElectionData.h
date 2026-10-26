@@ -144,6 +144,7 @@ namespace Results2 {
 		std::string name;
 		Type type = Type::Normal;
 		int32_t parentSeat;
+		bool syntheticBaseline = false; // Reconstructed category allocation, not observed historical counts.
 		bool confirmedPresent; // "Phantom booths" can appear in the preload but not in the live data, this 
 
 		// Unset when the feed has no lat/lon (typical for ECSA and declaration booths).
@@ -187,6 +188,7 @@ namespace Results2 {
 		// Only an explicit first-preference flag may close the turnout account.
 		// Winner declarations and TCP completion do not imply FP finalisation.
 		bool fpFinalised = false;
+		std::set<VoteType> syntheticBaselineTypes; // Historical declaration allocations reconstructed by the reader.
 		std::vector<int32_t> booths;
 		VotesByType fpVotes; // map candidate id -> (vote type -> vote count)
 		VotesByType tcpVotes; // map party id -> (vote type -> vote count)
@@ -276,6 +278,9 @@ namespace Results2 {
 		LiveInputRecovery::RecordStatuses liveCountStatus;
 		std::map<int, std::set<int>> liveCandidateRosters;
 		std::set<std::pair<std::string,bool>> presentLiveCounts;
+		std::map<std::pair<std::string,bool>, LiveInputRecovery::CountStage> liveCountStages;
+		std::set<std::string> expectedLiveTcpWithdrawals;
+		std::map<std::string, LiveInputRecovery::PreferenceCohort> liveTcpBases;
 		bool liveCountsRead = false;
 
 		enum class Format {
@@ -308,6 +313,9 @@ namespace Results2 {
 
 		void update(tinyxml2::XMLDocument const& xml, Format format = Format::AEC);
 		void updateLive(tinyxml2::XMLDocument const& xml, Format format);
+		// Replay checks the selected source against the preload before applying
+		// any counts. Different commissions place this identifier differently.
+		bool matchesSnapshotElection(tinyxml2::XMLDocument const& xml, Format format) const;
 		int readCount(tinyxml2::XMLElement const* element, std::string const& context,
 			int seatId, int boothId, VoteType type, bool tcp, char const* attribute = nullptr);
 		static std::string countKey(int seatId, int boothId, VoteType type);

@@ -43,7 +43,7 @@ GraphModel makeVoteShareGraph(ParliamentView const& view);
 GraphModel makeSeatWinChanceGraph(ParliamentView const& view, bool fitToPartyRange);
 GraphModel makeSeatFpGraph(ParliamentView const& view);
 GraphModel makeCompletionGraph(ParliamentView const& view);
-GraphModel makeCategoryStatGraph(ParliamentView const& view, bool integerLabels);
+GraphModel makeCategoryStatGraph(ParliamentView const& view, bool integerLabels, bool includeZero = true);
 GraphModel makeInternal2ppGraph(ParliamentView const& view);
 
 PartyColour parliamentGraphColour(ParliamentColumn const& column);

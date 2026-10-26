@@ -37,6 +37,17 @@ class PrepareLiveTests(unittest.TestCase):
         self.assertEqual(result['options']['receipt_deadline'], config['schedule']['receipt_deadline'])
         self.assertTrue(result['options']['ppvc_reporting_decay'])
 
+    def test_optional_transfer_exclusion_preserves_legacy_configuration(self):
+        old = preparation.prepare(self.config, provenance={})
+        self.config['units'][0]['transfer_exclusion_reason'] = 'New category with no comparable history.'
+        new = preparation.prepare(self.config, provenance={})
+        self.assertEqual(new['units'][0]['transfer_exclusion_reason'], self.config['units'][0]['transfer_exclusion_reason'])
+        np.testing.assert_array_equal(old['prior']['counts'], new['prior']['counts'])
+        for reason in (True, None, '  '):
+            self.config['units'][0]['transfer_exclusion_reason'] = reason
+            with self.assertRaises(ValueError):
+                preparation.prepare(self.config, provenance={})
+
     def test_postponed_contest_is_explicit_and_outside_count_population(self):
         contest = dict(seat='Example Postponed', status='postponed', reason='Polling was postponed.')
         self.config['inactive_contests'] = [contest]

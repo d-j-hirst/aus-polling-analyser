@@ -107,7 +107,7 @@ class LivePrototypeTests(unittest.TestCase):
                 self.assertTrue(all(c['seat'] != 'A' for c in result['components']))
                 np.testing.assert_array_equal(result['totals'][:, 0], counted)
                 # B is still unreported and must retain its original uncertainty.
-                np.testing.assert_array_equal(broad['totals'][:, 1], draws['totals'][:, 1])
+                np.testing.assert_allclose(broad['totals'][:, 1], draws['totals'][:, 1], rtol=0, atol=1e-10)
                 self.assertEqual(result['no_addition_probability'][1], 0)
 
     def test_no_configured_services_does_not_establish_completion(self):
@@ -152,16 +152,59 @@ class LivePrototypeTests(unittest.TestCase):
         preserved = live.update(draws, inputs, units, changes=changes)
         np.testing.assert_array_equal(preserved['unit_counts'][:, 1], np.full(128, 200))
 
-    def test_assumed_finer_booth_sizes_do_not_override_mixed_group_evidence(self):
+    def test_mixed_services_retain_sizes_when_booth_estimates_change(self):
         inputs, draws, units = live_case()
         units[0]['weight'] = .5
         units.append(dict(units[0], name='other unfinished unit', kind='declaration', weight=.5))
         plain = live.update(draws, inputs, units)
         adapted = live.update(draws, inputs, units, changes={'ordinary': dict(multiplier=.7)})
-        np.testing.assert_allclose(plain['totals'], adapted['totals'])
-        np.testing.assert_allclose(plain['counts'][:, 0], adapted['counts'][:, 0])
+        # A changed booth estimate changes the total, not the declaration size.
+        self.assertTrue((adapted['totals'][:, 0] < plain['totals'][:, 0]).all())
+        np.testing.assert_allclose(adapted['unit_counts'][:, -1], plain['unit_counts'][:, -1])
         self.assertTrue((adapted['unit_counts'][:, 0] < plain['unit_counts'][:, 0]).all())
-        self.assertTrue((adapted['unit_counts'][:, -1] > plain['unit_counts'][:, -1]).all())
+
+    def test_booth_shortfalls_do_not_inflate_services_in_mixed_or_separate_groups(self):
+        # The same fictional services can appear in broad historical groups
+        # (QLD/SA) or separate groups (Federal/VIC). Preserve every prior draw
+        # of their sizes, not just the mean, after a booth count or recheck.
+        for mixed in (True, False):
+            inputs = dict(seat_names=['Example'], enrolment=[5000],
+                          categories=['ordinary_other', 'postal'] if mixed else
+                          ['ordinary', 'provisional', 'telephone', 'postal'])
+            service_draws = np.array([[1800., 80., 40., 400.], [2200., 120., 60., 600.]])
+            counts = (np.column_stack([service_draws[:, :3].sum(axis=1), service_draws[:, 3]])
+                      if mixed else service_draws)[:, None, :]
+            draws = dict(counts=counts, totals=counts.sum(axis=2))
+            # Mixed group proportions are fixed in installed inputs. Keep the
+            # fictional reference consistent with that existing representation.
+            if mixed:
+                service_draws[:, :3] = counts[:, 0, :1] * np.array([.94, .04, .02])
+            units = [dict(seat_index=0, seat_name='Example', name=name, counted=0,
+                          group_index=(0 if j < 3 else 1) if mixed else j,
+                          group=inputs['categories'][(0 if j < 3 else 1) if mixed else j],
+                          weight=([.94,.04,.02,1.][j] if mixed else 1.),
+                          kind='ordinary' if j == 0 else 'declaration', matched=True)
+                     for j, name in enumerate(['Booth', 'Provisional', 'Telephone', 'Postal'])]
+            for observed in (0, 900, 800):
+                units[0]['counted'] = observed
+                result = live.update(draws, inputs, units)
+                np.testing.assert_allclose(result['unit_counts'][:, 1:], service_draws[:, 1:])
+                np.testing.assert_allclose(result['totals'][:, 0],
+                    (observed if observed else service_draws[:, 0]) + service_draws[:, 1:].sum(axis=1))
+                np.testing.assert_allclose(result['counts'].sum(axis=2), result['totals'])
+                self.assertTrue((result['remaining'][:, 1:] > 0).all())
+            # Partial counts condition only the affected service, never erase
+            # it, and closures/finalisation still have exact counted totals.
+            units[1]['counted'] = 125
+            partial = live.update(draws, inputs, units)
+            self.assertTrue((partial['unit_counts'][:, 1] >= 125).all())
+            np.testing.assert_allclose(partial['unit_counts'][:, 2:], service_draws[:, 2:])
+            units[2]['closed_reason'] = 'Unavailable service'
+            closed = live.update(draws, inputs, units)
+            np.testing.assert_array_equal(closed['unit_counts'][:, 2], 0)
+            final = live.update(draws, inputs, units, ['Example'])
+            np.testing.assert_array_equal(final['totals'][:, 0], 925)
+            np.testing.assert_array_equal(final['remaining'], 0)
 
     def test_tiny_eav_does_not_inherit_completed_ppvc_shortfall(self):
         inputs, draws, units = live_case()
@@ -231,13 +274,15 @@ class LivePrototypeTests(unittest.TestCase):
         units[5]['name'] = 'EAV B PPVC'
         plain = live.update(draws, inputs, units)
         delayed = live.update(draws, inputs, units, unreported_ppvc_factor=.1)
-        np.testing.assert_array_equal(plain['totals'], delayed['totals'])
+        self.assertTrue((delayed['totals'][:, 0] < plain['totals'][:, 0]).all())
+        # The clock itself changes only PPVC own estimates. The competing
+        # turnout explanation can then move other unfinished categories too.
+        np.testing.assert_array_equal(plain['own_remaining'][:, 2:], delayed['own_remaining'][:, 2:])
+        np.testing.assert_array_equal(plain['unit_counts'][:, 4:], delayed['unit_counts'][:, 4:])
         np.testing.assert_array_equal(delayed['unit_counts'][:, 0], np.full(128, 100))
         self.assertTrue((delayed['unit_counts'][:, 1] < plain['unit_counts'][:, 1]).all())
         self.assertTrue((delayed['unit_counts'][:, 1] > 0).all())
-        # EAV receives no direct clock adjustment. It can still change slightly
-        # through the common district accounting constraint, so check its input
-        # role and completion state rather than asserting an independent total.
+        # EAV receives no clock adjustment and keeps its own size distribution.
         self.assertFalse(delayed['complete'][5])
         self.assertTrue((delayed['unit_counts'][:, 5] > 0).all())
         units[1]['counted'] = 200

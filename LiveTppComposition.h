@@ -19,6 +19,70 @@ using namespace LiveTppIntegration;
 // does not add independent national noise or alter category mean estimates.
 constexpr double CategoryDepartureSdMultiplier = 1.1;
 
+// Only actual historical category accounts establish an observed swing.
+// Synthetic accounts are useful comparisons, but their allocation error remains
+// after all current ballots arrive. Five transformed points (about five share
+// points near 50%) is a conservative working allowance, not a fitted accuracy.
+enum class BaselineSource { Unavailable, Historical, Synthetic };
+constexpr double SyntheticBaselineSd = 4;
+constexpr double SyntheticBaselineSharedSd = 3; // 3 shared and 4 local combine to 5.
+inline Moments withSyntheticBaselines(Moments prior, std::size_t count) {
+    auto start = prior.mean.size();
+    prior.mean.resize(start+count,0);
+    for (auto& row : prior.covariance) row.resize(start+count,0);
+    prior.covariance.resize(start+count,Vector(start+count));
+    for (std::size_t i = start; i < start+count; ++i) prior.covariance[i][i] = 1;
+    return prior;
+}
+inline char const* baselineSourceName(BaselineSource source) {
+    switch (source) {
+    case BaselineSource::Historical: return "historical";
+    case BaselineSource::Synthetic: return "synthetic";
+    default: return "unavailable";
+    }
+}
+struct CategoryHistory {
+    double first = 0, total = 0;
+    bool synthetic = false;
+    BaselineSource source() const {
+        return total <= 0 ? BaselineSource::Unavailable :
+            synthetic ? BaselineSource::Synthetic : BaselineSource::Historical;
+    }
+};
+
+// Unsupported categories cannot teach a swing. Their received votes instead
+// replace exactly their own portion of a seat draw, leaving the other ballots'
+// share unchanged. TCP integers stay fixed; FP-only preferences remain uncertain.
+struct DirectVotes {
+    double votes = 0, first = 0, inferredVotes = 0, inferredFirst = 0;
+    double conversionVariance = 0; // Share-point variance of inferred ballots.
+    double add(ReceivedTpp const& received, double measuredVotes, double measuredFirst) {
+        // Ordinarily a partial account retains some pending preferences. Take
+        // that count by subtraction, never by reversing its floating-point
+        // fraction: 144*(1-143/144) is slightly below one. An allocation of the
+        // whole pending vote to one side must still be exactly a 100% share.
+        // Under OPV, received.votes already excludes exhausted ballots.
+        double pending = received.votes-measuredVotes;
+        if (!std::isfinite(pending) || pending < 0 || !std::isfinite(measuredFirst)
+            || measuredFirst < 0 || measuredFirst > measuredVotes
+            || !std::isfinite(received.inferredFirst) || received.inferredFirst < 0
+            || received.inferredFirst > pending)
+            throw std::logic_error("Invalid direct TPP count account.");
+        votes += received.votes; first += measuredFirst;
+        inferredVotes += pending; inferredFirst += received.inferredFirst;
+        return pending;
+    }
+    double shareAt(double seatShare, double expected, double inferredShare) const {
+        if (votes <= 0 || expected <= 0) return seatShare;
+        double total = std::max(expected, votes);
+        return ((total-votes)*seatShare + 100*first + inferredVotes*inferredShare)/total;
+    }
+    double inferredShare() const { return inferredVotes > 0 ? 100*inferredFirst/inferredVotes : 50; }
+    double centre(double seatShare, double expected) const {
+        return shareAt(seatShare, expected, inferredShare());
+    }
+};
+
 // Variance in percentage-points-squared per unit unresolved preference share.
 // 2022 federal non-classic conversion errors suggest K about 29--30; 35 is a
 // conservative working scale, not a multi-election coverage guarantee.
@@ -115,13 +179,14 @@ inline double pooledPreferenceUnits(std::map<int, CategoryEvidence> const& categ
 // Near 50% TPP the transformed scale is approximately percentage points.
 constexpr std::size_t ReportingOrderFactors = 2;
 constexpr double ReportingOrderInitialSd = 1.5;
-constexpr double ReportingOrderCoverageScale = .1;
+constexpr double ReportingOrderCoverageScale = .3;
 constexpr double ReportingOrderCorrelation = .5;
+constexpr double ReportingOrderCompensationStrength = 5;
 
 inline double reportingOrderSd(ReportingProgress const& progress, bool measured) {
     if (progress.expectedVotes <= 0) return 0;
     double coverage = progress.coverage(measured);
-    // At 10% coverage this retains 45% of the initial SD; complete coverage
+    // At 10% coverage this retains 67.5% of the initial SD; complete coverage
     // removes it. Using the lesser of vote and location coverage avoids either
     // one huge booth or many tiny booths prematurely exhausting the allowance.
     return ReportingOrderInitialSd*(1-coverage)/(1+coverage/ReportingOrderCoverageScale);
@@ -145,8 +210,18 @@ inline Moments withReportingOrder(Moments prior) {
 inline void applyReportingOrder(Observation& row, ReportingProgress const& progress,
     std::size_t factorStart) {
     if (row.category != 0) return; // First pass: ordinary-day booth reporting order.
-    auto factor = factorStart + (row.inferredLocations ? 0 : 1);
-    row.h.at(factor) = reportingOrderSd(progress, !row.inferredLocations);
+    auto factor = factorStart + (row.fpDerivedGroup ? 0 : 1);
+    // A completed district can justify restoring its own comparison weight
+    // before it represents the whole election. Increase its exposure to the
+    // existing shared error while ordinary FP coverage elsewhere remains low.
+    // With no restored weight the normal reporting-order allowance applies.
+    row.compensationReportingOrderSd = ReportingOrderCompensationStrength
+        * row.restoredComparisonFraction * (1-progress.coverage(false));
+    row.h.at(factor) = std::hypot(reportingOrderSd(progress, !row.fpDerivedGroup),
+        row.compensationReportingOrderSd);
+    // Both components load the same factor: this does not add an independent
+    // noise draw or change the local booth means. Full FP coverage removes the
+    // compensation component, including for TCP subsets still being counted.
 }
 
 struct Exposure {
@@ -406,7 +481,14 @@ struct ObservationBlock {
 inline ObservationBlock observationBlock(std::vector<Observation> rows,
     Matrix const& localExposures, Matrix const& categoryCovariance) {
     auto covariance = mappedCovariance(localExposures, categoryCovariance);
-    for (std::size_t i = 0; i < rows.size(); ++i) covariance[i][i] += rows[i].variance;
+    for (std::size_t i = 0; i < rows.size(); ++i) {
+        covariance[i][i] += rows[i].variance;
+        // Both information groups refer to the SAME synthetic category baseline.
+        // Counting more locations or splitting FP/TCP cannot average its error away.
+        for (std::size_t j = 0; j < rows.size(); ++j)
+            if (rows[i].category == rows[j].category)
+                covariance[i][j] += rows[i].syntheticBaselineSd*rows[j].syntheticBaselineSd;
+    }
     return {std::move(rows), std::move(covariance)};
 }
 

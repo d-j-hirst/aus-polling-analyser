@@ -90,6 +90,13 @@ Record identifyUnit(Results2::Election const& election, TurnoutModel::Prior cons
     }
     attachParseError(record.fp,election,rawKey,false);
     attachParseError(record.tcp,election,rawKey,true);
+    record.expectedTcpWithdrawal = election.expectedLiveTcpWithdrawals.contains(rawKey);
+    if (auto basis = election.liveTcpBases.find(rawKey); basis != election.liveTcpBases.end())
+        record.tcpBasis = basis->second;
+    if (auto stage = election.liveCountStages.find({rawKey,false}); stage != election.liveCountStages.end())
+        record.fp.stage = stage->second;
+    if (auto stage = election.liveCountStages.find({rawKey,true}); stage != election.liveCountStages.end())
+        record.tcp.stage = stage->second;
     if (election.liveCountsRead) {
         if (!election.presentLiveCounts.count({rawKey,false})) record.fp.votes.reset();
         if (!election.presentLiveCounts.count({rawKey,true})) record.tcp.votes.reset();

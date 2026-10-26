@@ -12,6 +12,27 @@
 // differs from ordinary voting. Conditioning them together preserves those
 // correlations, including the negative correlations learned from a partial count.
 namespace LiveTppIntegration {
+// These groups partition the statistical contribution of a reporting unit,
+// not its physical location. All retains its complete contribution; the other
+// two divide its information according to how much of the received FP account
+// still awaits preferences. Larger additions may have a very different mix.
+enum class EvidenceSourceGroup { All, MeasuredTcp, FpDerivedTpp };
+inline constexpr double EvidenceGroupHalfWeightGap = .05;
+inline double evidenceGroupFraction(EvidenceSourceGroup group, double inferredFraction) {
+    if (!std::isfinite(inferredFraction) || inferredFraction < 0 || inferredFraction > 1)
+        throw std::logic_error("Invalid inferred TPP fraction.");
+    if (group == EvidenceSourceGroup::All) return 1;
+    // Tiny rechecks retain almost all measured-group weight. At a 5% gap the
+    // groups split evenly; larger gaps quickly favour the FP-derived treatment.
+    // Square scaled odds to make both endpoints smooth. This equivalent form
+    // avoids division by zero at fully unresolved counts and subtractive loss
+    // for tiny contributions. The actual unresolved vote fraction is unchanged.
+    double measured = EvidenceGroupHalfWeightGap*(1-inferredFraction);
+    double inferred = (1-EvidenceGroupHalfWeightGap)*inferredFraction;
+    measured *= measured;
+    inferred *= inferred;
+    return (group == EvidenceSourceGroup::FpDerivedTpp ? inferred : measured)/(measured+inferred);
+}
 using Vector = std::vector<double>;
 using Matrix = std::vector<Vector>;
 
@@ -51,30 +72,6 @@ inline std::optional<ReceivedTpp> receivedComparison(double fp, double tcp, doub
     return ReceivedTpp{total, 25 * std::log((first + .25) / (total - first + .25)),
         std::clamp(1 - tcp / total, 0., 1.), samplingVariance(total, first),
         total > tcp ? *pendingFirst : 0};
-}
-
-inline ReceivedTpp alignInferredReference(ReceivedTpp result, double shift) {
-    // FP-derived shares are matched estimates, so their historical reference
-    // moves with the prior. Measured TCP is an absolute count and never moves.
-    // In a partial count only the pending-preference allocation is translated.
-    double inferred = result.votes * result.inferredFraction;
-    if (inferred <= 0 || shift == 0) return result;
-    double fraction = std::clamp(result.inferredFirst / inferred, 1e-8, 1-1e-8);
-    double adjusted = inferred / (1 + std::exp(-(std::log(fraction/(1-fraction)) + shift/25)));
-    if (result.inferredFraction == 1) {
-        result.transformedShare += shift;
-        result.samplingVariance = samplingVariance(result.votes, adjusted);
-    }
-    else {
-        // Undo receivedComparison's quarter-vote smoothing before replacing
-        // the inferred component, then restore the identical endpoint rule.
-        double first = (result.votes+.5)/(1+std::exp(-result.transformedShare/25))-.25;
-        first += adjusted-result.inferredFirst;
-        result.transformedShare = 25*std::log((first+.25)/(result.votes-first+.25));
-        result.samplingVariance = samplingVariance(result.votes, first);
-    }
-    result.inferredFirst = adjusted;
-    return result;
 }
 
 struct Moments {
@@ -135,12 +132,22 @@ struct Observation {
     double greensPreferenceFraction = 0, independentPreferenceFraction = 0;
     double greensTransferSd = 0, independentTransferSd = 0;
     double localMatchedUnits = 0, sharedMatchedUnits = 0;
-    bool inferredLocations = false;
+    // The group's statistical role, not an assertion that every contributing
+    // ballot is inferred. Partial booths allocate information to both groups.
+    bool fpDerivedGroup = false;
+    double syntheticBaselineSd = 0; // Same-category comparison error, retained at completion.
     // Quality-weighted fraction of comparison votes still requiring an
     // estimated preference transfer, and conversion from share points to z.
     double unresolvedPreferenceFraction = 0, conversionJacobian = 1;
     double comparisonWeight = 0; // Diagnostic averaging weight, not new votes.
     double sparseSampleVariance = 0, sampleVotes = 0, sampleCoverage = 0;
+    // Whole-category FP coverage controls historical comparison quality. The
+    // small-sample allowance concerns extrapolation, not counted vote accuracy.
+    double categoryFpCoverage = 0, comparisonQualityFloor = 0;
+    double unfadedLocationVariance = 0, retainedSmallSampleVariance = 0;
+    // Fraction of comparison weight restored by completion, measured against
+    // this snapshot before its quality floor. It is not additional counted votes.
+    double restoredComparisonFraction = 0, compensationReportingOrderSd = 0;
 };
 struct Step {
     Observation observation;
@@ -271,9 +278,9 @@ Vector condition(Update const& update, Vector state, Normal normal) {
 struct ReportingProgress {
     double expectedVotes = 0, fpVotes = 0, tcpVotes = 0;
     double expectedLocations = 0, fpLocations = 0, tcpLocations = 0;
-    void add(double target, double received, double inferredFraction) {
+    void add(double target, double received, double inferredFraction, double contribution = 1) {
         if (target <= 0) return;
-        double votes = std::min(target, received);
+        double votes = std::min(target, received)*contribution;
         expectedVotes += target;
         fpVotes += votes; tcpVotes += votes*(1-inferredFraction);
         expectedLocations += 1;
@@ -292,13 +299,35 @@ struct ReportingProgress {
 };
 
 // Collapse comparable reporting locations into a cumulative observation.
-// The caller keeps wholly measured and conversion-dependent locations in
-// separate groups within each seat/category. More votes in one location do
+// The caller partitions each location's information between measured-TCP and
+// FP-derived groups within each seat/category. More votes in one location do
 // not create more independent locations; absent records supply no observation.
 // A smooth scale for extrapolating small received samples, not a count gate.
 // Chosen against early checkpoint response; it is a working calibration, not
 // an estimate of how many votes make a sample geographically representative.
 constexpr double SparseSampleVoteScale = 5000;
+// Good historical matches retain their usual weight. Once most category FP
+// votes are known, unmatched locations smoothly regain that same weight too.
+// Flattening both ends avoids jumps when the last small locations report.
+constexpr double ComparisonCompletionStart = .75;
+
+inline double comparisonQualityFloor(double coverage) {
+    if (!std::isfinite(coverage)) throw std::logic_error("Invalid category FP coverage.");
+    double t = std::clamp((coverage-ComparisonCompletionStart)/(1-ComparisonCompletionStart),0.,1.);
+    return t*t*(3-2*t);
+}
+
+inline double retainSmallCategoryVariance(double revised, double original, double receivedVotes) {
+    if (!std::isfinite(revised) || !std::isfinite(original) || !std::isfinite(receivedVotes) ||
+        revised < 0 || original < 0 || receivedVotes < 0)
+        throw std::logic_error("Invalid small-category TPP variance.");
+    // A hospital category may finish with only a few ballots. Its votes can
+    // receive normal aggregation weight without becoming a precise measure
+    // of the district's or election's general swing. Reuse the established
+    // absolute sample scale; broad samples rapidly release this allowance.
+    double retention = SparseSampleVoteScale/(SparseSampleVoteScale+receivedVotes);
+    return std::max(revised,original*retention*retention);
+}
 
 struct CategoryEvidence {
     ReportingProgress reporting;
@@ -312,30 +341,38 @@ struct CategoryEvidence {
     double unresolvedPreferenceWeight = 0;
     double greensPreferenceWeight = 0, independentPreferenceWeight = 0;
     void add(double target, double received, double quality, double deviation,
-        double inferredFraction, double locationSd, std::optional<double> sampleVariance = {}) {
+        double inferredFraction, double locationSd, std::optional<double> sampleVariance = {},
+        double contribution = 1) {
         if (!std::isfinite(target) || target < 0 || !std::isfinite(received) || received < 0
             || !std::isfinite(quality) || quality < 0 || quality > 1
             || !std::isfinite(inferredFraction) || inferredFraction < 0 || inferredFraction > 1
-            || !std::isfinite(locationSd) || locationSd < 0 || !std::isfinite(deviation))
+            || !std::isfinite(locationSd) || locationSd < 0 || !std::isfinite(deviation)
+            || !std::isfinite(contribution) || contribution < 0 || contribution > 1)
             throw std::logic_error("Invalid TPP category evidence.");
         if (sampleVariance && (!std::isfinite(*sampleVariance) || *sampleVariance < 0))
             throw std::logic_error("Invalid TPP sampling variance.");
         expected += target;
-        reporting.add(target, received, inferredFraction);
-        double w = std::min(target, received) * quality;
+        reporting.add(target, received, inferredFraction, contribution);
+        double fullWeight = std::min(target, received) * quality;
+        double w = fullWeight*contribution;
         if (w == 0) return;
         weight += w;
         // FP observes the reporting sample too. Its uncertain preferences are
         // accounted for separately by the explicit conversion covariance;
         // doubling sampling/scatter variance as well would discount it twice.
-        squaredWeight += w * w;
+        // Partition information, not just the mean weight. Using w*w here
+        // would duplicate the same booth's precision in both groups. Instead
+        // each group receives its fraction of the original variance numerator;
+        // their combined precision cannot exceed the unsplit booth's budget.
+        double allocatedSquaredWeight = fullWeight*fullWeight*contribution;
+        squaredWeight += allocatedSquaredWeight;
         weightedDeviation += w * deviation;
         weightedSquaredDeviation += w * deviation * deviation;
         inferredWeight += w * inferredFraction;
         // Local comparison uncertainty plus a finite-sample allowance. At
         // 50:50, 2500/n is binomial variance in percentage points; this term
         // prevents a tiny booth from masquerading as a precise full location.
-        residualVarianceSum += w * w * (locationSd * locationSd
+        residualVarianceSum += allocatedSquaredWeight * (locationSd * locationSd
             + sampleVariance.value_or(2500 / std::max(1., received)));
     }
     double heterogeneity() const {
@@ -368,6 +405,10 @@ struct CategoryEvidence {
         double ratio = SparseSampleVoteScale * (1 - sampleCoverage())
             / std::max(1., reporting.fpVotes);
         return locationVariance * ratio * ratio;
+    }
+    double locationVariance(double scatterFloor = 0) const {
+        double residual = variance(scatterFloor);
+        return residual+sparseSampleVariance(residual);
     }
 };
 } // namespace LiveTppIntegration

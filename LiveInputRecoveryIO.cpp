@@ -24,7 +24,8 @@ json encodeCount(Count const& count) {
     // unavailable, so neither reload nor compression can invent a genuine zero.
     auto values = json::array();
     if (count.votes) for (auto const& [candidate,votes] : *count.votes) values.push_back({candidate,votes});
-    return {{"v",count.votes ? values : json(nullptr)},{"t",count.observedAt},{"s",int(count.status)},{"complete",count.complete}};
+    return {{"v",count.votes ? values : json(nullptr)},{"t",count.observedAt},{"s",int(count.status)},
+        {"complete",count.complete},{"stage",int(count.stage)}};
 }
 Count decodeCount(json const& value) {
     // Cache entries are integer measurements, not model outputs. Refuse
@@ -36,6 +37,11 @@ Count decodeCount(json const& value) {
     if (status < 0 || status > 2) throw std::runtime_error("Invalid accepted-count status.");
     count.status = Status(status);
     count.complete = value.value("complete",false);
+    // Earlier cache versions did not record count rounds. They remain useful
+    // measurements, but must not acquire invented recheck authority on reload.
+    auto stage = value.contains("stage") ? integerValue(value.at("stage")) : 0;
+    if (stage < 0 || stage > int(CountStage::Rechecked)) throw std::runtime_error("Invalid accepted-count stage.");
+    count.stage = CountStage(stage);
     if (!value.at("v").is_null()) {
         count.votes.emplace();
         for (auto const& row : value.at("v")) {
@@ -45,6 +51,31 @@ Count decodeCount(json const& value) {
         }
     }
     return count;
+}
+json encodeCohort(PreferenceCohort const& cohort) {
+    json value{{"fp",encodeCount(Count{cohort.fp,Status::Current,cohort.fpTime})},
+        {"tcp",encodeCount(Count{cohort.tcp,Status::Current,cohort.tcpTime})}};
+    value["rechecked_reconciled_pair"] = cohort.recheckedReconciledPair;
+    value["transfers"] = json::array();
+    for (auto const& [candidate,counts] : cohort.transfers)
+        value["transfers"].push_back({candidate,encodeCount(Count{counts,Status::Current,cohort.tcpTime})});
+    return value;
+}
+PreferenceCohort decodeCohort(json const& value, std::string const& sourceTime) {
+    auto fp = decodeCount(value.at("fp")), tcp = decodeCount(value.at("tcp"));
+    if (!fp.votes || !tcp.votes || fp.observedAt.empty() || tcp.observedAt.empty() ||
+        fp.observedAt > sourceTime || tcp.observedAt > sourceTime)
+        throw std::runtime_error("Invalid accepted preference-cohort observation.");
+    PreferenceCohort cohort{*fp.votes,*tcp.votes,fp.observedAt,tcp.observedAt,{}};
+    // Older caches did not record the pair's stage. Missing evidence cannot
+    // certify a recheck; normal current-pair checks can still establish it.
+    cohort.recheckedReconciledPair = value.value("rechecked_reconciled_pair",false);
+    if (value.contains("transfers")) for (auto const& row : value.at("transfers")) {
+        auto count = decodeCount(row.at(1));
+        if (!count.votes || !cohort.transfers.emplace(integerValue(row.at(0)),*count.votes).second)
+            throw std::runtime_error("Invalid accepted candidate transfers.");
+    }
+    return cohort;
 }
 json encode(Snapshot const& snapshot) {
     json value{{"version",1},{"election",snapshot.election},{"source_time",snapshot.sourceTime},
@@ -61,13 +92,12 @@ json encode(Snapshot const& snapshot) {
         // Most records already contain their matched pair as the latest FP
         // and TCP, so do not duplicate it. Preserve extra vectors only when
         // one of those counts has moved beyond the selected measured cohort.
-        if (record.matchedPreferences && (!record.fp.votes || !record.tcp.votes ||
+        if (record.matchedPreferences && (!record.matchedPreferences->transfers.empty() || !record.fp.votes || !record.tcp.votes ||
             record.matchedPreferences->fp != *record.fp.votes || record.matchedPreferences->tcp != *record.tcp.votes)) {
             auto const& cohort = *record.matchedPreferences;
-            row["matched_preferences"] = {
-                {"fp",encodeCount(Count{cohort.fp,Status::Current,cohort.fpTime})},
-                {"tcp",encodeCount(Count{cohort.tcp,Status::Current,cohort.tcpTime})}};
+            row["matched_preferences"] = encodeCohort(cohort);
         }
+        if (record.tcpBasis) row["tcp_basis"] = encodeCohort(*record.tcpBasis);
         value["records"].push_back(std::move(row));
     }
     return value;
@@ -89,12 +119,11 @@ Snapshot decode(json const& value) {
         // Older caches have only their two latest count vectors. New entries
         // also preserve the last identified pair when those counts diverge.
         if (row.contains("matched_preferences")) {
-            auto const& pair = row.at("matched_preferences");
-            auto fp = decodeCount(pair.at("fp")), tcp = decodeCount(pair.at("tcp"));
-            if (!fp.votes || !tcp.votes || fp.observedAt.empty() || tcp.observedAt.empty() ||
-                fp.observedAt > snapshot.sourceTime || tcp.observedAt > snapshot.sourceTime)
-                throw std::runtime_error("Invalid accepted preference-cohort observation.");
-            record.matchedPreferences = PreferenceCohort{*fp.votes,*tcp.votes,fp.observedAt,tcp.observedAt};
+            record.matchedPreferences = decodeCohort(row.at("matched_preferences"),snapshot.sourceTime);
+        }
+        if (row.contains("tcp_basis")) {
+            record.tcpBasis = decodeCohort(row.at("tcp_basis"),snapshot.sourceTime);
+            if (!hasCurrentTcpBasis(record)) throw std::runtime_error("Invalid accepted TCP basis.");
         }
         for (auto const* count : {&record.fp,&record.tcp})
             if (count->votes && (count->observedAt.empty() || count->observedAt > snapshot.sourceTime))
@@ -163,14 +192,23 @@ bool containedFpCohort(Counts const& older, Counts const& current) {
 }
 
 bool compatiblePreferenceCohort(PreferenceCohort const& cohort, Record const& current) {
-    // Retained cohorts have already been matched, but current identities and
-    // downward count revisions still govern whether they remain usable. Do
-    // not subtract an account larger than either currently accepted count.
-    return !current.closed && current.fp.votes && current.tcp.votes &&
-        samePreferencePair(cohort.tcp,*current.tcp.votes) &&
-        comparablePreferenceAccount(cohort.fp,cohort.tcp) &&
-        total(cohort.tcp) <= total(current.tcp.votes) &&
-        containedFpCohort(cohort.fp,*current.fp.votes);
+    // Usually the old cohort is a subset of current FP/TCP. If TCP becomes
+    // unavailable, its earlier compatible pair can still inform preferences,
+    // without becoming a counted lower bound. A comparable-sized FP recheck
+    // may redistribute primaries: retain that flow measurement too, while the
+    // subtraction helper independently refuses a cohort no longer contained.
+    if (current.closed || !current.fp.votes || total(current.fp.votes) <= 0 ||
+        cohort.fp.size() != current.fp.votes->size() ||
+        !comparablePreferenceAccount(cohort.fp,cohort.tcp)) return false;
+    for (auto const& [candidate,votes] : cohort.fp)
+        if (!current.fp.votes->contains(candidate)) return false;
+    bool hasTcp = current.tcp.votes && total(current.tcp.votes) > 0;
+    if (hasTcp && !samePreferencePair(cohort.tcp,*current.tcp.votes)) return false;
+    bool contained = containedFpCohort(cohort.fp,*current.fp.votes);
+    if (contained && (!hasTcp || total(cohort.tcp) <= total(current.tcp.votes))) return true;
+    return current.fp.stage == CountStage::Rechecked &&
+        std::abs(double(total(cohort.fp)-total(current.fp.votes))) <=
+            std::max(AbsoluteTcpAllowance,RelativeTcpAllowance*total(current.fp.votes));
 }
 
 using RecordIndex = std::map<std::string,Record const*>;
@@ -219,6 +257,9 @@ RecordIndex recordsNeedingEarlierHistory(Snapshot const& effective,
         // Do not resurrect those totals merely because a later TCP is wrong,
         // or scan the full history for a persistent TCP error with stable FP.
         if (account == HistoryAccount::Reconciled &&
+            recheckHasPriority(record,*found->second)) continue;
+        if (account == HistoryAccount::Reconciled &&
+            !tcpContradictsPrimaries(record,effective.optionalPreferential) &&
             fpFits(record,found->second->fp,effective.districts.at(record.district).enrolment) &&
             total(found->second->fp.votes) <= total(record.fp.votes)) continue;
         if (earlierRecordFits(record,*found->second,effective,account)) continue;
@@ -353,13 +394,20 @@ PreferenceHistories loadPreferenceHistory(std::filesystem::path const& folder,
     if (effective.optionalPreferential) return result;
     RecordIndex needed;
     for (auto const& record : effective.records) {
-        if (record.closed || !record.fp.votes || !record.tcp.votes ||
-            total(record.tcp.votes) <= 0 || record.tcp.votes->size() != 2) continue;
+        if (record.closed || !record.fp.votes || total(record.fp.votes) <= 0 ||
+            (record.tcp.votes && total(record.tcp.votes) > 0 && record.tcp.votes->size() != 2)) continue;
         auto& history = result[record.key];
-        if (total(record.fp.votes) == total(record.tcp.votes) &&
+        if (hasCurrentTcpBasis(record)) {
+            history.tcpBasis = record.tcpBasis;
+            if (record.tcpBasis->fp == *record.fp.votes && explicitlyRecheckedPair(record.fp.metadata(),record.tcp.metadata()))
+                history.tcpBasis->recheckedReconciledPair = true;
+            history.matchingCurrentTcp = history.tcpBasis;
+        }
+        else if (record.tcp.votes && total(record.fp.votes) == total(record.tcp.votes) &&
             comparablePreferenceAccount(*record.fp.votes,*record.tcp.votes))
             history.matchingCurrentTcp = PreferenceCohort{*record.fp.votes,*record.tcp.votes,
-                record.fp.observedAt,record.tcp.observedAt};
+                record.fp.observedAt,record.tcp.observedAt,{},
+                explicitlyRecheckedPair(record.fp.metadata(),record.tcp.metadata())};
         // A current complete pair already supplies the best local evidence.
         // Do not scan older files just to attach an unused second measurement.
         if (!history.matchingCurrentTcp) needed.emplace(record.key,&record);
@@ -378,24 +426,41 @@ PreferenceHistories loadPreferenceHistory(std::filesystem::path const& folder,
             if (requested == needed.end() || !sameRecord(*requested->second,record) || !record.fp.votes) continue;
             auto const& current = *requested->second;
             auto& history = result.at(record.key);
-            if (!history.matchingCurrentTcp && record.fp.observedAt < current.tcp.observedAt &&
+            // The source-identified pair outranks a superficial total match in
+            // an old cache. This also restores ECQ's withdrawn indicative count
+            // without inventing a new association with corrected primaries.
+            if (hasCurrentTcpBasis(record) && current.tcp.votes && record.tcpBasis->tcp == *current.tcp.votes &&
+                compatiblePreferenceCohort(*record.tcpBasis,current)) {
+                history.tcpBasis = history.matchingCurrentTcp = record.tcpBasis;
+                needed.erase(requested);
+                continue;
+            }
+            if (!history.matchingCurrentTcp && current.tcp.votes && record.fp.observedAt < current.tcp.observedAt &&
                 total(record.fp.votes) == total(current.tcp.votes) &&
                 containedFpCohort(*record.fp.votes,*current.fp.votes) &&
                 comparablePreferenceAccount(*record.fp.votes,*current.tcp.votes))
                 history.matchingCurrentTcp = PreferenceCohort{*record.fp.votes,*current.tcp.votes,
-                    record.fp.observedAt,current.tcp.observedAt};
+                    record.fp.observedAt,current.tcp.observedAt,{},
+                    explicitlyRecheckedPair(record.fp.metadata(),current.tcp.metadata())};
             if (!history.previousAligned && record.tcp.votes &&
-                samePreferencePair(*record.tcp.votes,*current.tcp.votes) &&
-                comparablePreferenceAccount(*record.fp.votes,*record.tcp.votes))
+                compatiblePreferenceCohort(PreferenceCohort{*record.fp.votes,*record.tcp.votes,
+                    record.fp.observedAt,record.tcp.observedAt},current))
                 history.previousAligned = PreferenceCohort{*record.fp.votes,*record.tcp.votes,
-                    record.fp.observedAt,record.tcp.observedAt};
+                    record.fp.observedAt,record.tcp.observedAt,{},
+                    explicitlyRecheckedPair(record.fp.metadata(),record.tcp.metadata())};
             // The normal successful-run commit preserves an asynchronous
             // match too. Reading that one selected integer pair avoids
             // repeatedly reconstructing older FP/TCP matches during a replay.
             if (record.matchedPreferences && compatiblePreferenceCohort(*record.matchedPreferences,current) &&
                 (!history.previousAligned || record.matchedPreferences->tcpTime > history.previousAligned->tcpTime))
                 history.previousAligned = record.matchedPreferences;
-            if (history.matchingCurrentTcp && history.previousAligned) needed.erase(requested);
+            if (history.previousAligned && (history.matchingCurrentTcp || !current.tcp.votes ||
+                total(current.tcp.votes) == 0)) needed.erase(requested);
+            else if (total(current.tcp.votes) == 0 && total(record.tcp.votes) == 0 && !record.matchedPreferences)
+                // The nearest accepted state preserves any usable cohort.
+                // New FP-only booths normally have none: avoid searching the
+                // whole sequence for preferences never received for that booth.
+                needed.erase(requested);
         }
     }
     return result;
@@ -406,6 +471,12 @@ void retainPreferenceHistory(Snapshot& effective, PreferenceHistories const& his
         record.matchedPreferences.reset();
         auto found = history.find(record.key);
         if (found == history.end()) continue;
+        auto const& basis = found->second.tcpBasis ? found->second.tcpBasis : found->second.matchingCurrentTcp;
+        if (basis && record.tcp.votes && basis->tcp == *record.tcp.votes &&
+            LivePartialCount::validBasis({basis->fp,basis->tcp,basis->transfers})) {
+            record.tcpBasis = basis;
+            if (!hasCurrentTcpBasis(record)) record.tcpBasis.reset();
+        }
         auto const& selected = found->second.matchingCurrentTcp ? found->second.matchingCurrentTcp : found->second.previousAligned;
         if (selected && compatiblePreferenceCohort(*selected,record)) record.matchedPreferences = selected;
     }
