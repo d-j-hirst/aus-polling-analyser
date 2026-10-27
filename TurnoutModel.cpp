@@ -944,6 +944,34 @@ bool applyReceiptTimetable(std::vector<Observation> const& history, Options cons
     return scheduled;
 }
 
+void measureLocalCompletion(Prior const& prior, Unit const& unit, Evidence const& evidence,
+    Component& component) {
+    // A count near its originally expected size may be the last substantial
+    // batch even when it has only just arrived. Far above that expectation,
+    // an undersized prior is a competing explanation: do not turn every
+    // overtaken prior outcome into evidence that counting has finished.
+    // Only this service's frozen size and current count enter the new score.
+    if (unit.counted <= 0 || unit.weight <= 0) return;
+    std::vector<double> transformed;
+    double population = 0, parent = prior.enrolment[unit.seat]+2*CompletionCountEquivalent;
+    for (auto const& row : prior.counts) {
+        double count = row[unit.seat*prior.groups.size()+unit.group]*unit.weight;
+        population += count;
+        transformed.push_back(odds((count+CompletionCountEquivalent)/parent));
+    }
+    if (population <= 0) return; // Structural absence supplies no completion evidence.
+    double centre = mean(transformed), variance = 0;
+    for (double value : transformed) variance += (value-centre)*(value-centre)/transformed.size();
+    double sd = std::sqrt(variance);
+    if (sd <= 1e-8) return; // A fixed size is not a calibrated uncertainty distribution.
+    double z = (odds((unit.counted+CompletionCountEquivalent)/parent)-centre)/sd;
+    component.originalSizeZ = z;
+    component.completionWeight = cdf(z)/(1+std::pow(std::max(0.,z)/CompletionSurpriseScale,4));
+    // Postal counts may approach their expected size before receipt closes.
+    // Reuse the existing receipt-window discount for this new evidence too.
+    if (unit.category == "Postal") component.completionWeight *= evidence.postalReceiptSupport;
+}
+
 // Retain the previous estimate and the two continuous addition distributions
 // explicitly for every unfinished declaration. This lets party preparation
 // evaluate rare batches deliberately, even if no diagnostic draw selects one.
@@ -960,6 +988,7 @@ void buildLateCountComponents(Prior const& prior, std::vector<Unit> const& units
         if (units[j].kind != "declaration" || broad.complete[j]) continue;
         Component component;
         component.unit = j;
+        measureLocalCompletion(prior,units[j],result.evidence[j],component);
         component.weight = -std::expm1(-std::pow(result.evidence[j].strength/.3,2));
         if (scheduled) {
             double currentCategory = 0;
@@ -1016,7 +1045,8 @@ LateCountLayout indexLateComponents(Result const& result, std::vector<Unit> cons
         auto seat = units[result.components[k].unit].seat;
         layout.componentsBySeat[seat].push_back(k);
         layout.activeSeats[seat] = layout.activeSeats[seat] || result.components[k].weight != 0
-            || result.components[k].usualLogShift != 0 || result.processingPhase != 0;
+            || result.components[k].usualLogShift != 0 || result.processingPhase != 0
+            || result.components[k].completionWeight != 0;
     }
     return layout;
 }
@@ -1077,7 +1107,16 @@ void assignComponentProbabilities(std::vector<Unit> const& units, Result& result
 // Divide unconditional probabilities by the positive-branch probability here,
 // not when storing them. Explicit quantiles are only a cross-language comparison
 // input; normal preparation uses the unchanged deterministic per-unit streams.
-Matrix sampleLateComponentOdds(Prior const& prior, std::vector<Unit> const& units,
+struct LateSamples {
+    Matrix odds;
+    Matrix completionLimits; // Infinity normally; a tiny-addition draw for selected routine outcomes.
+};
+
+double localCompletionLimit(Component const& component, std::size_t outer, double normal) {
+    return (component.capacity[outer]+component.reference[outer])*logistic(component.smallOdds[outer]+normal);
+}
+
+LateSamples sampleLateComponentOdds(Prior const& prior, std::vector<Unit> const& units,
     Options const& options, Result const& result, Matrix const& suppliedUniforms) {
     auto count = prior.totals.size()*options.countDraws, components = result.components.size();
     if (!suppliedUniforms.empty()) {
@@ -1087,7 +1126,7 @@ Matrix sampleLateComponentOdds(Prior const& prior, std::vector<Unit> const& unit
             for (double value : row) if (!(value > 0 && value < 1)) throw std::runtime_error("Turnout quantiles must be interior.");
         }
     }
-    Matrix varied = zeros(count,components);
+    LateSamples sampled{zeros(count,components),Matrix(count,std::vector<double>(components,std::numeric_limits<double>::infinity()))};
     for (std::size_t k = 0; k < components; ++k) {
         auto const& component = result.components[k];
         auto const& unit = units[component.unit];
@@ -1095,12 +1134,24 @@ Matrix sampleLateComponentOdds(Prior const& prior, std::vector<Unit> const& unit
         auto quantiles = uniforms(prior.election+"/"+prior.seats[unit.seat]+"/"+unit.name,count,options.seed);
         for (std::size_t r = 0; r < count; ++r) {
             auto outer = r/options.countDraws;
-            varied[r][k] = mixture(component.referenceOdds[outer],component.smallOdds[outer],component.batchOdds[outer],
+            double uniform = suppliedUniforms.empty() ? quantiles[r] : suppliedUniforms[r][k];
+            sampled.odds[r][k] = mixture(component.referenceOdds[outer],component.smallOdds[outer],component.batchOdds[outer],
                 component.previousProbability/positive,component.smallProbability/positive,component.batchProbability/positive,
-                suppliedUniforms.empty() ? quantiles[r] : suppliedUniforms[r][k]);
+                uniform);
+            // The inverse-CDF grid assigns a probability interval to the
+            // routine point mass. Use only a fraction of that interval for
+            // completion; its rescaled position supplies a continuous tiny
+            // draw. Preserve the old allocation odds until all siblings have
+            // been allocated, otherwise their counts would increase.
+            double mass = component.previousProbability/positive*component.completionWeight;
+            if (mass <= 0) continue;
+            double below = (component.smallProbability*cdf(component.referenceOdds[outer]-component.smallOdds[outer])
+                +component.batchProbability*cdf((component.referenceOdds[outer]-component.batchOdds[outer])/1.5))/positive;
+            if (uniform > below && uniform < below+mass)
+                sampled.completionLimits[r][k] = localCompletionLimit(component,outer,inverseLogCdf(std::log((uniform-below)/mass)));
         }
     }
-    return varied;
+    return sampled;
 }
 
 // Apply sampled category additions jointly inside unused enrolment plus their
@@ -1108,10 +1159,11 @@ Matrix sampleLateComponentOdds(Prior const& prior, std::vector<Unit> const& unit
 // Store the conditional positive-branch totals; unit means then mix back the
 // district's exact counted-only outcome to provide unconditional count targets.
 void assembleCountSamples(Prior const& prior, std::vector<Unit> const& units, Options const& options,
-    LateCountLayout const& layout, Matrix const& varied, Result& result) {
+    LateCountLayout const& layout, LateSamples const& sampled, Result& result) {
     auto samples = prior.totals.size(), seats = prior.seats.size(), groups = prior.groups.size();
     auto count = samples*options.countDraws;
     auto const& broad = result.broad;
+    auto const& varied = sampled.odds;
     result.unitMeans.assign(units.size(),0);
     for (std::size_t j = 0; j < units.size(); ++j)
         for (std::size_t r = 0; r < samples; ++r) result.unitMeans[j] += broad.unitCounts[r][j]/samples;
@@ -1134,6 +1186,10 @@ void assembleCountSamples(Prior const& prior, std::vector<Unit> const& units, Op
             for (auto k : local) {
                 auto j = result.components[k].unit;
                 double addition = parent*std::exp(varied[r][k]-maximum)/denominator;
+                // This can only remove a routine allowance. Other categories
+                // retain the allocation calculated above; the difference is
+                // unused enrolment, not a transfer to another service.
+                addition = std::min(addition,sampled.completionLimits[r][k]);
                 result.counts[r][s*groups+units[j].group] += addition-result.components[k].reference[outer];
                 result.unitMeans[j] += (addition-result.components[k].reference[outer])/count;
             }
@@ -1174,7 +1230,8 @@ DrawPlan makeDrawPlan(Result const& result, std::vector<Unit> const& units,
         auto s = units.at(result.components[k].unit).seat;
         plan.componentsBySeat.at(s).push_back(k);
         plan.active[s] = plan.active[s] || result.components[k].weight != 0
-            || result.components[k].usualLogShift != 0 || result.processingPhase != 0;
+            || result.components[k].usualLogShift != 0 || result.processingPhase != 0
+            || result.components[k].completionWeight != 0;
     }
     if (result.broad.unitCounts.empty() || result.broad.unitCounts.front().size() != units.size()
         || result.noAdditionProbability.size() != enrolment.size())
@@ -1209,12 +1266,14 @@ void drawSeatDeclarationAdditions(Result const& result, DrawPlan const& plan,
     // parent prevents new votes from exceeding the number of enrolled electors.
     auto const& local = plan.componentsBySeat[s];
     std::vector<double> odds; odds.reserve(local.size());
+    std::vector<double> completionLimits; completionLimits.reserve(local.size());
     double parent = plan.enrolment[s]-result.broad.totals[outer][s], maximum = 0;
     for (auto k : local) {
         auto const& c = result.components[k];
         auto unitKey = seed ^ ((c.unit+1)*0xd1b54a32d192ed03ULL);
         double selector = interiorDrawUniform(unitKey)*(1-result.noAdditionProbability[s]);
         double value = c.referenceOdds[outer];
+        double completionLimit = std::numeric_limits<double>::infinity();
         if (selector >= c.previousProbability) {
             // Direct mixture sampling avoids solving an inverse mixture
             // CDF in every iteration, while preserving the same component
@@ -1224,6 +1283,15 @@ void drawSeatDeclarationAdditions(Result const& result, DrawPlan const& plan,
             bool small = selector < c.previousProbability+c.smallProbability;
             value = small ? c.smallOdds[outer]+z : c.batchOdds[outer]+1.5*z;
         }
+        else if (selector < c.previousProbability*c.completionWeight) {
+            // Select completion only from the existing routine branch. A
+            // separate unit-local normal draw preserves a continuous tiny
+            // remainder without changing any sibling's random stream.
+            double z = std::sqrt(-2*std::log(interiorDrawUniform(unitKey)))
+                * std::cos(6.2831853071795864769*interiorDrawUniform(unitKey));
+            completionLimit = localCompletionLimit(c,outer,z);
+        }
+        completionLimits.push_back(completionLimit);
         odds.push_back(value); maximum = std::max(maximum,value);
         parent += c.reference[outer];
     }
@@ -1234,7 +1302,8 @@ void drawSeatDeclarationAdditions(Result const& result, DrawPlan const& plan,
     for (double value : odds) denominator += std::exp(value-maximum);
     for (std::size_t k = 0; k < local.size(); ++k) {
         auto j = result.components[local[k]].unit;
-        counts[j] = plan.counted[j]+parent*std::exp(odds[k]-maximum)/denominator;
+        double addition = parent*std::exp(odds[k]-maximum)/denominator;
+        counts[j] = plan.counted[j]+std::min(addition,completionLimits[k]);
     }
 }
 
@@ -1260,7 +1329,7 @@ std::vector<double> drawUnitCounts(Result const& result, DrawPlan const& plan,
     // and vote categories. Separate local events then represent finishing or
     // further counting; expensive distribution preparation has already run.
     auto state = seed;
-    auto outer = step(state) % result.broad.unitCounts.size();
+    auto outer = std::size_t(step(state) % result.broad.unitCounts.size());
     auto counts = result.broad.unitCounts[outer];
     auto zero = drawNoAdditionSeats(result, plan, seed);
     drawOpenDeclarationSeats(result, plan, outer, seed, zero, counts);

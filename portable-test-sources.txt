@@ -25,4 +25,5 @@ TerminalMacroFeedbackTests
 TurnoutModelTests
 WorkspacePathsTests
 LiveInputRecoveryTests
+LiveInputHistoryTests
 ResponsiveLiveTests

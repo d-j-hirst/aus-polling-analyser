@@ -1,5 +1,7 @@
 #include "LivePreparation.h"
 #include "LiveInputAdapter.h"
+#include "LiveInputHistory.h"
+#include "Log.h"
 
 #include "Date.h"
 #include "LatestResultsDataRetriever.h"
@@ -23,6 +25,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <optional>
@@ -728,14 +731,37 @@ TurnoutModelIO::Artifact LivePreparation::prepareCurrentInput()
 	// Ordinary valid feeds pass through unchanged. Clear contradictions are
 	// resolved here, once, before any model or completion statistic sees them.
 	auto artifact = TurnoutModelIO::loadForElection(project.paths().root(), run.getTermCode());
+	auto const recoveryStarted = std::chrono::steady_clock::now();
+	auto const historyBefore = LiveInputHistory::statistics();
 	auto recovered = LiveInputAdapter::prepare(currentElection, artifact,
 		project.paths().root(), LiveResultsInput::pathFromUtf8(xmlFilename));
+	auto const preferencesStarted = std::chrono::steady_clock::now();
 	auto folder = LiveInputRecovery::directory(project.paths().root(), run.getTermCode());
 	preferenceHistory = LiveInputRecovery::loadPreferenceHistory(folder,recovered.snapshot);
 	LiveInputRecovery::retainPreferenceHistory(recovered.snapshot,preferenceHistory);
+	// Separate history work from count-model preparation so a one-off index build
+	// is visible in the log instead of appearing as unexplained forecast slowness.
+	auto const historyAfter = LiveInputHistory::statistics();
+	logger << "Live input recovery: "
+		<< std::chrono::duration<double>(preferencesStarted - recoveryStarted).count()
+		<< " seconds; preference history: "
+		<< std::chrono::duration<double>(std::chrono::steady_clock::now() - preferencesStarted).count()
+		<< " seconds; history index source reads: " << historyAfter.sourceReads - historyBefore.sourceReads
+		<< "; builds: " << historyAfter.builds - historyBefore.builds << "\n";
+	if (historyAfter.fallbacks > historyBefore.fallbacks)
+		logger << "Live history used original snapshots because its derived index was unavailable: "
+			<< historyAfter.lastFailure << "\n";
 	run.inputIssues = std::move(recovered.issues);
 	run.pendingLiveCommits.push_back([folder, counts = std::move(recovered.snapshot)] {
+		auto const started = std::chrono::steady_clock::now();
+		auto const before = LiveInputHistory::statistics();
 		LiveInputRecovery::commit(folder, counts);
+		auto const after = LiveInputHistory::statistics();
+		logger << "Live accepted-count history commit: "
+			<< std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count()
+			<< " seconds; index source reads: " << after.sourceReads - before.sourceReads << "\n";
+		if (after.updateFailures > before.updateFailures)
+			logger << "Live history index update deferred: " << after.lastFailure << "\n";
 	});
 	return artifact;
 }

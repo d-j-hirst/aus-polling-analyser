@@ -47,6 +47,7 @@ TurnoutModelIO.cpp
 WorkspacePaths.cpp
 LiveInputRecovery.cpp
 LiveInputRecoveryIO.cpp
+LiveInputHistory.cpp
 
 LiveSimulationJob.cpp
 LiveSnapshotViewer.cpp

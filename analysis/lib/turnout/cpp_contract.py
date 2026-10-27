@@ -89,7 +89,8 @@ def expected(election, inputs, draws, units, history, *, count_draws=8, seed=202
     prepared = result['component_preparation']
     for k,c in enumerate(result['components']):
         components.append(dict(unit=c['unit'],weight=c['weight'],usual_log_shift=c['usual_log_shift'],
-            probabilities=c['probabilities'],
+            completion_weight=c['completion_weight'], original_size_z=c['original_size_z'],
+            probabilities=c['allocation_probabilities_before_local_completion'],
             small_mean=c['small_mean_if_other_counts_fixed'],batch_mean=c['batch_mean_if_other_counts_fixed'],
             capacity=prepared['unused_capacity'][:,k].tolist(), reference=prepared['reference_additions'][:,k].tolist(),
             reference_odds=prepared['reference_log_odds'][:,k].tolist(),small_odds=prepared['small_log_odds'][:,k].tolist(),

@@ -332,6 +332,7 @@
     <ClCompile Include="LiveInputWarningPanel.cpp" />
     <ClCompile Include="LiveInputAdapter.cpp" />
     <ClCompile Include="LiveInputRecoveryIO.cpp" />
+    <ClCompile Include="LiveInputHistory.cpp" />
     <ClCompile Include="LiveInputRecovery.cpp" />
     <ClCompile Include="LiveTurnout.cpp" />
     <ClCompile Include="LivePreferenceCorrections.cpp" />
@@ -469,6 +470,7 @@
     <ClInclude Include="LiveInputWarningPanel.h" />
     <ClInclude Include="LiveInputAdapter.h" />
     <ClInclude Include="LiveInputRecovery.h" />
+    <ClInclude Include="LiveInputHistory.h" />
     <ClInclude Include="LiveRunExport.h" />
     <ClInclude Include="LiveAnalysisArchive.h" />
     <ClInclude Include="LiveSnapshotSequence.h" />

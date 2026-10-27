@@ -42,6 +42,10 @@ void checkOperationalInputs(std::filesystem::path const& root) {
     compare(artifact.prior.counts,TurnoutModelIO::read(legacy).prior.counts,"existing frozen count inputs");
     legacy["count_model"] = "live-counts-7";
     compare(artifact.prior.counts,TurnoutModelIO::read(legacy).prior.counts,"version 7 frozen count inputs");
+    for (auto version : {"live-counts-8","live-counts-9"}) {
+        legacy["count_model"] = version;
+        compare(artifact.prior.counts,TurnoutModelIO::read(legacy).prior.counts,"unchanged frozen prior format");
+    }
     legacy["count_model"] = "live-counts-unknown";
     rejects([&] { TurnoutModelIO::read(legacy); });
     std::map<std::string,double> population;
@@ -596,6 +600,88 @@ void checkCountDraws() {
     }
     std::cout << "Explicit no-addition, late-batch and joint-prior draw checks passed.\n";
 }
+void checkLocalCompletion() {
+    // A newly arrived count can approach its expected size before quietness
+    // supplies any evidence. Above the prior's range, retain the competing
+    // explanation of an undersized prior instead of declaring completion.
+    TurnoutModel::Prior p;
+    p.election = "test"; p.seats = {"Example"}; p.groups = {"ordinary","postal","absent"};
+    p.subdivisions = {"X"}; p.enrolment = {10000};
+    p.counts = {{3800,800,400},{4200,1200,900}}; p.totals = {{5000},{6300}};
+    for (std::size_t g = 0; g < 3; ++g) {
+        TurnoutModel::Unit u; u.group = g; u.weight = 1;
+        u.name = u.category = g == 0 ? "Ordinary" : g == 1 ? "Postal" : "Absent";
+        u.kind = g == 0 ? "ordinary" : "declaration";
+        u.counted = g == 0 ? 3800 : g == 1 ? 1000 : 600;
+        p.units.push_back(u);
+    }
+    auto units = p.units;
+    auto measured = TurnoutModel::prepare(p,units,{false},{});
+    auto const& middle = measured.components.back();
+    assert(middle.originalSizeZ && middle.completionWeight > .4 && middle.completionWeight < .7);
+    units[2].counted = 50;
+    auto early = TurnoutModel::prepare(p,units,{false},{});
+    units[2].counted = 4000;
+    auto large = TurnoutModel::prepare(p,units,{false},{});
+    assert(early.components.back().completionWeight < .01);
+    assert(large.components.back().completionWeight < .05);
+    assert(large.components.back().originalSizeZ > 3);
+    // A missing or fixed size is not affirmative evidence of completion.
+    units[2].counted = 0;
+    auto unstarted = TurnoutModel::prepare(p,units,{false},{});
+    assert(unstarted.components.back().completionWeight == 0);
+    assert(!unstarted.components.back().originalSizeZ);
+
+    TurnoutModel::Observation observation; observation.hour = 0;
+    for (auto const& u : p.units) observation.counts[{"Example",u.category}] = u.counted;
+    TurnoutModel::Options options; options.postalDeadline = 480;
+    auto beforeReceipt = TurnoutModel::prepare(p,p.units,{false},{observation},options);
+    assert(beforeReceipt.components.front().completionWeight < measured.components.front().completionWeight*.001);
+    compare(middle.completionWeight,beforeReceipt.components.back().completionWeight,"postal safeguard is local");
+
+    // Isolate the intervention from upstream count conditioning: for identical
+    // random draws, only the selected category may shrink. Sibling categories,
+    // another district, exact-zero outcomes and old exceptional batches remain.
+    TurnoutModel::Result base;
+    base.broad.counted = {1500,1600}; base.noAdditionProbability = {.1,.2};
+    base.broad.unitCounts = {{1000,600,700,1100,500,600},{1000,650,750,1100,550,650}};
+    base.broad.totals = {{2300,2200},{2400,2300}};
+    std::vector<TurnoutModel::Unit> services(6);
+    std::vector<double> counted{1000,200,300,1100,200,300};
+    for (std::size_t j = 0; j < services.size(); ++j) {
+        services[j].seat = j/3; services[j].counted = counted[j];
+        if (j%3 == 0) continue;
+        TurnoutModel::Component c; c.unit = j; c.weight = .3;
+        c.previousProbability = 1-base.noAdditionProbability[j/3]-.2;
+        c.smallProbability = .18; c.batchProbability = .02;
+        for (std::size_t r = 0; r < 2; ++r) {
+            double capacity = 5000-base.broad.totals[r][j/3];
+            double reference = base.broad.unitCounts[r][j]-counted[j];
+            c.capacity.push_back(capacity); c.reference.push_back(reference);
+            c.referenceOdds.push_back(std::log(reference/capacity));
+            c.smallOdds.push_back(std::log(.25/capacity));
+            c.batchOdds.push_back(std::log((reference+100)/capacity));
+        }
+        base.components.push_back(c);
+    }
+    auto adjusted = base; adjusted.components.front().completionWeight = .7;
+    auto plan = TurnoutModel::makeDrawPlan(base,services,{5000,5000});
+    std::size_t reductions = 0, retained = 0;
+    for (unsigned long long seed = 0; seed < 4096; ++seed) {
+        auto old = TurnoutModel::drawUnitCounts(base,plan,seed);
+        auto revised = TurnoutModel::drawUnitCounts(adjusted,plan,seed);
+        for (std::size_t j = 0; j < old.size(); ++j) {
+            assert(revised[j] >= counted[j]);
+            if (j != 1) assert(revised[j] == old[j]);
+        }
+        assert(revised[1] <= old[1]);
+        if (revised[1] < old[1]) ++reductions;
+        else ++retained;
+    }
+    assert(reductions > 1000 && retained > 1000);
+    std::cout << "Local completion, postal receipt and sibling-isolation checks passed.\n";
+}
+
 void checkSavedHandoff(std::filesystem::path const& diagnosticPath,
     std::filesystem::path const& reportPath) {
     // Optional regression against local GUI exports. Feed the formerly
@@ -675,6 +761,9 @@ void check(std::filesystem::path const& path) {
             assert(e.at("unit") == a.unit);
             compare(e.at("weight"),a.weight,label+"/mixture weight");
             compare(e.at("usual_log_shift"),a.usualLogShift,label+"/routine size shift");
+            compare(e.at("completion_weight"),a.completionWeight,label+"/local completion weight");
+            if (e.at("original_size_z").is_null()) assert(!a.originalSizeZ);
+            else { assert(a.originalSizeZ); compare(e.at("original_size_z"),*a.originalSizeZ,label+"/original size position"); }
             compare(e.at("probabilities").at("previous"),a.previousProbability,label+"/previous probability");
             compare(e.at("probabilities").at("small"),a.smallProbability,label+"/small probability");
             compare(e.at("probabilities").at("batch"),a.batchProbability,label+"/batch probability");
@@ -690,6 +779,13 @@ void check(std::filesystem::path const& path) {
             assert(std::abs(zero+a.previousProbability+a.smallProbability+a.batchProbability-1) < 1e-12);
         }
         auto diagnostic = TurnoutModelIO::diagnostic(artifact,units,actual,c.at("source_time"));
+        assert(!diagnostic.contains("joint_update"));
+        for (auto const& component : diagnostic.at("late_components")) {
+            auto const& probabilities = component.at("probabilities");
+            double sum = 0;
+            for (auto const& probability : probabilities) sum += probability.get<double>();
+            compare(1.,sum,label+"/effective local mixture probabilities");
+        }
         assert(diagnostic.at("maximum_accounting_error").get<double>() < 1e-6);
         assert(diagnostic.at("minimum_category_addition").get<double>() >= -1e-7);
         auto plan = TurnoutModel::makeDrawPlan(actual,units,artifact.prior.enrolment);
@@ -737,6 +833,7 @@ int main(int argc, char** argv) {
         checkIndependentServiceSizes();
         checkTurnoutTransfer();
         checkCountDraws();
+        checkLocalCompletion();
         check(root/"tests/fixtures/turnout/synthetic-turnout-v1.json");
         // Operators can additionally check a private source-backed fixture.
         // CI and ordinary cloned-repository tests never need that archive.

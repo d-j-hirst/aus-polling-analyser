@@ -11,7 +11,7 @@
 // for each snapshot, including when counted votes have been revised downwards.
 namespace TurnoutModel {
 using Matrix = std::vector<std::vector<double>>;
-inline constexpr char CountVersion[] = "live-counts-8";
+inline constexpr char CountVersion[] = "live-counts-10";
 inline constexpr char ProgressVersion[] = "live-late-counts-4";
 inline constexpr char ScheduleVersion[] = "live-declaration-schedule-1";
 inline constexpr char AllocationVersion[] = "live-allocation-1";
@@ -29,6 +29,12 @@ inline constexpr double TurnoutChangeSpreadFloor = .15;    // Natural log total.
 inline constexpr double TransferPriorOdds = 3;
 inline constexpr double TurnoutChangeDegreesFreedom = 4;
 inline constexpr double UncountedEnrolmentHeadroom = .01;
+// At two original-size SDs above expectation, completion and an undersized
+// prior receive equal support. This is a conservative response scale, not a
+// fitted probability. Counts use log odds within enrolment with a half vote
+// at each endpoint so an observed zero has a finite transformed position.
+inline constexpr double CompletionSurpriseScale = 2;
+inline constexpr double CompletionCountEquivalent = .5;
 
 struct Unit {
     std::size_t seat = 0, group = 0;
@@ -113,6 +119,12 @@ struct Component {
     // Unconditional weights: sum = 1 - noAdditionProbability[unit's district].
     // Divide by that sum only when sampling conditional on further votes.
     double previousProbability = 0, smallProbability = 0, batchProbability = 0;
+    // These probabilities describe the existing allocation BEFORE the local
+    // completion intervention. A fraction completionWeight of routine draws
+    // is reduced afterwards; siblings, exceptional batches and exact-zero
+    // outcomes retain their original draws. Removed votes lower turnout.
+    double completionWeight = 0;
+    std::optional<double> originalSizeZ; // SDs on original count/enrolment log odds; absent if unsupported.
     double usualLogShift = 0; // Timetable reduction of routine addition log odds.
     // Each vector has one entry per prior outcome. Capacity is unused enrolment
     // (enrolment - broad formal total); reference is the allocated addition.

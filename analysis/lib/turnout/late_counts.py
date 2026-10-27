@@ -11,6 +11,7 @@ from types import SimpleNamespace
 
 import numpy as np
 from scipy.special import expit, logsumexp, ndtr, ndtri
+from lib.turnout import completion
 
 
 MODEL_VERSION = 'live-late-counts-4'
@@ -422,6 +423,10 @@ def _prepare_declaration_components(work, prepared, inputs, units, evidence, sch
     work.small = small
     work.batch = batch
     work.component_preparation = component_preparation
+    local_weight, local_z = completion.evidence(prepared,inputs,units,evidence)
+    work.completion_weight = local_weight[columns]
+    work.original_size_z = local_z[columns]
+    component_preparation['completion_weight'] = work.completion_weight
 
 
 def _draw_declaration_components(work, seed, uniforms, schedule):
@@ -451,6 +456,12 @@ def _draw_declaration_components(work, seed, uniforms, schedule):
             raise ValueError('Supply one interior quantile per outcome and open declaration unit.')
     varied = mixture_log_odds(reference[outer], small[outer], batch[outer], weights, uniforms, config,no_addition[indexes],schedule)
     work.varied = varied
+    # Preserve the ordinary allocation, then apply the local intervention.
+    # Normalizing new finishing weights together would inflate sibling counts.
+    work.completion_limits = completion.limits(reference[outer],small[outer],batch[outer],
+        (work.slack[:,indexes]+work.base)[outer],work.completion_weight,
+        component_probabilities(weights,no_addition[indexes],config,schedule),
+        1-no_addition[indexes],uniforms,config['small_log_odds_sd'],config['batch_log_odds_sd'])
 
 
 def _describe_declaration_components(work, units, evidence, count_draws, schedule):
@@ -481,11 +492,16 @@ def _describe_declaration_components(work, units, evidence, count_draws, schedul
             values = parent[:,None]*expit(location[:,None]+sd*quantiles)
             conditional[name+'_mean_if_other_counts_fixed'] = float(values.mean())
         previous, small_probability, batch_probability = component_probabilities(weights[k],no_addition[indexes[k]],config,schedule)
+        completion_probability = previous*work.completion_weight[k]
         details.append(dict(unit=int(j), seat=units[j]['seat_name'], category=category_key(units[j]),
             evidence=evidence[j], weight=float(weights[k]),
             usual_log_shift=float(normal_shifts[k]),
-            probabilities=dict(no_additions=float(no_addition[indexes[k]]),previous=float(previous),
-                               small=float(small_probability),batch=float(batch_probability)),
+            completion_weight=float(work.completion_weight[k]),
+            original_size_z=float(work.original_size_z[k]) if np.isfinite(work.original_size_z[k]) else None,
+            probabilities=dict(no_additions=float(no_addition[indexes[k]]),previous=float(previous-completion_probability),
+                               small=float(small_probability+completion_probability),batch=float(batch_probability)),
+            allocation_probabilities_before_local_completion=dict(no_additions=float(no_addition[indexes[k]]),
+                previous=float(previous),small=float(small_probability),batch=float(batch_probability)),
             reference_mean=float(base[:,k].mean()), **conditional))
 
 
@@ -511,12 +527,14 @@ def _apply_declaration_samples(work, units):
     totals = work.totals
     for seat in range(seats):
         local = np.flatnonzero(indexes == seat)
-        if not len(local) or (not np.any(weights[local]) and not np.any(normal_shifts[local]) and not phase):
+        if not len(local) or (not np.any(weights[local]) and not np.any(normal_shifts[local])
+                             and not phase and not np.any(work.completion_weight[local])):
             continue
         parent = slack[:,seat]+base[:,local].sum(axis=1)
         odds = varied[:,local]
         denominator = logsumexp(np.column_stack([np.zeros(len(outer)),odds]), axis=1)
         additions = parent[outer,None]*np.exp(odds-denominator[:,None])
+        additions = np.minimum(additions,work.completion_limits[:,local])
         for k, position in enumerate(local):
             j = columns[position]
             group = units[j]['group_index']

@@ -18,7 +18,7 @@ from scipy.special import log_ndtr, ndtri_exp
 from lib.turnout import prior
 
 
-MODEL_VERSION = 'live-counts-8'
+MODEL_VERSION = 'live-counts-10'
 
 # These are prediction slopes in log odds, not correlations or fractions of a
 # vote-count deficit. Federal 2025 reliable matches give 95% district-bootstrap
@@ -484,7 +484,11 @@ def _assemble_count_update(work, units, compensation_order):
     # The progress-aware updater needs the estimate before aggregate balancing.
     # Preserve the existing count-conditioned calculation instead of repeating
     # every declaration marginal fit during preparation.
+    # Retain the frozen local sizes independently of conditioned counts, so
+    # completion evidence measures surprise against the original expectation.
+    original = work.group_prior[:,seat_indices,group_indices]*np.array([u['weight'] for u in units])
     return dict(totals=totals, counts=groups, unit_counts=final_counts, remaining=remaining,own_remaining=additions,
+                original_unit_counts=original,
                 transfer_probability=work.transfer_probability, transfer_selected=work.transfer_selected,
                 counted=seat_counted, complete=complete, diagnostics=diagnostics)
 

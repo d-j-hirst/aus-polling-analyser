@@ -57,6 +57,48 @@ An earlier compatible FP/TCP pair can remain evidence about preference flow afte
 
 The private cache at `forecasts/<election>/live-snapshots/accepted-counts/` stores integer candidate counts, identities, status, completion information and original observation times. It starts empty for a real election. Matching uses election, district, booth/category role and candidate identities, rather than array positions. Earlier forecast exports and aggregate turnout history cannot supply accepted candidate-count fallbacks. Repeated source times replace their cache record atomically; a content fingerprint distinguishes source revisions. Recovery reads only earlier sources and keeps only the needed count state in memory.
 
+Deeper historical searches use a derived `change-index-v1/` directory inside that
+cache. Its purpose is to avoid repeatedly parsing every complete election snapshot
+when one booth needs an older compatible count. It stores changes separately for
+FP, TCP, retained preference pairs and other record fields, grouped by district.
+A source inventory preserves capture times, source revisions and record ordering.
+The original accepted-count files remain authoritative and unchanged in format.
+
+An unchanged vote vector can still have a newer observation time. The index stores
+that time as a reference to the source clock where applicable, preserving fixed
+older clocks for restored counts and retained pairs. Queries reconstruct original
+observations and apply the same compatibility, precedence and stopping rules as
+the source-file reader. They retain unavailable/zero distinctions, candidate
+identities, recheck authority, completion and transfers. Strict source-time cutoffs
+exclude same-time and future observations during replay. Whole-district rollback
+continues to read a complete historical account from a single source.
+
+The first search builds the necessary index from existing earlier snapshots in
+one traversal. Successful accepted-count commits then update it incrementally.
+The source inventory detects added, replaced and deleted files using file size
+and modification time; application commits also explicitly notify same-time
+replacements. Backfills preserve the next existing snapshot's value: inserting B
+between two captures of A creates A, B, A, rather than carrying B forward. External
+tools that deliberately preserve both size and modification time while editing
+sources must also discard the derived index so it can rebuild.
+
+District files are written before an atomic manifest replacement publishes their
+generation. Unpublished files are ignored, checksums detect damaged index files,
+and required partitions can rebuild from the originals. A bounded memory cache
+retains recently used district views up to the replay's timestamp, avoiding
+repeated loading of future changes during an early replay. Oversized views are
+read without retaining them. Searches skip unavailable accounts only when that
+account is required for a match; measured zeros and older available states remain
+eligible. Index unavailability falls back to the original reader and is logged. Failed
+forecasts cannot add accepted observations to either history. `PALog.log` separates
+input recovery and preference-history time and records index source reads/builds.
+Accepted-history commit time is logged separately, including deferred index updates.
+
+`LiveInputHistoryTests` checks exact reconstruction, observation-time matching,
+incremental changes, backfills, missing records, replacements, deletions, backward
+replay, restart reuse, repair and cache eviction. `HistoryReadMode::SourceFiles`
+retains the original reader for equivalence checks without running a forecast.
+
 Fresh counting history omits restored or unavailable records. A category-group observation is also omitted if any of its available services needed recovery, so restored counts do not manufacture counting events or pauses locally or in measurements shared across districts. Restored FP retains its earlier validated completion status; an unavailable count cannot acquire completion from the rejected source. Accepted-count and turnout-history writes are queued during preparation and performed only after a successful main calculation.
 
 The **Results** tab retains a non-modal warning panel, with one row per issue type and a worst example measured in votes. Selecting a row opens affected-record details, including rejected/effective counts and any restored source time. Routine incomplete counting is hidden behind an informational checkbox. Private snapshot metadata contains compact summaries for **Live Booths**; the analysis sidecar contains the detailed recovery records. Count history is never embedded in `.pol2` projects.
@@ -228,6 +270,14 @@ Declaration-only groups still retain their supported aggregate distribution and 
 The model keeps two kinds of late-count uncertainty separate. Routine expected additions recede as counting slows and the receipt timetable passes. Exceptional additions remain possible with a low, gradually declining probability. There is also a district-wide outcome with exactly no new first-preference votes. Completion flags make that outcome certain; quietness alone does not.
 
 Each unfinished declaration category combines previous expectations, small additions and exceptional late batches. Their probability weights change continuously with the evidence. They are **unconditional weights**: together they sum to one minus the district's no-addition probability. For example, if no additions have probability 60%, that category's other three weights together sum to 40%. When those other outcomes average 100 additional votes, its overall expected addition is 40 votes. Sampling within those outcomes divides each weight by 40%, so their conditional probabilities sum to one. The exceptional component is retained explicitly, including when none of the short diagnostic sample's draws selected it.
+
+The current count's position in its **original local size distribution** supplies additional evidence of nearing completion, even when the latest substantial batch has just arrived. This compares two explanations: the count is approaching its expected end, or the original size expectation was too low. Each declaration service's frozen formal-count draws are transformed as `logit((count + 0.5) / (district enrolment + 1))`. Let `z` be the current count's distance from their mean in standard deviations on that scale. The extra finishing weight is `NormalCDF(z) / (1 + (max(z, 0) / 2)^4)`. It is about 50% at the original transformed centre, 79% one SD above it, and 16% three SDs above it. The two-SD response scale is an initial conservative setting, not a fitted probability or a hard count cutoff. Unstarted services, completed or closed services, structural zeros and fixed size priors supply no extra weight.
+
+This weight moves a fraction of the existing routine outcomes into the tiny-addition component. Existing quietness can still support completion when a category greatly exceeded its original size, and the exceptional-batch and whole-district exact-zero probabilities are unchanged. Postal finishing weight receives the existing 48-hour receipt-window discount around its configured deadline. The calculation uses the frozen prior and the current service count; it does not learn this new size-underestimate weight from other districts or reuse a previous snapshot's posterior.
+
+Local completion is applied **after** the ordinary bounded allocation. A selected routine addition is reduced to the smaller of its allocated amount and a tiny-addition draw; other categories retain exactly their original allocations. The removed votes become unused enrolment and lower the formal turnout total. Applying completion inside the allocation's common denominator would instead inflate sibling categories. Counted votes remain lower bounds; this component does not introduce small downward revisions. The tiny distribution retains its existing quarter-vote median and log-odds SD of one, with the continuing and exceptional branches preserving larger additions.
+
+Both diagnostic count samples and main simulation draws use this same local intervention. Diagnostics expose `original_size_z`, `local_completion_weight`, effective `probabilities`, and `allocation_probabilities_before_local_completion` for each unfinished declaration service. Effective probabilities include the transferred routine weight; conditional small/batch means still describe those branches with the other counts fixed. `local_completion_parameters` records the response scale and half-vote transform. Count version 10 uses the existing frozen-prior format, so version 6–9 priors do not need regeneration. Count preparation uses fixed-size sampling and local calculations, without a fitted joint count sampler.
 
 After receipt closes, the installed timetable allows 48 counting hours for processing and a smooth 12-hour transition away from routine expectations. Sundays contribute half as much processing time as other days. Recent local activity can extend routine processing; activity after the deadline gradually loses influence on other districts. Unfinished declarations retain a starting exceptional probability of 2%, which declines with time and remaining probability outside the no-addition outcome. This is an operating assumption, rather than an independently established frequency of completion.
 

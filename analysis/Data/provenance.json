@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-10-25T12:22:34Z",
+  "updated_at_utc": "2026-10-26T09:37:14Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -88,12 +88,12 @@
         "poll-data-*.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 76,
+      "semantic_revision": 78,
       "files": {
         "poll-data-fed.csv": {
-          "sha256": "dae8e1dd05e1f0b1c4b3ae058fd1d4ae4a721e1a5c0f67244d76009e5ec22984",
-          "size_bytes": 286820,
-          "recorded_mtime_utc": "2026-10-25T12:20:40.502131Z"
+          "sha256": "b4238acd675e25dfcc229b6d6594278aff432e9400aae6bd28f442d6a17b5559",
+          "size_bytes": 286901,
+          "recorded_mtime_utc": "2026-10-26T09:35:38.102136Z"
         },
         "poll-data-nsw.csv": {
           "sha256": "ae8c780dce86256fe1095b6471f48cceaa1b4b65d18a1bd452d7f0562060beab",
@@ -101,9 +101,9 @@
           "recorded_mtime_utc": "2026-09-18T02:11:54.524617Z"
         },
         "poll-data-qld.csv": {
-          "sha256": "9463b2994fe2dcb0e418cda8e4c6bdae517eb099da4428ac76547c956e7d56f1",
-          "size_bytes": 23505,
-          "recorded_mtime_utc": "2026-10-14T00:06:45.739679Z"
+          "sha256": "1bc0859a328dee9c2969ebecfb27b4af22349a707229f966bcaee97712f70c65",
+          "size_bytes": 23609,
+          "recorded_mtime_utc": "2026-10-25T21:17:59.990741Z"
         },
         "poll-data-sa.csv": {
           "sha256": "4f752c9819b6dfd31c9019996beef3c6a8c9a79d660da0449a9d7f722f384bb6",
@@ -1906,9 +1906,51 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261026T093640Z-new_polling-raw-poll-data-5f423acf",
+          "recorded_at_utc": "2026-10-26T09:36:40Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 77,
+          "provenance_revision": 77,
+          "summary": "Morgan poll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261026T093714Z-new_polling-raw-poll-data-aa1d67fa",
+          "recorded_at_utc": "2026-10-26T09:37:14Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 78,
+          "provenance_revision": 78,
+          "summary": "DemosAU poll",
+          "files": [
+            "poll-data-qld.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028qld"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 76
+      "provenance_revision": 78
     },
     "poll_model_configuration": {
       "description": "Party coverage, discontinuities and sampling settings used by fp_model.py.",

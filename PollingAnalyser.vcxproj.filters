@@ -292,6 +292,9 @@
     <ClCompile Include="LiveInputRecoveryIO.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
+    <ClCompile Include="LiveInputHistory.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
     <ClCompile Include="LiveInputAdapter.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
@@ -804,6 +807,9 @@
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
     <ClInclude Include="LiveInputRecovery.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveInputHistory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LiveInputAdapter.h">

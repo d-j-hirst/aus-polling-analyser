@@ -1,5 +1,6 @@
 #include "LiveInputRecovery.h"
 #include "LivePartialCount.h"
+#include "LiveInputHistory.h"
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
@@ -269,12 +270,49 @@ RecordIndex recordsNeedingEarlierHistory(Snapshot const& effective,
 }
 
 std::optional<Snapshot> readEarlierCountRecords(std::filesystem::path const& folder,
-    Snapshot const& effective, HistoryAccount account, RecordIndex needed) {
-    // Parse one private source at a time, newest first. Retain only the chosen
-    // records, so a long sequence does not accumulate parsed JSON in memory.
+    Snapshot const& effective, HistoryAccount account, RecordIndex needed, HistoryReadMode mode) {
+    // Each booth's search is independent. The index visits its original source
+    // observations newest first, reconstructing times rather than treating the
+    // first occurrence of an unchanged count as its last observation.
     if (needed.empty()) return {};
     Snapshot result;
     result.election = effective.election; result.optionalPreferential = effective.optionalPreferential;
+    if (mode == HistoryReadMode::Indexed) {
+        LiveInputHistory::Selection selection;
+        for (auto const& [key, record] : needed) selection[record->district].insert(key);
+        struct Location {
+            std::string source;
+            std::size_t position;
+            bool operator<(Location const& other) const {
+                return source == other.source ? position < other.position : source > other.source;
+            }
+        };
+        std::map<Location, Record> matches;
+        try {
+            LiveInputHistory::visitEarlier(folder, fileCode(effective.sourceTime), selection,
+                [](json const& value) { decode(value); },
+                [&](std::string const& source, std::size_t position, json const& value) {
+                    auto old = decode(value);
+                    if (old.election != effective.election || old.sourceTime >= effective.sourceTime ||
+                        old.optionalPreferential != effective.optionalPreferential) return true;
+                    auto const& record = old.records.front();
+                    auto current = needed.at(record.key);
+                    if (!sameRecord(*current, record) || !earlierRecordFits(*current, record, effective, account)) return true;
+                    matches.emplace(Location{source, position}, record);
+                    return false;
+                }, account == HistoryAccount::Reconciled ? LiveInputHistory::RequiredCount::Both :
+                    account == HistoryAccount::TwoCandidatePreferred ? LiveInputHistory::RequiredCount::TwoCandidatePreferred :
+                    LiveInputHistory::RequiredCount::FirstPreferences);
+            for (auto& [location, record] : matches) result.records.push_back(std::move(record));
+            return result.records.empty() ? std::optional<Snapshot>{} : std::move(result);
+        } catch (LiveInputHistory::Unavailable const&) {
+            // The index is disposable. Restart against originals, so a partial
+            // index read cannot leak selections or suppress an original error.
+            return readEarlierCountRecords(folder, effective, account, std::move(needed), HistoryReadMode::SourceFiles);
+        }
+    }
+    // The original streaming reader is deliberately retained as the fallback
+    // and equivalence-test oracle; it does not accumulate full JSON history.
     for (auto const& path : earlierFiles(folder,effective.sourceTime)) {
         std::ifstream stream(path); json value; stream >> value;
         auto old = decode(value);
@@ -326,6 +364,7 @@ void commit(std::filesystem::path const& folder, Snapshot const& snapshot) {
         { std::ofstream stream(temporary); stream << encode(snapshot).dump(); stream.close();
           if (!stream) throw std::runtime_error("Cannot write the accepted-count cache."); }
         replaceFile(temporary,target);
+        LiveInputHistory::committed(folder, fileCode(snapshot.sourceTime), [](json const& value) { decode(value); });
     } catch (...) { std::error_code error; std::filesystem::remove(temporary,error); throw; }
 }
 std::optional<Snapshot> loadCompatiblePrevious(std::filesystem::path const& folder, Snapshot const& current) {
@@ -385,8 +424,44 @@ std::optional<Snapshot> loadCompatiblePrevious(std::filesystem::path const& fold
     return result;
 }
 
+namespace {
+bool considerPreferenceRecord(Record const& record, Record const& current, PreferenceHistory& history) {
+    if (!sameRecord(current, record) || !record.fp.votes) return false;
+    // Source-identified pairs outrank coincidentally equal totals. This restores
+    // withdrawn indicative TCP without associating it with corrected primaries.
+    if (hasCurrentTcpBasis(record) && current.tcp.votes && record.tcpBasis->tcp == *current.tcp.votes &&
+        compatiblePreferenceCohort(*record.tcpBasis, current)) {
+        history.tcpBasis = history.matchingCurrentTcp = record.tcpBasis;
+        return true;
+    }
+    if (!history.matchingCurrentTcp && current.tcp.votes && record.fp.observedAt < current.tcp.observedAt &&
+        total(record.fp.votes) == total(current.tcp.votes) &&
+        containedFpCohort(*record.fp.votes, *current.fp.votes) &&
+        comparablePreferenceAccount(*record.fp.votes, *current.tcp.votes))
+        history.matchingCurrentTcp = PreferenceCohort{*record.fp.votes, *current.tcp.votes,
+            record.fp.observedAt, current.tcp.observedAt, {},
+            explicitlyRecheckedPair(record.fp.metadata(), current.tcp.metadata())};
+    if (!history.previousAligned && record.tcp.votes &&
+        compatiblePreferenceCohort(PreferenceCohort{*record.fp.votes, *record.tcp.votes,
+            record.fp.observedAt, record.tcp.observedAt}, current))
+        history.previousAligned = PreferenceCohort{*record.fp.votes, *record.tcp.votes,
+            record.fp.observedAt, record.tcp.observedAt, {},
+            explicitlyRecheckedPair(record.fp.metadata(), record.tcp.metadata())};
+    // Retained asynchronous matches remain evidence after later FP/TCP changes.
+    if (record.matchedPreferences && compatiblePreferenceCohort(*record.matchedPreferences, current) &&
+        (!history.previousAligned || record.matchedPreferences->tcpTime > history.previousAligned->tcpTime))
+        history.previousAligned = record.matchedPreferences;
+    if (history.previousAligned && (history.matchingCurrentTcp || !current.tcp.votes ||
+        total(current.tcp.votes) == 0)) return true;
+    // Preserve the original stopping rule: the nearest accepted FP-only state
+    // already retains any usable older cohort. Genuine missing counts still
+    // take the earlier compatibility path rather than inventing measured zeros.
+    return total(current.tcp.votes) == 0 && total(record.tcp.votes) == 0 && !record.matchedPreferences;
+}
+}
+
 PreferenceHistories loadPreferenceHistory(std::filesystem::path const& folder,
-    Snapshot const& effective) {
+    Snapshot const& effective, HistoryReadMode mode) {
     // This count-total match currently describes compulsory preferences only.
     // OPV's smaller pair total can mean exhaustion rather than an earlier FP
     // cohort, so it retains its existing handling instead of inventing a match.
@@ -412,6 +487,25 @@ PreferenceHistories loadPreferenceHistory(std::filesystem::path const& folder,
         // Do not scan older files just to attach an unused second measurement.
         if (!history.matchingCurrentTcp) needed.emplace(record.key,&record);
     }
+    if (needed.empty()) return result;
+    if (mode == HistoryReadMode::Indexed) {
+        LiveInputHistory::Selection selection;
+        for (auto const& [key, record] : needed) selection[record->district].insert(key);
+        try {
+            LiveInputHistory::visitEarlier(folder, fileCode(effective.sourceTime), selection,
+                [](json const& value) { decode(value); },
+                [&](std::string const&, std::size_t, json const& value) {
+                    auto old = decode(value);
+                    if (old.election != effective.election || old.optionalPreferential != effective.optionalPreferential ||
+                        old.sourceTime >= effective.sourceTime) return true;
+                    auto const& record = old.records.front();
+                    return !considerPreferenceRecord(record, *needed.at(record.key), result.at(record.key));
+                }, LiveInputHistory::RequiredCount::FirstPreferences);
+            return result;
+        } catch (LiveInputHistory::Unavailable const&) {
+            return loadPreferenceHistory(folder, effective, HistoryReadMode::SourceFiles);
+        }
+    }
     // Read strictly earlier accepted sources one at a time, newest first. At most two
     // selected count vectors per affected service survive preparation. Future
     // replay files and same-clock revisions cannot supply preference evidence.
@@ -423,43 +517,7 @@ PreferenceHistories loadPreferenceHistory(std::filesystem::path const& folder,
             old.sourceTime >= effective.sourceTime) continue;
         for (auto const& record : old.records) {
             auto requested = needed.find(record.key);
-            if (requested == needed.end() || !sameRecord(*requested->second,record) || !record.fp.votes) continue;
-            auto const& current = *requested->second;
-            auto& history = result.at(record.key);
-            // The source-identified pair outranks a superficial total match in
-            // an old cache. This also restores ECQ's withdrawn indicative count
-            // without inventing a new association with corrected primaries.
-            if (hasCurrentTcpBasis(record) && current.tcp.votes && record.tcpBasis->tcp == *current.tcp.votes &&
-                compatiblePreferenceCohort(*record.tcpBasis,current)) {
-                history.tcpBasis = history.matchingCurrentTcp = record.tcpBasis;
-                needed.erase(requested);
-                continue;
-            }
-            if (!history.matchingCurrentTcp && current.tcp.votes && record.fp.observedAt < current.tcp.observedAt &&
-                total(record.fp.votes) == total(current.tcp.votes) &&
-                containedFpCohort(*record.fp.votes,*current.fp.votes) &&
-                comparablePreferenceAccount(*record.fp.votes,*current.tcp.votes))
-                history.matchingCurrentTcp = PreferenceCohort{*record.fp.votes,*current.tcp.votes,
-                    record.fp.observedAt,current.tcp.observedAt,{},
-                    explicitlyRecheckedPair(record.fp.metadata(),current.tcp.metadata())};
-            if (!history.previousAligned && record.tcp.votes &&
-                compatiblePreferenceCohort(PreferenceCohort{*record.fp.votes,*record.tcp.votes,
-                    record.fp.observedAt,record.tcp.observedAt},current))
-                history.previousAligned = PreferenceCohort{*record.fp.votes,*record.tcp.votes,
-                    record.fp.observedAt,record.tcp.observedAt,{},
-                    explicitlyRecheckedPair(record.fp.metadata(),record.tcp.metadata())};
-            // The normal successful-run commit preserves an asynchronous
-            // match too. Reading that one selected integer pair avoids
-            // repeatedly reconstructing older FP/TCP matches during a replay.
-            if (record.matchedPreferences && compatiblePreferenceCohort(*record.matchedPreferences,current) &&
-                (!history.previousAligned || record.matchedPreferences->tcpTime > history.previousAligned->tcpTime))
-                history.previousAligned = record.matchedPreferences;
-            if (history.previousAligned && (history.matchingCurrentTcp || !current.tcp.votes ||
-                total(current.tcp.votes) == 0)) needed.erase(requested);
-            else if (total(current.tcp.votes) == 0 && total(record.tcp.votes) == 0 && !record.matchedPreferences)
-                // The nearest accepted state preserves any usable cohort.
-                // New FP-only booths normally have none: avoid searching the
-                // whole sequence for preferences never received for that booth.
+            if (requested != needed.end() && considerPreferenceRecord(record, *requested->second, result.at(record.key)))
                 needed.erase(requested);
         }
     }
@@ -483,9 +541,9 @@ void retainPreferenceHistory(Snapshot& effective, PreferenceHistories const& his
 }
 
 std::optional<Snapshot> loadEarlierCounts(std::filesystem::path const& folder,
-    Snapshot const& effective, Snapshot const* previous, HistoryAccount account) {
+    Snapshot const& effective, Snapshot const* previous, HistoryAccount account, HistoryReadMode mode) {
     auto needed = recordsNeedingEarlierHistory(effective,previous,account);
-    return readEarlierCountRecords(folder,effective,account,std::move(needed));
+    return readEarlierCountRecords(folder,effective,account,std::move(needed),mode);
 }
 std::string fingerprint(std::filesystem::path const& source) {
     // A content fingerprint distinguishes revisions sharing a source clock.

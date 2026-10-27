@@ -4,11 +4,65 @@ import unittest
 
 import numpy as np
 
-from lib.turnout import late_counts, live
+from lib.turnout import completion, late_counts, live
 from tests.test_turnout_live_prototype import live_case
 
 
 class LateCountTests(unittest.TestCase):
+    def test_original_size_supports_completion_but_extreme_counts_retain_growth(self):
+        from scipy.special import expit, logit
+        parent = 10001.
+        centre = logit(1000.5/parent)
+        original = parent*expit(centre+np.array([-.5,.5]))-.5
+        inputs = dict(enrolment=[10000.])
+        units = [dict(seat_index=0,name='Absent',kind='declaration',counted=0)]
+        prepared = dict(original_unit_counts=original[:,None],complete=np.array([False]))
+        def at(z):
+            units[0]['counted'] = parent*expit(centre+.5*z)-.5
+            return completion.evidence(prepared,inputs,units,[dict(strength=0.)])[0][0]
+        self.assertLess(at(-3),.01)
+        self.assertGreater(at(0),.4)
+        self.assertGreater(at(1),at(0))
+        self.assertLess(at(3),at(1))
+        self.assertLess(at(6),.02)
+        self.assertLess(abs(at(1)-at(1.000001)),1e-5)
+        units[0]['counted'] = 1000
+        ordinary = completion.evidence(prepared,inputs,units,[dict(strength=0.)])[0][0]
+        units[0]['name'] = 'Postal'
+        postal = completion.evidence(prepared,inputs,units,[dict(strength=0.,postal_receipt_support=.01)])[0][0]
+        self.assertAlmostEqual(postal,.01*ordinary)
+        for original in [np.zeros((2,1)),np.full((2,1),1000.)]:
+            prepared['original_unit_counts'] = original
+            weight, z = completion.evidence(prepared,inputs,units,[dict(strength=0.)])
+            self.assertEqual(weight[0],0.)
+            self.assertTrue(np.isnan(z[0]))
+
+    def test_local_completion_releases_votes_without_inflating_siblings(self):
+        inputs, units, prepared = self.prepared_case()
+        # Choose only one category's original uncertainty as new evidence. All
+        # existing progress and exceptional-batch draws are identical in both
+        # runs, including those for another category in the same district.
+        reference = dict(prepared)
+        reference.pop('original_unit_counts')
+        local = dict(prepared)
+        local['original_unit_counts'] = np.broadcast_to(prepared['original_unit_counts'].mean(0),
+            prepared['original_unit_counts'].shape).copy()
+        local['original_unit_counts'][:,2] = prepared['original_unit_counts'][:,2]
+        progress = [dict(strength=.25) for _ in units]
+        before = late_counts.update(reference,inputs,units,progress)
+        after = late_counts.update(local,inputs,units,progress)
+        self.assertLess(after['unit_means'][2],before['unit_means'][2])
+        np.testing.assert_allclose(np.delete(after['unit_means'],2),np.delete(before['unit_means'],2),rtol=0,atol=1e-10)
+        self.assertTrue((after['totals'] <= before['totals']+1e-10).all())
+        self.assertTrue((after['counts'] >= after['counted_groups']-1e-10).all())
+        np.testing.assert_array_equal(before['no_addition_probability'],after['no_addition_probability'])
+        for old,new in zip(before['components'],after['components']):
+            self.assertEqual(old['probabilities']['batch'],new['probabilities']['batch'])
+        # Conditioned expectations are not allowed to become the next prior.
+        altered = dict(local,unit_counts=prepared['unit_counts']*1.5,remaining=prepared['remaining']*1.5)
+        np.testing.assert_array_equal(completion.evidence(local,inputs,units,progress)[0],
+                                      completion.evidence(altered,inputs,units,progress)[0])
+
     def prepared_case(self):
         inputs, draws, units = live_case()
         units[0]['counted'], units[1]['counted'] = 450, 200
@@ -16,8 +70,12 @@ class LateCountTests(unittest.TestCase):
         prepared = live.update(draws, inputs, units)
         return inputs, units, prepared
 
-    def test_neutral_evidence_reproduces_broad_prediction(self):
+    def test_no_progress_or_original_size_evidence_preserves_broad_prediction(self):
         inputs, units, prepared = self.prepared_case()
+        # A missing original size gives no local completion information. With
+        # it present, a just-arrived count can now inform completion even when
+        # no quietness has yet been observed.
+        prepared.pop('original_unit_counts')
         result = late_counts.update(prepared,inputs,units,[dict(strength=0.) for u in units])
         np.testing.assert_array_equal(result['totals'],np.repeat(prepared['totals'],8,axis=0))
         np.testing.assert_array_equal(result['unit_means'],prepared['unit_counts'].mean(axis=0))
@@ -189,7 +247,7 @@ class LateCountTests(unittest.TestCase):
             prepared['counts'][:,units[j]['seat_index'],units[j]['group_index']] -= removed
             prepared['totals'][:,units[j]['seat_index']] -= removed
         neutral = late_counts.update(prepared,inputs,units,[dict(strength=0.) for u in units])
-        np.testing.assert_array_equal(neutral['totals'],np.repeat(prepared['totals'],8,axis=0))
+        np.testing.assert_allclose(neutral['totals'],np.repeat(prepared['totals'],8,axis=0),rtol=0,atol=1e-12)
         result = late_counts.update(prepared,inputs,units,[dict(strength=.8) for u in units])
         self.assertTrue(np.isfinite(result['totals']).all())
         self.assertGreaterEqual(result['diagnostics']['minimum_category_addition'],-1e-9)

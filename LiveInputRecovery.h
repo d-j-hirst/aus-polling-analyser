@@ -119,8 +119,11 @@ struct PreferenceHistory {
     std::optional<PreferenceCohort> tcpBasis;
 };
 using PreferenceHistories = std::map<std::string,PreferenceHistory>;
+// The source-file path remains an oracle for portable equivalence tests and a
+// fallback when a derived change index cannot be used. Forecasts use the index.
+enum class HistoryReadMode { Indexed, SourceFiles };
 PreferenceHistories loadPreferenceHistory(std::filesystem::path const& folder,
-    Snapshot const& effective);
+    Snapshot const& effective, HistoryReadMode mode = HistoryReadMode::Indexed);
 // Stage the selected measured pair with the accepted count state. It is saved
 // only by the normal successful-run commit, so later TCP does not erase it.
 void retainPreferenceHistory(Snapshot& effective, PreferenceHistories const& history);
@@ -152,7 +155,8 @@ std::string canonicalTime(std::string value);
 // Most runs need only the nearest compatible record. A reconciliation hold
 // needs both counts from one accepted record, rather than independently selected
 // FP and TCP dates. Other recovery searches FP first, then TCP against effective
-// FP. Each disk search reads only affected records, one source file at a time.
+// FP. Historical searches use compact per-record changes while preserving the
+// original observation clocks, source order and compatibility rules.
 enum class HistoryAccount { FirstPreferences, TwoCandidatePreferred, Reconciled };
 using CountHistoryLookup = std::function<std::optional<Snapshot>(Snapshot const&, Snapshot const*, HistoryAccount)>;
 Result recover(Snapshot current, std::optional<Snapshot> const& previous,
@@ -175,15 +179,16 @@ bool reconciliationFits(Record const& record, Record const& previous,
 TurnoutModel::Observation freshObservation(TurnoutModel::Prior const& prior,
     std::vector<TurnoutModel::Unit> const& units, RecordStatuses const& statuses,
     std::string const& sourceTime);
-// Disk state is private and integer-only. A search parses one source file at a
-// time, retaining only the selected fallbacks and any coherent district account.
+// Disk state is private and integer-only. Whole-district recovery still reads
+// complete source accounts; deeper per-record searches use a derived index.
 std::filesystem::path directory(std::filesystem::path const& root, std::string const& election);
 std::optional<Snapshot> loadPrevious(std::filesystem::path const& directory,
     std::string const& election, std::string const& sourceTime);
 std::optional<Snapshot> loadCompatiblePrevious(std::filesystem::path const& directory,
     Snapshot const& current);
 std::optional<Snapshot> loadEarlierCounts(std::filesystem::path const& directory,
-    Snapshot const& effective, Snapshot const* previous, HistoryAccount account);
+    Snapshot const& effective, Snapshot const* previous, HistoryAccount account,
+    HistoryReadMode mode = HistoryReadMode::Indexed);
 void commit(std::filesystem::path const& directory, Snapshot const& snapshot);
 std::string fingerprint(std::filesystem::path const& source);
 }
