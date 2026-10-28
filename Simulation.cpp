@@ -1,3 +1,7 @@
+// Keep a configured election simulation and its retained reports together.
+// Simulation::run starts a fresh calculation through SimulationRun, then retains
+// its completed result. The other functions manage saved reports and interpret
+// the distributions of vote shares and seat counts recorded by the calculation.
 #include "Simulation.h"
 
 #include "General.h"
@@ -100,6 +104,23 @@ const std::vector<float> Simulation::Report::CurrentlyUsedProbabilityBands = {
 	75.0f, 90.0f, 95.0f, 97.5f, 99.0f, 99.5f, 99.9f
 };
 
+// Recalculate this simulation using the project's parties, seats, models and
+// projections, together with this simulation's stored settings. The model and
+// projection must already have been prepared; this call runs the seat simulation.
+// During vote counting, a live forecast incorporates the results reported so far.
+// A "live update" recalculates that forecast using the selected reported results
+// as counting progresses.
+//
+// A snapshot is a saved copy of a results feed from a particular time during
+// counting. Supplying one lets this run replay that stage of the count using the
+// saved file. Without one, live preparation uses the configured results source.
+//
+// feedback receives warnings and failures; actionRequired receives requests for
+// operator intervention, such as closing a file held open elsewhere; progress receives
+// stage descriptions. A successful calculation supplies the latest report for
+// later saving or website export. SimulationCollectionReports and ReportUploader
+// handle report selection and export separately; uploads/upload_manager.py
+// submits the exported report to the website.
 bool Simulation::run(
 	PollingProject& project,
 	SimulationRun::FeedbackFunc feedback,
@@ -108,6 +129,9 @@ bool Simulation::run(
 	SimulationRun::FeedbackFunc progress)
 {
 	if (!actionRequired) actionRequired = feedback;
+	// First establish that the chosen projection exists and its underlying model
+	// is ready. SimulationRun then checks the projection's generated series and
+	// the remaining run inputs before calculating possible election outcomes.
 	if (project.projections().idToIndex(settings.baseProjection) ==
 		ProjectionCollection::InvalidIndex) {
 		feedback("The simulation does not have a valid base projection.");
@@ -119,13 +143,24 @@ bool Simulation::run(
 		feedback("The base model (" + baseModel.getName() + ") is not ready for projecting. Please run the base model once before running projections it is based on.");
 		return false;
 	}
+	// Give this attempt its own prepared inputs and accumulated simulation
+	// results. Both flags are false because this is the main forecast request;
+	// SimulationRun arranges any separate betting-odds or live-baseline work.
+	// Keep the previously retained run available until the new attempt succeeds.
 	auto nextRun = std::make_shared<SimulationRun>(project, *this, false, false, std::move(snapshot));
 	bool succeeded = nextRun->run(feedback, actionRequired, std::move(progress));
+	// An unsuccessful live update can still explain a problem with its feed.
+	// Keep those diagnostics even when the protected report and counted-outcome
+	// records revert to their previous values inside SimulationRun::run.
 	if (isLiveAutomatic()) {
 		liveInputDiagnostic = nextRun->inputDiagnostic();
 		liveInputDetails = nextRun->inputRecoveryDetails();
 	}
 	if (!succeeded) return false;
+	// The main report is now complete. Retain this run as well, so its prepared
+	// live analysis can be inspected, and report changes in seat-winning chances
+	// since the previous live update. This does not create a named saved report
+	// or submit anything to the website.
 	latestRun = std::move(nextRun);
 	PA_LOG_VAR(latestReport.getCoalitionFpSampleMedian());
 	if (isLive()) checkLiveSeats(project, feedback);

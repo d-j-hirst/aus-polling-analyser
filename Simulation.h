@@ -26,6 +26,12 @@ class RegionCollection;
 class Seat;
 struct Party;
 
+// One configured election simulation, including the settings that select its
+// projection and live inputs, its latest report, and explicitly saved reports.
+// A report summarises many possible elections; it is not one simulated outcome.
+// The project supplies shared parties, seats, models and projections when run()
+// is called. SimulationRun holds the calculation's working information, while
+// this object retains the results used for later inspection and website export.
 class Simulation {
 
 public:
@@ -95,6 +101,25 @@ public:
 		Last = Two
 	};
 
+	// Report data assembled for one simulation run and retained when it succeeds.
+	// It supplies the forecast values for Australian Election Forecasts: electoral
+	// outcome probabilities, seat and vote-share summaries, and distributions of
+	// possible results. It also carries names, historical comparison values,
+	// polling-model trends and poll data to help explain those forecasts.
+	//
+	// Iterations fill some frequency tables directly: their entries count simulated
+	// elections, not observed votes. SimulationCompletion::completeRun derives
+	// averages, medians and uncertainty bounds from these tables and the run's
+	// other totals. The frequency tables remain available so consumers can request
+	// additional summaries, such as the percentiles used by ReportUploader.
+	//
+	// This structure is also used for supporting calibration and live-baseline
+	// results. The live baseline includes extra uncertainty information for use
+	// before adding reported votes. Availability and units depend on the field:
+	// some probabilities are stored as 0-1 proportions and others as percentages.
+	// Report selection and export combine the chosen main report with simulation
+	// and project metadata; see SimulationCollectionReports.cpp and
+	// ReportUploader.cpp.
 	struct Report {
 		typedef std::pair<std::pair<std::string, int>, std::array<float, 3>> SaveablePoll;
 		typedef std::map<std::string, std::vector<SaveablePoll>> SaveablePolls;
@@ -319,6 +344,9 @@ public:
 		void retrieveSaveablePolls(SaveablePolls const& saveablePolls);
 	};
 
+	// A retained copy of a report, with a label and date for later selection.
+	// Simulation::saveReport creates a named copy; the latest-live export route
+	// also uses this wrapper when preparing the report for ReportUploader.
 	struct SavedReport {
 		Report report;
 		Timestamp dateSaved;
@@ -332,6 +360,11 @@ public:
 	Simulation(Settings settings) : settings(std::move(settings))
 	{}
 
+	// Calculate and retain a new latest report. Returns false for failures
+	// handled by the run; other exceptions can reach the caller. The previous
+	// report is protected during calculation, but live input diagnostics may
+	// change after a failed attempt. See the definition for the input sources
+	// and message handlers. Saving a named report and website export are separate.
 	bool run(
 		PollingProject& project,
 		SimulationRun::FeedbackFunc feedback = [](std::string) {},

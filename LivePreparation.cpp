@@ -207,6 +207,8 @@ void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simu
 		requireLiveInputFile("analysis/Booth Results/" + previousTermCode + ".json", missingFiles);
 	}
 	else if (regionCode == "wa") {
+		if (termCode == "2025wa")
+			requireLiveInputFile("forecasts/2025wa/live-inputs/historical-baseline.json", missingFiles);
 		requireLiveInputFile("downloads/" + termCode + "_candidates_prev.xml", missingFiles);
 		requireLiveInputFile("downloads/" + termCode + "_booths_prev.xml", missingFiles);
 		requireLiveInputFile("downloads/" + termCode + "_results_prev.xml", missingFiles);
@@ -386,6 +388,8 @@ void LivePreparation::parsePreviousResults()
 		tinyxml2::XMLDocument resultsXml;
 		loadLiveXml(resultsXml, "downloads/" + getTermCode() + "_results_prev.xml");
 		previousElection.update(resultsXml, Results2::Election::Format::WAEC);
+		if (getTermCode() == "2025wa")
+			previousElection.loadWaecBaseline(loadLiveJson("forecasts/2025wa/live-inputs/historical-baseline.json"));
 	}
 	else if (run.regionCode == "sa") {
 		tinyxml2::XMLDocument zerosXml;
@@ -545,12 +549,14 @@ void LivePreparation::acquireSnapshot(LiveResultsInput::CurrentFile const& snaps
 	else {
 		loadLiveXml(xml, xmlFilename);
 		auto format = run.regionCode == "qld" ? Results2::Election::Format::QEC :
-			run.regionCode == "vic" ? Results2::Election::Format::VEC : Results2::Election::Format::AEC;
+			run.regionCode == "vic" ? Results2::Election::Format::VEC :
+			run.regionCode == "wa" ? Results2::Election::Format::WAEC : Results2::Election::Format::AEC;
 		if (!currentElection.matchesSnapshotElection(xml, format))
 			throw Exception("The snapshot election identifier does not match the configured preload.");
 	}
 	if (!snapshot.timestamp) throw Exception("The selected snapshot has no timestamp code.");
 	sim.latestReport.dateCode = snapshot.timestamp->size() == 12 ? "20" + *snapshot.timestamp : *snapshot.timestamp;
+	if (run.regionCode == "wa") waObservationTime = LiveResultsInput::waObservationTime(snapshot);
 }
 
 void LivePreparation::acquireCurrentResults()
@@ -599,6 +605,7 @@ void LivePreparation::acquireCurrentResults()
 				LiveResultsInput::pathToUtf8(inputDirectory));
 		}
 		auto const& selectedPath = selected->path;
+		if (run.regionCode == "wa") waObservationTime = LiveResultsInput::waObservationTime(*selected);
 		if (selected->timestamp) {
 			sim.latestReport.dateCode = *selected->timestamp;
 		}
@@ -702,6 +709,12 @@ void LivePreparation::parseCurrentResults()
 	else format = Results2::Election::Format::AEC;
 	auto const expectedEvent = currentElection.id;
 	currentElection.updateLive(xml, format);
+	if (run.regionCode == "wa") {
+		currentElection.sourceTime = waObservationTime;
+		std::string code;
+		for (unsigned char character : waObservationTime) if (std::isdigit(character)) code += char(character);
+		sim.latestReport.dateCode = code;
+	}
 	if (expectedEvent && currentElection.id != expectedEvent)
 		throw Exception("The current feed identifies a different election from its preload.");
 	// A fixed local AEC replay filename has no capture timestamp. Label the

@@ -18,6 +18,11 @@ struct PreloadFiles {
 	std::filesystem::path pollingPlaces;
 };
 
+// WA exports have only per-record modification clocks. Prepared replay names
+// supply the observation time in WA; fixed-name live files use their original
+// file modification instant converted to WA (UTC+8, with no daylight saving).
+std::string waObservationTime(CurrentFile const& file);
+
 // A federal preload normally comes from its remote ZIP/cache. Offline replay
 // may instead name a workspace-relative or absolute XML with local:<path>.
 // Its companion replaces .xml with @polling_places.xml. Reading these files

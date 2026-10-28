@@ -96,21 +96,39 @@ std::vector<double> uniforms(std::string const& key, std::size_t count, unsigned
 // Find the addition size at a supplied probability within the positive outcome.
 // Possibilities mix the unchanged previous estimate with small additions and
 // larger batches. Their probabilities sum to one here, after the separate
-// no-addition outcome has been removed. Small/batch spreads are 1/1.5 in the
-// log odds of addition versus unused capacity. Numerical search brackets and
+// no-addition outcome has been removed. Small SD is 1; the prepared batch SD
+// is 1.5 on addition/unused-capacity log odds; extra postal uncertainty is
+// applied only to final allocated quantities, outside this shared mixture.
+// Numerical search brackets and
 // 40 bisections limit calculation time without capping possible vote counts.
-double mixture(double ref, double small, double batch, double previous, double smallProbability, double batchProbability, double uniform) {
-    auto continuous = [&](double x) { return smallProbability*cdf(x-small)+batchProbability*cdf((x-batch)/1.5); };
+double mixture(double ref, double small, double batch, double previous, double smallProbability, double batchProbability, double uniform, double batchSd) {
+    auto continuous = [&](double x) { return smallProbability*cdf(x-small)+batchProbability*cdf((x-batch)/batchSd); };
     double below = continuous(ref), above = below+previous;
     if (uniform >= below && uniform <= above) return ref;
     double target = uniform < below ? uniform : uniform-previous;
-    double low = std::min(small-12, batch-18), high = std::max(small+12, batch+18);
+    double low = std::min(small-12, batch-12*batchSd), high = std::max(small+12, batch+12*batchSd);
     for (int k = 0; k < 40; ++k) {
         double middle = (low+high)/2;
         if (continuous(middle) < target) low = middle; else high = middle;
     }
     return (low+high)/2;
 }
+}
+
+double postalRemainderLogOdds(std::optional<double> daysBeforeDeadline) {
+    // This describes the small remainder only when main counting is largely
+    // finished. Comparisons of mature, slowing counts in Federal 2022/2025
+    // and Queensland 2024 motivate original medians of 6%, 4%, 2%. The broader
+    // spread lowers the median to preserve expected additions. These are
+    // starting assumptions, not a jurisdiction fit or a deadline completion
+    // rule (see docs/live-turnout.md). Interpolate on a bounded share scale;
+    // continue the early slope before day four and halve remainder odds every
+    // two calendar days afterwards. Processing backlogs keep separate paths.
+    if (!daysBeforeDeadline) return odds(.06)+PostalRemainderMedianShift;
+    double days = *daysBeforeDeadline;
+    if (days < 0) return odds(.02)+days*std::log(2.)/2+PostalRemainderMedianShift;
+    if (days < 2) return odds(.02)+days*(odds(.04)-odds(.02))/2+PostalRemainderMedianShift;
+    return odds(.04)+(days-2)*(odds(.06)-odds(.04))/2+PostalRemainderMedianShift;
 }
 
 void validate(Prior const& p) {
@@ -151,8 +169,10 @@ struct CountUpdateWorkspace {
 };
 
 // Validate measured units, classify their completion and assemble group lookup
-// tables before any estimates change. Reported ordinary/PPVC counts are final
-// for this count update; declarations remain lower bounds unless closed/final.
+// tables before any estimates change. Reported ordinary/PPVC counts normally
+// finish the physical account; explicitly incremental places and declarations
+// remain lower bounds unless closed/final. This protects mixed early/day places
+// whose first reported primary batch does not include all voters at that venue.
 CountUpdateWorkspace classifyCountUnits(Prior const& prior, std::vector<Unit> const& units,
     std::vector<bool> const& finalised) {
     auto samples = prior.totals.size(), seats = prior.seats.size(), groups = prior.groups.size();
@@ -183,7 +203,7 @@ CountUpdateWorkspace classifyCountUnits(Prior const& prior, std::vector<Unit> co
         work.groupCounted[group] += unit.counted;
         result.counted[unit.seat] += unit.counted;
         result.complete[j] = unit.closed || unit.acceptedComplete.value_or(
-            (unit.kind != "declaration" && unit.counted > 0) || finalised[unit.seat]);
+            (unit.kind != "declaration" && !unit.incremental && unit.counted > 0) || finalised[unit.seat]);
         work.hasBooths[group] = work.hasBooths[group] || unit.kind != "declaration";
         work.openGroups[group] = work.openGroups[group] || !result.complete[j];
         for (std::size_t r = 0; r < samples; ++r)
@@ -564,6 +584,7 @@ ProgressRow measureLocalProgress(ProgressHistory const& ordered, ProgressIdentit
     row.current = value;
     double now = ordered.rbegin()->first;
     double activity = 0, coverage = 0, volume = 0, sharedActivity = 0, sharedVolume = 0;
+    double gentleActivity = 0, gentleTolerance = std::hypot(10.,DeclarationLocalEventScale*value);
     // A change equal to this tolerance supplies half an activity event.
     // Combine a 10-vote absolute scale with the supplied relative scale
     // (.1% ordinarily, 2% in the cautious timetable measurement) in quadrature.
@@ -582,6 +603,11 @@ ProgressRow measureLocalProgress(ProgressHistory const& ordered, ProgressIdentit
         double decay = std::exp(-age/24);
         double delta = std::abs(current->second-old->second), ratio = delta/tolerance;
         activity += ratio*ratio/(1+ratio*ratio)*decay;
+        // Measure the gentler LOCAL response in the same history traversal.
+        // It never enters sharedActivity: activity elsewhere keeps its existing
+        // meaning, even when this seat's small revisions carry less weight.
+        double gentleRatio = delta/gentleTolerance;
+        gentleActivity += gentleRatio*gentleRatio/(1+gentleRatio*gentleRatio)*decay;
         volume += delta*decay;
         // A late backlog is strong evidence about this seat, but weaker
         // evidence that another seat still has routine counting to do.
@@ -612,6 +638,7 @@ ProgressRow measureLocalProgress(ProgressHistory const& ordered, ProgressIdentit
     // Map accumulated events to a bounded score. Started is a smooth
     // count/(count+10) measure, not a binary reported/unreported flag.
     row.e.activity = -std::expm1(-activity);
+    row.e.gentleLocalActivity = -std::expm1(-gentleActivity);
     row.e.volume = volume;
     row.e.coverage = coverage;
     row.e.started = value/(value+10);
@@ -707,6 +734,7 @@ std::vector<Evidence> attachProgressEvidence(Prior const& p, std::vector<Unit> c
             // Postal quietness supplies half its ordinary support at receipt
             // closure and changes smoothly on a 48-calendar-hour scale.
             e.postalReceiptSupport = logistic((now-*deadline)/48);
+            e.postalDaysBeforeDeadline = (*deadline-now)/24;
             e.strength *= e.postalReceiptSupport;
         }
         result[j] = e;
@@ -742,7 +770,11 @@ std::vector<double> boothCompletion(Prior const& p, std::vector<Unit> const& uni
         for (auto const& u : units) if (u.kind != "declaration" && !u.closed) {
             double expected = eav(u) && !u.matched ? replacement : p.counts[r][u.seat*p.groups.size()+u.group]*u.weight;
             total[u.seat] += expected/p.counts.size();
-            if (u.counted > 0) reported[u.seat] += expected/p.counts.size();
+            // For a mixed place, a first batch is only partial progress toward
+            // the starting quantity. Ordinary physical booths retain their
+            // normal whole-booth progress once reported.
+            if (u.counted > 0) reported[u.seat] += (u.incremental
+                ? std::min(expected,u.counted) : expected)/p.counts.size();
         }
     }
     for (std::size_t s = 0; s < total.size(); ++s) total[s] = total[s] > 0 ? reported[s]/total[s] : 0;
@@ -774,6 +806,20 @@ std::vector<Evidence> scheduledEvidence(Prior const& p, std::vector<Unit> const&
         double extra = .8*e.smallBatchSupport*std::pow(completed[units[j].seat],2)*e.started;
         weight += (1-weight)*extra;
         e.strength = .3*std::sqrt(-std::log1p(-weight));
+        // This extra support permits a modest POSITIVE remainder, not a new
+        // completion/zero outcome. Only local event sensitivity changes; pooled
+        // activity, starting evidence and the late-small-batch support stay fixed.
+        double gentleStrength = e.coverage*e.started*quiet(1-e.pooledStarted,.1)
+            *quiet(e.gentleLocalActivity,.3)*(.5+.5*shared)*e.postalReceiptSupport;
+        double gentleWeight = -std::expm1(-std::pow(gentleStrength/.3,2))*shared;
+        e.positiveRemainderSupport = gentleWeight+(1-gentleWeight)*extra;
+        // Receipt can remain open when very few votes remain. Only this positive
+        // postal remainder support omits the receipt discount; ordinary progress
+        // and the district counted-only outcome keep their existing safeguards.
+        double postalStrength = e.coverage*e.started*quiet(1-e.pooledStarted,.1)
+            *quiet(e.gentleLocalActivity,.3)*(.5+.5*shared);
+        double postalWeight = -std::expm1(-std::pow(postalStrength/.3,2))*shared;
+        e.postalFinishingSupport = postalWeight+(1-postalWeight)*extra;
     }
     return result;
 }
@@ -944,7 +990,7 @@ bool applyReceiptTimetable(std::vector<Observation> const& history, Options cons
     return scheduled;
 }
 
-void measureLocalCompletion(Prior const& prior, Unit const& unit, Evidence const& evidence,
+void measureLocalCompletion(Prior const& prior, Unit const& unit,
     Component& component) {
     // A count near its originally expected size may be the last substantial
     // batch even when it has only just arrived. Far above that expectation,
@@ -967,9 +1013,87 @@ void measureLocalCompletion(Prior const& prior, Unit const& unit, Evidence const
     double z = (odds((unit.counted+CompletionCountEquivalent)/parent)-centre)/sd;
     component.originalSizeZ = z;
     component.completionWeight = cdf(z)/(1+std::pow(std::max(0.,z)/CompletionSurpriseScale,4));
-    // Postal counts may approach their expected size before receipt closes.
-    // Reuse the existing receipt-window discount for this new evidence too.
-    if (unit.category == "Postal") component.completionWeight *= evidence.postalReceiptSupport;
+    // For postals this means the main count may be largely finished, not that
+    // receipt has ended. Its selected outcomes retain a positive postal tail;
+    // the separate quietness and exact-zero paths keep their deadline guards.
+}
+
+void measurePositiveRemainder(Unit const& unit, Evidence const& evidence, Component& component) {
+    // Ordinary early-voting centres are booths, not PrePoll declarations.
+    // Restrict this rule to the two declaration services covered by the trial;
+    // postals retain their receipt-based remainder and other services are unchanged.
+    if ((unit.category != "Absent" && unit.category != "PrePoll") || unit.counted <= 0
+        || component.weight >= 1) return;
+    // If ordinary quietness supports 50% and gentler local quietness supports
+    // 90%, divert 80% of the remaining routine outcomes. Exclude those already
+    // near-finished from original-size evidence, retaining their existing draws.
+    double extra = std::max(0.,evidence.positiveRemainderSupport-component.weight)/(1-component.weight);
+    component.positiveRemainderWeight = (1-component.completionWeight)*extra;
+    // Recent volume is absolute processing/rechecking movement with a 24-hour
+    // counting-clock decay, not envelope arrivals. Average local volume and
+    // robust pooled relative volume scaled to this seat's current count. Two
+    // daily quantities and equal local/shared weighting are modelling choices.
+    // The quarter-vote minimum keeps negligible-volume outcomes positive.
+    component.positiveRemainderMedian = std::max(.25,DeclarationRemainderDays*.5
+        *(evidence.volume+evidence.pooledVolume*(unit.counted+.5)));
+}
+
+// Widen uncertainty only after every category has received its allocation.
+// Routine point draws use the full routine spread. For continuous draws, the
+// normal densities distinguish tiny additions from batch-sized possibilities:
+// the batch share rises smoothly with the evidence, without a vote threshold.
+// This definition works with both inverse-mixture diagnostics and direct draws.
+double postalWideningWeight(Component const& c, std::size_t outer, double value) {
+    if (value == c.referenceOdds[outer]) return 1;
+    if (c.batchProbability <= 0) return 0;
+    if (c.smallProbability <= 0) return 1;
+    double smallZ = value-c.smallOdds[outer];
+    double batchZ = (value-c.batchOdds[outer])/c.batchSd;
+    double logRatio = std::log(c.batchProbability)-std::log(c.smallProbability)-std::log(c.batchSd)
+        -.5*batchZ*batchZ+.5*smallZ*smallZ;
+    return logistic(logRatio);
+}
+
+// A postal output draw is widened only within itself plus reserved unused
+// enrolment. Move its addition/capacity log odds down/up by a local normal
+// magnitude. Choose the larger possibility with probability (original-lower) /
+// (upper-lower): the pair's mean is exactly the original allocated count.
+// For example 60 and 180 around 100 give the larger amount probability 1/3.
+// Averaging over magnitudes retains that mean, including at physical bounds.
+// This avoids fitting an offset to a small sample which could still bias the
+// much larger main simulation. Finishing paths get no additional spread.
+double widenAllocatedPostal(double addition, double capacity, double sd,
+    double normal, double choice) {
+    if (sd <= 0 || addition <= 0 || addition >= capacity) return addition;
+    double location = std::log(addition/(capacity-addition));
+    double magnitude = sd*std::abs(normal);
+    double lower = std::min(addition,capacity*logistic(location-magnitude));
+    double upper = std::max(addition,capacity*logistic(location+magnitude));
+    if (upper <= lower) return addition; // Numerical equality, not a vote threshold.
+    double probability = std::clamp((addition-lower)/(upper-lower),0.,1.);
+    return choice < probability ? upper : lower;
+}
+
+// Original-size evidence and gentle quietness concern remaining quantity, not
+// legal receipt completion. Three quarters of previously unused gentle support
+// enters the finishing fraction, then finishing/substantial odds are multiplied
+// by three. Separately, a young count far below its original expectation is more
+// likely paused than nearly finished. Retain exp(-shortfall_SD^2/2) of finishing
+// support initially, fading that restraint smoothly around seven calendar days.
+// At/above expectation, or without an explicit polling date, apply no restraint.
+void measureFinishingBalance(Unit const& unit, Evidence const& evidence,
+    std::optional<double> days, Component& component) {
+    if (unit.category == "Postal" && unit.counted > 0) {
+        double extra = component.weight < 1
+            ? std::max(0.,evidence.postalFinishingSupport-component.weight)/(1-component.weight) : 0;
+        double fraction = component.completionWeight+.75*(1-component.completionWeight)*extra;
+        component.completionWeight = PostalFinishingOdds*fraction/(1+(PostalFinishingOdds-1)*fraction);
+    }
+    if (days && component.originalSizeZ) {
+        double shortfall = std::max(0.,-*component.originalSizeZ);
+        double early = 1/(1+std::pow(std::max(0.,*days)/7,6));
+        component.earlyCompletionRetention = 1-early*(-std::expm1(-shortfall*shortfall/2));
+    }
 }
 
 // Retain the previous estimate and the two continuous addition distributions
@@ -988,8 +1112,14 @@ void buildLateCountComponents(Prior const& prior, std::vector<Unit> const& units
         if (units[j].kind != "declaration" || broad.complete[j]) continue;
         Component component;
         component.unit = j;
-        measureLocalCompletion(prior,units[j],result.evidence[j],component);
+        measureLocalCompletion(prior,units[j],component);
+        if (units[j].category == "Postal") {
+            component.postalCounted = units[j].counted;
+            component.postalRemainderLogOdds = postalRemainderLogOdds(result.evidence[j].postalDaysBeforeDeadline);
+        }
         component.weight = -std::expm1(-std::pow(result.evidence[j].strength/.3,2));
+        measureFinishingBalance(units[j],result.evidence[j],result.daysAfterPollClose,component);
+        measurePositiveRemainder(units[j],result.evidence[j],component);
         if (scheduled) {
             double currentCategory = 0;
             for (auto const& unit : units)
@@ -1020,10 +1150,17 @@ void buildLateCountComponents(Prior const& prior, std::vector<Unit> const& units
             double oldBatch = std::log((base+.25+.05*units[j].counted)/slack);
             double lateBatch = std::log((broad.ownRemaining[r][j]+.25+.05*units[j].counted)/slack);
             component.batchOdds.push_back((1-result.processingPhase)*oldBatch+result.processingPhase*lateBatch);
+        }
+        // Preserve original mixture odds for every category. Started postals are
+        // widened later, after joint allocation and all finishing limits.
+        component.postalWidening = options.postalWidening
+            && units[j].category == "Postal" && units[j].counted > 0;
+        for (std::size_t r = 0; r < samples; ++r) {
+            double parent = component.capacity[r]+component.reference[r];
             for (std::size_t k = 0; k < options.countDraws; ++k) {
                 double quantile = normalQuantiles[k];
-                component.smallMean += (slack+base)*logistic(component.smallOdds.back()+quantile)/count;
-                component.batchMean += (slack+base)*logistic(component.batchOdds.back()+1.5*quantile)/count;
+                component.smallMean += parent*logistic(component.smallOdds[r]+quantile)/count;
+                component.batchMean += parent*logistic(component.batchOdds[r]+component.batchSd*quantile)/count;
             }
         }
         result.components.push_back(std::move(component));
@@ -1046,7 +1183,7 @@ LateCountLayout indexLateComponents(Result const& result, std::vector<Unit> cons
         layout.componentsBySeat[seat].push_back(k);
         layout.activeSeats[seat] = layout.activeSeats[seat] || result.components[k].weight != 0
             || result.components[k].usualLogShift != 0 || result.processingPhase != 0
-            || result.components[k].completionWeight != 0;
+            || result.components[k].completionWeight != 0 || result.components[k].positiveRemainderWeight != 0;
     }
     return layout;
 }
@@ -1100,6 +1237,17 @@ void assignComponentProbabilities(std::vector<Unit> const& units, Result& result
         double remaining = positive-component.batchProbability;
         component.previousProbability = (1-smallShare)*remaining;
         component.smallProbability = smallShare*remaining;
+        // Move rejected finishing support back into substantial additions,
+        // including the older tiny-addition path. Keep batch probability and
+        // the district counted-only outcome unchanged. Completion fractions
+        // must be rescaled because their routine parent has just grown.
+        double previous = component.previousProbability;
+        double retain = component.earlyCompletionRetention;
+        component.previousProbability += component.smallProbability*(1-retain);
+        component.smallProbability *= retain;
+        double scale = component.previousProbability > 0 ? previous*retain/component.previousProbability : 0;
+        component.completionWeight *= scale;
+        component.positiveRemainderWeight *= scale;
     }
 }
 
@@ -1109,11 +1257,38 @@ void assignComponentProbabilities(std::vector<Unit> const& units, Result& result
 // input; normal preparation uses the unchanged deterministic per-unit streams.
 struct LateSamples {
     Matrix odds;
-    Matrix completionLimits; // Infinity normally; a tiny-addition draw for selected routine outcomes.
+    Matrix completionLimits; // Infinity normally; a near-finished remainder for selected routine outcomes.
+    std::vector<std::vector<bool>> sizeFinishing;
+    Matrix allocated; // Original post-allocation additions, before postal output uncertainty.
+    Matrix unusedBeforePostal; // Fixed shape parent; only the final physical bound uses the postal draw.
 };
 
-double localCompletionLimit(Component const& component, std::size_t outer, double normal) {
+double localCompletionLimit(Component const& component, std::size_t outer, double normal, double sharedNormal) {
+    if (component.postalRemainderLogOdds && component.postalCounted > 0) {
+        // If q of final postals remain, additions = counted*q/(1-q). Work on
+        // log odds to keep q bounded. One election-wide variation represents
+        // shared return/processing delays; the other varies by seat. Existing
+        // unfinished and exceptional-batch paths cover more substantial updates.
+        double logAddition = std::log(component.postalCounted)+*component.postalRemainderLogOdds
+            +PostalRemainderLocalSd*normal+PostalRemainderSharedSd*sharedNormal;
+        // This numerical bound cannot bind more tightly than the subsequent
+        // allocated-addition limit; no new votes or sibling transfers result.
+        return std::exp(std::min(logAddition,std::log(component.capacity[outer]+component.reference[outer])));
+    }
     return (component.capacity[outer]+component.reference[outer])*logistic(component.smallOdds[outer]+normal);
+}
+
+double positiveRemainderLimit(Component const& component, std::size_t outer, double normal, double sharedNormal) {
+    // For current count C and median remainder M, the odds of remaining/final
+    // votes are M/C. Varying their natural log gives additions M*exp(variation).
+    // A wide local spread retains substantial additions; the shared part prevents
+    // that uncertainty averaging away across seats. Bound only for safe numeric
+    // evaluation here; the original allocated addition is the actual upper limit.
+    double localSd = std::sqrt(DeclarationRemainderSd*DeclarationRemainderSd
+        -DeclarationRemainderSharedSd*DeclarationRemainderSharedSd);
+    double logAddition = std::log(component.positiveRemainderMedian)
+        +localSd*normal+DeclarationRemainderSharedSd*sharedNormal;
+    return std::exp(std::min(logAddition,std::log(component.capacity[outer]+component.reference[outer])));
 }
 
 LateSamples sampleLateComponentOdds(Prior const& prior, std::vector<Unit> const& units,
@@ -1126,7 +1301,17 @@ LateSamples sampleLateComponentOdds(Prior const& prior, std::vector<Unit> const&
             for (double value : row) if (!(value > 0 && value < 1)) throw std::runtime_error("Turnout quantiles must be interior.");
         }
     }
-    LateSamples sampled{zeros(count,components),Matrix(count,std::vector<double>(components,std::numeric_limits<double>::infinity()))};
+    LateSamples sampled;
+    sampled.odds = zeros(count,components);
+    sampled.completionLimits = Matrix(count,std::vector<double>(components,std::numeric_limits<double>::infinity()));
+    sampled.sizeFinishing = std::vector<std::vector<bool>>(count,std::vector<bool>(components));
+    // One shared draw per joint outcome, independent of unit ordering, current
+    // counts and the local branch selector. Other categories keep their streams.
+    auto sharedNormals = uniforms("postal-remainder/shared",count,options.seed);
+    for (auto& value : sharedNormals) value = inverseLogCdf(std::log(value));
+    // Independent of postal uncertainty; retain the trial's keyed stream.
+    auto remainderNormals = uniforms("postal-remainder/shared",count,options.seed ^ 0x71651ULL);
+    for (auto& value : remainderNormals) value = inverseLogCdf(std::log(value));
     for (std::size_t k = 0; k < components; ++k) {
         auto const& component = result.components[k];
         auto const& unit = units[component.unit];
@@ -1137,18 +1322,24 @@ LateSamples sampleLateComponentOdds(Prior const& prior, std::vector<Unit> const&
             double uniform = suppliedUniforms.empty() ? quantiles[r] : suppliedUniforms[r][k];
             sampled.odds[r][k] = mixture(component.referenceOdds[outer],component.smallOdds[outer],component.batchOdds[outer],
                 component.previousProbability/positive,component.smallProbability/positive,component.batchProbability/positive,
-                uniform);
+                uniform,component.batchSd);
             // The inverse-CDF grid assigns a probability interval to the
             // routine point mass. Use only a fraction of that interval for
-            // completion; its rescaled position supplies a continuous tiny
-            // draw. Preserve the old allocation odds until all siblings have
+            // completion; its rescaled position supplies a continuous local
+            // remainder draw. Preserve the old allocation odds until all siblings have
             // been allocated, otherwise their counts would increase.
             double mass = component.previousProbability/positive*component.completionWeight;
-            if (mass <= 0) continue;
+            double extraMass = component.previousProbability/positive*component.positiveRemainderWeight;
+            if (mass <= 0 && extraMass <= 0) continue;
             double below = (component.smallProbability*cdf(component.referenceOdds[outer]-component.smallOdds[outer])
-                +component.batchProbability*cdf((component.referenceOdds[outer]-component.batchOdds[outer])/1.5))/positive;
-            if (uniform > below && uniform < below+mass)
-                sampled.completionLimits[r][k] = localCompletionLimit(component,outer,inverseLogCdf(std::log((uniform-below)/mass)));
+                +component.batchProbability*cdf((component.referenceOdds[outer]-component.batchOdds[outer])/component.batchSd))/positive;
+            if (uniform > below && uniform < below+mass) {
+                sampled.sizeFinishing[r][k] = true;
+                sampled.completionLimits[r][k] = localCompletionLimit(component,outer,
+                    inverseLogCdf(std::log((uniform-below)/mass)),sharedNormals[r]);
+            } else if (extraMass > 0 && uniform > below+mass && uniform < below+mass+extraMass)
+                sampled.completionLimits[r][k] = positiveRemainderLimit(component,outer,
+                    inverseLogCdf(std::log((uniform-below-mass)/extraMass)),remainderNormals[r]);
         }
     }
     return sampled;
@@ -1159,11 +1350,13 @@ LateSamples sampleLateComponentOdds(Prior const& prior, std::vector<Unit> const&
 // Store the conditional positive-branch totals; unit means then mix back the
 // district's exact counted-only outcome to provide unconditional count targets.
 void assembleCountSamples(Prior const& prior, std::vector<Unit> const& units, Options const& options,
-    LateCountLayout const& layout, LateSamples const& sampled, Result& result) {
+    LateCountLayout const& layout, LateSamples& sampled, Result& result) {
     auto samples = prior.totals.size(), seats = prior.seats.size(), groups = prior.groups.size();
     auto count = samples*options.countDraws;
     auto const& broad = result.broad;
     auto const& varied = sampled.odds;
+    sampled.allocated = zeros(count,result.components.size());
+    auto& allocated = sampled.allocated;
     result.unitMeans.assign(units.size(),0);
     for (std::size_t j = 0; j < units.size(); ++j)
         for (std::size_t r = 0; r < samples; ++r) result.unitMeans[j] += broad.unitCounts[r][j]/samples;
@@ -1171,6 +1364,8 @@ void assembleCountSamples(Prior const& prior, std::vector<Unit> const& units, Op
     result.counts = zeros(count,seats*groups);
     for (std::size_t r = 0; r < count; ++r) {
         auto outer = r/options.countDraws;
+        for (std::size_t k = 0; k < result.components.size(); ++k)
+            allocated[r][k] = result.components[k].reference[outer];
         result.counts[r] = broad.counts[outer];
         result.totals[r] = broad.totals[outer];
         for (std::size_t s = 0; s < seats; ++s) {
@@ -1190,6 +1385,7 @@ void assembleCountSamples(Prior const& prior, std::vector<Unit> const& units, Op
                 // retain the allocation calculated above; the difference is
                 // unused enrolment, not a transfer to another service.
                 addition = std::min(addition,sampled.completionLimits[r][k]);
+                allocated[r][k] = addition;
                 result.counts[r][s*groups+units[j].group] += addition-result.components[k].reference[outer];
                 result.unitMeans[j] += (addition-result.components[k].reference[outer])/count;
             }
@@ -1198,6 +1394,256 @@ void assembleCountSamples(Prior const& prior, std::vector<Unit> const& units, Op
     }
     for (std::size_t j = 0; j < units.size(); ++j)
         result.unitMeans[j] = units[j].counted+(1-result.noAdditionProbability[units[j].seat])*(result.unitMeans[j]-units[j].counted);
+
+    // Widening has a known neutral mean for every allocated draw. Record these
+    // exact means before drawing its extra local uncertainty; intervals use the
+    // broader samples, while displayed expectations avoid extra sampling noise.
+    result.positiveMeanTotals.assign(seats,0);
+    result.positiveMeanCounts.assign(seats*groups,0);
+    for (std::size_t r = 0; r < count; ++r) {
+        for (std::size_t s = 0; s < seats; ++s) result.positiveMeanTotals[s] += result.totals[r][s]/count;
+        for (std::size_t k = 0; k < seats*groups; ++k) result.positiveMeanCounts[k] += result.counts[r][k]/count;
+    }
+    sampled.unusedBeforePostal = zeros(count,seats);
+    for (std::size_t r = 0; r < count; ++r)
+        for (std::size_t s = 0; s < seats; ++s)
+            sampled.unusedBeforePostal[r][s] = std::max(0.,prior.enrolment[s]-result.totals[r][s]);
+    if (std::none_of(result.components.begin(),result.components.end(),[](auto const& c) { return c.postalWidening; })) return;
+    // Every keyed permutation uses this same midpoint-normal grid. Compute it
+    // once, rather than repeating an inverse-normal search for every postal unit.
+    std::vector<double> normalGrid(count);
+    for (std::size_t r = 0; r < count; ++r) normalGrid[r] = inverseLogCdf(std::log((r+.5)/count));
+    // Freeze unused enrolment AFTER all original allocations/finishing limits.
+    // Multiple postal services reserve disjoint equal shares so their possible
+    // increases cannot jointly exceed enrolment or take another service's votes.
+    Matrix unused = zeros(count,seats);
+    std::vector<double> postalServices(seats);
+    for (auto const& c : result.components)
+        if (c.postalRemainderLogOdds) ++postalServices[units[c.unit].seat];
+    for (std::size_t r = 0; r < count; ++r)
+        for (std::size_t s = 0; s < seats; ++s)
+            unused[r][s] = std::max(0.,prior.enrolment[s]-result.totals[r][s]);
+    for (std::size_t k = 0; k < result.components.size(); ++k) {
+        auto& c = result.components[k];
+        if (!layout.activeSeats[units[c.unit].seat]) c.postalWidening = false;
+        if (!c.postalWidening) continue;
+        auto s = units[c.unit].seat, group = units[c.unit].group;
+        std::vector<double> capacity(count), weight(count), location;
+        for (std::size_t r = 0; r < count; ++r) {
+            auto outer = r/options.countDraws;
+            double addition = allocated[r][k];
+            capacity[r] = addition+unused[r][s]/postalServices[s];
+            if (std::isfinite(sampled.completionLimits[r][k])) continue;
+            weight[r] = postalWideningWeight(c,outer,varied[r][k]);
+            if (varied[r][k] == c.referenceOdds[outer] && addition > 0 && addition < capacity[r])
+                location.push_back(std::log(addition/(capacity[r]-addition)));
+        }
+        double centre = location.empty() ? 0 : mean(location), variance = 0;
+        for (double value : location) variance += (value-centre)*(value-centre)/location.size();
+        c.postalRoutineExtraSd = std::sqrt(variance*(PostalRoutineSpread*PostalRoutineSpread-1));
+        c.postalBatchExtraSd = std::sqrt(std::max(0.,PostalBatchTargetSd*PostalBatchTargetSd-c.batchSd*c.batchSd));
+        auto identity = prior.election+"/"+prior.seats[s]+"/"+units[c.unit].name;
+        auto magnitudes = uniforms("postal-widening/magnitude/"+identity,count,options.seed);
+        auto choices = uniforms("postal-widening/choice/"+identity,count,options.seed);
+        for (std::size_t r = 0; r < count; ++r) {
+            bool routine = varied[r][k] == c.referenceOdds[r/options.countDraws];
+            double sd = weight[r] <= 0 ? 0 : routine ? c.postalRoutineExtraSd : c.postalBatchExtraSd*std::sqrt(weight[r]);
+            double widened = widenAllocatedPostal(allocated[r][k],capacity[r],sd,
+                normalGrid[std::size_t(magnitudes[r]*count)],choices[r]);
+            double change = widened-allocated[r][k];
+            result.counts[r][s*groups+group] += change;
+            result.totals[r][s] += change;
+        }
+    }
+}
+}
+
+namespace {
+bool routineCategory(Unit const& unit) {
+    return unit.category == "Absent" || unit.category == "PrePoll";
+}
+
+// Replacing this unit's sampled odds by its original routine odds answers how
+// much it could allocate in that scenario. Other units' odds remain fixed. The
+// stable denominator avoids overflow in very large or tiny batch possibilities.
+double routineAllocation(double parent, std::vector<double> const& odds,
+    std::vector<std::size_t> const& local, std::size_t component, double reference) {
+    double maximum = std::max(0.,reference);
+    for (auto k : local) if (k != component) maximum = std::max(maximum,odds[k]);
+    double denominator = std::exp(-maximum)+std::exp(reference-maximum);
+    for (auto k : local) if (k != component) denominator += std::exp(odds[k]-maximum);
+    return parent*std::exp(reference-maximum)/denominator;
+}
+
+struct RoutineAlternatives { double reduced, modest; };
+
+// Additional formal votes are a subset of this draw's allocation plus reserved
+// unused enrolment. Blend the routine estimate on log odds towards a broad
+// processing-based mean. Subtract half the log variance so that input is not
+// inadvertently used as a median with a much larger mean. The modest alternative
+// can raise tiny additions, but cannot take votes from another category or exceed
+// the counterfactual original routine allowance. Neither changes counted votes.
+RoutineAlternatives routineAlternatives(Component const& c, double original,
+    double capacity, double reference, double localNormal, double sharedNormal) {
+    if (c.routineSupport <= 0 || capacity <= 0) return {original,original};
+    double location = odds(std::clamp(original/capacity,1e-15,1-1e-15));
+    double localSd = std::sqrt(RoutineRemainderSd*RoutineRemainderSd
+        -RoutineRemainderSharedSd*RoutineRemainderSharedSd);
+    double target = std::log(c.routineMean/capacity)-RoutineRemainderSd*RoutineRemainderSd/2
+        +localSd*localNormal+RoutineRemainderSharedSd*sharedNormal;
+    double reduced = std::min(original,capacity*logistic(location+c.routineSupport*std::min(0.,target-location)));
+    double modest = std::max(original,std::min(reference,capacity*logistic(target)));
+    return {reduced,modest};
+}
+
+// Category maturity controls reliance on the processing proxy, not whether
+// counting is complete. It compares received counts with the frozen ORIGINAL
+// category expectation. At 30/50/75% it phases in about 16/50/90% of the local
+// intervention. It does not condition shared totals or transfer voters between
+// categories. Missing history, unstarted counts and postal receipt supply no
+// such intervention. The existing early/below-prior safeguard remains in force.
+void prepareRoutineRemainders(Prior const& prior, std::vector<Unit> const& units,
+    Options const& options, LateCountLayout const& layout, LateSamples const& sampled, Result& result) {
+    std::map<std::string,std::pair<double,double>> categorySizes;
+    for (auto const& unit : units) {
+        if (unit.kind != "declaration" || !routineCategory(unit)) continue;
+        auto& sizes = categorySizes[unit.category];
+        sizes.first += unit.counted;
+        for (auto const& row : prior.counts)
+            sizes.second += row[unit.seat*prior.groups.size()+unit.group]*unit.weight/prior.counts.size();
+    }
+    for (std::size_t k = 0; k < result.components.size(); ++k) {
+        auto& c = result.components[k];
+        auto const& unit = units[c.unit];
+        if (!routineCategory(unit) || unit.counted <= 0) continue;
+        auto sizes = categorySizes[unit.category];
+        double fraction = sizes.second > 0 ? sizes.first/sizes.second : 0;
+        double uncounted = std::max(0.,1-fraction);
+        c.routineMaturity = fraction*fraction/(fraction*fraction+uncounted*uncounted);
+        auto const& e = result.evidence[c.unit];
+        double support = e.coverage*e.started*c.earlyCompletionRetention*c.routineMaturity;
+        if (support > 0)
+            c.routineMean = std::max(.25,RoutineRemainderDays*.5*(e.volume+e.pooledVolume*(unit.counted+.5)));
+        if (!options.declarationRemainders || support <= 0) continue;
+        c.routineSupport = support;
+        auto const& local = layout.componentsBySeat[unit.seat];
+        for (std::size_t r = 0; r < sampled.odds.size(); ++r) {
+            auto outer = r/options.countDraws;
+            double parent = c.capacity[outer];
+            for (auto other : local) parent += result.components[other].reference[outer];
+            c.routineReferenceMean += routineAllocation(parent,sampled.odds[r],local,k,c.referenceOdds[outer])/sampled.odds.size();
+        }
+        c.routineBridge = c.routineSupport*std::pow(c.routineReferenceMean/(c.routineReferenceMean+c.routineMean),2);
+    }
+}
+
+// The original allocation and postal draws are complete before this map runs.
+// Reserve disjoint shares of their remaining unused enrolment for the two
+// eligible services. Reducing one allowance cannot inflate another category.
+// Independent keyed streams select the new alternative without changing any
+// existing selector. Keep analytical local-choice means for displayed totals;
+// intervals use samples, as with the separate neutral postal spread.
+void reshapeRoutineRemainders(Prior const& prior, std::vector<Unit> const& units,
+    Options const& options, LateCountLayout const& layout, LateSamples const& sampled, Result& result) {
+    prepareRoutineRemainders(prior,units,options,layout,sampled,result);
+    if (std::none_of(result.components.begin(),result.components.end(),[](auto const& c) { return c.routineSupport > 0; })) return;
+    auto count = sampled.odds.size(), seats = prior.seats.size(), groups = prior.groups.size();
+    // Unit permutations all use the same midpoint grid. Invert its normal CDF
+    // once, rather than repeating that search for every service and outcome.
+    std::vector<double> normalGrid(count);
+    for (std::size_t r = 0; r < count; ++r) normalGrid[r] = inverseLogCdf(std::log((r+.5)/count));
+    auto shared = uniforms("declaration-routine/shared",count,options.seed);
+    for (auto& value : shared) value = normalGrid[std::size_t(value*count)];
+    Matrix unused = zeros(count,seats);
+    std::vector<double> services(seats);
+    for (auto const& c : result.components)
+        if (routineCategory(units[c.unit]) && units[c.unit].counted > 0) ++services[units[c.unit].seat];
+    for (std::size_t r = 0; r < count; ++r)
+        for (std::size_t s = 0; s < seats; ++s) unused[r][s] = std::max(0.,prior.enrolment[s]-result.totals[r][s]);
+    for (std::size_t k = 0; k < result.components.size(); ++k) {
+        auto& c = result.components[k];
+        if (c.routineSupport <= 0) continue;
+        auto const& unit = units[c.unit];
+        auto s = unit.seat, group = s*groups+unit.group;
+        auto const& local = layout.componentsBySeat[s];
+        auto identity = prior.election+"/"+prior.seats[s]+"/"+unit.name;
+        auto normals = uniforms("declaration-routine/local/"+identity,count,options.seed);
+        auto choices = uniforms("declaration-routine/choice/"+identity,count,options.seed);
+        double meanChange = 0;
+        for (std::size_t r = 0; r < count; ++r) {
+            auto outer = r/options.countDraws;
+            double original = sampled.allocated[r][k], capacity = original+sampled.unusedBeforePostal[r][s]/services[s];
+            double parent = c.capacity[outer];
+            for (auto other : local) parent += result.components[other].reference[outer];
+            double reference = routineAllocation(parent,sampled.odds[r],local,k,c.referenceOdds[outer]);
+            auto amounts = routineAlternatives(c,original,capacity,reference,normalGrid[std::size_t(normals[r]*count)],shared[r]);
+            amounts.modest = std::min(amounts.modest,original+unused[r][s]/services[s]);
+            bool point = sampled.odds[r][k] == c.referenceOdds[outer];
+            bool finishing = sampled.sizeFinishing[r][k];
+            bool processing = std::isfinite(sampled.completionLimits[r][k]) && !finishing;
+            double lower = point && !finishing && !processing ? 1-RoutineBacklogFraction : 0;
+            double higher = c.routineBridge*(finishing ? 1 : !point ? 1-postalWideningWeight(c,outer,sampled.odds[r][k]) : 0);
+            double addition = choices[r] < lower ? amounts.reduced : choices[r] < lower+higher ? amounts.modest : original;
+            result.counts[r][group] += addition-original;
+            result.totals[r][s] += addition-original;
+            meanChange += (lower*(amounts.reduced-original)+higher*(amounts.modest-original))/count;
+        }
+        c.routineMeanAdjustment = meanChange;
+        result.unitMeans[c.unit] += (1-result.noAdditionProbability[s])*meanChange;
+        result.positiveMeanCounts[group] += meanChange;
+        result.positiveMeanTotals[s] += meanChange;
+    }
+}
+}
+
+namespace {
+// Replace only WA mixed early-place allowances, after ordinary count allocation
+// and declaration progress have finished. Reductions lower the district total;
+// they never enlarge another category. The original broad account is retained
+// for diagnostics and as the large-component alternative in scenario draws.
+void prepareWaEarlyPlaces(Prior const& prior, std::vector<Unit> const& units,
+    std::vector<Observation> const& history, Options const& options, Result& result) {
+    if (!prior.election.ends_with("wa")) return;
+    std::optional<double> now;
+    for (auto const& row : history) if (!now || row.hour > *now) now = row.hour;
+    auto samples = result.totals.size();
+    // A small common integration grid is sufficient for the bounded smaller
+    // remainder. Do not repeat a costly inverse-normal search for every prior
+    // outcome in a large election; main scenarios still use continuous draws.
+    constexpr std::size_t normalGridSize = 256;
+    std::vector<double> normals(normalGridSize);
+    for (std::size_t r = 0; r < normalGridSize; ++r)
+        normals[r] = inverseLogCdf(std::log((r+.5)/normalGridSize));
+    for (std::size_t j = 0; j < units.size(); ++j) {
+        auto const& u = units[j];
+        if (u.kind != "ppvc" || !u.incremental || u.counted <= 0) continue;
+        auto totals = u.receivedFpTotals;
+        totals.push_back(u.counted);
+        auto state = WaEarlyCounting::prepare(u.counted,totals,now,options.pollClose,result.broad.complete[j]);
+        result.waEarlyPlaces.push_back({j,state,u.counted});
+        double changeMean = 0;
+        auto identity = prior.election+"/"+prior.seats[u.seat]+"/"+u.name;
+        auto choices = uniforms("wa-early/choice/"+identity,samples,options.seed);
+        auto magnitudes = uniforms("wa-early/size/"+identity,samples,options.seed);
+        for (std::size_t r = 0; r < samples; ++r) {
+            double old = result.broad.unitCounts[r/options.countDraws][j]-u.counted;
+            double small = WaEarlyCounting::smallerRemainder(u.counted,old,normals[std::size_t(magnitudes[r]*normalGridSize)]);
+            double addition = choices[r] < state.smallOnly ? old
+                : choices[r] < state.smallOnly+state.largeOnly ? small : 0;
+            result.totals[r][u.seat] += addition-old;
+            result.counts[r][u.seat*prior.groups.size()+u.group] += addition-old;
+            // Integrate the branch probabilities rather than introduce mean
+            // noise when very few diagnostic draws select an unfinished place.
+            changeMean += (state.smallOnly*old+state.largeOnly*small-old)/samples;
+        }
+        result.unitMeans[j] += (1-result.noAdditionProbability[u.seat])*changeMean;
+        result.positiveMeanTotals[u.seat] += changeMean;
+        result.positiveMeanCounts[u.seat*prior.groups.size()+u.group] += changeMean;
+        if (state.both == 1) {
+            result.unitMeans[j] = u.counted;
+            result.broad.complete[j] = true; // Routine FP only, never TCP completion.
+        }
+    }
 }
 }
 
@@ -1205,6 +1651,10 @@ Result prepare(Prior const& prior, std::vector<Unit> const& units, std::vector<b
     std::vector<Observation> const& history, Options const& options, Matrix const& suppliedUniforms) {
     if (!options.countDraws) throw std::runtime_error("Turnout preparation needs at least one cheap count draw.");
     Result result;
+    if (options.pollClose && !history.empty()) {
+        double now = std::max_element(history.begin(),history.end(),[](auto const& a,auto const& b) { return a.hour < b.hour; })->hour;
+        result.daysAfterPollClose = (now-*options.pollClose)/24;
+    }
     result.broad = update(prior,units,finalised,options.ppvcFactor);
     auto completed = options.receiptDeadline ? boothCompletion(prior,units) : std::vector<double>{};
     result.evidence = options.receiptDeadline ? scheduledEvidence(prior,units,history,*options.receiptDeadline,completed)
@@ -1218,6 +1668,8 @@ Result prepare(Prior const& prior, std::vector<Unit> const& units, std::vector<b
     assignComponentProbabilities(units,result);
     auto sampledOdds = sampleLateComponentOdds(prior,units,options,result,suppliedUniforms);
     assembleCountSamples(prior,units,options,layout,sampledOdds,result);
+    reshapeRoutineRemainders(prior,units,options,layout,sampledOdds,result);
+    prepareWaEarlyPlaces(prior,units,history,options,result);
     return result;
 }
 
@@ -1231,7 +1683,8 @@ DrawPlan makeDrawPlan(Result const& result, std::vector<Unit> const& units,
         plan.componentsBySeat.at(s).push_back(k);
         plan.active[s] = plan.active[s] || result.components[k].weight != 0
             || result.components[k].usualLogShift != 0 || result.processingPhase != 0
-            || result.components[k].completionWeight != 0;
+            || result.components[k].completionWeight != 0 || result.components[k].positiveRemainderWeight != 0
+            || result.components[k].routineSupport > 0;
     }
     if (result.broad.unitCounts.empty() || result.broad.unitCounts.front().size() != units.size()
         || result.noAdditionProbability.size() != enrolment.size())
@@ -1260,13 +1713,16 @@ std::vector<bool> drawNoAdditionSeats(Result const& result, DrawPlan const& plan
 }
 
 void drawSeatDeclarationAdditions(Result const& result, DrawPlan const& plan,
-    std::size_t s, std::size_t outer, unsigned long long seed, std::vector<double>& counts) {
+    std::size_t s, std::size_t outer, unsigned long long seed, double sharedNormal,
+    double remainderSharedNormal, double routineSharedNormal, std::vector<double>& counts) {
     // In the positive-count outcome, draw each category from its previous,
     // small-addition or exceptional-batch distribution. Their finite shared
     // parent prevents new votes from exceeding the number of enrolled electors.
     auto const& local = plan.componentsBySeat[s];
     std::vector<double> odds; odds.reserve(local.size());
     std::vector<double> completionLimits; completionLimits.reserve(local.size());
+    enum class Source { Routine, Finishing, Processing, Small, Batch };
+    std::vector<Source> sources; sources.reserve(local.size());
     double parent = plan.enrolment[s]-result.broad.totals[outer][s], maximum = 0;
     for (auto k : local) {
         auto const& c = result.components[k];
@@ -1274,6 +1730,7 @@ void drawSeatDeclarationAdditions(Result const& result, DrawPlan const& plan,
         double selector = interiorDrawUniform(unitKey)*(1-result.noAdditionProbability[s]);
         double value = c.referenceOdds[outer];
         double completionLimit = std::numeric_limits<double>::infinity();
+        auto source = Source::Routine;
         if (selector >= c.previousProbability) {
             // Direct mixture sampling avoids solving an inverse mixture
             // CDF in every iteration, while preserving the same component
@@ -1281,17 +1738,28 @@ void drawSeatDeclarationAdditions(Result const& result, DrawPlan const& plan,
             double z = std::sqrt(-2*std::log(interiorDrawUniform(unitKey)))
                 * std::cos(6.2831853071795864769*interiorDrawUniform(unitKey));
             bool small = selector < c.previousProbability+c.smallProbability;
-            value = small ? c.smallOdds[outer]+z : c.batchOdds[outer]+1.5*z;
+            source = small ? Source::Small : Source::Batch;
+            value = small ? c.smallOdds[outer]+z : c.batchOdds[outer]+c.batchSd*z;
         }
         else if (selector < c.previousProbability*c.completionWeight) {
             // Select completion only from the existing routine branch. A
-            // separate unit-local normal draw preserves a continuous tiny
+            // separate unit-local normal draw preserves a continuous finishing
             // remainder without changing any sibling's random stream.
             double z = std::sqrt(-2*std::log(interiorDrawUniform(unitKey)))
                 * std::cos(6.2831853071795864769*interiorDrawUniform(unitKey));
-            completionLimit = localCompletionLimit(c,outer,z);
+            completionLimit = localCompletionLimit(c,outer,z,sharedNormal);
+            source = Source::Finishing;
+        }
+        else if (selector < c.previousProbability*(c.completionWeight+c.positiveRemainderWeight)) {
+            // Divert only additional routine outcomes. This unit's extra random
+            // draw cannot change another unit's selector or its allocated votes.
+            double z = std::sqrt(-2*std::log(interiorDrawUniform(unitKey)))
+                * std::cos(6.2831853071795864769*interiorDrawUniform(unitKey));
+            completionLimit = positiveRemainderLimit(c,outer,z,remainderSharedNormal);
+            source = Source::Processing;
         }
         completionLimits.push_back(completionLimit);
+        sources.push_back(source);
         odds.push_back(value); maximum = std::max(maximum,value);
         parent += c.reference[outer];
     }
@@ -1305,14 +1773,88 @@ void drawSeatDeclarationAdditions(Result const& result, DrawPlan const& plan,
         double addition = parent*std::exp(odds[k]-maximum)/denominator;
         counts[j] = plan.counted[j]+std::min(addition,completionLimits[k]);
     }
+    // Apply exactly the prepared postal output map. The original shared
+    // denominator and every non-postal draw above remain intact. Compute spare
+    // enrolment once, before changing any postal service, and reserve disjoint
+    // shares if this district has more than one postal unit.
+    double total = result.broad.totals[outer][s], postalServices = 0;
+    for (auto k : local) {
+        auto const& c = result.components[k];
+        total += counts[c.unit]-plan.counted[c.unit]-c.reference[outer];
+        if (c.postalRemainderLogOdds) ++postalServices;
+    }
+    double unused = std::max(0.,plan.enrolment[s]-total);
+    double prePostalUnused = unused;
+    for (std::size_t k = 0; k < local.size(); ++k) {
+        auto const& c = result.components[local[k]];
+        if (!c.postalWidening || std::isfinite(completionLimits[k])) continue;
+        double addition = counts[c.unit]-plan.counted[c.unit];
+        double capacity = addition+unused/postalServices;
+        bool routine = odds[k] == c.referenceOdds[outer];
+        double weight = postalWideningWeight(c,outer,odds[k]);
+        double sd = routine ? c.postalRoutineExtraSd : c.postalBatchExtraSd*std::sqrt(weight);
+        if (sd <= 0) continue;
+        auto wideningKey = seed ^ ((c.unit+1)*0xd1b54a32d192ed03ULL) ^ 0x94c98645b6327a01ULL;
+        double normal = std::sqrt(-2*std::log(interiorDrawUniform(wideningKey)))
+            *std::cos(6.2831853071795864769*interiorDrawUniform(wideningKey));
+        counts[c.unit] = plan.counted[c.unit]+widenAllocatedPostal(addition,capacity,sd,
+            normal,interiorDrawUniform(wideningKey));
+    }
+
+    // The three-part map follows the unchanged allocation AND postal draws.
+    // Share only the actually unused enrolment between eligible services;
+    // reductions do not fund another service. Each source is known directly
+    // here, so exceptional batches and existing positive processing outcomes
+    // stay fixed without the density attribution used by diagnostic samples.
+    total = result.broad.totals[outer][s];
+    double services = 0;
+    for (auto k : local) {
+        auto const& c = result.components[k];
+        total += counts[c.unit]-plan.counted[c.unit]-c.reference[outer];
+        if ((c.routineMaturity > 0 || c.routineSupport > 0) && plan.counted[c.unit] > 0) ++services;
+    }
+    unused = std::max(0.,plan.enrolment[s]-total);
+    for (std::size_t k = 0; k < local.size(); ++k) {
+        auto const& c = result.components[local[k]];
+        if (c.routineSupport <= 0 || sources[k] == Source::Batch || sources[k] == Source::Processing) continue;
+        auto shapeKey = seed ^ ((c.unit+1)*0xd1b54a32d192ed03ULL) ^ 0x32d76e80a1c594b3ULL;
+        double selector = interiorDrawUniform(shapeKey);
+        bool reduce = sources[k] == Source::Routine && selector >= RoutineBacklogFraction;
+        bool increase = sources[k] != Source::Routine && selector < c.routineBridge;
+        if (!reduce && !increase) continue;
+        double original = counts[c.unit]-plan.counted[c.unit], capacity = original+prePostalUnused/services;
+        double ref = c.referenceOdds[outer], refMaximum = std::max(maximum,ref);
+        double refDenominator = std::exp(-refMaximum);
+        for (std::size_t position = 0; position < local.size(); ++position)
+            refDenominator += std::exp((position == k ? ref : odds[position])-refMaximum);
+        double reference = parent*std::exp(ref-refMaximum)/refDenominator;
+        double normal = std::sqrt(-2*std::log(interiorDrawUniform(shapeKey)))
+            *std::cos(6.2831853071795864769*interiorDrawUniform(shapeKey));
+        auto amounts = routineAlternatives(c,original,capacity,reference,normal,routineSharedNormal);
+        amounts.modest = std::min(amounts.modest,original+unused/services);
+        counts[c.unit] = plan.counted[c.unit]+(reduce ? amounts.reduced : amounts.modest);
+    }
 }
 
 void drawOpenDeclarationSeats(Result const& result, DrawPlan const& plan, std::size_t outer,
     unsigned long long seed, std::vector<bool> const& zero, std::vector<double>& counts) {
     // Most seats retain their fixed prior row until progress changes their
     // remaining-vote distribution. Only active positive outcomes need sampling.
+    // The same independent normal is supplied to every seat in this simulated
+    // election. Giving each seat a fresh draw would average away common postal
+    // uncertainty as the number of seats increased.
+    auto sharedKey = seed ^ 0xc6a4a7935bd1e995ULL;
+    double sharedNormal = std::sqrt(-2*std::log(interiorDrawUniform(sharedKey)))
+        *std::cos(6.2831853071795864769*interiorDrawUniform(sharedKey));
+    auto remainderKey = seed ^ 0xc6a4a7935bd1e995ULL ^ 0x71651ULL;
+    double remainderSharedNormal = std::sqrt(-2*std::log(interiorDrawUniform(remainderKey)))
+        *std::cos(6.2831853071795864769*interiorDrawUniform(remainderKey));
+    auto routineKey = seed ^ 0x75ab8e02dc43619fULL;
+    double routineSharedNormal = std::sqrt(-2*std::log(interiorDrawUniform(routineKey)))
+        *std::cos(6.2831853071795864769*interiorDrawUniform(routineKey));
     for (std::size_t s = 0; s < zero.size(); ++s)
-        if (!zero[s] && plan.active[s]) drawSeatDeclarationAdditions(result, plan, s, outer, seed, counts);
+        if (!zero[s] && plan.active[s]) drawSeatDeclarationAdditions(result, plan, s, outer, seed,
+            sharedNormal,remainderSharedNormal,routineSharedNormal,counts);
 }
 
 void retainCountedOnlySeats(DrawPlan const& plan, std::vector<bool> const& zero, std::vector<double>& counts) {
@@ -1334,6 +1876,18 @@ std::vector<double> drawUnitCounts(Result const& result, DrawPlan const& plan,
     auto zero = drawNoAdditionSeats(result, plan, seed);
     drawOpenDeclarationSeats(result, plan, outer, seed, zero, counts);
     retainCountedOnlySeats(plan, zero, counts);
+    for (auto const& place : result.waEarlyPlaces) {
+        auto key = seed ^ ((place.unit+1)*0xd1b54a32d192ed03ULL) ^ 0x57414561726c7931ULL;
+        double choice = interiorDrawUniform(key);
+        double addition = counts[place.unit]-place.counted;
+        if (choice >= place.state.smallOnly+place.state.largeOnly) addition = 0;
+        else if (choice >= place.state.smallOnly) {
+            double normal = std::sqrt(-2*std::log(interiorDrawUniform(key)))
+                *std::cos(6.2831853071795864769*interiorDrawUniform(key));
+            addition = WaEarlyCounting::smallerRemainder(place.counted,addition,normal);
+        }
+        counts[place.unit] = place.counted+addition;
+    }
     return counts;
 }
 
@@ -1341,7 +1895,8 @@ std::vector<double> meanTotals(Result const& result) {
     // Consumers must include the exact counted branch when reporting means;
     // the stored sample matrix intentionally retains positive outcomes only.
     std::vector<double> means(result.broad.counted.size());
-    for (auto const& row : result.totals) for (std::size_t s = 0; s < row.size(); ++s) means[s] += row[s]/result.totals.size();
+    if (result.positiveMeanTotals.size() == means.size()) means = result.positiveMeanTotals;
+    else for (auto const& row : result.totals) for (std::size_t s = 0; s < row.size(); ++s) means[s] += row[s]/result.totals.size();
     for (std::size_t s = 0; s < means.size(); ++s)
         means[s] = result.broad.counted[s]+(1-result.noAdditionProbability[s])*(means[s]-result.broad.counted[s]);
     return means;

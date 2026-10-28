@@ -1,3 +1,9 @@
+// Prepare the electoral evidence and model estimates shared by all iterations
+// of a simulation run. prepareForIterations outlines the route from configured
+// project information and previously generated analysis files to the inputs used
+// by SimulationIteration; the helpers below load and check each part. Automatic
+// live forecasts also use LivePreparation to obtain and interpret reported votes.
+
 #include "SimulationPreparation.h"
 #include "CoalitionCandidacy.h"
 #include "SeatVolatility.h"
@@ -308,28 +314,64 @@ std::string SimulationPreparation::workspaceFile(
 	return project.paths().resolveString(relativePath);
 }
 
+// Prepare the shared inputs for one simulation run before any iterations begin.
+// SimulationRun divides those iterations into batches calculated concurrently;
+// all batches use the inputs prepared here. Preparation is repeated for each
+// supporting run, such as the forecast made before adding live counts.
+//
+// The loaded historical results and model estimates are shared across all
+// iterations of this run. They describe both expected patterns and how much
+// results may vary; each iteration uses them when drawing its own possible
+// election. Most estimates come from earlier Python analysis, rather than being
+// fitted during preparation.
+// The main outputs here are inputs and empty result totals in run, plus the fresh
+// report in sim that iteration and completion will fill.
 void SimulationPreparation::prepareForIterations()
 {
-	// Validate project structure before loading derived model inputs. This
-	// keeps bad configuration out of the heavily threaded iteration stage.
+	// Start a new report for this run: the summary of vote shares, seat counts
+	// and outcome probabilities across its simulated elections. For the main
+	// forecast, this supplies the results that can later be exported to
+	// Australian Election Forecasts.
+	// SimulationRun::run protects the previously retained report if preparation
+	// or the subsequent forecast fails.
 	resetLatestReport();
 
+	// Identify the election year and jurisdiction from the selected projection,
+	// and connect named parties to their entries in the project's party list.
+	// Check that the configured seats, regions and model settings can be used
+	// together before loading the corresponding historical evidence.
 	storeTermCode();
 	determineSpecificPartyIndices();
 	validateIterationInputs();
 
-	// Reset all output accumulated by a prior preparation or iteration pass.
+	// Clear seat, regional and overall totals so earlier calculations cannot
+	// contribute to this run's probabilities or average vote shares. Reserve
+	// storage for the current project's seats, regions and parties.
 	resetRegionSpecificOutput();
 	resetSeatSpecificOutput();
 	resetOtherOutput();
 
-	// Load election-wide and seat-level model inputs.
+	// Historical TPP relationships supply common effects such as incumbency.
+	// These estimates come from analysis/scripts/pipeline/election_analysis.py
+	// and its helpers, which write the tables under analysis/Seat Statistics.
 	loadTppSwingFactors();
+
+	// Maintained tables in analysis/Data supply previous preference estimates,
+	// overall party vote shares and geographic seat types. The project's party
+	// settings supply preference assumptions for final pairs other than the
+	// usual Labor-Coalition contest. Also record the proportion of seats classed
+	// as provincial or rural, used later when distributing minor-party support.
 	loadPreviousPreferenceFlows();
 	loadNcPreferenceFlows();
 	loadPreviousElectionBaselineVotes();
 	loadSeatTypes();
 	calculateRegionalProportion();
+
+	// The same historical election analysis supplies patterns for Greens,
+	// independents and other minor parties: how support varies across seats,
+	// how new competitive independents arise, and how Greens and independent
+	// results move together. These estimates inform the range of possible local
+	// results; they do not fix those results to their historical values.
 	loadGreensSeatStatistics();
 	loadIndSeatStatistics();
 	loadIndEmergence();
@@ -340,38 +382,81 @@ void SimulationPreparation::prepareForIterations()
 	loadOthSeatStatistics();
 	loadGreensIndependentCorrelation();
 
+	// Election-specific files from analysis/scripts/pipeline/seat_volatility.py
+	// describe each seat's response to regional TPP movement and its additional
+	// local uncertainty (see docs/seat-volatility.md). Historical vote counts and
+	// shares come separately from analysis/elections/results_*.csv, exported by
+	// analysis/lib/elections/election_store.py. Match them to the configured seats
+	// and check that the required previous-election comparisons are available.
 	loadIndividualSeatParameters();
 	loadPastSeatResults();
 	validatePastSeatResults();
+
+	// Combine historical estimates with configured local circumstances, such as
+	// a retiring MP, to prepare each seat's expected TPP adjustment. Compare its
+	// previous swing with the average seat swing in its region, and record each
+	// region's average local adjustment for the later regional calculations.
 	determineEffectiveSeatTppModifiers();
 	determinePreviousSwingDeviations();
 	accumulateRegionStaticInfo();
+
+	// Copy the seat-specific evidence already held in the project: betting odds,
+	// assessments of minor-party competitiveness, and polls. The iteration stage
+	// decides how these sources influence possible results alongside the broader
+	// model; loading them here does not treat them as certain election outcomes.
 	loadSeatBettingOdds();
 	loadSeatMinorViability();
 	loadSeatPolls();
 	loadSeatTppPolls();
+
+	// Files under analysis/Nationals, produced by the historical election analysis,
+	// supply expected Nationals shares of the Coalition vote and their uncertainty.
+	// Check that the configured Coalition candidates, seat overrides and historical
+	// shares provide a usable basis for splitting Coalition support between parties.
 	loadNationalsParameters();
 	loadNationalsSeatExpectations();
 	validateCoalitionSeatSettings();
 
-	// Prepare regional inputs and result containers after seat-region
-	// membership has been validated and counted.
+	// This older turnout-preparation call currently has no active calculation.
 	determinePreviousVoteEnrolmentRatios();
+
+	// Prepare regional seat-count summaries using the membership established
+	// above. Record the configured starting seat leads as a reference for the
+	// report's gains and losses; simulated wins will be counted separately.
 	resizeRegionSeatCountOutputs();
 	countInitialRegionSeatLeads();
+
+	// Regional estimates let different areas move differently within the same
+	// overall election swing. Historical federal relationships and polling
+	// weights come from election_analysis.py; election-specific polling estimates
+	// come from analysis/scripts/pipeline/region_model.py. Both use files under
+	// analysis/Regional. Where these optional files are absent, the iteration
+	// uses its default regional behaviour without the missing polling adjustment.
 	loadRegionBaseBehaviours();
 	loadRegionPollBehaviours();
 	loadRegionMixBehaviours();
 	loadOverallRegionMixParameters();
 	loadRegionSwingDeviations();
+
+	// Retain the total of the configured regional populations in the run, although
+	// the current iteration calculations do not read this total.
 	calculateTotalPopulation();
+
+	// Use confirmed new prominent independents and time until the election to
+	// adjust the chance of further competitive independents. Then translate the
+	// project's candidate lists into the party information used by iterations:
+	// which minor parties are prominent locally and which parties are running.
 	calculateIndEmergenceModifier();
 	prepareProminentMinors();
 	prepareRunningParties();
 
-	// Automatic live preparation owns the current live-results pipeline.
-	// Legacy manual-live code is retained for future adaptation; SimulationRun
-	// currently prevents that incomplete path from reaching preparation.
+	// A live forecast incorporates votes reported so far. The automatic route
+	// obtains historical and current results, prepares turnout information, and
+	// creates run.liveElection for iterations to use when estimating uncounted
+	// votes. It also updates the project's records of the count so far. Supporting
+	// betting-odds and baseline runs omit this step, even for a live simulation.
+	// The older general-live initialisation below is disabled; SimulationRun also
+	// rejects the incomplete manual-live mode before preparation can reach it.
 	if (run.isLive()) initializeGeneralLiveData();
 	if (run.isLiveManual()) loadLiveManualResults();
 	if (run.isLiveAutomatic()) {
@@ -379,12 +464,19 @@ void SimulationPreparation::prepareForIterations()
 			LivePreparationBridge::prepareAutomatic(project, sim, run);
 		}
 		catch (LivePreparationBridge::Exception const& e) {
+			// Pass input problems back through the same preparation-error route as
+			// ordinary forecast inputs, so the failed run is reported and stopped.
 			throw Exception(e.what());
 		}
 	}
 
+	// This older live-summary call is also disabled; automatic live information
+	// is prepared through LivePreparation above.
 	calculateLiveAggregates();
 
+	// Start counts of government outcomes, seat totals and overall vote shares
+	// at zero. Iterations will accumulate these and completion will turn them
+	// into the forecast's probabilities and distributions of possible results.
 	resetResultCounts();
 }
 

@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-10-24T21:48:29Z",
+  "updated_at_utc": "2026-10-28T06:13:40Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 41,
+      "semantic_revision": 43,
       "files": {
         "2019fed.txt": {
           "sha256": "014946dc77548034140f78ad66a062f1c59a6d070122cea4c7dcb8bd4525b321",
@@ -55,9 +55,9 @@
           "recorded_mtime_utc": "2026-07-23T04:11:27.864257Z"
         },
         "2025wa.txt": {
-          "sha256": "c3b0f4a8e9feb8027ff8b3210d84929fc28d05b532cbea5ca63f971d5a2764b1",
-          "size_bytes": 13262,
-          "recorded_mtime_utc": "2026-07-23T04:10:31.700663Z"
+          "sha256": "d91a5e3b8e51a1faffe25175f01038ca0fa08f22f052b7532b0a41ab03af801a",
+          "size_bytes": 13511,
+          "recorded_mtime_utc": "2026-10-28T06:04:13.910853Z"
         },
         "2026sa.txt": {
           "sha256": "18df906548db0e0181a663ec50d918a98dd2ac855acebb0509561f58b1652f38",
@@ -65,9 +65,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "339f101c23db2072f18459c03478f75d7b21a61298ebe92288a9100e885dcdad",
-          "size_bytes": 23250,
-          "recorded_mtime_utc": "2026-10-24T21:48:29.286237Z"
+          "sha256": "ee2ae9dc14567cab4e1fa4b3b93b1191adf8e479263713b7a336f10f1b0541d1",
+          "size_bytes": 23385,
+          "recorded_mtime_utc": "2026-10-27T11:40:43.681380Z"
         },
         "2027nsw.txt": {
           "sha256": "9066c05124dc34153f7b56e0d6c2a7238d5a40e3e1edb7965d74778378c4120a",
@@ -982,9 +982,55 @@
             "uri": "https://votecaroline.com/about-caroline/",
             "coverage_through": "2026-10-25"
           }
+        },
+        {
+          "id": "20261027T114950Z-other-forecast-seats-0dd6f3dc",
+          "recorded_at_utc": "2026-10-27T11:49:50Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 42,
+          "provenance_revision": 42,
+          "summary": "Seat odds update",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261028T061340Z-correction-forecast-seats-5d2dab08",
+          "recorded_at_utc": "2026-10-28T06:13:40Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 43,
+          "provenance_revision": 43,
+          "summary": "Reconcile all 59 WA 2025 Assembly running-party rosters to the official candidate preload, including One Nation, Nationals, minor-party and independent multiplicities; repair the malformed Nedlands list. Preserve authored candidate names, prominent/returning-independent decisions, margins, odds and all other seat assumptions.",
+          "files": [
+            "2025wa.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2025wa"
+            ],
+            "parties": [],
+            "stages": []
+          },
+          "source": {
+            "description": "Operator-supplied official WAEC 2025 Legislative Assembly candidate preload, downloads/2025wa_candidates_current.xml; full ballot identities and source-to-replay mapping retained in the operator-local preparation manifest.",
+            "uri": "https://www.elections.wa.gov.au/2025-state-general-election"
+          }
         }
       ],
-      "provenance_revision": 41
+      "provenance_revision": 43
     }
   }
 }

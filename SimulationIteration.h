@@ -1,5 +1,8 @@
 #pragma once
 
+// Calculate one possible whole election using the inputs prepared for the run.
+// runIteration in the .cpp file explains the sequence and the recording boundary.
+
 #include "LiveData.h"
 #include "Party.h"
 #include "SimulationRun.h"
@@ -14,11 +17,26 @@ struct Region;
 class Seat;
 class Simulation;
 
+// One iteration is a possible result for every seat in the same election. The
+// project and sim supply settings and the overall vote-share projection; run
+// supplies the historical results, model estimates and any prepared live evidence.
+// Shared election and regional movements allow seats to move together, alongside
+// uncertainty specific to each seat.
+//
+// Each object keeps its own possible vote shares and winners while other
+// iterations are calculated concurrently. A successful result contributes to
+// totals in run and sim's report; SimulationCompletion later turns the combined
+// results into forecast probabilities and summaries of vote shares and seats.
 class SimulationIteration {
 public:
+	// Refer to the shared settings and prepared inputs. iterationIndex identifies
+	// this simulated election and is used to select its random draws.
 	SimulationIteration(PollingProject& project, Simulation& sim, SimulationRun& run, int iterationIndex);
 
-	// Returns the number of discarded attempts before a valid result was produced.
+	// Calculate and record one election, retrying specified calculation failures
+	// within a limit. Return the number of discarded attempts (zero if the first
+	// succeeds), so SimulationRun can monitor failures across the whole run.
+	// An unrecoverable error is passed to SimulationRun instead of a result.
 	int runIteration();
 private:
 	void reset();

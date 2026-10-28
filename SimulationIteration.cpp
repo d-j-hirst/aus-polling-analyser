@@ -1,3 +1,9 @@
+// Calculate one possible election, from overall support through regions and
+// seats to parliamentary outcomes. runIteration coordinates the stages using
+// shared inputs from SimulationPreparation; the helpers supply the calculations.
+// Repeating this process with different draws builds the range of outcomes
+// summarised by SimulationCompletion for the forecast report.
+
 #include "SimulationIteration.h"
 
 #include "CountProgress.h"
@@ -333,10 +339,25 @@ bool SimulationIteration::hasInvalidValues(std::string const& location, bool for
 	return false;
 }
 
+// Construct one possible whole election and add its contribution to the run's
+// result totals. The ordinary path draws overall support, distributes it across
+// regions and seats, incorporates reported votes for a live forecast, and then
+// determines seat winners and parliamentary support. Settings and prepared
+// historical evidence stay shared across the run; the uncertain quantities drawn
+// here belong to this iteration.
+//
+// Only a completed, valid scenario contributes vote shares and wins to the
+// forecast totals. Some calculation failures can be retried with new draws;
+// their number is returned to SimulationRun for its separate run-wide check.
 int SimulationIteration::runIteration()
 {
 	retryCount = 0;
 	std::map<std::string, int> invalidReasons;
+	// Bound repeated attempts with MaxIterationRetries so a calculation that
+	// cannot produce a usable result stops with an error. A retry clears this
+	// attempt's generated values and selects new draws through retryCount, while
+	// keeping the prepared inputs. This handles calculation failures, not electoral
+	// uncertainty, which is represented by variation among successful iterations.
 	auto retryOrThrow = [&]() {
 		if (retryCount >= MaxIterationRetries) {
 			std::string message =
@@ -361,30 +382,66 @@ int SimulationIteration::runIteration()
 	bool gotValidResult = false;
 	while (!gotValidResult) {
 		try {
-			// Build the election-wide scenario first, then progressively distribute
-			// it through regions and seats before applying any live observations.
+			// For a live forecast, prepare this iteration's possible turnout and
+			// voting patterns for votes still to be counted. The reported counts
+			// come from the same prepared input for every iteration. This live
+			// scenario will be combined with the modelled seat results below;
+			// ordinary forecasts and supporting runs do not need it.
 			if (run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
 				liveElection = run.liveElection->generateScenario(
 					randomSampleIndex());
 			}
+
+			// Start with a private copy of the historical seat results, because
+			// later stages may regroup parties within them. Set up this iteration's
+			// storage for seat estimates and the effects that explain those estimates.
 			loadPastSeatResults();
 			initialiseIterationSpecificCounts();
+
+			// Where a federal election is supplied as evidence for local trends,
+			// draw how strongly its seat swings influence the current election.
 			determineFedStateCorrelation();
+
+			// Draw overall FP and TPP shares, preference flows and exhaustion from
+			// the selected projection. Different iterations sample its distribution
+			// of possible results. A nowcast requests the run's fixed current date;
+			// other forecasts use the projection's possible election dates. An
+			// explicitly forced TPP replaces that draw's overall TPP and adjusts
+			// the major-party FP shares to match the requested change.
 			determineOverallTpp();
+
+			// Establish how minor-party support will be spread across seats and
+			// how their preferences may flow. Use configured party characteristics,
+			// home regions and candidate lists where supplied, and draw uncertain
+			// characteristics or contests where the model estimates them. Here a
+			// home region means an area in which a party has concentrated support.
 			decideMinorPartyPopulism();
 			determineHomeRegions();
 			determineMinorPartyContests();
+
+			// Draw shared influences on the Liberal/National division of Coalition
+			// support and on independent performance. These let related candidates
+			// do better or worse together across seats in the same possible election.
 			determineIntraCoalitionSwing();
 			determineIndDistributionParameters();
+
+			// Distribute the overall TPP swing across regions (geographic groups
+			// of seats), using historical patterns, regional polling and uncertainty.
+			// Adjust their average back to the overall draw, with each region's
+			// influence weighted by its seats' previous-election turnout.
 			determineRegionalSwings();
 
+			// Checks between stages reject unusable calculations, such as vote
+			// shares outside their allowed range, before they enter later stages.
 			if (hasInvalidValues("Before seat initial results", false, false)) {
 				retryOrThrow();
 				continue;
 			}
 
-			// Convert the regional scenario to seat-level FP and TPP estimates,
-			// then reconcile them back to the sampled election-wide totals.
+			// Build seat FP and TPP estimates from those shared movements, local
+			// evidence and additional local uncertainty. Minor-party support and
+			// preference flows help determine the major-party FPs compatible with
+			// each seat's TPP; the Coalition split is prepared here as well.
 			determineSeatInitialResults();
 
 			if (hasInvalidValues("Before reconciling")) {
@@ -392,6 +449,12 @@ int SimulationIteration::runIteration()
 				continue;
 			}
 
+			// Bring the seat FP estimates back towards the overall shares drawn
+			// above. This "reconciliation" weights seats by previous-election
+			// turnout, so a seat with more votes contributes more to the comparison.
+			// The correction rules limit changes to some locally established
+			// candidates. These constraints can leave a mismatch, which may be
+			// retained and reported as a warning.
 			reconcileSeatAndOverallFp();
 
 			if (hasInvalidValues("After reconciling")) {
@@ -399,8 +462,11 @@ int SimulationIteration::runIteration()
 				continue;
 			}
 
-			// Live observations override the corresponding portions of the
-			// pre-election scenario while retaining uncertainty elsewhere.
+			// For live forecasts, update these modelled FP and TPP shares using
+			// reported votes and the live scenario prepared above. The evidence can
+			// change both expected support and uncertainty about uncounted votes;
+			// counted votes constrain the possible final allocations. Ordinary
+			// forecasts and supporting runs keep their modelled shares at this step.
 			incorporateLiveResults();
 
 			if (hasInvalidValues("After live results",
@@ -409,8 +475,11 @@ int SimulationIteration::runIteration()
 				continue;
 			}
 
-			// Resolve each seat's final TCP contest and winner, then aggregate
-			// support relationships into the government-level result.
+			// Use FP shares and preference transfers to determine each seat's
+			// final pair. Labor-Coalition contests use the seat's prepared TPP;
+			// other pairs use estimated transfers and relevant live TCP evidence.
+			// This gives a TCP result and winner. Configured live winner overrides
+			// can then replace the inferred winner without changing those TCP shares.
 			seatTcpVoteShare.resize(project.seats().count());
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 				try {
@@ -424,14 +493,19 @@ int SimulationIteration::runIteration()
 				}
 			}
 
+			// Count each party's seats, then apply the configured Coalition and
+			// support relationships. Keep seats held by a party or its Coalition
+			// separate from outside support, for later classification of majority,
+			// minority or other parliamentary outcomes. These relationships are
+			// supplied assumptions about support, not simulated negotiations.
 			assignDirectWins();
 			assignSupportsPartyWins();
 		}
 		catch (InvalidIteration const& error) {
 			++invalidReasons[error.description()];
-			// Most rejected draws recover on retry. Keep a bounded diagnostic
-			// even then, because the run-wide retry limit may stop the phase before
-			// any individual draw reaches its own retry limit.
+			// Retain the reason for a rejected attempt even if its replacement
+			// succeeds. SimulationRun reports these warnings to explain calculation
+			// problems, including failures of its separate run-wide retry check.
 			recordedRun.recordWarning(
 				SimulationRun::WarningCategory::DiscardedIteration,
 				iterationIndex, error.description());
@@ -439,6 +513,7 @@ int SimulationIteration::runIteration()
 			continue;
 		}
 		catch (std::bad_alloc const& err) {
+			// Failure to allocate memory uses the same bounded retry route.
 			PA_LOG_VAR(err.what());
 			retryOrThrow();
 			continue;
@@ -446,6 +521,9 @@ int SimulationIteration::runIteration()
 		gotValidResult = true;
 	}
 
+	// The additional FP correction procedure flags larger mismatches for
+	// reporting. Collect that warning so SimulationRun can report how often this
+	// happens, even when a usable election result was produced.
 	if (neededTerminalFpReconciliation) {
 		recordedRun.recordWarning(
 			SimulationRun::WarningCategory::
@@ -454,6 +532,12 @@ int SimulationIteration::runIteration()
 			"Regular FP reconciliation left an error above 0.6 before "
 			"the bounded terminal solver.");
 	}
+
+	// Add this election once to the shared seat, regional and overall totals,
+	// including its parliamentary outcome and the report's vote-share summaries.
+	// Only one iteration writes these totals at a time, so concurrent iterations
+	// cannot overwrite each other's contributions. SimulationCompletion turns
+	// the combined results into the report used for subsequent forecast export.
 	std::lock_guard<std::mutex> lock(recordMutex);
 	recordIterationResults();
 	return retryCount;

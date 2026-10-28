@@ -12,8 +12,9 @@
 
 // Small, portable operations shared by the live count bridge and its tests.
 // These operations preserve the counted allocation supplied by the caller and
-// redistribute only the outstanding pool. Preference rechecking supplies a
-// scenario-specific counted allocation; ordinary share variation cannot undo it.
+// redistribute only the outstanding pool. Preference transfers and signed
+// ballot revisions supply a scenario-specific counted allocation; ordinary
+// share variation cannot undo it or restore the original reported floor.
 namespace LiveTurnoutMath {
 
 inline double remaining(double expected, double counted) {

@@ -2,6 +2,7 @@
 
 #include "LiveData.h"
 #include "TurnoutModelIO.h"
+#include "LiveCountRevisions.h"
 
 #include <memory>
 
@@ -16,6 +17,7 @@ struct UnitComposition {
     std::size_t booth = 0, seat = 0;
     Counted fp, tpp, tcp;
     Projected projectedFp, projectedTpp, projectedTcp;
+    std::map<int,int> tppAliases; // E.g. the Nationals' FP joins Coalition TPP.
 };
 struct SeatComposition {
     std::string name;
@@ -26,6 +28,9 @@ struct SeatComposition {
 struct Projection {
     Projected fp, tpp, tcp;
 };
+struct ScenarioCounts {
+    std::vector<Counted> fp, tpp, tcp;
+};
 
 class Prepared {
 public:
@@ -35,11 +40,17 @@ public:
         std::vector<TurnoutModel::Observation> const& history, std::string const& sourceTime);
 
     // Attach the party model only after LiveV2 has prepared composition at the
-    // count means. Count uncertainty then changes only the uncounted pool.
+    // count means. Routine count draws change only the uncounted pool; signed
+    // revisions have a separate prepared response for already reported votes.
     std::shared_ptr<Prepared const> withComposition(std::vector<UnitComposition> const& units,
         std::vector<SeatComposition> const& seats) const;
     double fpTarget(std::size_t booth) const;
     std::vector<Projection> draw(unsigned long long seed) const;
+    // Applied after ordinary composition variation and preference-only
+    // corrections. Returns scenario accounts; accepted source votes stay fixed.
+    ScenarioCounts scenarioCounts() const;
+    void revise(unsigned long long seed, std::vector<Projection>& projected,
+        ScenarioCounts& counted) const;
     Projected vary(LiveData::CountKind kind, std::size_t seat,
         Projected const& sampled, std::map<int, double> const& changes) const;
     Projected const& mean(LiveData::CountKind kind, std::size_t seat) const;
@@ -47,6 +58,7 @@ public:
     float confidence(LiveData::CountKind kind, std::size_t seat) const;
     std::size_t seatIndex(std::string const& name) const;
     nlohmann::json diagnostic() const;
+    nlohmann::json revisionDiagnostic() const;
 
 private:
     struct Counts {
@@ -71,6 +83,12 @@ private:
         std::map<std::string, std::size_t> indexes;
         std::vector<Counted> baseFp, baseTpp, baseTcp;
         std::vector<Response> responses;
+        struct Revision {
+            std::size_t unit, seat;
+            LiveCountRevisions::Prepared distribution;
+        };
+        std::vector<Revision> revisions;
+        std::vector<double> enrolment;
 
         void prepareDistrictAccounts();
         void prepareUnitResponses(Counts const& countAccount,

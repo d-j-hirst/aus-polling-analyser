@@ -15,6 +15,76 @@
 #include <cmath>
 #include <iostream>
 
+// Reused numeric party/candidate IDs must not transfer votes or affiliations
+// between elections. These tiny source records exercise the same resolver and
+// registered-party cache used when LiveV2 builds its FP/TCP accounts.
+void testElectionScopedPartyMapping()
+{
+    using namespace LivePartyMapping;
+    using Source = SourceElection;
+    struct Candidate { int party; };
+    struct Party { std::string shortCode; };
+    struct Election {
+        std::map<int, Candidate> candidates;
+        std::map<int, Party> parties;
+    };
+    Election current{{{101,{4}}, {102,{8}}, {103,{12}}, {104,{11}}, {105,{-1}}, {106,{40}}},
+        {{4,{"GRN"}}, {8,{"PHON"}}, {12,{"AJP"}}, {11,{"Libertarian"}}, {6,{"NATS"}}}};
+    Election previous{{{101,{4}}, {202,{8}}, {203,{12}}, {204,{11}}, {205,{-1}}},
+        {{4,{"NAT"}}, {8,{"LIB"}}, {12,{"ALP"}}, {11,{"GRN"}}, {40,{"ALP"}}}};
+    CommissionIds ids;
+    std::map<std::string, int> codes{{"ALP",0}, {"LIB",1}, {"GRN",2},
+        {"PHON",3}, {"NAT",4}, {"NATS",4}};
+    auto seed = [&](Election const& election, Source source) {
+        for (auto const& [id, party] : election.parties)
+            if (codes.contains(party.shortCode)) ids[{source,id}] = codes.at(party.shortCode);
+    };
+    seed(current,Source::Current);
+    seed(previous,Source::Previous);
+    auto map = [&](int candidateId, Source source) {
+        auto party = candidateParty(candidateId,source,previous,current);
+        assert(party);
+        if (party->partyId == -1) return candidateId + 100000;
+        return mapParty({party->source,party->partyId},party->abbreviation,7,100000,ids,codes);
+    };
+    assert(map(101,Source::Current) == 2);  // Current party 4 is Greens.
+    assert(map(101,Source::Previous) == 4); // Historical party 4 is Nationals.
+    assert(map(102,Source::Current) == 3);
+    assert(map(202,Source::Previous) == 1);
+    assert(map(203,Source::Previous) == 0);
+    assert(map(204,Source::Previous) == 2);
+    int const animalJustice = map(103,Source::Current);
+    int const libertarian = map(104,Source::Current);
+    assert(animalJustice >= 7 && libertarian >= 7 && animalJustice != libertarian);
+    assert(map(105,Source::Current) == 100105);
+    assert(map(205,Source::Previous) == 100205);
+
+    // Candidate fallback must carry the source election with it, including for
+    // unconfigured parties. A missing party record must not borrow the other
+    // election's Labor record with the same numeric ID.
+    assert(map(202,Source::Current) == 1);
+    assert(map(103,Source::Previous) == animalJustice);
+    auto missingParty = candidateParty(106,Source::Current,previous,current);
+    assert(missingParty && !missingParty->hasPartyRecord && missingParty->abbreviation.empty());
+    assert(map(106,Source::Current) >= 7);
+    assert(!candidateParty(999,Source::Current,previous,current));
+    assert(!candidateParty(999,Source::Previous,previous,current));
+
+    // Uncached historical metadata must also come from the historical source.
+    // Sharing a numeric ID with a current unconfigured party is not an alias.
+    previous.candidates[206] = {12};
+    previous.parties[12].shortCode = "OLD";
+    ids.erase({Source::Previous,12});
+    int const historicalMinor = map(206,Source::Previous);
+    assert(historicalMinor >= 7 && historicalMinor != animalJustice);
+    assert(codes.at("OLD") == historicalMinor);
+    assert(mapParty({Source::Previous,99},"AJP",7,100000,ids,codes) == animalJustice);
+    int const unnamedCurrent = mapParty({Source::Current,77},"",7,100000,ids,codes);
+    int const unnamedPrevious = mapParty({Source::Previous,77},"",7,100000,ids,codes);
+    assert(unnamedCurrent != unnamedPrevious);
+    assert(!codes.contains(""));
+}
+
 void testJointTppIntegration()
 {
     using namespace LiveTppIntegration;
@@ -912,6 +982,7 @@ void testRevisedTcpAccount() {
 
 int main()
 {
+    testElectionScopedPartyMapping();
     testRevisedTcpAccount();
     testJointTppIntegration();
     testTppCategorySensitivity();
@@ -979,15 +1050,18 @@ int main()
 	// Configured coalition aliases may deliberately combine parties, while a
 	// project with separate Nationals retains both identities. Missing codes on
 	// other registered parties must never act as a shared alias.
-	std::map<int, int> commissionIds{{11, 0}, {12, 1}, {13, 7}};
+	using PartySource = LivePartyMapping::SourceElection;
+	LivePartyMapping::CommissionIds commissionIds{
+		{{PartySource::Current,11},0}, {{PartySource::Current,12},1}, {{PartySource::Current,13},7}};
 	std::map<std::string, int> abbreviations{{"ALP", 0}, {"LNP", 1}, {"NAT", 7}};
 	auto mapParty = [&](int id, std::string const& code) {
-		return LivePartyMapping::mapParty(id, code, 8, 100000,
+		return LivePartyMapping::mapParty({PartySource::Current,id}, code, 8, 100000,
 			commissionIds, abbreviations);
 	};
 	assert(mapParty(12, "LNP") == 1);
 	assert(mapParty(13, "NAT") == 7);
-	assert(mapParty(14, "NAT") == 7); // Same party, another election's ID.
+	assert(LivePartyMapping::mapParty({PartySource::Previous,14}, "NAT", 8, 100000,
+		commissionIds, abbreviations) == 7);
 	int const unknownOne = mapParty(21, "");
 	int const unknownTwo = mapParty(22, "");
 	assert(unknownOne >= 8 && unknownTwo > unknownOne);
@@ -995,11 +1069,11 @@ int main()
 	assert(!abbreviations.contains(""));
 	int const minor = mapParty(23, "MIN");
 	assert(mapParty(24, "MIN") == minor);
-	std::map<int, int> combinedIds;
+	LivePartyMapping::CommissionIds combinedIds;
 	std::map<std::string, int> combinedCodes{{"LNP", 1}, {"NAT", 1}};
-	assert(LivePartyMapping::mapParty(31, "LNP", 2, 100000,
+	assert(LivePartyMapping::mapParty({PartySource::Current,31}, "LNP", 2, 100000,
 		combinedIds, combinedCodes) == 1);
-	assert(LivePartyMapping::mapParty(32, "NAT", 2, 100000,
+	assert(LivePartyMapping::mapParty({PartySource::Previous,32}, "NAT", 2, 100000,
 		combinedIds, combinedCodes) == 1);
 
 	LiveData::BoothSnapshot snapshot;

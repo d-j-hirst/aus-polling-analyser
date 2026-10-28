@@ -1010,6 +1010,178 @@
           "support": "broad composition default"
         }
       }
+    },
+    "2025wa/synthetic_reporting": {
+      "schema_version": 3,
+      "model_version": "proportional-prior-6",
+      "rates": {
+        "drift_log_odds": -0.04696557967883598,
+        "units": "natural log odds",
+        "common_covariance": [
+          [
+            0.028738170811308833,
+            -0.0008694267423125762
+          ],
+          [
+            -0.0008694267423125762,
+            0.02715528195125603
+          ]
+        ],
+        "local_covariance": [
+          [
+            0.009271573690825338,
+            0.0025219889919905806
+          ],
+          [
+            0.0025219889919905806,
+            0.035092162642648396
+          ]
+        ],
+        "training_elections": [
+          "2007fed",
+          "2008wa",
+          "2009qld",
+          "2010fed",
+          "2010sa",
+          "2010vic",
+          "2012qld",
+          "2013fed",
+          "2013wa",
+          "2014sa",
+          "2014vic",
+          "2015qld",
+          "2016fed",
+          "2017qld",
+          "2017wa",
+          "2018sa",
+          "2018vic",
+          "2019fed",
+          "2020qld",
+          "2021wa",
+          "2022fed",
+          "2022sa",
+          "2022vic",
+          "2024qld"
+        ],
+        "stable_formality_elections": 21,
+        "broad_default": false
+      },
+      "controls": {
+        "postal": {
+          "factor": 0.6967835230535857,
+          "common_sd": 0.0609013193469348,
+          "local_sd": 0.03210345580350995,
+          "training_elections": [
+            "2005wa",
+            "2017wa",
+            "2021wa"
+          ],
+          "fallback": "",
+          "broad_default": false,
+          "measure": "postal_applications_cumulative"
+        }
+      },
+      "compositions": {
+        "postal": {
+          "common_covariance": [
+            [
+              0.0
+            ]
+          ],
+          "local_covariance": [
+            [
+              0.0
+            ]
+          ]
+        },
+        "remainder": {
+          "common_covariance": [
+            [
+              0.04000000000000001,
+              -0.04000000000000001,
+              -0.04000000000000001,
+              0.0,
+              0.0
+            ],
+            [
+              -0.04000000000000001,
+              0.20000000000000004,
+              -0.12000000000000002,
+              0.0,
+              0.0
+            ],
+            [
+              -0.04000000000000001,
+              -0.12000000000000002,
+              0.20000000000000004,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.25,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.48999999999999994
+            ]
+          ],
+          "local_covariance": [
+            [
+              0.04000000000000001,
+              -0.04000000000000001,
+              -0.04000000000000001,
+              0.0,
+              0.0
+            ],
+            [
+              -0.04000000000000001,
+              0.3425,
+              -0.26250000000000007,
+              0.0,
+              0.0
+            ],
+            [
+              -0.04000000000000001,
+              -0.26250000000000007,
+              0.3425,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.6400000000000001,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "units": "natural log proportions, normalized within non-postal total",
+          "training_elections": [],
+          "support": "Conservative reporting-definition assumptions, not fitted to WA 2025 results.",
+          "categories": [
+            "ordinary",
+            "early",
+            "absent",
+            "mobile",
+            "provisional"
+          ],
+          "assumptions": "Own/away early split has shared log-odds SD 0.8 and local SD 1.1; day versus early/absent SD 0.4; mobile SD 0.5 shared/0.8 local; provisional SD 0.7 shared/1 local. Early election-eve total fixes starting proportions, not a separate receipt constraint."
+        }
+      }
     }
   },
   "ppvc_starting_sizes": {

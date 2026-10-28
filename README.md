@@ -1,14 +1,14 @@
 # Polling Analyser
 
 Polling Analyser produces polling trends and election simulations for
-AE Forecasts. This guide explains how to prepare its inputs and run the
-forecasting tools.
+Australian Election Forecasts. This guide explains how to prepare its inputs and
+run the forecasting tools.
 
 Python tools process historical results and polling data. The C++ application
 uses those inputs to estimate vote shares and simulate election outcomes;
 live forecasts also use reported counts as voting results arrive.
 The overall approach is described on the
-[AE Forecasts methodology page](https://www.aeforecasts.com/methodology).
+[Australian Election Forecasts methodology page](https://www.aeforecasts.com/methodology).
 
 For a given election forecast, the implementation has four stages:
 

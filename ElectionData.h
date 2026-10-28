@@ -145,6 +145,8 @@ namespace Results2 {
 		Type type = Type::Normal;
 		int32_t parentSeat;
 		bool syntheticBaseline = false; // Reconstructed category allocation, not observed historical counts.
+		std::string comparisonSeat; // Original district of a prepared historical venue; empty for ordinary inputs.
+		bool incrementalFp = false; // Mixed early/day location reports multiple primary batches (WA 2025).
 		bool confirmedPresent; // "Phantom booths" can appear in the preload but not in the live data, this 
 
 		// Unset when the feed has no lat/lon (typical for ECSA and declaration booths).
@@ -331,6 +333,9 @@ namespace Results2 {
 		void preloadNswec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros, bool includeSeatBooths = false);
 		void preloadQec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros);
 		void preloadWaec(tinyxml2::XMLDocument const& candidatesXml, tinyxml2::XMLDocument const& boothsXml);
+		// Read a prepared historical account whose current-venue links have been
+		// checked by the WA preparation script. It contains no current results.
+		void loadWaecBaseline(nlohmann::json const& baseline);
 		void preloadEcsa(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros);
 
 		bool allocate2022saDeclarationVotes(int seatId, std::string const& seatName,

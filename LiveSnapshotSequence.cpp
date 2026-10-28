@@ -59,7 +59,11 @@ Discovery discover(std::filesystem::path const& folder,
         pattern = std::regex("^state" + election.substr(0, 4) + "mediafilelitepplh_([0-9]{8})_([0-9]{6})\\.(?:zip|xml)$", std::regex::icase);
     else if (election.size() == 7 && election.substr(4) == "qld")
         pattern = std::regex("^([0-9]{14})_publicresults\\.(?:zip|xml)$", std::regex::icase);
-    else return {{}, "Snapshot sequences currently support SA, Federal, Victorian and Queensland feeds."};
+    else if (election.size() == 6 && election.substr(4) == "wa")
+        // WA archives collected on another state's clock are normalized during
+        // preparation. These codes always describe WA local observation time.
+        pattern = std::regex("^waec-la-verbose-([0-9]{14})\\.xml$", std::regex::icase);
+    else return {{}, "Snapshot sequences currently support SA, Federal, Victorian, Queensland and WA feeds."};
 
     std::error_code error;
     auto folderName = LiveResultsInput::pathToUtf8(folder);

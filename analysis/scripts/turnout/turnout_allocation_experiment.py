@@ -110,7 +110,7 @@ def run(code,args):
     draws = prior.draw(inputs,fixture['parameters'],args.samples,args.seed)
     paths,files = replay.source_paths(code,args.archive,args.downloads,origin)
     files += [origin_path,fixture_path,Path(__file__),Path(allocation.__file__),Path(allocation_model.__file__),Path(late_counts.__file__),
-              Path(live.__file__),Path(prior.__file__),Path(replay.__file__),Path(progress.__file__),
+              Path(late_counts.routine_remainders.__file__),Path(live.__file__),Path(prior.__file__),Path(replay.__file__),Path(progress.__file__),
               Path(category_policy.__file__),Path(sa_hindcast.__file__),Path(aec_live.__file__),Path(ppvc_sizes.__file__)]
     metadata,reviewed,missing = None,{},defaultdict(list)
     if code == '2026sa':

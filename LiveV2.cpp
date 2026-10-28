@@ -403,6 +403,20 @@ Booth::Booth(
   node.tcpCompletion = node.totalTcpVotesCurrent() > 0 ? 1 : 0;
   node.tppCompletion = node.totalTcpVotesCurrent() > 0 && isTppSet(node.tcpVotesCurrent, natPartyIndex) ? 1 : 0;
 
+  if (currentBooth.incrementalFp) {
+    // Before the turnout account is prepared, historical size supplies only a
+    // provisional progress denominator for mixed early/day places. A first day
+    // batch must not enter the initial pooled swings as a completed early place.
+    // refreshFpBoothProgress replaces this denominator with the common turnout
+    // target once available; the published candidate counts are unchanged.
+    float expected = float(std::max(node.totalVotesPrevious(),node.totalFpVotesCurrent()));
+    float fpProgress = expected > 0 ? float(node.totalFpVotesCurrent())/expected : 0;
+    float tcpProgress = expected > 0 ? std::min(1.0f,float(node.totalTcpVotesCurrent())/expected) : 0;
+    node.fpConfidence *= fpProgress; node.fpCompletion *= fpProgress;
+    node.tcpConfidence *= tcpProgress; node.tcpCompletion *= tcpProgress;
+    node.tppConfidence *= tcpProgress; node.tppCompletion *= tcpProgress;
+  }
+
   // For booths previously different seat, we reduce their relevance for projections
   // as they are less likely to be indicative of the remaining votes in the seat
   // than booths from the same seat
@@ -923,11 +937,15 @@ void Election::loadEstimatedPreferenceFlows() {
 void Election::initializePartyMappings(
   Results2::Election const& previousElection,
   Results2::Election const& currentElection) {
+  // Configured official codes retain the project's party/group choices. Keep
+  // numeric feed IDs separate by election; their numbers do not identify the
+  // same party across independently prepared current and historical inputs.
+  // Abbreviations remain shared so genuine aliases still join those inputs.
   for (auto const& [id, party] : currentElection.parties) {
     if (party.shortCode.empty()) continue;
     int simIndex = project.parties().indexByShortCode(party.shortCode);
     if (simIndex != -1) {
-      ecPartyToInternalParty[id] = simIndex;
+      ecPartyToInternalParty[{LivePartyMapping::SourceElection::Current, id}] = simIndex;
       ecAbbreviationToInternalParty[party.shortCode] = simIndex;
     }
   }
@@ -936,7 +954,7 @@ void Election::initializePartyMappings(
     if (party.shortCode.empty()) continue;
     int simIndex = project.parties().indexByShortCode(party.shortCode);
     if (simIndex != -1) {
-      ecPartyToInternalParty[id] = simIndex;
+      ecPartyToInternalParty[{LivePartyMapping::SourceElection::Previous, id}] = simIndex;
       ecAbbreviationToInternalParty[party.shortCode] = simIndex;
     }
   }
@@ -983,7 +1001,8 @@ void Election::createNodesFromElectionData(
             != lowerCasePrefix(currentBooth.name, 4);
         if (!mismatchedPpvc) {
           previousBoothPtr = &previousBooth;
-          previousSeatName = previousElection.seats.at(previousBooth.parentSeat).name;
+          previousSeatName = previousBooth.comparisonSeat.empty()
+            ? previousElection.seats.at(previousBooth.parentSeat).name : previousBooth.comparisonSeat;
         }
       }
       bool const sameSeat = previousBoothPtr.has_value() && (
@@ -1006,6 +1025,13 @@ void Election::createNodesFromElectionData(
       auto& liveSeat = seats.at(seatIndex);
       preparationBooths().back().previousPreferenceSeat = previousSeatName;
       preparationBooths().back().syntheticPreviousCategory = previousBoothPtr && (*previousBoothPtr)->syntheticBaseline;
+      preparationBooths().back().incrementalFp = currentBooth.incrementalFp;
+      // A reconstructed composition is useful but is not a new observed
+      // historical sample. Quarter weight is a conservative working safeguard
+      // for swing pooling, not a fitted WA coefficient. Absolute current votes
+      // remain fully counted; the joint TPP path also retains its baseline SD.
+      if (run.regionCode == "wa" && preparationBooths().back().syntheticPreviousCategory)
+        preparationBooths().back().node.relevanceModifier *= .25f;
       liveSeat.booths.push_back(int(readBooths().size()) - 1);
     }
 
@@ -1019,7 +1045,15 @@ void Election::createNodesFromElectionData(
       previousSeatNames.push_back(projectSeat.useFpResults);
     }
     std::optional<Results2::Seat const*> previousSeatPtr = std::nullopt;
+    // The WA reporting bridge has already allocated old category accounts to
+    // current districts. Prefer that exact prepared account: Oakford's fallback
+    // name Jandakot must not select Jandakot's separate share of the old total.
+    if (currentElection.termCode == "2025wa") {
+      auto prepared = previousElection.seats.find(seat.id);
+      if (prepared != previousElection.seats.end()) previousSeatPtr = &prepared->second;
+    }
     for (auto const& [prevSeatId, prevSeat] : previousElection.seats) {
+      if (previousSeatPtr) break;
       // IDs are the only unique identifier for seats
       // as names can be changed from one election to the next
       // without changing the ID
@@ -1071,6 +1105,8 @@ void Election::createNodesFromElectionData(
       if (previousSeatPtr) {
         preparationBooths().back().previousPreferenceSeat = (*previousSeatPtr)->name;
         preparationBooths().back().syntheticPreviousCategory = (*previousSeatPtr)->syntheticBaselineTypes.contains(voteType);
+        if (run.regionCode == "wa" && preparationBooths().back().syntheticPreviousCategory)
+          preparationBooths().back().node.relevanceModifier *= .25f;
       }
       liveSeat.booths.push_back(int(readBooths().size()) - 1);
     }
@@ -2641,7 +2677,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
   auto& booth = preparationBooths().at(boothIndex);
   if (turnoutFpTarget(boothIndex) == 0) {
     clearFpProjection(boothIndex);
-  } else if (allowCurrentData && booth.voteType != Results2::VoteType::Ordinary) {
+  } else if (allowCurrentData && booth.receivesFpBatches()) {
     projectDeclarationFp(boothIndex);
   } else if (allowCurrentData && booth.node.totalFpVotesCurrent() > 0) {
     // Reported ordinary booths normally have no new FP pool. Retain their
@@ -2755,7 +2791,7 @@ std::vector<LiveNewVotes::Shares> Election::declarationFpContexts(OrdinaryFpHier
   std::vector<LiveNewVotes::Shares> contexts(readBooths().size());
   for (std::size_t i = 0; i < readBooths().size(); ++i) {
     auto const& booth = readBooths()[i];
-    if (booth.voteType == Results2::VoteType::Ordinary || turnoutFpTarget(int(i)) == 0) continue;
+    if (!booth.receivesFpBatches() || turnoutFpTarget(int(i)) == 0) continue;
     auto projected = projectUnreportedFp(true,int(i),&hierarchy);
     auto const& seat = seats.at(booth.parentSeatId);
     for (int candidate : booth.node.runningParties) {
@@ -2778,7 +2814,7 @@ void Election::projectDeclarationFp(int boothIndex) {
 LiveNewVotes::Shares Election::composeDeclarationFp(int boothIndex) const {
   auto const& booth = readBooths().at(boothIndex);
   auto const& seat = seats.at(booth.parentSeatId);
-  auto category = booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll
+  auto category = booth.incrementalFp || booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll
     ? LiveNewVotes::Category::AggregatedEarly : LiveNewVotes::Category::General;
   double target = turnoutFpTarget(boothIndex);
   auto const& context = newVoteContexts->at(boothIndex);
@@ -2801,7 +2837,7 @@ LiveNewVotes::Shares Election::composeDeclarationFp(int boothIndex) const {
 void Election::updateDeclarationFpProgress(int boothIndex) {
   auto& booth = preparationBooths().at(boothIndex);
   double target = turnoutFpTarget(boothIndex);
-  auto category = booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll
+  auto category = booth.incrementalFp || booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll
     ? LiveNewVotes::Category::AggregatedEarly : LiveNewVotes::Category::General;
   booth.node.fpCompletion = booth.node.fpConfidence = float(std::clamp(booth.node.totalFpVotesCurrent()/target,0.0,1.0));
   // The pooled category bias enters on the context side, whose influence
@@ -3035,7 +3071,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
       // mixture for declaration services and the booth share for ordinary votes.
       double target = turnoutPairTarget(boothIndex);
       double futureShare = revised->first/revised->votes;
-      if (booth.voteType != Results2::VoteType::Ordinary)
+      if (booth.receivesFpBatches())
         futureShare = LiveNewVotes::firstShare(booth.futureFpShares,
           pairPreferenceFlows(booth,firstPartyId,secondPartyId),
           LivePartialCount::evidenceOffset(0,booth.preferenceEvidence,firstPartyId,secondPartyId));
@@ -3053,7 +3089,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
     // Ordinary results are usually complete, but an accepted partial TCP still
     // needs preferences on the FP votes already reported. Complete ordinary
     // pairs keep the existing cheap path during reduced preparation.
-    if (booth.voteType != Results2::VoteType::Ordinary
+    if (booth.receivesFpBatches()
       || (booth.node.totalTcpVotesCurrent() < booth.node.totalFpVotesCurrent())) {
       float const confidenceScale = booth.voteType == Results2::VoteType::Ordinary
         ? std::max(fullComparisonAvailable ? 1.0f : 0.2f, booth.node.tcpConfidence) : 1.0f;
@@ -3099,7 +3135,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
           createRandomVariation ? random/25 : 0);
       double futureShare = LivePartialCount::inverseLogOdds(
         LivePartialCount::logOdds(countedShare)+projectionDifference/25);
-      if (!optionalPreferential && booth.voteType != Results2::VoteType::Ordinary) {
+      if (!optionalPreferential && booth.receivesFpBatches()) {
         // Non-classic finalists keep their existing seat preference prior,
         // but their new voters share the very same projected primary mix.
         // The retained cohort adjusts that prior once, with the standard small-
@@ -3455,7 +3491,7 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
     }
     return;
   }
-  if (allowCurrentData && booth.voteType != Results2::VoteType::Ordinary && !optionalPreferential) {
+  if (allowCurrentData && booth.receivesFpBatches() && !optionalPreferential) {
     auto projected = projectDeclarationTpp(boothIndex);
     if (createRandomVariation) booth.node.tempTppVotesProjected = std::move(projected);
     else booth.node.tppVotesProjected = std::move(projected);
@@ -4370,6 +4406,7 @@ void Election::generateVariability(int iterationIndex) {
   // in future-voter composition. It is not attenuated by votes remaining: a
   // completed count can still contain a substantial erroneous TCP allocation.
   applyPreferenceCorrections(iterationIndex);
+  applyCountRevisions(iterationIndex);
 
   // Composition errors above use the mean preparation's evidence weights.
   // Now expose each sampled count's progress to the forecast handoff, so a
@@ -4403,66 +4440,33 @@ int Election::mapPartyId(
   bool isPrevious,
   Results2::Election const& previousElection,
   Results2::Election const& currentElection) {
-  // Note: only used when initially loading data from EC files
-  // so not a bottleneck
-
-  // Candidate identity comes from the appropriate election below; registered
-  // party aliases and unconfigured-party allocation use one shared policy.
-  auto processParty = [this](int ecPartyId, std::string const& abbreviation) {
-    return LivePartyMapping::mapParty(ecPartyId, abbreviation,
-      project.parties().count(), IndependentPartyIdOffset,
-      ecPartyToInternalParty, ecAbbreviationToInternalParty);
-  };
-
-  int ecPartyId = ecCandidateId;
-  // Since a candidate can change party from one election to the next,
-  // and we shouldn't be comparing those votes directly, we need to
-  // choose the correct election to look in
-  auto candidateIt = currentElection.candidates.find(ecCandidateId);
-  if (isPrevious) {
-      candidateIt = previousElection.candidates.find(ecCandidateId);
+  // All vote accounts (FP, TCP and historical comparisons) use this translation.
+  // Resolve candidate affiliation, party description and cached numeric ID in
+  // the same source election. Matching numbers in the other election must not
+  // redirect votes to another party or change their preference assumptions.
+  auto const party = LivePartyMapping::candidateParty(ecCandidateId,
+    isPrevious ? LivePartyMapping::SourceElection::Previous : LivePartyMapping::SourceElection::Current,
+    previousElection, currentElection);
+  if (!party) {
+    logger << "Warning: Candidate ID " << ecCandidateId << " not found in either current or previous election data\n";
+    return -1;
   }
-  if (!isPrevious && candidateIt == currentElection.candidates.end()) {
-    candidateIt = previousElection.candidates.find(ecCandidateId);
-    if (candidateIt == previousElection.candidates.end()) {
-      logger << "Warning: Candidate ID " << ecCandidateId << " not found in either current or previous election data\n";
-      return -1;
-    }
-  } else if (isPrevious && candidateIt == previousElection.candidates.end()) {
-    candidateIt = currentElection.candidates.find(ecCandidateId);
-    if (candidateIt == currentElection.candidates.end()) {
-      logger << "Warning: Candidate ID " << ecCandidateId << " not found in either current or previous election data\n";
-      return -1;
-    }
-  }
-  ecPartyId = candidateIt->second.party;
 
-  // Independent candidates are given a new ID so they don't clash with real parties
-  // Don't add this to ecPartyToNetParty as other candidates should never be mapped to this ID
-  // (doing so would also break the generation of new party IDs)
-  if (ecPartyId == Results2::Candidate::Independent) {
+  // Independent candidates keep their existing individual identities, outside
+  // the registered-party range. They do not share the registered-party cache.
+  if (party->partyId == Results2::Candidate::Independent) {
     return ecCandidateId + IndependentPartyIdOffset;
   }
 
-  // Check if we've already mapped this EC party ID
-  auto it = ecPartyToInternalParty.find(ecPartyId);
-  if (it != ecPartyToInternalParty.end()) {
-    return it->second;
+  LivePartyMapping::CommissionPartyId const identity{party->source, party->partyId};
+  if (!party->hasPartyRecord && !ecPartyToInternalParty.contains(identity)) {
+    logger << "Warning: Party ID " << party->partyId << " not found in "
+      << (party->source == LivePartyMapping::SourceElection::Previous ? "previous" : "current")
+      << " election data\n";
   }
-  
-  // Check if party is in the current election data
-  if (currentElection.parties.contains(ecPartyId)) {
-    return processParty(ecPartyId, currentElection.parties.at(ecPartyId).shortCode);
-  }
-  
-  // Check if party is in the previous election data
-  if (previousElection.parties.contains(ecPartyId)) {
-    return processParty(ecPartyId, previousElection.parties.at(ecPartyId).shortCode);
-  }
-  
-  // 3. Failsafe: Party not found in either election
-  logger << "Warning: Party ID " << ecPartyId << " not found in either current or previous election data\n";
-  return processParty(ecPartyId, "");
+  return LivePartyMapping::mapParty(identity, party->abbreviation,
+    project.parties().count(), IndependentPartyIdOffset,
+    ecPartyToInternalParty, ecAbbreviationToInternalParty);
 }
 
 std::uint64_t Election::variabilityKey(int itemIndex, std::uint64_t partyId, std::uint32_t tag) const {

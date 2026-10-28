@@ -1048,9 +1048,9 @@ ELECTIONS = {
             PublishedCount(
                 PREPOLL_MEASURE,
                 '2025-03-07',
-                664850,
-                'Thursday total 557,693 plus final-Friday count 107,157',
-                derivation='sum_published_counts',
+                557693,
+                'Final cumulative early votes issued (WAEC 7 March report)',
+                source_id='waec-2025-early-election-eve',
             ),
             PublishedCount(
                 POSTAL_APPLICATION_MEASURE,
@@ -1067,6 +1067,12 @@ ELECTIONS = {
                 count_precision='approximate',
             ),
         ),
+        additional_sources=(PublishedSource(
+            source_id='waec-2025-early-election-eve',
+            authority='Western Australian Electoral Commission',
+            locator='https://www.elections.wa.gov.au/sites/default/files/SGE2025/EV%20stat%20reports/SGE2025%20Early%20Voting%20Day%2010%202025-03-07.pdf',
+            notes='557,693 is cumulative through Friday; the Friday increment is already included.',
+        ),),
     ),
     '2022sa': PublishedElection(
         election_code='2022sa',

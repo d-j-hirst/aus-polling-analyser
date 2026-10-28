@@ -89,7 +89,7 @@ json encode(Snapshot const& snapshot) {
     for (auto const& record : snapshot.records) {
         json row{{"k",record.key},{"d",record.district},{"n",record.name},
             {"r",record.role},{"i",record.identity},{"c",record.candidates},{"e",record.expected},
-            {"closed",record.closed},{"fp",encodeCount(record.fp)},{"tcp",encodeCount(record.tcp)}};
+            {"closed",record.closed},{"incremental",record.incremental},{"fp",encodeCount(record.fp)},{"tcp",encodeCount(record.tcp)}};
         // Most records already contain their matched pair as the latest FP
         // and TCP, so do not duplicate it. Preserve extra vectors only when
         // one of those counts has moved beyond the selected measured cohort.
@@ -116,6 +116,7 @@ Snapshot decode(json const& value) {
         record.key = row.at("k"); record.district = row.at("d"); record.name = row.at("n");
         record.role = row.at("r"); record.identity = row.at("i"); record.candidates = row.at("c").get<std::vector<int>>();
         record.expected = row.at("e"); record.closed = row.at("closed");
+        record.incremental = row.value("incremental",false);
         record.fp = decodeCount(row.at("fp")); record.tcp = decodeCount(row.at("tcp"));
         // Older caches have only their two latest count vectors. New entries
         // also preserve the last identified pair when those counts diverge.
@@ -160,7 +161,8 @@ std::vector<std::filesystem::path> earlierFiles(std::filesystem::path const& fol
 
 bool sameRecord(Record const& current, Record const& previous) {
     return current.identity == previous.identity && current.district == previous.district &&
-        current.role == previous.role && current.candidates == previous.candidates && current.closed == previous.closed;
+        current.role == previous.role && current.candidates == previous.candidates && current.closed == previous.closed
+        && current.incremental == previous.incremental;
 }
 
 bool comparablePreferenceAccount(Counts const& fp, Counts const& tcp) {
@@ -520,6 +522,42 @@ PreferenceHistories loadPreferenceHistory(std::filesystem::path const& folder,
             if (requested != needed.end() && considerPreferenceRecord(record, *requested->second, result.at(record.key)))
                 needed.erase(requested);
         }
+    }
+    return result;
+}
+
+std::map<std::string,std::vector<double>> loadFpTotalHistory(std::filesystem::path const& folder,
+    std::string const& election, std::string const& sourceTime,
+    std::map<std::string,std::set<std::string>> const& selection, HistoryReadMode mode) {
+    // The change index bounds disk work by selected places. Only their numeric
+    // totals survive this query; no full historical election remains in memory.
+    // Sorting on original observation time also deduplicates restored accounts.
+    std::map<std::string,std::map<std::string,double>> changes;
+    auto collect = [&](Snapshot const& old) {
+        if (old.election != election || old.sourceTime >= sourceTime) return;
+        for (auto const& record : old.records) {
+            auto district = selection.find(record.district);
+            if (district == selection.end() || !district->second.contains(record.key) || !record.fp.votes) continue;
+            changes[record.key].try_emplace(record.fp.observedAt,double(total(record.fp.votes)));
+        }
+    };
+    if (mode == HistoryReadMode::Indexed) {
+        try {
+            LiveInputHistory::visitEarlier(folder,fileCode(sourceTime),selection,
+                [](json const& value) { decode(value); },
+                [&](std::string const&, std::size_t, json const& value) { collect(decode(value)); return true; },
+                LiveInputHistory::RequiredCount::FirstPreferences);
+        } catch (LiveInputHistory::Unavailable const&) {
+            return loadFpTotalHistory(folder,election,sourceTime,selection,HistoryReadMode::SourceFiles);
+        }
+    } else for (auto const& path : earlierFiles(folder,sourceTime)) {
+        std::ifstream stream(path); json value; stream >> value; collect(decode(value));
+    }
+    std::map<std::string,std::vector<double>> result;
+    for (auto const& [key,observations] : changes) {
+        auto& totals = result[key];
+        for (auto const& [time,count] : observations)
+            if (totals.empty() || count != totals.back()) totals.push_back(count);
     }
     return result;
 }

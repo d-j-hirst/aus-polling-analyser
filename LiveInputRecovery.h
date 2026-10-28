@@ -72,6 +72,7 @@ struct Record {
     Count fp, tcp;
     double expected = 0;
     bool closed = false;
+    bool incremental = false; // Explicit mixed-place FP batches, not an inference from count size.
     std::optional<PreferenceCohort> matchedPreferences;
     // Original FP/transfer account belonging to the current TCP. Unlike the
     // most recent useful flow measurement, this must follow an unchanged TCP
@@ -124,6 +125,13 @@ using PreferenceHistories = std::map<std::string,PreferenceHistory>;
 enum class HistoryReadMode { Indexed, SourceFiles };
 PreferenceHistories loadPreferenceHistory(std::filesystem::path const& folder,
     Snapshot const& effective, HistoryReadMode mode = HistoryReadMode::Indexed);
+// Compact FP total histories for explicitly selected physical places. These are
+// accepted observations strictly before the replay clock, oldest first, with
+// repeated values removed. They describe received batches, not future archives.
+std::map<std::string,std::vector<double>> loadFpTotalHistory(std::filesystem::path const& folder,
+    std::string const& election, std::string const& sourceTime,
+    std::map<std::string,std::set<std::string>> const& selection,
+    HistoryReadMode mode = HistoryReadMode::Indexed);
 // Stage the selected measured pair with the accepted count state. It is saved
 // only by the normal successful-run commit, so later TCP does not erase it.
 void retainPreferenceHistory(Snapshot& effective, PreferenceHistories const& history);

@@ -28,6 +28,13 @@ class Outcome;
 
 constexpr float BoothTransformCap = 4.0f;
 
+// Working information for one attempt to calculate an election forecast.
+// The supplied project and Simulation provide configuration; the completed
+// report is written to Simulation. This object holds prepared historical/live
+// inputs and totals accumulated across possible elections, and coordinates preparation,
+// iterations and completion. Separate instances also support betting-odds
+// calibration and the baseline forecast used before incorporating live counts.
+// A completed main instance can be retained by Simulation for live inspection.
 class SimulationRun {
 public:
 	friend class SimulationPreparation;
@@ -166,11 +173,16 @@ public:
 		DiscardedIteration
 	};
 
+	// Select the project and configured simulation to use. The two flags identify
+	// supporting calculations, which exclude current live counts; both are false
+	// for the main run. snapshot optionally selects a saved results feed from a
+	// particular time during counting, allowing this run to replay that count stage.
+	// Construction only records these choices; it does not calculate a forecast.
 	SimulationRun(PollingProject& project, Simulation& simulation, bool doingBettingOddsCalibrations = false, bool doingLiveBaselineSimulation = false,
 		std::optional<LiveResultsInput::CurrentFile> snapshot = {}) :
 		snapshotInput(std::move(snapshot)), project(project), sim(simulation), doingBettingOddsCalibrations(doingBettingOddsCalibrations), doingLiveBaselineSimulation(doingLiveBaselineSimulation) {}
 
-	// A replay pins one local source for this run without modifying saved URLs.
+	// Return the selected saved feed, if any; replay leaves configured URLs unchanged.
 	std::optional<LiveResultsInput::CurrentFile> const& getSnapshotInput() const { return snapshotInput; }
 
 	// A run owns mutex-protected accumulators and must not be copied while
@@ -178,6 +190,10 @@ public:
 	SimulationRun(SimulationRun const&) = delete;
 	SimulationRun& operator=(SimulationRun const&) = delete;
 
+	// Run the main forecast lifecycle and retain its report on success. Preparation
+	// and iteration failures handled here return false; other exceptions can reach
+	// the caller. See the definition for message handlers and the precise scope of
+	// report protection. Supporting calculations invoke the stages separately.
 	bool run(
 		FeedbackFunc feedback = [](std::string) {},
 		ActionRequiredFunc actionRequired = {},

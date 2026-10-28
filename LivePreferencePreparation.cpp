@@ -150,7 +150,7 @@ void LiveV2::Election::preparePreferenceCorrections(LiveInputRecovery::RecordSta
 
 void LiveV2::Election::applyPreferenceCorrections(int iterationIndex) {
     if (!preferenceCorrections) return;
-    auto adjusted = std::make_shared<PreferenceScenarioCounts>();
+    auto adjusted = std::make_shared<LiveTurnout::ScenarioCounts>(turnout->scenarioCounts());
     adjusted->tpp = preferenceCorrections->countedTpp;
     adjusted->tcp = preferenceCorrections->countedTcp;
     auto const iterationSeed = RandomGenerator::mixKey(variabilityBaseSeed ^ 0x5265636865636b31ULL,
@@ -173,5 +173,5 @@ void LiveV2::Election::applyPreferenceCorrections(int iterationIndex) {
                 n.tcpShares[p] = float(25 * std::log((double(v) + .25) / (total - v + .25)));
         }
     }
-    preferenceScenarioCounts = std::move(adjusted);
+    scenarioCountedVotes = std::move(adjusted);
 }

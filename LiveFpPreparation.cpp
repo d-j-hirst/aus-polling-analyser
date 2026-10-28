@@ -16,7 +16,7 @@ LiveFpEvidence::Unit LiveV2::Election::fpEvidenceUnit(int boothIndex, bool varie
     unit.relevance = booth.node.relevanceModifier;
     unit.group = int(booth.voteType)*100+int(booth.boothType);
     unit.ordinary = booth.voteType == Results2::VoteType::Ordinary && booth.boothType != Results2::Booth::Type::Ppvc;
-    unit.aggregatedEarly = booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll;
+    unit.aggregatedEarly = booth.incrementalFp || booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll;
     return unit;
 }
 

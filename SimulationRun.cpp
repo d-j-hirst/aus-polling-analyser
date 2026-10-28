@@ -1,3 +1,8 @@
+// Coordinate the calculation of an election forecast: check its inputs, prepare
+// any supporting forecasts, simulate possible elections and assemble the report.
+// SimulationPreparation, SimulationIteration and SimulationCompletion contain
+// those stages' detailed work. This file also coordinates the separate runs used
+// to incorporate betting odds and establish a baseline without current live counts.
 #include "SimulationRun.h"
 
 #include "General.h"
@@ -77,28 +82,52 @@ namespace {
 	}
 }
 
+// Carry out the main forecast attempt for the project and simulation supplied
+// when this SimulationRun was created. The simulation selects the projection,
+// number of possible elections to calculate, and whether to use live counts;
+// the project supplies the shared election configuration and prepared models.
+// Preparation loads the historical inputs and, for a live run, the selected feed.
+//
+// feedback receives warnings and failures, actionRequired handles requests for
+// operator intervention, and progress receives stage descriptions. Return true
+// when the main report is complete, or false for a handled failure. Unhandled
+// exceptions can reach the caller; the report protection below also applies when
+// an exception leaves that protected section. Local export or history warnings
+// can accompany a completed forecast, so success does not certify every file write.
 bool SimulationRun::run(
 	FeedbackFunc feedback,
 	ActionRequiredFunc actionRequired,
 	FeedbackFunc progress) {
 	progressFeedback = std::move(progress);
 	if (!actionRequired) actionRequired = feedback;
-	// Keep every phase of this run on the same local calendar date, even if a
-	// long simulation crosses midnight.
+	// A nowcast estimates an election held today. Fix that date for the whole
+	// attempt, including supporting runs, so crossing midnight cannot mix two
+	// dates within one forecast. Other forecasts use their configured election date.
 	nowcastDate = Date::todayLocal();
 	if (!nowcastDate.isValid()) {
 		feedback("Could not determine the current local date for this simulation run.");
 		return false;
 	}
+	// Start a fresh warning collection. Iterations record calculation issues here
+	// so reportWarnings can summarise matters needing operator attention after a
+	// successful run. Details of rejected attempts are recorded in the log.
 	{
 		std::lock_guard<std::mutex> lock(warningMutex);
 		warnings.clear();
 	}
+	// Require at least one simulated election. The configured count is the main
+	// report's sample size, not the number of voters or polls; supporting runs
+	// have separate iteration counts.
 	if (sim.settings.numIterations <= 0) {
 		feedback(
 			"Could not run simulation: the configured iteration count must be positive.");
 		return false;
 	}
+	// Automatic live runs may also save a record of an update's forecast and
+	// supporting analysis, called a diagnostic snapshot. This is an output, unlike
+	// the saved input feeds used for replay. Check the requested folder name before
+	// calculating; an empty name disables these diagnostic files. They are separate
+	// from website report submission.
 	if (sim.isLiveAutomatic()) {
 		auto const outputError = LiveRunExport::validateOutputFolder(
 			sim.settings.liveOutputFolder);
@@ -110,6 +139,11 @@ bool SimulationRun::run(
 		}
 	}
 
+	// The base projection supplies possible overall party vote shares from which
+	// the seat simulation starts. Each simulated election draws a set of shares
+	// according to the projection's distribution of possible support, so different
+	// iterations can start with different overall shares. The projection must
+	// contain generated results; its settings alone do not supply those results.
 	Projection const& thisProjection = project.projections().view(sim.settings.baseProjection);
 
 	if (int(thisProjection.getProjectionLength()) == 0) {
@@ -117,6 +151,12 @@ bool SimulationRun::run(
 		return false;
 	}
 
+	// Both ordinary forecasts and nowcasts use the full-election projection;
+	// a nowcast requests support for today's date, usually earlier than the
+	// projection's election-date endpoint.
+	// Older projects sometimes supplied a separate projection named "nowcast";
+	// reject that recognised legacy arrangement rather than treating its earlier
+	// endpoint as the election date. The current report mode selects a nowcast.
 	int const projectionIndex =
 		project.projections().idToIndex(sim.settings.baseProjection);
 	if (projectionIndex >= 1 &&
@@ -131,6 +171,10 @@ bool SimulationRun::run(
 		return false;
 	}
 
+	// A nowcast asks about support at today's date, which must not be after the
+	// projection's election date. Otherwise scenarios use the specified election
+	// date, or sample from configured possible dates. Record which interpretation
+	// is in use; SimulationIteration::determineOverallTpp performs the sampling.
 	if (sim.isNowcast()) {
 		auto projectionEndDate = thisProjection.getSettings().endDate;
 		if (!projectionEndDate.isValid()) {
@@ -159,6 +203,12 @@ bool SimulationRun::run(
 		logger << "\n";
 	}
 
+	// Ordinary forecasts need no current count feed. Automatic live forecasts
+	// additionally need valid source settings and support files. For replay, a
+	// supplied snapshot is a saved results feed from a particular time: this run
+	// uses that file instead of the configured current-results source. Loading and
+	// analysis occur later during preparation, so passing this check is not
+	// acceptance of the vote counts themselves.
 	if (sim.isLiveAutomatic()) {
 		try {
 			LivePreparationBridge::validateAutomaticSetup(project, sim, snapshotInput);
@@ -169,6 +219,8 @@ bool SimulationRun::run(
 			return false;
 		}
 	}
+	// The supported live route reads automatic feeds. The older manual-entry
+	// route is retained in settings but is not adapted to the current pipeline.
 	if (sim.isLiveManual()) {
 		feedback(
 			"Manual live simulation is retained for possible future use, "
@@ -177,6 +229,9 @@ bool SimulationRun::run(
 		return false;
 	}
 
+	// Refresh seat information from the project's configured seat source before
+	// calibration and preparation use it. In particular, seat-level inputs such
+	// as betting odds must be available when deciding which supporting work to do.
 	try {
 		project.seats().importInfo();
 	}
@@ -186,15 +241,28 @@ bool SimulationRun::run(
 			std::string(exception.what()));
 		return false;
 	}
-	// Calibration and live-baseline sub-runs use latestReport as temporary
-	// workspace. Preserve the last successful report unless the complete main
-	// run reaches the commit point below.
+	// Supporting runs and the main preparation temporarily overwrite latestReport.
+	// Live preparation also adds seat swing and count-progress records to outcomes.
+	// Preserve both collections until the main calculation completes: an earlier
+	// return or exception restores them instead of leaving a partial forecast.
+	// This protection covers these two in-memory objects, not seat imports,
+	// reusable calibration/baseline information or files written during the run.
 	RetainedLiveState reportTransaction(sim.latestReport);
 	RetainedLiveState outcomesTransaction(project.outcomes());
 
+	// Where seat betting odds have been supplied, supporting simulations estimate
+	// vote-share adjustments that bring simulated winning chances towards the
+	// chances implied by those odds. The helper skips these runs when there are no
+	// odds, and can reuse matching live-run calibration results. These simulations
+	// exclude current counts and do not contribute iterations to the main report.
 	reportProgress("Checking betting-odds calibration...");
 	if (!runBettingOddsCalibrations(feedback)) return false;
 
+	// A live forecast also needs a baseline: the election simulation without
+	// current counts, against which the new count evidence is interpreted. Build
+	// it when absent or when its stored seat coverage no longer matches. The odds
+	// helper above also clears it if the odds inputs or iteration count changed.
+	// Retain this reference separately; its iterations are not live-report samples.
 	if (sim.isLiveAutomatic() && (!sim.liveBaselineReport
 		|| sim.liveBaselineReport->liveBaselineTppMoments.mean.size() != std::size_t(project.seats().count()))) {
 		reportProgress("Calculating the live baseline...");
@@ -203,6 +271,10 @@ bool SimulationRun::run(
 
 	auto const mainRunStart = std::chrono::steady_clock::now();
 
+	// Prepare once for the main run: load historical seat and regional inputs,
+	// clear the totals used to collect results, and, for a live forecast, acquire
+	// and interpret the current counts. Subsequent iterations share these prepared
+	// inputs while varying the uncertain electoral quantities.
 	SimulationPreparation preparations(project, sim, *this);
 	reportProgress("Preparing the live model...");
 	try {
@@ -214,14 +286,24 @@ bool SimulationRun::run(
 		return false;
 	}
 
+	// Each iteration represents one possible whole election, including seat and
+	// government outcomes. runIterations calculates groups of scenarios in parallel
+	// and waits for them to finish. A reported failure prevents an incomplete set of
+	// scenarios from being passed to the report-summary stage.
 	const int cycleIterations = sim.settings.numIterations;
 	reportProgress("Calculating forecast iterations...");
 	if (!runIterations(*this, cycleIterations, 0, "simulation", feedback)) return false;
 
+	// Summarise only the main iterations into vote shares, seat counts and outcome
+	// probabilities. Automatic live completion also attempts local summary and
+	// optional diagnostic exports. The website uses the retained report through
+	// a separate selection, JSON-export and submission path.
 	SimulationCompletion completion(project, sim, *this, cycleIterations);
 	reportProgress("Completing the forecast and writing snapshot exports...");
 	completion.completeRun(feedback, actionRequired);
 
+	// Measure the main calculation separately from supporting calibration and
+	// baseline runs, then surface any warnings collected during its iterations.
 	auto const mainRunElapsed =
 		std::chrono::steady_clock::now() - mainRunStart;
 	double const mainRunSeconds =
@@ -232,6 +314,11 @@ bool SimulationRun::run(
 
 	reportWarnings(feedback);
 
+	// The main report is complete. Mark this attempt successful and write the
+	// accepted live-count history queued during preparation. Reported history-write
+	// failures are warnings and do not discard the calculated forecast. Committing
+	// the two protected objects keeps their new values; Simulation::run can then
+	// retain this run. Named report saving and website submission happen separately.
 	sim.lastUpdated = Timestamp::now();
 	inputRunCompleted = true;
 	commitLiveHistory();

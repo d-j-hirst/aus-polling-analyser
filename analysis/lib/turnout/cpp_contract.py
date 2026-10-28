@@ -6,7 +6,7 @@ Current counts and source history are separate from the frozen prior account.
 """
 
 import numpy as np
-from lib.turnout import allocation, late_counts, late_schedule, live, prior
+from lib.turnout import allocation, completion, late_counts, late_schedule, live, prior
 
 SCHEMA_VERSION = 1
 MASK = (1 << 64)-1
@@ -17,6 +17,7 @@ def unit_rows(units):
     return [dict(seat=u['seat_index'], group=u['group_index'], name=u['name'],
                  category=late_counts.category_key(u), kind=u['kind'], weight=u['weight'],
                  counted=u['counted'], matched=u['matched'], eav=live.is_eav(u),
+                 incremental=bool(u.get('incremental', False)),
                  closed=bool(u.get('closed_reason')), excluded=bool(u.get('calibration_exclusion_reason')),
                  closure_reason=u.get('closed_reason') or '', exclusion_reason=u.get('calibration_exclusion_reason') or '',
                  transfer_exclusion_reason=u.get('transfer_exclusion_reason') or '')
@@ -69,7 +70,7 @@ def artifact(election, inputs, parameters, draws, units, history, provenance, *,
 
 
 def expected(election, inputs, draws, units, history, *, count_draws=8, seed=20261002,
-             finalised=(), ppvc_factor=1., postal_deadline=None):
+             finalised=(), ppvc_factor=1., postal_deadline=None, poll_close=None):
     """Prepare the Python reference account on the C++ quantile grid."""
     inputs = dict(inputs, election_code=election)
     broad = live.update(draws,inputs,units,finalised_seats=finalised,unreported_ppvc_factor=ppvc_factor)
@@ -84,12 +85,23 @@ def expected(election, inputs, draws, units, history, *, count_draws=8, seed=202
     broad,weights = allocation.release(broad,inputs,units,broad['own_remaining'],grouped)
     grid = quantiles(election,inputs,units,broad['complete'],len(draws['totals'])*count_draws,seed)
     schedule = late_schedule.schedule(history,units,evidence,deadline) if deadline else None
-    result = late_counts.update(broad,inputs,units,evidence,count_draws,seed,uniforms=grid,schedule=schedule)
+    result = late_counts.update(broad,inputs,units,evidence,count_draws,seed,uniforms=grid,schedule=schedule,
+        days_after_poll_close=completion.days_after_poll_close(history,poll_close))
     components = []
     prepared = result['component_preparation']
     for k,c in enumerate(result['components']):
         components.append(dict(unit=c['unit'],weight=c['weight'],usual_log_shift=c['usual_log_shift'],
             completion_weight=c['completion_weight'], original_size_z=c['original_size_z'],
+            early_completion_retention=c['early_completion_retention'], batch_log_odds_sd=c['batch_log_odds_sd'],
+            postal_widening_enabled=c.get('postal_widening_enabled',False),
+            postal_routine_extra_log_odds_sd=c.get('postal_routine_extra_log_odds_sd',0.),
+            postal_batch_extra_log_odds_sd=c.get('postal_batch_extra_log_odds_sd',0.),
+            positive_remainder_weight=c['positive_remainder_weight'],
+            positive_remainder_median_votes=c['positive_remainder_median_votes'],
+            **{key:c[key] for key in ('routine_remainder_support','routine_remainder_mean_votes',
+                'routine_remainder_maturity','routine_remainder_bridge_weight',
+                'routine_remainder_reference_mean_votes','routine_remainder_mean_adjustment_votes')},
+            postal_remainder_median_fraction=c['postal_remainder_median_fraction'],
             probabilities=c['allocation_probabilities_before_local_completion'],
             small_mean=c['small_mean_if_other_counts_fixed'],batch_mean=c['batch_mean_if_other_counts_fixed'],
             capacity=prepared['unused_capacity'][:,k].tolist(), reference=prepared['reference_additions'][:,k].tolist(),

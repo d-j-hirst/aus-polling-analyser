@@ -133,7 +133,7 @@ fTppMargin=34.1
 fPreviousTppSwing=0.5
 fTransposedFederalSwing=2.3
 bRetirement=1
-sBettingOdds=GRN,1.105
+sBettingOdds=GRN,1.125
 sCandidateNames=Gabe Steger,ALP;Adam Pulford,GRN;Adam Helman,ONP
 #Bulleen
 sIncumbent=LNP
@@ -177,6 +177,7 @@ fTransposedFederalSwing=2.1
 bConfirmedProminentIndependent=1
 bPreviousIndRunning=1
 sMinorViability=IND,-1
+sBettingOdds=IND,26.00
 sCandidateNames=Meng Heang Tak,ALP;Conor Boyd-Eedle,GRN;Gavin Bain,ONP;John Paganis,LNP;Caroline White,IND
 #Cranbourne
 sIncumbent=ALP
@@ -382,7 +383,7 @@ bSophomoreCandidate=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,1
 bPreviousIndRunning=1
-sBettingOdds=IND,5.00
+sBettingOdds=IND,7.50
 sCandidateNames=David Sun,ALP;Jess Wilson,LNP;Jackie Carter,GRN;Sophie Torney,IND;David Laird,ONP
 #Kororoit
 sIncumbent=ALP
@@ -430,7 +431,7 @@ fTransposedFederalSwing=-1.3
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
-sBettingOdds=IND,21.00
+sBettingOdds=IND,23.50
 sCandidateNames=Annette Death,ALP;Kate Kendall,LNP;Marley McRae McLeod,GRN;Damien Parolin,ONP;Dom Bonanno,IND
 #Malvern
 sIncumbent=LNP
@@ -442,7 +443,7 @@ fTransposedFederalSwing=-0.7
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
-sBettingOdds=IND,20.50
+sBettingOdds=IND,24.50
 sCandidateNames=Amelia Hamer,LNP;Georgia Katsikis,GRN;Edward Bode,ONP;Christina Zigouras,IND
 #Melbourne
 sIncumbent=GRN
@@ -451,7 +452,7 @@ sRegion=Inner Melbourne
 fTppMargin=25
 fPreviousTppSwing=0.6
 fTransposedFederalSwing=0.3
-sBettingOdds=GRN,1.42
+sBettingOdds=GRN,1.285
 sCandidateNames=Ellen Sandell,GRN;Davydd Griffiths,ALP;Rafael Camillo,LNP;Matthew Collins,ONP
 #Melton
 sIncumbent=ALP
@@ -473,7 +474,7 @@ bConfirmedProminentIndependent=1
 sMinorViability=IND,2
 sCoalitionCandidates=NAT
 bPreviousIndRunning=1
-sBettingOdds=IND,6.00
+sBettingOdds=IND,8.50
 sCandidateNames=Jade Benham,NAT;Katie Clements,GRN;Guy Cooper,ONP;Ali Cupper,IND
 #Mill Park
 sIncumbent=ALP
@@ -511,6 +512,7 @@ fTransposedFederalSwing=0.8
 bSophomoreCandidate=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
+sBettingOdds=IND,46.00
 sCandidateNames=Chris Crewther,LNP;Ashli Beards,ONP;Melissa Goffin,IND;Kai Titcher,GRN;Kerry Macdonald,ALP
 #Morwell
 sIncumbent=NAT
@@ -637,6 +639,7 @@ sRegion=Middle NW Melbourne
 fTppMargin=22.2
 fPreviousTppSwing=0.0
 fTransposedFederalSwing=2.2
+sBettingOdds=GRN,2.80
 sCandidateNames=Anthony Cianflone,ALP;Angelica Panopoulos,GRN;Andrew Forehan,ONP
 #Point Cook
 sIncumbent=ALP
@@ -665,6 +668,7 @@ fByElectionSwing=-13.4
 fTransposedFederalSwing=-0.8
 bSophomoreCandidate=1
 bSophomoreParty=1
+sBettingOdds=GRN,1.33
 sCandidateNames=Rachel Westaway,LNP;Angelica Di Camillo,GRN;Meghan Hopper,ALP;Shaun Virsu,ONP
 #Preston
 sIncumbent=ALP
@@ -674,6 +678,7 @@ fTppMargin=19.7
 fPreviousTppSwing=-8.6
 fTransposedFederalSwing=1.3
 bSophomoreCandidate=1
+sBettingOdds=GRN,3.75
 sCandidateNames=Nathan Lambert,ALP;Loki Sangarya,GRN;Franco Guardiani,ONP;Hamza Al Katranji,LNP
 #Richmond
 sIncumbent=GRN
@@ -737,6 +742,7 @@ sCoalitionCandidates=NAT;LNP,0.25
 fNationalsCoalitionShare=0.52
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
+sBettingOdds=IND,7.00
 sCandidateNames=Cayla Fin,ALP;Shane Sali,NAT;Grace Verney,GRN;Phillip Bryant,ONP;Lou Costa,IND
 #South Barwon
 sIncumbent=ALP

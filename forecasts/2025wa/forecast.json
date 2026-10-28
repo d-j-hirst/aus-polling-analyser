@@ -6,6 +6,12 @@
   "election_name": "2025 WA State Election",
   "election_settings": {
     "federal_election_date": "2025-05-17",
+    "live_sources": {
+      "current_real_url": "forecasts/2025wa/live-snapshots/feeds",
+      "current_test_url": "",
+      "preload_url": "",
+      "previous_results_url": ""
+    },
     "previous_election_tpp": 69.68000030517578,
     "previous_term_codes": [
       "2021wa"

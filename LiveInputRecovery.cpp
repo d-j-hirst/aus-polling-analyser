@@ -156,7 +156,8 @@ Record const* compatiblePrevious(Record const& record, RecordIndex const& previo
     if (found == previous.end()) return nullptr;
     auto const* old = found->second;
     return old->identity == record.identity && old->district == record.district && old->role == record.role &&
-        old->candidates == record.candidates && old->closed == record.closed ? old : nullptr;
+        old->candidates == record.candidates && old->closed == record.closed &&
+        old->incremental == record.incremental ? old : nullptr;
 }
 
 void attachTcpBasis(Record& record, Record const* old) {
@@ -368,7 +369,7 @@ void validateCompletion(Result& result) {
         if (record.fp.status == Status::Current)
             record.fp.complete = record.closed || (record.fp.votes &&
                 (result.snapshot.districts.at(record.district).finalised ||
-                    (record.role != "declaration" && total(record.fp.votes) > 0)));
+                    (record.role != "declaration" && !record.incremental && total(record.fp.votes) > 0)));
         if (record.fp.status == Status::Unavailable) record.fp.complete = record.closed;
         record.tcp.complete = record.tcp.votes && record.fp.complete &&
             (result.snapshot.optionalPreferential || total(record.tcp.votes) >= OrdinaryTcpComparableFraction*total(record.fp.votes));

@@ -87,7 +87,8 @@ def export(code,args):
     fingerprints = dict(origin_sha256=sa.digest(origin_path),prior_fixture_sha256=sa.digest(fixture_path),
         maintained_parameters_sha256=sa.digest(maintained_parameters.PARAMETER_PATH),
         inputs={Path(p).name:digest for p,digest in origin['provenance']['inputs'].items()},sources={stamp:dict(file=path.name,sha256=sa.digest(path)) for stamp,path,_ in observations},
-        code={Path(p).name:sa.digest(Path(p)) for p in (cpp_contract.__file__,prior.__file__,replay.live.__file__,replay.late_counts.__file__,allocation.__file__,late_schedule.__file__)},
+        code={Path(p).name:sa.digest(Path(p)) for p in (cpp_contract.__file__,prior.__file__,replay.live.__file__,replay.late_counts.__file__,
+            replay.late_counts.routine_remainders.__file__,allocation.__file__,late_schedule.__file__)},
         input_treatment='Raw live feed; no final-derived SA category repairs.')
     decay = code == '2025fed' and origin['config']['ppvc_reporting_decay']
     poll_close = '2025-05-03T18:00:00' if code == '2025fed' else None
@@ -102,7 +103,7 @@ def export(code,args):
     full_finalised = [n for n,s in current['seats'].items() if s.get('finalised')]
     full_factor = ppvc_sizes.reporting_decay_factor((datetime.fromisoformat(stamp)-datetime.fromisoformat(poll_close)).total_seconds()/3600) if decay else 1.
     reference = cpp_contract.expected(code,inputs,draws,full_units,history,count_draws=args.count_draws,seed=args.seed,
-        finalised=full_finalised,ppvc_factor=full_factor,postal_deadline=replay.POSTAL_DEADLINES.get(code))
+        finalised=full_finalised,ppvc_factor=full_factor,postal_deadline=replay.POSTAL_DEADLINES.get(code),poll_close=poll_close)
     write(args.output/f'{code}-checkpoint.json',dict(source_time=stamp,units=cpp_contract.unit_rows(full_units),
         finalised=full_finalised,ppvc_factor=full_factor,
         expected_mean_totals=reference['mean_totals'],expected_unit_means=reference['unit_means']))
@@ -126,7 +127,7 @@ def export(code,args):
     # in place of unavailable historical measurements.
     cases.append(dict(name=code+'/frozen-no-results',source_time=observations[0][0],source_sha256=None,
         units=cpp_contract.unit_rows(small_template),history=[],finalised=[],ppvc_factor=1.,
-        expected=cpp_contract.expected(code,small,values,small_template,[],count_draws=args.count_draws,seed=args.seed)))
+        expected=cpp_contract.expected(code,small,values,small_template,[],count_draws=args.count_draws,seed=args.seed,poll_close=poll_close)))
     for index in selected:
         stamp,path,current = observations[index]
         units = replay.attach_counts(template,current,code)
@@ -137,7 +138,7 @@ def export(code,args):
         case = dict(name=code+'/'+stamp,source_sha256=sa.digest(path),source_time=stamp,
                     units=cpp_contract.unit_rows(small_units),history=small_history,finalised=finalised,ppvc_factor=factor)
         case['expected'] = cpp_contract.expected(code,small,values,small_units,small_history,count_draws=args.count_draws,
-            seed=args.seed,finalised=finalised,ppvc_factor=factor,postal_deadline=replay.POSTAL_DEADLINES.get(code))
+            seed=args.seed,finalised=finalised,ppvc_factor=factor,postal_deadline=replay.POSTAL_DEADLINES.get(code),poll_close=poll_close)
         cases.append(case)
     # The fixture is a self-contained, small subset of the exported election
     # contract. Sensitivity summaries are not used by the portable count test.

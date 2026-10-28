@@ -107,6 +107,9 @@ void Prepared::Composition::prepareUnitResponses(Counts const& countAccount,
     std::map<std::size_t, UnitComposition const*> const& byBooth) {
     // Fixed base votes finish preferences already owed on counted FP votes.
     // Only unfinished units need party shares for genuinely additional voters.
+    // Every reported unit, including a completed one, can instead receive an
+    // occasional signed revision to its own counted voters.
+    enrolment.resize(seats.size());
     for (std::size_t j = 0; j < countAccount.boothIndexes.size(); ++j) {
         int b = countAccount.boothIndexes[j]; if (b < 0) continue;
         auto const& u = *byBooth.at(std::size_t(b));
@@ -116,6 +119,13 @@ void Prepared::Composition::prepareUnitResponses(Counts const& countAccount,
         for (auto const& [p, v] : fp.base) baseFp.at(u.seat)[p] += v;
         for (auto const& [p, v] : tpp.base) baseTpp.at(u.seat)[p] += v;
         for (auto const& [p, v] : tcp.base) baseTcp.at(u.seat)[p] += v;
+        enrolment.at(u.seat) = countAccount.artifact.prior.enrolment.at(countAccount.units[j].seat);
+        auto const& unit = countAccount.units[j];
+        bool waMixedEarly = countAccount.artifact.prior.election.ends_with("wa")
+            && unit.kind == "ppvc" && unit.incremental;
+        double revisionSd = waMixedEarly ? LiveCountRevisions::MixedEarlyRelativeSd : LiveCountRevisions::RelativeSd;
+        if (!u.fp.empty()) revisions.push_back({j,u.seat,
+            LiveCountRevisions::prepare(u.fp,u.tpp,u.tcp,tpp.base,tcp.base,u.tppAliases,revisionSd)});
         if (!countAccount.result.broad.complete[j]) {
             if (fp.additionShares.empty()) throw std::runtime_error("No composition for unfinished turnout unit: " + countAccount.units[j].name);
             responses.push_back({j, u.seat, std::move(fp.additionShares), std::move(tpp.additionShares), std::move(tcp.additionShares)});
@@ -167,6 +177,42 @@ std::vector<Projection> Prepared::draw(unsigned long long seed) const {
     return result;
 }
 
+ScenarioCounts Prepared::scenarioCounts() const {
+    ScenarioCounts result;
+    for (auto const& seat : composition->seats) {
+        result.fp.push_back(seat.fp); result.tpp.push_back(seat.tpp); result.tcp.push_back(seat.tcp);
+    }
+    return result;
+}
+
+void Prepared::revise(unsigned long long seed, std::vector<Projection>& projected,
+    ScenarioCounts& counted) const {
+    // A prepared sparse response ties each revision to an actual reporting
+    // account. Only selected corrections touch candidate maps; there is no
+    // per-iteration booth forecasting or historical lookup. The same signed
+    // voter change reaches FP and both available pair projections, including
+    // inferred preferences, but only reported preferences become counted votes.
+    for (auto const& r : composition->revisions) {
+        auto draw = LiveCountRevisions::draw(r.distribution,RandomGenerator::mixKey(seed,r.unit));
+        if (!draw.direction || draw.amount == 0) continue;
+        auto const& direction = *draw.direction;
+        auto& p = projected.at(r.seat);
+        auto& fp = counted.fp.at(r.seat); auto& tpp = counted.tpp.at(r.seat); auto& tcp = counted.tcp.at(r.seat);
+        double total = 0; for (auto const& [party,votes] : p.fp) total += votes;
+        double limit = std::min(direction.limit,std::max(0.,composition->enrolment[r.seat]-total));
+        LiveCountRevisions::Weights fpDirection{{direction.candidate,1}};
+        LiveCountRevisions::bound(fp,p.fp,fpDirection,1,limit);
+        LiveCountRevisions::bound(tpp,p.tpp,direction.tpp,r.distribution.tppCoverage,limit);
+        LiveCountRevisions::bound(tcp,p.tcp,direction.tcp,r.distribution.tcpCoverage,limit);
+        // Leave numerical room at zero when moving between double counted
+        // maps and float projections. This is a rounding guard, not a model floor.
+        double amount = std::clamp(draw.amount,-limit*(1-1e-12),limit*(1-1e-12));
+        LiveCountRevisions::apply(fp,p.fp,fpDirection,1,amount);
+        LiveCountRevisions::apply(tpp,p.tpp,direction.tpp,r.distribution.tppCoverage,amount);
+        LiveCountRevisions::apply(tcp,p.tcp,direction.tcp,r.distribution.tcpCoverage,amount);
+    }
+}
+
 Projected Prepared::vary(LiveData::CountKind kind, std::size_t seat,
     Projected const& sampled, std::map<int, double> const& changes) const {
     return LiveTurnoutMath::varySampledRemaining(sampled, mean(kind, seat), counted(kind, seat),
@@ -194,6 +240,15 @@ std::size_t Prepared::seatIndex(std::string const& name) const { return composit
 nlohmann::json Prepared::diagnostic() const {
     auto value = TurnoutModelIO::diagnostic(counts->artifact, counts->units, counts->result, counts->sourceTime);
     value["composition_responses"] = composition ? composition->responses.size() : 0;
+    value["count_revisions"] = revisionDiagnostic();
     return value;
+}
+nlohmann::json Prepared::revisionDiagnostic() const {
+    return {{"version","live-count-revisions-1"},
+        {"scope","Individual reported booth or declaration account"},
+        {"probability",LiveCountRevisions::Probability},{"conditional_relative_sd",LiveCountRevisions::RelativeSd},
+        {"wa_mixed_early_conditional_relative_sd",LiveCountRevisions::MixedEarlyRelativeSd},
+        {"reported_accounts",composition ? composition->revisions.size() : 0},
+        {"policy","Centred signed candidate batches; accepted feed counts unchanged; constrained by nonnegative candidate accounts and enrolment."}};
 }
 }

@@ -1,3 +1,8 @@
+// Prepare overall support for forecasting from Python's polling-analysis files.
+// loadData coordinates input loading and the construction of adjusted daily
+// summaries. The sampling helpers also supply fresh possible vote shares to
+// Projection; the Python fitting jobs have already produced the inputs read here.
+
 #include "StanModel.h"
 
 #include "General.h"
@@ -51,13 +56,23 @@ Date StanModel::getEndDate() const
 	return startDate + int(rawTppSupport.timePoint.size()) - 1;
 }
 
+// Prepare this election's polling model for C++ forecasting. Workspace files
+// supply previously fitted trends and adjustment estimates; configured party
+// codes and preference settings describe how this model uses them. This entry
+// point loads those inputs and builds adjusted daily summaries for reports.
+// feedback receives progress and handled failures; numThreads controls concurrent
+// work on model dates. A successful call records the model's update time.
 bool StanModel::loadData(
 	WorkspacePaths const& paths, FeedbackFunc feedback, int numThreads)
 {
 	logger << "Starting model run: " << Timestamp::now().formatIsoLocal() << "\n";
+	// Input preparation is also available on its own for projection sampling.
 	if (!prepareForRun(paths, feedback)) return false;
 	logger << "Model end date: " << getEndDate().formatIso() << "\n";
 	logger << "Prepared model inputs: " << Timestamp::now().formatIsoLocal() << "\n";
+	// Complete the daily summaries as well. If this stage reports failure, revoke
+	// the readiness set by input preparation so this load cannot be used as a
+	// successfully completed model update.
 	if (!updateAdjustedData(feedback, numThreads)) {
 		readyForProjection = false;
 		return false;
@@ -170,9 +185,21 @@ std::string StanModel::rawPartyCodeByIndex(int index) const
 	return std::next(rawSupport.begin(), index)->first;
 }
 
+// Load the information shared by support draws: party definitions, historical
+// estimates, preference assumptions, polls and daily trend distributions.
+// paths resolves workspace files; termCode selects the election (e.g. 2026vic).
+// Required inputs are checked by their loaders, which report failures to feedback.
+//
+// Success sets readyForProjection because fresh support can now be drawn from
+// these inputs. This boundary is also used by the prepare-model command, which
+// leaves the adjusted summary series empty. loadData builds those summaries in
+// its next stage; readiness alone therefore does not promise that they exist.
 bool StanModel::prepareForRun(
 	WorkspacePaths const& paths, FeedbackFunc feedback)
 {
+	// Remove the previous trends, summaries and polls, and keep sampling disabled
+	// until the new inputs are ready. A failed load must not leave the old model
+	// marked as ready while some of its data has been replaced.
 	readyForProjection = false;
 	rawSupport.clear();
 	rawTppSupport = {};
@@ -180,14 +207,40 @@ bool StanModel::prepareForRun(
 	tppSupport = {};
 	validationSupport.clear();
 	modelledPolls.clear();
+	// Match configured party codes to the maintained groups in analysis/Data.
+	// Groups let parties share adjustment estimates where individual histories
+	// are too limited to estimate them separately.
 	if (!loadPartyCodes(feedback)) return false;
 	if (!loadPartyGroups(paths, feedback)) return false;
+
+	// The Python stage analysis/scripts/pipeline/trend_adjust.py writes baseline
+	// vote estimates in analysis/Fundamentals and corrections in analysis/Adjustments.
+	// The baseline ("fundamentals") uses election history and political context;
+	// corrections allow for systematic over- or underestimation in the trend and
+	// baseline, supply further uncertainty, and set the weight given to polling.
 	if (!loadFundamentalsPredictions(paths, feedback)) return false;
 	if (!loadParameters(paths, feedback)) return false;
+
+	// Historical election analysis supplies estimates for an emerging party:
+	// a possible new source of minor-party support not already in the trend.
 	if (!loadEmergingOthersParameters(paths, feedback)) return false;
+
+	// Combine maintained preference-flow and exhaustion estimates with this
+	// model's configured uncertainty settings, so possible FP and TPP results
+	// can be related through consistent preference assumptions.
 	if (!generatePreferenceMaps(paths, feedback)) return false;
+
+	// The analysis/scripts/pipeline/fp_model.py stage writes polling outputs under
+	// analysis/Outputs: polls and adjusted values for report context, then daily
+	// FP and TPP uncertainty distributions for drawing possible support.
+	// "Raw" names these imported trends before the C++ forecast adjustments;
+	// the loaders check that their dates, lengths and vote-share values agree.
 	if (!loadModelledPolls(paths, feedback)) return false;
 	if (!loadTrendData(paths, feedback)) return false;
+
+	// Split off the part of aggregate Others not represented by named minor
+	// parties. This gives subsequent draws a separate unnamed component while
+	// retaining the overall Others series for comparison and adjustment.
 	generateUnnamedOthersSeries();
 	readyForProjection = true;
 	return true;
@@ -978,13 +1031,26 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(
 	return sample;
 }
 
+// Build the adjusted daily summaries from the loaded trends and adjustment
+// inputs. For each date, generate many possible combinations of overall FP,
+// TPP and preferences, then retain ordered points in their vote-share ranges.
+// These draws describe overall support; individual seats are simulated later.
+//
+// Reports use the resulting adjustedSupport and tppSupport series. Projection
+// calculations generate fresh samples from the prepared inputs, so these stored
+// percentiles summarise the model rather than supplying its individual draws.
 bool StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 {
+	// Draw counts control the precision of these numerical summaries. They are
+	// inherited computation settings; the rationale for their exact values has
+	// not been established here. Support uncertainty comes from the input model.
 	constexpr int BaseIterations = 400;
 	numThreads = std::max(1, numThreads);
 	adjustedSupport.clear(); // Never retain adjusted values from a previous run.
 	tppSupport.timePoint.clear();
 	try {
+		// Provide an output distribution for every loaded day and configured party,
+		// plus the TPP series. Each concurrent task fills its own dates.
 		int const seriesLength = int(rawTppSupport.timePoint.size());
 		if (!seriesLength) throw Exception("Raw trend data contains no time points.");
 		for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
@@ -994,19 +1060,27 @@ bool StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 		}
 		tppSupport.timePoint.resize(seriesLength);
 
+		// Divide dates into batches of ten for concurrent calculation. This is a
+		// grouping of model dates, distinct from batches of simulated elections.
 		constexpr int BatchSize = 10;
 		for (int timeStart1 = 0; timeStart1 < seriesLength; timeStart1 += numThreads * BatchSize) {
 			auto calculateTimeSupport = [&](int timeStart) {
 				for (int time = timeStart; time < timeStart + BatchSize && time < seriesLength; ++time) {
 					Date const thisDate = startDate + time;
-					// Extra accuracy for the final data point, since it's much more important than the rest
+					// Use 400 draws for earlier days and 40,000 for the final modelled
+					// day to give its stored summary more numerical precision. Projections
+					// also use that day's raw trend as their starting input.
 					int const localIterations = time == seriesLength - 1
 						? BaseIterations * 100 : BaseIterations;
 					std::vector<std::vector<float>> samples(partyCodeVec.size(), std::vector<float>(localIterations));
 					std::vector<float> tppSamples(localIterations);
+					// Draw adjusted support for this date with zero additional forecast
+					// days. The helper combines polling and the historical baseline,
+					// allowing for systematic errors and further uncertainty, and keeps
+					// FP and TPP consistent through preferences.
 					for (int iteration = 0; iteration < localIterations; ++iteration) {
-						// Key variation by iteration so worker scheduling cannot
-						// change which random quantiles this time point receives.
+						// Select draws by iteration number so worker scheduling cannot
+						// change their values.
 						auto sample = generateAdjustedSupportSample(
 							thisDate, 0, iteration);
 						for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
@@ -1015,6 +1089,9 @@ bool StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 						}
 						tppSamples[iteration] = sample.voteShare.at(TppCode);
 					}
+					// Sort possible shares from low to high and store percentiles:
+					// for example, the 25th-percentile value is a quarter of the way
+					// through the ordered draws. Do this for party FP and then TPP.
 					for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 						std::string partyName = partyCodeVec[partyIndex];
 						std::sort(samples[partyIndex].begin(), samples[partyIndex].end());
@@ -1034,6 +1111,8 @@ bool StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 					}
 				}
 			};
+			// Wait for this group of dates to finish before moving to the next.
+			// Errors from a concurrent calculation are raised when its result is read.
 			std::vector<std::future<void>> workers;
 			for (int timeStart = timeStart1; timeStart < timeStart1 + numThreads * BatchSize && timeStart < seriesLength; timeStart += BatchSize) {
 				workers.push_back(std::async(
@@ -1044,6 +1123,11 @@ bool StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 			}
 		}
 
+		// Blend neighbouring daily summaries to make the stored trend less jagged,
+		// then calculate each day's average from its percentile values. The inherited
+		// smoothing setting allows up to seven days on each side, reduced near the
+		// series ends so its first and final days stay unchanged. The original
+		// rationale for this exact smoothing setting has not been established.
 		const int ModelSmoothingDays = 7;
 		for (auto& [key, party] : adjustedSupport) {
 			party.smooth(ModelSmoothingDays); // also automatically calculates expectations
@@ -1052,6 +1136,8 @@ bool StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 	}
 
 	catch (std::logic_error const& e) {
+		// Report an unusable calculation and remove its partial summaries. The
+		// loadData caller also clears readiness when this stage returns false.
 		feedback(std::string("Warning: Model \"") + name +
 			"\" adjustments could not be generated.\n" +
 			"Specific information: " + e.what());

@@ -213,7 +213,8 @@ def run(code,args):
             inputs['enrolment'][inputs['seat_names'].index(row['seat'])] = row['election_day']
     draws = prior.draw(inputs,fixture['parameters'],args.samples,args.seed)
     paths, files = source_paths(code,args.archive,args.downloads,origin)
-    files += [origin_path,fixture_path,Path(__file__),Path(late_counts.__file__),Path(live.__file__),Path(allocation.__file__),
+    files += [origin_path,fixture_path,Path(__file__),Path(late_counts.__file__),Path(late_counts.routine_remainders.__file__),
+              Path(live.__file__),Path(allocation.__file__),
               Path(prior.__file__),Path(progress.__file__),Path(sa.__file__),Path(report.__file__),
               Path(aec_live.__file__),Path(ppvc_sizes.__file__),Path(category_policy.__file__),
               Path(federal.__file__),REPOSITORY_DIRECTORY/'ElectionData.cpp']

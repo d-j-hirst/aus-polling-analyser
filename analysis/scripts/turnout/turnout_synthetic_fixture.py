@@ -9,6 +9,7 @@ outputs so the portable C++ suite can check the same calculations after cloning.
 import argparse
 import copy
 import json
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -40,7 +41,8 @@ def make_fixture():
              ('New PPVC', 1, 'ppvc', .14, False, False),
              ('EAV service', 1, 'ppvc', .01, False, True),
              ('Postal', 2, 'declaration', 1., True, False),
-             ('Absent', 3, 'declaration', 1., True, False),
+             ('Absent', 3, 'declaration', .6, True, False),
+             ('PrePoll', 3, 'declaration', .4, True, False),
              ('Provisional', 0, 'declaration', .01, True, False)]
     for seat, name in enumerate(names):
         for label, group, kind, weight, matched, eav in specs:
@@ -94,10 +96,45 @@ def make_fixture():
                 key: value for key, value in row['vote_types'].items() if key.startswith('allocation:')})
         history.append(observation)
         expected = cpp_contract.expected(election, inputs, draws, current, history,
-                                         count_draws=4, seed=seed, ppvc_factor=factor)
+                                         count_draws=4, seed=seed, ppvc_factor=factor,
+                                         poll_close=artifact['options']['poll_close'])
         cases.append(dict(name=label, source_time=stamp, source_sha256=None,
                           units=cpp_contract.unit_rows(current), history=copy.deepcopy(history),
                           finalised=[], ppvc_factor=factor, expected=expected))
+    # A few small revisions while below the original expectation exercise the
+    # positive-remainder sampler, rather than only its zero-weight boundary.
+    # Keep other categories fixed so cross-language parity covers their isolation.
+    current = copy.deepcopy(current)
+    for u in current:
+        if u['name'] == 'Absent':
+            u['counted'] = round(base[u['seat_index'],u['group_index']]*.4)
+    local_history = []
+    start = datetime(2025,5,10)
+    for step in range(17):
+        stamp = (start+timedelta(hours=6*step)).isoformat()
+        observation = dict(source_time=stamp,seats={name:dict(vote_types={}) for name in names})
+        for u in current:
+            count = u['counted']
+            if u['name']=='Absent' and u['seat_index']==0 and step==16:
+                count += 21
+                u['counted'] = count
+            observation['seats'][u['seat_name']]['vote_types'][late_counts.category_key(u)] = count
+        local_history.append(observation)
+    expected = cpp_contract.expected(election,inputs,draws,current,local_history,count_draws=4,seed=seed,ppvc_factor=.02,
+        poll_close=artifact['options']['poll_close'])
+    assert max(c['positive_remainder_weight'] for c in expected['components']) > .1
+    cases.append(dict(name='small-revision-positive-remainder',source_time=stamp,source_sha256=None,
+        units=cpp_contract.unit_rows(current),history=local_history,finalised=[],ppvc_factor=.02,expected=expected))
+    # Identical counts and pauses earlier in the election must not imply the
+    # same completion confidence when still far below their original sizes.
+    young_history = copy.deepcopy(local_history)
+    for row in young_history:
+        row['source_time'] = (datetime.fromisoformat(row['source_time'])-timedelta(days=7)).isoformat()
+    expected = cpp_contract.expected(election,inputs,draws,current,young_history,count_draws=4,seed=seed,ppvc_factor=.02,
+        poll_close=artifact['options']['poll_close'])
+    assert min(c['early_completion_retention'] for c in expected['components']) < .1
+    cases.append(dict(name='early-pause-below-expectation',source_time=young_history[-1]['source_time'],source_sha256=None,
+        units=cpp_contract.unit_rows(current),history=young_history,finalised=[],ppvc_factor=.02,expected=expected))
     artifact['cases'] = cases
     return artifact
 

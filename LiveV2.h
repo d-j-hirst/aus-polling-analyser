@@ -5,6 +5,7 @@
 #include "LiveEstimatedTpp.h"
 #include "LiveTppComposition.h"
 #include "LivePartyConversion.h"
+#include "LivePartyMapping.h"
 #include "LiveVariability.h"
 #include "LivePreparedStorage.h"
 
@@ -186,6 +187,8 @@ public:
   // Source district survives redistribution matching; historical party flows
   // must follow the old booth's electorate, not its new district's name.
   bool syntheticPreviousCategory = false;
+  bool incrementalFp = false;
+  bool receivesFpBatches() const { return incrementalFp || voteType != Results2::VoteType::Ordinary; }
   std::string previousPreferenceSeat;
   std::map<int, double> previousPartyPreferenceFlows;
 
@@ -842,10 +845,12 @@ private:
   // from current comparable booths, then change only scenario pair accounts.
   void preparePreferenceCorrections(LiveInputRecovery::RecordStatuses const& countStatuses);
   void applyPreferenceCorrections(int iterationIndex);
+  void applyCountRevisions(int iterationIndex);
 
   void generateVariability(int iterationIndex);
 
-  // map AEC candidate IDs to internal party IDs
+  // Map a commission candidate to a forecast party using the election whose
+  // votes are being read; current and historical numeric IDs may be reused.
   int mapPartyId(
     int ecCandidateId,
     bool isPrevious,
@@ -868,7 +873,7 @@ private:
   LivePreparedStorage<Booth> boothStorage;
   std::vector<LiveV2::Seat> seats;
 
-  std::map<int, int> ecPartyToInternalParty;
+  LivePartyMapping::CommissionIds ecPartyToInternalParty;
   std::map<std::string, int> ecAbbreviationToInternalParty;
 
   std::map<int, float> preferenceFlowMap; // preference flows as a percentage
@@ -934,14 +939,12 @@ private:
     std::vector<PreferenceCorrectionSeat> seats;
     std::vector<std::map<int, double>> countedTpp, countedTcp;
   };
-  struct PreferenceScenarioCounts {
-    std::vector<std::map<int, double>> tpp, tcp;
-  };
-  // Raw counts and prepared distributions are immutable and shared. Adjusted
-  // counted pairs belong to one scenario, allowing the main simulator's finite
-  // account handoff to retain a recheck even when no votes remain outstanding.
+  // Raw counts and prepared distributions are immutable and shared. Revised
+  // FP/TCP/TPP accounts belong to one scenario. The final finite-account handoff
+  // retains both preference transfers and signed ballot corrections, including
+  // when no routine votes remain outstanding.
   std::shared_ptr<PreferenceCorrectionPreparation const> preferenceCorrections;
-  std::shared_ptr<PreferenceScenarioCounts const> preferenceScenarioCounts;
+  std::shared_ptr<LiveTurnout::ScenarioCounts const> scenarioCountedVotes;
   std::shared_ptr<nlohmann::json const> preferenceCorrectionDiagnostic;
 
 	PollingProject& project;

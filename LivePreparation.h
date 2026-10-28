@@ -52,6 +52,9 @@ private:
 	SimulationRun& run;
 
 	std::string xmlFilename;
+	// WA records timestamp individual counts, not the capture. Keep the chosen
+	// capture's WA-local clock separately so quiet days still advance progress.
+	std::string waObservationTime;
 	tinyxml2::XMLDocument xml;
 	Results2::Election previousElection;
 	Results2::Election currentElection;

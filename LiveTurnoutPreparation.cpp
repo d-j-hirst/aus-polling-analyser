@@ -75,6 +75,8 @@ void matchTurnoutBooths(TurnoutModel::Prior const& prior,
             bool ppvc = !declaration && booth.boothType == Results2::Booth::Type::Ppvc;
             if (declaration != (unit.kind == "declaration") || (!declaration && ppvc != (unit.kind == "ppvc")))
                 throw std::runtime_error("Turnout booth role changed: " + seat.name + "/" + unit.name);
+            if (unit.incremental != booth.incrementalFp)
+                throw std::runtime_error("Turnout batch reporting changed; regenerate inputs: " + seat.name + "/" + unit.name);
             if (match != -1) throw std::runtime_error("Ambiguous turnout booth: " + seat.name + "/" + unit.name);
             match = index;
         }
@@ -165,6 +167,7 @@ TurnoutCompositionInputs collectTurnoutComposition(std::vector<LiveV2::Seat> con
             double gap = booth.node.totalFpVotesCurrent() - booth.node.totalTcpVotesCurrent();
             missingPreferences += std::max(0., gap); pairExcess += std::max(0., -gap);
             LiveTurnout::UnitComposition unit; unit.booth = b; unit.seat = s;
+            if (natPartyIndex != InvalidPartyIndex) unit.tppAliases[natPartyIndex] = 1;
             unit.projectedFp = booth.node.fpVotesProjected; unit.projectedTpp = booth.node.tppVotesProjected; unit.projectedTcp = booth.node.tcpVotesProjected;
             for (auto const& [p, v] : booth.node.fpVotesCurrent) if (v > 0) { unit.fp[mapParty(p)] += v; input.fp[mapParty(p)] += v; }
             bool classic = hasClassicPair(booth.node.tcpVotesCurrent, natPartyIndex);
@@ -207,7 +210,7 @@ std::vector<float> refreshFpBoothProgress(std::vector<LiveV2::Booth>& booths,
         double expected = countAccount.fpTarget(b);
         boothWeights[b] = float(expected);
         booth.node.fpCompletion = float(LiveTurnoutMath::completion(booth.node.totalFpVotesCurrent(), expected));
-        if (booth.voteType != Results2::VoteType::Ordinary) booth.node.fpConfidence = booth.node.fpCompletion;
+        if (booth.receivesFpBatches()) booth.node.fpConfidence = booth.node.fpCompletion;
         if (expected == 0) booth.node.fpConfidence = 0;
     }
     return boothWeights;
@@ -249,16 +252,17 @@ void applyTurnoutProjections(std::vector<LiveV2::Seat>& seats, std::vector<LiveT
     }
 }
 
-void refreshScenarioSeatProgress(std::vector<LiveV2::Seat>& seats, LiveTurnout::Prepared const& countAccount) {
+void refreshScenarioSeatProgress(std::vector<LiveV2::Seat>& seats, LiveTurnout::Prepared const& countAccount,
+    LiveTurnout::ScenarioCounts const* revised) {
     // Completion uses sampled expected counts. Preserve the evidence discount
     // measured at the mean count, including preferences inferred from FP votes.
     auto confidence = [](double value, double mean, double sampled) { return sampled > 0 ? float(std::clamp(value * mean / sampled, 0., 1.)) : 0.f; };
     for (std::size_t s = 0; s < seats.size(); ++s) {
         auto& n = seats[s].node;
         double fp = total(n.fpVotesProjected), tpp = total(n.tppVotesProjected), tcp = total(n.tcpVotesProjected);
-        n.fpCompletion = float(LiveTurnoutMath::completion(total(countAccount.counted(LiveData::CountKind::Fp, s)), fp));
-        n.tppCompletion = float(LiveTurnoutMath::completion(total(countAccount.counted(LiveData::CountKind::Tpp, s)), tpp));
-        n.tcpCompletion = tcp > 0 ? float(LiveTurnoutMath::completion(total(countAccount.counted(LiveData::CountKind::Tcp, s)), tcp)) : 0;
+        n.fpCompletion = float(LiveTurnoutMath::completion(total(revised ? revised->fp[s] : countAccount.counted(LiveData::CountKind::Fp, s)), fp));
+        n.tppCompletion = float(LiveTurnoutMath::completion(total(revised ? revised->tpp[s] : countAccount.counted(LiveData::CountKind::Tpp, s)), tpp));
+        n.tcpCompletion = tcp > 0 ? float(LiveTurnoutMath::completion(total(revised ? revised->tcp[s] : countAccount.counted(LiveData::CountKind::Tcp, s)), tcp)) : 0;
         n.fpConfidence = confidence(countAccount.confidence(LiveData::CountKind::Fp, s), total(countAccount.mean(LiveData::CountKind::Fp, s)), fp);
         n.tppConfidence = confidence(countAccount.confidence(LiveData::CountKind::Tpp, s), total(countAccount.mean(LiveData::CountKind::Tpp, s)), tpp);
         n.tcpConfidence = confidence(countAccount.confidence(LiveData::CountKind::Tcp, s), total(countAccount.mean(LiveData::CountKind::Tcp, s)), tcp);
@@ -354,6 +358,25 @@ void LiveV2::Election::prepareTurnout(Results2::Election const& currentElection,
     // diagnostics. Party composition is prepared separately.
     auto started = std::chrono::steady_clock::now();
     auto observations = collectTurnoutObservations(artifact.prior, currentElection, seats, readBooths());
+    // Only WA's explicitly mixed early places have the two-component reporting
+    // procedure. Reuse accepted change history; do not inspect future feed files
+    // or assume that other elections' incremental services share this procedure.
+    if (artifact.prior.election.ends_with("wa")) {
+        std::map<std::string,std::set<std::string>> selected;
+        for (auto const& unit : observations.units) if (unit.kind == "ppvc" && unit.incremental) {
+            auto const& district = artifact.prior.seats[unit.seat];
+            selected[district].insert(district+"/ppvc/"+unit.name);
+        }
+        if (!selected.empty()) {
+            auto changes = LiveInputRecovery::loadFpTotalHistory(
+                LiveInputRecovery::directory(project.paths().root(),run.getTermCode()),
+                run.getTermCode(),currentElection.sourceTime,selected);
+            for (auto& unit : observations.units) {
+                auto key = artifact.prior.seats[unit.seat]+"/"+unit.kind+"/"+unit.name;
+                if (changes.contains(key)) unit.receivedFpTotals = std::move(changes.at(key));
+            }
+        }
+    }
     auto directory = TurnoutModelIO::historyDirectory(project.paths().root(), run.getTermCode());
     auto mapping = TurnoutModelIO::observationMapping(artifact.prior);
     auto history = loadReceivedTurnoutHistory(directory, run.getTermCode(), currentElection.sourceTime,
@@ -388,11 +411,11 @@ std::optional<LiveData::VoteCountAccount> LiveV2::Election::getSeatVoteCountAcco
     if (node.totalFpVotesCurrent() == 0 || inactiveContests.contains(seatName)) return {};
     std::size_t s = turnout->seatIndex(seatName);
     auto const& n = seats.at(s).node;
-    if (kind == LiveData::CountKind::Fp) return LiveData::VoteCountAccount{&turnout->counted(kind, s), &n.fpVotesProjected};
+    if (kind == LiveData::CountKind::Fp) return LiveData::VoteCountAccount{scenarioCountedVotes ? &scenarioCountedVotes->fp[s] : &turnout->counted(kind, s), &n.fpVotesProjected};
     if (kind == LiveData::CountKind::Tpp && n.tppVotesProjected.size() == 2)
-        return LiveData::VoteCountAccount{preferenceScenarioCounts ? &preferenceScenarioCounts->tpp[s] : &turnout->counted(kind, s), &n.tppVotesProjected};
+        return LiveData::VoteCountAccount{scenarioCountedVotes ? &scenarioCountedVotes->tpp[s] : &turnout->counted(kind, s), &n.tppVotesProjected};
     if (kind == LiveData::CountKind::Tcp && n.tcpVotesProjected.size() == 2)
-        return LiveData::VoteCountAccount{preferenceScenarioCounts ? &preferenceScenarioCounts->tcp[s] : &turnout->counted(kind, s), &n.tcpVotesProjected};
+        return LiveData::VoteCountAccount{scenarioCountedVotes ? &scenarioCountedVotes->tcp[s] : &turnout->counted(kind, s), &n.tcpVotesProjected};
     return {};
 }
 
@@ -408,8 +431,10 @@ void LiveV2::Election::prepareTurnoutComposition() {
     // then record reconciliation diagnostics before simulation copies share them.
     auto inputs = collectTurnoutComposition(seats, readBooths(), *turnout, natPartyIndex, run.indPartyIndex);
     turnout = turnout->withComposition(inputs.units, inputs.seats);
+    auto diagnostic = *turnoutDiagnostic;
+    diagnostic["count_revisions"] = turnout->revisionDiagnostic();
     turnoutDiagnostic = std::make_shared<nlohmann::json const>(
-        describeIntegratedTurnout(*turnoutDiagnostic, std::move(inputs.projections)));
+        describeIntegratedTurnout(diagnostic, std::move(inputs.projections)));
 }
 
 void LiveV2::Election::drawTurnoutCounts(int iterationIndex) {
@@ -425,8 +450,25 @@ void LiveV2::Election::drawTurnoutCounts(int iterationIndex) {
 void LiveV2::Election::refreshTurnoutScenarioProgress() {
     // Counts, completion and evidence confidence must refer to the same draw.
     // Update districts before combining their evidence at broader levels.
-    refreshScenarioSeatProgress(seats, *turnout);
+    refreshScenarioSeatProgress(seats, *turnout, scenarioCountedVotes.get());
     aggregateScenarioProgress(node, seats, largeRegions);
+}
+
+void LiveV2::Election::applyCountRevisions(int iterationIndex) {
+    if (node.totalFpVotesCurrent() == 0) return;
+    // Finish the scenario's account after ordinary share variation and existing
+    // preference-only corrections. A correction can lower a reported total;
+    // it does not create a negative outstanding pool or edit source history.
+    auto adjusted = std::make_shared<LiveTurnout::ScenarioCounts>(
+        scenarioCountedVotes ? *scenarioCountedVotes : turnout->scenarioCounts());
+    std::vector<LiveTurnout::Projection> projected;
+    projected.reserve(seats.size());
+    for (auto& seat : seats) projected.push_back({std::move(seat.node.fpVotesProjected),
+        std::move(seat.node.tppVotesProjected),std::move(seat.node.tcpVotesProjected)});
+    auto seed = RandomGenerator::mixKey(variabilityBaseSeed ^ 0x436f756e74526576ULL,std::uint64_t(iterationIndex));
+    turnout->revise(seed,projected,*adjusted);
+    applyTurnoutProjections(seats,projected);
+    scenarioCountedVotes = std::move(adjusted);
 }
 
 void LiveV2::Election::refreshTurnoutPairProgress() {

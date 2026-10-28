@@ -1,6 +1,7 @@
 #include "../LiveResultsInput.h"
 
 #include <cassert>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -156,6 +157,20 @@ int main()
 	assert(wa);
 	assert(wa->path.filename() == "2025 WAEC LA VERBOSE RESULTS.xml");
 	assert(!wa->timestamp);
+	touch(unicodePath / "waec-la-verbose-20250308194321.xml");
+	wa = LiveResultsInput::findCurrentFile(unicodePath, "wa", "2025wa");
+	assert(wa && wa->timestamp == "20250308194321");
+	assert(LiveResultsInput::waObservationTime(*wa) == "2025-03-08T19:43:21");
+	// The fixed-name file uses an absolute file time, independently of the
+	// computer's timezone, rather than the newest individual booth update.
+	auto fixed = unicodePath / "2025 WAEC LA VERBOSE RESULTS.xml";
+	auto utc = std::chrono::sys_days{std::chrono::year{2025}/3/8} + std::chrono::hours{10};
+#ifdef _WIN32
+	std::filesystem::last_write_time(fixed, std::chrono::clock_cast<std::chrono::file_clock>(utc));
+#else
+	std::filesystem::last_write_time(fixed, std::chrono::file_clock::from_sys(utc));
+#endif
+	assert(LiveResultsInput::waObservationTime({fixed,{}}) == "2025-03-08T18:00:00");
 
 	assert(!LiveResultsInput::findCurrentFile(
 		unicodePath, "fed", "2028fed"));

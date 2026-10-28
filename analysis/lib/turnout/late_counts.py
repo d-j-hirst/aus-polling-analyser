@@ -11,7 +11,7 @@ from types import SimpleNamespace
 
 import numpy as np
 from scipy.special import expit, logsumexp, ndtr, ndtri
-from lib.turnout import completion
+from lib.turnout import completion, routine_remainders
 
 
 MODEL_VERSION = 'live-late-counts-4'
@@ -104,6 +104,8 @@ def _measure_progress_categories(context, shared_deadline):
                             for stamp, snap in ordered]
             activity = volume = coverage = shared_activity = shared_volume = small_support = changed_support = 0.
             tolerance = np.hypot(10., event_scale*value)
+            gentle_activity = 0.
+            gentle_tolerance = np.hypot(10.,completion.DECLARATION_LOCAL_EVENT_SCALE*value)
             for (before, old), (after, new) in zip(observations, observations[1:]):
                 if old is None or new is None:
                     continue
@@ -113,6 +115,10 @@ def _measure_progress_categories(context, shared_deadline):
                 change = abs(new-old)
                 ratio = change/tolerance
                 activity += ratio*ratio/(1+ratio*ratio)*decay
+                # Supplementary LOCAL measure, in the existing history pass.
+                # Shared activity retains its supplied event scale unchanged.
+                gentle_ratio = change/gentle_tolerance
+                gentle_activity += gentle_ratio**2/(1+gentle_ratio**2)*decay
                 volume += change*decay
                 # A backlog after receipt closes remains local evidence, while
                 # its influence on other seats' progress recedes continuously.
@@ -130,6 +136,7 @@ def _measure_progress_categories(context, shared_deadline):
                 covered = np.exp(-age/config['coverage_hours'])*(-np.expm1(-hours/config['coverage_hours']))
                 coverage += covered/(1+(hours/config['coverage_hours'])**2)
             measured[name, category] = dict(current=value, activity=-np.expm1(-activity),
+                gentle_local_activity=-np.expm1(-gentle_activity),
                 volume=volume, coverage=coverage, started=value/(value+10.),
                 shared_activity=-np.expm1(-shared_activity),shared_volume=shared_volume,
                 small_batch_support=small_support/(1+changed_support),
@@ -187,12 +194,15 @@ def _attach_progress_evidence(units, measured, pools, context, postal_deadline):
         starting_support = 1/(1+((1-pooled['started'])/config['unstarted_scale'])**2)
         strength = local['coverage']*local['started']*own_quiet*starting_support*(.75*broad_quiet+.25*small_movement)
         receipt_support = 1.
+        postal_days = None
         if key[1] == 'Postal' and postal_deadline is not None:
             hours = (now-datetime.fromisoformat(postal_deadline)).total_seconds()/3600
+            postal_days = -hours/24
             receipt_support = float(expit(hours/config['postal_deadline_transition_hours']))
             strength *= receipt_support
         result.append(dict(strength=float(strength), **local, pooled=pooled,
-                           state_weight=region_weight, postal_receipt_support=receipt_support))
+                           state_weight=region_weight, postal_receipt_support=receipt_support,
+                           postal_days_before_deadline=postal_days))
     return result
 
 
@@ -285,7 +295,8 @@ def prediction_mean(result, field='totals'):
     probability = result['no_addition_probability']
     if field == 'counts':
         probability = probability[:,None]
-    return counted+(1-probability)*(result[field].mean(axis=0)-counted)
+    positive_mean = result.get('positive_mean_'+field,result[field].mean(axis=0))
+    return counted+(1-probability)*(positive_mean-counted)
 
 
 def prediction_quantiles(result, probabilities, field='totals'):
@@ -306,7 +317,8 @@ def prediction_quantiles(result, probabilities, field='totals'):
     return output
 
 
-def mixture_log_odds(reference, small, batch, weight, uniforms, config, zero_probability=0., schedule=None):
+def mixture_log_odds(reference, small, batch, weight, uniforms, config, zero_probability=0., schedule=None,
+                     *, probabilities=None, batch_sd=None):
     """Invert the explicit mixture without switching predictions at a score.
 
     Conditional on one preparation outcome, its broad reference is a point;
@@ -315,11 +327,13 @@ def mixture_log_odds(reference, small, batch, weight, uniforms, config, zero_pro
     Crossing the reference's probability mass approaches that same reference
     value continuously. A fixed bisection count bounds cost and precision.
     """
-    previous, small_weight, batch_weight = component_probabilities(weight,zero_probability,config,schedule)
+    previous, small_weight, batch_weight = (component_probabilities(weight,zero_probability,config,schedule)
+        if probabilities is None else probabilities)
+    batch_sd = config['batch_log_odds_sd'] if batch_sd is None else batch_sd
     positive = 1-zero_probability
     previous, small_weight, batch_weight = previous/positive, small_weight/positive, batch_weight/positive
     def continuous_cdf(value):
-        return small_weight*ndtr((value-small)/config['small_log_odds_sd'])+batch_weight*ndtr((value-batch)/config['batch_log_odds_sd'])
+        return small_weight*ndtr((value-small)/config['small_log_odds_sd'])+batch_weight*ndtr((value-batch)/batch_sd)
     below = continuous_cdf(reference)
     above = below+previous
     on_reference = (uniforms >= below) & (uniforms <= above)
@@ -337,11 +351,12 @@ def mixture_log_odds(reference, small, batch, weight, uniforms, config, zero_pro
     batch = np.broadcast_to(batch,uniforms.shape)[selected]
     small_weight = np.broadcast_to(small_weight,uniforms.shape)[selected]
     batch_weight = np.broadcast_to(batch_weight,uniforms.shape)[selected]
+    batch_sd = np.broadcast_to(batch_sd,uniforms.shape)[selected]
     target = target[selected]
     # Twelve standard deviations cover the interior stratified probabilities.
     # These are numerical brackets, not caps on simulated votes or evidence.
-    low = np.minimum(small-12*config['small_log_odds_sd'], batch-12*config['batch_log_odds_sd'])
-    high = np.maximum(small+12*config['small_log_odds_sd'], batch+12*config['batch_log_odds_sd'])
+    low = np.minimum(small-12*config['small_log_odds_sd'], batch-12*batch_sd)
+    high = np.maximum(small+12*config['small_log_odds_sd'], batch+12*batch_sd)
     for _ in range(40):
         middle = (low+high)/2
         lower = continuous_cdf(middle) < target
@@ -426,7 +441,27 @@ def _prepare_declaration_components(work, prepared, inputs, units, evidence, sch
     local_weight, local_z = completion.evidence(prepared,inputs,units,evidence)
     work.completion_weight = local_weight[columns]
     work.original_size_z = local_z[columns]
+    # Allocation always uses the original distributions. Postal uncertainty is
+    # widened only after allocation, so it cannot alter sibling category counts.
+    work.batch_sd = np.full(len(columns),config['batch_log_odds_sd'])
+    for k,j in enumerate(columns):
+        if category_key(units[j]) != 'Postal' or units[j]['counted'] <= 0:
+            continue
+        work.completion_weight[k] = completion.postal_finishing_weight(
+            work.completion_weight[k],weights[k],evidence[j].get('postal_finishing_support',0.))
+    work.postal_log_odds = np.array([completion.postal_remainder_log_odds(
+        evidence[j].get('postal_days_before_deadline')) if category_key(units[j])=='Postal'
+        else np.nan for j in columns])
+    work.postal_counts = np.array([units[j]['counted'] for j in columns])
+    work.positive_remainder_weight, work.positive_remainder_median = completion.positive_remainder_parameters(
+        [units[j] for j in columns],[evidence[j] for j in columns],weights,work.completion_weight)
+    work.early_completion_retention = completion.early_completion_retention(work.original_size_z,work.days_after_poll_close)
+    work.probabilities,work.completion_weight,work.positive_remainder_weight = completion.guard_probabilities(
+        component_probabilities(weights,work.no_addition[indexes],config,schedule),
+        work.completion_weight,work.positive_remainder_weight,work.early_completion_retention)
     component_preparation['completion_weight'] = work.completion_weight
+    component_preparation['positive_remainder_weight'] = work.positive_remainder_weight
+    component_preparation['positive_remainder_median'] = work.positive_remainder_median
 
 
 def _draw_declaration_components(work, seed, uniforms, schedule):
@@ -454,14 +489,34 @@ def _draw_declaration_components(work, seed, uniforms, schedule):
         uniforms = np.asarray(uniforms, dtype=float)
         if uniforms.shape != (len(outer), len(columns)) or not np.isfinite(uniforms).all() or ((uniforms <= 0) | (uniforms >= 1)).any():
             raise ValueError('Supply one interior quantile per outcome and open declaration unit.')
-    varied = mixture_log_odds(reference[outer], small[outer], batch[outer], weights, uniforms, config,no_addition[indexes],schedule)
+    varied = mixture_log_odds(reference[outer], small[outer], batch[outer], weights, uniforms, config,no_addition[indexes],schedule,
+        probabilities=work.probabilities,batch_sd=work.batch_sd)
     work.varied = varied
+    work.postal_widening_weights = np.zeros_like(varied)
+    work.postal_routine = varied == reference[outer]
+    for k in range(len(columns)):
+        _,work.postal_widening_weights[:,k] = completion.postal_widening_weight(
+            varied[:,k],reference[outer,k],small[outer,k],batch[outer,k],
+            tuple(p[k] for p in work.probabilities),work.batch_sd[k])
     # Preserve the ordinary allocation, then apply the local intervention.
     # Normalizing new finishing weights together would inflate sibling counts.
     work.completion_limits = completion.limits(reference[outer],small[outer],batch[outer],
         (work.slack[:,indexes]+work.base)[outer],work.completion_weight,
-        component_probabilities(weights,no_addition[indexes],config,schedule),
-        1-no_addition[indexes],uniforms,config['small_log_odds_sd'],config['batch_log_odds_sd'])
+        work.probabilities,
+        1-no_addition[indexes],uniforms,config['small_log_odds_sd'],work.batch_sd,
+        postal_counts=work.postal_counts,postal_log_odds=work.postal_log_odds,
+        shared_normal=completion.postal_shared_normals(len(outer),seed))
+    positive_limits = completion.positive_remainder_limits(reference[outer],small[outer],batch[outer],
+        (work.slack[:,indexes]+work.base)[outer],work.completion_weight,
+        work.positive_remainder_weight,work.positive_remainder_median,
+        work.probabilities,
+        1-no_addition[indexes],uniforms,completion.postal_shared_normals(len(outer),seed ^ 0x71651),
+        config['small_log_odds_sd'],work.batch_sd)
+    work.size_finishing = np.isfinite(work.completion_limits)
+    work.completion_limits = np.minimum(work.completion_limits,positive_limits)
+    # Preserve the separately specified near-finished distributions, including
+    # draws whose cap happens not to bind this time.
+    work.postal_widening_weights[np.isfinite(work.completion_limits)] = 0.
 
 
 def _describe_declaration_components(work, units, evidence, count_draws, schedule):
@@ -488,18 +543,32 @@ def _describe_declaration_components(work, units, evidence, count_draws, schedul
         parent = slack[:,indexes[k]]+base[:,k]
         conditional = {}
         for name, location, sd in (('small',small[:,k],config['small_log_odds_sd']),
-                                  ('batch',batch[:,k],config['batch_log_odds_sd'])):
+                                  ('batch',batch[:,k],work.batch_sd[k])):
             values = parent[:,None]*expit(location[:,None]+sd*quantiles)
             conditional[name+'_mean_if_other_counts_fixed'] = float(values.mean())
-        previous, small_probability, batch_probability = component_probabilities(weights[k],no_addition[indexes[k]],config,schedule)
+        previous, small_probability, batch_probability = (p[k] for p in work.probabilities)
         completion_probability = previous*work.completion_weight[k]
+        positive_probability = previous*work.positive_remainder_weight[k]
+        postal = np.isfinite(work.postal_log_odds[k])
         details.append(dict(unit=int(j), seat=units[j]['seat_name'], category=category_key(units[j]),
             evidence=evidence[j], weight=float(weights[k]),
             usual_log_shift=float(normal_shifts[k]),
             completion_weight=float(work.completion_weight[k]),
+            early_completion_retention=float(work.early_completion_retention[k]),
+            days_after_poll_close=work.days_after_poll_close,
+            batch_log_odds_sd=float(work.batch_sd[k]),
+            positive_remainder_weight=float(work.positive_remainder_weight[k]),
+            positive_remainder_median_votes=float(work.positive_remainder_median[k]),
+            positive_remainder_log_odds_sd=completion.DECLARATION_REMAINDER_SD,
+            positive_remainder_shared_log_odds_sd=completion.DECLARATION_SHARED_SD,
             original_size_z=float(work.original_size_z[k]) if np.isfinite(work.original_size_z[k]) else None,
-            probabilities=dict(no_additions=float(no_addition[indexes[k]]),previous=float(previous-completion_probability),
-                               small=float(small_probability+completion_probability),batch=float(batch_probability)),
+            postal_remainder_median_fraction=float(expit(work.postal_log_odds[k])) if postal else None,
+            postal_remainder_shared_log_odds_sd=completion.POSTAL_SHARED_SD if postal else None,
+            postal_remainder_local_log_odds_sd=completion.POSTAL_LOCAL_SD if postal else None,
+            probabilities=dict(no_additions=float(no_addition[indexes[k]]),previous=float(previous-completion_probability-positive_probability),
+                               small=float(small_probability+(0 if postal else completion_probability)),
+                               positive_remainder=float(positive_probability),
+                               near_finished_postal=float(completion_probability if postal else 0),batch=float(batch_probability)),
             allocation_probabilities_before_local_completion=dict(no_additions=float(no_addition[indexes[k]]),
                 previous=float(previous),small=float(small_probability),batch=float(batch_probability)),
             reference_mean=float(base[:,k].mean()), **conditional))
@@ -525,22 +594,163 @@ def _apply_declaration_samples(work, units):
     counts = work.counts
     unit_means = work.unit_means
     totals = work.totals
+    work.active_seats = np.zeros(seats,dtype=bool)
+    work.allocated[:] = base[outer]
     for seat in range(seats):
         local = np.flatnonzero(indexes == seat)
         if not len(local) or (not np.any(weights[local]) and not np.any(normal_shifts[local])
-                             and not phase and not np.any(work.completion_weight[local])):
+                             and not phase and not np.any(work.completion_weight[local])
+                             and not np.any(work.positive_remainder_weight[local])):
             continue
+        work.active_seats[seat] = True
         parent = slack[:,seat]+base[:,local].sum(axis=1)
         odds = varied[:,local]
         denominator = logsumexp(np.column_stack([np.zeros(len(outer)),odds]), axis=1)
         additions = parent[outer,None]*np.exp(odds-denominator[:,None])
         additions = np.minimum(additions,work.completion_limits[:,local])
+        work.allocated[:,local] = additions
         for k, position in enumerate(local):
             j = columns[position]
             group = units[j]['group_index']
             counts[:,seat,group] += additions[:,k]-base[outer,position]
             unit_means[j] = units[j]['counted']+additions[:,k].mean()
         totals[:,seat] = counts[:,seat].sum(axis=1)
+
+
+def _widen_allocated_postal_samples(work, inputs, units, seed):
+    """Add neutral postal uncertainty only after all other quantities are fixed.
+
+    Means are known analytically: every smaller/larger pair averages to its
+    original allocated addition. Retain those exact means rather than adding
+    sampling error to the displayed estimates. The sample matrices describe
+    the broader distribution for intervals, using independent, stable streams.
+    """
+    work.positive_mean_counts = work.counts.mean(axis=0)
+    work.positive_mean_totals = work.totals.mean(axis=0)
+    work.pre_postal_unused = np.maximum(0.,np.asarray(inputs['enrolment'])-work.totals)
+    if not len(work.columns):
+        return
+    for seat in range(work.seats):
+        local = np.flatnonzero(work.indexes==seat)
+        postal = [k for k in local if np.isfinite(work.postal_log_odds[k])]
+        if not postal:
+            continue
+        # Reserve disjoint unused portions before any widening. Even several
+        # postal services reaching their upper possibility cannot exceed the roll.
+        unused = np.maximum(0.,inputs['enrolment'][seat]-work.totals[:,seat])
+        for k in postal:
+            j = work.columns[k]
+            row = work.details[k]
+            enabled = bool(work.postal_widening and work.postal_counts[k]>0 and work.active_seats[seat])
+            row['postal_widening_enabled'] = enabled
+            original = work.allocated[:,k]
+            capacity = original+unused/len(postal)
+            routine = work.postal_routine[:,k]
+            weight = work.postal_widening_weights[:,k]
+            use = routine&(weight>0)&(original>0)&(original<capacity)
+            # Routine spread follows variation already present in allocated
+            # routine outcomes. The added independent variance has nominal
+            # scale (1.5^2-1) times that measured transformed variance. Batch
+            # additions use the former 1.5 -> 2 SD change as their extra scale.
+            location = np.log(original[use]/(capacity[use]-original[use]))
+            routine_sd = float(location.std()*np.sqrt(completion.POSTAL_ROUTINE_SPREAD**2-1)) if len(location) else 0.
+            batch_sd = np.sqrt(max(0.,completion.POSTAL_BATCH_TARGET_SD**2-work.batch_sd[k]**2))
+            row['postal_routine_extra_log_odds_sd'] = routine_sd if enabled else 0.
+            row['postal_batch_extra_log_odds_sd'] = batch_sd if enabled else 0.
+            if not enabled:
+                continue
+            sd = np.where(routine,routine_sd,batch_sd*np.sqrt(weight))
+            sd[weight<=0] = 0.
+            identity = inputs.get('election_code','')+'/'+units[j]['seat_name']+'/'+units[j]['name']
+            magnitude = completion.postal_shared_normals(len(original),seed,'postal-widening/magnitude/'+identity)
+            choice = ndtr(completion.postal_shared_normals(len(original),seed,'postal-widening/choice/'+identity))
+            lower,upper,probability = completion.allocated_postal_spread(original,capacity,sd,magnitude)
+            widened = np.where(choice<probability,upper,lower)
+            change = widened-original
+            work.counts[:,seat,units[j]['group_index']] += change
+            work.totals[:,seat] += change
+
+
+def _reshape_routine_remainders(work, prepared, inputs, units, evidence, seed, enabled):
+    """Apply the three-part declaration treatment after fixed sibling allocations.
+
+    The original mixture and postal draws are already complete. New selections
+    have separate unit-keyed random streams, so another category's selection or
+    value is unchanged. Before increasing any tiny additions, reserve disjoint
+    shares of the remaining unused enrolment. A smaller routine draw releases
+    turnout rather than funding another category's draw.
+
+    Displayed expectations integrate the new three-way choice exactly for each
+    prepared amount. Interval samples select one of those alternatives. This
+    avoids shifting displayed means just because a small preparation sample
+    happens to select more retained backlogs. Existing postal expectations keep
+    their independently known neutral mean.
+    """
+    if not len(work.columns):
+        return
+    support, expected, maturity = routine_remainders.parameters(
+        prepared,units,work.columns,evidence,work.early_completion_retention)
+    if not enabled:
+        support[:] = 0.
+    shared = None
+    unused = np.maximum(0.,np.asarray(inputs['enrolment'])-work.totals)
+    eligible = np.array([units[j]['counted']>0 and category_key(units[j]) in routine_remainders.CATEGORIES
+                         for j in work.columns])
+    for k,j in enumerate(work.columns):
+        row = work.details[k]
+        row.update(routine_remainder_support=float(support[k]),
+            routine_remainder_mean_votes=float(expected[k]),routine_remainder_maturity=float(maturity[k]),
+            routine_remainder_bridge_weight=0.,routine_remainder_reference_mean_votes=0.,
+            routine_remainder_mean_adjustment_votes=0.)
+        if support[k]<=0:
+            continue
+        if shared is None:
+            shared = completion.postal_shared_normals(len(work.outer),seed,'declaration-routine/shared')
+        seat,group = units[j]['seat_index'],units[j]['group_index']
+        local = np.flatnonzero(work.indexes==seat)
+        others = [c for c in local if c!=k]
+        denominator = logsumexp(np.column_stack([np.zeros(len(work.outer)),work.varied[:,others]]),axis=1)
+        parent = (work.slack[:,seat]+work.base[:,local].sum(axis=1))[work.outer]
+        reference = parent*expit(work.reference[work.outer,k]-denominator)
+        reference_mean = float(reference.mean())
+        # Do not move tiny probabilities to a large activity-based allowance.
+        # The transfer grows as the two amount estimates become distinct.
+        bridge = support[k]*(reference_mean/(reference_mean+expected[k]))**2
+        original = work.allocated[:,k]
+        services = np.count_nonzero(eligible[local])
+        capacity = original+work.pre_postal_unused[:,seat]/services
+        identity = inputs.get('election_code','')+'/'+units[j]['seat_name']+'/'+units[j]['name']
+        normal = completion.postal_shared_normals(len(work.outer),seed,'declaration-routine/local/'+identity)
+        choice = ndtr(completion.postal_shared_normals(len(work.outer),seed,'declaration-routine/choice/'+identity))
+        reduced,modest = routine_remainders.alternatives(original,capacity,reference,expected[k],support[k],normal,shared)
+        # Postal uncertainty must not change this distribution's shape. Only
+        # an actually binding enrolment limit can restrict a new addition after
+        # a very large postal draw consumes its previously unused physical room.
+        modest = np.minimum(modest,original+unused[:,seat]/services)
+        point = work.varied[:,k]==work.reference[work.outer,k]
+        processing = np.isfinite(work.completion_limits[:,k])&~work.size_finishing[:,k]
+        _,batch_share = completion.postal_widening_weight(work.varied[:,k],work.reference[work.outer,k],
+            work.small[work.outer,k],work.batch[work.outer,k],tuple(p[k] for p in work.probabilities),work.batch_sd[k])
+        lower,higher = routine_remainders.choice_weights(point,work.size_finishing[:,k],processing,
+            batch_share,support[k],bridge)
+        sampled = np.where(choice<lower,reduced,np.where(choice<lower+higher,modest,original))
+        delta = sampled-original
+        work.counts[:,seat,group] += delta
+        work.totals[:,seat] += delta
+        mean_delta = float(np.mean(lower*(reduced-original)+higher*(modest-original)))
+        work.unit_means[j] += mean_delta
+        work.positive_mean_counts[seat,group] += mean_delta
+        work.positive_mean_totals[seat] += mean_delta
+        row.update(routine_remainder_bridge_weight=float(bridge),
+            routine_remainder_reference_mean_votes=reference_mean,
+            routine_remainder_mean_adjustment_votes=mean_delta)
+        previous,small,_ = [p[k] for p in work.probabilities]
+        lowered = (1-routine_remainders.BACKLOG_FRACTION)*previous*(1-work.completion_weight[k]-work.positive_remainder_weight[k])
+        raised = bridge*(small+previous*work.completion_weight[k])
+        row['probabilities']['previous'] -= float(lowered)
+        row['probabilities']['small'] -= float(raised)
+        row['probabilities']['reduced_routine'] = float(lowered)
+        row['probabilities']['modest_remainder'] = float(raised)
 
 
 def _assemble_late_update(work, prepared, inputs, units, count_draws):
@@ -574,13 +784,15 @@ def _assemble_late_update(work, prepared, inputs, units, count_draws):
         preparation_samples=samples, count_draws_per_preparation=count_draws, posterior_count_outcomes=len(outer),
         conditional_component_evaluations=2*samples*count_draws*len(columns))
     return dict(model_version=MODEL_VERSION, totals=totals, counts=counts, unit_means=unit_means,
+                positive_mean_counts=work.positive_mean_counts,positive_mean_totals=work.positive_mean_totals,
                 counted=prepared['counted'],counted_groups=counted_groups,no_addition_probability=no_addition,
                 complete=prepared['complete'], components=details,
                 component_preparation=component_preparation, config=config, diagnostics=diagnostics)
 
 
 
-def update(prepared, inputs, units, evidence, count_draws=8, seed=20261002, options=None, *, uniforms=None, schedule=None):
+def update(prepared, inputs, units, evidence, count_draws=8, seed=20261002, options=None, *, uniforms=None, schedule=None,
+           days_after_poll_close=None, postal_widening=True, declaration_remainders=True):
     """Reweight declarations while preserving counted votes and booth estimates.
 
     Each expensive/pre-existing preparation outcome supplies several cheap count
@@ -594,11 +806,16 @@ def update(prepared, inputs, units, evidence, count_draws=8, seed=20261002, opti
     capacity, rather than being forced into an unchanged formal turnout target.
     """
     work = _prepare_late_update(prepared, units, evidence, count_draws, options)
+    work.days_after_poll_close = days_after_poll_close
+    work.postal_widening = postal_widening
+    work.allocated = np.zeros((len(work.outer),len(work.columns)))
     if len(work.columns):
         _prepare_declaration_components(work, prepared, inputs, units, evidence, schedule)
         _draw_declaration_components(work, seed, uniforms, schedule)
         _describe_declaration_components(work, units, evidence, count_draws, schedule)
         _apply_declaration_samples(work, units)
+    _widen_allocated_postal_samples(work, inputs, units, seed)
+    _reshape_routine_remainders(work,prepared,inputs,units,evidence,seed,declaration_remainders)
     return _assemble_late_update(work, prepared, inputs, units, count_draws)
 
 

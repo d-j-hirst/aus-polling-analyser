@@ -69,6 +69,25 @@ class LivePrototypeTests(unittest.TestCase):
         np.testing.assert_array_equal(first['unit_counts'], repeated['unit_counts'])
         np.testing.assert_array_equal(draws['totals'], prior.draw(*small_case(), 128)['totals'])
 
+    def test_explicit_incremental_place_remains_partial_until_finalised(self):
+        inputs, draws, units = live_case()
+        units[1].update(counted=20, incremental=True)
+        partial = live.update(draws, inputs, units)
+        self.assertFalse(partial['complete'][1])
+        self.assertTrue((partial['unit_counts'][:, 1] > 20).all())
+        from lib.turnout import late_schedule, cpp_contract
+        self.assertTrue(cpp_contract.unit_rows(units)[1]['incremental'])
+        completion = late_schedule.booth_completion(draws, units, 2)
+        expected = sum((draws['counts'][:, 0, k]*units[k]['weight']).mean() for k in (0,1))
+        self.assertAlmostEqual(completion[0], 20/expected)
+        finalised = live.update(draws, inputs, units, finalised_seats=['A'])
+        self.assertTrue(finalised['complete'][1])
+        np.testing.assert_array_equal(finalised['unit_counts'][:, 1], 20)
+        del units[1]['incremental']
+        ordinary = live.update(draws, inputs, units)
+        self.assertTrue(ordinary['complete'][1])
+        np.testing.assert_array_equal(ordinary['unit_counts'][:, 1], 20)
+
     def test_observed_near_roll_does_not_create_a_zero_remaining_mass(self):
         inputs, draws, units = live_case()
         units[0]['counted'] = 970

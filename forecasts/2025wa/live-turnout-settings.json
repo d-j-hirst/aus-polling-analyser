@@ -1,0 +1,21 @@
+{
+  "election": "2025wa",
+  "previous_election": "2021wa",
+  "parameter_preset": "2025wa/synthetic_reporting",
+  "preparation_samples": 256,
+  "count_draws": 8,
+  "seed": 20261028,
+  "own_early_fraction": 0.6,
+  "synthetic_provisional_day_fraction": 0.02,
+  "operational_counts": {"early": 557693, "postal": 215000},
+  "operational_sources": {
+    "early": "https://www.elections.wa.gov.au/sites/default/files/SGE2025/EV%20stat%20reports/SGE2025%20Early%20Voting%20Day%2010%202025-03-07.pdf",
+    "postal": "https://antonygreen.com.au/wa2025-tracking-the-early-voting-statistics/"
+  },
+  "schedule": {
+    "poll_close": "2025-03-08T18:00:00",
+    "postal_deadline": "2025-03-13T09:00:00",
+    "receipt_deadline": "2025-03-13T09:00:00",
+    "ppvc_reporting_decay": false
+  }
+}

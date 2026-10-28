@@ -48,6 +48,7 @@ Record identifyUnit(Results2::Election const& election, TurnoutModel::Prior cons
     Record record;
     record.district = seat.name; record.name = unit.name; record.role = unit.kind;
     record.closed = unit.closed;
+    record.incremental = unit.incremental;
     record.key = seat.name + "/" + unit.kind + "/" + unit.name;
     std::set<int> roster;
     auto knownRoster = election.liveCandidateRosters.find(seat.id);

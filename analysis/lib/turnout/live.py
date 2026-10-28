@@ -18,7 +18,7 @@ from scipy.special import log_ndtr, ndtri_exp
 from lib.turnout import prior
 
 
-MODEL_VERSION = 'live-counts-10'
+MODEL_VERSION = 'live-counts-15'
 
 # These are prediction slopes in log odds, not correlations or fractions of a
 # vote-count deficit. Federal 2025 reliable matches give 95% district-bootstrap
@@ -245,8 +245,10 @@ class _CountUpdate(SimpleNamespace):
 def _observe_count_units(inputs, draws, units, finalised_seats):
     """Classify measured votes and establish which district accounts are complete.
 
-    Ordinary/PPVC booths normally need no new voters once reported. Declaration
-    counts remain lower bounds until finalised; known closures are separate facts.
+    Ordinary/PPVC booths normally need no new voters once reported. Explicit
+    mixed-place batches, like declarations, remain lower bounds until finalised;
+    known closures are separate facts. Old inputs omit incremental and retain
+    their normal physical-booth completion rule.
     """
     total_prior = np.asarray(draws['totals'])
     group_prior = np.asarray(draws['counts'])
@@ -261,7 +263,7 @@ def _observe_count_units(inputs, draws, units, finalised_seats):
         # A conflicting exposure is exceptional input recovery, not a reason
         # to erase counted votes or cap them silently. The archive remains intact.
         raise ValueError('Counted formal votes reach enrolment; review the exposure before updating.')
-    complete = np.array([u['kind'] != 'declaration' and u['counted'] > 0
+    complete = np.array([u['kind'] != 'declaration' and not u.get('incremental', False) and u['counted'] > 0
                          or bool(u.get('closed_reason')) or finalised[u['seat_index']] for u in units])
     # Resolve the parent count before allocating additions. A completed account
     # needs no prior-based remainder and must not reach the unsupported-unit
@@ -528,7 +530,7 @@ def update(draws, inputs, units, finalised_seats=(), changes=None, compensation=
 
 
 def update_with_progress(draws, inputs, units, history, *, count_draws=8, seed=20261002,
-                         progress_options=None, postal_deadline=None, **update_options):
+                         progress_options=None, postal_deadline=None, poll_close=None, **update_options):
     """Prepare counts, release excessive allowances, then model late additions.
 
     The optional count prototype returns compact category/total outcomes and
@@ -538,14 +540,15 @@ def update_with_progress(draws, inputs, units, history, *, count_draws=8, seed=2
     history to inform release. The source history must end at this snapshot;
     final results are not inputs.
     """
-    from lib.turnout import allocation, late_counts
+    from lib.turnout import allocation, late_counts, completion
     prepared = update(draws, inputs, units, **update_options)
     subdivisions = dict(zip(inputs['seat_names'], inputs.get('subdivisions', [None]*len(inputs['seat_names']))))
     evidence = late_counts.progress_evidence(history, units, subdivisions, progress_options,
                                              postal_deadline=postal_deadline)
     grouped = allocation.group_evidence(history,units,inputs,postal_deadline,progress_options)
     released,weights = allocation.release(prepared,inputs,units,prepared['own_remaining'],grouped)
-    result = late_counts.update(released, inputs, units, evidence, count_draws, seed, progress_options)
+    result = late_counts.update(released, inputs, units, evidence, count_draws, seed, progress_options,
+        days_after_poll_close=completion.days_after_poll_close(history,poll_close))
     result['broad_prediction'] = prepared
     result['allocation_prediction'] = released
     result['allocation_progress_weights'] = weights

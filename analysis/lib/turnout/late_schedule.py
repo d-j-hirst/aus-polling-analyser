@@ -40,7 +40,9 @@ def booth_completion(draws, units, seats):
             continue
         total[u['seat_index']] += expected[j]
         if u['counted']>0:
-            reported[u['seat_index']] += expected[j]
+            # Mixed early/day places can report a small first batch. Unlike a
+            # complete physical booth it supports only that much count progress.
+            reported[u['seat_index']] += min(expected[j],u['counted']) if u.get('incremental') else expected[j]
     return np.divide(reported,total,out=np.zeros_like(total),where=total>0)
 
 
@@ -94,6 +96,20 @@ def progress_evidence(history, units, states, deadline, completed):
         extra = .8*e['small_batch_support']*completed[u['seat_index']]**2*e['started']
         weight += (1-weight)*extra
         e['strength'] = float(.3*np.sqrt(-np.log1p(-weight)))
+        # Keep ordinary quietness, shared progress and batch/zero probabilities
+        # unchanged. Gentler LOCAL activity supplies only extra support for a
+        # positive remaining quantity, attached separately for the count sampler.
+        gentle_strength = (e['coverage']*e['started']*quiet(1-pooled['started'],.1)
+            *quiet(e['gentle_local_activity'],.3)*(.5+.5*shared)*e['postal_receipt_support'])
+        gentle_weight = -np.expm1(-(gentle_strength/.3)**2)*shared
+        e['positive_remainder_support'] = float(gentle_weight+(1-gentle_weight)*extra)
+        # Postal receipt can remain open even when very few additions remain.
+        # Omit its deadline discount only for positive finishing amounts; the
+        # existing progress, batch and exact-zero paths retain their safeguards.
+        postal_strength = (e['coverage']*e['started']*quiet(1-pooled['started'],.1)
+            *quiet(e['gentle_local_activity'],.3)*(.5+.5*shared))
+        postal_weight = -np.expm1(-(postal_strength/.3)**2)*shared
+        e['postal_finishing_support'] = float(postal_weight+(1-postal_weight)*extra)
     return result
 
 

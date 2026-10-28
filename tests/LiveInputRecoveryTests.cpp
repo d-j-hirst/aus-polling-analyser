@@ -38,6 +38,12 @@ Snapshot example(std::string time = "2026-03-30T08:00:00") {
 }
 
 void checkLocalRecovery() {
+    // A mixed early/day venue may first report a small day batch. Its positive
+    // FP total must not turn into completion until the district is finalised.
+    auto mixed = example(); mixed.records[0].incremental = true;
+    assert(!recover(mixed,{}).snapshot.records[0].fp.complete);
+    mixed.districts.at("North").finalised = true;
+    assert(recover(mixed,{}).snapshot.records[0].fp.complete);
     auto old = recover(example(),{}).snapshot;
     auto now = example("2026-03-30T09:00:00");
     now.records[0].fp.votes = Counts{{11,-1},{12,120}};
@@ -623,6 +629,24 @@ void checkHistory(std::filesystem::path const& folder) {
     }
 }
 
+void checkIncrementalHistory(std::filesystem::path const& folder) {
+    auto source = example();
+    source.records.front().incremental = true;
+    auto first = recover(source,{}).snapshot;
+    commit(folder,first);
+    auto later = source; later.sourceTime = "2026-03-30T09:00:00";
+    auto saved = loadCompatiblePrevious(folder,later);
+    assert(saved && saved->records.front().incremental);
+    assert(!saved->records.front().fp.complete);
+    auto path = folder/"2026-03-30T08-00-00.json";
+    json legacy;
+    { std::ifstream input(path); input >> legacy; }
+    legacy["records"][0].erase("incremental");
+    { std::ofstream output(path); output << legacy; }
+    auto old = loadPrevious(folder,source.election,later.sourceTime);
+    assert(old && !old->records.front().incremental);
+}
+
 void checkOlderCompatibleCounts(std::filesystem::path const& folder) {
     auto first = recover(example(),{}).snapshot;
     commit(folder,first);
@@ -1113,6 +1137,28 @@ void checkRetainedRecheckStatus(std::filesystem::path const& folder) {
     assert(restored->records[0].tcpBasis->fp == *original.records[0].fp.votes);
 }
 
+void checkFpTotalHistory(std::filesystem::path const& folder) {
+    std::filesystem::create_directories(folder);
+    std::optional<Snapshot> previous;
+    for (int hour = 8; hour <= 12; ++hour) {
+        auto source = example("2026-03-30T"+std::string(hour < 10 ? "0" : "")+std::to_string(hour)+":00:00");
+        auto& r = source.records[0]; r.incremental = true;
+        int votes = hour <= 9 ? 300 : hour == 10 ? 800 : hour == 11 ? 780 : 900;
+        r.fp.votes = Counts{{11,votes},{12,0}}; r.tcp.votes = Counts{{11,votes},{12,0}};
+        previous = recover(source,previous).snapshot;
+        commit(folder,*previous);
+    }
+    std::map<std::string,std::set<std::string>> selection{{"North",{"North/ordinary/School"}}};
+    auto query = [&](std::string const& time, HistoryReadMode mode) {
+        return loadFpTotalHistory(folder,"fictional",time,selection,mode);
+    };
+    auto indexed = query("2026-03-30T12:00:00",HistoryReadMode::Indexed);
+    assert(indexed == query("2026-03-30T12:00:00",HistoryReadMode::SourceFiles));
+    assert(indexed.size() == 1 && indexed.begin()->second == std::vector<double>({300,800,780}));
+    assert(query("2026-03-30T10:00:00",HistoryReadMode::Indexed).begin()->second == std::vector<double>({300}));
+    assert(query("2026-03-30T08:00:00",HistoryReadMode::Indexed).empty());
+}
+
 int main(int argc, char** argv) {
     auto root = argc > 1 ? std::filesystem::path(argv[1]) : std::filesystem::current_path();
     auto folder = root/"cli-build"/"input-recovery-tests";
@@ -1122,6 +1168,8 @@ int main(int argc, char** argv) {
     checkReconciliationHold();
     checkFreshProgressEvidence();
     checkHistory(folder); checkFailedUpdateTransaction(folder);
+    checkIncrementalHistory(folder/"incremental");
+    checkFpTotalHistory(folder/"fp-totals");
     checkOlderCompatibleCounts(folder/"older-compatible");
     checkReconciliationHistory(folder/"reconciliation");
     checkPreferenceHistory(folder/"preferences");

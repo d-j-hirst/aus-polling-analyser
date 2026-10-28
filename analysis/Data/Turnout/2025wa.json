@@ -32,19 +32,18 @@
       "source_id": "antony-green-2025wa-election-eve"
     },
     {
-      "count": 664850,
-      "derivation": "sum_published_counts",
+      "count": 557693,
       "election_code": "2025wa",
       "geography_basis": "state",
       "measure": "prepoll_votes_cast_cumulative",
       "observation_status": "contemporaneous",
       "observed_at": "2025-03-07",
       "seat_name": "",
-      "source_category": "Thursday total 557,693 plus final-Friday count 107,157",
-      "source_id": "antony-green-2025wa-election-eve"
+      "source_category": "Final cumulative early votes issued (WAEC 7 March report)",
+      "source_id": "waec-2025-early-election-eve"
     }
   ],
-  "schema_version": 3,
+  "schema_version": 5,
   "seat_totals": [
     {
       "election_code": "2025wa",
@@ -723,8 +722,18 @@
       "category_regime": "published-election-eve-v1",
       "election_code": "2025wa",
       "locator": "https://antonygreen.com.au/wa2025-tracking-the-early-voting-statistics/",
-      "notes": "Last useful update published before polls closed. District rates are retained as approximate counts derived from final enrolment.",
+      "notes": "Final pre-election controls; some older values survive only in a later retrospective publication. District rates are retained as approximate counts derived from final enrolment.",
       "source_id": "antony-green-2025wa-election-eve",
+      "status": "operational"
+    },
+    {
+      "adapter": "published-election-eve-operational-v1",
+      "authority": "Western Australian Electoral Commission",
+      "category_regime": "published-election-eve-v1",
+      "election_code": "2025wa",
+      "locator": "https://www.elections.wa.gov.au/sites/default/files/SGE2025/EV%20stat%20reports/SGE2025%20Early%20Voting%20Day%2010%202025-03-07.pdf",
+      "notes": "557,693 is cumulative through Friday; the Friday increment is already included.",
+      "source_id": "waec-2025-early-election-eve",
       "status": "operational"
     }
   ],

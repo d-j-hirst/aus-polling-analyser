@@ -1,3 +1,8 @@
+// Turn the results of many possible elections into the forecast report used by
+// Australian Election Forecasts. completeRun groups the summaries, copies their
+// explanatory context, and handles local live-run exports. Selecting a report,
+// writing the website's JSON data file and submitting it are separate steps below.
+
 #include "SimulationCompletion.h"
 
 #include "LiveData.h"
@@ -106,28 +111,68 @@ SimulationCompletion::SimulationCompletion(
 {
 }
 
+// Finish sim.latestReport after this run's iterations have all succeeded. Some
+// frequency tables (counts of how often each result occurred) are already in the
+// report; other accumulated totals come from run. The constructor's iterations
+// count is the denominator for averages and overall outcome probabilities.
+// Each recorded iteration represents one whole election, not an observed ballot.
+//
+// Supporting calibration and live-baseline runs use the same report structure.
+// SimulationRun uses those summaries internally, then completes the main report
+// from the main run's own iterations. Report selection is handled separately in
+// SimulationCollectionReports.cpp. ReportUploader::exportReport writes the
+// selected report to uploads/latest_json.dat, which uploads/upload_manager.py
+// submits to the website.
 void SimulationCompletion::completeRun(
 	FeedbackFunc feedback,
 	ActionRequiredFunc actionRequired)
 {
+	// Copy party, region, seat and candidate names, along with incumbent and
+	// previous-margin references, so report values have an electoral identity and
+	// a comparison point when they are later selected and exported.
 	recordNames();
 
+	// Average each seat's TPP margin and turn its win counts into probabilities.
+	// For example, 600 wins in 1,000 simulated elections is a modelled 60% chance;
+	// it describes the forecast's possible outcomes, not the share of votes won.
 	calculateIndividualSeatStatistics();
 
+	// Summarise the majority, minority and other parliamentary outcomes already
+	// classified during iteration, using their frequencies across this run.
 	calculateWholeResultStatistics();
 
+	// The expected seat count is the average over possible elections and may be
+	// fractional, such as 42.6 seats. The median is the middle seat count when
+	// those outcomes are ordered. Both summaries describe the same distribution.
 	calculatePartyWinExpectations();
 
 	calculatePartyWinMedians();
 
+	// Also provide average party and Coalition seat counts within each region.
 	calculateRegionPartyWinExpectations();
 
+	// Record seat-count bounds for central ranges of possible results. The 50%
+	// range uses the 25th and 75th percentiles: boundaries a quarter and three
+	// quarters through the ordered outcomes. Repeated seat counts can make this
+	// range contain more than half of the simulated elections.
 	recordProbabilityBands();
 
+	// Retain the chance of winning each seat separately for every recorded party.
 	recordSeatPartyWinPercentages();
 
+	// Record seat FP averages and vote-share "probability bands", using the same
+	// percentile idea as the seat-count bounds above. For TCP, record how often
+	// each final pair occurred across the whole run. Summarise its vote shares and
+	// winning chances only among iterations with that pair, using this smaller
+	// count as their denominator when other pairs also occurred.
 	recordSeatFpVoteStats();
 	recordSeatTcpVoteStats();
+
+	// A live baseline is a forecast made before incorporating reported votes.
+	// Retain extra seat, regional and overall vote-share summaries for the live
+	// model to compare with the count. The FP step above also records averages
+	// and how vote shares vary together, used when combining that baseline with
+	// live evidence. These additional summaries belong to the supporting run.
 	if (run.doingLiveBaselineSimulation) {
 		recordSeatTppVoteStats();
 		recordRegionFpVoteStats();
@@ -136,14 +181,29 @@ void SimulationCompletion::completeRun(
 		recordElectionTppVoteStats();
 	}
 
+	// Attach the average effects recorded during the seat TPP calculation, such
+	// as regional movement and local circumstances. They explain that modelled
+	// calculation before live-result integration, rather than attributing every
+	// change in the final live forecast.
 	recordSeatSwingFactors();
 
+	// Copy the base model's TPP and adjusted FP trends, including uncertainty
+	// through time, and its poll data with the model's adjustments. These describe
+	// the polling evidence and model context; they are not recalculated from the
+	// seat-election iterations summarised above.
 	recordTrends();
 
 	recordModelledPolls();
 
+	// Keep the configured previous-election TPP as the overall comparison point.
 	recordReportSettings();
 
+	// After a main automatic live run, also try to write live_summary.csv and,
+	// when an output folder is configured, a diagnostic output snapshot under
+	// live_runs/. This snapshot saves this completed update's report and supporting
+	// live analysis for inspection; it is distinct from a saved input results feed
+	// used to replay a count. Reported export failures leave the calculated report
+	// available. These local files are separate from the website export path above.
 	if (run.isLiveAutomatic() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
 		exportSummary(feedback, actionRequired);
 		run.recordSnapshotExport(LiveRunExport::exportCompletedAutomaticLiveRun(

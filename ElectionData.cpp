@@ -486,6 +486,21 @@ std::string nswecCandidateKey(int seatId, std::string_view candidateName)
   return std::to_string(seatId) + "\x1e" + std::string(candidateName);
 }
 
+// WA's ballot names and venue numbers are unique within a district, rather
+// than across the state. A shared school/early centre can host several seats;
+// its physical VenueId must not merge their separate resident vote accounts.
+std::string waecCandidateKey(int seatId, std::string_view candidateName)
+{
+  return std::to_string(seatId) + "\x1d" + std::string(candidateName);
+}
+
+int waecBoothId(int electionId, int seatId, std::string const& number)
+{
+  // Numbers identify source accounts only within an election. Cross-election
+  // matches are prepared from physical venue/name evidence, never this number.
+  return hashName(std::to_string(electionId) + "/" + std::to_string(seatId) + "/" + number);
+}
+
 void registerEcsaCandidateMatch(std::map<CandidateMatchKey, int>& candidateMatchToId,
   Results2::Candidate const& candidate, Results2::Party const& party)
 {
@@ -1584,8 +1599,88 @@ void Results2::Election::preloadQec([[maybe_unused]] nlohmann::json const& resul
   logger << "Appeared to successfully load past election data\n";
 }
 
+void Results2::Election::loadWaecBaseline(nlohmann::json const& baseline)
+{
+  // The published 2021 report supplies final counts; the preparation script
+  // partitions them into the new reporting categories without duplicating any
+  // candidate's ballots. Real and reconstructed comparisons are distinguished
+  // here so the live model can retain uncertainty about synthetic comparisons.
+  // A linked booth receives its CURRENT identity; historical-only accounts
+  // contribute category composition but can never accidentally match a venue.
+  if (baseline.at("schema_version") != 1 || baseline.at("previous_election") != termCode)
+    throw std::runtime_error("Incompatible WA historical baseline.");
+  int currentId = hashName(baseline.at("election_date").get<std::string>());
+  seats.clear(); booths.clear(); candidates.clear(); parties.clear();
+  std::map<std::string,int> partyIds, candidateIds;
+  auto readCounts = [&](auto const& source, auto& destination, auto const& districtCandidates) {
+    for (auto const& [key, value] : source.items()) {
+      int count = value.template get<int>();
+      if (count < 0 || !districtCandidates.contains(key))
+        throw std::runtime_error("Invalid prepared WA historical candidate count.");
+      destination[candidateIds.at(key)] += count;
+    }
+  };
+  for (auto const& [districtName, row] : baseline.at("districts").items()) {
+    Seat seat; seat.name = districtName; seat.id = hashName(districtName); seat.enrolment = row.at("enrolment");
+    auto const& roster = row.at("candidates");
+    for (auto const& [key, candidate] : roster.items()) {
+      std::string code = candidate.at("party");
+      if (!partyIds.contains(code)) {
+        // Independent candidates need their reserved affiliation so the live
+        // model keeps each person's vote separate, as it does in other feeds.
+        int party = code == "IND" ? Candidate::Independent : int(partyIds.size())+1;
+        partyIds[code] = party; parties[party] = {party,code,code};
+      }
+      if (!candidateIds.contains(key)) {
+        int candidateId = int(candidateIds.size())+1;
+        candidateIds[key] = candidateId;
+        candidates[candidateId] = {candidateId,candidate.at("name"),partyIds.at(code)};
+      }
+    }
+    int unlinked = 0;
+    for (auto const& record : row.at("booths")) {
+      Booth booth;
+      booth.id = record.at("number").is_null()
+        ? hashName("WA historical only/"+districtName+"/"+std::to_string(unlinked++))
+        : waecBoothId(currentId,seat.id,record.at("number"));
+      if (booths.contains(booth.id)) throw std::runtime_error("Duplicate prepared WA venue link.");
+      booth.name = record.at("name"); booth.parentSeat = seat.id;
+      booth.comparisonSeat = record.at("comparison_seat");
+      booth.type = record.at("kind") == "ppvc" ? Booth::Type::Ppvc : Booth::Type::Normal;
+      booth.syntheticBaseline = record.at("synthetic");
+      readCounts(record.at("fp"),booth.fpVotes,roster);
+      readCounts(record.at("tcp"),booth.tcpVotesCandidate,roster);
+      for (auto const& [candidate,count] : booth.tcpVotesCandidate)
+        booth.tcpVotes[candidates.at(candidate).party] += count;
+      seat.booths.push_back(booth.id); booths.emplace(booth.id,std::move(booth));
+    }
+    std::map<std::string,VoteType> types{{"Absent",VoteType::Absent},{"Postal",VoteType::Postal},
+      {"SIR",VoteType::SIR},{"Provisional",VoteType::Provisional}};
+    for (auto const& [categoryName, record] : row.at("declarations").items()) {
+      auto type = types.at(categoryName);
+      if (record.at("synthetic")) seat.syntheticBaselineTypes.insert(type);
+      std::map<int,int> fp,tcp;
+      readCounts(record.at("fp"),fp,roster); readCounts(record.at("tcp"),tcp,roster);
+      for (auto const& [candidate,count] : fp) seat.fpVotes[candidate][type] += count;
+      for (auto const& [candidate,count] : tcp) {
+        seat.tcpVotesCandidate[candidate][type] += count;
+        seat.tcpVotes[candidates.at(candidate).party][type] += count;
+      }
+    }
+    seats.emplace(seat.id,std::move(seat));
+  }
+}
+
 void Results2::Election::preloadWaec(tinyxml2::XMLDocument const& candidatesXml, tinyxml2::XMLDocument const& boothsXml)
 {
+  // The pre-election rosters define resident-count identities, not results.
+  // Venue GUIDs describe buildings shared by seats; district + booth number
+  // identifies the particular ballot account within that election only.
+  auto const& event = requiredChild(boothsXml, "ElectionEvent", "WAEC booth preload");
+  id = hashName(requiredAttribute(event, "ElectionDate", "WAEC booth preload"));
+  auto const& candidatesEvent = requiredChild(candidatesXml, "ElectionEvent", "WAEC candidate preload");
+  if (hashName(requiredAttribute(candidatesEvent, "ElectionDate", "WAEC candidate preload")) != id)
+    throwInvalidXml("WAEC preload", "candidate and booth elections differ");
   auto currentRegion = boothsXml.FirstChildElement()->FirstChildElement("ElectionRegion");
   while (currentRegion) {
 
@@ -1601,9 +1696,11 @@ void Results2::Election::preloadWaec(tinyxml2::XMLDocument const& candidatesXml,
       auto currentBooth = currentDistrict->FirstChildElement("OrdinaryPollingPlace");
       while (currentBooth) {
         Booth booth;
-        booth.id = hashName(currentBooth->Attribute("VenueId"));
-        if (booths.contains(booth.id)) booth = booths[booth.id];
+        booth.id = waecBoothId(id, seat.id, requiredAttribute(*currentBooth, "Number", "WAEC booth preload"));
+        if (booths.contains(booth.id)) throwInvalidXml("WAEC booth preload", "duplicate booth identity");
         booth.name = currentBooth->Attribute("Name");
+        booth.type = booth.name.find("Early Polling Place") != std::string::npos ? Booth::Type::Ppvc : Booth::Type::Normal;
+        booth.incrementalFp = booth.type == Booth::Type::Ppvc;
         booth.parentSeat = seat.id;
         booths[booth.id] = booth;
         seat.booths.push_back(booth.id);
@@ -1635,12 +1732,17 @@ void Results2::Election::preloadWaec(tinyxml2::XMLDocument const& candidatesXml,
         candidate.name = currentCandidate->Attribute("BallotPaperName");
         candidate.id = candidateIdCounter;
         ++candidateIdCounter;
-        auto partyShortCode = currentCandidate->Attribute("RegisteredPartyAbbreviation");
+        std::string partyShortCode = currentCandidate->Attribute("RegisteredPartyAbbreviation");
+        // Unendorsed ballot entries need an explicit Other identity. A blank
+        // party code is not evidence that the person is an independent.
+        if (partyShortCode.empty()) partyShortCode = "OTH";
         if (!partyShortCodeToPartyId.contains(partyShortCode)) {
           partyShortCodeToPartyId[partyShortCode] = partyIdCounter;
           ++partyIdCounter;
         }
-        candidate.party = partyShortCodeToPartyId[partyShortCode];
+        // IND is an affiliation marker, not one pooled candidate. The reserved
+        // value makes mapPartyId retain each independent's separate identity.
+        candidate.party = partyShortCode == "IND" ? Candidate::Independent : partyShortCodeToPartyId[partyShortCode];
         if (!parties.contains(candidate.party)) {
           parties[candidate.party] = Party();
           parties[candidate.party].id = candidate.party;
@@ -1648,11 +1750,10 @@ void Results2::Election::preloadWaec(tinyxml2::XMLDocument const& candidatesXml,
           parties[candidate.party].shortCode = partyShortCode;
         }
         candidates[candidate.id] = candidate;
-        if (candidateNameToId.contains(candidate.name)) {
-          // If this triggers, we'll just need to add the seat name to the candidate name
-          logger << "WARNING: Identical candidate names found: " << candidate.name << "\n";
-        }
-        candidateNameToId[candidate.name] = candidate.id;
+        auto key = waecCandidateKey(seat.id, candidate.name);
+        if (candidateNameToId.contains(key)) throwInvalidXml("WAEC candidate preload", "duplicate district candidate");
+        candidateNameToId[key] = candidate.id;
+        liveCandidateRosters[seat.id].insert(candidate.id);
 
         // Initialise the votes for this candidate in all booths in the seat
         for (auto const& boothId : seat.booths) {
@@ -2800,6 +2901,11 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 
 bool Results2::Election::matchesSnapshotElection(tinyxml2::XMLDocument const& xml, Format format) const
 {
+  if (format == Format::WAEC) {
+    auto root = xml.FirstChildElement("ElectionEvent");
+    auto date = root ? root->Attribute("ElectionDate") : nullptr;
+    return date && hashName(date) == id;
+  }
   tinyxml2::XMLElement const* event = nullptr;
   char const* attribute = "Id";
   if (format == Format::QEC) {
@@ -2948,221 +3054,90 @@ void Results2::Election::updateQec(tinyxml2::XMLDocument const& xml)
 
 void Results2::Election::updateWaec(tinyxml2::XMLDocument const& xml)
 {
-  // This is a pure update, assumes you've already used the preload
-
-  auto VoteTypeCategory = [](std::string boothName) {
-    if (boothName == "Special Institutions,  Hospitals & Remotes") return VoteType::SIR;
-    if (boothName == "Absent Votes") return VoteType::Absent;
-    if (boothName == "Early Votes (by Post)") return VoteType::Postal;
-    if (boothName == "Early Votes (In Person)") return VoteType::PrePoll;
-    if (boothName == "Provisional Votes") return VoteType::Provisional;
-    return VoteType::Invalid;
-  };
-
-  // A readable update normally has a root, regions and district FP accounts.
-  // Missing structure is a failed source, not an empty count or a pointer to
-  // dereference. Numerical values inside identified accounts recover separately.
-  auto root = xml.FirstChildElement();
-  if (!root) throwInvalidXml("WAEC results", "missing root element");
-  auto currentRegion = root->FirstChildElement("ElectionRegion");
-  if (!currentRegion) throwInvalidXml("WAEC results", "missing ElectionRegion");
-  while (currentRegion) {
-    auto currentDistrict = currentRegion->FirstChildElement("ElectionDistrict");
-    while (currentDistrict) {
-      int seatId = hashName(requiredAttribute(*currentDistrict,"Name","WAEC results/ElectionDistrict"));
-      if (!seats.contains(seatId)) throwInvalidXml("WAEC results/ElectionDistrict", "unknown district identity");
+  // A WA export contains separate primary (LAPC) and two-candidate (LAND)
+  // accounts. Their order and presence can change during counting. Read each
+  // independently, preserving missing accounts as unavailable for recovery.
+  // Candidate counts are resident votes for this district, even when several
+  // districts use the same physical venue.
+  auto const& root = requiredChild(xml, "ElectionEvent", "WAEC results");
+  auto eventId = hashName(requiredAttribute(root, "ElectionDate", "WAEC results"));
+  if (eventId != id) throwInvalidXml("WAEC results", "election differs from preload");
+  for (auto region = root.FirstChildElement("ElectionRegion"); region;
+       region = region->NextSiblingElement("ElectionRegion")) {
+    for (auto district = region->FirstChildElement("ElectionDistrict"); district;
+         district = district->NextSiblingElement("ElectionDistrict")) {
+      int seatId = hashName(requiredAttribute(*district, "Name", "WAEC results district"));
+      if (!seats.contains(seatId)) throwInvalidXml("WAEC results", "unknown district");
       Seat& seat = seats.at(seatId);
+      auto const& assembly = requiredChild(*district, "LA", "WAEC results district");
+      // A declared result supplies explicit completion, unlike "Final for the
+      // Night" or "Awaiting Declaration". In the 2025 archive no FP total
+      // changes after declaration. Later official corrections can still replace
+      // the count through normal recovery; this does not freeze source values.
+      seat.fpFinalised = assembly.Attribute("ElectionStatus", "Results Declared") != nullptr;
+      std::set<std::string> seenRounds;
+      for (auto round = assembly.FirstChildElement("DistrictVotes"); round;
+           round = round->NextSiblingElement("DistrictVotes")) {
+        std::string definition = round->Attribute("CountDefinitionCode") ? round->Attribute("CountDefinitionCode") : "";
+        // Before any results, WAEC publishes a district-only zero placeholder
+        // without a count definition. It provides no booth observation.
+        if (definition.empty()) continue;
+        if (definition != "LAPC" && definition != "LAND")
+          throwInvalidXml("WAEC results", "unknown count definition " + definition);
+        if (!seenRounds.insert(definition).second) throwInvalidXml("WAEC results", "duplicate count round");
+        bool tcp = definition == "LAND";
 
-      auto const& assembly = requiredChild(*currentDistrict,"LA","WAEC results/ElectionDistrict");
-      auto districtVotes = &requiredChild(assembly,"DistrictVotes","WAEC results/ElectionDistrict/LA");
-
-      // We need to know all the candidate ids for this seat to establish zeros for other vote types
-      std::vector<int> candidateIds;
-      auto currentCandidate = districtVotes->FirstChildElement("CandidateVotes");
-      while (currentCandidate) {
-        auto candidateName = requiredAttribute(*currentCandidate,"CandidateBallotPaperName","WAEC results/CandidateVotes");
-        if (!candidateNameToId.contains(candidateName)) {
-          currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
-          continue;
-        }
-        candidateIds.push_back(candidateNameToId[candidateName]);
-        currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
-      }
-
-      auto currentBooth = districtVotes->FirstChildElement("OrdinaryPollingPlaceVotes");
-      while (currentBooth) {
-
-        int boothId = requiredIntAttribute(*currentBooth,"VenueId","WAEC results/OrdinaryPollingPlaceVotes",0);
-        if (booths.contains(boothId)) {
-          Booth& booth = booths[boothId];
-          currentCandidate = currentBooth->FirstChildElement("CandidateVotes");
-          while (currentCandidate) {
-            auto candidateName = requiredAttribute(*currentCandidate,"CandidateBallotPaperName","WAEC results/CandidateVotes");
-            if (!candidateNameToId.contains(candidateName)) {
-              currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
-              continue;
+        auto readCandidates = [&](tinyxml2::XMLElement const& account, int boothId, VoteType type) {
+          // Preload names, scoped to this seat, are the ballot identities.
+          // A previously unseen name is a source/setup mismatch, rather than
+          // a candidate whose votes can safely be dropped from the forecast.
+          std::set<int> seenCandidates;
+          for (auto row = account.FirstChildElement("CandidateVotes"); row;
+               row = row->NextSiblingElement("CandidateVotes")) {
+            auto name = requiredAttribute(*row, "CandidateBallotPaperName", "WAEC count");
+            auto found = candidateNameToId.find(waecCandidateKey(seatId, name));
+            if (found == candidateNameToId.end()) throwInvalidXml("WAEC count", "unknown district candidate " + name);
+            int candidateId = found->second;
+            if (!seenCandidates.insert(candidateId).second) throwInvalidXml("WAEC count", "duplicate candidate");
+            int votes = readCount(row, "WAEC candidate Votes", seatId, boothId, type, tcp, "Votes");
+            int partyId = candidates.at(candidateId).party;
+            if (type == VoteType::Ordinary) {
+              auto& booth = booths.at(boothId);
+              if (!tcp) booth.fpVotes[candidateId] = votes;
+              else { booth.tcpVotesCandidate[candidateId] = votes; booth.tcpVotes[partyId] += votes; }
             }
-            auto candidateId = candidateNameToId[candidateName];
-            auto votes = readCount(currentCandidate, "WAEC ordinary FP Votes", seat.id, boothId, VoteType::Ordinary, false, "Votes");
-            booth.fpVotes[candidateId] = votes;
-            currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
+            else if (!tcp) seat.fpVotes[candidateId][type] = votes;
+            else { seat.tcpVotesCandidate[candidateId][type] = votes; seat.tcpVotes[partyId][type] += votes; }
           }
+        };
+
+        std::set<int> seenBooths;
+        for (auto account = round->FirstChildElement("OrdinaryPollingPlaceVotes"); account;
+             account = account->NextSiblingElement("OrdinaryPollingPlaceVotes")) {
+          auto number = requiredAttribute(*account, "OrdinaryPollingPlaceNumber", "WAEC booth count");
+          int boothId = waecBoothId(id, seatId, number);
+          if (!booths.contains(boothId)) throwInvalidXml("WAEC booth count", "unknown polling place number " + number);
+          if (!seenBooths.insert(boothId).second) throwInvalidXml("WAEC booth count", "duplicate booth account");
+          readCandidates(*account, boothId, VoteType::Ordinary);
         }
-
-        currentBooth = currentBooth->NextSiblingElement("OrdinaryPollingPlaceVotes");
-      }
-
-      auto currentCategory = districtVotes->FirstChildElement("CategoryVotes");
-      while (currentCategory) {
-        auto categoryName = requiredAttribute(*currentCategory,"CategoryName","WAEC results/CategoryVotes");
-        auto categoryType = VoteTypeCategory(categoryName);
-        if (categoryType == VoteType::Invalid) {
-          currentCategory = currentCategory->NextSiblingElement("CategoryVotes");
-          continue;
-        }
-        currentCandidate = currentCategory->FirstChildElement("CandidateVotes");
-        while (currentCandidate) {
-          auto candidateName = requiredAttribute(*currentCandidate,"CandidateBallotPaperName","WAEC results/CandidateVotes");
-          if (!candidateNameToId.contains(candidateName)) {
-            currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
-            continue;
-          }
-          auto candidateId = candidateNameToId[candidateName];
-          auto votes = readCount(currentCandidate, "WAEC category FP Votes", seat.id, 0, categoryType, false, "Votes");
-          seat.fpVotes[candidateId][categoryType] = votes;
-          currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
-        }
-        currentCategory = currentCategory->NextSiblingElement("CategoryVotes");
-      }
-      districtVotes = districtVotes->NextSiblingElement("DistrictVotes");
-
-      if (districtVotes) {
-
-        currentBooth = districtVotes->FirstChildElement("OrdinaryPollingPlaceVotes");
-        while (currentBooth) {
-
-          int boothId = requiredIntAttribute(*currentBooth,"VenueId","WAEC results/OrdinaryPollingPlaceVotes",0);
-          if (booths.contains(boothId)) {
-            Booth& booth = booths[boothId];
-            currentCandidate = currentBooth->FirstChildElement("CandidateVotes");
-            while (currentCandidate) {
-              auto candidateName = requiredAttribute(*currentCandidate,"CandidateBallotPaperName","WAEC results/CandidateVotes");
-              if (!candidateNameToId.contains(candidateName)) {
-                currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
-                continue;
-              }
-              auto candidateId = candidateNameToId[candidateName];
-              auto votes = readCount(currentCandidate, "WAEC ordinary TCP Votes", seat.id, boothId, VoteType::Ordinary, true, "Votes");
-              booth.tcpVotesCandidate[candidateId] = votes;
-              auto partyId = candidates.at(candidateId).party;
-              booth.tcpVotes[partyId] = votes;
-              currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
-            }
-          }
-          currentBooth = currentBooth->NextSiblingElement("OrdinaryPollingPlaceVotes");
-        }
-
-        currentCategory = districtVotes->FirstChildElement("CategoryVotes");
-        while (currentCategory) {
-          auto categoryName = requiredAttribute(*currentCategory,"CategoryName","WAEC results/CategoryVotes");
-          auto categoryType = VoteTypeCategory(categoryName);
-          if (categoryType == VoteType::Invalid) {
-            currentCategory = currentCategory->NextSiblingElement("CategoryVotes");
-            continue;
-          }
-          currentCandidate = currentCategory->FirstChildElement("CandidateVotes");
-          while (currentCandidate) {
-            auto candidateName = requiredAttribute(*currentCandidate,"CandidateBallotPaperName","WAEC results/CandidateVotes");
-            if (!candidateNameToId.contains(candidateName)) {
-              currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
-              continue;
-            }
-            auto candidateId = candidateNameToId[candidateName];
-            auto votes = readCount(currentCandidate, "WAEC category TCP Votes", seat.id, 0, categoryType, true, "Votes");
-            seat.tcpVotesCandidate[candidateId][categoryType] = votes;
-            auto partyId = candidates.at(candidateId).party;
-            seat.tcpVotes[partyId][categoryType] = votes;
-            currentCandidate = currentCandidate->NextSiblingElement("CandidateVotes");
-          }
-          currentCategory = currentCategory->NextSiblingElement("CategoryVotes");
+        std::set<VoteType> seenTypes;
+        for (auto account = round->FirstChildElement("CategoryVotes"); account;
+             account = account->NextSiblingElement("CategoryVotes")) {
+          // Codes survive the 2025 renaming of postal and mobile services.
+          // Early Votes (In Person), published as PPV in 2021, stays separate
+          // from 2025's physical early booths: it is not an observed match.
+          auto code = requiredAttribute(*account, "CategoryCode", "WAEC category count");
+          VoteType type = code == "SIR" ? VoteType::SIR : code == "AV" ? VoteType::Absent :
+            code == "POV" ? VoteType::Postal : code == "PPV" ? VoteType::PrePoll :
+            code == "PRV" ? VoteType::Provisional : VoteType::Invalid;
+          if (type == VoteType::Invalid) throwInvalidXml("WAEC category count", "unknown service " + code);
+          if (!seenTypes.insert(type).second) throwInvalidXml("WAEC category count", "duplicate service account");
+          readCandidates(*account, 0, type);
         }
       }
-
-      std::vector expectedVoteTypes = {
-        VoteType::SIR, 
-        VoteType::Absent,
-        VoteType::Postal,
-        VoteType::PrePoll,
-        VoteType::Provisional
-      };
-      for (auto voteType : expectedVoteTypes) {
-        for (auto candidateId : candidateIds) {
-          if (seat.fpVotes.find(candidateId) == seat.fpVotes.end()) {
-            seat.fpVotes[candidateId] = {};
-          }
-          if (seat.tcpVotes.find(candidateId) == seat.tcpVotes.end()) {
-            seat.tcpVotes[candidateId] = {};
-          }
-          if (seat.tcpVotesCandidate.find(candidateId) == seat.tcpVotesCandidate.end()) {
-            seat.tcpVotesCandidate[candidateId] = {};
-          }
-          if (seat.fpVotes[candidateId].find(voteType) == seat.fpVotes[candidateId].end()) {
-            seat.fpVotes[candidateId][voteType] = 0;
-          }
-          if (seat.tcpVotes[candidateId].find(voteType) == seat.tcpVotes[candidateId].end()) {
-            seat.tcpVotes[candidateId][voteType] = 0;
-          }
-          if (seat.tcpVotesCandidate[candidateId].find(voteType) == seat.tcpVotesCandidate[candidateId].end()) {
-            seat.tcpVotesCandidate[candidateId][voteType] = 0;
-          }
-        }
-      }
-      currentDistrict = currentDistrict->NextSiblingElement("ElectionDistrict");
     }
-
-    currentRegion = currentRegion->NextSiblingElement("ElectionRegion");
   }
-
-  // logger << "Waec Update\n";
-  // PA_LOG_VAR(booths.size());
-  // logger << "==SEATS==\n";
-  // for (auto const& [seatId, seat] : seats) {
-  // 	PA_LOG_VAR(seat.name);
-  // 	PA_LOG_VAR(seat.id);
-  // 	PA_LOG_VAR(seat.enrolment);
-  // 	PA_LOG_VAR(seat.fpVotes);
-  // 	PA_LOG_VAR(seat.tcpVotes);
-  // 	PA_LOG_VAR(seat.tcpVotesCandidate);
-  // 	PA_LOG_VAR(seat.tppVotes);
-  // 	PA_LOG_VAR(seat.booths);
-  // 	for (int boothId : seat.booths) {
-  // 		PA_LOG_VAR(boothId);
-  // 		auto const& booth = booths.at(boothId);
-  // 		PA_LOG_VAR(booth.id);
-  // 		PA_LOG_VAR(booth.name);
-  // 		PA_LOG_VAR(booth.fpVotes);
-  // 		PA_LOG_VAR(booth.tcpVotes);
-  // 		PA_LOG_VAR(booth.type);
-  // 	}
-  // }
-  // logger << "==CANDIDATES==\n";
-  // for (auto const& candidate : candidates) {
-  // 	PA_LOG_VAR(candidate.second.id);
-  // 	PA_LOG_VAR(candidate.second.name);
-  // 	if (candidate.second.party != -1) {
-  // 		PA_LOG_VAR(parties[candidate.second.party].name);
-  // 	}
-  // 	else {
-  // 		logger << "Independent\n";
-  // 	}
-  // }
-  // logger << "==PARTIES==\n";
-  // for (auto const& party : parties) {
-  // 	PA_LOG_VAR(party.second.id);
-  // 	PA_LOG_VAR(party.second.name);
-  // 	PA_LOG_VAR(party.second.shortCode);
-  // }
-  logger << "Appeared to successfully load election data update\n";
+  logger << "Appeared to successfully load WA election data update\n";
 }
 
 void Results2::Election::updateEcsa(tinyxml2::XMLDocument const& xml)

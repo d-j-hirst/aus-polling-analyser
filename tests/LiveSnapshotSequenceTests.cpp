@@ -162,6 +162,15 @@ int main() {
     std::filesystem::remove(queensland / "20241026180000_publicResults.zip");
     touch(queensland / "20241032180000_publicResults.zip");
     assert(!discover(queensland, "2024qld").error.empty());
+    auto western = root / "western";
+    std::filesystem::create_directory(western);
+    touch(western / "waec-la-verbose-20250308180640.xml");
+    touch(western / "waec-la-verbose-20250406125852.xml");
+    touch(western / "8 March 2025 State General Election - 250308210640.xml");
+    touch(western / "LA VERBOSE RESULTS.xml");
+    auto waDiscovery = discover(western, "2025wa");
+    assert(waDiscovery.error.empty() && waDiscovery.files.size() == 2);
+    assert(waDiscovery.files.front().timestamp == "20250308180640");
     // Remove only this test's newly-created, uniquely-named temporary tree.
     std::filesystem::remove_all(root);
     std::cout << "Snapshot discovery, sequence selection and saved-project settings checks passed.\n";

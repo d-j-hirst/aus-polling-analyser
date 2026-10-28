@@ -1,16 +1,39 @@
 #include "LiveResultsInput.h"
 
 #include "json.h"
+#include "Date.h"
 
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <stdexcept>
 #include <utility>
 
 namespace LiveResultsInput {
+
+std::string waObservationTime(CurrentFile const& file)
+{
+	if (file.timestamp) {
+		auto code = file.timestamp->size() == 12 ? "20" + *file.timestamp : *file.timestamp;
+		if (code.size() != 14 || !Timestamp::parseCompactLocal(code))
+			throw std::runtime_error("Invalid WA capture timestamp.");
+		return code.substr(0,4) + "-" + code.substr(4,2) + "-" + code.substr(6,2) + "T" +
+			code.substr(8,2) + ":" + code.substr(10,2) + ":" + code.substr(12,2);
+	}
+	// Read this before making a working copy: its new write time is unrelated
+	// to when the operator actually received the official export.
+	// MSVC's file clock converts through UTC; libstdc++ exposes to_sys instead.
+#ifdef _WIN32
+	auto instant = std::chrono::clock_cast<std::chrono::system_clock>(std::filesystem::last_write_time(file.path));
+#else
+	auto instant = std::chrono::file_clock::to_sys(std::filesystem::last_write_time(file.path));
+#endif
+	auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(instant.time_since_epoch()).count();
+	return Timestamp::fromUnixMilliseconds(milliseconds + 8LL * 60 * 60 * 1000).formatIsoUtc().substr(0,19);
+}
 
 std::optional<PreloadFiles> localPreloadFiles(std::string_view source)
 {
@@ -87,6 +110,10 @@ std::optional<std::string> stateFeedTimestamp(
 	std::filesystem::path const& path,
 	std::string const& regionCode)
 {
+	if (regionCode == "wa") {
+		if (!filenameContains(path, "waec-la-verbose-")) return std::nullopt;
+		return fixedWidthNativeDigits(path.filename().native(), 16, 14);
+	}
 	if (regionCode == "qld") {
 		if (!filenameContains(path, "_publicResults")) return std::nullopt;
 		return fixedWidthNativeDigits(path.filename().native(), 0, 14);
@@ -133,7 +160,7 @@ bool isCurrentResultsCandidate(
 			"el" + termCode.substr(0, 4) + "_ha_detail.xml");
 	}
 	if (regionCode == "wa") {
-		return filenameContains(path, "LA VERBOSE RESULTS");
+		return filenameContains(path, "LA VERBOSE RESULTS") || stateFeedTimestamp(path, regionCode).has_value();
 	}
 	return stateFeedTimestamp(path, regionCode).has_value();
 }

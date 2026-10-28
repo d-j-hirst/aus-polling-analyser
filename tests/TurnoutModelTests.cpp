@@ -1,6 +1,17 @@
+// GUI sources may include Windows RPC headers before the turnout headers.
+// Reproduce their `small` macro without making this portable test depend on the SDK.
+#include <algorithm>
+#include <cmath>
+#include <optional>
+#include <vector>
+#define small char
+#include "../WaEarlyCounting.h"
+#undef small
+
 #include "../TurnoutModelIO.h"
 #include "../LiveTurnoutMath.h"
 #include "../LiveTurnout.h"
+#include "../LivePreferenceCorrections.h"
 #include <cassert>
 #include <chrono>
 #include <cmath>
@@ -26,6 +37,147 @@ template<class F> void rejects(F action) {
     bool threw = false; try { action(); } catch (std::exception const&) { threw = true; }
     assert(threw);
 }
+void checkWaEarlyBatches() {
+    using namespace WaEarlyCounting;
+    auto close = TurnoutModel::sourceHour("2025-03-08T18:00:00");
+    auto night = close+4, noon = close+18, next = close+30;
+    auto small = prepare(454,{454},night,close,false);
+    auto large = prepare(7761,{7761},night,close,false);
+    assert(small.smallOnly > .85 && large.largeOnly > .84 && large.both > .14);
+    assert(prepare(7761,{7761},noon,close,false).both > large.both);
+    assert(prepare(7761,{7761},next,close,false).both == 1);
+    assert(substantialBatches({454,7548,7569}) == 2);
+    assert(substantialBatches({11923,13932,13939}) == 2);
+    assert(substantialBatches({8594,7969,7962}) == 1);
+    assert(substantialBatches({232,0,4479,0,4479}) == 2);
+    assert(substantialBatches({0,0}) == 0);
+    assert(prepare(454,{454},night,{},false).smallOnly == small.smallOnly);
+
+    TurnoutModel::Prior prior;
+    prior.election = "2025wa"; prior.seats = {"Example"}; prior.subdivisions = {"X"};
+    prior.groups = {"ordinary","early"}; prior.enrolment = {20000};
+    for (int i = 0; i < 128; ++i) {
+        double early = 9000+20*i;
+        prior.totals.push_back({early+5000}); prior.counts.push_back({5000,early});
+    }
+    TurnoutModel::Unit day, early;
+    day.name = day.category = "Ordinary"; day.kind = "ordinary"; day.weight = 1; day.counted = 4000;
+    early.name = "Early centre"; early.category = "Early"; early.kind = "ppvc";
+    early.group = 1; early.weight = 1; early.incremental = true; early.counted = 7548;
+    early.receivedFpTotals = {454,7548};
+    prior.units = {day,early};
+    TurnoutModel::Options options; options.pollClose = close;
+    std::vector<TurnoutModel::Observation> history{{night,{}}};
+    auto result = TurnoutModel::prepare(prior,prior.units,{false},history,options);
+    assert(result.waEarlyPlaces.size() == 1 && result.waEarlyPlaces[0].state.batches == 2);
+    compare(7548,result.unitMeans[1],"WA completed routine FP after two batches");
+    auto plan = TurnoutModel::makeDrawPlan(result,prior.units,prior.enrolment);
+    for (int i = 0; i < 100; ++i) {
+        auto counts = TurnoutModel::drawUnitCounts(result,plan,i);
+        compare(7548,counts[1],"WA two-batch draw"); compare(4000,counts[0],"unchanged ordinary count");
+    }
+    // A genuinely later revision becomes the new accepted count, not a third
+    // expected routine batch. Other jurisdictions retain the old treatment.
+    prior.units[1].counted = 7962;
+    compare(7962,TurnoutModel::prepare(prior,prior.units,{false},history,options).unitMeans[1],"accept later actual revision");
+    prior.election = "2024qld";
+    auto other = TurnoutModel::prepare(prior,prior.units,{false},history,options);
+    assert(other.waEarlyPlaces.empty() && other.unitMeans[1] > 7962);
+    prior.election = "2025wa"; prior.units[1].counted = 0; prior.units[1].receivedFpTotals.clear();
+    history[0].hour = next;
+    auto unreported = TurnoutModel::prepare(prior,prior.units,{false},history,options);
+    assert(unreported.waEarlyPlaces.empty() && unreported.unitMeans[1] > 0);
+
+    // Main draw means and diagnostic means use the same one-batch mixture.
+    prior.units[1].counted = 7000; prior.units[1].receivedFpTotals = {7000}; history[0].hour = night;
+    auto mixed = TurnoutModel::prepare(prior,prior.units,{false},history,options);
+    auto mixedPlan = TurnoutModel::makeDrawPlan(mixed,prior.units,prior.enrolment);
+    double mean = 0;
+    for (int i = 0; i < 50000; ++i) mean += TurnoutModel::drawUnitCounts(mixed,mixedPlan,i)[1]/50000;
+    assert(std::abs(mean-mixed.unitMeans[1]) < 15);
+    compare(mixed.unitMeans[0]+mixed.unitMeans[1],TurnoutModel::meanTotals(mixed)[0],"WA total accounting");
+}
+
+void checkSignedCountRevisions() {
+    TurnoutModelIO::Artifact artifact;
+    auto& prior = artifact.prior;
+    prior.election = "fictional"; prior.seats = {"Example"}; prior.subdivisions = {"X"};
+    prior.groups = {"ordinary"}; prior.enrolment = {20000};
+    prior.totals = {{9000},{10000}}; prior.counts = {{9000},{10000}};
+    TurnoutModel::Unit unit; unit.name = unit.category = "Booth"; unit.kind = "ordinary";
+    unit.weight = 1; unit.counted = 8000; prior.units = {unit};
+    auto counts = LiveTurnout::Prepared::prepare(artifact,prior.units,{0},1,{false},{},"2025-03-09T10:00:00");
+    for (double coverage : {0.,.5,1.}) {
+        LiveTurnout::UnitComposition u; u.fp = {{0,4000},{1,3000},{2,1000}};
+        u.tpp = {{0,4800*coverage},{1,3200*coverage}}; u.tcp = {{0,4800*coverage},{1,3200*coverage}};
+        if (coverage == 0) { u.tpp.clear(); u.tcp.clear(); }
+        u.projectedFp = {{0,4000},{1,3000},{2,1000}}; u.projectedTpp = {{0,4800},{1,3200}}; u.projectedTcp = u.projectedTpp;
+        LiveTurnout::SeatComposition s; s.name = "Example"; s.fp = u.fp; s.tpp = u.tpp; s.tcp = u.tcp;
+        s.projectedFp = u.projectedFp; s.projectedTpp = u.projectedTpp; s.projectedTcp = u.projectedTcp;
+        auto ready = counts->withComposition({u},{s});
+        int unchanged = 0, negative = 0, positive = 0; double meanChange = 0;
+        auto preferenceRecheck = [&](auto& projected, auto& observed) {
+            if (coverage == 0) return;
+            // Existing preference-only rechecks precede ballot revisions.
+            // Retain their transfer in both accounts, rather than replacing
+            // their corrected floor with the original reported pair.
+            LivePreferenceCorrections::transfer(observed.tpp[0],projected[0].tpp,0,1,-100);
+            LivePreferenceCorrections::transfer(observed.tcp[0],projected[0].tcp,0,1,-100);
+        };
+        for (int i = 0; i < 50000; ++i) {
+            auto projected = ready->draw(i); auto observed = ready->scenarioCounts();
+            preferenceRecheck(projected,observed);
+            ready->revise(i,projected,observed);
+            auto repeat = ready->draw(i); auto repeatObserved = ready->scenarioCounts();
+            preferenceRecheck(repeat,repeatObserved);
+            ready->revise(i,repeat,repeatObserved);
+            assert(projected[0].fp == repeat[0].fp && observed.fp == repeatObserved.fp);
+            double fp = 0, tpp = 0, tcp = 0;
+            for (auto const& [p,v] : projected[0].fp) { assert(v >= -1e-6); fp += v; }
+            for (auto const& [p,v] : projected[0].tpp) {
+                assert(v >= -1e-6); tpp += v;
+                assert(v+1e-3 >= LiveCountRevisions::get(observed.tpp[0],p));
+            }
+            for (auto const& [p,v] : projected[0].tcp) tcp += v;
+            assert(std::abs(fp-tpp) < .003 && std::abs(fp-tcp) < .003);
+            assert(std::abs(fp-LiveCountRevisions::total(observed.fp[0])) < .003);
+            double change = fp-8000;
+            unchanged += change == 0; negative += change < 0; positive += change > 0; meanChange += change/50000;
+            if (change == 0 && coverage > 0) assert(projected[0].tpp.at(0) == 4700);
+            if (coverage == 0) assert(observed.tpp[0].empty());
+            if (coverage == 1) {
+                auto finalShares = LiveTurnoutMath::reconcileForecast({observed.tpp[0],projected[0].tpp},{{0,80},{1,20}});
+                assert(std::abs(finalShares.at(0)-100*projected[0].tpp.at(0)/tpp) < 1e-4);
+            }
+        }
+        assert(unchanged > 44000 && unchanged < 46000 && negative > 2200 && positive > 2200);
+        assert(std::abs(meanChange) < 3);
+        assert(ready->counted(LiveData::CountKind::Fp,0) == u.fp);
+    }
+    // A candidate-specific error can be concentrated in one primary rather
+    // than proportionally scaling the booth. Coalition aliases retain NAT's
+    // votes in the classic pair; a genuine zero account has no revision.
+    auto alias = LiveCountRevisions::prepare({{0,4000},{9,3000},{2,1000}},{{0,4800},{1,3200}},{},{{0,4800},{1,3200}},{},{{9,1}});
+    auto nat = std::find_if(alias.directions.begin(),alias.directions.end(),[](auto const& d) { return d.candidate == 9; });
+    assert(nat != alias.directions.end() && nat->tpp == LiveCountRevisions::Weights({{1,1}}));
+    assert(!LiveCountRevisions::draw(LiveCountRevisions::prepare({},{},{},{},{}),1).direction);
+    // Actual pre-correction FP vectors from the two inspected WA centres.
+    // Conditional size bounds for tiny candidates must not eliminate the
+    // observed +510 and -632 total revisions from the overall central 99%.
+    for (auto const& fp : std::vector<LiveCountRevisions::Counts>{
+        {{0,3502},{1,2902},{2,68},{3,141},{4,43},{5,352},{6,124},{7,217},{8,101}},
+        {{0,4603},{1,2071},{2,688},{3,483},{4,136},{5,613}}}) {
+        auto distribution = LiveCountRevisions::prepare(fp,{},{},{},{},{},LiveCountRevisions::MixedEarlyRelativeSd);
+        std::vector<double> revisions;
+        for (int i = 0; i < 300000; ++i) revisions.push_back(LiveCountRevisions::draw(distribution,i).amount);
+        std::sort(revisions.begin(),revisions.end());
+        double lower = revisions[1500], upper = revisions[298499];
+        double total = LiveCountRevisions::total(fp);
+        assert(total == 7450 ? upper > 510 : lower < -632);
+        std::cout << "Revision total " << total << ": central 99% changes " << lower << " to " << upper << " votes.\n";
+    }
+}
+
 void checkOperationalInputs(std::filesystem::path const& root) {
     // Switching projects selects only that project's required prior. There is
     // no cached selection, optional mode or legacy sizing fallback.
@@ -42,7 +194,7 @@ void checkOperationalInputs(std::filesystem::path const& root) {
     compare(artifact.prior.counts,TurnoutModelIO::read(legacy).prior.counts,"existing frozen count inputs");
     legacy["count_model"] = "live-counts-7";
     compare(artifact.prior.counts,TurnoutModelIO::read(legacy).prior.counts,"version 7 frozen count inputs");
-    for (auto version : {"live-counts-8","live-counts-9"}) {
+    for (auto version : {"live-counts-8","live-counts-9","live-counts-10","live-counts-11","live-counts-12","live-counts-13","live-counts-14"}) {
         legacy["count_model"] = version;
         compare(artifact.prior.counts,TurnoutModelIO::read(legacy).prior.counts,"unchanged frozen prior format");
     }
@@ -636,7 +788,8 @@ void checkLocalCompletion() {
     for (auto const& u : p.units) observation.counts[{"Example",u.category}] = u.counted;
     TurnoutModel::Options options; options.postalDeadline = 480;
     auto beforeReceipt = TurnoutModel::prepare(p,p.units,{false},{observation},options);
-    assert(beforeReceipt.components.front().completionWeight < measured.components.front().completionWeight*.001);
+    compare(beforeReceipt.components.front().completionWeight,measured.components.front().completionWeight,"postal main-count support");
+    assert(beforeReceipt.components.front().postalRemainderLogOdds);
     compare(middle.completionWeight,beforeReceipt.components.back().completionWeight,"postal safeguard is local");
 
     // Isolate the intervention from upstream count conditioning: for identical
@@ -679,7 +832,95 @@ void checkLocalCompletion() {
         else ++retained;
     }
     assert(reductions > 1000 && retained > 1000);
+    // The supplementary positive path starts AFTER the existing size-based
+    // completion interval. It must retain exact zero/small/batch draws and
+    // every sibling outcome, including when another category is Postal.
+    auto positive = adjusted;
+    positive.components.front().positiveRemainderWeight = .25;
+    positive.components.front().positiveRemainderMedian = 50;
+    reductions = 0;
+    for (unsigned long long seed = 0; seed < 4096; ++seed) {
+        auto old = TurnoutModel::drawUnitCounts(adjusted,plan,seed);
+        auto revised = TurnoutModel::drawUnitCounts(positive,plan,seed);
+        for (std::size_t j = 0; j < old.size(); ++j) {
+            assert(revised[j] >= counted[j]);
+            if (j != 1) assert(revised[j] == old[j]);
+        }
+        assert(revised[1] <= old[1]);
+        if (revised[1] < old[1]) ++reductions;
+        if (old[1] == counted[1]) assert(revised[1] == old[1]);
+    }
+    assert(reductions > 100);
     std::cout << "Local completion, postal receipt and sibling-isolation checks passed.\n";
+}
+
+void checkPostalRemainder() {
+    for (auto [days,share] : std::vector<std::pair<double,double>>{{4,.06},{2,.04},{0,.02}}) {
+        double odds = std::exp(TurnoutModel::postalRemainderLogOdds(days)-TurnoutModel::PostalRemainderMedianShift);
+        compare(share,odds/(1+odds),"postal median share");
+        assert(std::abs(TurnoutModel::postalRemainderLogOdds(days+1e-7)
+            -TurnoutModel::postalRemainderLogOdds(days-1e-7)) < 1e-6);
+    }
+    compare(.5*.02/.98,std::exp(TurnoutModel::postalRemainderLogOdds(-2)-TurnoutModel::PostalRemainderMedianShift),"postal post-deadline decay");
+    compare(.06/.94*std::exp(.32/2),std::exp(TurnoutModel::postalRemainderLogOdds(4)+1.25*1.25/2),"postal unchanged expected remainder");
+    compare(TurnoutModel::postalRemainderLogOdds(4),TurnoutModel::postalRemainderLogOdds({}),"unknown postal timetable");
+    // Two identical seats with plenty of remaining allocation expose the
+    // shared and local remainder directly. A routine path always selects the
+    // near-finished outcome here; real counts retain the other mixture paths.
+    TurnoutModel::Result result;
+    result.broad.counted = {5000,5000}; result.noAdditionProbability = {0,0};
+    result.broad.totals = {{10000,10000}}; result.broad.unitCounts = {{10000,10000}};
+    std::vector<TurnoutModel::Unit> units(2);
+    for (std::size_t j = 0; j < 2; ++j) {
+        units[j].seat = j; units[j].counted = 5000;
+        TurnoutModel::Component c; c.unit = j; c.previousProbability = 1; c.completionWeight = 1;
+        c.capacity = {10000}; c.reference = {5000}; c.referenceOdds = {std::log(.5)};
+        c.smallOdds = {std::log(.25/10000)}; c.batchOdds = {0};
+        c.postalCounted = 5000; c.postalRemainderLogOdds = TurnoutModel::postalRemainderLogOdds(4);
+        result.components.push_back(c);
+    }
+    auto plan = TurnoutModel::makeDrawPlan(result,units,{20000,20000});
+    double sumA = 0, sumB = 0, squareA = 0, squareB = 0, product = 0;
+    constexpr int samples = 32768;
+    for (int seed = 0; seed < samples; ++seed) {
+        auto counts = TurnoutModel::drawUnitCounts(result,plan,seed);
+        double a = std::log((counts[0]-5000)/5000)-*result.components[0].postalRemainderLogOdds;
+        double b = std::log((counts[1]-5000)/5000)-*result.components[1].postalRemainderLogOdds;
+        assert(counts[0] > 5000 && counts[0] <= 10000);
+        assert(counts[1] > 5000 && counts[1] <= 10000);
+        sumA += a; sumB += b; squareA += a*a; squareB += b*b; product += a*b;
+    }
+    double varianceA = squareA/samples-std::pow(sumA/samples,2);
+    double varianceB = squareB/samples-std::pow(sumB/samples,2);
+    double correlation = (product/samples-sumA*sumB/(samples*samples*1.))/std::sqrt(varianceA*varianceB);
+    assert(std::abs(sumA/samples) < .02 && std::abs(sumB/samples) < .02);
+    assert(std::abs(varianceA-1.25*1.25) < .04 && std::abs(correlation-.16/(1.25*1.25)) < .03);
+    std::cout << "Postal remainder centres, bounds and shared draw checks passed.\n";
+
+    // Ordinary simulation draws must retain the wider declaration remainder,
+    // including its small shared part, independently of diagnostic quantiles.
+    // Leave abundant capacity so the allocation cap does not hide its width.
+    result.broad.totals = {{1e8,1e8}}; result.broad.unitCounts = {{1e8,1e8}};
+    for (auto& c : result.components) {
+        c.completionWeight = 0; c.positiveRemainderWeight = 1; c.positiveRemainderMedian = 100;
+        c.capacity = {1e8}; c.reference = {1e8-5000}; c.referenceOdds = {std::log((1e8-5000)/1e8)};
+        c.postalRemainderLogOdds.reset();
+    }
+    plan = TurnoutModel::makeDrawPlan(result,units,{2e8,2e8});
+    sumA = sumB = squareA = squareB = product = 0;
+    for (int seed = 0; seed < samples; ++seed) {
+        auto counts = TurnoutModel::drawUnitCounts(result,plan,seed);
+        double a = std::log((counts[0]-5000)/100), b = std::log((counts[1]-5000)/100);
+        assert(std::isfinite(a) && std::isfinite(b));
+        sumA += a; sumB += b; squareA += a*a; squareB += b*b; product += a*b;
+    }
+    varianceA = squareA/samples-std::pow(sumA/samples,2);
+    varianceB = squareB/samples-std::pow(sumB/samples,2);
+    correlation = (product/samples-sumA*sumB/(samples*samples*1.))/std::sqrt(varianceA*varianceB);
+    assert(std::abs(sumA/samples) < .04 && std::abs(sumB/samples) < .04);
+    assert(std::abs(varianceA-1.75*1.75) < .08);
+    assert(std::abs(correlation-.25/(1.75*1.75)) < .025);
+    std::cout << "Positive declaration remainder width and shared draw checks passed.\n";
 }
 
 void checkSavedHandoff(std::filesystem::path const& diagnosticPath,
@@ -725,6 +966,115 @@ void checkSavedHandoff(std::filesystem::path const& diagnosticPath,
     }
     std::cout << tested << " saved district handoffs preserve counted groups and total votes.\n";
 }
+// A finite diagnostic sample cannot establish the main sampler's mean. Check
+// paired ordinary iteration draws too, including a young below-expectation
+// count that exposed a bias in a sample-only recentering. The analytical rule
+// preserves each allocated draw's mean; observed differences should be ordinary
+// sampling noise. Every non-postal unit must remain bit-for-bit identical.
+void checkPostalSamplerMeans(std::filesystem::path const& root) {
+    std::ifstream stream(root/"tests/fixtures/turnout/synthetic-turnout-v1.json");
+    json value; stream >> value; auto artifact = TurnoutModelIO::read(value);
+    for (auto const& row : value.at("cases")) {
+        if (row.at("name") != "declarations-before-deadline" && row.at("name") != "early-pause-below-expectation") continue;
+        auto units = TurnoutModelIO::units(row.at("units"));
+        auto history = TurnoutModelIO::history(row.at("history"));
+        auto options = artifact.options; options.ppvcFactor = row.at("ppvc_factor");
+        options.postalWidening = false;
+        auto base = TurnoutModel::prepare(artifact.prior,units,std::vector<bool>(artifact.prior.seats.size()),history,options);
+        options.postalWidening = true;
+        auto wide = TurnoutModel::prepare(artifact.prior,units,std::vector<bool>(artifact.prior.seats.size()),history,options);
+        auto plan = TurnoutModel::makeDrawPlan(base,units,artifact.prior.enrolment);
+        constexpr int samples = 200000;
+        std::vector<double> change(units.size()),square(units.size()),baseSum(units.size()),baseSquare(units.size()),wideSum(units.size()),wideSquare(units.size());
+        for (int seed = 0; seed < samples; ++seed) {
+            auto x = TurnoutModel::drawUnitCounts(base,plan,seed);
+            auto y = TurnoutModel::drawUnitCounts(wide,plan,seed);
+            std::vector<double> totals(plan.enrolment.size());
+            for (std::size_t j = 0; j < units.size(); ++j) {
+                double difference = y[j]-x[j]; change[j] += difference/samples; square[j] += difference*difference/samples;
+                baseSum[j] += x[j]/samples; baseSquare[j] += x[j]*x[j]/samples;
+                wideSum[j] += y[j]/samples; wideSquare[j] += y[j]*y[j]/samples;
+                if (units[j].category != "Postal") assert(x[j] == y[j]);
+                assert(y[j] >= units[j].counted); totals[units[j].seat] += y[j];
+            }
+            for (std::size_t seat = 0; seat < totals.size(); ++seat) assert(totals[seat] <= plan.enrolment[seat]+1e-7);
+        }
+        bool increasedVariance = false;
+        for (std::size_t j = 0; j < units.size(); ++j) if (units[j].category == "Postal") {
+            double se = std::sqrt(std::max(0.,square[j]-change[j]*change[j])/samples);
+            assert(std::abs(change[j]) <= 5*se+1e-8);
+            double baseVariance = baseSquare[j]-baseSum[j]*baseSum[j];
+            double wideVariance = wideSquare[j]-wideSum[j]*wideSum[j];
+            increasedVariance = increasedVariance || wideVariance > baseVariance*1.01;
+        }
+        assert(increasedVariance);
+    }
+    std::cout << "Postal output means, main-sampler variance and unchanged sibling draws passed.\n";
+}
+
+void checkRoutineRemainderSampler() {
+    // A single fictional open category isolates the new iteration formula.
+    // Its routine allowance is 1,000 extra votes; the processing distribution
+    // has mean 100. Twenty percent retain the allowance, and the other eighty
+    // percent use the broad, capped positive amount. Compare with the known
+    // capped-lognormal mean, not with a short diagnostic preparation sample.
+    TurnoutModel::Result base;
+    base.broad.totals={{1500}};base.broad.counts={{1500}};base.broad.unitCounts={{1500}};
+    base.noAdditionProbability={0};base.broad.complete={false};
+    TurnoutModel::Unit unit;unit.seat=0;unit.group=0;unit.name="Absent";unit.category="Absent";
+    unit.kind="declaration";unit.counted=500;
+    TurnoutModel::Component c;c.unit=0;c.previousProbability=1;c.weight=.1;
+    c.reference={1000};c.capacity={1e10-1500};c.referenceOdds={std::log(1000/c.capacity[0])};
+    c.smallOdds={std::log(.25/c.capacity[0])};c.batchOdds={std::log(5000/c.capacity[0])};
+    base.components={c};
+    auto shaped=base;
+    shaped.components[0].routineSupport=1;shaped.components[0].routineMean=100;
+    shaped.components[0].routineMaturity=1;
+    std::vector<TurnoutModel::Unit> units{unit};
+    auto plan=TurnoutModel::makeDrawPlan(shaped,units,{1e10});
+    constexpr int samples=100000;
+    double total=0,square=0;
+    for (int seed=0;seed<samples;++seed) {
+        auto value=TurnoutModel::drawUnitCounts(shaped,plan,seed)[0]-500;
+        total+=value/samples;square+=value*value/samples;
+        assert(value>=0 && value<=1000+1e-5);
+    }
+    double sd=TurnoutModel::RoutineRemainderSd,mu=std::log(100.)-sd*sd/2;
+    auto normalCdf=[](double z) {return .5*std::erfc(-z/std::sqrt(2.));};
+    double capped=100*normalCdf((std::log(1000.)-mu-sd*sd)/sd)
+        +1000*(1-normalCdf((std::log(1000.)-mu)/sd));
+    double expected=.2*1000+.8*capped;
+    assert(std::abs(total-expected)<5*std::sqrt((square-total*total)/samples)+.01);
+
+    // The main sampler knows a batch was selected; none of those outcomes
+    // may be modified by the new routine treatment. A missing-history setup
+    // (support zero) likewise leaves every original draw exactly unchanged.
+    base.components[0].previousProbability=0;base.components[0].batchProbability=1;
+    shaped.components[0]=base.components[0];
+    shaped.components[0].routineSupport=1;shaped.components[0].routineMean=100;shaped.components[0].routineMaturity=1;
+    for (int seed=0;seed<2048;++seed)
+        assert(TurnoutModel::drawUnitCounts(base,plan,seed)==TurnoutModel::drawUnitCounts(shaped,plan,seed));
+
+    // Transfer only the small-addition path to a modest positive amount.
+    // The original batch/zero probabilities and the finite turnout account
+    // remain available; a tight roll tests the simultaneous physical bound.
+    shaped.components[0].batchProbability=0;shaped.components[0].smallProbability=1;
+    shaped.components[0].routineBridge=1;
+    double modestMean=0;
+    for (int seed=0;seed<16384;++seed)
+        modestMean+=(TurnoutModel::drawUnitCounts(shaped,plan,seed)[0]-500)/16384;
+    assert(modestMean>80 && modestMean<110);
+    shaped.broad.totals={{1500}};shaped.components[0].capacity={500};
+    shaped.components[0].smallOdds={std::log(.25/500)};
+    shaped.components[0].referenceOdds={std::log(1000./500)};
+    auto tightPlan=TurnoutModel::makeDrawPlan(shaped,units,{2000});
+    for (int seed=0;seed<2048;++seed) {
+        auto value=TurnoutModel::drawUnitCounts(shaped,tightPlan,seed)[0];
+        assert(value>=500 && value<=2000+1e-7);
+    }
+    std::cout<<"Three-part routine means, modest additions, retained batches and count bounds passed.\n";
+}
+
 void check(std::filesystem::path const& path) {
     std::ifstream stream(path); json value; stream >> value;
     auto artifact = TurnoutModelIO::read(value);
@@ -738,6 +1088,10 @@ void check(std::filesystem::path const& path) {
         for (auto const& name : c.at("finalised")) for (std::size_t s = 0; s < finalised.size(); ++s) finalised[s] = finalised[s] || name == artifact.prior.seats[s];
         auto options = artifact.options; options.ppvcFactor = c.at("ppvc_factor");
         auto actual = TurnoutModel::prepare(artifact.prior,units,finalised,history,options);
+        auto unspreadOptions = options; unspreadOptions.postalWidening = false;
+        auto unspread = TurnoutModel::prepare(artifact.prior,units,finalised,history,unspreadOptions);
+        compare(unspread.unitMeans,actual.unitMeans,"postal widening preserves final unit means");
+        compare(TurnoutModel::meanTotals(unspread),TurnoutModel::meanTotals(actual),"postal widening preserves district means");
         auto const& expected = c.at("expected"); std::string label = c.at("name");
         compare(expected.at("broad_totals"),actual.broad.totals,label+"/broad totals");
         compare(expected.at("broad_counts"),actual.broad.counts,label+"/broad categories");
@@ -762,6 +1116,24 @@ void check(std::filesystem::path const& path) {
             compare(e.at("weight"),a.weight,label+"/mixture weight");
             compare(e.at("usual_log_shift"),a.usualLogShift,label+"/routine size shift");
             compare(e.at("completion_weight"),a.completionWeight,label+"/local completion weight");
+            compare(e.at("early_completion_retention"),a.earlyCompletionRetention,label+"/early completion retention");
+            compare(e.at("batch_log_odds_sd"),a.batchSd,label+"/batch spread");
+            assert(e.at("postal_widening_enabled") == a.postalWidening);
+            compare(e.at("postal_routine_extra_log_odds_sd"),a.postalRoutineExtraSd,label+"/allocated postal routine extra spread");
+            compare(e.at("postal_batch_extra_log_odds_sd"),a.postalBatchExtraSd,label+"/allocated postal batch extra spread");
+            compare(e.at("positive_remainder_weight"),a.positiveRemainderWeight,label+"/positive remainder weight");
+            compare(e.at("positive_remainder_median_votes"),a.positiveRemainderMedian,label+"/positive remainder median");
+            compare(e.at("routine_remainder_support"),a.routineSupport,label+"/routine remainder support");
+            compare(e.at("routine_remainder_mean_votes"),a.routineMean,label+"/routine remainder mean");
+            compare(e.at("routine_remainder_maturity"),a.routineMaturity,label+"/routine remainder maturity");
+            compare(e.at("routine_remainder_bridge_weight"),a.routineBridge,label+"/routine remainder bridge");
+            compare(e.at("routine_remainder_reference_mean_votes"),a.routineReferenceMean,label+"/routine reference mean");
+            compare(e.at("routine_remainder_mean_adjustment_votes"),a.routineMeanAdjustment,label+"/routine mean adjustment");
+            if (e.at("postal_remainder_median_fraction").is_null()) assert(!a.postalRemainderLogOdds);
+            else {
+                assert(a.postalRemainderLogOdds);
+                compare(e.at("postal_remainder_median_fraction"),1/(1+std::exp(-*a.postalRemainderLogOdds)),label+"/postal remainder median");
+            }
             if (e.at("original_size_z").is_null()) assert(!a.originalSizeZ);
             else { assert(a.originalSizeZ); compare(e.at("original_size_z"),*a.originalSizeZ,label+"/original size position"); }
             compare(e.at("probabilities").at("previous"),a.previousProbability,label+"/previous probability");
@@ -780,6 +1152,18 @@ void check(std::filesystem::path const& path) {
         }
         auto diagnostic = TurnoutModelIO::diagnostic(artifact,units,actual,c.at("source_time"));
         assert(!diagnostic.contains("joint_update"));
+        // Displayed means must use the analytical expectation of the neutral
+        // spread, rather than picking up noise from its short percentile sample.
+        for (std::size_t s = 0; s < artifact.prior.seats.size(); ++s) {
+            auto const& seat = diagnostic.at("seats")[s];
+            compare(TurnoutModel::meanTotals(unspread)[s],seat.at("mean_total"),label+"/displayed district mean");
+            for (std::size_t g = 0; g < artifact.prior.groups.size(); ++g) {
+                double mean = 0;
+                for (std::size_t j = 0; j < units.size(); ++j)
+                    if (units[j].seat == s && units[j].group == g) mean += unspread.unitMeans[j];
+                compare(mean,seat.at("groups")[g].at("mean_total"),label+"/displayed category mean");
+            }
+        }
         for (auto const& component : diagnostic.at("late_components")) {
             auto const& probabilities = component.at("probabilities");
             double sum = 0;
@@ -791,6 +1175,9 @@ void check(std::filesystem::path const& path) {
         auto plan = TurnoutModel::makeDrawPlan(actual,units,artifact.prior.enrolment);
         for (unsigned long long k = 0; k < 256; ++k) {
             auto sampled = TurnoutModel::drawUnitCounts(actual,plan,k);
+            auto baseline = TurnoutModel::drawUnitCounts(unspread,plan,k);
+            for (std::size_t j = 0; j < units.size(); ++j)
+                if (units[j].category != "Postal") assert(sampled[j] == baseline[j]);
             std::vector<double> totals(artifact.prior.seats.size());
             for (std::size_t j = 0; j < units.size(); ++j) {
                 assert(std::isfinite(sampled[j]) && sampled[j] >= units[j].counted);
@@ -824,6 +1211,8 @@ int main(int argc, char** argv) {
     try {
         auto start = std::chrono::steady_clock::now();
         auto root = argc > 1 ? std::filesystem::path(argv[1]) : std::filesystem::path(".");
+        checkWaEarlyBatches();
+        checkSignedCountRevisions();
         checkOperationalInputs(root);
         checkPreparedComponent(root);
         checkLiveAccounts();
@@ -834,6 +1223,9 @@ int main(int argc, char** argv) {
         checkTurnoutTransfer();
         checkCountDraws();
         checkLocalCompletion();
+        checkPostalRemainder();
+        checkPostalSamplerMeans(root);
+        checkRoutineRemainderSampler();
         check(root/"tests/fixtures/turnout/synthetic-turnout-v1.json");
         // Operators can additionally check a private source-backed fixture.
         // CI and ordinary cloned-repository tests never need that archive.
