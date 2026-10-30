@@ -1,6 +1,7 @@
 #include "LivePreparation.h"
 #include "LiveInputAdapter.h"
 #include "LiveInputHistory.h"
+#include "LiveIndependentMapping.h"
 #include "Log.h"
 
 #include "Date.h"
@@ -304,6 +305,20 @@ void LivePreparation::prepareLiveAutomatic()
 		acquireCurrentResults();
 	}
 	parseCurrentResults();
+	// Candidate-name configuration can deliberately represent one registered-
+	// party campaign as IND without grouping its party's other candidates with
+	// it. Resolve that identity after source parsing and before recovery rebuilds
+	// the derived party accounts. Original source counts/history retain their
+	// commission candidate IDs; previous-election affiliations are untouched.
+	LiveIndependentMapping::NamesBySeat namedIndependents;
+	for (auto const& [seatId, seat] : project.seats()) {
+		(void)seatId;
+		for (auto const& [candidateName, partyCode] : seat.candidateNames)
+			if (partyCode == "IND") namedIndependents[seat.name].push_back(candidateName);
+	}
+	for (int candidateId : LiveIndependentMapping::apply(currentElection, namedIndependents))
+		logger << "Treating configured candidate " << currentElection.candidates.at(candidateId).name
+			<< " as an independent for this live forecast\n";
 	auto turnoutInput = prepareCurrentInput();
 	run.liveElection = std::make_unique<LiveV2::Election>(previousElection, currentElection, project, sim, run,
 		std::move(turnoutInput), std::move(preferenceHistory));

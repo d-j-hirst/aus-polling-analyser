@@ -284,6 +284,9 @@ namespace Results2 {
 		std::set<std::string> expectedLiveTcpWithdrawals;
 		std::map<std::string, LiveInputRecovery::PreferenceCohort> liveTcpBases;
 		bool liveCountsRead = false;
+		// Frozen before recovery rebuilds district summaries. In particular, old
+		// pairings may be retained for modelling without remaining current TCP.
+		std::optional<LiveData::CountProgress> reportedCountProgress;
 
 		enum class Format {
 			AEC,

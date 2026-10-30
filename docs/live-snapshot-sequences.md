@@ -86,6 +86,27 @@ Results separates **Raw Swing** from **Est. Swing**. Raw Swing averages each boo
 
 The **Raw 2PP deviation** in Internal 2PP Metrics is a model diagnostic: it measures departure from the pre-count baseline in transformed share units, `25 × log(p / (1 − p))`, where `p` is Labor's vote proportion. It is not the same statistic as the Results table's observed percentage-point swing.
 
+The Results summary shows separate **Counted: FP** and **TCP** percentages.
+Each divides accepted reported candidate votes by the same estimated final
+formal turnout for the election. Counts are added across districts before
+dividing; the percentages are not averages of district percentages. For example,
+6 million FP votes and 4 million TCP votes against an expected 10 million formal
+votes give 60% FP and 40% TCP coverage. The denominator comes from the prepared
+turnout estimate, so it can change between snapshots; neither value is a measure
+of forecast confidence.
+
+TCP includes classic TPP and non-classic counts, counted once, but excludes
+FP-derived estimates. When the commission withdraws or replaces a district's
+TCP pairing, counts retained for the old pairing remain available to the model
+as reference evidence and do not contribute to this counter. A replacement pair
+with zero votes therefore restarts that district's TCP progress at zero. In
+optional-preferential elections, exhausted ballots are not included in the two
+surviving candidates' published totals, so TCP coverage can remain below FP
+coverage after counting ends. Older saved reports without these separate counts
+show dashes. New reports save the counts and their denominator together with the
+forecast; diagnostic JSON includes `count_progress`, `total_fp_percent_counted`
+and the existing `total_2cp_percent_counted` field.
+
 The same view (the last dropdown entry) includes the joint 2PP centre, prior and updated SD, variance retained, FP-derived evidence percentage, starting and remaining shared conversion SD, effective matched preference locations, and category covariance scale. See [the column definitions](live-tpp-composition.md#verification-and-diagnostics) for their units and denominators. New snapshots carry these small summary fields; older snapshots show blanks where they were not recorded. The snapshot column stays visible when scrolling horizontally.
 
 In **Internal 2PP Metrics → Graph View**, the **Metric** selector switches between

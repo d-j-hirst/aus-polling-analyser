@@ -1,4 +1,5 @@
 #include "TurnoutModel.h"
+#include "DeclarationAllocation.h"
 #include "Date.h"
 
 #include <algorithm>
@@ -576,7 +577,7 @@ ProgressHistory orderProgressHistory(std::vector<Observation> const& history) {
 }
 
 ProgressRow measureLocalProgress(ProgressHistory const& ordered, ProgressIdentity const& key,
-    double value, std::optional<double> deadline, bool scheduleAware, double eventScale) {
+    double value, std::optional<ResolvedTimetable> timetable, bool scheduleAware, double eventScale) {
     // Usually declaration counts grow in batches, then become quiet. Measure
     // both changes and the observation coverage needed to interpret that quiet.
     // Rechecks still count as activity; they are not additional voters.
@@ -609,26 +610,26 @@ ProgressRow measureLocalProgress(ProgressHistory const& ordered, ProgressIdentit
         double gentleRatio = delta/gentleTolerance;
         gentleActivity += gentleRatio*gentleRatio/(1+gentleRatio*gentleRatio)*decay;
         volume += delta*decay;
-        // A late backlog is strong evidence about this seat, but weaker
-        // evidence that another seat still has routine counting to do.
-        // Its shared influence is half at the receipt deadline, with a
-        // 24-calendar-hour logistic transition around that date.
-        double shared = scheduleAware && deadline ? logistic(-((next->first-*deadline)/24)) : 1;
+        // Late activity remains local evidence, but gradually loses influence
+        // elsewhere after this CATEGORY's usual processing period. Postal
+        // receipt says nothing about absent/provisional processing. Without a
+        // supported timetable, retain the full shared activity measurement.
+        double shared = timetable ? logistic(-(next->first-timetable->referenceHour)
+            /timetable->sharedTransitionHours) : 1;
         sharedActivity += ratio*ratio/(1+ratio*ratio)*decay*shared;
         sharedVolume += delta*decay*shared;
         // Observation coverage has a longer 48-hour memory. Integrate the
         // observed interval, then discount long gaps (half at 48 hours):
         // two distant snapshots do not establish repeated quiet counting.
         coverage += std::exp(-age/48)*(-std::expm1(-hours/48))/(1+(hours/48)*(hours/48));
-        if (scheduleAware && deadline) {
-            // Small positive batches after receipt closes support an end
-            // to routine processing. Large batches and downward rechecks
-            // provide less support, without declaring any batch final.
-            // Deadline influence transitions over 12 calendar hours;
-            // batch memory decays over 72 counting hours. The 50-vote
+        if (timetable) {
+            // Small positive batches late in the category's own processing
+            // period support diminishing additions. Large batches and downward
+            // rechecks provide less support, without declaring a batch final.
+            // Batch memory decays over 72 counting hours. The 50-vote
             // scale discounts tiny changes; 5% of current count is the
             // half-support scale for judging a positive batch as small.
-            double post = logistic((it->first-*deadline)/12);
+            double post = logistic((it->first-timetable->referenceHour)/timetable->smallBatchTransitionHours);
             double event = post*std::exp(-age/72)*delta*delta/(delta*delta+50*50);
             changedSupport += event;
             if (current->second > old->second)
@@ -649,7 +650,8 @@ ProgressRow measureLocalProgress(ProgressHistory const& ordered, ProgressIdentit
 }
 
 ProgressRows measureAvailableProgress(Prior const& prior, std::vector<Unit> const& units,
-    ProgressHistory const& ordered, std::optional<double> deadline, bool scheduleAware, double eventScale) {
+    ProgressHistory const& ordered, bool scheduleAware, double eventScale,
+    std::map<std::string, ResolvedTimetable> const& timetables) {
     // Compare the same available declaration category across districts. An
     // unstarted open category supplies useful zero evidence; a known closure
     // supplies none, because that service was never expected to receive votes.
@@ -660,7 +662,9 @@ ProgressRows measureAvailableProgress(Prior const& prior, std::vector<Unit> cons
     for (auto const& [key, value] : ordered.rbegin()->second->counts) {
         if (!available.count(key)) continue;
         if (value < 0 || !std::isfinite(value)) throw std::runtime_error("Invalid turnout progress count.");
-        auto row = measureLocalProgress(ordered, key, value, deadline, scheduleAware, eventScale);
+        auto found = timetables.find(key.second);
+        auto timetable = found == timetables.end() ? std::optional<ResolvedTimetable>{} : found->second;
+        auto row = measureLocalProgress(ordered, key, value, timetable, scheduleAware, eventScale);
         auto seat = std::find(prior.seats.begin(), prior.seats.end(), key.first);
         if (seat != prior.seats.end()) row.state = prior.subdivisions[seat-prior.seats.begin()];
         rows[key] = row;
@@ -743,15 +747,36 @@ std::vector<Evidence> attachProgressEvidence(Prior const& p, std::vector<Unit> c
 }
 }
 
+std::optional<ResolvedTimetable> processingTimetable(Options const& options, std::string const& category) {
+    // Normally use the previous comparable election's processing progression.
+    // Calendar offsets remain portable between elections without confusing the
+    // date a ballot may arrive with the date officials are likely to count it.
+    // Preserve unconfigured postal parameters; explicit Postal settings refer
+    // to counting progression and never move the ballot receipt safeguard.
+    auto found = options.processingTimetables.find(category);
+    if (category == "Postal" && found == options.processingTimetables.end()) {
+        if (!options.receiptDeadline) return {};
+        return ResolvedTimetable{*options.receiptDeadline,48,12,24,12,true};
+    }
+    if (found == options.processingTimetables.end() || !found->second) return {};
+    auto const& timing = *found->second;
+    if (!std::isfinite(timing.daysAfterPollClose) || timing.daysAfterPollClose < 0
+        || !std::isfinite(timing.transitionDays) || timing.transitionDays <= 0)
+        throw std::runtime_error("Invalid category processing timetable.");
+    if (!options.pollClose) return {};
+    double width = 24*timing.transitionDays;
+    return ResolvedTimetable{*options.pollClose+24*timing.daysAfterPollClose,0,width,width,width,false,category == "Postal"};
+}
+
 std::vector<Evidence> progress(Prior const& prior, std::vector<Unit> const& units,
     std::vector<Observation> const& history, std::optional<double> deadline,
-    bool scheduleAware, double eventScale) {
+    bool scheduleAware, double eventScale, std::map<std::string, ResolvedTimetable> const& timetables) {
     // Use received history to measure local counting, compare it with other
     // districts and attach completion evidence. With no history, retain prior
     // expectations. Response scales are shared with the Python calibration.
     if (history.empty()) return std::vector<Evidence>(units.size());
     auto ordered = orderProgressHistory(history);
-    auto rows = measureAvailableProgress(prior, units, ordered, deadline, scheduleAware, eventScale);
+    auto rows = measureAvailableProgress(prior, units, ordered, scheduleAware, eventScale,timetables);
     return attachProgressEvidence(prior, units, rows, ordered.rbegin()->first, deadline);
 }
 
@@ -785,9 +810,12 @@ std::vector<double> boothCompletion(Prior const& p, std::vector<Unit> const& uni
 // two-percent measurement in probability space. This retains caution during
 // pauses while recognising small late batches after most booths have reported.
 std::vector<Evidence> scheduledEvidence(Prior const& p, std::vector<Unit> const& units,
-    std::vector<Observation> const& history, double deadline, std::vector<double> const& completed) {
-    auto original = progress(p,units,history,deadline,true,.001);
-    auto result = progress(p,units,history,deadline,true,.02);
+    std::vector<Observation> const& history, std::optional<double> postalDeadline,
+    std::vector<double> const& completed, std::map<std::string, ResolvedTimetable> const& timetables) {
+    auto original = progress(p,units,history,postalDeadline,true,.001,timetables);
+    auto result = progress(p,units,history,postalDeadline,true,.02,timetables);
+    std::optional<double> now;
+    for (auto const& row : history) if (!now || row.hour > *now) now = row.hour;
     auto quiet = [](double value,double scale) { return 1/(1+std::pow(value/scale,2)); };
     for (std::size_t j = 0; j < units.size(); ++j) {
         auto& e = result[j];
@@ -820,6 +848,17 @@ std::vector<Evidence> scheduledEvidence(Prior const& p, std::vector<Unit> const&
             *quiet(e.gentleLocalActivity,.3)*(.5+.5*shared);
         double postalWeight = -std::expm1(-std::pow(postalStrength/.3,2))*shared;
         e.postalFinishingSupport = postalWeight+(1-postalWeight)*extra;
+        auto timing = timetables.find(units[j].category);
+        if (now && timing != timetables.end() && timing->second.separatePostalProcessing) {
+            // Early receipt closure can leave an ordinary processing backlog.
+            // Use the explicit processing clock to moderate quietness evidence,
+            // rather than treating every pause as a tiny finishing tail. Keep
+            // the small-tail amount and receipt guard tied to the receipt date;
+            // original-size completion evidence is evaluated separately later.
+            double maturity = logistic((*now-timing->second.referenceHour)/timing->second.transitionHours);
+            e.strength = .3*std::sqrt(-std::log1p(-weight*maturity));
+            e.postalFinishingSupport *= maturity;
+        }
     }
     return result;
 }
@@ -974,20 +1013,32 @@ void releaseAllocation(Prior const& prior, std::vector<Unit> const& units,
 }
 
 namespace {
-// Resolve the counting clock from the latest received source, never wall time.
-// Routine processing has a 48-counting-hour allowance and 12-hour transition;
-// exceptional-batch probability decays over 14 counting days after that phase.
-bool applyReceiptTimetable(std::vector<Observation> const& history, Options const& options, Result& result) {
-    bool scheduled = options.receiptDeadline && !history.empty()
-        && std::accumulate(result.broad.counted.begin(),result.broad.counted.end(),0.) > 0;
-    if (scheduled) {
-        double now = std::max_element(history.begin(),history.end(),[](auto const& a,auto const& b) { return a.hour < b.hour; })->hour;
-        result.countingHoursAfterDeadline = countingHours(*options.receiptDeadline,now);
-        double age = 12*softplus((result.countingHoursAfterDeadline-48)/12);
-        result.processingPhase = logistic((result.countingHoursAfterDeadline-48)/12);
-        result.batchSurvival = std::exp(-age/(14*24));
+// Resolve each available declaration's clock once per snapshot. Unknown dates
+// or unsupported categories have no time-based suppression; their observed
+// counting activity and original-size evidence still apply normally.
+void prepareProcessingTimetables(std::vector<Unit> const& units, Options const& options, Result& result) {
+    for (auto const& unit : units) if (unit.kind == "declaration") {
+        auto timing = processingTimetable(options,unit.category);
+        if (timing) result.processingTimetables[unit.category] = *timing;
     }
-    return scheduled;
+}
+
+void applyProcessingTimetable(ResolvedTimetable const& timing, double now,
+    double relativeActivity, Component& component) {
+    // A quiet category retains half its routine allowance at its configured
+    // transition centre. Recent changes can delay that reduction and retain
+    // more of the allowance. Neither this phase nor a quiet period closes a
+    // category: the exceptional-batch tail fades over fourteen further days.
+    double elapsed = timing.countingClock ? countingHours(timing.referenceHour,now) : now-timing.referenceHour;
+    double offset = elapsed-timing.allowanceHours;
+    double age = timing.transitionHours*softplus(offset/timing.transitionHours);
+    component.processingPhase = logistic(offset/timing.transitionHours);
+    component.batchSurvival = std::exp(-age/(14*24));
+    double relativeSquared = relativeActivity*relativeActivity;
+    double delay = 24*relativeSquared/(relativeSquared+.02*.02);
+    double routine = logistic(-(offset-delay)/timing.transitionHours);
+    double active = relativeSquared/(relativeSquared+.05*.05);
+    component.usualLogShift = std::log(routine+(1-routine)*active);
 }
 
 void measureLocalCompletion(Prior const& prior, Unit const& unit,
@@ -1100,7 +1151,7 @@ void measureFinishingBalance(Unit const& unit, Evidence const& evidence,
 // explicitly for every unfinished declaration. This lets party preparation
 // evaluate rare batches deliberately, even if no diagnostic draw selects one.
 void buildLateCountComponents(Prior const& prior, std::vector<Unit> const& units,
-    Options const& options, bool scheduled, Result& result) {
+    Options const& options, std::optional<double> sourceHour, Result& result) {
     auto samples = prior.totals.size(), count = samples*options.countDraws;
     auto const& broad = result.broad;
     // All units reuse this small grid of normal quantiles. Its midpoint
@@ -1120,7 +1171,8 @@ void buildLateCountComponents(Prior const& prior, std::vector<Unit> const& units
         component.weight = -std::expm1(-std::pow(result.evidence[j].strength/.3,2));
         measureFinishingBalance(units[j],result.evidence[j],result.daysAfterPollClose,component);
         measurePositiveRemainder(units[j],result.evidence[j],component);
-        if (scheduled) {
+        auto timing = result.processingTimetables.find(units[j].category);
+        if (sourceHour && timing != result.processingTimetables.end()) {
             double currentCategory = 0;
             for (auto const& unit : units)
                 if (unit.seat == units[j].seat && unit.kind == "declaration" && unit.category == units[j].category)
@@ -1129,10 +1181,7 @@ void buildLateCountComponents(Prior const& prior, std::vector<Unit> const& units
             // hours (half at 2%) and retains half the routine amount at 5%.
             // The half-vote denominator keeps a zero current count well defined.
             double relative = result.evidence[j].volume/(currentCategory+.5);
-            double delay = 24*relative*relative/(relative*relative+.02*.02);
-            double routine = logistic(-(result.countingHoursAfterDeadline-48-delay)/12);
-            double active = relative*relative/(relative*relative+.05*.05);
-            component.usualLogShift = std::log(routine+(1-routine)*active);
+            applyProcessingTimetable(timing->second,*sourceHour,relative,component);
         }
         for (std::size_t r = 0; r < samples; ++r) {
             double base = broad.remaining[r][j];
@@ -1143,13 +1192,13 @@ void buildLateCountComponents(Prior const& prior, std::vector<Unit> const& units
             // Epsilon represents subtraction roundoff, not a substantive floor.
             // Small additions have a .25-vote median on the addition/slack odds
             // scale and log-odds SD 1. Batches use an added 5% of counted votes
-            // and SD 1.5. After the deadline, their centre moves from the group
+            // and SD 1.5. Late in this category's timetable, their centre moves from the group
             // allowance towards the unit's own pre-allocation expectation.
             component.referenceOdds.push_back(std::log((base+std::numeric_limits<double>::epsilon())/slack)+component.usualLogShift);
             component.smallOdds.push_back(std::log(.25/slack));
             double oldBatch = std::log((base+.25+.05*units[j].counted)/slack);
             double lateBatch = std::log((broad.ownRemaining[r][j]+.25+.05*units[j].counted)/slack);
-            component.batchOdds.push_back((1-result.processingPhase)*oldBatch+result.processingPhase*lateBatch);
+            component.batchOdds.push_back((1-component.processingPhase)*oldBatch+component.processingPhase*lateBatch);
         }
         // Preserve original mixture odds for every category. Started postals are
         // widened later, after joint allocation and all finishing limits.
@@ -1182,7 +1231,7 @@ LateCountLayout indexLateComponents(Result const& result, std::vector<Unit> cons
         auto seat = units[result.components[k].unit].seat;
         layout.componentsBySeat[seat].push_back(k);
         layout.activeSeats[seat] = layout.activeSeats[seat] || result.components[k].weight != 0
-            || result.components[k].usualLogShift != 0 || result.processingPhase != 0
+            || result.components[k].usualLogShift != 0 || result.components[k].processingPhase != 0
             || result.components[k].completionWeight != 0 || result.components[k].positiveRemainderWeight != 0;
     }
     return layout;
@@ -1230,9 +1279,9 @@ void calculateNoAdditionProbabilities(std::vector<Unit> const& units, LateCountL
 void assignComponentProbabilities(std::vector<Unit> const& units, Result& result) {
     for (auto& component : result.components) {
         double zero = result.noAdditionProbability[units[component.unit].seat];
-        double positive = 1-zero, requested = .02*result.batchSurvival;
+        double positive = 1-zero, requested = .02*component.batchSurvival;
         double possible = positive > 0 ? positive*(-std::expm1(-requested/positive)) : 0;
-        component.batchProbability = (1-result.processingPhase)*.02*component.weight+result.processingPhase*possible;
+        component.batchProbability = (1-component.processingPhase)*.02*component.weight+component.processingPhase*possible;
         double smallShare = .98*component.weight/(1-.02*component.weight);
         double remaining = positive-component.batchProbability;
         component.previousProbability = (1-smallShare)*remaining;
@@ -1271,8 +1320,9 @@ double localCompletionLimit(Component const& component, std::size_t outer, doubl
         // unfinished and exceptional-batch paths cover more substantial updates.
         double logAddition = std::log(component.postalCounted)+*component.postalRemainderLogOdds
             +PostalRemainderLocalSd*normal+PostalRemainderSharedSd*sharedNormal;
-        // This numerical bound cannot bind more tightly than the subsequent
-        // allocated-addition limit; no new votes or sibling transfers result.
+        // Bound the sampled remainder to available capacity for safe numerical
+        // evaluation. Joint allocation subsequently respects this postal amount
+        // before allowing it to displace other declaration categories.
         return std::exp(std::min(logAddition,std::log(component.capacity[outer]+component.reference[outer])));
     }
     return (component.capacity[outer]+component.reference[outer])*logistic(component.smallOdds[outer]+normal);
@@ -1326,8 +1376,8 @@ LateSamples sampleLateComponentOdds(Prior const& prior, std::vector<Unit> const&
             // The inverse-CDF grid assigns a probability interval to the
             // routine point mass. Use only a fraction of that interval for
             // completion; its rescaled position supplies a continuous local
-            // remainder draw. Preserve the old allocation odds until all siblings have
-            // been allocated, otherwise their counts would increase.
+            // remainder draw. Postal limits take part in allocation itself;
+            // other categories' local limits release unused turnout afterwards.
             double mass = component.previousProbability/positive*component.completionWeight;
             double extraMass = component.previousProbability/positive*component.positiveRemainderWeight;
             if (mass <= 0 && extraMass <= 0) continue;
@@ -1371,19 +1421,23 @@ void assembleCountSamples(Prior const& prior, std::vector<Unit> const& units, Op
         for (std::size_t s = 0; s < seats; ++s) {
             if (!layout.activeSeats[s]) continue;
             auto const& local = layout.componentsBySeat[s];
-            double parent = prior.enrolment[s]-broad.totals[outer][s], maximum = 0;
+            double parent = prior.enrolment[s]-broad.totals[outer][s];
+            std::vector<double> localOdds, postalLimits;
+            localOdds.reserve(local.size()); postalLimits.reserve(local.size());
             for (auto k : local) {
                 parent += result.components[k].reference[outer];
-                maximum = std::max(maximum,varied[r][k]);
+                localOdds.push_back(varied[r][k]);
+                postalLimits.push_back(result.components[k].postalRemainderLogOdds
+                    ? sampled.completionLimits[r][k] : std::numeric_limits<double>::infinity());
             }
-            double denominator = std::exp(-maximum);
-            for (auto k : local) denominator += std::exp(varied[r][k]-maximum);
-            for (auto k : local) {
+            auto additions = allocateDeclarationAdditions(parent,localOdds,postalLimits);
+            for (std::size_t position = 0; position < local.size(); ++position) {
+                auto k = local[position];
                 auto j = result.components[k].unit;
-                double addition = parent*std::exp(varied[r][k]-maximum)/denominator;
-                // This can only remove a routine allowance. Other categories
-                // retain the allocation calculated above; the difference is
-                // unused enrolment, not a transfer to another service.
+                double addition = additions[position];
+                // Postal finishing was already resolved in the joint account.
+                // Other categories retain their local-only finishing treatment;
+                // their reductions become unused turnout, not sibling additions.
                 addition = std::min(addition,sampled.completionLimits[r][k]);
                 allocated[r][k] = addition;
                 result.counts[r][s*groups+units[j].group] += addition-result.components[k].reference[outer];
@@ -1467,12 +1521,21 @@ bool routineCategory(Unit const& unit) {
 // much it could allocate in that scenario. Other units' odds remain fixed. The
 // stable denominator avoids overflow in very large or tiny batch possibilities.
 double routineAllocation(double parent, std::vector<double> const& odds,
-    std::vector<std::size_t> const& local, std::size_t component, double reference) {
-    double maximum = std::max(0.,reference);
-    for (auto k : local) if (k != component) maximum = std::max(maximum,odds[k]);
-    double denominator = std::exp(-maximum)+std::exp(reference-maximum);
-    for (auto k : local) if (k != component) denominator += std::exp(odds[k]-maximum);
-    return parent*std::exp(reference-maximum)/denominator;
+    std::vector<std::size_t> const& local, std::size_t component, double reference,
+    std::vector<double> const& completionLimits, std::vector<Component> const& components) {
+    // A hypothetical routine absent/pre-poll outcome must compete against the
+    // same retained postal amount as the real outcome. Keeping its discarded
+    // large allowance here would reintroduce the allocation error downstream.
+    std::vector<double> localOdds, postalLimits;
+    localOdds.reserve(local.size()); postalLimits.reserve(local.size());
+    std::size_t position = 0;
+    for (auto k : local) {
+        if (k == component) position = localOdds.size();
+        localOdds.push_back(k == component ? reference : odds[k]);
+        postalLimits.push_back(components[k].postalRemainderLogOdds
+            ? completionLimits[k] : std::numeric_limits<double>::infinity());
+    }
+    return allocateDeclarationAdditions(parent,localOdds,postalLimits)[position];
 }
 
 struct RoutineAlternatives { double reduced, modest; };
@@ -1531,7 +1594,8 @@ void prepareRoutineRemainders(Prior const& prior, std::vector<Unit> const& units
             auto outer = r/options.countDraws;
             double parent = c.capacity[outer];
             for (auto other : local) parent += result.components[other].reference[outer];
-            c.routineReferenceMean += routineAllocation(parent,sampled.odds[r],local,k,c.referenceOdds[outer])/sampled.odds.size();
+            c.routineReferenceMean += routineAllocation(parent,sampled.odds[r],local,k,c.referenceOdds[outer],
+                sampled.completionLimits[r],result.components)/sampled.odds.size();
         }
         c.routineBridge = c.routineSupport*std::pow(c.routineReferenceMean/(c.routineReferenceMean+c.routineMean),2);
     }
@@ -1575,7 +1639,8 @@ void reshapeRoutineRemainders(Prior const& prior, std::vector<Unit> const& units
             double original = sampled.allocated[r][k], capacity = original+sampled.unusedBeforePostal[r][s]/services[s];
             double parent = c.capacity[outer];
             for (auto other : local) parent += result.components[other].reference[outer];
-            double reference = routineAllocation(parent,sampled.odds[r],local,k,c.referenceOdds[outer]);
+            double reference = routineAllocation(parent,sampled.odds[r],local,k,c.referenceOdds[outer],
+                sampled.completionLimits[r],result.components);
             auto amounts = routineAlternatives(c,original,capacity,reference,normalGrid[std::size_t(normals[r]*count)],shared[r]);
             amounts.modest = std::min(amounts.modest,original+unused[r][s]/services[s]);
             bool point = sampled.odds[r][k] == c.referenceOdds[outer];
@@ -1651,18 +1716,22 @@ Result prepare(Prior const& prior, std::vector<Unit> const& units, std::vector<b
     std::vector<Observation> const& history, Options const& options, Matrix const& suppliedUniforms) {
     if (!options.countDraws) throw std::runtime_error("Turnout preparation needs at least one cheap count draw.");
     Result result;
-    if (options.pollClose && !history.empty()) {
-        double now = std::max_element(history.begin(),history.end(),[](auto const& a,auto const& b) { return a.hour < b.hour; })->hour;
-        result.daysAfterPollClose = (now-*options.pollClose)/24;
+    std::optional<double> now;
+    if (!history.empty()) {
+        now = std::max_element(history.begin(),history.end(),[](auto const& a,auto const& b) { return a.hour < b.hour; })->hour;
+        if (options.pollClose) result.daysAfterPollClose = (*now-*options.pollClose)/24;
     }
     result.broad = update(prior,units,finalised,options.ppvcFactor);
-    auto completed = options.receiptDeadline ? boothCompletion(prior,units) : std::vector<double>{};
-    result.evidence = options.receiptDeadline ? scheduledEvidence(prior,units,history,*options.receiptDeadline,completed)
+    prepareProcessingTimetables(units,options,result);
+    bool scheduled = options.receiptDeadline || !result.processingTimetables.empty();
+    auto completed = scheduled ? boothCompletion(prior,units) : std::vector<double>{};
+    auto postalDeadline = options.receiptDeadline ? options.receiptDeadline : options.postalDeadline;
+    result.evidence = scheduled ? scheduledEvidence(prior,units,history,postalDeadline,completed,result.processingTimetables)
         : progress(prior,units,history,options.postalDeadline);
-    releaseAllocation(prior,units,history,options.receiptDeadline ? options.receiptDeadline : options.postalDeadline,result,completed);
+    releaseAllocation(prior,units,history,postalDeadline,result,completed);
 
-    bool scheduled = applyReceiptTimetable(history,options,result);
-    buildLateCountComponents(prior,units,options,scheduled,result);
+    if (std::accumulate(result.broad.counted.begin(),result.broad.counted.end(),0.) <= 0) now.reset();
+    buildLateCountComponents(prior,units,options,now,result);
     auto layout = indexLateComponents(result,units);
     calculateNoAdditionProbabilities(units,layout,result);
     assignComponentProbabilities(units,result);
@@ -1682,7 +1751,7 @@ DrawPlan makeDrawPlan(Result const& result, std::vector<Unit> const& units,
         auto s = units.at(result.components[k].unit).seat;
         plan.componentsBySeat.at(s).push_back(k);
         plan.active[s] = plan.active[s] || result.components[k].weight != 0
-            || result.components[k].usualLogShift != 0 || result.processingPhase != 0
+            || result.components[k].usualLogShift != 0 || result.components[k].processingPhase != 0
             || result.components[k].completionWeight != 0 || result.components[k].positiveRemainderWeight != 0
             || result.components[k].routineSupport > 0;
     }
@@ -1721,9 +1790,10 @@ void drawSeatDeclarationAdditions(Result const& result, DrawPlan const& plan,
     auto const& local = plan.componentsBySeat[s];
     std::vector<double> odds; odds.reserve(local.size());
     std::vector<double> completionLimits; completionLimits.reserve(local.size());
+    std::vector<double> postalLimits; postalLimits.reserve(local.size());
     enum class Source { Routine, Finishing, Processing, Small, Batch };
     std::vector<Source> sources; sources.reserve(local.size());
-    double parent = plan.enrolment[s]-result.broad.totals[outer][s], maximum = 0;
+    double parent = plan.enrolment[s]-result.broad.totals[outer][s];
     for (auto k : local) {
         auto const& c = result.components[k];
         auto unitKey = seed ^ ((c.unit+1)*0xd1b54a32d192ed03ULL);
@@ -1759,22 +1829,22 @@ void drawSeatDeclarationAdditions(Result const& result, DrawPlan const& plan,
             source = Source::Processing;
         }
         completionLimits.push_back(completionLimit);
+        postalLimits.push_back(c.postalRemainderLogOdds ? completionLimit : std::numeric_limits<double>::infinity());
         sources.push_back(source);
-        odds.push_back(value); maximum = std::max(maximum,value);
+        odds.push_back(value);
         parent += c.reference[outer];
     }
-    // All unfinished categories share a finite parent and leave a slack
-    // component for non-voters/informal votes. Joint log weights prevent
-    // endpoint caps and preserve the enrolment account in a large batch.
-    double denominator = std::exp(-maximum);
-    for (double value : odds) denominator += std::exp(value-maximum);
+    // Match preparation: reserve any selected postal finishing amount before
+    // other declarations compete with it. Unused capacity participates too, so
+    // a postal increase need not remove an equal number of other formal votes.
+    auto additions = allocateDeclarationAdditions(parent,odds,postalLimits);
     for (std::size_t k = 0; k < local.size(); ++k) {
         auto j = result.components[local[k]].unit;
-        double addition = parent*std::exp(odds[k]-maximum)/denominator;
+        double addition = additions[k];
         counts[j] = plan.counted[j]+std::min(addition,completionLimits[k]);
     }
-    // Apply exactly the prepared postal output map. The original shared
-    // denominator and every non-postal draw above remain intact. Compute spare
+    // Apply exactly the prepared postal output map. The completed shared
+    // allocation and every non-postal draw above remain intact. Compute spare
     // enrolment once, before changing any postal service, and reserve disjoint
     // shares if this district has more than one postal unit.
     double total = result.broad.totals[outer][s], postalServices = 0;
@@ -1801,7 +1871,7 @@ void drawSeatDeclarationAdditions(Result const& result, DrawPlan const& plan,
             normal,interiorDrawUniform(wideningKey));
     }
 
-    // The three-part map follows the unchanged allocation AND postal draws.
+    // The three-part map follows shared allocation AND postal widening.
     // Share only the actually unused enrolment between eligible services;
     // reductions do not fund another service. Each source is known directly
     // here, so exceptional batches and existing positive processing outcomes
@@ -1823,11 +1893,9 @@ void drawSeatDeclarationAdditions(Result const& result, DrawPlan const& plan,
         bool increase = sources[k] != Source::Routine && selector < c.routineBridge;
         if (!reduce && !increase) continue;
         double original = counts[c.unit]-plan.counted[c.unit], capacity = original+prePostalUnused/services;
-        double ref = c.referenceOdds[outer], refMaximum = std::max(maximum,ref);
-        double refDenominator = std::exp(-refMaximum);
-        for (std::size_t position = 0; position < local.size(); ++position)
-            refDenominator += std::exp((position == k ? ref : odds[position])-refMaximum);
-        double reference = parent*std::exp(ref-refMaximum)/refDenominator;
+        auto referenceOdds = odds;
+        referenceOdds[k] = c.referenceOdds[outer];
+        double reference = allocateDeclarationAdditions(parent,referenceOdds,postalLimits)[k];
         double normal = std::sqrt(-2*std::log(interiorDrawUniform(shapeKey)))
             *std::cos(6.2831853071795864769*interiorDrawUniform(shapeKey));
         auto amounts = routineAlternatives(c,original,capacity,reference,normal,routineSharedNormal);

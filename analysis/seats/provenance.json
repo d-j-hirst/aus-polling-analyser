@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-10-28T06:13:40Z",
+  "updated_at_utc": "2026-10-30T09:37:00Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,12 +12,12 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 43,
+      "semantic_revision": 45,
       "files": {
         "2019fed.txt": {
-          "sha256": "014946dc77548034140f78ad66a062f1c59a6d070122cea4c7dcb8bd4525b321",
-          "size_bytes": 21842,
-          "recorded_mtime_utc": "2023-03-08T11:41:18.139461Z"
+          "sha256": "7ec8fd1f90a1dfd922d5ffae65310204521a87b5e91aec5a5a5f7f00b242abab",
+          "size_bytes": 37570,
+          "recorded_mtime_utc": "2026-10-29T14:01:03.068578Z"
         },
         "2019nsw.txt": {
           "sha256": "70e88c06f5494880e5e975ce58e7efce666954c193fcbdfc1ede2580240911dd",
@@ -65,9 +65,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "ee2ae9dc14567cab4e1fa4b3b93b1191adf8e479263713b7a336f10f1b0541d1",
-          "size_bytes": 23385,
-          "recorded_mtime_utc": "2026-10-27T11:40:43.681380Z"
+          "sha256": "825f052c711bad30a39def7b8015a98a84baa05e7cb6bb94e70106195531f06c",
+          "size_bytes": 23596,
+          "recorded_mtime_utc": "2026-10-30T09:37:00.457014Z"
         },
         "2027nsw.txt": {
           "sha256": "9066c05124dc34153f7b56e0d6c2a7238d5a40e3e1edb7965d74778378c4120a",
@@ -1028,9 +1028,56 @@
             "description": "Operator-supplied official WAEC 2025 Legislative Assembly candidate preload, downloads/2025wa_candidates_current.xml; full ballot identities and source-to-replay mapping retained in the operator-local preparation manifest.",
             "uri": "https://www.elections.wa.gov.au/2025-state-general-election"
           }
+        },
+        {
+          "id": "20261029T140151Z-methodology-forecast-seats-6b409001",
+          "recorded_at_utc": "2026-10-29T14:01:51Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 44,
+          "provenance_revision": 44,
+          "summary": "Prepare 2019 federal live replay: verified candidate rosters and multiplicities, separate Nationals, historical dual-contest shares, named Calare pseudo-independent and Cowper returner.",
+          "files": [
+            "2019fed.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2019fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261030T093700Z-source_refresh-forecast-seats-024bef4b",
+          "recorded_at_utc": "2026-10-30T09:37:00Z",
+          "change_type": "source_refresh",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 45,
+          "provenance_revision": 45,
+          "summary": "Add four officially announced candidates missing from 2026vic seat names: Ollie Young (ALP, Benambra), Stella Zigouras (ALP, Mildura), Surbhi Snowball (ALP, Nepean), and Gavin Trewella (GRN, Thomastown). Preserve all other candidate names, independent viability and returning flags, pending-candidate decisions, incumbency, Coalition settings and betting odds. The registered fingerprint also retains pre-existing working-file odds edits.",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          },
+          "source": {
+            "description": "Official party profiles verified in the 30 October 2026 candidacy audit: https://www.viclabor.org.au/our-team/ollie-young ; https://www.viclabor.org.au/our-team/stella-zigouras ; https://www.viclabor.org.au/our-team/surbhi-snowball ; https://greens.org.au/vic/person/gavin-trewella . Use the display name and electorate specified by each party.",
+            "uri": "https://www.viclabor.org.au/our-team",
+            "coverage_through": "2026-10-30"
+          }
         }
       ],
-      "provenance_revision": 43
+      "provenance_revision": 45
     }
   }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LivePartialCount.h"
+#include "LiveTurnoutMath.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -104,10 +105,14 @@ double draw(SeatDistribution const& distribution, std::uint64_t seed);
 // elsewhere in the provider and are never edited by this operation.
 template<class Counted, class Projected>
 void transfer(Counted& counted, Projected& projected, int partyA, int partyB, double revision) {
+    double const projectedA = LiveTurnoutMath::revisedProjection(
+        projected.at(partyA),counted.at(partyA),revision,revision);
+    double const projectedB = LiveTurnoutMath::revisedProjection(
+        projected.at(partyB),counted.at(partyB),-revision,-revision);
     counted.at(partyA) += revision;
     counted.at(partyB) -= revision;
-    projected.at(partyA) = static_cast<typename Projected::mapped_type>(double(projected.at(partyA)) + revision);
-    projected.at(partyB) = static_cast<typename Projected::mapped_type>(double(projected.at(partyB)) - revision);
+    projected.at(partyA) = static_cast<typename Projected::mapped_type>(projectedA);
+    projected.at(partyB) = static_cast<typename Projected::mapped_type>(projectedB);
 }
 
 } // namespace LivePreferenceCorrections

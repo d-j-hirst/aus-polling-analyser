@@ -383,6 +383,16 @@ void LiveV2::Election::prepareTurnout(Results2::Election const& currentElection,
         mapping, observations.current);
     turnout = LiveTurnout::Prepared::prepare(std::move(artifact), std::move(observations.units),
         std::move(observations.boothIndexes), readBooths().size(), observations.finalised, history, currentElection.sourceTime);
+    // Reporting coverage uses the accepted source counts, not confidence-
+    // discounted evidence or sampled positive/negative count revisions. Freeze
+    // its denominator at the prepared mean final formal turnout for all services
+    // represented in this forecast. Scenario copies keep this same display value.
+    countProgress = currentElection.reportedCountProgress;
+    if (countProgress) {
+        for (std::size_t b = 0; b < readBooths().size(); ++b)
+            countProgress->expectedFormalVotes += turnout->fpTarget(b);
+        if (!(countProgress->expectedFormalVotes > 0)) countProgress.reset();
+    }
     // Persist only received measured counts. It is safe to start with an empty
     // directory during a live election; future replay sources are filtered out.
     run.pendingLiveCommits.push_back([directory, election = run.getTermCode(), time = currentElection.sourceTime,

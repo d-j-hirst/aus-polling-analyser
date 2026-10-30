@@ -16,7 +16,7 @@ import numpy as np
 
 from lib.paths import REPOSITORY_DIRECTORY
 from lib.turnout import allocation, cpp_contract, late_counts, late_schedule, live
-from lib.turnout import maintained_parameters, prior
+from lib.turnout import maintained_parameters, prior, processing_timetables
 
 
 def _validate_district_configuration(config):
@@ -103,6 +103,7 @@ def _validate_sampling_settings(config):
     if not 2 <= config['preparation_samples'] or not 1 <= config['count_draws'] <= 64:
         raise ValueError('Use at least two prior outcomes and between one and 64 count draws.')
     schedule = config['schedule']
+    processing_timetables.validate(schedule.get('processing_timetables', {}))
     if schedule['ppvc_reporting_decay'] and not schedule['poll_close']:
         raise ValueError('Unreported PPVC decay requires a polling close time.')
 

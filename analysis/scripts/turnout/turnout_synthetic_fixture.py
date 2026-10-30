@@ -135,6 +135,14 @@ def make_fixture():
     assert min(c['early_completion_retention'] for c in expected['components']) < .1
     cases.append(dict(name='early-pause-below-expectation',source_time=young_history[-1]['source_time'],source_sha256=None,
         units=cpp_contract.unit_rows(current),history=young_history,finalised=[],ppvc_factor=.02,expected=expected))
+    # An explicitly separate postal timetable exercises processing-sensitive
+    # quietness without moving receipt safeguards or other categories' clocks.
+    postal_timing = {'Postal': dict(days_after_poll_close=13,transition_days=2)}
+    expected = cpp_contract.expected(election,inputs,draws,current,local_history,count_draws=4,seed=seed,ppvc_factor=.02,
+        poll_close=artifact['options']['poll_close'],processing_overrides=postal_timing)
+    cases.append(dict(name='separate-postal-processing',source_time=local_history[-1]['source_time'],source_sha256=None,
+        units=cpp_contract.unit_rows(current),history=local_history,finalised=[],ppvc_factor=.02,
+        processing_timetables=postal_timing,expected=expected))
     artifact['cases'] = cases
     return artifact
 

@@ -230,7 +230,7 @@ class LateCountTests(unittest.TestCase):
             postal_log_odds=np.full(3,logit(.06)),shared_normal=common)
         np.testing.assert_allclose(scaled[:,2],2*scaled[:,0])
 
-    def test_postal_remainder_changes_only_local_routine_outcomes(self):
+    def test_postal_remainder_releases_capacity_before_sibling_allocation(self):
         inputs, units, prepared = self.prepared_case()
         units[2]['vote_type'] = 'Postal'
         evidence = [dict(strength=.25,postal_days_before_deadline=4) for _ in units]
@@ -243,7 +243,12 @@ class LateCountTests(unittest.TestCase):
         before = late_counts.update(reference,inputs,units,evidence)
         after = late_counts.update(local,inputs,units,evidence)
         self.assertLess(after['unit_means'][2],before['unit_means'][2])
-        np.testing.assert_array_equal(np.delete(after['unit_means'],2),np.delete(before['unit_means'],2))
+        # A smaller postal remainder can release some space to the other local
+        # declaration, but cannot force all released votes into it. Physical
+        # booths and other districts remain unchanged.
+        np.testing.assert_array_equal(after['unit_means'][[0,1,4,5,6,7]],before['unit_means'][[0,1,4,5,6,7]])
+        self.assertGreaterEqual(after['unit_means'][3],before['unit_means'][3])
+        self.assertLess(after['unit_means'][:4].sum(),before['unit_means'][:4].sum())
         np.testing.assert_array_equal(after['no_addition_probability'],before['no_addition_probability'])
         for a,b in zip(after['components'],before['components']):
             self.assertEqual(a['probabilities']['batch'],b['probabilities']['batch'])

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RandomGenerator.h"
+#include "LiveTurnoutMath.h"
 #include <algorithm>
 #include <cmath>
 #include <map>
@@ -121,8 +122,16 @@ template<class Projected>
 inline void apply(Counts& counted, Projected& projected, Weights const& weights,
     double coverage, double amount) {
     for (auto const& [p,w] : weights) {
-        if (coverage > 0) counted[p] += amount*w*coverage;
-        projected.at(p) = static_cast<typename Projected::mapped_type>(double(projected.at(p))+amount*w);
+        double const previousCounted = get(counted,p);
+        double const totalChange = amount*w;
+        double const countedChange = totalChange*coverage;
+        // Preserve the remaining-voter allocation while updating its counted
+        // base. Several booth revisions can affect the same district candidate;
+        // direct repeated additions to its float projection lose that base.
+        double const revised = LiveTurnoutMath::revisedProjection(
+            projected.at(p),previousCounted,countedChange,totalChange);
+        if (coverage > 0) counted[p] = previousCounted+countedChange;
+        projected.at(p) = static_cast<typename Projected::mapped_type>(revised);
     }
 }
 }

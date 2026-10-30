@@ -127,6 +127,12 @@ public:
 	// Known candidate names (doesn't have do be 100% guaranteed, just confirmed as running
 	// for now, or the incumbent if they haven't announced retirement etc.)
 	// Maps candidate name to party short code.
+	// An explicit IND name also identifies a locally modelled independent in a
+	// live feed, even if that person's ballot label is a registered party. The
+	// full name must match within this seat (case/spacing and surname-comma order
+	// are normalised). Other candidates of that registered party stay separate;
+	// see LiveIndependentMapping.h. This does not make unnamed minor candidates
+	// prominent or establish that a previous independent is running again.
 	std::map<std::string, std::string> candidateNames;
 
 	// Store date (in string form) and TPP

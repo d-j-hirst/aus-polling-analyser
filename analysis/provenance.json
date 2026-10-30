@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-10-17T09:20:50Z",
+  "updated_at_utc": "2026-10-30T09:36:22Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -5496,9 +5496,9 @@
           "recorded_mtime_utc": "2026-10-02T10:57:03.181178Z"
         },
         "pipeline.py": {
-          "sha256": "fd31da7989a5840475b3383821a81f60905ca526b54cb7e5f840914b1bb01121",
-          "size_bytes": 95359,
-          "recorded_mtime_utc": "2026-10-01T04:46:46.749846Z"
+          "sha256": "3dce54ea94d3edfad290a4888851a86e15e36c450b9a1142402ccb7534f19ac0",
+          "size_bytes": 97248,
+          "recorded_mtime_utc": "2026-10-30T09:34:34.301396Z"
         },
         "pipeline_registry.json": {
           "sha256": "bc481c906935bc22e5c43c198276e58ef54556e981af0c3a60dcaa6afea82d18",
@@ -7633,6 +7633,25 @@
           "summary": "Register the standalone election-specific seat volatility calculation alongside the historical analysis entry point.",
           "files": [
             "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261030T093622Z-correction-pipeline-orchestration-tools-5dbff264",
+          "recorded_at_utc": "2026-10-30T09:36:22Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Limit generation-plan source blockers to input categories consumed by selected stages; preserve repository-wide audits and metadata checks. Existing numerical outputs are unchanged.",
+          "files": [
+            "pipeline.py"
           ],
           "scope": {
             "all": true,

@@ -22,6 +22,10 @@ namespace {
 int main()
 {
 	Simulation::Report report;
+	assert(!report.countProgress); // Older/non-automatic reports have no invented FP count.
+	report.countProgress = LiveData::CountProgress{1200,1050,2000};
+	assert(report.countProgress->fpPercent() == 60);
+	assert(report.getTcpPercentCounted() == 52.5f);
 	report.partyAbbr = {
 		{ Simulation::MajorParty::One, "ALP" },
 		{ Simulation::MajorParty::Two, "LIB" },

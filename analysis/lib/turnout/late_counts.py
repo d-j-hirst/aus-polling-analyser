@@ -10,11 +10,11 @@ from datetime import datetime
 from types import SimpleNamespace
 
 import numpy as np
-from scipy.special import expit, logsumexp, ndtr, ndtri
-from lib.turnout import completion, routine_remainders
+from scipy.special import expit, ndtr, ndtri
+from lib.turnout import completion, routine_remainders, processing_timetables, declaration_allocation
 
 
-MODEL_VERSION = 'live-late-counts-4'
+MODEL_VERSION = 'live-late-counts-5'
 DEFAULTS = dict(activity_decay_hours=24., coverage_hours=48., activity_scale=.1,
                 magnitude_scale=.005, unstarted_scale=.1, state_equivalent_districts=20.,
                 evidence_scale=.3, batch_probability=.02, small_median_votes=.25,
@@ -81,7 +81,7 @@ def _prepare_progress_context(history, units, subdivisions, options, counting_cl
         available=available, categories=categories, states=states, event_scale=event_scale)
 
 
-def _measure_progress_categories(context, shared_deadline):
+def _measure_progress_categories(context, timetables):
     """Measure changes, recent volume and observation coverage for each category.
 
     Normally declaration votes arrive in batches and then quieten. A pause is
@@ -93,6 +93,7 @@ def _measure_progress_categories(context, shared_deadline):
     measured = {}
     for name, current in ordered[-1][1]['seats'].items():
         for category in categories:
+            timing = timetables.get(category)
             if (name, category) not in available:
                 continue
             value = current['vote_types'].get(category)
@@ -120,13 +121,14 @@ def _measure_progress_categories(context, shared_deadline):
                 gentle_ratio = change/gentle_tolerance
                 gentle_activity += gentle_ratio**2/(1+gentle_ratio**2)*decay
                 volume += change*decay
-                # A backlog after receipt closes remains local evidence, while
-                # its influence on other seats' progress recedes continuously.
-                shared = 1. if shared_deadline is None else expit(-(after-datetime.fromisoformat(shared_deadline)).total_seconds()/3600/24.)
+                # A late backlog remains local evidence. Only this category's
+                # own timetable may reduce its relevance to other districts.
+                shared = (1. if timing is None else
+                    expit(-(after-timing['reference']).total_seconds()/3600/timing['shared_transition_hours']))
                 shared_activity += ratio*ratio/(1+ratio*ratio)*decay*shared
                 shared_volume += change*decay*shared
-                if shared_deadline is not None:
-                    post = expit((before-datetime.fromisoformat(shared_deadline)).total_seconds()/3600/12.)
+                if timing is not None:
+                    post = expit((before-timing['reference']).total_seconds()/3600/timing['small_batch_transition_hours'])
                     event = post*np.exp(-age/72.)*change**2/(change**2+50.**2)
                     changed_support += event
                     if new>old:
@@ -207,7 +209,7 @@ def _attach_progress_evidence(units, measured, pools, context, postal_deadline):
 
 
 def progress_evidence(history, units, subdivisions=None, options=None, *, postal_deadline=None,
-                      counting_clock=None, event_scale=.001, shared_deadline=None):
+                      counting_clock=None, event_scale=.001, shared_deadline=None, shared_timetables=None):
     """Measure counting activity with decaying memory and continuous support.
 
     Absolute changes include reversals and rechecks. A large change contributes
@@ -224,13 +226,16 @@ def progress_evidence(history, units, subdivisions=None, options=None, *, postal
     completion date: ongoing activity still argues against finalisation.
     An optional counting clock reduces weekend elapsed time. The event scale
     specifies the fraction of the current category used to judge change size.
-    A shared deadline discounts late activity's influence elsewhere while
-    preserving its local evidence and recording support from small late batches.
+    Category timetables discount late activity's influence elsewhere while
+    retaining local evidence and recording support from small late batches.
+    The older shared_deadline argument now supplies postal timing only.
     """
     context = _prepare_progress_context(history, units, subdivisions, options, counting_clock, event_scale)
     if not context.ordered:
         return [dict(strength=0., reason='No source history.') for _ in units]
-    measured = _measure_progress_categories(context, shared_deadline)
+    timings = (processing_timetables.resolve(receipt_deadline=shared_deadline)
+               if shared_timetables is None else shared_timetables)
+    measured = _measure_progress_categories(context, timings)
     pools = _pool_progress_categories(measured, context.categories)
     return _attach_progress_evidence(units, measured, pools, context, postal_deadline)
 
@@ -412,12 +417,12 @@ def _prepare_declaration_components(work, prepared, inputs, units, evidence, sch
     # starting estimate and current count are negligible.
     reference = np.log((base+np.finfo(float).eps)/slack[:,indexes])
     normal_shifts = np.zeros(len(columns)) if schedule is None else np.asarray(schedule['usual_log_shifts'])[columns]
-    phase = 0. if schedule is None else schedule['processing_phase']
+    phase = np.zeros(len(columns)) if schedule is None else np.broadcast_to(schedule['processing_phase'],(len(units),))[columns]
     reference += normal_shifts[None,:]
     small = np.log(config['small_median_votes']/slack[:,indexes])
     batch = np.log((base+config['small_median_votes']+config['batch_current_fraction']*
                     np.array([units[j]['counted'] for j in columns]))/slack[:,indexes])
-    if phase:
+    if np.any(phase):
         own_batch = np.log((prepared['own_remaining'][:,columns]+config['small_median_votes']+config['batch_current_fraction']*
                           np.array([units[j]['counted'] for j in columns]))/slack[:,indexes])
         batch = (1-phase)*batch+phase*own_batch
@@ -441,8 +446,9 @@ def _prepare_declaration_components(work, prepared, inputs, units, evidence, sch
     local_weight, local_z = completion.evidence(prepared,inputs,units,evidence)
     work.completion_weight = local_weight[columns]
     work.original_size_z = local_z[columns]
-    # Allocation always uses the original distributions. Postal uncertainty is
-    # widened only after allocation, so it cannot alter sibling category counts.
+    # Allocation uses the original mixture widths, with postal finishing limits
+    # handled inside that account. Extra postal uncertainty is widened only
+    # afterwards, so widening cannot alter sibling category counts.
     work.batch_sd = np.full(len(columns),config['batch_log_odds_sd'])
     for k,j in enumerate(columns):
         if category_key(units[j]) != 'Postal' or units[j]['counted'] <= 0:
@@ -456,8 +462,10 @@ def _prepare_declaration_components(work, prepared, inputs, units, evidence, sch
     work.positive_remainder_weight, work.positive_remainder_median = completion.positive_remainder_parameters(
         [units[j] for j in columns],[evidence[j] for j in columns],weights,work.completion_weight)
     work.early_completion_retention = completion.early_completion_retention(work.original_size_z,work.days_after_poll_close)
+    component_schedule = None if schedule is None else dict(processing_phase=phase,
+        batch_survival=np.broadcast_to(schedule['batch_survival'],(len(units),))[columns])
     work.probabilities,work.completion_weight,work.positive_remainder_weight = completion.guard_probabilities(
-        component_probabilities(weights,work.no_addition[indexes],config,schedule),
+        component_probabilities(weights,work.no_addition[indexes],config,component_schedule),
         work.completion_weight,work.positive_remainder_weight,work.early_completion_retention)
     component_preparation['completion_weight'] = work.completion_weight
     component_preparation['positive_remainder_weight'] = work.positive_remainder_weight
@@ -498,8 +506,9 @@ def _draw_declaration_components(work, seed, uniforms, schedule):
         _,work.postal_widening_weights[:,k] = completion.postal_widening_weight(
             varied[:,k],reference[outer,k],small[outer,k],batch[outer,k],
             tuple(p[k] for p in work.probabilities),work.batch_sd[k])
-    # Preserve the ordinary allocation, then apply the local intervention.
-    # Normalizing new finishing weights together would inflate sibling counts.
+    # Postal finishing amounts enter joint allocation before they displace other
+    # categories. Non-postal local interventions still apply afterwards, releasing
+    # their reductions to unused turnout rather than funding another service.
     work.completion_limits = completion.limits(reference[outer],small[outer],batch[outer],
         (work.slack[:,indexes]+work.base)[outer],work.completion_weight,
         work.probabilities,
@@ -599,14 +608,15 @@ def _apply_declaration_samples(work, units):
     for seat in range(seats):
         local = np.flatnonzero(indexes == seat)
         if not len(local) or (not np.any(weights[local]) and not np.any(normal_shifts[local])
-                             and not phase and not np.any(work.completion_weight[local])
+                             and not np.any(phase[local]) and not np.any(work.completion_weight[local])
                              and not np.any(work.positive_remainder_weight[local])):
             continue
         work.active_seats[seat] = True
         parent = slack[:,seat]+base[:,local].sum(axis=1)
         odds = varied[:,local]
-        denominator = logsumexp(np.column_stack([np.zeros(len(outer)),odds]), axis=1)
-        additions = parent[outer,None]*np.exp(odds-denominator[:,None])
+        postal_limits = np.where(np.isfinite(work.postal_log_odds[local]),
+                                 work.completion_limits[:,local], np.inf)
+        additions = declaration_allocation.allocate(parent[outer], odds, postal_limits)
         additions = np.minimum(additions,work.completion_limits[:,local])
         work.allocated[:,local] = additions
         for k, position in enumerate(local):
@@ -708,10 +718,16 @@ def _reshape_routine_remainders(work, prepared, inputs, units, evidence, seed, e
             shared = completion.postal_shared_normals(len(work.outer),seed,'declaration-routine/shared')
         seat,group = units[j]['seat_index'],units[j]['group_index']
         local = np.flatnonzero(work.indexes==seat)
-        others = [c for c in local if c!=k]
-        denominator = logsumexp(np.column_stack([np.zeros(len(work.outer)),work.varied[:,others]]),axis=1)
         parent = (work.slack[:,seat]+work.base[:,local].sum(axis=1))[work.outer]
-        reference = parent*expit(work.reference[work.outer,k]-denominator)
+        # Ask how many votes this category's routine branch could retain in the
+        # same scenario. Use the same postal limits as the actual allocation,
+        # never the discarded pre-finishing postal allowance.
+        position = int(np.flatnonzero(local==k)[0])
+        reference_odds = work.varied[:,local].copy()
+        reference_odds[:,position] = work.reference[work.outer,k]
+        postal_limits = np.where(np.isfinite(work.postal_log_odds[local]),
+                                 work.completion_limits[:,local], np.inf)
+        reference = declaration_allocation.allocate(parent,reference_odds,postal_limits)[:,position]
         reference_mean = float(reference.mean())
         # Do not move tiny probabilities to a large activity-based allowance.
         # The transfer grows as the two amount estimates become distinct.

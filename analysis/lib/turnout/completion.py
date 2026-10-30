@@ -217,9 +217,12 @@ def limits(reference, small, batch, capacity, weights, probabilities, positive, 
            small_sd=1., batch_sd=1.5, *, postal_counts=None, postal_log_odds=None, shared_normal=None):
     """Draw local near-finished limits from the routine probability interval.
 
-    The ordinary inverse-mixture sample remains unchanged for allocation purposes.
-    Only afterwards is the selected category reduced to this limit, so its released
-    allowance cannot raise another category. Infinity means no local intervention.
+    The ordinary inverse-mixture sample supplies an unconstrained allocation
+    weight. Postal limits enter the shared allocation itself: reserve a binding
+    finishing amount before distributing the remaining space. Otherwise a large
+    postal weight would suppress other categories and then disappear afterwards.
+    Non-postal limits retain their local, after-allocation treatment; their
+    released allowance becomes unused turnout. Infinity means no intervention.
     The routine interval's rescaled position supplies local variation. Normally
     this is the existing tiny component; Postal instead uses uncounted/final
     postal share, varying with both that local draw and an election-wide draw.
@@ -239,8 +242,8 @@ def limits(reference, small, batch, capacity, weights, probabilities, positive, 
     if postal_log_odds is not None:
         postal = np.isfinite(postal_log_odds)&(postal_counts>0)
         # q of final votes remaining means counted*q/(1-q) additions. Bound
-        # before exponentiation for numerical safety; subsequent allocation
-        # can only reduce this value and never transfers released votes.
+        # before exponentiation for numerical safety. Shared allocation can
+        # supply less than this limit; the limit never creates extra capacity.
         log_counted = np.log(np.where(postal,postal_counts,1.))
         log_additions = (log_counted+postal_log_odds+POSTAL_LOCAL_SD*normal
                          +POSTAL_SHARED_SD*shared_normal[:,None])

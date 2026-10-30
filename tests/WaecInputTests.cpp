@@ -171,11 +171,82 @@ void fictional() {
     Election previous("fictional"); previous.preloadWaec(candidates,booths);
     for (auto const& [id, booth] : previous.booths) assert(!election.booths.contains(id));
 }
+
+void declaredMissingCandidates() {
+    // A declared, reconciled FP account may omit zeros. The same partial
+    // candidate list during counting must remain incomplete (Miling 2025).
+    tinyxml2::XMLDocument candidates, booths;
+    assert(candidates.Parse(R"(<ElectionEvent ElectionDate="2025-03-08"><ElectionRegion>
+      <ElectionDistrict Name="North"><LA>
+      <Candidate BallotPaperName="One" RegisteredPartyAbbreviation="ALP" RegisteredPartyBallotPaperName="Labor"/>
+      <Candidate BallotPaperName="Two" RegisteredPartyAbbreviation="LIB" RegisteredPartyBallotPaperName="Liberal"/>
+      <Candidate BallotPaperName="Three" RegisteredPartyAbbreviation="GRN" RegisteredPartyBallotPaperName="Greens"/>
+      </LA></ElectionDistrict></ElectionRegion></ElectionEvent>)") == tinyxml2::XML_SUCCESS);
+    assert(booths.Parse(R"(<ElectionEvent ElectionDate="2025-03-08"><ElectionRegion>
+      <ElectionDistrict Name="North" Enrolment="100"><OrdinaryPollingPlace Number="1" Name="School"/>
+      </ElectionDistrict></ElectionRegion></ElectionEvent>)") == tinyxml2::XML_SUCCESS);
+    auto parse = [&](char const* status, char const* formal, std::string const& rows) {
+        std::string total = formal ? " FormalVotes=\""+std::string(formal)+"\"" : "";
+        std::string xml = "<ElectionEvent ElectionDate=\"2025-03-08\"><ElectionRegion><ElectionDistrict Name=\"North\"><LA ElectionStatus=\""
+            +std::string(status)+"\"><DistrictVotes CountDefinitionCode=\"LAPC\">"
+            +"<OrdinaryPollingPlaceVotes OrdinaryPollingPlaceNumber=\"1\""+total+">"+rows+"</OrdinaryPollingPlaceVotes>"
+            +"<CategoryVotes CategoryCode=\"SIR\""+total+">"+rows+"</CategoryVotes></DistrictVotes>"
+            +"<DistrictVotes CountDefinitionCode=\"LAND\"><CategoryVotes CategoryCode=\"SIR\" FormalVotes=\"33\">"
+            +"<CandidateVotes CandidateBallotPaperName=\"One\" Votes=\"21\"/><CandidateVotes CandidateBallotPaperName=\"Two\" Votes=\"12\"/>"
+            +"</CategoryVotes></DistrictVotes></LA></ElectionDistrict></ElectionRegion></ElectionEvent>";
+        tinyxml2::XMLDocument source;
+        assert(source.Parse(xml.c_str()) == tinyxml2::XML_SUCCESS);
+        Election election("fictional"); election.preloadWaec(candidates,booths);
+        election.updateLive(source,Election::Format::WAEC);
+        return election;
+    };
+    std::string rows = R"(<CandidateVotes CandidateBallotPaperName="One" Votes="20"/><CandidateVotes CandidateBallotPaperName="Two" Votes="13"/>)";
+    auto declared = parse("Results Declared","33",rows);
+    int third = 0;
+    for (auto const& [id,candidate] : declared.candidates) if (candidate.name == "Three") third = id;
+    assert(third != 0);
+    assert(declared.booths.begin()->second.fpVotes.size() == 3);
+    assert(declared.booths.begin()->second.fpVotes.at(third) == 0);
+    assert(declared.seats.begin()->second.fpVotes.at(third).at(VoteType::SIR) == 0);
+    assert(parsedFp(declared) == 66 && parsedTcp(declared) == 33);
+    assert(declared.seats.begin()->second.tcpVotesCandidate.size() == 2); // Never pad a TCP pair.
+    for (auto status : {"Count In Progress","Final for the Night","Awaiting Declaration",""}) {
+        auto unfinished = parse(status,"33",rows);
+        assert(unfinished.booths.begin()->second.fpVotes.size() == 2);
+        assert(!unfinished.seats.begin()->second.fpVotes.contains(third));
+    }
+    for (char const* formal : std::vector<char const*>{nullptr,"34","32","-1","33.5","33oops","","999999999999999999999"}) {
+        auto invalidTotal = parse("Results Declared",formal,rows);
+        assert(invalidTotal.booths.begin()->second.fpVotes.size() == 2);
+        assert(!invalidTotal.seats.begin()->second.fpVotes.contains(third));
+    }
+    for (auto value : {"-1","broken"}) {
+        auto invalidCount = parse("Results Declared","13",
+            "<CandidateVotes CandidateBallotPaperName=\"One\" Votes=\""+std::string(value)
+            +"\"/><CandidateVotes CandidateBallotPaperName=\"Two\" Votes=\"13\"/>");
+        assert(!invalidCount.invalidLiveCounts.empty());
+        assert(invalidCount.booths.begin()->second.fpVotes.size() == 2);
+        assert(!invalidCount.seats.begin()->second.fpVotes.contains(third));
+    }
+    auto empty = parse("Results Declared","0","");
+    assert(empty.booths.begin()->second.fpVotes.empty());
+    assert(empty.seats.begin()->second.fpVotes.empty());
+    auto zero = parse("Results Declared","0",R"(<CandidateVotes CandidateBallotPaperName="One" Votes="0"/>)");
+    assert(zero.booths.begin()->second.fpVotes.size() == 3 && parsedFp(zero) == 0);
+    for (auto extra : {R"(<CandidateVotes CandidateBallotPaperName="Unknown" Votes="0"/>)",
+                       R"(<CandidateVotes CandidateBallotPaperName="One" Votes="0"/>)"}) {
+        bool rejected = false;
+        try { parse("Results Declared","33",rows+extra); }
+        catch (std::runtime_error const&) { rejected = true; }
+        assert(rejected);
+    }
+}
 }
 
 int main(int argc, char** argv) try {
     logger.setEnabled(false);
     fictional();
+    declaredMissingCandidates();
     // Optional operator-local audit compares all raw FP rows against the
     // parsed accounts. No private official export is needed for the fixture.
     if (argc > 1) {
@@ -229,17 +300,40 @@ int main(int argc, char** argv) try {
         std::cout << matches << " checked historical venue links; " << mixed << " incremental early places.\n";
         auto prior = TurnoutModelIO::loadForElection(root,"2025wa");
         assert(prior.prior.units.size() == 979);
-        for (auto code : {"20250308180640", "20250308195331", "20250406125852"}) {
+        for (auto code : {"20250308180640", "20250308193131", "20250308193508", "20250308195331", "20250326175046", "20250406125852"}) {
             tinyxml2::XMLDocument snapshot;
             load(snapshot,root / "forecasts/2025wa/live-snapshots/feeds" / (std::string("waec-la-verbose-")+code+".xml"));
             current.updateLive(snapshot,Election::Format::WAEC);
             auditPartyTotals(previous,current,candidates,snapshot);
-            for (auto const& [id,seat] : current.seats)
-                assert(seat.fpFinalised == (std::string(code) == "20250406125852"));
-            current.sourceTime = "2025-03-08T19:53:31";
+            if (std::string(code) != "20250326175046")
+                for (auto const& [id,seat] : current.seats)
+                    assert(seat.fpFinalised == (std::string(code) == "20250406125852"));
+            std::string stamp(code);
+            current.sourceTime = stamp.substr(0,4)+"-"+stamp.substr(4,2)+"-"+stamp.substr(6,2)
+                +"T"+stamp.substr(8,2)+":"+stamp.substr(10,2)+":"+stamp.substr(12,2);
             auto identified = LiveInputAdapter::identify(current,prior,code);
             auto effective = LiveInputRecovery::recover(std::move(identified),{}).snapshot;
             assert(effective.records.size() == 979);
+            // Real captures exercise reader -> recovery, including the brief
+            // incomplete Miling publication and declaration-gated SIR zeros.
+            long long acceptedFp = 0;
+            for (auto const& row : effective.records) {
+                acceptedFp += LiveInputRecovery::total(row.fp.votes);
+                if (row.key == "Mid-West/ordinary/Miling Town Hall") {
+                    if (stamp == "20250308193131") assert(!row.fp.votes);
+                    if (stamp == "20250308193508") assert(LiveInputRecovery::total(row.fp.votes) == 72);
+                }
+                if (row.key == "Joondalup/declaration/SIR") {
+                    if (stamp == "20250326175046") assert(!row.fp.votes);
+                    if (stamp == "20250406125852") {
+                        assert(row.fp.votes && row.fp.votes->size() == 9);
+                        assert(LiveInputRecovery::total(row.fp.votes) == 33);
+                        assert(LiveInputRecovery::total(row.tcp.votes) == 33);
+                        assert(effective.districts.at("Joondalup").finalised);
+                    }
+                }
+            }
+            if (stamp == "20250406125852") assert(acceptedFp == sourceCount(snapshot,"LAPC"));
             for (auto const& row : effective.records)
                 if (row.role == "ppvc") {
                     assert(row.incremental);

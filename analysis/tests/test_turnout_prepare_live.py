@@ -48,6 +48,15 @@ class PrepareLiveTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 preparation.prepare(self.config, provenance={})
 
+    def test_processing_timetables_survive_preparation_and_validate(self):
+        timings = {'Absent': {'days_after_poll_close':16, 'transition_days':2}, 'Provisional':None}
+        self.config['schedule']['processing_timetables'] = timings
+        result = preparation.prepare(self.config, provenance={})
+        self.assertEqual(result['options']['processing_timetables'],timings)
+        self.config['schedule']['processing_timetables']['Absent']['transition_days'] = -1
+        with self.assertRaises(ValueError):
+            preparation.prepare(self.config, provenance={})
+
     def test_postponed_contest_is_explicit_and_outside_count_population(self):
         contest = dict(seat='Example Postponed', status='postponed', reason='Polling was postponed.')
         self.config['inactive_contests'] = [contest]

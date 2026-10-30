@@ -9,6 +9,7 @@
 #undef small
 
 #include "../TurnoutModelIO.h"
+#include "../DeclarationAllocation.h"
 #include "../LiveTurnoutMath.h"
 #include "../LiveTurnout.h"
 #include "../LivePreferenceCorrections.h"
@@ -37,6 +38,53 @@ template<class F> void rejects(F action) {
     bool threw = false; try { action(); } catch (std::exception const&) { threw = true; }
     assert(threw);
 }
+void checkRevisionRounding() {
+    // A late district can receive corrections from several reporting units.
+    // Updating its float projection by each fraction separately used to drift
+    // below the double counted account, even with no outstanding voters.
+    for (double amount : {.15, -.15, .301732, -.301732}) {
+        for (double coverage : {0., .5, 1.}) {
+            LiveCountRevisions::Counts counted{{0,46000}};
+            std::map<int,float> projected{{0,47000}};
+            double expectedCount = 46000, expectedTotal = 47000;
+            for (int i = 0; i < 100; ++i) {
+                LiveCountRevisions::apply(counted,projected,{{0,1}},coverage,amount);
+                expectedCount += amount*coverage; expectedTotal += amount;
+                assert(std::abs(counted.at(0)-expectedCount) < 1e-8);
+                assert(std::abs(projected.at(0)-expectedTotal) < .2);
+                LiveTurnoutMath::remaining(projected.at(0),counted.at(0));
+            }
+        }
+        LiveCountRevisions::Counts counted{{0,46000},{1,20000}};
+        std::map<int,float> projected{{0,46000},{1,20000}};
+        for (int i = 0; i < 100; ++i) {
+            LivePreferenceCorrections::transfer(counted,projected,0,1,amount);
+            LiveCountRevisions::apply(counted,projected,{{0,1}},1,amount);
+            double total = double(projected.at(0))+projected.at(1);
+            auto progress = LiveTurnoutMath::completion(LiveCountRevisions::total(counted),total);
+            assert(progress <= 1);
+            for (auto const& [party,votes] : counted)
+                LiveTurnoutMath::remaining(projected.at(party),votes);
+            auto shares = LiveTurnoutMath::reconcileForecast({counted,projected},{{0,10},{1,90}});
+            assert(std::abs(shares.at(0)-100*counted.at(0)/LiveCountRevisions::total(counted)) < .001);
+        }
+    }
+    // Several candidate accounts can become one anonymous Others group. Sum
+    // their float inputs in double precision before storing the group once.
+    LiveCountRevisions::Counts counted;
+    std::map<int,float> projected;
+    for (int party = 0; party < 20; ++party) {
+        counted[party] = 2300.15; projected[party] = float(counted.at(party));
+    }
+    auto grouped = LiveTurnoutMath::partitionAccount({&counted,&projected},[](int) { return -1; });
+    LiveTurnoutMath::remaining(grouped.projected.at(-1),grouped.counted.at(-1));
+    rejects([] {
+        LiveCountRevisions::Counts observed{{0,46000}};
+        std::map<int,float> invalid{{0,45999}};
+        LiveCountRevisions::apply(observed,invalid,{{0,1}},1,.15);
+    });
+}
+
 void checkWaEarlyBatches() {
     using namespace WaEarlyCounting;
     auto close = TurnoutModel::sourceHour("2025-03-08T18:00:00");
@@ -1087,6 +1135,11 @@ void check(std::filesystem::path const& path) {
         std::vector<bool> finalised(artifact.prior.seats.size());
         for (auto const& name : c.at("finalised")) for (std::size_t s = 0; s < finalised.size(); ++s) finalised[s] = finalised[s] || name == artifact.prior.seats[s];
         auto options = artifact.options; options.ppvcFactor = c.at("ppvc_factor");
+        if (c.contains("processing_timetables")) {
+            auto configured = value;
+            configured["options"]["processing_timetables"] = c.at("processing_timetables");
+            options.processingTimetables = TurnoutModelIO::read(configured).options.processingTimetables;
+        }
         auto actual = TurnoutModel::prepare(artifact.prior,units,finalised,history,options);
         auto unspreadOptions = options; unspreadOptions.postalWidening = false;
         auto unspread = TurnoutModel::prepare(artifact.prior,units,finalised,history,unspreadOptions);
@@ -1207,10 +1260,145 @@ void check(std::filesystem::path const& path) {
     std::cout << path.filename().string() << ": " << cases.size() << " comparison cases passed.\n";
 }
 }
+void checkProcessingTimetables(std::filesystem::path const& root) {
+    using namespace TurnoutModel;
+    Options options; options.pollClose=sourceHour("2025-03-08T18:00:00");
+    options.receiptDeadline=sourceHour("2025-03-13T09:00:00");
+    auto absent=processingTimetable(options,"Absent");
+    auto provisional=processingTimetable(options,"Provisional");
+    assert(absent && absent->referenceHour==*options.pollClose+14*24);
+    assert(provisional && provisional->referenceHour==*options.pollClose+18*24);
+    assert(!processingTimetable(options,"SIR") && !processingTimetable(options,"early"));
+    auto changed=options; changed.receiptDeadline=*options.receiptDeadline+7*24;
+    assert(processingTimetable(changed,"Absent")->referenceHour==absent->referenceHour);
+    assert(processingTimetable(changed,"Postal")->referenceHour!=processingTimetable(options,"Postal")->referenceHour);
+    changed.processingTimetables["Absent"]=ProcessingTimetable{16,2};
+    assert(processingTimetable(changed,"Absent")->referenceHour==*options.pollClose+16*24);
+    changed.processingTimetables["Absent"]={};
+    assert(!processingTimetable(changed,"Absent"));
+    changed.pollClose.reset();
+    assert(!processingTimetable(changed,"Provisional"));
+    changed.processingTimetables["Absent"]=ProcessingTimetable{14,0};
+    rejects([&]{(void)processingTimetable(changed,"Absent");});
+
+    // A wholly non-postal account must be identical when the postal clock is
+    // moved or removed, including shared progress, batch odds and final amounts.
+    Prior prior; prior.seats={"A","B"}; prior.subdivisions={"X","X"};
+    prior.groups={"ordinary","absent"}; prior.enrolment={4000,4000};
+    prior.totals={{2500,2500},{2900,2900}};
+    prior.counts={{1400,1100,1400,1100},{1600,1300,1600,1300}};
+    std::vector<Unit> units;
+    for (std::size_t s=0;s<2;++s) {
+        Unit booth;booth.seat=s;booth.kind="ordinary";booth.name=booth.category="Ordinary";
+        booth.weight=1;booth.counted=1200;units.push_back(booth);
+        Unit declaration;declaration.seat=s;declaration.group=1;declaration.kind="declaration";
+        declaration.name=declaration.category="Absent";declaration.weight=1;declaration.counted=100;
+        units.push_back(declaration);
+    }
+    prior.units=units;
+    std::vector<Observation> history;
+    for (int k=0;k<9;++k) {
+        Observation h;h.hour=*options.pollClose+14*24-48+k*6;
+        for (auto const& seat:prior.seats) {
+            h.counts[{seat,"Absent"}]=100;
+            h.counts[{seat,"allocation:absent"}]=100;
+        }
+        history.push_back(h);
+    }
+    auto base=prepare(prior,units,{false,false},history,options);
+    changed=options;changed.receiptDeadline=*options.receiptDeadline+20*24;
+    auto moved=prepare(prior,units,{false,false},history,changed);
+    changed.receiptDeadline.reset();
+    auto removed=prepare(prior,units,{false,false},history,changed);
+    assert(base.unitMeans==moved.unitMeans && base.unitMeans==removed.unitMeans);
+    assert(base.evidence[1].strength==removed.evidence[1].strength);
+    assert(base.evidence[1].pooledActivity==removed.evidence[1].pooledActivity);
+    assert(base.components[0].batchOdds==removed.components[0].batchOdds);
+    assert(std::abs(std::exp(base.components[0].usualLogShift)-.5)<1e-12);
+    changed.processingTimetables["Absent"]=ProcessingTimetable{16,2};
+    auto wa=prepare(prior,units,{false,false},history,changed);
+    assert(wa.components[0].usualLogShift>base.components[0].usualLogShift);
+    assert(wa.components[0].batchSurvival>base.components[0].batchSurvival);
+    history.back().hour+=1./60;
+    auto nearby=prepare(prior,units,{false,false},history,changed);
+    assert(std::abs(nearby.components[0].processingPhase-wa.components[0].processingPhase)<.001);
+
+    std::ifstream stream(root/"tests/fixtures/turnout/synthetic-turnout-v1.json");json value;stream>>value;
+    value["options"]["declaration_schedule_model"]="live-declaration-schedule-1";
+    auto legacy=TurnoutModelIO::read(value);
+    assert(processingTimetable(legacy.options,"Absent"));
+    value["progress_model"]="live-late-counts-4";
+    value["options"]["declaration_schedule_model"]="live-declaration-schedule-2";
+    auto oldProgress=TurnoutModelIO::read(value);
+    assert(oldProgress.prior.counts==legacy.prior.counts);
+    value["options"]["processing_timetables"]={{"Absent",{{"days_after_poll_close",16},{"transition_days",2}}},
+        {"Provisional",nullptr}};
+    auto configured=TurnoutModelIO::read(value);
+    assert(processingTimetable(configured.options,"Absent")->referenceHour==*legacy.options.pollClose+16*24);
+    assert(!processingTimetable(configured.options,"Provisional"));
+    value["options"]["processing_timetables"]["Postal"]={{"days_after_poll_close",13},{"transition_days",2}};
+    configured=TurnoutModelIO::read(value);
+    auto postal=processingTimetable(configured.options,"Postal");
+    assert(postal && postal->separatePostalProcessing && !postal->countingClock);
+    assert(postal->referenceHour==*configured.options.pollClose+13*24);
+    assert(configured.options.receiptDeadline==legacy.options.receiptDeadline);
+    value["options"]["processing_timetables"]["Absent"]["transition_days"]=0;
+    rejects([&]{TurnoutModelIO::read(value);});
+    std::cout<<"Independent category clocks, default/overridden timing and legacy inputs passed.\n";
+}
+
+void checkPostalAllocationOrder() {
+    using namespace TurnoutModel;
+    double infinity=std::numeric_limits<double>::infinity();
+    for (double precursor : {200.,2000.,20000.}) {
+        auto actual=allocateDeclarationAdditions(10000,{std::log(precursor/8500),std::log(1000./8500)},{100,infinity});
+        compare({100,9900./9.5},actual,"discarded postal allowance");
+    }
+    compare({100,9900./9.5},allocateDeclarationAdditions(10000,{10000,std::log(1000./8500)},{100,infinity}),
+        "extreme discarded postal weight");
+    double previousTotal=0;
+    for (int amount=0;amount<=3000;amount+=3) {
+        auto actual=allocateDeclarationAdditions(10000,{std::log(20000./8500),std::log(1000./8500)},
+            {double(amount),infinity});
+        compare(double(amount),actual[0],"postal finishing amount");
+        assert(actual[0]+actual[1]>=previousTotal-1e-9 && actual[0]+actual[1]<=10000);
+        previousTotal=actual[0]+actual[1];
+    }
+    auto ordered=allocateDeclarationAdditions(10000,{4,3,-1},{100,200,infinity});
+    auto reversed=allocateDeclarationAdditions(10000,{-1,3,4},{infinity,200,100});
+    std::reverse(reversed.begin(),reversed.end());
+    compare(ordered,reversed,"multiple postal services independent of order");
+
+    // Exercise the actual iteration sampler as well as the allocation helper.
+    // Both versions select the same tiny postal finishing remainder; changing
+    // only its discarded routine weight must not move the absent account.
+    Result base; base.broad.counted={1000};base.noAdditionProbability={0};
+    base.broad.unitCounts={{1500,1000}};base.broad.totals={{2500}};
+    std::vector<Unit> units(2);
+    units[0].counted=1000;units[0].category="Postal";units[1].category="Absent";
+    for (std::size_t j=0;j<2;++j) {
+        Component c;c.unit=j;c.previousProbability=1;c.capacity={8500};c.reference={j?1000.:500.};
+        c.referenceOdds={j?std::log(1000./8500):5.};
+        if (!j) {c.completionWeight=1;c.postalCounted=1000;c.postalRemainderLogOdds=-20;}
+        base.components.push_back(c);
+    }
+    auto changed=base;changed.components[0].referenceOdds={20};
+    auto plan=makeDrawPlan(base,units,{11000});
+    for (unsigned long long seed=0;seed<2048;++seed) {
+        auto a=drawUnitCounts(base,plan,seed),b=drawUnitCounts(changed,plan,seed);
+        compare(a,b,"main sampler ignores discarded postal allowance");
+        assert(a[0]>=1000 && a[1]>=0 && a[0]+a[1]<=11000);
+    }
+    std::cout<<"Postal finishing allocation, capacity and direct-sampler checks passed.\n";
+}
+
 int main(int argc, char** argv) {
     try {
         auto start = std::chrono::steady_clock::now();
         auto root = argc > 1 ? std::filesystem::path(argv[1]) : std::filesystem::path(".");
+        checkRevisionRounding();
+        checkProcessingTimetables(root);
+        checkPostalAllocationOrder();
         checkWaEarlyBatches();
         checkSignedCountRevisions();
         checkOperationalInputs(root);

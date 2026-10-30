@@ -171,6 +171,9 @@ void ResultsFrame::createSummaryBar()
 
 	summaryText = new wxStaticText(summaryPanel, ControlId::SummaryText, "", wxPoint(0, 0), summaryPanel->GetClientSize());
 	summaryText->SetBackgroundColour(wxColour(237, 237, 237));
+	summaryText->SetToolTip("Counted FP and TCP: accepted published votes divided by the same estimated final formal turnout. "
+		"TCP includes classic TPP, excludes FP-derived estimates, and follows the current published candidate pair after a reset. "
+		"Exhausted votes are not part of the two candidates' TCP totals. Older saved reports may have no coverage data.");
 	inputWarnings = new LiveInputWarningPanel(this);
 
 	dataPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight + SummaryPanelHeight), GetClientSize() - wxSize(0, toolBarHeight + SummaryPanelHeight));
@@ -796,12 +799,23 @@ std::string ResultsFrame::decideSummaryString()
 	std::string party2 = project->parties().view(1).abbreviation;
 	auto const* report = latestReport();
 	if (!report || !report->partyOneWinProportion.size()) return "";
+	// Split Coalition reports store Liberal and National expectations separately,
+	// while the Others total already excludes both. Show their combined total
+	// here; ordinary two-party reports and older reports without a Coalition
+	// distribution continue to use the second party's own total and label.
+	bool const hasCoalition = !report->coalitionSeatWinFrequency.empty();
+	std::string const partyTwoLabel = hasCoalition ? "Coalition" : party2;
+	float const partyTwoSeats = hasCoalition ? report->getCoalitionWinExpectation() :
+		report->getPartyWinExpectation(1);
+	std::string const progress = report->countProgress ?
+		"FP " + formatFloat(float(report->countProgress->fpPercent()), 2) + "%  TCP " +
+		formatFloat(float(report->countProgress->tcpPercent()), 2) + "%" : "FP —  TCP —";
 	std::string summaryString = party1 + " win chance: " + formatFloat(report->getPartyOverallWinPercent(Simulation::MajorParty::One), 2) +
 		"   Projected 2PP: " + party1 + " " + formatFloat(float(report->getPartyOne2pp()), 2) +
 		"   Seats: " + party1 + " " + formatFloat(report->getPartyWinExpectation(0), 2) + " " +
-		party2 + " " + formatFloat(report->getPartyWinExpectation(1), 2) +
+		partyTwoLabel + " " + formatFloat(partyTwoSeats, 2) +
 		" Others " + formatFloat(report->getOthersWinExpectation(), 2) +
-		"   Count progress: " + formatFloat(report->getTcpPercentCounted(), 2) + "%\n" +
+		"   Counted: " + progress + "\n" +
 		party1 + " swing by region: ";
 	//for (auto const& regionPair : project->regions()) {
 	//	Region const& thisRegion = regionPair.second;

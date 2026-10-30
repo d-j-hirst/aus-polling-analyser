@@ -517,6 +517,8 @@ public:
     std::string const& seatName, LiveData::CountKind kind) const override;
 
   // Expose some internals for diagnostics/analysis
+  std::optional<LiveData::CountProgress> getCountProgress() const override { return countProgress; }
+
   Internals getInternals() const override {
     Internals internals;
     internals.boothTypeBiases = boothTypeTppBiases;
@@ -922,6 +924,7 @@ private:
 
   // Shared immutable preparation; each scenario owns only its projected votes.
   std::shared_ptr<LiveTurnout::Prepared const> turnout;
+  std::optional<LiveData::CountProgress> countProgress;
   // One immutable ordinary-based prior per declaration service. Scenarios
   // share these compact maps and own only their varied future compositions.
   std::shared_ptr<std::vector<LiveNewVotes::Shares> const> newVoteContexts;

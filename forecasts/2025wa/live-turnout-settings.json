@@ -16,6 +16,18 @@
     "poll_close": "2025-03-08T18:00:00",
     "postal_deadline": "2025-03-13T09:00:00",
     "receipt_deadline": "2025-03-13T09:00:00",
+    "processing_timetables": {
+      "Postal": {
+        "days_after_poll_close": 13,
+        "transition_days": 2,
+        "source": "Retrospective WA 2025 processing timetable: only 69% of final formal postals were counted at receipt closure, about 95% by 21 March morning and 98% in the evening capture. The day-13 centre and two-day scale are broad replay assumptions, not known completion dates or cross-election calibration."
+      },
+      "Absent": {
+        "days_after_poll_close": 16,
+        "transition_days": 2,
+        "source": "Retrospective WA 2025 calibration: absent formal counts were 81% complete on 23 March, 87% on 24 March, and approximately complete in the 25 March capture. No comparable WA 2021 reporting timetable is available."
+      }
+    },
     "ppvc_reporting_decay": false
   }
 }

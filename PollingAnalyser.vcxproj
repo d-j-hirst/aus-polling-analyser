@@ -464,9 +464,11 @@
     <ClInclude Include="LiveFpIntegration.h" />
     <ClInclude Include="LiveNewVotes.h" />
     <ClInclude Include="LivePartyMapping.h" />
+    <ClInclude Include="LiveIndependentMapping.h" />
     <ClInclude Include="LiveTurnout.h" />
     <ClInclude Include="LivePreferenceCorrections.h" />
     <ClInclude Include="TurnoutModel.h" />
+    <ClInclude Include="DeclarationAllocation.h" />
     <ClInclude Include="TurnoutModelIO.h" />
     <ClInclude Include="RetainedLiveState.h" />
     <ClInclude Include="LiveInputWarningPanel.h" />

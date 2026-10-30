@@ -3092,6 +3092,7 @@ void Results2::Election::updateWaec(tinyxml2::XMLDocument const& xml)
           // A previously unseen name is a source/setup mismatch, rather than
           // a candidate whose votes can safely be dropped from the forecast.
           std::set<int> seenCandidates;
+          long long candidateTotal = 0;
           for (auto row = account.FirstChildElement("CandidateVotes"); row;
                row = row->NextSiblingElement("CandidateVotes")) {
             auto name = requiredAttribute(*row, "CandidateBallotPaperName", "WAEC count");
@@ -3100,6 +3101,7 @@ void Results2::Election::updateWaec(tinyxml2::XMLDocument const& xml)
             int candidateId = found->second;
             if (!seenCandidates.insert(candidateId).second) throwInvalidXml("WAEC count", "duplicate candidate");
             int votes = readCount(row, "WAEC candidate Votes", seatId, boothId, type, tcp, "Votes");
+            candidateTotal += votes;
             int partyId = candidates.at(candidateId).party;
             if (type == VoteType::Ordinary) {
               auto& booth = booths.at(boothId);
@@ -3108,6 +3110,35 @@ void Results2::Election::updateWaec(tinyxml2::XMLDocument const& xml)
             }
             else if (!tcp) seat.fpVotes[candidateId][type] = votes;
             else { seat.tcpVotesCandidate[candidateId][type] = votes; seat.tcpVotes[partyId][type] += votes; }
+          }
+
+          // Normally WA reports every candidate, including measured zeros.
+          // During counting an omitted candidate remains unknown: Miling Town
+          // Hall in 2025 briefly reported one vote before another 71 appeared
+          // for omitted candidates, with FormalVotes also initially just one.
+          // A matching sum therefore does not establish a complete FP account.
+          //
+          // After explicit Results Declared, treat omitted candidates as zero
+          // only in a nonempty, valid FP account whose published formal total
+          // is fully allocated to the listed candidates. Joondalup's final
+          // 33-vote mobile account is such a case. Declaration supplies the
+          // completion evidence; the total check guards against lost counts.
+          // Absent accounts, unfinished districts, malformed values and TCP
+          // retain normal recovery. This convention belongs to the WA reader.
+          if (tcp || !seat.fpFinalised || seenCandidates.empty()) return;
+          auto const& roster = liveCandidateRosters.at(seatId);
+          if (seenCandidates.size() == roster.size()
+              || invalidLiveCounts.contains({countKey(seatId,boothId,type),false})) return;
+          auto formalText = account.Attribute("FormalVotes");
+          if (!formalText) return;
+          std::string_view formalValue(formalText);
+          long long formalTotal = 0;
+          auto parsed = std::from_chars(formalValue.data(),formalValue.data()+formalValue.size(),formalTotal);
+          if (parsed.ec != std::errc{} || parsed.ptr != formalValue.data()+formalValue.size()
+              || formalTotal < 0 || formalTotal != candidateTotal) return;
+          for (int candidateId : roster) if (!seenCandidates.contains(candidateId)) {
+            if (type == VoteType::Ordinary) booths.at(boothId).fpVotes[candidateId] = 0;
+            else seat.fpVotes[candidateId][type] = 0;
           }
         };
 

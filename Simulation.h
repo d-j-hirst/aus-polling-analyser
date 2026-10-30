@@ -170,6 +170,10 @@ public:
 		std::vector<int> othersSeatWinFrequency;
 
 		float total2cpPercentCounted = 0.0f;
+		// Absent in older saved reports and non-automatic forecasts. Keeping the
+		// raw counts with their denominator makes both progress values auditable
+		// and publishes them atomically with the completed numerical report.
+		std::optional<LiveData::CountProgress> countProgress;
 
 		// Ordered lower-to-upper: 99%, 95%, 80%, then 50% bounds.
 		std::array<int, NumProbabilityBoundIndices> partyOneProbabilityBounds{};
@@ -334,7 +338,9 @@ public:
 		// Percentile should be expressed as a percentage e.g. median as 50.0f.
 		float getCoalitionFpSamplePercentile(float percentile) const;
 
-		float getTcpPercentCounted() const { return total2cpPercentCounted; }
+		float getTcpPercentCounted() const {
+			return countProgress ? float(countProgress->tcpPercent()) : total2cpPercentCounted;
+		}
 
 		// Get the number of seats in this region in which non-major parties are leading
 		int getOthersLeading(int regionIndex) const;

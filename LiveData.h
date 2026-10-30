@@ -15,6 +15,23 @@
 // commission parsers, wxWidgets, or third-party libraries.
 namespace LiveData {
 
+// Election-wide reporting coverage, separate from the model's confidence in
+// the count. Both numerators are accepted, published candidate counts; TCP
+// includes classic TPP but excludes FP-derived estimates and retained counts
+// for a withdrawn candidate pairing. The denominator is the prepared mean
+// final formal turnout, held fixed across this snapshot's simulation draws.
+// Sum votes before dividing, so a small district cannot outweigh a large one.
+// In optional-preferential elections, exhausted ballots are not included in
+// the two surviving candidates' TCP totals; this is coverage of reported votes,
+// not a claim that every preference-counting operation is unfinished.
+struct CountProgress {
+	double fpVotes = 0;
+	double tcpVotes = 0;
+	double expectedFormalVotes = 0;
+	double fpPercent() const { return 100.0 * fpVotes / expectedFormalVotes; }
+	double tcpPercent() const { return 100.0 * tcpVotes / expectedFormalVotes; }
+};
+
 // Numeric values preserve the existing Results2::VoteType representation used
 // in saved project files.
 enum class VoteType : int {
@@ -212,6 +229,8 @@ struct BoothSnapshot {
 class Provider {
 public:
 	virtual ~Provider() = default;
+	// Unavailable for providers without an automatic accepted count account.
+	virtual std::optional<CountProgress> getCountProgress() const { return {}; }
 
 	// Input/output are transformed TPP draws in project seat order. Automatic
 	// live providers condition the whole vector together; legacy/manual providers

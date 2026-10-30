@@ -199,7 +199,34 @@ LiveInputRecovery::Snapshot identify(Results2::Election const& election,
     return result;
 }
 
+LiveData::CountProgress reportedCountProgress(Results2::Election const& source, Snapshot const& effective) {
+    // Normally the source district summary identifies the same two candidates
+    // as every booth. During a reset it instead identifies the new pair (even
+    // with zero votes), or withdraws TCP altogether. Recovery can still retain
+    // the old pair as useful modelling evidence, but it is no longer progress
+    // towards the current count. Candidate IDs, not party IDs, distinguish two
+    // independents or different candidates from the same party.
+    std::map<std::string,std::set<int>> publishedPairs;
+    for (auto const& [id,seat] : source.seats)
+        for (auto const& [candidate,counts] : seat.tcpVotesCandidate)
+            publishedPairs[seat.name].insert(candidate);
+    LiveData::CountProgress result;
+    for (auto const& record : effective.records) {
+        if (record.fp.votes) result.fpVotes += total(*record.fp.votes);
+        if (!record.tcp.votes || record.tcp.votes->size() != 2) continue;
+        auto pair = publishedPairs.find(record.district);
+        // A missing or ambiguous source pairing is not evidence that the old
+        // count remains current. Wait for an identifiable published pair.
+        if (pair == publishedPairs.end() || pair->second.size() != 2) continue;
+        bool samePair = std::all_of(record.tcp.votes->begin(),record.tcp.votes->end(),
+            [&](auto const& row) { return pair->second.contains(row.first); });
+        if (samePair) result.tcpVotes += total(*record.tcp.votes);
+    }
+    return result;
+}
+
 void apply(Results2::Election& election, Snapshot const& effective) {
+    election.reportedCountProgress = reportedCountProgress(election,effective);
     // All seat summaries are rebuilt from the same effective records as the
     // booths. Current summary totals must never override restored constituents.
     election.sourceTime = effective.sourceTime;

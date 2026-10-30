@@ -803,6 +803,9 @@
     <ClInclude Include="LivePartyMapping.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="LiveIndependentMapping.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="LiveTurnout.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
@@ -810,6 +813,9 @@
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
     <ClInclude Include="TurnoutModel.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="DeclarationAllocation.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
     <ClInclude Include="LiveInputRecovery.h">

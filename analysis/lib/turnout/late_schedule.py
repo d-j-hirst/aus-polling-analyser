@@ -1,6 +1,7 @@
 """Prepare expected additions separately from exceptional declaration batches.
 
-An explicit receipt deadline supplies a timetable, not a completion flag.
+Each category has its own timetable, never a completion flag. Unconfigured postal
+processing retains its receipt-based clock; explicit dates use polling offsets.
 Each snapshot starts from immutable priors and the observed count history.
 Routine additions recede over days, while exceptional possibilities fade over
 weeks. These helpers reproduce the selected offline experiment for C++ tests.
@@ -11,9 +12,9 @@ from functools import lru_cache
 import numpy as np
 from scipy.special import expit
 
-from lib.turnout import allocation, late_counts, live
+from lib.turnout import allocation, late_counts, live, processing_timetables
 
-MODEL_VERSION = 'live-declaration-schedule-1'
+MODEL_VERSION = 'live-declaration-schedule-3'
 RECEIPT_DEADLINES = {'2025fed':'2025-05-17T00:00:00', '2026sa':'2026-03-28T18:00:00'}
 
 
@@ -73,17 +74,21 @@ def allocation_evidence(grouped, units, completed, prepared):
     return result
 
 
-def progress_evidence(history, units, states, deadline, completed):
+def progress_evidence(history, units, states, deadline, completed, *, poll_close=None,
+                      processing_overrides=None, postal_deadline=None):
     """Blend cautious activity responses and support from small late batches.
 
     Two change-size measurements are blended in probability space. A backlog
-    after the deadline continues to influence its own seat but progressively
+    after its category's usual processing period still influences its own seat but progressively
     loses influence elsewhere. Final published counts never enter this step.
     """
-    old = late_counts.progress_evidence(history,units,states,postal_deadline=deadline,
-        counting_clock=counting_hours,event_scale=.001,shared_deadline=deadline)
-    result = late_counts.progress_evidence(history,units,states,postal_deadline=deadline,
-        counting_clock=counting_hours,event_scale=.02,shared_deadline=deadline)
+    timings = processing_timetables.resolve(poll_close,deadline,processing_overrides)
+    receipt = deadline or postal_deadline
+    old = late_counts.progress_evidence(history,units,states,postal_deadline=receipt,
+        counting_clock=counting_hours,event_scale=.001,shared_timetables=timings)
+    result = late_counts.progress_evidence(history,units,states,postal_deadline=receipt,
+        counting_clock=counting_hours,event_scale=.02,shared_timetables=timings)
+    now = max((datetime.fromisoformat(row['source_time']) for row in history),default=None)
     quiet = lambda value,scale: 1/(1+(value/scale)**2)
     for before,e,u in zip(old,result,units):
         if 'current' not in e:
@@ -110,31 +115,51 @@ def progress_evidence(history, units, states, deadline, completed):
             *quiet(e['gentle_local_activity'],.3)*(.5+.5*shared))
         postal_weight = -np.expm1(-(postal_strength/.3)**2)*shared
         e['postal_finishing_support'] = float(postal_weight+(1-postal_weight)*extra)
+        timing = timings.get(late_counts.category_key(u))
+        if now is not None and timing and timing.get('separate_postal_processing'):
+            # Receipt may end while a substantial processing backlog remains.
+            # An explicitly supplied processing clock therefore moderates the
+            # inference from quietness as well as the size of routine additions.
+            # This changes mixture weights, not the small genuine finishing tail
+            # or the independent receipt safeguard. Original-size evidence still
+            # remains available in the subsequent completion calculation.
+            maturity = expit((now-timing['reference']).total_seconds()/3600/timing['transition_hours'])
+            e['strength'] = float(.3*np.sqrt(-np.log1p(-weight*maturity)))
+            e['postal_finishing_support'] *= float(maturity)
     return result
 
 
-def schedule(history, units, evidence, deadline):
+def schedule(history, units, evidence, deadline, *, poll_close=None, processing_overrides=None):
     """Return routine-size shifts and a separately fading batch probability.
 
-    Allow 48 counting hours after receipt closes, with a 12-hour transition.
+    Unconfigured postals retain 48 counting hours after receipt and a 12-hour
+    transition. Explicit processing clocks use independent calendar dates.
     Local counting can extend that allowance by up to 24 hours and retain some
     routine size. Two-percent recent category volume supplies half the delay;
     five percent supplies half the ongoing-activity retention. Batch probability
     has a fourteen-day exponential timescale, not a permanent probability floor.
     """
     shifts = np.zeros(len(units))
+    phases = np.zeros(len(units))
+    survival = np.ones(len(units))
+    result = dict(processing_phase=phases,batch_survival=survival,usual_log_shifts=shifts)
     if not history or not sum(u['counted'] for u in units):
-        return dict(processing_phase=0.,batch_survival=1.,counting_hours_after_deadline=0.,usual_log_shifts=shifts)
+        return result
     now = max(datetime.fromisoformat(h['source_time']) for h in history)
-    hours = counting_hours(datetime.fromisoformat(deadline),now)
-    age = 12*np.logaddexp(0.,(hours-48)/12)
+    timings = processing_timetables.resolve(poll_close,deadline,processing_overrides)
     for j,(u,e) in enumerate(zip(units,evidence)):
-        if u['kind']!='declaration':
+        timing = timings.get(late_counts.category_key(u))
+        if u['kind']!='declaration' or timing is None:
             continue
+        hours = (counting_hours(timing['reference'],now) if timing['counting_clock']
+                 else (now-timing['reference']).total_seconds()/3600)
+        offset, width = hours-timing['allowance_hours'], timing['transition_hours']
+        age = width*np.logaddexp(0.,offset/width)
+        phases[j] = expit(offset/width)
+        survival[j] = np.exp(-age/(14*24))
         relative = e.get('volume',0.)/(e.get('current',u['counted'])+.5)
         delay = 24*relative**2/(relative**2+.02**2)
-        routine = expit(-(hours-48-delay)/12)
+        routine = expit(-(offset-delay)/width)
         active = relative**2/(relative**2+.05**2)
         shifts[j] = np.log(routine+(1-routine)*active)
-    return dict(processing_phase=float(expit((hours-48)/12)),batch_survival=float(np.exp(-age/(14*24))),
-        counting_hours_after_deadline=hours,usual_log_shifts=shifts)
+    return result

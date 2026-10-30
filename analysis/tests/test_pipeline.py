@@ -2226,7 +2226,7 @@ class PipelineTests(unittest.TestCase):
             ["2028fed", "2026vic"],
         )
 
-    def test_unregistered_source_change_blocks_every_profile(self):
+    def test_unregistered_required_source_blocks_missing_and_existing_work(self):
         source_issue = {
             "category": "raw_poll_data",
             "status": "blocked",
@@ -2235,14 +2235,127 @@ class PipelineTests(unittest.TestCase):
             "path": "poll-data-vic.csv",
             "message": "unregistered modified file poll-data-vic.csv",
         }
-        audit = audit_result([], source_issues=[source_issue])
+        for status in ("missing", "legacy", "stale", "current"):
+            for profile in ("regular", "regular-with-approvals", "all"):
+                with self.subTest(status=status, profile=profile):
+                    target = work_unit(
+                        "poll_trend_outputs:2026vic:@TPP",
+                        "poll_trend_outputs", "generate_poll_trends",
+                        status, "2026vic", "@TPP",
+                    )
+                    audit = audit_result([target], source_issues=[source_issue])
+                    plan = pipeline.build_plan(audit, self.registry, {profile})
 
-        plan = pipeline.build_plan(audit, self.registry, {"regular"})
+                    self.assertEqual(plan["tasks"], [])
+                    self.assertEqual(
+                        plan["blockers"][0]["code"], "unregistered_source_change"
+                    )
 
-        self.assertEqual(plan["tasks"], [])
-        self.assertEqual(
-            plan["blockers"][0]["code"], "unregistered_source_change"
+    def test_unrelated_seat_change_does_not_block_generation(self):
+        source_issue = {
+            "category": "forecast_seats",
+            "status": "blocked",
+            "code": "unregistered_source_change",
+            "path": "2026vic.txt",
+            "message": "unregistered modified file 2026vic.txt",
+        }
+        target = work_unit(
+            "poll_trend_outputs:2026vic:@TPP",
+            "poll_trend_outputs", "generate_poll_trends",
+            "stale", "2026vic", "@TPP",
         )
+        audit = audit_result([target], source_issues=[source_issue])
+
+        for profile in ("regular", "regular-with-approvals", "all"):
+            with self.subTest(profile=profile):
+                plan = pipeline.build_plan(audit, self.registry, {profile})
+                self.assertEqual(plan["blockers"], [])
+                self.assertEqual(len(plan["tasks"]), 1)
+
+        # Status and metadata maintenance still report repository-wide issues.
+        status = pipeline.build_status(audit, self.registry)
+        metadata = pipeline.build_plan(audit, self.registry, {"metadata"})
+        for result in (status, metadata):
+            self.assertIn(
+                "unregistered_source_change",
+                [issue["code"] for issue in result["blockers"]],
+            )
+
+    def test_source_changes_follow_selected_upstream_work(self):
+        upstream = work_unit(
+            "pollster_parameters:2026vic", "pollster_parameters",
+            "analyse_pollsters", "missing", "2026vic",
+            target_match=False,
+        )
+        target = work_unit(
+            "poll_trend_outputs:2026vic:@TPP",
+            "poll_trend_outputs", "generate_poll_trends",
+            "stale", "2026vic", "@TPP",
+        )
+        source_issue = {
+            "category": "pollster_relationships",
+            "status": "blocked",
+            "code": "unregistered_source_change",
+            "message": "unregistered modified file linked-pollsters.csv",
+        }
+        audit = audit_result([target, upstream], source_issues=[source_issue])
+
+        unrelated_plan = pipeline.build_plan(audit, self.registry, {"regular"})
+        self.assertEqual(unrelated_plan["blockers"], [])
+        self.assertEqual(len(unrelated_plan["tasks"]), 1)
+
+        target["dependencies"] = [upstream["id"]]
+        dependent_plan = pipeline.build_plan(audit, self.registry, {"regular"})
+        self.assertEqual(dependent_plan["tasks"], [])
+        self.assertEqual(
+            dependent_plan["blockers"][0]["code"], "unregistered_source_change"
+        )
+
+    def test_optional_and_feedback_sources_still_block(self):
+        target = work_unit(
+            "poll_trend_outputs:2026vic:@TPP",
+            "poll_trend_outputs", "generate_poll_trends",
+            "missing", "2026vic", "@TPP",
+        )
+        stage = next(
+            stage for stage in self.registry["stages"]
+            if stage["id"] == "generate_poll_trends"
+        )
+        source_issue = {
+            "category": "forecast_seats",
+            "status": "blocked",
+            "code": "unregistered_source_change",
+            "message": "unregistered modified file 2026vic.txt",
+        }
+        for field in ("optional_inputs", "feedback_inputs"):
+            with self.subTest(field=field):
+                original = stage.get(field, [])
+                stage[field] = original + ["forecast_seats"]
+                plan = pipeline.build_plan(
+                    audit_result([target], source_issues=[source_issue]),
+                    self.registry, {"regular-with-approvals"},
+                )
+                self.assertEqual(plan["tasks"], [])
+                self.assertEqual(
+                    plan["blockers"][0]["code"], "unregistered_source_change"
+                )
+                stage[field] = original
+
+    def test_source_validation_errors_remain_blocking_without_selected_work(self):
+        for category, code in (
+            ("unknown_category", "unregistered_source_change"),
+            ("forecast_seats", "unknown_provenance_upgrade"),
+        ):
+            with self.subTest(category=category, code=code):
+                issue = {
+                    "category": category, "code": code,
+                    "status": "blocked", "message": "invalid source provenance",
+                }
+                plan = pipeline.build_plan(
+                    audit_result([], source_issues=[issue]),
+                    self.registry, {"regular"},
+                )
+                self.assertEqual(plan["blockers"][0]["code"], code)
 
     def test_missing_regional_record_maps_to_party_argument(self):
         audit = audit_result(

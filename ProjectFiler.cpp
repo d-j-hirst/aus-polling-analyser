@@ -78,7 +78,8 @@
 // Version 66: save each simulation's live diagnostic output folder
 // Version 67: save the project-level live snapshot sequence
 // Version 68: retain raw result swings separately from live estimates and TCP progress
-constexpr int VersionNum = 68;
+// Version 69: save separate accepted FP/TCP coverage with expected formal turnout
+constexpr int VersionNum = 69;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -646,6 +647,12 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.coalitionSeatWinFrequency;
 	saveOutput << report.othersSeatWinFrequency;
 	saveOutput << report.total2cpPercentCounted;
+	saveOutput << bool(report.countProgress);
+	if (report.countProgress) {
+		saveOutput << report.countProgress->fpVotes;
+		saveOutput << report.countProgress->tcpVotes;
+		saveOutput << report.countProgress->expectedFormalVotes;
+	}
 	saveOutput << report.partyOneProbabilityBounds;
 	saveOutput << report.partyTwoProbabilityBounds;
 	saveOutput << report.coalitionProbabilityBounds;
@@ -746,6 +753,15 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 	}
 	saveInput >> report.othersSeatWinFrequency;
 	saveInput >> report.total2cpPercentCounted;
+	if (versionNum >= 69) {
+		bool hasCountProgress; saveInput >> hasCountProgress;
+		if (hasCountProgress) {
+			report.countProgress.emplace();
+			saveInput >> report.countProgress->fpVotes;
+			saveInput >> report.countProgress->tcpVotes;
+			saveInput >> report.countProgress->expectedFormalVotes;
+		}
+	}
 	saveInput >> report.partyOneProbabilityBounds;
 	saveInput >> report.partyTwoProbabilityBounds;
 	if (versionNum >= 61) {

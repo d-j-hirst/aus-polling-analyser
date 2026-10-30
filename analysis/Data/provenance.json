@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-10-28T03:41:31Z",
+  "updated_at_utc": "2026-10-30T09:27:16Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -88,7 +88,7 @@
         "poll-data-*.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 79,
+      "semantic_revision": 80,
       "files": {
         "poll-data-fed.csv": {
           "sha256": "cb6c1a0b74dac1602efa15ed0f456b4af57b0020323819f4b526f6b1b8dcd825",
@@ -111,9 +111,9 @@
           "recorded_mtime_utc": "2026-09-03T06:19:32.111274Z"
         },
         "poll-data-vic.csv": {
-          "sha256": "278bdf0a6566e022d24a458a71fc7c122a6ab2ea3947927b9174b44f7dc167a1",
-          "size_bytes": 38217,
-          "recorded_mtime_utc": "2026-10-25T12:16:51.801823Z"
+          "sha256": "2382fb41e87c1404dda45453d5b84538d71a0d6c41bab85afd4dc5b09d7d3b0f",
+          "size_bytes": 38281,
+          "recorded_mtime_utc": "2026-10-30T09:25:51.688317Z"
         },
         "poll-data-wa.csv": {
           "sha256": "d09f6b3606e7b2cfb27c3c17ce9e44f378c9d7c94eea774af6b0b3fb35974bf5",
@@ -1969,9 +1969,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261030T092716Z-new_polling-raw-poll-data-9f4d45c8",
+          "recorded_at_utc": "2026-10-30T09:27:16Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 80,
+          "provenance_revision": 80,
+          "summary": "SMS Morgan poll",
+          "files": [
+            "poll-data-vic.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 79
+      "provenance_revision": 80
     },
     "poll_model_configuration": {
       "description": "Party coverage, discontinuities and sampling settings used by fp_model.py.",

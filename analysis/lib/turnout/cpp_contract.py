@@ -6,7 +6,7 @@ Current counts and source history are separate from the frozen prior account.
 """
 
 import numpy as np
-from lib.turnout import allocation, completion, late_counts, late_schedule, live, prior
+from lib.turnout import allocation, completion, late_counts, late_schedule, live, prior, processing_timetables
 
 SCHEMA_VERSION = 1
 MASK = (1 << 64)-1
@@ -70,21 +70,26 @@ def artifact(election, inputs, parameters, draws, units, history, provenance, *,
 
 
 def expected(election, inputs, draws, units, history, *, count_draws=8, seed=20261002,
-             finalised=(), ppvc_factor=1., postal_deadline=None, poll_close=None):
+             finalised=(), ppvc_factor=1., postal_deadline=None, poll_close=None, processing_overrides=None):
     """Prepare the Python reference account on the C++ quantile grid."""
     inputs = dict(inputs, election_code=election)
     broad = live.update(draws,inputs,units,finalised_seats=finalised,unreported_ppvc_factor=ppvc_factor)
     subdivisions = dict(zip(inputs['seat_names'],inputs.get('subdivisions',[None]*len(inputs['seat_names']))))
     deadline = late_schedule.RECEIPT_DEADLINES.get(election)
-    completed = late_schedule.booth_completion(draws,units,len(inputs['seat_names'])) if deadline else None
-    evidence = late_schedule.progress_evidence(history,units,subdivisions,deadline,completed) if deadline else late_counts.progress_evidence(history,units,subdivisions,postal_deadline=postal_deadline)
+    timings = processing_timetables.resolve(poll_close,deadline,processing_overrides)
+    scheduled = bool(deadline or any(u['kind']=='declaration' and late_counts.category_key(u) in timings for u in units))
+    completed = late_schedule.booth_completion(draws,units,len(inputs['seat_names'])) if scheduled else None
+    evidence = (late_schedule.progress_evidence(history,units,subdivisions,deadline,completed,
+        poll_close=poll_close,processing_overrides=processing_overrides,postal_deadline=postal_deadline)
+        if scheduled else late_counts.progress_evidence(history,units,subdivisions,postal_deadline=postal_deadline))
     balanced_means = broad['remaining'].mean(axis=0)
     grouped = allocation.group_evidence(history,units,inputs,deadline or postal_deadline)
-    if deadline:
+    if scheduled:
         grouped = late_schedule.allocation_evidence(grouped,units,completed,broad)
     broad,weights = allocation.release(broad,inputs,units,broad['own_remaining'],grouped)
     grid = quantiles(election,inputs,units,broad['complete'],len(draws['totals'])*count_draws,seed)
-    schedule = late_schedule.schedule(history,units,evidence,deadline) if deadline else None
+    schedule = late_schedule.schedule(history,units,evidence,deadline,poll_close=poll_close,
+        processing_overrides=processing_overrides) if scheduled else None
     result = late_counts.update(broad,inputs,units,evidence,count_draws,seed,uniforms=grid,schedule=schedule,
         days_after_poll_close=completion.days_after_poll_close(history,poll_close))
     components = []

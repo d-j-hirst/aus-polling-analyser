@@ -886,6 +886,49 @@ void checkSyntheticCategoryProvenance() {
     assert(!election.seats.at(1).syntheticBaselineTypes.contains(Results2::VoteType::Ordinary));
 }
 
+// Reporting progress follows accepted ballots and the current source pairing,
+// independently of any older reference counts retained by the share model.
+void checkReportedCountProgress() {
+    Results2::Election source("fictional");
+    Results2::Seat north; north.id = 1; north.name = "North";
+    north.tcpVotesCandidate[11][Results2::VoteType::Ordinary] = 600;
+    north.tcpVotesCandidate[12][Results2::VoteType::Ordinary] = 400;
+    source.seats.emplace(1,north);
+    Results2::Seat south; south.id = 2; south.name = "South";
+    south.tcpVotesCandidate[21][Results2::VoteType::Ordinary] = 25;
+    south.tcpVotesCandidate[22][Results2::VoteType::Ordinary] = 25;
+    source.seats.emplace(2,south);
+    Snapshot effective;
+    auto add = [&](std::string district, std::optional<Counts> fp, std::optional<Counts> tcp) {
+        Record record; record.district = district;
+        record.fp.votes = std::move(fp); record.tcp.votes = std::move(tcp);
+        effective.records.push_back(std::move(record));
+    };
+    add("North",Counts{{11,600},{12,400}},Counts{{11,600},{12,400}});
+    add("North",Counts{{11,80},{12,20}},{}); // FP-only: estimated TPP must not count.
+    add("South",Counts{{21,50},{22,50}},Counts{{21,25},{22,25}});
+    add("South",{},{}); // Missing is not an invented count.
+    auto progress = LiveInputAdapter::reportedCountProgress(source,effective);
+    progress.expectedFormalVotes = 2000;
+    assert(progress.fpVotes == 1200 && progress.tcpVotes == 1050);
+    assert(progress.fpPercent() == 60 && progress.tcpPercent() == 52.5);
+
+    // Restoring an accepted record under the same published pair is legitimate
+    // coverage. Its recovery status does not turn it into an estimated count.
+    effective.records[0].tcp.status = Status::Restored;
+    assert(LiveInputAdapter::reportedCountProgress(source,effective).tcpVotes == 1050);
+    auto& currentPair = source.seats.at(1).tcpVotesCandidate;
+    currentPair.clear(); // The commission withdraws the old pair.
+    assert(LiveInputAdapter::reportedCountProgress(source,effective).tcpVotes == 50);
+    currentPair[11][Results2::VoteType::Ordinary] = 0;
+    currentPair[13][Results2::VoteType::Ordinary] = 0; // New pair, no TCP yet.
+    assert(LiveInputAdapter::reportedCountProgress(source,effective).tcpVotes == 50);
+    add("North",Counts{{11,50},{12,25},{13,25}},Counts{{11,60},{13,40}});
+    assert(LiveInputAdapter::reportedCountProgress(source,effective).tcpVotes == 150);
+    // Candidate IDs enforce the distinction even if 12 and 13 share a party.
+    assert(LiveInputAdapter::reportedCountProgress(source,effective).fpVotes == 1300);
+}
+
 void checkParserAndAdapter() {
     Results2::Election election("fictional");
     election.sourceTime = "2026-03-30T08:00:00";
@@ -914,6 +957,9 @@ void checkParserAndAdapter() {
     source.sourceTime = "2026-03-30T09:00:00"; source.records[0].fp.error = "Malformed";
     auto recovered = recover(source,old);
     LiveInputAdapter::apply(election,recovered.snapshot);
+    assert(election.reportedCountProgress);
+    assert(election.reportedCountProgress->fpVotes == 400);
+    assert(election.reportedCountProgress->tcpVotes == 350);
     assert(election.seats.at(1).totalVotesFp() == 400);
     assert(election.booths.at(7).totalVotesFp() == 300);
     assert(!election.liveCountStatus.at("North/ordinary/School").first.fresh());
@@ -1180,6 +1226,7 @@ int main(int argc, char** argv) {
     checkSnapshotElectionIdentity();
     checkQecPartialRechecks();
     checkSyntheticCategoryProvenance();
+    checkReportedCountProgress();
     checkParserAndAdapter();
 #endif
     std::filesystem::remove_all(folder);

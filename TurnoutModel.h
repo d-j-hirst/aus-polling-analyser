@@ -13,8 +13,8 @@
 namespace TurnoutModel {
 using Matrix = std::vector<std::vector<double>>;
 inline constexpr char CountVersion[] = "live-counts-15";
-inline constexpr char ProgressVersion[] = "live-late-counts-4";
-inline constexpr char ScheduleVersion[] = "live-declaration-schedule-1";
+inline constexpr char ProgressVersion[] = "live-late-counts-5";
+inline constexpr char ScheduleVersion[] = "live-declaration-schedule-3";
 inline constexpr char AllocationVersion[] = "live-allocation-1";
 // Maintained conservative response scales, shared with the offline calibration.
 // Progress influence is 1-exp(-(strength/scale)^2), reaching about .632 at the
@@ -123,17 +123,44 @@ struct Observation {
     double hour = 0; // source clock, in hours since the epoch; never capture time.
     std::map<std::pair<std::string, std::string>, double> counts;
 };
+// Expected processing timing, not a legal deadline or a completion flag. Days
+// are calendar days after polling closes. At the centre, a quiet category keeps
+// half the routine remaining-addition odds relative to unused enrolment, not
+// half the counted votes. A two-day logistic scale makes that decline gradual.
+// Local activity can retain more, and rare batches remain.
+// Defaults are working assumptions; election overrides should cite comparable
+// counting history (or explicitly identify retrospective calibration).
+struct ProcessingTimetable {
+    double daysAfterPollClose = 14, transitionDays = 2;
+};
+// Resolved source-clock settings. Unconfigured postal processing retains its
+// receipt-based allowance and Sunday-adjusted clock. Explicit category entries
+// use calendar dates; absence of one means activity-only evidence.
+struct ResolvedTimetable {
+    double referenceHour = 0, allowanceHours = 0, transitionHours = 48;
+    double sharedTransitionHours = 48, smallBatchTransitionHours = 48;
+    bool countingClock = false;
+    bool separatePostalProcessing = false; // Also moderates quietness-derived completion support.
+};
 struct Options {
     std::size_t countDraws = 8; // Cheap diagnostic count draws per prior outcome.
     unsigned long long seed = 20261002;
     double ppvcFactor = 1; // Delay multiplier applied on odds of an unreported PPVC/enrolment share.
     std::optional<double> postalDeadline;
-    // Last receipt time for this election's declaration ballots. This is an
-    // operational input, not a claim that all seats have counted them by then.
+    // Legacy input name: postal processing reference only. It must never be
+    // inherited by another category merely because that category is declared.
     std::optional<double> receiptDeadline;
     // Explicit polling close on the same source clock as Observation::hour.
     // Unknown dates disable the early, far-below-expectation completion guard.
     std::optional<double> pollClose;
+    // PrePoll means declaration pre-poll/early-absent, not physical early booths.
+    // Null explicitly disables a category's timetable. An explicit Postal entry
+    // separates processing from receipt; otherwise legacy postal timing remains.
+    // Other unlisted categories have no schedule. Poll-close-based entries are
+    // inactive if that date is unknown; receipt safeguards remain independent.
+    std::map<std::string, std::optional<ProcessingTimetable>> processingTimetables = {
+        {"Absent",ProcessingTimetable{14,2}}, {"PrePoll",ProcessingTimetable{14,2}},
+        {"Provisional",ProcessingTimetable{18,2}}};
     bool postalWidening = true; // Runtime comparison control; no project-format change.
     bool declarationRemainders = true; // Runtime comparison only; frozen priors are unchanged.
 };
@@ -167,7 +194,7 @@ struct Evidence {
     // Regional share of the pooled measurement; postal receipt-window discount.
     double stateWeight = 0, postalReceiptSupport = 1;
     std::optional<double> postalDaysBeforeDeadline; // Calendar days, from the received source clock.
-    // Support supplied by small positive batches after the receipt deadline.
+    // Support from small positive batches late in this category's own timetable.
     double smallBatchSupport = 0;
     // Supplementary local activity and quietness support for positive
     // remainders only. Neither replaces strength nor changes pooled evidence,
@@ -187,9 +214,10 @@ struct Component {
     // Divide by that sum only when sampling conditional on further votes.
     double previousProbability = 0, smallProbability = 0, batchProbability = 0;
     // These probabilities include the early-shortfall guard but precede the
-    // local quantity limit. A fraction completionWeight of routine draws is
-    // reduced after allocation; that reduction does not redistribute votes
-    // to siblings. Removed votes lower turnout.
+    // local quantity limit. A fraction completionWeight of routine draws uses
+    // a finishing amount. Postal limits enter the shared allocation before
+    // other categories receive their shares. Non-postal limits are applied
+    // afterwards, releasing their reductions only to unused turnout.
     double completionWeight = 0;
     // Additional fraction of the prepared routine branch selected after its
     // size-based completion fraction (both rescaled by the early guard).
@@ -204,6 +232,7 @@ struct Component {
     double postalCounted = 0;
     std::optional<double> originalSizeZ; // SDs on original count/enrolment log odds; absent if unsupported.
     double usualLogShift = 0; // Timetable reduction of routine addition log odds.
+    double processingPhase = 0, batchSurvival = 1; // This category only.
     double earlyCompletionRetention = 1; // Fraction of local finishing support retained.
     double batchSd = 1.5; // Underlying natural-log-odds SD BEFORE postal output widening.
     // Extra local variation measured after final allocation/finishing limits.
@@ -243,9 +272,8 @@ struct Result {
     // All three vectors are indexed by unit. The progress weight precedes the
     // outcome-specific directional response in the allocation calculation.
     std::vector<double> balancedRemainingMeans, allocationStrength, allocationWeight;
-    // Schedule summaries: blend fraction, exceptional-batch probability
-    // multiplier, and Sunday-adjusted hours since the legal receipt deadline.
-    double processingPhase = 0, batchSurvival = 1, countingHoursAfterDeadline = 0;
+    // Only categories actually present and with a usable clock are listed.
+    std::map<std::string, ResolvedTimetable> processingTimetables;
     std::optional<double> daysAfterPollClose; // Calendar days; absent if no explicit date/source.
     struct WaEarlyPlace {
         std::size_t unit = 0;
@@ -274,7 +302,9 @@ Broad update(Prior const& prior, std::vector<Unit> const& units,
     std::vector<bool> const& finalised, double ppvcFactor = 1);
 std::vector<Evidence> progress(Prior const& prior, std::vector<Unit> const& units,
     std::vector<Observation> const& history, std::optional<double> postalDeadline = {},
-    bool scheduleAware = false, double eventScale = .001);
+    bool scheduleAware = false, double eventScale = .001,
+    std::map<std::string, ResolvedTimetable> const& timetables = {});
+std::optional<ResolvedTimetable> processingTimetable(Options const& options, std::string const& category);
 Result prepare(Prior const& prior, std::vector<Unit> const& units,
     std::vector<bool> const& finalised, std::vector<Observation> const& history,
     Options const& options = {}, Matrix const& suppliedUniforms = {});

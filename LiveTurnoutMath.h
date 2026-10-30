@@ -35,6 +35,25 @@ inline double remaining(double expected, double counted) {
     return std::max(0., expected - counted);
 }
 
+inline double revisedProjection(double projected, double counted,
+    double countedChange, double totalChange) {
+    // Revisions change a scenario's counted allocation as well as its final
+    // projection. Both changes are signed vote quantities. Preference-only
+    // transfers change them equally; a partly reported pair can also change
+    // its estimated, as-yet-uncounted preferences by a different amount.
+    //
+    // Keep that outstanding amount separate from the precise counted account.
+    // Repeatedly adding fractions straight to a float projection can accumulate
+    // rounding below its double-precision counted total. Rebuilding from the
+    // updated counted amount prevents that drift. remaining() still rejects
+    // substantive shortfalls before and after the revision; only accepted
+    // storage rounding is removed from an otherwise exhausted account.
+    double const outstanding = remaining(projected, counted);
+    double const revisedCounted = counted + countedChange;
+    double const revisedOutstanding = outstanding + (totalChange - countedChange);
+    return revisedCounted + remaining(revisedCounted + revisedOutstanding, revisedCounted);
+}
+
 inline double completion(double counted, double expected) {
     // Completion is counted votes as a proportion of the same expected final
     // count used in the projection. A finished account rounded slightly down
@@ -211,7 +230,12 @@ inline PartyAccount partitionAccount(LiveData::VoteCountAccount const& source, C
     // the same partition for counted votes and the projected remaining pool.
     if (!source.counted || !source.projected) throw std::runtime_error("Missing live vote account.");
     PartyAccount result;
-    for (auto const& [party, votes] : *source.projected) result.projected[classify(party)] += votes;
+    // Several candidate identities may share one model group. Sum in double
+    // precision and store each group once, so combining individually rounded
+    // projections cannot accumulate another float rounding at every addition.
+    std::map<int, double> groupedProjections;
+    for (auto const& [party, votes] : *source.projected) groupedProjections[classify(party)] += votes;
+    for (auto const& [party, votes] : groupedProjections) result.projected[party] = float(votes);
     for (auto const& [party, votes] : *source.counted) result.counted[classify(party)] += votes;
     return result;
 }

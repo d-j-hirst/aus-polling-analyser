@@ -158,6 +158,29 @@ provisional processing. Time-based decay of unreported early places is disabled
 for this first replay because mixed batches and delayed large early counts make
 that assumption particularly uncertain.
 
+Declaration processing uses separate category timetables. For this replay, the
+Postal transition centre is 13 calendar days after polling closes (21 March at
+6pm), with a two-day logistic scale. Only about 69% of final formal postals had
+been counted at the receipt deadline, versus about 95% by the morning of 21 March
+and 98% in that evening's capture. The broad processing clock therefore also
+tempers quietness-based completion evidence while a backlog may remain. It does
+not change the legal receipt safeguard or the small positive finishing remainder.
+These figures support a retrospective timing assumption, not a rule calibrated
+across elections or a known final count available during the replay.
+
+The Absent transition centre is 16 calendar days after polling closes (24 March
+at 6pm), with a two-day logistic scale. This is explicitly retrospective: the
+accepted formal absent count was approximately 81% of its final total in the
+23 March capture, 87% on 24 March, and approximately complete on 25 March.
+WA 2021's different reporting structure supplies no comparable progression.
+The timetable uses only this broad timing pattern, not district-specific final
+sizes or vote shares. Provisional retains the general 18-day centre. All three
+remain gradual estimates, allowing ongoing activity and exceptional additions;
+neither declares a category complete. These settings are recorded in
+`forecasts/2025wa/live-turnout-settings.json` and copied into the prepared prior.
+See [the timetable definitions](live-turnout.md#independent-category-processing-timetables)
+for defaults, overrides and diagnostics.
+
 ## Mixed early/day batches
 
 WA early places have an explicit `incremental` input flag. Only WA accounts
@@ -194,6 +217,21 @@ WA's explicit `Results Declared` status closes the district account; neither
 2025 archive changes after declaration. Before that status, routine FP counting
 can nevertheless finish under the two-batch rule. This does not manufacture an
 official declaration or infer that outstanding preference work has finished.
+
+The WA reader also uses explicit declaration to interpret omitted FP candidates
+as zero, but only within a nonempty account whose valid, uniquely identified
+candidate counts sum exactly to its published `FormalVotes`. This admits the
+final Joondalup mobile account: six listed candidates exhaust its 33 formal
+votes, with three zero-vote candidates omitted. Entirely missing accounts and
+malformed or unreconciled records still follow normal recovery, and TCP pairs
+are never padded. Other electoral commissions' readers retain their rules.
+
+Declaration is essential to this exception. Miling Town Hall's first 2025
+capture listed one vote with five candidates absent; its formal total and
+district summary both agreed. The next capture included another 71 votes for
+those candidates. The source account timestamps were only 0.343 seconds apart,
+consistent with a partly published update. Matching totals during counting
+therefore do not justify filling missing candidate entries with zeros.
 
 The separate general revision model assigns a possible signed correction to
 each reported centre or declaration account, including completed ones. Its initial

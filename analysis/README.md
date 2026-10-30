@@ -142,6 +142,16 @@ the exception when they only supply historical approval evidence: they remain
 documented but do not repeatedly invalidate completed cutoffs as new polls
 arrive. Status and planning are read-only and do not run generators.
 
+Generation plans block unregistered source changes only in input categories
+used by their selected stages, including selected upstream stages and optional
+or feedback inputs. For example, an edit to `seats/2026vic.txt` is still reported
+by the audit and status commands, but does not block `regular-with-approvals`:
+the Python stages do not consume the `forecast_seats` category. Checks operate
+on whole source categories, so a change to any file in a required category
+still needs registration. Missing and legacy outputs use the stage's declared
+inputs for this check. Invalid provenance and blocked selected work units
+remain blockers; metadata maintenance retains its repository-wide source check.
+
 The calibration profile runs only the leave-one-pollster-out and bias
 calibration fits. After those complete, build a separate regular or
 regular-with-approvals plan for the forecast elections being updated. That

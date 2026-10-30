@@ -198,6 +198,15 @@ void SimulationCompletion::completeRun(
 	// Keep the configured previous-election TPP as the overall comparison point.
 	recordReportSettings();
 
+	// Publish actual reporting coverage with this completed snapshot, before
+	// exports and GUI publication. Supporting baseline/calibration runs contain
+	// no new public count; a failed main calculation retains the previous report.
+	if (run.isLiveAutomatic() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
+		sim.latestReport.countProgress = run.liveElection->getCountProgress();
+		if (sim.latestReport.countProgress)
+			sim.latestReport.total2cpPercentCounted = float(sim.latestReport.countProgress->tcpPercent());
+	}
+
 	// After a main automatic live run, also try to write live_summary.csv and,
 	// when an output folder is configured, a diagnostic output snapshot under
 	// live_runs/. This snapshot saves this completed update's report and supporting

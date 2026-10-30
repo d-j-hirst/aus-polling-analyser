@@ -557,6 +557,37 @@ def _stage_dependency_categories(stage):
     }
 
 
+def _plan_source_categories(
+    work_units, reachable_work_units, registry, stage_by_id,
+    producer_by_category,
+):
+    """Find source categories consumed by the selected generation stages.
+
+    The repository audit also covers inputs used only by C++ or by other
+    profiles. Those inputs must remain visible in status, but cannot prevent
+    independent Python work. Use the current stage declarations so missing
+    and legacy outputs, which may have no recorded input history, receive
+    the same protection as existing outputs. Optional and feedback inputs
+    count too: a generator can read them when they are present.
+
+    Source provenance currently validates whole categories, not individual
+    files within them. Keep that boundary here so planning agrees with the
+    generators' own source validation. Recorded dependency problems remain
+    enforced separately through the selected work units' blocking status.
+    """
+
+    categories = set()
+    for work_unit in work_units:
+        if work_unit.get("id", work_unit["record_key"]) not in reachable_work_units:
+            continue
+        stage = _work_unit_stage(
+            work_unit, registry, stage_by_id, producer_by_category
+        )
+        if stage is not None:
+            categories.update(_stage_dependency_categories(stage))
+    return categories
+
+
 def _reachable_work_unit_ids(
     work_units,
     registry,
@@ -817,6 +848,10 @@ def build_plan(audit, registry, profiles):
     warnings = []
     accepted_stale_work_units = []
     deferred_task_keys = {}
+    source_categories = _plan_source_categories(
+        audit["work_units"], reachable_work_units, registry, stage_by_id,
+        producer_by_category,
+    )
 
     if profiles <= {"regular", "regular-with-approvals"}:
         for work_unit in audit["work_units"]:
@@ -845,8 +880,17 @@ def build_plan(audit, registry, profiles):
                 )
 
     for issue in audit["source_issues"]:
-        if issue["status"] == "blocked":
-            blockers.append(_issue_summary(issue))
+        if issue["status"] != "blocked":
+            continue
+        # Only a known, unrelated content change can be ignored. Malformed
+        # provenance and other audit errors still prevent a trustworthy plan.
+        if (
+            issue["code"] == "unregistered_source_change"
+            and issue.get("category") in registry["categories"]
+            and issue["category"] not in source_categories
+        ):
+            continue
+        blockers.append(_issue_summary(issue))
     for issue in audit["manifest_issues"]:
         if issue["status"] == "blocked":
             blockers.append(_issue_summary(issue))

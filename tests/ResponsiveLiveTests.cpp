@@ -158,6 +158,7 @@ void testPublication(PollingProject& source) {
         auto state = sim.completedLiveState();
         assert(state.baseline && state.oddsMeans.at({0,1}) == 7);
         state.report.dateCode = "completed"; state.updated = Timestamp::now();
+        state.report.countProgress = LiveData::CountProgress{1200,1050,2000};
         state.diagnostic = {{"completed",true}};
         sim.publishLiveState(std::move(state));
         context.seats().access(context.seats().indexToId(0)).tppMargin = 3;
@@ -182,6 +183,9 @@ void testPublication(PollingProject& source) {
         LiveSimulationJob::publish(source,*result->result);
         job.retire(std::move(result->result->retiredRuns));
         assert(source.simulations().view(first).getLatestReport().dateCode == "completed");
+        auto const& published = source.simulations().view(first).getLatestReport();
+        assert(published.countProgress && published.countProgress->fpPercent() == 60);
+        assert(published.getTcpPercentCounted() == 52.5f);
         assert(source.simulations().view(second).getLiveInputDiagnostic().at("completed") == false);
         assert(source.outcomes().count() == 1 && source.seats().viewByIndex(0).tppMargin == 3);
         assert(source.outcomes().begin()->partyOneSwing == 1);

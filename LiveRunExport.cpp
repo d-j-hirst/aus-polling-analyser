@@ -449,7 +449,13 @@ json serializeReport(
 		floatArray(report.seatPartyOneMarginAverage);
 	result["coalition_seat_win_frequency"] = report.coalitionSeatWinFrequency;
 	result["others_seat_win_frequency"] = report.othersSeatWinFrequency;
-	result["total_2cp_percent_counted"] = number(report.total2cpPercentCounted);
+	result["total_2cp_percent_counted"] = number(report.getTcpPercentCounted());
+	result["total_fp_percent_counted"] = report.countProgress ? number(report.countProgress->fpPercent()) : json(nullptr);
+	if (report.countProgress) {
+		auto const& progress = *report.countProgress;
+		result["count_progress"] = {{"fp_votes",progress.fpVotes}, {"tcp_votes",progress.tcpVotes},
+			{"expected_formal_votes",progress.expectedFormalVotes}};
+	}
 	result["party_one_probability_bounds"] = report.partyOneProbabilityBounds;
 	result["party_two_probability_bounds"] = report.partyTwoProbabilityBounds;
 	result["coalition_probability_bounds"] = report.coalitionProbabilityBounds;
