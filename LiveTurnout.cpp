@@ -42,6 +42,7 @@ void Prepared::Counts::prepareDistribution(std::vector<bool> const& finalised,
     if (units.size() != boothIndexes.size())
         throw std::runtime_error("Turnout unit and booth indexes differ.");
     auto options = artifact.options;
+    options.unreportedPlaces = artifact.unreportedPlaces.value_or(artifact.decayPpvc);
     if (artifact.decayPpvc)
         options.ppvcFactor = TurnoutModel::reportingFactor(
             TurnoutModel::sourceHour(sourceTimestamp) - *artifact.pollClose);

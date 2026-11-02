@@ -3070,14 +3070,20 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
       // New FP voters remain a separate pool, using the existing future-primary
       // mixture for declaration services and the booth share for ordinary votes.
       double target = turnoutPairTarget(boothIndex);
+      double futureVariation = createRandomVariation ? variabilityNormal(0,
+        float(7+12*std::exp(-revised->votes*.0001)),boothIndex,0,uint32_t(VariabilityTag::NonOrdinaryTcp))/25 : 0;
+      // Declaration arrivals use the same preference-only variation as an
+      // unrevised account below. Even a one-vote FP correction must not change
+      // the uncertainty model for all future voters. The revision's own
+      // uncertain transfers are already included in revised->first.
       double futureShare = revised->first/revised->votes;
       if (booth.receivesFpBatches())
-        futureShare = LiveNewVotes::firstShare(booth.futureFpShares,
+        futureShare = LiveNewVotes::nonClassicFirstShare(booth.futureFpShares,
           pairPreferenceFlows(booth,firstPartyId,secondPartyId),
-          LivePartialCount::evidenceOffset(0,booth.preferenceEvidence,firstPartyId,secondPartyId));
-      if (createRandomVariation) futureShare = LivePartialCount::inverseLogOdds(
-        LivePartialCount::logOdds(futureShare)+variabilityNormal(0,
-          float(7+12*std::exp(-revised->votes*.0001)),boothIndex,0,uint32_t(VariabilityTag::NonOrdinaryTcp))/25);
+          booth.preferenceEvidence,firstPartyId,secondPartyId,futureVariation);
+      else if (createRandomVariation)
+        futureShare = LivePartialCount::inverseLogOdds(
+          LivePartialCount::logOdds(futureShare)+futureVariation);
       double first = revised->first+std::max(0.0,target-revised->votes)*futureShare;
       tcpVotesProjected = {{effectiveFirstPartyId,float(first)},{effectiveSecondPartyId,float(target-first)}};
       booth.node.tcpCompletion = float(std::clamp((revised->votes-revised->uncertainVotes())/target,0.0,1.0));
@@ -3140,9 +3146,9 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
         // but their new voters share the very same projected primary mix.
         // The retained cohort adjusts that prior once, with the standard small-
         // sample weight. Its pending-preference allocation above stays separate.
-        double flowOffset = LivePartialCount::evidenceOffset(0,booth.preferenceEvidence,rawFirst,rawSecond);
-        futureShare = LiveNewVotes::firstShare(booth.futureFpShares,
-          pairPreferenceFlows(booth,rawFirst,rawSecond),flowOffset+(createRandomVariation ? random/25 : 0));
+        futureShare = LiveNewVotes::nonClassicFirstShare(booth.futureFpShares,
+          pairPreferenceFlows(booth,rawFirst,rawSecond),booth.preferenceEvidence,
+          rawFirst,rawSecond,createRandomVariation ? random/25 : 0);
       }
       float additionalPartyOneVotes = float(unfinishedFirst+(totalAdditionalVotes-pending)*futureShare);
       tcpVotesProjected[firstPartyId] += additionalPartyOneVotes;

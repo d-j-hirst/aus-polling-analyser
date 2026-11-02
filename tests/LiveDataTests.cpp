@@ -157,6 +157,13 @@ void testJointTppIntegration()
     for(int i=0;i<10;++i) many.add(1000,500,1,3,0,10);
     assert(many.variance()<one.variance()/9);
     complete.add(10000,10000,1,3,0,10);assert(complete.variance()==.0001);
+    assert(complete.locationVariance() > complete.variance());
+    // A weaker transferable comparison never reopens ballots already counted
+    // in this seat. The same finite-count bound used by the TPP handoff fixes
+    // a complete local account regardless of the shared/prior draw.
+    LiveTurnoutMath::PartyAccount finished{{{0,55.},{1,45.}},{{0,55.f},{1,45.f}}};
+    auto completedShares=LiveFpIntegration::constrainToCounted(finished,{{0,5.},{1,95.}});
+    assert(completedShares.at(0)==55 && completedShares.at(1)==45);
     inconsistent.add(5000,2000,1,-30,0,10);
     inconsistent.add(5000,2000,1,30,0,10);
     assert(inconsistent.variance()>one.variance());
@@ -931,6 +938,52 @@ void testFpPrecisionIntegration() {
     assert(renamed==strong);
 }
 
+void testRevisedDeclarationTcpUncertainty() {
+    using namespace LivePartialCount;
+    // Indi postals, 22 May 2019: one primary moves from ALP to UAP while
+    // the TCP stays fixed. Use those received counts with a controlled future
+    // composition/flow model, rather than fitting assumptions to the outcome.
+    constexpr int independent = 132086, liberal = 1;
+    TcpBasis basis{{{0,440},{liberal,1550},{2,133},{3,183},{8,321},{37,121},{independent,1081}},
+        {{liberal,2039},{independent,1790}}, {}};
+    Counts corrected = basis.fp;
+    --corrected[0]; ++corrected[3];
+    Flows flows{{0,.75},{liberal,0},{2,.85},{3,.4},{8,.25},{37,.5},{independent,1}};
+    auto evidence = measure(basis.fp,basis.tcp,flows,independent,liberal);
+    assert(evidence);
+    double offset = evidenceOffset(0,evidence,independent,liberal);
+    LiveNewVotes::Shares future{{0,.12},{liberal,.4},{2,.04},{3,.05},{8,.08},{37,.03},{independent,.28}};
+    double expected = 7793.4, counted = total(basis.fp);
+
+    // Hold the future FP composition and each random draw equal to isolate
+    // the count correction. Moving one vote can affect at most that vote's
+    // transfer; it cannot suddenly broaden thousands of future votes.
+    for (double draw : {-100.,-3.,-1.,0.,1.,3.,100.}) {
+        double variation = draw*.6;
+        double futureShare = LiveNewVotes::nonClassicFirstShare(
+            future,flows,evidence,independent,liberal,variation);
+        auto revised = reviseTcp(corrected,basis.tcp,basis,flows,offset,independent,liberal,draw);
+        assert(revised && revised->votes == counted && revised->uncertainVotes() == 2);
+        double originalFirst = basis.tcp.at(independent)+(expected-counted)*futureShare;
+        double revisedFirst = revised->first+(expected-revised->votes)*futureShare;
+        assert(std::abs(revisedFirst-originalFirst) <= 1+1e-9);
+
+        // Preferences can only distribute the non-finalists' primaries. Even
+        // extreme draws cannot turn Liberal FP into an Independent vote or
+        // take away the Independent's own future primaries.
+        assert(futureShare >= future.at(independent)-1e-12);
+        assert(futureShare <= 1-future.at(liberal)+1e-12);
+    }
+    // A pool with no non-finalist votes has no preference-flow uncertainty.
+    LiveNewVotes::Shares finalistsOnly{{liberal,.6},{independent,.4}};
+    for (double variation : {-100.,0.,100.})
+        assert(LiveNewVotes::nonClassicFirstShare(finalistsOnly,flows,evidence,
+            independent,liberal,variation) == .4);
+    // The zero-variation calculation preserves the existing central estimate.
+    assert(LiveNewVotes::nonClassicFirstShare(future,flows,evidence,independent,liberal,0)
+        == LiveNewVotes::firstShare(future,flows,offset));
+}
+
 void testRevisedTcpAccount() {
     using namespace LivePartialCount;
     // Currimundi's FP reallocated 300 primaries while TCP still described the
@@ -984,6 +1037,7 @@ int main()
 {
     testElectionScopedPartyMapping();
     testRevisedTcpAccount();
+    testRevisedDeclarationTcpUncertainty();
     testJointTppIntegration();
     testTppCategorySensitivity();
 	testRawTppSwing();

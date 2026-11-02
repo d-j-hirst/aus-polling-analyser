@@ -1712,6 +1712,233 @@ void prepareWaEarlyPlaces(Prior const& prior, std::vector<Unit> const& units,
 }
 }
 
+namespace {
+// The existing declaration model has an explicit district-wide counted-only
+// outcome. Keep that original choice for declarations and other physical units
+// even when new independent return choices require a fully mixed diagnostic
+// sample for this district. This helper is also used by main simulation draws.
+double originalNoAddition(Result const& result, std::size_t seat) {
+    return result.originalNoAdditionProbability.empty() ? result.noAdditionProbability[seat]
+        : result.originalNoAdditionProbability[seat];
+}
+
+// Prepare identities, probabilities and normal-sized references once per
+// snapshot. Positive booths follow the ordinary path unchanged. An empty unit
+// which previously had votes follows that existing path too: a withdrawal or
+// transfer is different evidence from an unused preload identity. Explicit
+// closure, exclusion, finalisation and special-service rules take precedence.
+void identifyUnreportedPlaces(Prior const& prior, std::vector<Unit> const& units,
+    std::vector<bool> const& finalised, Options const& options, Result& result) {
+    if (!options.unreportedPlaces || !result.daysAfterPollClose || *result.daysAfterPollClose <= 0
+        || std::accumulate(result.broad.counted.begin(),result.broad.counted.end(),0.) <= 0) return;
+    double days = *result.daysAfterPollClose;
+    for (std::size_t j = 0; j < units.size(); ++j) {
+        auto const& unit = units[j];
+        auto role = UnreportedPlaceCounting::role(unit.kind,unit.name,unit.eav,unit.incremental);
+        if (role == UnreportedPlaceCounting::Role::None || unit.counted != 0
+            || unit.closed || unit.excluded || finalised[unit.seat] || result.broad.complete[j]
+            || std::any_of(unit.receivedFpTotals.begin(),unit.receivedFpTotals.end(),[](double v) { return v > 0; })) continue;
+        Result::UnreportedPlace place;
+        place.unit = j; place.role = role;
+        place.confirmed = unit.matched || unit.returnConfirmed;
+        place.probability = UnreportedPlaceCounting::returnProbability(role,place.confirmed,days);
+        place.sizePhase = UnreportedPlaceCounting::smoothPhase(days,2);
+        double enrolment = prior.enrolment[unit.seat];
+        std::vector<double> locations;
+        for (std::size_t r = 0; r < prior.totals.size(); ++r) {
+            double current = result.broad.unitCounts[r][j]; // Zero observed votes for these candidates.
+            double usual = result.broad.ownRemaining[r][j];
+            // Legacy balancing used a delay discount. Undo it for this venue's
+            // conditional size only; leave the completed declaration allocation
+            // intact. Delay now changes the chance of a normal return, rather
+            // than turning a possible 10,000-vote centre into a tiny booth.
+            if (role == UnreportedPlaceCounting::Role::Public && usual > 0 && options.ppvcFactor > 0)
+                usual = enrolment*logistic(odds(std::clamp(usual/enrolment,1e-15,1-1e-15))-std::log(options.ppvcFactor));
+            double reference = current+place.sizePhase*(usual-current);
+            place.reference.push_back(reference);
+            locations.push_back(odds(std::clamp(reference/enrolment,1e-15,1-1e-15)));
+        }
+        double centre = mean(locations), variance = 0;
+        for (double value : locations) variance += (value-centre)*(value-centre)/locations.size();
+        // .6 is a conservative total venue-size target, informed by earlier
+        // matched PPVC size errors (roughly .36-.47 SD; late subset about .51).
+        // The original paired outcomes already supply some spread. Add only
+        // the missing variance, fading in with the change in size treatment.
+        if (role == UnreportedPlaceCounting::Role::Public)
+            place.extraSizeSd = place.sizePhase*std::sqrt(std::max(0.,
+                UnreportedPlaceCounting::PublicSizeSd*UnreportedPlaceCounting::PublicSizeSd-variance));
+        result.unreportedPlaces.push_back(std::move(place));
+    }
+}
+
+// An Office mean is integrated over a standard normal using twenty fixed
+// normal positions and weights (Gauss-Hermite quadrature). This small numerical
+// average includes rare sizes even if no diagnostic draw selects a return.
+// Main iterations use continuous normal draws, not these twenty values.
+double officeMean(double capacity) {
+    constexpr double positions[] = {-7.619048541679759,-6.510590157013655,-5.578738805893202,
+        -4.734581334046055,-3.943967350657316,-3.189014816553390,-2.458663611172368,
+        -1.745247320814127,-1.042945348802751,-.346964157081356};
+    constexpr double weights[] = {1.2578006724379234e-13,2.4820623623151755e-10,6.127490259982928e-8,
+        4.402121090230851e-6,.00012882627996192928,.00183010313108049,.013997837447101022,
+        .061506372063976897,.16173933398399998,.26079306344955488};
+    double total = 0;
+    for (int k = 0; k < 10; ++k) total += weights[k]*(UnreportedPlaceCounting::officeSize(capacity,positions[k])
+        +UnreportedPlaceCounting::officeSize(capacity,-positions[k]));
+    return total;
+}
+
+// A possible return can use only this unit's reserved slice of unused district
+// enrolment. References set those slices before any return/no-return choices,
+// so a unit which never reports cannot enlarge a sibling. Ordinary reported
+// counts, declaration draws and other categories remain exactly as prepared.
+// Public size spreading uses the same bounded mean-preserving pair as postal
+// output uncertainty: widening changes the range, not the conditional mean.
+double unreportedSize(Result::UnreportedPlace const& place, std::size_t outer,
+    double capacity, double normal, double choice) {
+    double reference = std::min(place.reference[outer],capacity);
+    if (place.role == UnreportedPlaceCounting::Role::Office)
+        return reference+place.sizePhase*(UnreportedPlaceCounting::officeSize(capacity,normal)-reference);
+    return widenAllocatedPostal(reference,capacity,place.extraSizeSd,normal,choice);
+}
+double unreportedMean(Result::UnreportedPlace const& place, std::size_t outer, double capacity) {
+    double reference = std::min(place.reference[outer],capacity);
+    return place.role == UnreportedPlaceCounting::Role::Office
+        ? reference+place.sizePhase*(officeMean(capacity)-reference) : reference;
+}
+
+// Reserve each usual amount first, then split genuinely spare enrolment equally
+// between these empty units. Proportional-only sharing would constrain an
+// Office's deliberately broad upper tail merely because its mean is small.
+// If there is insufficient room even for references, reduce them proportionally.
+// All reservations precede return choices, and unused shares stay unused.
+double unreportedCapacity(Result::UnreportedPlace const& place, std::size_t outer, double available) {
+    double reserved = std::min(available,place.reservationTotal[outer]);
+    return reserved*place.capacityWeight[outer]+std::max(0.,available-reserved)*place.spareCapacityShare;
+}
+
+// Apply the local mixture last, after declaration processing and any WA rules.
+// Preparation samples support count percentiles; exact local-choice means are
+// retained separately. For example a .1% chance of 10,000 votes contributes ten
+// expected votes even when none of 256 preparation rows happens to select it.
+// Each old district finishing alternative is integrated separately for means.
+// Turnout shortfalls are deliberately absent from all probability calculations.
+void prepareUnreportedPlaces(Prior const& prior, std::vector<Unit> const& units,
+    std::vector<bool> const& finalised, Options const& options, Result& result) {
+    identifyUnreportedPlaces(prior,units,finalised,options,result);
+    if (result.unreportedPlaces.empty()) return;
+    auto seats = prior.seats.size(), groups = prior.groups.size(), samples = result.totals.size();
+    // Each place permutes the same midpoint quantiles. Invert that common grid
+    // once, rather than repeating the identical normal calculation for every
+    // selected return. The positions, random streams and resulting sizes stay
+    // unchanged, including for sample counts which are not powers of two.
+    std::vector<double> normalGrid(samples);
+    for (std::size_t r = 0; r < samples; ++r)
+        normalGrid[r] = inverseLogCdf(std::log((r+.5)/samples));
+    std::vector<std::vector<std::size_t>> bySeat(seats);
+    for (std::size_t k = 0; k < result.unreportedPlaces.size(); ++k)
+        bySeat[units[result.unreportedPlaces[k].unit].seat].push_back(k);
+    result.originalNoAdditionProbability = result.noAdditionProbability;
+    result.exactNoAdditionProbability = result.noAdditionProbability;
+    for (std::size_t s = 0; s < seats; ++s) {
+        if (bySeat[s].empty()) continue;
+        double zero = originalNoAddition(result,s);
+        std::vector<double> observed(groups);
+        for (auto const& unit : units) if (unit.seat == s) observed[unit.group] += unit.counted;
+        // Flatten the old atom only for affected district diagnostics. Numerical
+        // means for all untouched units/categories remain their old unconditional
+        // means, rather than being re-estimated from this short random sample.
+        result.positiveMeanTotals[s] = result.broad.counted[s]+(1-zero)*(result.positiveMeanTotals[s]-result.broad.counted[s]);
+        for (std::size_t g = 0; g < groups; ++g)
+            result.positiveMeanCounts[s*groups+g] = observed[g]+(1-zero)*(result.positiveMeanCounts[s*groups+g]-observed[g]);
+        auto zeroChoices = uniforms("unreported/old-finish/"+prior.seats[s],samples,options.seed);
+        std::vector<double> oldTarget(samples), availablePositive(samples), availableZero(samples);
+        for (auto k : bySeat[s]) {
+            auto& place = result.unreportedPlaces[k];
+            place.capacityWeight.resize(prior.totals.size());
+            place.reservationTotal.resize(prior.totals.size());
+            place.spareCapacityShare = 1./bySeat[s].size();
+            result.exactNoAdditionProbability[s] *= 1-place.probability;
+            for (std::size_t r = 0; r < samples; ++r) oldTarget[r] += result.broad.unitCounts[r/options.countDraws][place.unit];
+        }
+        for (std::size_t r = 0; r < samples; ++r) {
+            availablePositive[r] = std::max(0.,prior.enrolment[s]-result.totals[r][s]+oldTarget[r]);
+            availableZero[r] = std::max(0.,prior.enrolment[s]-result.broad.counted[s]);
+        }
+        // Reserve usual amounts plus fixed shares of spare capacity, independently
+        // of return probability. Office's 107-vote reservation is the approximate
+        // mean of the positive 40-vote/SD-1.4 distribution, not a turnout target.
+        // No-return outcomes leave their entire reserved capacity unused.
+        for (std::size_t outer = 0; outer < prior.totals.size(); ++outer) {
+            double sum = 0;
+            for (auto k : bySeat[s]) {
+                auto const& place = result.unreportedPlaces[k];
+                sum += place.role == UnreportedPlaceCounting::Role::Office
+                    ? (1-place.sizePhase)*place.reference[outer]+place.sizePhase*107 : place.reference[outer];
+            }
+            for (auto k : bySeat[s]) {
+                auto& place = result.unreportedPlaces[k];
+                double weight = place.role == UnreportedPlaceCounting::Role::Office
+                    ? (1-place.sizePhase)*place.reference[outer]+place.sizePhase*107 : place.reference[outer];
+                place.capacityWeight[outer] = sum > 0 ? weight/sum : 1./bySeat[s].size();
+                place.reservationTotal[outer] = sum;
+            }
+        }
+        for (std::size_t r = 0; r < samples; ++r) {
+            bool countedOnly = zeroChoices[r] < zero;
+            if (countedOnly) {
+                result.totals[r][s] = result.broad.counted[s];
+                for (std::size_t g = 0; g < groups; ++g) result.counts[r][s*groups+g] = observed[g];
+            } else for (auto k : bySeat[s]) {
+                auto const& place = result.unreportedPlaces[k];
+                double old = result.broad.unitCounts[r/options.countDraws][place.unit];
+                result.totals[r][s] -= old;
+                result.counts[r][s*groups+units[place.unit].group] -= old;
+            }
+        }
+        for (auto k : bySeat[s]) {
+            auto& place = result.unreportedPlaces[k];
+            auto const& unit = units[place.unit];
+            auto identity = prior.election+"/"+prior.seats[s]+"/"+unit.kind+"/"+unit.name;
+            auto choices = uniforms("unreported/return/"+identity,samples,options.seed);
+            auto magnitudes = uniforms("unreported/size/"+identity,samples,options.seed);
+            auto directions = uniforms("unreported/direction/"+identity,samples,options.seed);
+            for (std::size_t r = 0; r < samples; ++r) {
+                auto outer = r/options.countDraws;
+                double positiveCapacity = unreportedCapacity(place,outer,availablePositive[r]);
+                double zeroCapacity = unreportedCapacity(place,outer,availableZero[r]);
+                place.conditionalMean += ((1-zero)*unreportedMean(place,outer,positiveCapacity)
+                    +zero*unreportedMean(place,outer,zeroCapacity))/samples;
+                if (choices[r] >= place.probability) continue;
+                double capacity = zeroChoices[r] < zero ? zeroCapacity : positiveCapacity;
+                double addition = unreportedSize(place,outer,capacity,normalGrid[std::size_t(magnitudes[r]*samples)],directions[r]);
+                result.totals[r][s] += addition;
+                result.counts[r][s*groups+unit.group] += addition;
+            }
+            double newMean = place.probability*place.conditionalMean;
+            double difference = newMean-result.unitMeans[place.unit];
+            result.unitMeans[place.unit] = newMean;
+            result.positiveMeanTotals[s] += difference;
+            result.positiveMeanCounts[s*groups+unit.group] += difference;
+        }
+        result.noAdditionProbability[s] = 0; // Already integrated into these samples and means.
+    }
+}
+}
+
+// Construct this snapshot's count account from the same frozen pre-election
+// outcomes used at every update. Units supply accepted current FP counts and
+// availability; history supplies earlier accepted category activity through the
+// current source time; finalised identifies explicitly finished districts.
+// Options supply timetables and modelling choices, not observed vote shares.
+// Supplied uniforms are optional controlled quantiles for portable comparisons.
+//
+// First balance current counts against the original size account, then measure
+// declaration progress and prepare its finishing/late-batch alternatives. Apply
+// category-specific quantity treatments after that shared allocation. Finally
+// replace eligible empty physical accounts with separate return and size choices.
+// Result keeps the means used for booth targets and the distributions used by
+// main iterations together; this function never changes the frozen prior.
 Result prepare(Prior const& prior, std::vector<Unit> const& units, std::vector<bool> const& finalised,
     std::vector<Observation> const& history, Options const& options, Matrix const& suppliedUniforms) {
     if (!options.countDraws) throw std::runtime_error("Turnout preparation needs at least one cheap count draw.");
@@ -1739,6 +1966,7 @@ Result prepare(Prior const& prior, std::vector<Unit> const& units, std::vector<b
     assembleCountSamples(prior,units,options,layout,sampledOdds,result);
     reshapeRoutineRemainders(prior,units,options,layout,sampledOdds,result);
     prepareWaEarlyPlaces(prior,units,history,options,result);
+    prepareUnreportedPlaces(prior,units,finalised,options,result);
     return result;
 }
 
@@ -1770,13 +1998,14 @@ double interiorDrawUniform(unsigned long long& key) {
 
 std::vector<bool> drawNoAdditionSeats(Result const& result, DrawPlan const& plan,
     unsigned long long seed) {
-    // Finishing is a seat-wide outcome: every unfinished service gets exactly
-    // its current count together. Seat-specific random keys keep other seats'
-    // draws unchanged when this seat finishes or gains another reporting unit.
+    // Finishing of the original count account is a seat-wide outcome: those
+    // unfinished services receive their current counts together. Empty-unit
+    // return choices are applied independently afterwards. Seat-specific keys
+    // keep other seats' draws unchanged when this seat finishes.
     std::vector<bool> zero(plan.enrolment.size());
     for (std::size_t s = 0; s < zero.size(); ++s) {
         auto seatKey = seed ^ ((s+1)*0x9e3779b97f4a7c15ULL);
-        zero[s] = interiorDrawUniform(seatKey) < result.noAdditionProbability[s];
+        zero[s] = interiorDrawUniform(seatKey) < originalNoAddition(result,s);
     }
     return zero;
 }
@@ -1797,7 +2026,7 @@ void drawSeatDeclarationAdditions(Result const& result, DrawPlan const& plan,
     for (auto k : local) {
         auto const& c = result.components[k];
         auto unitKey = seed ^ ((c.unit+1)*0xd1b54a32d192ed03ULL);
-        double selector = interiorDrawUniform(unitKey)*(1-result.noAdditionProbability[s]);
+        double selector = interiorDrawUniform(unitKey)*(1-originalNoAddition(result,s));
         double value = c.referenceOdds[outer];
         double completionLimit = std::numeric_limits<double>::infinity();
         auto source = Source::Routine;
@@ -1931,6 +2160,30 @@ void retainCountedOnlySeats(DrawPlan const& plan, std::vector<bool> const& zero,
     for (std::size_t j = 0; j < counts.size(); ++j)
         if (zero[plan.seats[j]]) counts[j] = plan.counted[j];
 }
+
+// Replace empty-unit allowances after the old district finishing draw. Every
+// other unit retains its exact draw. The reserved capacity is computed before
+// any of these places returns, so independent choices cannot overfill the seat
+// or turn another place's no-return outcome into extra votes elsewhere.
+void drawUnreportedPlaces(Result const& result, DrawPlan const& plan, std::size_t outer,
+    unsigned long long seed, std::vector<double>& counts) {
+    if (result.unreportedPlaces.empty()) return;
+    std::vector<double> totals(plan.enrolment.size());
+    for (std::size_t j = 0; j < counts.size(); ++j) totals[plan.seats[j]] += counts[j];
+    for (auto const& place : result.unreportedPlaces) {
+        totals[plan.seats[place.unit]] -= counts[place.unit];
+        counts[place.unit] = 0; // All candidates for this procedure have zero observed FP.
+    }
+    for (auto const& place : result.unreportedPlaces) {
+        auto key = seed ^ ((place.unit+1)*0xd1b54a32d192ed03ULL) ^ 0x556e7265706f7274ULL;
+        if (interiorDrawUniform(key) >= place.probability) continue;
+        double capacity = unreportedCapacity(place,outer,std::max(0.,
+            plan.enrolment[plan.seats[place.unit]]-totals[plan.seats[place.unit]]));
+        double normal = std::sqrt(-2*std::log(interiorDrawUniform(key)))
+            *std::cos(6.2831853071795864769*interiorDrawUniform(key));
+        counts[place.unit] = unreportedSize(place,outer,capacity,normal,interiorDrawUniform(key));
+    }
+}
 }
 
 std::vector<double> drawUnitCounts(Result const& result, DrawPlan const& plan,
@@ -1956,12 +2209,14 @@ std::vector<double> drawUnitCounts(Result const& result, DrawPlan const& plan,
         }
         counts[place.unit] = place.counted+addition;
     }
+    drawUnreportedPlaces(result,plan,outer,seed,counts);
     return counts;
 }
 
 std::vector<double> meanTotals(Result const& result) {
-    // Consumers must include the exact counted branch when reporting means;
-    // the stored sample matrix intentionally retains positive outcomes only.
+    // Usually the stored matrix retains positive outcomes only, so include the
+    // separate counted-only branch. A district with local unreported-place
+    // alternatives already contains the full mixture and uses external weight 0.
     std::vector<double> means(result.broad.counted.size());
     if (result.positiveMeanTotals.size() == means.size()) means = result.positiveMeanTotals;
     else for (auto const& row : result.totals) for (std::size_t s = 0; s < row.size(); ++s) means[s] += row[s]/result.totals.size();

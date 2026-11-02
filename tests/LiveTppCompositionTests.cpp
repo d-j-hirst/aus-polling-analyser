@@ -459,7 +459,8 @@ void testSharedReportingOrderConditioning() {
 void testSparseSampleUncertainty() {
     // A completed booth is still a sparse sample of an uncounted district.
     // More received votes reduce the extrapolation allowance continuously;
-    // complete category evidence removes it entirely.
+    // complete category evidence removes the unreported-vote component. The
+    // separate comparison floor below remains for small completed samples.
     double previous = 1e100;
     for (double votes : {1., 55., 110., 500., 1000., 5000., 10000., 50000.}) {
         CategoryEvidence evidence;
@@ -662,9 +663,13 @@ void testSmallCompletedCategoryPrecision() {
     auto old = completionEvidence({{100,100,.1,50,38,0}},0);
     auto revised = completionEvidence({{100,100,.1,50,38,0}},1);
     double guarded = retainSmallCategoryVariance(revised.locationVariance(),old.locationVariance(),100);
-    checkClose(guarded,old.locationVariance()*std::pow(5000./5100,2));
+    assert(guarded >= old.locationVariance()*std::pow(5000./5100,2));
+    assert(revised.locationVariance() > 90); // No longer collapses at completion.
     Moments prior{{0,0},{{9,6},{6,9}}};
-    Observation bare{{1,0},-12,revised.locationVariance()}, limited=bare;
+    // The old reporting-only variance vanishes at completion, even though
+    // neither this small comparison nor its use elsewhere became more reliable.
+    double reportingOnly = revised.variance()+revised.sparseSampleVariance(revised.variance());
+    Observation bare{{1,0},-12,reportingOnly}, limited=bare;
     limited.variance = guarded;
     auto before = prepare(prior,{bare}), after = prepare(prior,{limited});
     assert(std::abs(after.posterior.mean[0]) < .1*std::abs(before.posterior.mean[0]));
@@ -680,6 +685,63 @@ void testSmallCompletedCategoryPrecision() {
     }
     checkClose(retainSmallCategoryVariance(1,100,50000),1);
     checkClose(retainSmallCategoryVariance(10,1,100),10);
+}
+
+void testPersistentSparseComparison() {
+    // The same 100 votes at one location have the same underlying comparison
+    // uncertainty whether that is the whole category or more places await
+    // counting. Completion removes missing-vote uncertainty, not the floor on
+    // how much this sparse evidence can teach other divisions.
+    CategoryEvidence complete, incomplete;
+    complete.add(100,100,1,12,0,10,0);
+    incomplete.add(100,100,1,12,0,10,0);
+    incomplete.add(900,0,1,0,0,10,0);
+    checkClose(complete.comparisonVariance(),incomplete.comparisonVariance());
+    assert(complete.locationVariance() > 90);
+    assert(complete.locationVariance() <= incomplete.locationVariance());
+
+    // More distinct locations with the same total votes genuinely broaden the
+    // sample. A large ordinary category retains very little of the new floor.
+    CategoryEvidence one, ten, broad;
+    one.add(1000,1000,1,2,0,10,0);
+    for (int i=0;i<10;++i) ten.add(100,100,1,2,0,10,0);
+    for (int i=0;i<100;++i) broad.add(500,500,1,2,0,10,0);
+    assert(ten.locationVariance() < one.locationVariance()/9);
+    assert(broad.locationVariance() < .01);
+
+    // Keep the earlier sparse-count response exactly where its existing
+    // reporting allowance already exceeds the comparison floor.
+    for (double votes : {1.,100.,1000.,5000.,10000.}) {
+        CategoryEvidence early;
+        early.add(50000,votes,1,-10,0,10,0);
+        double reporting=early.variance()+early.sparseSampleVariance(early.variance());
+        checkClose(early.locationVariance(),reporting);
+    }
+    CategoryEvidence almost;
+    almost.add(100,99.999,1,12,0,10,0);
+    assert(std::abs(almost.locationVariance()-complete.locationVariance()) < .001);
+
+    // Parkes's three Remote teams (2019): the 176-vote team had only 17
+    // historical votes, 16 for ALP. That produces sharply differing booth
+    // comparisons, retained as uncertainty after all 409 current votes arrive.
+    CategoryEvidence parkes;
+    for (auto const& b : std::vector<std::array<double,4>>{
+        {28,44,25,43},{74,79,52,113},{16,1,64,112}}) {
+        double total=b[2]+b[3];
+        double deviation=transform(100*b[2]/total)-transform(100*b[0]/(b[0]+b[1]));
+        double location=4.5+7*std::exp(-total*.0001);
+        parkes.add(total,total,1,deviation,0,location,samplingVariance(total,b[2]));
+    }
+    assert(parkes.sampleCoverage() == 1);
+    assert(parkes.locationVariance() > 300);
+    // A correlated second district should no longer take a large inferred
+    // movement from those three complete but unrepresentative comparisons.
+    Moments prior{{0,0},{{9,6},{6,9}}};
+    Observation old{{1,0},-40,parkes.variance()+25}, limited=old;
+    limited.variance=parkes.locationVariance()+25; // Existing local-category variance remains.
+    auto before=prepare(prior,{old}),after=prepare(prior,{limited});
+    assert(std::abs(after.posterior.mean[1]) < .1*std::abs(before.posterior.mean[1]));
+    assert(after.posterior.covariance[1][1] <= prior.covariance[1][1]);
 }
 
 void testConversionBudget() {
@@ -1212,6 +1274,7 @@ int main() {
     testComparisonCompletionAccounting();
     testPartialPreferenceInformationPartition();
     testSmallCompletedCategoryPrecision();
+    testPersistentSparseComparison();
     testConversionBudget();
     testUncertaintyOnlyUpdate();
     testMatchedConversionPrecision();

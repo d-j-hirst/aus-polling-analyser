@@ -529,9 +529,12 @@ PreferenceHistories loadPreferenceHistory(std::filesystem::path const& folder,
 std::map<std::string,std::vector<double>> loadFpTotalHistory(std::filesystem::path const& folder,
     std::string const& election, std::string const& sourceTime,
     std::map<std::string,std::set<std::string>> const& selection, HistoryReadMode mode) {
-    // The change index bounds disk work by selected places. Only their numeric
-    // totals survive this query; no full historical election remains in memory.
-    // Sorting on original observation time also deduplicates restored accounts.
+    // Read selected places' FP states directly from the change index. Most
+    // captures repeat the same count: decode it once per run, retaining only
+    // numeric totals ordered by ORIGINAL observation time. Fresh observations
+    // still use every capture clock; restored counts retain their older clock.
+    // Newest captures win if source revisions disagree about the same original
+    // observation. This preserves the source-file reader's ordering exactly.
     std::map<std::string,std::map<std::string,double>> changes;
     auto collect = [&](Snapshot const& old) {
         if (old.election != election || old.sourceTime >= sourceTime) return;
@@ -543,10 +546,28 @@ std::map<std::string,std::vector<double>> loadFpTotalHistory(std::filesystem::pa
     };
     if (mode == HistoryReadMode::Indexed) {
         try {
-            LiveInputHistory::visitEarlier(folder,fileCode(sourceTime),selection,
+            std::map<std::string,std::string> canonicalClocks;
+            LiveInputHistory::visitFirstPreferenceRuns(folder,fileCode(sourceTime),selection,
                 [](json const& value) { decode(value); },
-                [&](std::string const&, std::size_t, json const& value) { collect(decode(value)); return true; },
-                LiveInputHistory::RequiredCount::FirstPreferences);
+                [&](std::string const& key, json const& value, bool followsSource,
+                    std::span<LiveInputHistory::CountSourceClock const> sources) {
+                    auto count = decodeCount(value);
+                    if (!count.votes) return; // Unavailable is not an observed zero.
+                    double votes = double(total(count.votes));
+                    for (auto const& source : sources) {
+                        auto [clock,inserted] = canonicalClocks.try_emplace(source.time);
+                        if (inserted) clock->second = canonicalTime(source.time);
+                        if (source.election != election || clock->second >= sourceTime) continue;
+                        auto const& observed = followsSource ? clock->second : count.observedAt;
+                        if (observed.empty() || observed > clock->second)
+                            throw std::runtime_error("Accepted count has an observation outside its source time.");
+                        changes[key].try_emplace(observed,votes);
+                        // Every capture of a restored run refers to this same
+                        // older measurement. The newest eligible capture already
+                        // supplied its precedence; later clocks add no information.
+                        if (!followsSource) break;
+                    }
+                });
         } catch (LiveInputHistory::Unavailable const&) {
             return loadFpTotalHistory(folder,election,sourceTime,selection,HistoryReadMode::SourceFiles);
         }

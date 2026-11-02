@@ -145,6 +145,10 @@ struct Observation {
     // small-sample allowance concerns extrapolation, not counted vote accuracy.
     double categoryFpCoverage = 0, comparisonQualityFloor = 0;
     double unfadedLocationVariance = 0, retainedSmallSampleVariance = 0;
+    // A completed small category still gives a weak comparison for movement
+    // elsewhere. These are variances in (25*log odds)^2: the unscaled location
+    // comparison, its vote-volume floor, and the extra variance actually kept.
+    double comparisonVariance = 0, comparisonVarianceFloor = 0, retainedComparisonVariance = 0;
     // Fraction of comparison weight restored by completion, measured against
     // this snapshot before its quality floor. It is not additional counted votes.
     double restoredComparisonFraction = 0, compensationReportingOrderSd = 0;
@@ -379,15 +383,24 @@ struct CategoryEvidence {
         return weight > 0 ? std::max(0., weightedSquaredDeviation / weight
             - std::pow(weightedDeviation / weight, 2)) : 0;
     }
-    double variance(double scatterFloor = 0) const {
+    double comparisonVariance(double scatterFloor = 0) const {
         if (weight <= 0) throw std::logic_error("Empty TPP category observation.");
-        double coverage = expected > 0 ? std::clamp(weight / expected, 0., 1.) : 0;
         double scatter = std::max(scatterFloor, heterogeneity());
+        // Independent locations, their observed disagreement and the existing
+        // location/sample scales determine how broadly this comparison can be
+        // applied. More votes at one location do not create extra locations.
+        // Keep this quantity before the completion multiplier: finishing a
+        // hospital/mobile/prison category establishes its own result, but does
+        // not establish a precise swing transferable to other divisions.
+        return std::max(residualVarianceSum, scatter * squaredWeight) / (weight * weight);
+    }
+    double variance(double scatterFloor = 0) const {
+        double coverage = expected > 0 ? std::clamp(weight / expected, 0., 1.) : 0;
         // Completion removes uncertainty about unreported locations. FP-derived
-        // TPP still has its separate shared conversion error at full FP count.
+        // TPP retains separate conversion error. locationVariance() also retains
+        // comparison uncertainty, distinct from whether more votes remain.
         // 0.01 transformed points SD is numerical regularisation, not a gate.
-        return std::max(.0001, (1 - coverage) *
-            std::max(residualVarianceSum, scatter * squaredWeight) / (weight * weight));
+        return std::max(.0001, (1 - coverage) * comparisonVariance(scatterFloor));
     }
     double sampleCoverage() const {
         return expected > 0 ? std::clamp(reporting.fpVotes / expected, 0., 1.) : 0;
@@ -408,7 +421,14 @@ struct CategoryEvidence {
     }
     double locationVariance(double scatterFloor = 0) const {
         double residual = variance(scatterFloor);
-        return residual+sparseSampleVariance(residual);
+        // The original sparse-reporting allowance still controls early
+        // reactions. A second, non-vanishing comparison floor prevents category
+        // completion from making a tiny sample authoritative elsewhere. Reuse
+        // the existing 5,000-vote retention scale rather than introducing a new
+        // cutoff or election-specific setting. Broad samples release this floor
+        // smoothly; effective location count and scatter still set its size.
+        return retainSmallCategoryVariance(residual+sparseSampleVariance(residual),
+            comparisonVariance(scatterFloor),reporting.fpVotes);
     }
 };
 } // namespace LiveTppIntegration

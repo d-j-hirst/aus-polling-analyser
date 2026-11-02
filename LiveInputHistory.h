@@ -6,6 +6,7 @@
 #include <functional>
 #include <map>
 #include <set>
+#include <span>
 #include <stdexcept>
 #include <string>
 
@@ -38,6 +39,30 @@ void visitEarlier(std::filesystem::path const& folder, std::string const& cutoff
     Selection const& selection, Validate const& validate, Visitor const& visitor,
     RequiredCount required = RequiredCount::None);
 
+// A numeric FP history needs its count states and observation clocks, without
+// reconstructing TCP, preferences or the original record's array position.
+// One run contains consecutive captures with the same encoded FP state. Sources
+// retain EVERY capture clock, newest first: restored observations may refer to
+// an older time between otherwise identical fresh counts. Dropping those clocks
+// could change the ordering after the caller sorts by original observation time.
+struct CountSourceClock {
+    std::string election, time; // Embedded source identity and clock, not filesystem time.
+};
+// The account uses the first source's time when its clock follows each capture;
+// followsSource tells the caller to substitute each source's clock thereafter.
+// Otherwise its fixed original observation time must be retained. The borrowed
+// clock span is valid only during the callback. Unavailable FP stays JSON null
+// within the account; it is not converted to a measured zero.
+using FirstPreferenceRunVisitor = std::function<void(std::string const&,
+    nlohmann::json const&, bool followsSource, std::span<CountSourceClock const>)>;
+
+// Visit FP runs strictly BEFORE cutoffFileStem, for selected district/record
+// keys only. Like visitEarlier this validates/refreshes the disposable index,
+// bounds retained history and throws Unavailable for source-file fallback.
+void visitFirstPreferenceRuns(std::filesystem::path const& folder,
+    std::string const& cutoffFileStem, Selection const& selection,
+    Validate const& validate, FirstPreferenceRunVisitor const& visitor);
+
 // Called only AFTER the authoritative accepted-count file has been committed.
 // Refresh an existing index (including same-time replacements); an index failure
 // cannot turn a successful accepted-count write into a failed forecast.
@@ -50,6 +75,7 @@ struct Statistics {
     std::size_t sourceReads = 0, partitionReads = 0, builds = 0;
     std::size_t retainedBytes = 0, peakRetainedBytes = 0;
     std::size_t fallbacks = 0, updateFailures = 0;
+    std::size_t fpRunCallbacks = 0, fpSourceClocks = 0;
     std::string lastFailure;
 };
 Statistics statistics();

@@ -94,8 +94,10 @@ void LiveSnapshotSequenceDialog::pasteSequence(wxClipboardTextEvent& event) {
     // conversion. Windows' default paste bypasses it: lone LF stays in the
     // value (so parsing works) but displays without a line break. Read text
     // without changing the clipboard, then insert through the same converted
-    // path as other edits. WriteText replaces only the selection, retains undo
-    // and emits the normal text event to refresh the resolved sequence.
+    // path as other edits. WriteText replaces only the selection and retains
+    // undo. Refresh explicitly afterwards: when called inside the native paste
+    // event, its text-change notification may be suppressed, leaving the preview
+    // and Save button stale until the user types another character.
     wxString text;
     {
         wxClipboardLocker clipboard;
@@ -106,6 +108,7 @@ void LiveSnapshotSequenceDialog::pasteSequence(wxClipboardTextEvent& event) {
     }
     sequenceInput->WriteText(wxString::FromUTF8(
         LiveSnapshotSequence::normalizeCodeLineEndings(text.ToStdString(wxConvUTF8))));
+    preview();
 }
 
 void LiveSnapshotSequenceDialog::scan(bool notifyError) {

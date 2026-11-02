@@ -358,14 +358,29 @@ void LiveV2::Election::prepareTurnout(Results2::Election const& currentElection,
     // diagnostics. Party composition is prepared separately.
     auto started = std::chrono::steady_clock::now();
     auto observations = collectTurnoutObservations(artifact.prior, currentElection, seats, readBooths());
-    // Only WA's explicitly mixed early places have the two-component reporting
-    // procedure. Reuse accepted change history; do not inspect future feed files
-    // or assume that other elections' incremental services share this procedure.
-    if (artifact.prior.election.ends_with("wa")) {
+    // Usually the current positive account is sufficient. WA mixed early places
+    // need their accepted batch sequence; empty public/Office accounts also need
+    // to know whether a positive return was subsequently withdrawn. The latter
+    // must not be mistaken for an unused preload. Reuse the compact change index,
+    // querying only through this snapshot's source time, including on replays.
+    bool unreportedPlaces = artifact.unreportedPlaces.value_or(artifact.decayPpvc);
+    // No empty-unit adjustment runs before polling close or before any positive
+    // FP. Avoid loading every district's empty history for a preload. The index
+    // still retains those accepted sources for subsequent queries when needed.
+    bool emptyHistoryNeeded = unreportedPlaces && artifact.pollClose
+        && TurnoutModel::sourceHour(currentElection.sourceTime) > *artifact.pollClose
+        && std::any_of(observations.units.begin(),observations.units.end(),[](auto const& unit) { return unit.counted > 0; });
+    if (artifact.prior.election.ends_with("wa") || emptyHistoryNeeded) {
         std::map<std::string,std::set<std::string>> selected;
-        for (auto const& unit : observations.units) if (unit.kind == "ppvc" && unit.incremental) {
+        for (auto const& unit : observations.units) {
+            bool mixedWa = artifact.prior.election.ends_with("wa") && unit.kind == "ppvc" && unit.incremental;
+            bool emptyPlace = emptyHistoryNeeded && unit.counted == 0 && !unit.closed && !unit.excluded
+                && !observations.finalised[unit.seat]
+                && UnreportedPlaceCounting::role(unit.kind,unit.name,unit.eav,unit.incremental)
+                    != UnreportedPlaceCounting::Role::None;
+            if (!mixedWa && !emptyPlace) continue;
             auto const& district = artifact.prior.seats[unit.seat];
-            selected[district].insert(district+"/ppvc/"+unit.name);
+            selected[district].insert(district+"/"+unit.kind+"/"+unit.name);
         }
         if (!selected.empty()) {
             auto changes = LiveInputRecovery::loadFpTotalHistory(

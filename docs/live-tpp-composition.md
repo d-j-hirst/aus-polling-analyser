@@ -437,6 +437,33 @@ It concerns extrapolation from a small sample, not errors in counted integers:
 the forecast's counted-vote bounds remain in force. Category and conversion
 covariances are not multiplied by this bound.
 
+Completing a small category also leaves uncertainty about how representative
+its comparison is of movement elsewhere. The update therefore retains a
+second floor even when the original comparison weights were already full.
+Let `C` be the location-comparison variance **before** multiplying by the
+uncounted fraction. It uses the larger of the existing location/sample
+allowance and observed variation between booth movements, with weights that
+recognise the effective number of locations. A large count at one place does
+not create the information of many independent places.
+
+For `N` received FP votes allocated to the observation, the comparison floor
+is `C × (5000 / (5000 + N))²`. The update uses whichever is larger: that floor
+or the existing reporting/sparse-sample variance. Thus the existing early-count
+protection remains whenever stronger; comparison uncertainty does not collapse
+when the last mobile, hospital or prison record arrives. The same rule applies
+to other categories. Broad samples release the floor smoothly: it retains 96%
+of `C` at 100 votes, 25% at 5,000 and about 0.83% at 50,000. The 5,000-vote
+scale is reused as a working safeguard, not a newly calibrated accuracy rule
+for completed categories.
+
+This changes how much a comparison can teach the joint model, including its
+influence on other divisions. Actual candidate counts still constrain the
+local forecast through the finite-vote account. No votes are removed, no
+historical benchmark is shifted, and preference-conversion uncertainty remains
+separate. This floor uses observed comparison scatter and the existing quality
+weights; it does not yet propagate finite historical-count uncertainty as a
+separate term.
+
 ## Shared ordinary reporting-order uncertainty
 
 Early ordinary booths need not represent the full category. The smaller set with
@@ -544,7 +571,7 @@ unknown splits, covariance budgets, correlated draws, local cancellation,
 fully counted limits and a fictional regional-miss regression. It also checks
 removal of the overlapping FP variance penalty, cross-category matched-location
 precision, reporting coverage and shared reporting-order covariance, sparse-sample
-attenuation and its complete-count limit, completion-quality curves and
+attenuation, a persistent sparse-comparison floor at category completion, completion-quality curves and
 vote-weighted full-category accounting, a shared completion floor across
 measured/inferred groups, small completed-category precision, preservation
 of measured information when FP-only locations arrive, the general shared covariance bound,
@@ -559,7 +586,7 @@ are included in the portable C++ test runners. Python calibration tests use
 fictional data.
 
 Private analysis exports identify this implementation as
-`joint_category_composition_v17`, record its covariance-budget scale and each
+`joint_category_composition_v19`, record its covariance-budget scale and each
 seat's booth-reference shift, and retain
 readable observations before numerical decorrelation. Their residual variances
 include local category variation and local/general conversion allowances. The
@@ -575,6 +602,12 @@ and the comparison floor are `category_fp_coverage` and
 `comparison_quality_floor`. `unfaded_location_variance` records the original
 location/sampling variance, while `retained_small_sample_variance` is the extra
 variance needed to meet the small-category bound after reweighting. The export
+separately records `comparison_variance` before the completion multiplier,
+`comparison_variance_floor` after vote-volume retention, and
+`retained_comparison_variance`, the amount added above reporting variance by
+that floor. These are variances in squared transformed units, not uncertainty
+about the published candidate counts. The comparison method is
+`persistent_location_comparison_floor`. The export
 also records `comparison_completion_start` and `comparison_completion_curve`.
 `restored_comparison_fraction` records `u`, and `compensation_reporting_order_sd`
 records `a`. The exported `reporting_order_loadings` include their combined effect;

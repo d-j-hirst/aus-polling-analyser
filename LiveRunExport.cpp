@@ -835,7 +835,8 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 	if (!tppIntegration) return nullptr;
 	auto const& update = *tppIntegration;
 	auto const& names = sim.getLiveBaselineReport()->seatName;
-	json result = {{"method", "joint_category_composition_v18"},
+	json result = {{"method", "joint_category_composition_v19"},
+        {"comparison_variance_method", "persistent_location_comparison_floor"},
         {"evidence_group_partition", "squared_odds_information"},
         {"evidence_group_half_weight_gap", LiveTppIntegration::EvidenceGroupHalfWeightGap},
 		{"sparse_sample_vote_scale", LiveTppIntegration::SparseSampleVoteScale},
@@ -969,6 +970,9 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 			{"sample_votes", number(o.sampleVotes)},
 			{"sample_coverage", number(o.sampleCoverage)},
 			{"sparse_sample_variance", number(o.sparseSampleVariance)},
+			{"comparison_variance", number(o.comparisonVariance)},
+			{"comparison_variance_floor", number(o.comparisonVarianceFloor)},
+			{"retained_comparison_variance", number(o.retainedComparisonVariance)},
 			{"category_fp_coverage", number(o.categoryFpCoverage)},
 			{"comparison_quality_floor", number(o.comparisonQualityFloor)},
 			{"restored_comparison_fraction", number(o.restoredComparisonFraction)},

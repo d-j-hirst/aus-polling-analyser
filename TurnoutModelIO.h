@@ -13,6 +13,7 @@ struct Artifact {
     TurnoutModel::Options options;
     std::optional<double> pollClose;
     bool decayPpvc = false;
+    std::optional<bool> unreportedPlaces; // Absent: follow the existing PPVC-delay opt-in.
     // Counting procedure, not an election-specific recovery exception. Under
     // optional preferential voting, exhausted ballots legitimately reduce TCP.
     bool optionalPreferential = false;

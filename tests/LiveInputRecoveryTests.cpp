@@ -1,4 +1,5 @@
 #include "../LiveInputRecovery.h"
+#include "../LiveInputHistory.h"
 #include "../RetainedLiveState.h"
 #include "../LivePartialCount.h"
 #ifdef LIVE_INPUT_PARSER_TESTS
@@ -1188,6 +1189,7 @@ void checkFpTotalHistory(std::filesystem::path const& folder) {
     std::optional<Snapshot> previous;
     for (int hour = 8; hour <= 12; ++hour) {
         auto source = example("2026-03-30T"+std::string(hour < 10 ? "0" : "")+std::to_string(hour)+":00:00");
+        source.districts.at("North").enrolment = 10000;
         auto& r = source.records[0]; r.incremental = true;
         int votes = hour <= 9 ? 300 : hour == 10 ? 800 : hour == 11 ? 780 : 900;
         r.fp.votes = Counts{{11,votes},{12,0}}; r.tcp.votes = Counts{{11,votes},{12,0}};
@@ -1203,6 +1205,143 @@ void checkFpTotalHistory(std::filesystem::path const& folder) {
     assert(indexed.size() == 1 && indexed.begin()->second == std::vector<double>({300,800,780}));
     assert(query("2026-03-30T10:00:00",HistoryReadMode::Indexed).begin()->second == std::vector<double>({300}));
     assert(query("2026-03-30T08:00:00",HistoryReadMode::Indexed).empty());
+    // Empty physical accounts now consult this same index to distinguish an
+    // unused listing from a positive return subsequently withdrawn. Retain the
+    // zero change, and never let a later restoration leak into an earlier replay.
+    for (int hour : {13,14}) {
+        auto source = example("2026-03-30T"+std::to_string(hour)+":00:00");
+        source.districts.at("North").enrolment = 10000;
+        auto& record = source.records[0]; record.incremental = true;
+        int votes = hour == 13 ? 0 : 1200;
+        record.fp.votes = Counts{{11,votes},{12,0}};
+        record.tcp.votes = Counts{{11,votes},{12,0}};
+        previous = recover(source,previous).snapshot;
+        commit(folder,*previous);
+    }
+    auto withdrawn = query("2026-03-30T14:00:00",HistoryReadMode::Indexed);
+    assert(withdrawn == query("2026-03-30T14:00:00",HistoryReadMode::SourceFiles));
+    assert(withdrawn.begin()->second == std::vector<double>({300,800,780,900,0}));
+    assert(query("2026-03-30T13:00:00",HistoryReadMode::Indexed).begin()->second.back() == 900);
+    auto equalHistory = [&](std::string const& cutoff) {
+        auto indexedHistory = query(cutoff,HistoryReadMode::Indexed);
+        assert(indexedHistory == query(cutoff,HistoryReadMode::SourceFiles));
+        return indexedHistory.begin()->second;
+    };
+    assert(equalHistory("2026-03-30T15:00:00") == std::vector<double>({300,800,780,900,0,1200}));
+
+    // Late insertion, same-time replacement and deletion must preserve the
+    // following observations rather than treating a compact run as immutable.
+    auto insert = [&](std::string time, int votes) {
+        auto source = example(time); source.districts.at("North").enrolment = 10000;
+        auto& record = source.records[0]; record.incremental = true;
+        record.fp.votes = record.tcp.votes = Counts{{11,votes},{12,0}};
+        auto accepted = recover(source,{}).snapshot; commit(folder,accepted);
+        return accepted;
+    };
+    insert("2026-03-30T12:30:00",550);
+    assert(equalHistory("2026-03-30T14:00:00") == std::vector<double>({300,800,780,900,550,0}));
+    insert("2026-03-30T13:00:00",500);
+    assert(equalHistory("2026-03-30T15:00:00") == std::vector<double>({300,800,780,900,550,500,1200}));
+    std::filesystem::remove(folder/"2026-03-30T13-00-00.json");
+    assert(equalHistory("2026-03-30T14:00:00") == std::vector<double>({300,800,780,900,550}));
+    assert(equalHistory("2026-03-30T15:00:00").back() == 1200);
+    insert("2026-03-30T13:00:00",0);
+
+    previous = insert("2026-03-30T15:00:00",0);
+    auto invalid = example("2026-03-30T16:00:00");
+    invalid.districts.at("North").enrolment = 10000;
+    invalid.records[0].incremental = true;
+    invalid.records[0].fp.votes = Counts{{11,-1},{12,0}};
+    invalid.records[0].tcp.votes = Counts{{11,0},{12,0}};
+    previous = recover(invalid,previous).snapshot;
+    assert(previous->records[0].fp.status == Status::Restored);
+    assert(previous->records[0].fp.observedAt == "2026-03-30T15:00:00");
+    commit(folder,*previous);
+    insert("2026-03-30T17:00:00",1200);
+    assert(equalHistory("2026-03-30T17:00:00") == std::vector<double>({300,800,780,900,550,0,1200,0}));
+    assert(equalHistory("2026-03-30T18:00:00") == std::vector<double>({300,800,780,900,550,0,1200,0,1200}));
+    // Rewinding after a later query must not leak the restored positive account.
+    assert(equalHistory("2026-03-30T14:00:00") == std::vector<double>({300,800,780,900,550,0}));
+}
+
+void checkFpRunObservationClocks(std::filesystem::path const& folder) {
+    // Fixed restoration clocks can interleave with a run of unchanged FPs.
+    // All original fresh clocks matter here: keeping only the first and last
+    // fresh observation would lose the zero between the two older restorations.
+    auto save = [&](std::string time, int votes, std::string observed = {}) {
+        auto snapshot = recover(example(time),{}).snapshot;
+        snapshot.districts.at("North").enrolment = 10000;
+        auto& record = snapshot.records[0];
+        record.incremental = true;
+        record.fp.votes = record.tcp.votes = Counts{{11,votes},{12,0}};
+        record.fp.observedAt = observed.empty() ? time : observed;
+        record.fp.status = observed.empty() ? Status::Current : Status::Restored;
+        record.fp.complete = false; record.matchedPreferences.reset(); record.tcpBasis.reset();
+        commit(folder,snapshot);
+        return snapshot;
+    };
+    save("2026-03-30T08:00:00",0); save("2026-03-30T09:00:00",0); save("2026-03-30T10:00:00",0);
+    save("2026-03-30T11:00:00",700,"2026-03-30T08:30:00");
+    save("2026-03-30T12:00:00",800,"2026-03-30T09:30:00");
+    LiveInputHistory::Selection selection{{"North",{"North/ordinary/School"}}};
+    auto query = [&](std::string const& cutoff) {
+        auto result = loadFpTotalHistory(folder,"fictional",cutoff,selection,HistoryReadMode::Indexed);
+        assert(result == loadFpTotalHistory(folder,"fictional",cutoff,selection,HistoryReadMode::SourceFiles));
+        return result.begin()->second;
+    };
+    assert(query("2026-03-30T13:00:00") == std::vector<double>({0,700,0,800,0}));
+    save("2026-03-30T13:00:00",900,"2026-03-30T08:30:00");
+    assert(query("2026-03-30T14:00:00") == std::vector<double>({0,900,0,800,0}));
+    auto missing = save("2026-03-30T09:00:00",0);
+    missing.records.erase(missing.records.begin()); commit(folder,missing);
+    assert(query("2026-03-30T14:00:00") == std::vector<double>({0,900,800,0}));
+    auto unavailable = save("2026-03-30T09:00:00",0);
+    unavailable.records[0].fp.votes.reset(); unavailable.records[0].fp.status = Status::Unavailable;
+    commit(folder,unavailable);
+    assert(query("2026-03-30T14:00:00") == std::vector<double>({0,900,800,0}));
+    auto otherElection = save("2026-03-30T09:00:00",0);
+    otherElection.election = "another-election"; commit(folder,otherElection);
+    assert(query("2026-03-30T14:00:00") == std::vector<double>({0,900,800,0}));
+    save("2026-03-30T10:00:00.01",5);
+    assert(query("2026-03-30T10:00:00.01") == std::vector<double>({0}));
+    assert(query("2026-03-30T10:00:00.02") == std::vector<double>({0,5}));
+    auto expected = query("2026-03-30T14:00:00");
+    LiveInputHistory::clearMemoryCache(1);
+    assert(query("2026-03-30T14:00:00") == expected);
+    assert(LiveInputHistory::statistics().retainedBytes <= 1);
+    LiveInputHistory::clearMemoryCache();
+
+    // Corrupt only this test's disposable index. Rebuilding from original
+    // accepted sources must preserve the complete same-time/replay behaviour.
+    json manifest;
+    { std::ifstream input(folder/"change-index-v1"/"manifest.json"); input >> manifest; }
+    std::string filename;
+    for (auto const& partition : manifest.at("payload").at("partitions"))
+        if (partition.at("district") == "North") filename = partition.at("file");
+    assert(!filename.empty());
+    { std::ofstream output(folder/"change-index-v1"/filename); output << "damaged test partition"; }
+    LiveInputHistory::clearMemoryCache();
+    assert(query("2026-03-30T14:00:00") == expected);
+    assert(LiveInputHistory::statistics().builds > 0);
+    std::cout << "FP run/source-file parity, restoration clocks, amendments and replay cutoffs passed.\n";
+}
+
+void checkFpRunGrouping(std::filesystem::path const& folder) {
+    // Protect the optimization without a machine-dependent timing assertion:
+    // repeated fresh zero counts need one decoded FP state, while all capture
+    // clocks remain available for the original observation-order calculation.
+    for (int minute = 0; minute < 48; ++minute) {
+        auto source = example("2026-03-30T08:"+std::string(minute < 10 ? "0" : "")+std::to_string(minute)+":00");
+        source.records[0].fp.votes = source.records[0].tcp.votes = Counts{{11,0},{12,0}};
+        commit(folder,recover(source,{}).snapshot);
+    }
+    LiveInputHistory::clearMemoryCache();
+    LiveInputHistory::Selection selection{{"North",{"North/ordinary/School"}}};
+    auto result = loadFpTotalHistory(folder,"fictional","2026-03-30T09:00:00",selection);
+    assert(result.begin()->second == std::vector<double>({0}));
+    auto stats = LiveInputHistory::statistics();
+    assert(stats.fpRunCallbacks == 1 && stats.fpSourceClocks == 48);
+    assert(result == loadFpTotalHistory(folder,"fictional","2026-03-30T09:00:00",selection,HistoryReadMode::SourceFiles));
 }
 
 int main(int argc, char** argv) {
@@ -1216,6 +1355,8 @@ int main(int argc, char** argv) {
     checkHistory(folder); checkFailedUpdateTransaction(folder);
     checkIncrementalHistory(folder/"incremental");
     checkFpTotalHistory(folder/"fp-totals");
+    checkFpRunObservationClocks(folder/"fp-run-clocks");
+    checkFpRunGrouping(folder/"fp-run-grouping");
     checkOlderCompatibleCounts(folder/"older-compatible");
     checkReconciliationHistory(folder/"reconciliation");
     checkPreferenceHistory(folder/"preferences");

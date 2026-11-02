@@ -637,14 +637,22 @@ LiveV2::Election::tppSeatObservationRows(int s, double matchedUnits) const {
 void LiveV2::Election::applyTppObservationCoverage(TppCategoryAccount const& prepared,
     int group, int code, LiveTppIntegration::Observation& observation) const {
     auto const& evidence = prepared.observationEvidence[group].at(code);
-    // Small samples must not bypass district uncertainty just because their
-    // own counts are complete. Keep cross-subset scatter and the established
-    // sparse-sample allowance in the covariance used for both means and draws.
+    // Received counts remain in the finite-vote account. These variances govern
+    // what their comparison teaches about general seat/category movement, not
+    // whether the published ballots are accepted. Small completed categories
+    // retain the same underlying comparison scatter as incomplete categories;
+    // only the uncertainty about still-unreported locations disappears.
     observation.variance = evidence.variance(prepared.evidence.at(code).heterogeneity());
     observation.sampleVotes = evidence.reporting.fpVotes;
     observation.sampleCoverage = evidence.sampleCoverage();
     observation.sparseSampleVariance = evidence.sparseSampleVariance(observation.variance);
     observation.variance += observation.sparseSampleVariance;
+    observation.comparisonVariance = evidence.comparisonVariance(prepared.evidence.at(code).heterogeneity());
+    observation.comparisonVarianceFloor = LiveTppIntegration::retainSmallCategoryVariance(
+        0,observation.comparisonVariance,observation.sampleVotes);
+    double reportingVariance = observation.variance;
+    observation.variance = evidence.locationVariance(prepared.evidence.at(code).heterogeneity());
+    observation.retainedComparisonVariance = observation.variance-reportingVariance;
 
     auto const& progress = prepared.fpProgress.at(code);
     observation.categoryFpCoverage = progress.fpVotes/progress.expectedVotes;

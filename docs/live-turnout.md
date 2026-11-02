@@ -73,6 +73,18 @@ identities, recheck authority, completion and transfers. Strict source-time cuto
 exclude same-time and future observations during replay. Whole-district rollback
 continues to read a complete historical account from a single source.
 
+Numeric FP histories use a narrower query: read each distinct FP state once,
+without rebuilding its TCP, preference metadata or original array position.
+Lightweight capture clocks are retained even within an unchanged run. This matters
+when a restored observation has an older clock between fresh observations: keeping
+only the run's endpoints could lose a zero or a restoration in the final ordering.
+For example, a restored 300-vote observation between two fresh zeros, ordered by
+original observation time, must still yield `0, 300, 0`.
+The numeric reader preserves the original source reader's newest-capture precedence
+for conflicting versions of one observation time, then removes consecutive equal
+totals. Zero withdrawals, later returns and unavailable records remain distinct.
+The general compatibility searches retain their existing per-capture procedure.
+
 The first search builds the necessary index from existing earlier snapshots in
 one traversal. Successful accepted-count commits then update it incrementally.
 The source inventory detects added, replaced and deleted files using file size
@@ -248,6 +260,92 @@ Unreported matched PPVCs retain their own size expectations with conservative pa
 | 8,000 or more | 0.63 |
 
 These are coefficients of changes in log odds, rather than fractions of a vote-count shortfall or correlation measurements. The adjustment is weakened by the expected fraction of the other centres that has reported. The coefficients come from the conservative end of the Federal 2025 reliable-match comparison, excluding Brand's reporting consolidation; they have not been independently validated on another election. Size bands are discrete, while influence within a band changes continuously with the reported evidence. New or changed centres use their supplied starting weights; EAV services receive their separate small-service treatment. Redistribution effects beyond these input mappings are not inferred by this calculation.
+
+### Empty public PPVCs and Divisional Offices
+
+An empty physical account can eventually supply a normal return or remain unused.
+`live-counts-16` separates the probability of a return from its size if it occurs.
+This replaces the old residual small-size PPVC allowance for eligible units and
+prevents unused Divisional Offices retaining thousands of expected votes.
+The change concerns formal FP quantities; the existing party-composition model
+allocates any additions between candidates and completes their preferences.
+
+The following are working probabilities of a subsequent positive return **given
+that the unit has never reported positive FP at the current source time**. Days
+are calendar days since polling close, on the feed's source clock. They are
+conservative assumptions informed by the available 2013, 2016 and 2019 federal
+archives, with 2022 checked as a slower-reporting comparison, rather than precise
+fitted frequencies. Repeated observations of one unit are not independent tests.
+
+| Days after close | Established public PPVC | Divisional Office |
+| ---: | ---: | ---: |
+| 1 | 95% | 15% |
+| 2 | 85% | 8% |
+| 3 | 70% | 6% |
+| 5 | 50% | 5% |
+| 7 | 40% | 4% |
+| 10 | 30% | 2% |
+| 14 | 15% | 0.5% |
+| 21 | 5% | 0.1% |
+| 28 | 1% | 0.02% |
+
+Probabilities interpolate continuously on log odds. After day 28 the odds halve
+weekly, without a permanent floor. A public listing without a reliable historical
+match divides those odds by 20: for example, 85% becomes about 22%. The optional
+unit field `return_confirmed: true` gives a confirmed new public centre the
+established-centre curve; mere presence in a preload does not confirm operation.
+During the first day a smooth transition retains the initial account. With no
+positive counts nationally, or no usable polling/source clock, it stays unchanged.
+
+A public return retains its venue-specific usual size, including the existing
+size compensation. Delay reduces its return probability rather than shrinking
+the conditional return itself. Local size variation targets a conservative total
+SD of 0.6 in natural log odds of votes/enrolment, adding only the variance missing
+from its original outcomes. Earlier matched-centre size errors in the three
+archives had SDs around 0.36–0.47 on that scale; the delayed subset was around
+0.51. Size widening preserves the conditional mean within physical bounds.
+Genuinely new centres retain their supplied earlier-election size weights.
+
+An Office return blends over the first two days towards a nominal median of 40
+formal votes and natural-log-odds SD 1.4. In a district with ample space, this
+gives a mean near 107, 95th percentile near 400 and 99th near 1,040. Fifteen final
+positive Office accounts still empty at 48 hours in the three archives ranged
+from 2 to 378 votes, with geometric mean 43 and natural-log SD 1.41. These broad
+round settings are deliberately conservative. Large temporary Office accounts
+later reclassified into declarations are not extra final physical turnout.
+
+The two choices run after declaration allocation. Disjoint shares of unused
+enrolment bound simultaneous returns. A no-return outcome reduces turnout; it
+does not increase another booth or declaration category. Rare branches contribute
+to the stored means even when the small diagnostic sample misses them, and main
+iterations retain continuous size tails. A declaration finishing outcome does
+not prevent a possible late physical return.
+
+For preparation samples, each unit permutes the same midpoint quantiles. Their
+normal values are computed once per snapshot and looked up at the original
+positions. This saves repeated inverse-distribution calculations without changing
+the sample values, random streams or any probability/size parameters.
+
+Positive physical accounts keep the ordinary counting rules. BLV, EAV, mixed
+early/day centres, excluded or closed services and finalised districts are outside
+this procedure. Accepted history through the current source time distinguishes
+never-reported accounts from positive accounts later withdrawn to zero; the latter
+retain their previous treatment. WA's mixed-place procedure remains separate.
+
+Operationally this follows the existing `ppvc_reporting_decay` opt-in. Optional
+`options.unreported_places` explicitly enables or disables the new procedure;
+disabling it retains the legacy delay treatment. Frozen prior draws and project
+formats are unchanged. The standalone Python comparison path retains its legacy
+calculation; the new portable native tests exercise this additional live stage.
+
+Saved `live_analysis.turnout.units[].unreported_place` records each return
+probability, role, confirmation, conditional mean and added size spread.
+`seats[].physical_count_diagnostic` compares counted physical FP with the frozen
+pre-election physical mean and SD. `shortfall` is their signed difference in
+formal votes; `total_if_no_more_physical` adds the current declaration mean to
+physical votes already counted. Neither measure adjusts the forecast. Canberra
+2016's deficit did precede Woden's 10,584-vote return, but other divisions retained
+deficits without a missing centre, so the diagnostic is not an automatic repair.
 
 A known closure contributes no expected additions or voter-behaviour evidence. In particular, its recorded zero does not suggest that other districts have more counting left. This exclusion also applies when all services in a category group are unavailable; a group with an open service still supplies progress evidence. An open service that has reported zero remains evidence that counting has not started.
 
@@ -722,3 +820,19 @@ Live/media-feed snapshots and close derivatives, including operational configura
 Archive-reading Python tools default to ignored `downloads/turnout/feed-archive/`. Optional `POLLING_ANALYSER_FEED_ARCHIVE` and `POLLING_ANALYSER_FEED_DOWNLOADS` select external archive/incoming directories once across elections; they do not activate the turnout model or select its prior.
 
 The portable `TurnoutModelTests` checks numerical Python/C++ agreement using fictional counts, finalisation, count preservation, joint/exceptional draws, the production composition cache and source-time history replacement and filtering. `test_turnout_prepare_live` checks the standalone input-preparation boundary without a private archive. Neither test runs the wxWidgets application. A GUI rebuild and snapshot run are required to verify the complete forecast and its runtime.
+
+`UnreportedPlaceCountingTests` additionally checks the installed probability
+knots, smooth transitions, positive-return sizes, rare-return means, enrolment
+bounds, unchanged sibling declaration draws, withdrawn-account exclusions and
+the shared FP/TCP/TPP composition boundary. From the repository root in a Visual
+Studio developer PowerShell, compile and run only this portable component test:
+
+```powershell
+New-Item -ItemType Directory -Force cli-build\unreported-place-tests | Out-Null
+cl /nologo /std:c++20 /O2 /EHsc /I. /Fo"cli-build\unreported-place-tests\\" /Fe"cli-build\unreported-place-tests\tests.exe" tests\UnreportedPlaceCountingTests.cpp TurnoutModel.cpp TurnoutModelIO.cpp LiveTurnout.cpp Date.cpp
+.\cli-build\unreported-place-tests\tests.exe
+```
+
+`LiveInputRecoveryTests` checks indexed and original-file history agree through
+a withdrawal to zero and excludes a later restoration from earlier queries.
+These controlled tests require no private feed archive or model fitting.

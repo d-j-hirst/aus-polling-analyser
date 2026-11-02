@@ -6,13 +6,14 @@
 #include <string>
 #include <vector>
 #include "WaEarlyCounting.h"
+#include "UnreportedPlaceCounting.h"
 
 // This portable count model consumes immutable pre-election count outcomes. It has no
 // party model or GUI dependency: the same immutable input is updated afresh
 // for each snapshot, including when counted votes have been revised downwards.
 namespace TurnoutModel {
 using Matrix = std::vector<std::vector<double>>;
-inline constexpr char CountVersion[] = "live-counts-15";
+inline constexpr char CountVersion[] = "live-counts-16";
 inline constexpr char ProgressVersion[] = "live-late-counts-5";
 inline constexpr char ScheduleVersion[] = "live-declaration-schedule-3";
 inline constexpr char AllocationVersion[] = "live-allocation-1";
@@ -95,6 +96,10 @@ struct Unit {
     // physical identity. Source completion or closure can finish them; WA's
     // separate procedure can also finish their modelled routine additions.
     bool incremental = false;
+    // Optional explicit evidence that a new public centre will operate. A
+    // preload identity alone is insufficient; historical matching supplies
+    // confirmation for established centres without this additional flag.
+    bool returnConfirmed = false;
     // Empty normally. An explicit category-transfer exclusion (for example a
     // newly introduced service with no comparable size baseline) leaves its
     // own estimate and counted votes intact. Unmatched booth names alone do
@@ -106,7 +111,8 @@ struct Unit {
     // Offline fixtures without recovery retain the ordinary counting rules.
     std::optional<bool> acceptedComplete;
     // Runtime observations from the compact accepted-count index, oldest first.
-    // Only the WA mixed-place rule reads this; no project/prior format change.
+    // WA mixed places use the sequence to identify batches. Empty PPVC/Office
+    // accounts use it only to distinguish never reported from later withdrawn.
     std::vector<double> receivedFpTotals;
 };
 struct Prior {
@@ -163,6 +169,9 @@ struct Options {
         {"Provisional",ProcessingTimetable{18,2}}};
     bool postalWidening = true; // Runtime comparison control; no project-format change.
     bool declarationRemainders = true; // Runtime comparison only; frozen priors are unchanged.
+    // Operational live runs default to this when PPVC reporting decay is
+    // enabled. Kept explicit here for comparisons with the legacy count path.
+    bool unreportedPlaces = false;
 };
 // Count estimates after unit/group balancing, before the late-addition mixture.
 // Whole-group progress can subsequently revise the allocation in this account.
@@ -257,8 +266,10 @@ struct Component {
 };
 struct Result {
     Broad broad;
-    // Samples describe the branch with additional votes. Mix with the shared
-    // exact counted outcome using noAdditionProbability when reading results.
+    // Ordinarily samples describe the branch with additional votes: mix with
+    // the counted outcome using noAdditionProbability. Districts with local
+    // unreported-place choices contain the full mixture instead and set that
+    // external weight to zero; see originalNoAdditionProbability below.
     Matrix totals, counts; // (prior outcomes * countDraws) x district or flattened district/group.
     // Exact conditional means before the analytically neutral postal spread.
     // Percentiles use the broader samples above; means avoid added sampling
@@ -281,6 +292,33 @@ struct Result {
         double counted = 0;
     };
     std::vector<WaEarlyPlace> waEarlyPlaces;
+    // Local return/no-return alternatives for currently empty physical units.
+    // Reference and reservation vectors have one entry per original outcome.
+    // A full-sized public return keeps its usual venue estimate; the probability
+    // of that return, rather than its size, falls with delay. Office size blends
+    // towards the separate small-return distribution during the first two days.
+    struct UnreportedPlace {
+        std::size_t unit = 0;
+        UnreportedPlaceCounting::Role role = UnreportedPlaceCounting::Role::None;
+        bool confirmed = false;
+        // Probability is conditional on never having reported by this source.
+        // ConditionalMean averages positive return size over both old district
+        // finishing branches; multiply by probability to obtain its count mean.
+        double probability = 1, sizePhase = 0, extraSizeSd = 0, conditionalMean = 0;
+        // Reference: usual positive formal count. CapacityWeight: this unit's
+        // fraction of the sum of usual amounts. ReservationTotal: that sum for
+        // all eligible empty units in the district. SpareCapacityShare divides
+        // additional room equally, without reallocating any no-return capacity.
+        std::vector<double> reference, capacityWeight, reservationTotal;
+        double spareCapacityShare = 1;
+    };
+    std::vector<UnreportedPlace> unreportedPlaces;
+    // Affected districts' diagnostic arrays include BOTH existing count branches
+    // and the new local choices. Their external mixture weight is then zero.
+    // Main draws still use the original district finishing choice for all other
+    // units. In particular it must not suppress a possible late physical return.
+    std::vector<double> originalNoAdditionProbability;
+    std::vector<double> exactNoAdditionProbability;
 };
 
 // Freeze the indexing needed by main simulation draws once per snapshot. The

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -91,6 +92,26 @@ inline double firstShare(Shares const& primaries, LivePartialCount::Flows const&
     for (auto const& [candidate,share] : primaries)
         first += share*LivePartialCount::preferenceRate(candidate,flows,offset);
     return first;
+}
+
+// Return the first finalist's TCP share (a fraction from zero to one) among
+// voters whose FP has not arrived. Non-classic declaration votes use their
+// projected FP composition and the seat's preference assumptions, adjusted by any matched
+// local FP/TCP evidence. The candidate IDs and flow fractions all refer to the
+// same pair: flows give the fraction reaching `first`. A positive variation
+// shifts uncertain preference rates towards that finalist on log odds, which
+// keeps those rates between zero and one. It cannot move either finalist's
+// own primary votes. Primary-share uncertainty is already represented when
+// `primaries` is prepared.
+//
+// Use this same calculation whether the received FP/TCP account is unchanged
+// or has been revised. Uncertainty about a revised batch belongs to that batch,
+// and must not switch all outstanding voters to a wider whole-TCP-share draw.
+inline double nonClassicFirstShare(Shares const& primaries, LivePartialCount::Flows const& flows,
+    std::optional<LivePartialCount::Evidence> const& evidence, int first, int second,
+    double preferenceLogOddsVariation) {
+    double offset = LivePartialCount::evidenceOffset(0,evidence,first,second);
+    return firstShare(primaries,flows,offset+preferenceLogOddsVariation);
 }
 
 // Primary-movement evidence has a different denominator from count completion.

@@ -282,6 +282,8 @@ public:
     void update(std::string const& source, std::optional<json> const& stamp, Validate const& validate);
     void prepare(Selection const& selection, std::string const& cutoff);
     void visit(std::string const& cutoff, Selection const& selection, Visitor const& visitor, RequiredCount required);
+    void visitFirstPreferenceRuns(std::string const& cutoff, Selection const& selection,
+        FirstPreferenceRunVisitor const& visitor);
     std::shared_ptr<Partition const> partition(std::string const& id, std::string const& cutoff = {});
     void publish(json next);
     void clearPartitions() { cache.clear(); counters.retainedBytes = 0; }
@@ -639,6 +641,54 @@ void Store::visit(std::string const& cutoff, Selection const& selection, Visitor
     }
 }
 
+void Store::visitFirstPreferenceRuns(std::string const& cutoff, Selection const& selection,
+    FirstPreferenceRunVisitor const& visitor) {
+    // The source inventory supplies clocks only. In contrast with recovery's
+    // general visitor above, this query never reconstructs a whole record or
+    // scans its original array position for each unchanged capture. Read each
+    // district's compact FP/presence timelines, grouping consecutive identical
+    // states before handing them to the numeric-history reader.
+    std::vector<std::string> stems;
+    std::vector<CountSourceClock> clocks;
+    auto const& sources = manifest.at("sources");
+    for (auto source = sources.rbegin(); source != sources.rend(); ++source) {
+        if (source.key() >= cutoff) continue;
+        auto const& metadata = source.value().at("metadata");
+        stems.push_back(source.key());
+        clocks.push_back({metadata.at("election"),metadata.at("source_time")});
+    }
+    static Value const present("true");
+    static json const sourceClock = {{"$source",true}};
+    for (auto const& [district, keys] : selection) {
+        auto history = partition(hashText(district),cutoff);
+        for (auto const& key : keys) {
+            auto record = history->find(key);
+            if (record == history->end()) continue;
+            auto fp = record->second.fields.find("fp");
+            if (fp == record->second.fields.end()) continue;
+            std::string const* active = nullptr;
+            std::size_t start = 0;
+            for (std::size_t i = 0; i <= stems.size(); ++i) {
+                std::string const* next = nullptr;
+                if (i < stems.size() && at(record->second.present,stems[i]) == present)
+                    if (auto const& value = at(fp->second,stems[i])) next = &*value;
+                if (next == active) continue;
+                if (active) {
+                    auto account = json::parse(*active);
+                    bool followsSource = account.at("t") == sourceClock;
+                    transformClocks(account,clocks[start].time,true);
+                    ++counters.fpRunCallbacks;
+                    counters.fpSourceClocks += i-start;
+                    visitor(key,account,followsSource,
+                        std::span<CountSourceClock const>(clocks).subspan(start,i-start));
+                }
+                active = next;
+                start = i;
+            }
+        }
+    }
+}
+
 Store& storeFor(Path const& folder) {
     // Lexical normalization does not require traversing protected ancestor
     // directories (which can fail in sandboxed Windows runs). Alias paths may
@@ -664,6 +714,28 @@ void visitEarlier(Path const& folder, std::string const& cutoff, Selection const
             store.prepare(selection, cutoff);
         }
         store.visit(cutoff, selection, visitor, required);
+    } catch (std::exception const& error) {
+        currentStore.reset(); counters.retainedBytes = 0;
+        ++counters.fallbacks; counters.lastFailure = error.what();
+        throw Unavailable(error.what());
+    }
+}
+
+void visitFirstPreferenceRuns(Path const& folder, std::string const& cutoff,
+    Selection const& selection, Validate const& validate, FirstPreferenceRunVisitor const& visitor) {
+    // Use the same locking, source-revision checks and partition validation as
+    // recovery. A damaged derived index rebuilds from original accepted sources;
+    // an unavailable index lets the caller restart with its source-file reader.
+    std::lock_guard lock(indexMutex);
+    try {
+        auto& store = storeFor(folder);
+        FileLock fileLock(store.directory);
+        try { store.refresh(cutoff,validate); store.prepare(selection,cutoff); }
+        catch (std::exception const&) {
+            store.build(inventory(store.folder,cutoff),validate);
+            store.prepare(selection,cutoff);
+        }
+        store.visitFirstPreferenceRuns(cutoff,selection,visitor);
     } catch (std::exception const& error) {
         currentStore.reset(); counters.retainedBytes = 0;
         ++counters.fallbacks; counters.lastFailure = error.what();

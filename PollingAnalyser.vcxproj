@@ -452,6 +452,7 @@
     <ClInclude Include="LiveTurnoutMath.h" />
     <ClInclude Include="LiveCountRevisions.h" />
     <ClInclude Include="WaEarlyCounting.h" />
+    <ClInclude Include="UnreportedPlaceCounting.h" />
     <ClInclude Include="LivePartialCount.h" />
     <ClInclude Include="LiveFpEvidence.h" />
     <ClInclude Include="LiveEstimatedTpp.h" />
