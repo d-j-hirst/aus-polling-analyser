@@ -81,6 +81,8 @@ call :run MacroTargetResolverTests
 if errorlevel 1 goto :failure
 call :run MajorPartyFpMathTests
 if errorlevel 1 goto :failure
+call :run CoalitionPairingTests
+if errorlevel 1 goto :failure
 call :run RandomGeneratorTests
 if errorlevel 1 goto :failure
 call :run RegionalSwingMathTests

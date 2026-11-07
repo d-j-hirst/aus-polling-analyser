@@ -124,6 +124,36 @@ int main() {
     touch(federal / "aec-mediafeed-Detailed-Light-12345-20250503180100.zip");
     assert(!discover(federal, "2025fed").error.empty());
 
+    // AEC sometimes publishes an election's final capture the following year.
+    // Election-year captures establish the event ID; other years of that same
+    // event remain selectable, while unrelated events stay out of the list.
+    auto federal2016 = root / "federal2016";
+    std::filesystem::create_directory(federal2016);
+    touch(federal2016 / "aec-mediafeed-Detailed-Light-20499-20170511174118.zip");
+    touch(federal2016 / "aec-mediafeed-Detailed-Light-24310-20190729153147.zip");
+    touch(federal2016 / "aec-mediafeed-Detailed-Light-20499-20160702170213.zip");
+    touch(federal2016 / "aec-mediafeed-Detailed-Light-24310-20170511174119.zip");
+    auto fed2016 = discover(federal2016, "2016fed");
+    assert(fed2016.error.empty() && fed2016.files.size() == 2);
+    assert(fed2016.files.front().timestamp == "20160702170213");
+    assert(fed2016.files.back().timestamp == "20170511174118");
+    auto lateSelection = resolve(fed2016.files, {"20160702170213", "20170511174118"});
+    assert(lateSelection.back().path.filename() == "aec-mediafeed-Detailed-Light-20499-20170511174118.zip");
+    auto lateCodes = std::vector<std::string>{"20160702170213"};
+    appendNext(fed2016.files, lateCodes, 5);
+    assert(lateCodes.back() == "20170511174118");
+    // Duplicate protection also applies to next-year ZIP/XML alternatives.
+    touch(federal2016 / "aec-mediafeed-results-detailed-light-20499-20170511174118.xml");
+    assert(!discover(federal2016, "2016fed").error.empty());
+
+    auto federal2013 = root / "federal2013";
+    std::filesystem::create_directory(federal2013);
+    touch(federal2013 / "aec-mediafeed-Detailed-Light-17496-20130907180000.zip");
+    touch(federal2013 / "aec-mediafeed-Detailed-Light-17496-20140516155658.zip");
+    auto fed2013 = discover(federal2013, "2013fed");
+    assert(fed2013.error.empty() && fed2013.files.size() == 2);
+    assert(fed2013.files.back().timestamp == "20140516155658");
+
     auto victorian = root / "victorian";
     std::filesystem::create_directory(victorian);
     touch(victorian / "State2022mediafilelitepplh_20221205_140012.zip");
@@ -139,7 +169,7 @@ int main() {
     assert(resolve(vicDiscovery.files, vicCodes).front().path.filename() == "State2022mediafilelitepplh_20221126_180329.xml");
 
     // Queensland captures timestamp a fixed-name publicResults document.
-    // Only top-level captures of the configured year belong in the editor;
+    // Only top-level captures belong in the editor; earlier election years,
     // archived duplicates and the un-timestamped working file stay excluded.
     auto queensland = root / "queensland";
     std::filesystem::create_directory(queensland);
@@ -171,6 +201,53 @@ int main() {
     auto waDiscovery = discover(western, "2025wa");
     assert(waDiscovery.error.empty() && waDiscovery.files.size() == 2);
     assert(waDiscovery.files.front().timestamp == "20250308180640");
+
+    // Late returns can cross a calendar-year boundary for state elections too.
+    // SA/VIC retain an election-year prefix; QLD/WA rely on an election-specific
+    // folder and source validation when loaded. Exercise discovery, ordering,
+    // selection and duplicate rejection with both short and full timestamps.
+    struct LateStateCapture {
+        std::string election, firstFile, lateFile, unrelatedFile, duplicateFile;
+        std::string firstCode, lateCode;
+    };
+    for (auto const& capture : std::vector<LateStateCapture>{
+        {"2026vic", "State2026mediafilelitepplh_20261128_180000.zip",
+            "State2026mediafilelitepplh_20270115_120000.xml",
+            "State2022mediafilelitepplh_20270115_120001.xml",
+            "State2026mediafilelitepplh_20270115_120000.zip",
+            "20261128180000", "20270115120000"},
+        {"2026sa", "el2026260321180000.xml", "el2026270115120000.xml",
+            "el2022270115120001.xml", "EL2026270115120000.XML",
+            "260321180000", "270115120000"},
+        {"2024qld", "20241026180000_publicResults.zip", "20250115120000_publicResults.xml",
+            "20201031180000_publicResults.zip", "20250115120000_publicResults.zip",
+            "20241026180000", "20250115120000"},
+        {"2025wa", "waec-la-verbose-20250308180000.xml", "waec-la-verbose-20260115120000.xml",
+            "waec-la-verbose-20210313180000.xml", "WAEC-LA-VERBOSE-20260115120000.XML",
+            "20250308180000", "20260115120000"}
+    }) {
+        auto stateFolder = root / capture.election;
+        std::filesystem::create_directory(stateFolder);
+        touch(stateFolder / capture.lateFile);
+        touch(stateFolder / capture.unrelatedFile);
+        auto lateOnly = discover(stateFolder, capture.election);
+        assert(lateOnly.error.empty() && lateOnly.files.size() == 1);
+        touch(stateFolder / capture.firstFile);
+        auto stateDiscovery = discover(stateFolder, capture.election);
+        assert(stateDiscovery.error.empty() && stateDiscovery.files.size() == 2);
+        assert(stateDiscovery.files.front().timestamp == capture.firstCode);
+        assert(stateDiscovery.files.back().timestamp == capture.lateCode);
+        auto codes = std::vector<std::string>{capture.firstCode};
+        appendNext(stateDiscovery.files, codes, 5);
+        assert(codes.size() == 2 && codes.back() == capture.lateCode);
+        assert(resolve(stateDiscovery.files, codes).back().path.filename() == capture.lateFile);
+        // Case-only alternatives are the same file on Windows. ZIP/XML variants
+        // still test duplicate rejection there, and all four formats do on Linux.
+        if (!std::filesystem::exists(stateFolder / capture.duplicateFile)) {
+            touch(stateFolder / capture.duplicateFile);
+            assert(!discover(stateFolder, capture.election).error.empty());
+        }
+    }
     // Remove only this test's newly-created, uniquely-named temporary tree.
     std::filesystem::remove_all(root);
     std::cout << "Snapshot discovery, sequence selection and saved-project settings checks passed.\n";

@@ -183,12 +183,25 @@ namespace Results2 {
 
 	struct Seat {
 		typedef std::unordered_map<int32_t, std::unordered_map<VoteType, int>> VotesByType;
+		// AEC district totals explicitly known to be final. Candidate identities
+		// remain commission IDs here; TPP keys are AEC coalition IDs (1 Labor,
+		// 2 Coalition). Keep these separate from rebuilt booth/category sums:
+		// an erroneous booth must not replace the authoritative final district.
+		struct FinalResult {
+			std::map<int, int> fp, tcp, tpp;
+			std::string basis;
+			std::optional<int> winner; // Published Elected candidate, including a resolved tie.
+		};
+		std::optional<FinalResult> finalResult;
+		// Published aggregate TPP, including progressive classic counts. Its
+		// presence or a positive value alone does not establish finalisation.
+		std::map<int, int> publishedTpp;
 
 		int32_t id;
 		std::string name;
 		int32_t enrolment = 0;
-		// Only an explicit first-preference flag may close the turnout account.
-		// Winner declarations and TCP completion do not imply FP finalisation.
+		// Explicit FP completion or a validated AEC final district account closes
+		// turnout. A winner declaration alone does not establish FP completion.
 		bool fpFinalised = false;
 		std::set<VoteType> syntheticBaselineTypes; // Historical declaration allocations reconstructed by the reader.
 		std::vector<int32_t> booths;

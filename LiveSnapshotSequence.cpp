@@ -1,3 +1,7 @@
+// Find archived result feeds and maintain the ordered selection used by the
+// snapshot-sequence editor and background replay job. Discovery reads filenames,
+// not vote counts. An election's results may be captured after its calendar year
+// ends, so the election identity and the capture timestamp are separate concepts.
 #include "LiveSnapshotSequence.h"
 
 #include "Date.h"
@@ -6,6 +10,7 @@
 #include <algorithm>
 #include <map>
 #include <regex>
+#include <set>
 #include <sstream>
 
 namespace LiveSnapshotSequence {
@@ -49,12 +54,14 @@ std::string portableFolder(std::filesystem::path const& root, std::filesystem::p
 Discovery discover(std::filesystem::path const& folder,
     std::string const& election) {
     // Naming rules belong to the feed format, not a particular replay year.
-    // Final exports and fixed-name working files are not timestamped captures.
+    // Fixed-name working files are not timestamped captures. An archived final
+    // return can still be a capture, including one published in a later year.
+    bool const federal = election.size() == 7 && election.substr(4) == "fed";
     std::regex pattern;
     if (election.size() == 6 && election.substr(4) == "sa")
         pattern = std::regex("^el" + election.substr(0, 4) + "([0-9]{12})\\.xml$", std::regex::icase);
-    else if (election.size() == 7 && election.substr(4) == "fed")
-        pattern = std::regex("^aec-mediafeed-(?:results-)?detailed(?:-light)?-[0-9]+-([0-9]{14})\\.(?:zip|xml)$", std::regex::icase);
+    else if (federal)
+        pattern = std::regex("^aec-mediafeed-(?:results-)?detailed(?:-light)?-([0-9]+)-([0-9]{14})\\.(?:zip|xml)$", std::regex::icase);
     else if (election.size() == 7 && election.substr(4) == "vic")
         pattern = std::regex("^state" + election.substr(0, 4) + "mediafilelitepplh_([0-9]{8})_([0-9]{6})\\.(?:zip|xml)$", std::regex::icase);
     else if (election.size() == 7 && election.substr(4) == "qld")
@@ -77,6 +84,14 @@ Discovery discover(std::filesystem::path const& folder,
     std::filesystem::directory_iterator entry(folder, error), end;
     if (error) return {{}, "Could not read snapshot folder:\n" + folderName + "\n" + error.message()};
     std::map<std::string, LiveResultsInput::CurrentFile> sorted;
+    // Ordinary election-year AEC captures identify the event numbers belonging
+    // to this replay directory. Retain subsequent captures of those same events
+    // regardless of calendar year: for example, the final 2016 return was
+    // published in May 2017. Other elections' event numbers stay excluded.
+    // This uses filenames only; the source reader still validates the selected
+    // archive's actual election identity before any votes enter the forecast.
+    std::set<std::string> federalEvents;
+    std::vector<std::pair<std::string, LiveResultsInput::CurrentFile>> federalCaptures;
     // Check each operation before using the iterator again: a removed entry or
     // an interrupted directory scan should become feedback, never a dereference
     // of an exhausted iterator or a throwing filesystem status query.
@@ -87,19 +102,40 @@ Discovery discover(std::filesystem::path const& folder,
         auto name = LiveResultsInput::pathToUtf8(entry->path().filename());
         std::smatch match;
         if (!std::regex_match(name, match, pattern)) continue;
-        std::string code = match[1].str();
+        std::string code = match[federal ? 2 : 1].str();
         // VEC filenames separate the date and time with an underscore. The
         // editor uses the same continuous 14-digit code as federal captures.
         if (election.substr(4) == "vic") code += match[2].str();
         auto key = code.size() == 12 ? "20" + code : code;
         if (!Timestamp::parseCompactLocal(key))
             return {{}, "A feed filename has an invalid snapshot timestamp: " + name};
-        if (key.substr(0, 4) != election.substr(0, 4)) continue;
+        if (federal) {
+            auto event = match[1].str();
+            if (key.substr(0, 4) == election.substr(0, 4)) federalEvents.insert(event);
+            federalCaptures.push_back({event, {entry->path(), code}});
+            continue;
+        }
+        // SA and Victorian names already identify the election separately from
+        // the capture date (for example State2026..._202701...). Do not reject
+        // their late captures merely because the calendar year has changed.
+        // QLD/WA names contain only a capture date: the selected replay folder
+        // must contain that election's feeds. Exclude earlier years, but impose
+        // no upper-year cutoff on later returns. Filename discovery alone cannot
+        // distinguish another election's later QLD/WA feed; the source reader
+        // checks the election when the chosen file is loaded.
+        bool const dateOnlyStateName = election.substr(4) == "qld" || election.substr(4) == "wa";
+        if (dateOnlyStateName && key.substr(0, 4) < election.substr(0, 4)) continue;
         if (!sorted.emplace(key, LiveResultsInput::CurrentFile{entry->path(), code}).second)
             return {{}, "More than one feed has snapshot code " + code +
                 ". Keep one source for each timestamp in this folder."};
     }
     if (error) return {{}, "Could not finish reading the snapshot folder:\n" + folderName + "\n" + error.message()};
+    for (auto const& [event, file] : federalCaptures) {
+        if (!federalEvents.contains(event)) continue;
+        if (!sorted.emplace(*file.timestamp, file).second)
+            return {{}, "More than one feed has snapshot code " + *file.timestamp +
+                ". Keep one source for each timestamp in this folder."};
+    }
     Discovery result;
     for (auto const& [key, file] : sorted) result.files.push_back(file);
     return result;

@@ -17,6 +17,7 @@ LiveSnapshotSequenceTests
 LiveSnapshotDataTests
 MacroTargetResolverTests
 MajorPartyFpMathTests
+CoalitionPairingTests
 RandomGeneratorTests
 RegionalSwingMathTests
 SeatVolatilityTests

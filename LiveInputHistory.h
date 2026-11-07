@@ -73,6 +73,7 @@ void committed(std::filesystem::path const& folder, std::string const& fileStem,
 // references, is mutex-protected, and retains at most one history directory.
 struct Statistics {
     std::size_t sourceReads = 0, partitionReads = 0, builds = 0;
+    std::size_t appendBatches = 0, partitionWrites = 0, publications = 0;
     std::size_t retainedBytes = 0, peakRetainedBytes = 0;
     std::size_t fallbacks = 0, updateFailures = 0;
     std::size_t fpRunCallbacks = 0, fpSourceClocks = 0;

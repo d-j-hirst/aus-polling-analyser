@@ -11,6 +11,7 @@
 #include <limits>
 #include <map>
 #include <set>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -25,8 +26,12 @@ class ForecastSpecificationProjectAdapter;
 // "Raw" support here means the imported Python trend before this C++ adjustment
 // stage; it already represents analysed polling data. "Adjusted" support combines
 // that trend with a historical baseline, corrections for systematic over- or
-// underestimation, and additional uncertainty. It provides summaries for reports and
-// fresh draws of possible support for projection calculations.
+// underestimation, and additional uncertainty.
+//
+// A "draw" is one possible combination of overall vote shares and preference
+// assumptions, randomly selected according to the model's uncertainty. Repeated
+// draws explore the range of possible support. The class provides daily summaries
+// for reports and fresh draws for projection calculations.
 class StanModel {
 public:
 	friend class ModelCollection;
@@ -115,8 +120,10 @@ public:
 	Timestamp getLastUpdatedDate() const { return lastUpdatedDate; }
 
 	// Load the selected election's Python outputs and model settings, then build
-	// adjusted daily summaries. paths locates the workspace; feedback reports
-	// progress or input problems; numThreads controls concurrent date calculations.
+	// adjusted daily summaries: averages and ranges of possible vote shares for
+	// report trends. paths supplies the base folder containing analysis/ and its
+	// input/output files (the "workspace"); feedback reports progress or input
+	// problems; numThreads controls concurrent date calculations.
 	// Return true after both stages succeed and the update time has been recorded.
 	bool loadData(WorkspacePaths const& paths,
 		FeedbackFunc feedback = [](std::string) {}, int numThreads = 1);
@@ -155,6 +162,12 @@ public:
 	ModelledPolls const& viewModelledPolls() const { return modelledPolls; }
 
 	static void setMajorPartyCodes(MajorPartyCodes codes) { majorPartyCodes = codes; }
+	static MajorPartyCodes const& getMajorPartyCodes() { return majorPartyCodes; }
+
+	// Runtime identity of the prepared sampling inputs. A live worker's copy
+	// keeps this identity; loading new data gives it a new one. Simulation uses
+	// it to reject old calibration/baseline results without comparing every draw.
+	std::shared_ptr<int const> preparedDataRevision() const { return preparedRevision; }
 	
 	// Dump generated data to a temporary file for later reuse
 	bool dumpGeneratedData(std::string const& filename) const;
@@ -169,6 +182,7 @@ public:
 		FeedbackFunc feedback = [](std::string) {});
 
 private:
+	std::shared_ptr<int const> preparedRevision = std::make_shared<int const>(0);
 
 	enum class InputParameters {
 		PollBias,

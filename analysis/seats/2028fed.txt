@@ -1244,6 +1244,7 @@ fPreviousTppSwing=3.86
 sPolls=GRN,13,3;ON,16,3;GRN,12,3;ON,28,3;GRN,13,3;ON,24,3
 sCandidateNames=Tony Zappia,ALP
 #Mayo
+sIndependentLikePreferences=CA
 sIncumbent=CA
 sChallenger=LNP
 sRegion=SA

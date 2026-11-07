@@ -196,6 +196,11 @@ its limitations accurately. Keep internal plans and proposed work in the plannin
 directory specified above; use public references for explanations intended for
 repository readers.
 
+When adding comments near the top of a function or file, they should be representative
+of that entire segment. Avoid undue weight towards recent changes. If a recent change
+needs to be commented on in particular, place that comment close to the affected lines
+rather than having it masquerade as an explanation of the broader block.
+
 ### What to add expanded comments to
 
 Apply the standard according to effect: add expanded comments to code on the path

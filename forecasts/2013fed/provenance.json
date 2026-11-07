@@ -1,0 +1,82 @@
+{
+  "purpose": "Evidence used to prepare the 2013 federal replay.",
+  "source_hashes": {
+    "forecasts/2010fed/live-snapshots/feeds/aec-mediafeed-Detailed-Light-15508-20101022115746.zip": "7f8d05c71c252163b7acd92968c5ce81b6cee3c40fcc39274dc247fb961d645f",
+    "downloads/turnout/federal-prepoll/2010fed/4a2e6201fdc36779362ee6325376a5948662410147dfd4718f8a499beb85865f/GeneralPollingPlacesDownload-15508.csv": "4a2e6201fdc36779362ee6325376a5948662410147dfd4718f8a499beb85865f",
+    "downloads/turnout/federal-prepoll/2010fed/0862cb8cdc2a55c5cc578eee7dc81f80e3a7ac1a2dc8d6ac544a39c6d5f9a329/HouseStateFirstPrefsByPollingPlaceDownload-15508-NSW.csv": "0862cb8cdc2a55c5cc578eee7dc81f80e3a7ac1a2dc8d6ac544a39c6d5f9a329",
+    "downloads/turnout/federal-prepoll/2010fed/283ddda79449899e004aa5c3b565e2b92b556b35ecb2b760ad39b36f63fb0040/HouseStateFirstPrefsByPollingPlaceDownload-15508-NT.csv": "283ddda79449899e004aa5c3b565e2b92b556b35ecb2b760ad39b36f63fb0040",
+    "downloads/turnout/federal-prepoll/2010fed/435e2bf6bfe047835f362424ecad6c1cd7055eb38d685e0c3f6ccb29cb170c17/HouseStateFirstPrefsByPollingPlaceDownload-15508-QLD.csv": "435e2bf6bfe047835f362424ecad6c1cd7055eb38d685e0c3f6ccb29cb170c17",
+    "downloads/turnout/federal-prepoll/2010fed/56825264bbef16eecaf23df8419f42c130436cb5f7877e4568197739a3c335b1/HouseStateFirstPrefsByPollingPlaceDownload-15508-SA.csv": "56825264bbef16eecaf23df8419f42c130436cb5f7877e4568197739a3c335b1",
+    "downloads/turnout/federal-prepoll/2010fed/5d2294233d746381b74bd8c633823009da2de3af98176a7f19400cc513483255/HouseStateFirstPrefsByPollingPlaceDownload-15508-WA.csv": "5d2294233d746381b74bd8c633823009da2de3af98176a7f19400cc513483255",
+    "downloads/turnout/federal-prepoll/2010fed/9b3b58a96dee909047a0fdb8b8837cd33a99dcb585b3cddf7020c5cf7f089f0f/HouseStateFirstPrefsByPollingPlaceDownload-15508-ACT.csv": "9b3b58a96dee909047a0fdb8b8837cd33a99dcb585b3cddf7020c5cf7f089f0f",
+    "downloads/turnout/federal-prepoll/2010fed/a920fc4629b37117fd765399a00c5ca638a260b9945460383c81de6a5af0d41f/HouseStateFirstPrefsByPollingPlaceDownload-15508-VIC.csv": "a920fc4629b37117fd765399a00c5ca638a260b9945460383c81de6a5af0d41f",
+    "downloads/turnout/federal-prepoll/2010fed/cd354e910cbab134ff866bc724bc4eaff92197df1283ba57b67f7d411154b988/HouseStateFirstPrefsByPollingPlaceDownload-15508-TAS.csv": "cd354e910cbab134ff866bc724bc4eaff92197df1283ba57b67f7d411154b988",
+    "forecasts/2013fed/live-snapshots/feeds/aec-mediafeed-Detailed-Light-17496-20130903105108.zip": "a58171ca2b68a43888a0974a56d002444d4600350fadc812ff041576b70a2800",
+    "downloads/turnout/federal-prepoll/2013fed/5236036336251ab49684fb7d9b65b2572050f4ebaf6ac887e99b72c86f0770fd/GeneralPollingPlacesDownload-17496.csv": "5236036336251ab49684fb7d9b65b2572050f4ebaf6ac887e99b72c86f0770fd",
+    "downloads/2013fed-final.xml": "3056e2dae0faa9fb20cabce74df011c0e84eba8d80587e1a146355c143368dc6",
+    "downloads/2010fed-replay-final.xml": "22522e20a108a0d87324c725bcbdb2a3e2da880265f60c8ee8398aa8ac8c8307",
+    "downloads/2013fed-preload.xml": "6a937bbf71b47bf148d962b5e7009b3d38042d3c92715111f5a1c46c315b356e",
+    "downloads/2013fed-preload@polling_places.xml": "2a83e21be2d7c4e528a92b9d1f10ebe02bd1b9cb1adcafc9f8e7fca1d82789b8",
+    "analysis/Data/Turnout/2013fed.json": "03fd3a8c3c2726c8b867d7f4dedd929dccf23ad6991f30198e52adec6e7af5a3"
+  },
+  "prior": {
+    "previous_election": "2010fed",
+    "current_vote_inputs": "zero-vote AEC PreloadLocked capture",
+    "turnout_parameter_preset": "2013fed/earlier_only",
+    "ppvc_comparison": "same categories and centre identities",
+    "election_eve_prepoll_issued": 2317323
+  },
+  "archive": {
+    "captures": 1466,
+    "distinct_consecutive_house_records": 1145,
+    "diagnostic_snapshots": 62
+  },
+  "poll_model": {
+    "term": "2013fed",
+    "existing_trends_end": "2013-09-05",
+    "reuse": "stored national trend and adjustment CSVs"
+  },
+  "2010_simulation_baseline": {
+    "added_divisions": [
+      "Adelaide",
+      "Barker",
+      "Boothby",
+      "Brand",
+      "Canning",
+      "Cowan",
+      "Curtin",
+      "Durack",
+      "Forrest",
+      "Fremantle",
+      "Grey",
+      "Hasluck",
+      "Hindmarsh",
+      "Kingston",
+      "Makin",
+      "Mayo",
+      "Moore",
+      "O'Connor",
+      "Pearce",
+      "Perth",
+      "Port Adelaide",
+      "Stirling",
+      "Sturt",
+      "Swan",
+      "Tangney",
+      "Wakefield"
+    ],
+    "added_formal_votes": 2183950,
+    "source_hashes": {
+      "forecasts/2010fed/live-snapshots/feeds/aec-mediafeed-Detailed-Light-15508-20101022115746.zip": "7f8d05c71c252163b7acd92968c5ce81b6cee3c40fcc39274dc247fb961d645f",
+      "downloads/turnout/federal-prepoll/2010fed/0862cb8cdc2a55c5cc578eee7dc81f80e3a7ac1a2dc8d6ac544a39c6d5f9a329/HouseStateFirstPrefsByPollingPlaceDownload-15508-NSW.csv": "0862cb8cdc2a55c5cc578eee7dc81f80e3a7ac1a2dc8d6ac544a39c6d5f9a329",
+      "downloads/turnout/federal-prepoll/2010fed/283ddda79449899e004aa5c3b565e2b92b556b35ecb2b760ad39b36f63fb0040/HouseStateFirstPrefsByPollingPlaceDownload-15508-NT.csv": "283ddda79449899e004aa5c3b565e2b92b556b35ecb2b760ad39b36f63fb0040",
+      "downloads/turnout/federal-prepoll/2010fed/435e2bf6bfe047835f362424ecad6c1cd7055eb38d685e0c3f6ccb29cb170c17/HouseStateFirstPrefsByPollingPlaceDownload-15508-QLD.csv": "435e2bf6bfe047835f362424ecad6c1cd7055eb38d685e0c3f6ccb29cb170c17",
+      "downloads/turnout/federal-prepoll/2010fed/56825264bbef16eecaf23df8419f42c130436cb5f7877e4568197739a3c335b1/HouseStateFirstPrefsByPollingPlaceDownload-15508-SA.csv": "56825264bbef16eecaf23df8419f42c130436cb5f7877e4568197739a3c335b1",
+      "downloads/turnout/federal-prepoll/2010fed/5d2294233d746381b74bd8c633823009da2de3af98176a7f19400cc513483255/HouseStateFirstPrefsByPollingPlaceDownload-15508-WA.csv": "5d2294233d746381b74bd8c633823009da2de3af98176a7f19400cc513483255",
+      "downloads/turnout/federal-prepoll/2010fed/9b3b58a96dee909047a0fdb8b8837cd33a99dcb585b3cddf7020c5cf7f089f0f/HouseStateFirstPrefsByPollingPlaceDownload-15508-ACT.csv": "9b3b58a96dee909047a0fdb8b8837cd33a99dcb585b3cddf7020c5cf7f089f0f",
+      "downloads/turnout/federal-prepoll/2010fed/a920fc4629b37117fd765399a00c5ca638a260b9945460383c81de6a5af0d41f/HouseStateFirstPrefsByPollingPlaceDownload-15508-VIC.csv": "a920fc4629b37117fd765399a00c5ca638a260b9945460383c81de6a5af0d41f",
+      "downloads/turnout/federal-prepoll/2010fed/cd354e910cbab134ff866bc724bc4eaff92197df1283ba57b67f7d411154b988/HouseStateFirstPrefsByPollingPlaceDownload-15508-TAS.csv": "cd354e910cbab134ff866bc724bc4eaff92197df1283ba57b67f7d411154b988"
+    },
+    "method": "Append reconciled AEC final FP/TCP results for the 26 omitted WA and SA divisions to the existing 124-division cache. Source swings unavailable for the added rows."
+  }
+}

@@ -807,9 +807,12 @@ std::string ResultsFrame::decideSummaryString()
 	std::string const partyTwoLabel = hasCoalition ? "Coalition" : party2;
 	float const partyTwoSeats = hasCoalition ? report->getCoalitionWinExpectation() :
 		report->getPartyWinExpectation(1);
+	// Older saved reports may lack the separate FP/TCP progress account. Keep
+	// that distinct from a measured zero, using an ASCII placeholder so Windows
+	// locale conversion cannot corrupt the summary's unavailable-value marker.
 	std::string const progress = report->countProgress ?
 		"FP " + formatFloat(float(report->countProgress->fpPercent()), 2) + "%  TCP " +
-		formatFloat(float(report->countProgress->tcpPercent()), 2) + "%" : "FP —  TCP —";
+		formatFloat(float(report->countProgress->tcpPercent()), 2) + "%" : "FP n/a  TCP n/a";
 	std::string summaryString = party1 + " win chance: " + formatFloat(report->getPartyOverallWinPercent(Simulation::MajorParty::One), 2) +
 		"   Projected 2PP: " + party1 + " " + formatFloat(float(report->getPartyOne2pp()), 2) +
 		"   Seats: " + party1 + " " + formatFloat(report->getPartyWinExpectation(0), 2) + " " +

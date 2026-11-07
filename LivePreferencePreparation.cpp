@@ -46,6 +46,12 @@ void LiveV2::Election::preparePreferenceCorrections(LiveInputRecovery::RecordSta
     std::size_t comparableBooths = 0;
     for (std::size_t s = 0; s < seats.size(); ++s) {
         auto const& seat = seats[s];
+        if (seat.finalResult) {
+            prepared->countedTpp[s] = seat.finalResult->tpp;
+            prepared->countedTcp[s] = seat.finalResult->tcp;
+            exclude("final_district_result");
+            continue;
+        }
         auto mapParty = [&](int party) { return party == seat.liveIndependentPartyIndex ? run.indPartyIndex : party; };
         // Use the forecast's counted constraints, including revised FP/TCP
         // guarantees. Reconstructing them from raw TCP would resurrect obsolete

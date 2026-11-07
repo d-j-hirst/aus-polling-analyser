@@ -3,6 +3,7 @@
 // its completed result. The other functions manage saved reports and interpret
 // the distributions of vote shares and seat counts recorded by the calculation.
 #include "Simulation.h"
+#include "SimulationInputs.h"
 
 #include "General.h"
 #include "Log.h"
@@ -258,6 +259,24 @@ void Simulation::invalidate()
 	lastUpdated = {};
 }
 
+void Simulation::checkPreparationInputs(std::shared_ptr<SimulationInputs const> inputs)
+{
+	// Calibration finds candidate support consistent with supplied betting odds;
+	// the live baseline describes the forecast before current counts are added.
+	// Both depend on the prepared forecast, historical files and settings beyond
+	// the odds themselves. Reuse requires the same inputs, including whether an
+	// optional file was missing. A new live count does not alter these inputs.
+	bool const unchanged = inputs && cachedPreparationInputs &&
+		inputs->reusableWith(*cachedPreparationInputs);
+	if (!unchanged) {
+		liveBaselineReport.reset();
+		cachedOddsFinalMeans.clear();
+		cachedOddsInputs.clear();
+		cachedOddsIterations = 0;
+	}
+	cachedPreparationInputs = std::move(inputs);
+}
+
 void Simulation::saveReport(std::string label)
 {
 	if (!isValid()) {
@@ -307,6 +326,7 @@ Simulation Simulation::copyForLiveRun() const
 	copy.cachedOddsFinalMeans = cachedOddsFinalMeans;
 	copy.cachedOddsInputs = cachedOddsInputs;
 	copy.cachedOddsIterations = cachedOddsIterations;
+	copy.cachedPreparationInputs = cachedPreparationInputs;
 	copy.lastUpdated = lastUpdated;
 	return copy;
 }
@@ -315,7 +335,8 @@ Simulation::PublishedLiveState Simulation::completedLiveState() const
 {
 	return {latestReport, liveBaselineReport, previousLiveSeats,
 		cachedOddsFinalMeans, cachedOddsInputs, cachedOddsIterations, lastUpdated,
-		getLiveBoothSnapshots(), liveInputDiagnostic, liveInputDetails};
+		getLiveBoothSnapshots(), liveInputDiagnostic, liveInputDetails,
+		cachedPreparationInputs};
 }
 
 std::shared_ptr<SimulationRun> Simulation::detachRetainedLiveRun()
@@ -335,6 +356,7 @@ void Simulation::publishLiveState(PublishedLiveState state)
 	cachedOddsFinalMeans = std::move(state.oddsMeans);
 	cachedOddsInputs = std::move(state.oddsInputs);
 	cachedOddsIterations = state.oddsIterations;
+	cachedPreparationInputs = std::move(state.preparationInputs);
 	lastUpdated = state.updated;
 	publishedBooths = std::move(state.booths);
 	publishLiveDiagnostics(std::move(state.diagnostic), std::move(state.details));

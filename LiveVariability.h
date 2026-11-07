@@ -10,6 +10,30 @@
 namespace LiveVariability {
 using Counts = std::map<int, float>;
 
+// Start a reused preparation booth from exactly the same state as a fresh
+// copy. A sample varies candidate composition while holding accepted votes,
+// historical comparisons, turnout targets and prepared evidence fixed.
+//
+// The three temporary maps contain that sample's projected FP/TCP/TPP counts.
+// futureFpShares describes its genuinely new voters and is also used to infer
+// their preferences. Some projection branches leave these maps untouched, so
+// restore the prepared contents rather than assuming that clearing is enough.
+// Counted/revised pair paths can also write completion and confidence; restore
+// those weights before another sample can read them. No other booth fields
+// are writable along the randomised preparation path. Keep this boundary in
+// sync when adding writes to that path, including the optional TPP diagnostic.
+template<class Booth>
+void restoreBoothForSample(Booth& working, Booth const& prepared) {
+    working.node.tempFpVotesProjected = prepared.node.tempFpVotesProjected;
+    working.node.tempTcpVotesProjected = prepared.node.tempTcpVotesProjected;
+    working.node.tempTppVotesProjected = prepared.node.tempTppVotesProjected;
+    working.futureFpShares = prepared.futureFpShares;
+    working.node.tcpCompletion = prepared.node.tcpCompletion;
+    working.node.tcpConfidence = prepared.node.tcpConfidence;
+    working.node.tppCompletion = prepared.node.tppCompletion;
+    working.node.tppConfidence = prepared.node.tppConfidence;
+}
+
 inline float positiveVoteTotal(
   std::map<int, float> const& votes,
   std::string_view context) {

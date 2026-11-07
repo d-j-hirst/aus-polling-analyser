@@ -70,18 +70,31 @@ inline Shares remainder(Unit const& unit) {
 inline Evidence collect(std::vector<Unit> const& units, double seatConfidence) {
     Evidence evidence;
     Shares ordinary;
-    std::map<int,Unit> groups;
+    // Each group supplies a current composition for the same kind of voting
+    // location/category in this seat. Keep its remaining voters separate from
+    // its counted votes: subtracting two large, nearly equal group totals can
+    // erase a small positive allowance at an otherwise unused location. The
+    // historical and absolute descriptions must cover the SAME future pool,
+    // including a very small chance that a long-delayed location still reports.
+    struct Group {
+        Shares counted;
+        double remaining = 0;
+        bool ordinary = false, aggregatedEarly = false;
+    };
+    std::map<int,Group> groups;
     double expected = 0, squaredSizes = 0;
     for (auto const& unit : units) {
         add(evidence.counted,unit.counted);
-        add(evidence.historical,remainder(unit));
+        auto future = remainder(unit);
+        add(evidence.historical,future);
         double size = total(unit.counted);
         expected += total(unit.projected);
         squaredSizes += size*size;
         if (unit.ordinary) add(ordinary,unit.counted);
         for (int id : unit.comparable) evidence.historicalConfidence[id] += size*unit.relevance;
         auto& group = groups[unit.group];
-        add(group.counted,unit.counted); add(group.projected,unit.projected);
+        add(group.counted,unit.counted);
+        group.remaining += total(future);
         group.ordinary = unit.ordinary; group.aggregatedEarly = unit.aggregatedEarly;
     }
     evidence.observed = total(evidence.counted);
@@ -91,8 +104,8 @@ inline Evidence collect(std::vector<Unit> const& units, double seatConfidence) {
     if (evidence.historical.empty() || total(evidence.historical) == 0) return evidence;
     auto background = smoothed(total(ordinary)>0 ? ordinary : evidence.counted,evidence.historical);
     for (auto const& [id,group] : groups) {
-        double counted = total(group.counted), target = total(group.projected);
-        double pool = std::max(0.,target-counted);
+        double counted = total(group.counted), pool = group.remaining;
+        double target = counted+pool;
         double weight = group.ordinary ? (counted>0 ? 1 : 0)
             : LiveNewVotes::observedWeight(counted,target,group.aggregatedEarly
                 ? LiveNewVotes::Category::AggregatedEarly : LiveNewVotes::Category::General);

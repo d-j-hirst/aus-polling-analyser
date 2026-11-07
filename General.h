@@ -257,8 +257,10 @@ public:
 	FileNotFoundException(std::string what) : std::invalid_argument(what) {}
 };
 
-inline std::vector<std::vector<std::string>> extractElectionDataFromFile(std::string const& filename, std::string const& termCode) {
-	auto file = std::ifstream(filename);
+// The stream overload also accepts simulation inputs captured at run start, so
+// preference loading need not reopen a file after calibration checks its contents.
+inline std::vector<std::vector<std::string>> extractElectionDataFromStream(
+	std::istream& file, std::string const& filename, std::string const& termCode) {
 	std::vector<std::vector<std::string>> matchedData;
 	if (!file) {
 		throw FileNotFoundException("Could not load preference flows from file: " + filename);
@@ -276,4 +278,9 @@ inline std::vector<std::vector<std::string>> extractElectionDataFromFile(std::st
 		matchedData.push_back(values);
 	} while (true);
 	return matchedData;
+}
+
+inline std::vector<std::vector<std::string>> extractElectionDataFromFile(std::string const& filename, std::string const& termCode) {
+	auto file = std::ifstream(filename);
+	return extractElectionDataFromStream(file, filename, termCode);
 }

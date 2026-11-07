@@ -14,6 +14,7 @@
 #include "SimulationCompletion.h"
 #include "SimulationIteration.h"
 #include "SimulationPreparation.h"
+#include "SimulationInputs.h"
 #include "RetainedLiveState.h"
 
 #include <algorithm>
@@ -232,13 +233,28 @@ bool SimulationRun::run(
 	// Refresh seat information from the project's configured seat source before
 	// calibration and preparation use it. In particular, seat-level inputs such
 	// as betting odds must be available when deciding which supporting work to do.
+	// Capture the other non-live preparation files and relevant project settings
+	// too. Compare these with the retained calibration and pre-count baseline,
+	// then use the captured files throughout preparation and its supporting runs.
+	// Live snapshot sources and export locations do not affect those calculations.
+	//
+	// Seat settings and all other simulation inputs must remain fixed throughout
+	// this run, including calibration, baseline generation and main iterations.
+	// Editing them while calculation is active is unsupported; this start-of-run
+	// check is not a file watcher or a mechanism for updating an active forecast.
 	try {
-		project.seats().importInfo();
+		auto const seatFileContents = project.seats().importInfo();
+		preparationInputs = SimulationInputs::capture(project, sim, seatFileContents, nowcastDate);
+		sim.checkPreparationInputs(preparationInputs);
 	}
 	catch (SeatImportException const& exception) {
 		feedback(
 			"Could not run simulation because the seat configuration is invalid:\n" +
 			std::string(exception.what()));
+		return false;
+	}
+	catch (std::exception const& exception) {
+		feedback("Could not capture simulation inputs:\n" + std::string(exception.what()));
 		return false;
 	}
 	// Supporting runs and the main preparation temporarily overwrite latestReport.
@@ -260,8 +276,9 @@ bool SimulationRun::run(
 
 	// A live forecast also needs a baseline: the election simulation without
 	// current counts, against which the new count evidence is interpreted. Build
-	// it when absent or when its stored seat coverage no longer matches. The odds
-	// helper above also clears it if the odds inputs or iteration count changed.
+	// it when absent or when its stored seat coverage no longer matches. The
+	// seat-file check above clears it after any file change; the odds helper also
+	// clears it if the odds or iteration count changed since it was prepared.
 	// Retain this reference separately; its iterations are not live-report samples.
 	if (sim.isLiveAutomatic() && (!sim.liveBaselineReport
 		|| sim.liveBaselineReport->liveBaselineTppMoments.mean.size() != std::size_t(project.seats().count()))) {
@@ -550,6 +567,20 @@ bool SimulationRun::isLiveManual() const
 	return sim.isLiveManual() && !doingBettingOddsCalibrations && !doingLiveBaselineSimulation;
 }
 
+// Before the main forecast, translate configured seat betting odds into primary-
+// vote centres for the candidate-support calculations in SimulationIteration.
+// Supporting simulations vary those centres to approach the odds-implied winning
+// chances under the configured preference assumptions. The main forecast blends
+// the fitted centres with its other candidate evidence; odds do not directly set
+// the final live win probability. Current counts are excluded from calibration.
+//
+// Repeated live snapshots can reuse this expensive work from Simulation. The
+// caller has already compared the non-live files, settings and prepared model
+// using SimulationInputs. Keep this local check of the effective odds and sample
+// size as well: it describes the calibration results stored below and also drops
+// the pre-count baseline if those particular inputs no longer match.
+// This checks reuse between runs, not manual edits during a calculation. feedback
+// reports failures to the caller; false stops the main forecast from proceeding.
 bool SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 {
 	ScopedBooleanState calibrationState(doingBettingOddsCalibrations, true);
@@ -588,8 +619,9 @@ bool SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 		sim.cachedOddsIterations != sim.settings.numIterations ||
 		sim.cachedOddsInputs != impliedChances;
 	if (calibrationInputsChanged) {
-		// The live baseline incorporates the calibrated odds and uses the same
-		// configured sample size, so it must be regenerated as well.
+		// The retained baseline is the forecast before adding current counts.
+		// Rebuild it for this run instead of combining new live draws with a
+		// baseline using a different calibration or simulation sample size.
 		sim.liveBaselineReport.reset();
 	}
 
@@ -636,6 +668,7 @@ bool SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 	for (int revision = 0; revision < NumRevisionRounds; ++revision) {
 		SimulationRun newRun(project, sim, true);
 		newRun.nowcastDate = nowcastDate;
+		newRun.preparationInputs = preparationInputs;
 		SimulationPreparation preparations(project, sim, newRun);
 		try {
 			preparations.prepareForIterations();
@@ -711,6 +744,7 @@ bool SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
 
 	SimulationRun newRun(project, sim, false, true);
 	newRun.nowcastDate = nowcastDate;
+	newRun.preparationInputs = preparationInputs;
 	SimulationPreparation preparations(project, sim, newRun);
 	newRun.oddsFinalMeans = oddsFinalMeans;
 	newRun.oddsCalibrationMeans = oddsCalibrationMeans;

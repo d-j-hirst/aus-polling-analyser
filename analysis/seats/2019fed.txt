@@ -1181,6 +1181,7 @@ fPreviousTppSwing=4.59
 sRunningParties=ALP,LNP,GRN,UAP,OTH
 sCandidateNames=Tony Zappia,ALP;Hemant Dave,LNP;Stephanie Stewart,GRN;Rachel Collis,UAP
 #Mayo
+sIndependentLikePreferences=CA
 sIncumbent=CA
 sChallenger=LNP
 sRegion=SA

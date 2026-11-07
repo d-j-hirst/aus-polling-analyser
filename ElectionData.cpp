@@ -2476,6 +2476,99 @@ void Results2::Election::captureLiveCandidateRosters() {
   }
 }
 
+namespace {
+void readAecFinalDistrict(tinyxml2::XMLElement const& contest, bool finalPhase,
+  Results2::Election const& election, Results2::Seat& seat) {
+  // Most AEC TPP entries are progressive duplicates of a classic TCP count;
+  // even the pre-count feed contains zero placeholders. They are not completion
+  // signals. FinalResults is the AEC's explicit election-wide final marker
+  // (Media Feed User Guide v4.3, section 9.9). A declared non-classic contest
+  // can also publish a separate, fully reconciled Labor/Coalition scrutiny.
+  // That scrutiny can itself be partial: Melbourne on 31 July 2016 published
+  // 12,809 TPP against 94,579 FP. Requiring all district totals to reconcile
+  // avoids treating the first positive notional TPP batch as the final result.
+  // Treat that district's FP/TCP/TPP as final without closing other districts.
+  // Declared alone says only that a winner was declared and is insufficient.
+  seat.finalResult.reset(); seat.publishedTpp.clear();
+  auto const context = "AEC final district [" + seat.name + "]";
+  if (auto tpp = contest.FirstChildElement("TwoPartyPreferred")) {
+    for (auto coalition = tpp->FirstChildElement("Coalition"); coalition;
+      coalition = coalition->NextSiblingElement("Coalition")) {
+      int id = requiredIntAttribute(requiredChild(*coalition,"CoalitionIdentifier",context),"Id",context,1);
+      int votes = requiredIntText(requiredChild(*coalition,"Votes",context),context,0);
+      if ((id != 1 && id != 2) || !seat.publishedTpp.emplace(id,votes).second)
+        throwInvalidXml(context,"invalid or repeated TPP coalition identity");
+    }
+  }
+  auto sum = [](auto const& values) {
+    long long n = 0; for (auto const& [id,votes] : values) n += votes; return n;
+  };
+  bool positiveTpp = seat.publishedTpp.size() == 2 && sum(seat.publishedTpp) > 0;
+  auto declared = contest.Attribute("Declared");
+  if (!finalPhase && (!positiveTpp || !declared || !*declared)) return;
+
+  Results2::Seat::FinalResult result;
+  auto candidateTotals = [&](char const* section, auto& counts) {
+    auto parent = contest.FirstChildElement(section);
+    if (!parent) return;
+    for (auto candidate = parent->FirstChildElement("Candidate"); candidate;
+      candidate = candidate->NextSiblingElement("Candidate")) {
+      int id = requiredIntAttribute(requiredChild(*candidate,"eml:CandidateIdentifier",context),"Id",context,0);
+      int votes = requiredIntText(requiredChild(*candidate,"Votes",context),context,0);
+      if (!election.candidates.contains(id) || !counts.emplace(id,votes).second)
+        throwInvalidXml(context,"unknown or repeated final candidate identity");
+      if (auto roster = election.liveCandidateRosters.find(seat.id);
+        roster != election.liveCandidateRosters.end() && !roster->second.empty()
+        && !roster->second.contains(id))
+        throwInvalidXml(context,"final candidate is not on this district's ballot");
+      if (std::string_view(section) == "TwoCandidatePreferred")
+        if (auto elected = candidate->FirstChildElement("Elected"); elected && elected->GetText()
+          && std::string_view(elected->GetText()) == "true") {
+          if (result.winner) throwInvalidXml(context,"multiple elected final candidates");
+          result.winner = id;
+        }
+    }
+  };
+  candidateTotals("FirstPreferences",result.fp);
+  candidateTotals("TwoCandidatePreferred",result.tcp);
+  // Recognise an actual Labor/Coalition pairing from current candidate party
+  // identities, not from this district's eventual pairing or historical result.
+  bool labor = false, coalition = false;
+  for (auto const& [candidate,votes] : result.tcp) {
+    int partyId = election.candidates.at(candidate).party;
+    auto party = election.parties.find(partyId);
+    if (party == election.parties.end()) continue;
+    auto const& code = party->second.shortCode;
+    labor = labor || code == "ALP" || code == "CLR"; // Country Labor in older NSW federal feeds.
+    coalition = coalition || code == "LP" || code == "LIB" || code == "LNP"
+      || code == "NP" || code == "NAT" || code == "CLP";
+  }
+  if (!finalPhase && labor && coalition) return;
+
+  long long formal = sum(result.fp);
+  bool reconciled = formal > 0 && formal <= seat.enrolment && result.tcp.size() == 2
+    && sum(result.tcp) == formal && (!positiveTpp || sum(seat.publishedTpp) == formal);
+  for (auto const& [candidate,votes] : result.tcp)
+    reconciled = reconciled && result.fp.contains(candidate) && votes >= result.fp.at(candidate);
+  if (!reconciled) {
+    if (finalPhase) throwInvalidXml(context,"final FP/TCP/TPP district totals do not reconcile");
+    return; // A partial non-classic TPP publication does not close its district.
+  }
+  if (positiveTpp) result.tpp = seat.publishedTpp;
+  else if (labor && coalition) {
+    // A final classic TCP is itself the Labor/Coalition count, even if the
+    // optional aggregate TPP section was omitted or left as zero placeholders.
+    for (auto const& [candidate,votes] : result.tcp) {
+      auto const& code = election.parties.at(election.candidates.at(candidate).party).shortCode;
+      result.tpp[code == "ALP" || code == "CLR" ? 1 : 2] += votes;
+    }
+  }
+  result.basis = finalPhase ? "AEC FinalResults" : "AEC declared non-classic TPP";
+  seat.finalResult = std::move(result);
+  seat.fpFinalised = true;
+}
+}
+
 void Results2::Election::clearLiveCountRecords() {
   // Identities come from the preload; measurements belong to this source only.
   // Clear them before reading so omitted records cannot silently retain preload
@@ -2483,6 +2576,7 @@ void Results2::Election::clearLiveCountRecords() {
   for (auto& [districtId,seat] : seats) {
     seat.fpVotes.clear(); seat.tcpVotes.clear(); seat.tcpVotesCandidate.clear(); seat.tppVotes.clear();
     seat.fpFinalised = false;
+    seat.finalResult.reset(); seat.publishedTpp.clear();
   }
   for (auto& [boothId,booth] : booths) {
     booth.fpVotes.clear(); booth.tcpVotes.clear(); booth.tcpVotesCandidate.clear(); booth.tppVotes.clear();
@@ -2825,6 +2919,8 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
       currentBooth = currentBooth->NextSiblingElement("PollingPlace");
     }
 
+    if (format == Format::AEC)
+      readAecFinalDistrict(*currentContest, results->Attribute("Phase","FinalResults") != nullptr, *this, seat);
     seats[seat.id] = seat;
 
     currentContest = currentContest->NextSiblingElement("Contest");

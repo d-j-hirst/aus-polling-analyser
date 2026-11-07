@@ -114,6 +114,7 @@ private:
 	void recordSeatFpVotes(int seatIndex);
 	void recordSeatTcpVotes(int seatIndex);
 	void recordSeatTppVotes(int seatIndex);
+	void prepareAggregationWeights();
 	void recordRegionFpVotes(int regionIndex);
 	void recordRegionTppVotes(int regionIndex);
 	void recordElectionFpVotes();
@@ -149,6 +150,9 @@ private:
 
 	// Per-attempt state. Add new generated values here to reset().
 	std::unique_ptr<LiveData::Provider> liveElection;
+	// Reporting-only weights, prepared after seat winners are settled. They must
+	// not enter the pre-election reconciliation or any seat-level calculation.
+	std::vector<double> aggregationFpWeights, aggregationTppWeights;
 	
 	std::vector<SimulationRun::PastSeatResult> pastSeatResults;
 	std::map<int, std::vector<int>> regionSeatCount; // party, then region

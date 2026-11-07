@@ -737,8 +737,33 @@ void testCompetingFpEvidence() {
     for (auto const& [id,share] : initialComposition)
         assert(std::abs(first.future.at(id)-share)<.001);
     assert(breadthGate(first.evidence)<.001);
-
-
+    // At the end of a replay, a never-used office can retain a vanishingly
+    // small chance of reporting. Its positive future pool survives on its own
+    // but disappears if added to, then subtracted from, a full counted group.
+    // Both FP descriptions must retain the same pool rather than normalising
+    // an all-zero absolute account. Do not discard small genuine allowances.
+    Unit finished{{{0,600},{1,400}},{{0,600},{1,400}},{0,1},1,0,true,false};
+    Unit delayed{{},{{0,6e-15},{1,4e-15}},{0,1},1,0,true,false};
+    assert(total(finished.projected)+total(delayed.projected)==total(finished.counted));
+    auto final = prepare({finished,delayed},1);
+    double remaining = total(delayed.projected);
+    assert(remaining>0);
+    assert(std::abs(total(final.evidence.historical)/remaining-1)<1e-12);
+    assert(std::abs(total(final.evidence.absolute)/remaining-1)<1e-12);
+    assert(std::abs(total(final.future)-1)<1e-12);
+    assert(adjusted(finished,final.factors)==finished.projected);
+    assert(std::abs(total(adjusted(delayed,final.factors))/remaining-1)<1e-12);
+    // The same accounting applies to declaration groups. A truly exhausted
+    // account remains unchanged, while an ordinary one-vote remainder is kept.
+    finished.ordinary=false; delayed.ordinary=false;
+    auto declaration = prepare({finished,delayed},1);
+    assert(std::abs(total(declaration.evidence.absolute)/remaining-1)<1e-12);
+    delayed.projected={{0,.6},{1,.4}};
+    auto lastVote = prepare({finished,delayed},1);
+    assert(std::abs(total(lastVote.evidence.absolute)-1)<1e-12);
+    delayed.projected={{0,0},{1,0}};
+    auto exhausted = prepare({finished,delayed},1);
+    assert(exhausted.future.empty() && exhausted.factors.empty());
 }
 
 void testFpDisagreementEndpoints() {

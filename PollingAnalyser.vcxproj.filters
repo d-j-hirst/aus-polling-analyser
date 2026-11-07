@@ -187,6 +187,9 @@
     <ClCompile Include="QuickTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SimulationInputs.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
     <ClCompile Include="SimulationPreparation.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
@@ -528,6 +531,9 @@
 	<ClInclude Include="CoalitionCandidacy.h">
 	  <Filter>Header Files\Utility</Filter>
 	</ClInclude>
+	<ClInclude Include="CoalitionPairing.h">
+	  <Filter>Header Files\Utility</Filter>
+	</ClInclude>
 	<ClInclude Include="SeatVolatility.h" />
 	<ClInclude Include="LiveVariability.h" />
 	<ClInclude Include="LivePreparedStorage.h" />
@@ -660,6 +666,9 @@
     <ClInclude Include="Simulation.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
+    <ClInclude Include="SimulationInputs.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
     <ClInclude Include="SimulationPreparation.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
@@ -766,6 +775,12 @@
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
     <ClInclude Include="LiveV2.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveAggregation.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="SimulationSeatLookup.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
     <ClInclude Include="LiveTurnoutMath.h">

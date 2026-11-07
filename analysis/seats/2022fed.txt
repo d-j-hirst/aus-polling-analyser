@@ -2200,6 +2200,7 @@ iKnownDecPrepollCount=2437
 iKnownPostalCount=18598
 sCandidateNames=Alan Howard-Jones,LNP;Tony Zappia,ALP;Emma Mustaca,GRN;Kimberley Drozdoff,UAP;Rajan Vaid,ONP
 #Mayo
+sIndependentLikePreferences=CA
 sIncumbent=CA
 sChallenger=LNP
 sRegion=SA

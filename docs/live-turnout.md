@@ -4,6 +4,173 @@ This document explains how the live forecast estimates votes still to be counted
 
 The model combines pre-election expectations with reported first-preference counts and the history of counting received so far. It supplies one vote-count account to the live forecast: booth estimates, district totals, completion percentages and simulated additions all use that account. Party composition and preference rechecking are prepared separately and then applied to those counts.
 
+## Combining seat forecasts into election totals
+
+The live forecast gradually replaces historical seat-size weights with its
+estimated current sizes when reporting national and regional vote shares. This
+answers an accounting question: how many voters does each already-calculated
+seat share represent? It changes aggregate FP and TPP means and uncertainty,
+while retaining the calculated seat shares, preferences, winners and seat win
+probabilities. Ordinary forecasts, odds calibrations and the pre-count live
+baseline continue to use their existing historical weights and reconciliation.
+
+The transition is a pragmatic compatibility measure. Requiring ordinary
+forecasts to share a turnout model would also change how national/regional
+polling targets are reconciled with seats and require inputs appropriate to
+each forecast date. This live-only correction avoids introducing those broader
+changes or additional routine enrolment-data maintenance. Historical booth and
+category counts remain the reference for swing comparisons.
+
+Let `c` be accepted published FP votes divided by the prepared mean expected
+final formal votes across the election. This is counting coverage, not model
+confidence or TCP completion. Every iteration for one snapshot uses the same
+`c`; sampled turnout, count revisions and a change of TCP pairing do not alter
+it. Define `x = clamp(c / 0.5, 0, 1)` and `a = x²(3 − 2x)`. The curve is smooth
+at both endpoints: new weighting is negligible for a first tiny booth and
+reaches full weight without a step at 50% counted.
+
+| FP coverage | Current-turnout weighting `a` |
+| --- | --- |
+| 0% | 0% |
+| 10% | 10.4% |
+| 25% | 50% |
+| 40% | 89.6% |
+| 50% or more | 100% |
+
+The 50% endpoint is an operating assumption, not a fitted relationship between
+coverage and turnout accuracy. Each source recomputes its transition without
+snapshot memory; a corrected count or revised expected total can move it back.
+These maintained choices are defined in `LiveAggregation.h`.
+
+For seat `i`, let `H_i` be its historical formal count and `N_i` its estimated
+final current count. Its relative weight is
+`(1 − a) H_i / sum(H) + a N_i / sum(N)`. Normalising before blending prevents a
+larger overall election from receiving more influence than `a` specifies.
+FP uses formal ballots; TPP uses continuing ballots after any OPV exhaustion.
+Current totals come from the same simulated turnout/revision account as the
+seat shares, without a second random draw. Unreported districts retain their
+estimated final sizes; an explicitly inactive contest has zero current size.
+
+The national histogram, regional histograms and legacy FP/Coalition/TPP summary
+distributions use this policy. A region takes its subset of the election-wide
+weights rather than starting a separate transition. No resulting aggregate is
+fed back into seat calculations. Raw swing, the internal projected vote account,
+count recovery and published counting progress keep their existing meanings.
+
+The Joint Centre and its aggregate covariance diagnostics use the same policy
+with prepared mean sizes. They still precede scenario count/revision draws and
+count constraints, so they need not equal the final simulation mean or median.
+The analysis archive records `tpp_integration.aggregation_weighting`: method
+`live_turnout_phase_in_v1`, the curve, FP coverage, full-weight coverage,
+transition fraction and normalised mean FP/TPP weights for every seat. Older
+archives retain their original recorded values.
+
+`tests/LiveAggregationTests.cpp` is a standalone, GUI-free component test. It
+checks zero-count compatibility, the transition, independent normalisation,
+same-scenario sizes, OPV denominators, inactive contests, regional accounting
+and invalid inputs. It does not calculate forecasts or fit models.
+
+From the repository root in a Visual Studio Developer Command Prompt, compile
+and run only that component test:
+
+```bat
+cl /nologo /std:c++20 /EHsc /W3 /WX /wd4244 /wd4267 /I. tests\LiveAggregationTests.cpp /Focli-build\LiveAggregationTests.obj /Fecli-build\LiveAggregationTests.exe
+cli-build\LiveAggregationTests.exe
+```
+
+## Final federal district totals
+
+The federal reader uses published final district FP, TCP and Labor/Coalition
+TPP totals instead of modelling a result that is already known. This matters
+particularly in non-classic seats, where a notional TPP scrutiny can be published
+without a booth-by-booth Labor/Coalition breakdown. TCP still identifies the
+actual finalists; notional TPP does not replace them with the major parties.
+
+Two kinds of publication qualify:
+
+| Source evidence | Treatment |
+| --- | --- |
+| AEC `Results Phase="FinalResults"` | Use validated final district FP/TCP and any positive published TPP. |
+| Declared non-classic contest with positive TPP whose total equals both its FP and TCP totals | Treat that district's reconciled FP/TCP/TPP account as final. Other districts remain live. |
+| Positive classic TPP, a zero TPP placeholder, or a winner declaration alone | Retain normal live estimation; these do not establish completion. |
+
+The AEC documents `FinalResults` as the phase in which results will no longer
+change, and describes `Declared` as a winner declaration rather than a general
+count-completion flag. See sections 9.7 and 9.9 of its
+[Media Feed User Guide](https://www.aec.gov.au/media/mediafeed/files/media-feed-user-guide-v4.pdf).
+The additional declared non-classic rule is an operational interpretation of a
+completed, separately published TPP scrutiny, guarded by exact district accounting.
+No elapsed-time or apparent percentage-counted threshold declares a result final.
+
+Final summaries must have nonnegative candidate counts, a positive formal total
+within enrolment, exactly two TCP finalists whose own primaries fit their TCP,
+and matching FP/TCP/available-TPP totals. An inconsistent `FinalResults` account
+stops the update instead of silently substituting estimates. An incomplete TPP
+publication in an otherwise live feed does not finalise that district.
+
+These totals are retained separately from recovered booth/category records.
+The booth records remain available for inspection; the program does not invent
+a booth allocation to reconcile a discrepancy with the final district summary.
+At the forecast boundary the final account fixes FP shares, TCP finalists and
+winner, published TPP, vote-count weights and progress. It receives no further
+turnout additions, signed count revisions, preference-recheck draws or prior
+shrinkage. Aggregate TPP uncertainty excludes the final district's conversion
+error. Other districts and pre-election simulations retain their usual paths.
+FP-moment preparation also suppresses variation for final districts. Their
+final summaries can group unmodelled minor candidates into Others while retained
+booth diagnostics still identify those candidates separately; these identities
+are not instructions to vary an already final count.
+Seat and booth input counts also retain matching live candidate identities.
+An unconfigured final TCP candidate can occupy a generic emerging-party slot
+in the simulator-facing final summary without replacing that candidate's
+identity in the booth evidence. Final projected/count accounts and outcomes
+use the authoritative summary; booth comparisons use the original identities.
+Private analysis archives expose each qualifying seat's `final_result` with its
+`basis` and mapped `fp`, `tcp` and `tpp` vote counts.
+
+The inspected final Detailed-Light captures for federal 2013, 2016, 2019, 2022
+and 2025 all contain complete `TwoPartyPreferred` district totals and the
+`FinalResults` phase. Their early captures contain zero placeholders and then
+progressive classic TPP counts; for example, 2016 already has a positive TPP at
+18:12 on election night. Non-classic TPP can also be partial: Melbourne's
+31 July 2016 capture has 12,809 TPP votes against 94,579 FP votes. These figures
+are counts of ballots covered by each scrutiny, not vote shares. Older `CLR`
+(Country Labor) candidates are recognised as Labor in classic-pair checks.
+The final 2016 source's 13,541,101 formal votes give
+49.6435038776% Labor TPP when aggregated directly. No
+`DistributionOfPreferences` section was found in the inspected House records,
+and the 6,230 stored feed archives contain no separate distribution XML file.
+The AEC publishes full distributions separately; these are not part of this
+reader's supported Detailed-Light XML format. Its
+[counting FAQ](https://www.aec.gov.au/faqs/counting.htm) explains that the full
+distribution starts after all ballot papers have been counted.
+
+`tests/AecFinalResultsTests.cpp` exercises progressive and final parsing,
+district finality after recovery, replaying an earlier source, rejected final
+account contradictions and fixed turnout/revision draws. Its optional workspace
+argument additionally checks local preloads against extracted final feed files
+under `cli-build/federal-final-counts/<election>-final.xml`; these private inputs
+are unnecessary for the synthetic tests. No forecast or Stan fit is run.
+
+To compile just this standalone component test in a Visual Studio Developer
+Command Prompt, set `AEC_TEST_XML` to the TinyXML2 source directory used by the
+project, then run from the repository root:
+
+```bat
+set "AEC_TEST_XML=C:\C++ Libraries\TinyXml2\tinyxml2-master"
+if not exist cli-build\aec-final-tests mkdir cli-build\aec-final-tests
+cl /nologo /std:c++20 /O1 /EHsc /MT /W3 /wd4244 /wd4267 /Gy /I. /I"%AEC_TEST_XML%" ^
+  tests\AecFinalResultsTests.cpp ElectionData.cpp LiveInputAdapter.cpp LiveTurnout.cpp ^
+  TurnoutModelIO.cpp TurnoutModel.cpp LiveInputRecovery.cpp LiveInputRecoveryIO.cpp ^
+  LiveInputHistory.cpp Date.cpp General.cpp Log.cpp "%AEC_TEST_XML%\tinyxml2.cpp" ^
+  /Focli-build\aec-final-tests\ /Fecli-build\aec-final-tests\AecFinalResultsTests.exe /link /OPT:REF
+cli-build\aec-final-tests\AecFinalResultsTests.exe
+```
+
+When filtering redundant captures, retain changes to finalisation phase,
+declaration status or published TPP counts: they are meaningful forecast inputs,
+even if the ordinary booth counts are unchanged.
+
 ## Inputs and preparation
 
 A **prior** is the fixed pre-election distribution of possible final formal vote counts. Each **prior outcome** is one possible set of final counts for all districts and categories together. Keeping those counts together retains their relationships: for example, one outcome can represent unusually high turnout across many districts. Enrolment, previous turnout and **formality** (formal votes as a proportion of turnout), and available early-vote and postal-application counts determine the starting expectations.
@@ -87,6 +254,16 @@ The general compatibility searches retain their existing per-capture procedure.
 
 The first search builds the necessary index from existing earlier snapshots in
 one traversal. Successful accepted-count commits then update it incrementally.
+If a replay jumps past multiple captures that follow the indexed history, those
+captures are read in one batch. Only the latest existing record states and one
+new source are held for comparison; field changes are temporarily grouped on
+disk by district. Each changed district is then written once and a single
+manifest publishes the batch. This avoids repeatedly rewriting the same growing
+histories when a short diagnostic sequence skips weeks of previously saved
+captures. Every capture clock and every change is retained, including withdrawals
+and restorations; captures at or after the replay cutoff are not ingested.
+The existing middle-insertion/replacement/deletion procedure runs first if
+needed, and already indexed later coverage is retained for subsequent queries.
 The source inventory detects added, replaced and deleted files using file size
 and modification time; application commits also explicitly notify same-time
 replacements. Backfills preserve the next existing snapshot's value: inserting B
@@ -107,8 +284,10 @@ input recovery and preference-history time and records index source reads/builds
 Accepted-history commit time is logged separately, including deferred index updates.
 
 `LiveInputHistoryTests` checks exact reconstruction, observation-time matching,
-incremental changes, backfills, missing records, replacements, deletions, backward
-replay, restart reuse, repair and cache eviction. `HistoryReadMode::SourceFiles`
+incremental changes, batched catch-up, backfills, missing records, replacements,
+deletions, backward replay, interrupted publication, restart reuse, repair and
+cache eviction. The bulk test also checks one district write per batch rather
+than per capture. `HistoryReadMode::SourceFiles`
 retains the original reader for equivalence checks without running a forecast.
 
 Fresh counting history omits restored or unavailable records. A category-group observation is also omitted if any of its available services needed recovery, so restored counts do not manufacture counting events or pauses locally or in measurements shared across districts. Restored FP retains its earlier validated completion status; an unavailable count cannot acquire completion from the rejected source. Accepted-count and turnout-history writes are queued during preparation and performed only after a successful main calculation.
@@ -197,6 +376,44 @@ After blending, candidate shares are normalized subject to each candidate group'
 `LiveFpEvidence.h` maintains the historical/absolute parameters and numerical calculation directly. `LiveFpIntegration.h` maintains the precision handoff and finite-count constraints; `LiveFpPreparation.cpp` connects them to the live accounts. Only compact moments are retained, shared between scenarios; baseline moments are regenerated rather than serialized in `.pol2` files. Analysis sidecars include `fp_evidence` with historical and absolute remaining estimates, candidate weights, reporting breadth and combined composition. `disagreement_distribution` identifies `two_estimate_endpoints`; `disagreement_log_odds_gap` gives `d`, and `normal_additional_log_odds_variance` is the early normal allowance. The retained `additional_log_odds_variance` includes the separately drawn disagreement. `fp_integration` records baseline/count moments, accepted shared movement, the evidence gate and individual-candidate count weights. Simulator candidate grouping can change those weights for anonymous groups. No private archive is required to apply the settings to another election's feed.
 
 VEC result captures can omit ordinary booths before any votes report. The loader retains their preloaded identities and leaves their measured vote maps empty; absence from one capture does not establish a closure or a measured final zero.
+
+### Greens preferences between Labor and centrist or independent candidates
+
+The simulation also needs to estimate who reaches the final two when no measured
+TCP has yet settled the contest. Its general non-classic preference calculation
+assigns weights to the surviving candidates. Where Labor and a centrist or
+independent candidate both survive, a separate rule divides their combined
+allocation of Greens preferences. It applies when the configured historical
+Labor TPP margin is below −5 percentage points or the incumbent is a non-major
+candidate; elsewhere the general weights apply. Configured final-two preference
+flows take precedence over this fallback.
+
+Ordinary centrist parties receive a uniformly sampled **40–75%** of that combined
+allocation. Genuine and emerging independents retain **50–90%**. These are broad
+modelling assumptions, not fitted confidence intervals. Moderating the centrist
+range addresses the overly favourable independent-style treatment of NXT in the
+2016 diagnostic replay; it is not a general overhaul of preference allocation.
+If Labor and NXT together receive 80% of continuing Greens preferences and the
+sampled NXT split is 60%, NXT receives 48% of all continuing Greens preferences.
+Other surviving candidates keep their existing allocations and exhaustion is
+unchanged by this split. It can affect elimination order and seat win chances in
+both pre-election and live simulations, including their supporting calibrations.
+
+A seat can explicitly retain the independent-like range for a party-labelled
+candidate with `sIndependentLikePreferences=CA`. A list accepts comma- or
+semicolon-separated configured party codes, and omission means no exceptions.
+The setting changes only this preference assumption: party identity, reporting,
+primary-vote modelling and configured final-two flows retain their own rules.
+Lacking a separately modelled national trend does not automatically establish
+quasi-independent preference treatment. In particular, NXT remains a centrist
+party in 2016 despite lacking its own national trend.
+
+The Mayo settings for 2019, 2022, 2025 and 2028 explicitly list CA for Rebekha
+Sharkie. Other CA candidates are not covered, and Mayo in 2016 has no exception.
+The seat text file stores this choice, so the `.pol2` format is unchanged. Edits
+to the exception lists invalidate the reusable live odds calibration and
+baseline; worker copies and completed publications carry the corresponding
+runtime cache key.
 
 ### Sharing independent movement between districts
 
@@ -470,6 +687,8 @@ A source-time revision replaces that observation, including downward corrections
 Reduced preparation continues to measure party-composition uncertainty at the count means. Full simulation iterations select a joint prior outcome, a no-addition/late-batch outcome and the cached composition response. They do not reread history, refit a model or recompose every booth. Turnout, formality, early/postal conversion and category composition remain distinct uncertainty sources within the joint prior; their exported sensitivities are descriptions of those count responses, not additional errors to apply again. The overlapping legacy declaration-size variation is removed.
 
 First-preference (FP), actual two-candidate-preferred (TCP) and estimated Labor-versus-Coalition two-party-preferred (TPP) counts share future-voter additions. Preferences still missing on already-counted FP votes remain outstanding even in a draw with no new voters. Existing counted candidate votes constrain each projection. Before any FP votes report, the standard simulation owns the forecast and receives no live count constraint.
+
+After the simulation selects a final pair, Labor versus either Liberal or National uses the prepared TPP estimate. Other pairs, including Liberal versus National, use the existing live TCP blend and counted-vote constraints when the live account identifies the same two parties. A preliminary published TCP pair does not itself determine the simulated finalists: an account for a different pair cannot supply their preference totals. This routing does not change candidate elimination or pre-election forecasts. Authoritative final district results retain their separate override of the pair and vote totals.
 
 Turnout is always part of the live calculation. It has no environment-controlled mode or alternative sizing path. Standard simulations without live results do not require these live-election inputs.
 
@@ -820,6 +1039,65 @@ Live/media-feed snapshots and close derivatives, including operational configura
 Archive-reading Python tools default to ignored `downloads/turnout/feed-archive/`. Optional `POLLING_ANALYSER_FEED_ARCHIVE` and `POLLING_ANALYSER_FEED_DOWNLOADS` select external archive/incoming directories once across elections; they do not activate the turnout model or select its prior.
 
 The portable `TurnoutModelTests` checks numerical Python/C++ agreement using fictional counts, finalisation, count preservation, joint/exceptional draws, the production composition cache and source-time history replacement and filtering. `test_turnout_prepare_live` checks the standalone input-preparation boundary without a private archive. Neither test runs the wxWidgets application. A GUI rebuild and snapshot run are required to verify the complete forecast and its runtime.
+
+Simulation preparation also builds run-local lookups for fixed seat configuration
+and region membership, plus historical aggregation weights and the snapshot's
+turnout-weight transition fraction. Region seat lists retain project order so
+totals use the same sequence of additions. These inputs are rebuilt after seat
+import for each main or supporting run; background jobs bind seat references to
+their own project context. No cache is saved in the project file. Live name
+lookups reuse the turnout account's shared index, retaining empty results for
+unknown or inactive districts where the corresponding getter already did so.
+Projected counts, confidence, live deviations and scenario aggregation weights
+are read or calculated separately for every scenario. In particular, a shared
+seat index does not mean sharing one scenario's result with another.
+
+Local uncertainty preparation retains all 288 deterministic composition samples.
+Each worker slot reuses one private working election within that preparation,
+instead of copying the whole election for each sample. Before a sample starts,
+it restores every booth's temporary FP/TCP/TPP projections, new-voter primary
+composition, and TCP/TPP completion and confidence from the prepared model.
+Restoration covers all booths before any projection runs, because one booth's
+calculation can read evidence from another. Accepted counts, historical evidence,
+turnout targets and parent seat/region inputs remain fixed. The existing batch
+joins keep each working copy private to one worker at a time; all copies are
+destroyed on completion or failure and are not retained for another snapshot.
+Sample indices, keyed random draws, booth order and sorted reduction remain
+unchanged. The preparation uses at most the configured number of simulation
+threads, capped at 24, and retains its existing progress and failure handling.
+
+`SimulationSeatLookupTests` checks order, IDs with gaps, empty regions and binding
+to a replacement project context. `LiveAggregationTests` checks that preparing
+fixed aggregation inputs still reads each scenario's varying seat sizes. These
+portable tests need no feeds, model fitting or forecast-application run:
+
+```powershell
+New-Item -ItemType Directory -Force cli-build\seat-lookup-tests | Out-Null
+cl /nologo /std:c++20 /O2 /EHsc /I. /Fo"cli-build\seat-lookup-tests\\" /Fe"cli-build\seat-lookup-tests\lookups.exe" tests\SimulationSeatLookupTests.cpp
+.\cli-build\seat-lookup-tests\lookups.exe
+cl /nologo /std:c++20 /O2 /EHsc /I. /Fo"cli-build\seat-lookup-tests\\" /Fe"cli-build\seat-lookup-tests\aggregation.exe" tests\LiveAggregationTests.cpp
+.\cli-build\seat-lookup-tests\aggregation.exe
+```
+
+`LiveVariabilityWorkingCopyTests` checks restoration to non-empty prepared values
+and isolation between working copies. `LiveVariabilityTests` checks all 288
+deterministic sample comparisons and their RMS (root mean square, the size of
+the sampled differences used as the uncertainty scale). From the repository root
+in a Visual Studio developer shell:
+
+```powershell
+New-Item -ItemType Directory -Force cli-build\variability-tests | Out-Null
+cl /nologo /std:c++20 /O2 /EHsc /I. /Fo"cli-build\variability-tests\\" /Fe"cli-build\variability-tests\working-copies.exe" tests\LiveVariabilityWorkingCopyTests.cpp
+cl /nologo /std:c++20 /O2 /EHsc /I. /Fo"cli-build\variability-tests\\" /Fe"cli-build\variability-tests\samples.exe" tests\LiveVariabilityTests.cpp Config.cpp Log.cpp
+Push-Location cli-build\variability-tests
+try {
+    .\working-copies.exe
+    .\samples.exe
+} finally { Pop-Location }
+```
+
+The isolated execution directory keeps the component tests' `PALog.log`
+separate from the application's run log.
 
 `UnreportedPlaceCountingTests` additionally checks the installed probability
 knots, smooth transitions, positive-return sizes, rare-return means, enrolment

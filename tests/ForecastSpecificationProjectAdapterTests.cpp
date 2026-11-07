@@ -5,11 +5,71 @@
 #include "WorkspacePaths.h"
 
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <cmath>
 #include <string>
 
 namespace {
+	bool checkIndependentPreferenceImport(std::filesystem::path const& root)
+	{
+		// Exercise the real seat importer/exporter in an isolated workspace,
+		// including legacy omission, both list separators and a misspelled code.
+		auto const fixture = root / "cli-build" / "independent-preference-import";
+		std::filesystem::create_directories(fixture / "analysis" / "seats");
+		auto const seatsPath = fixture / "analysis" / "seats" / "2030fed.txt";
+		std::ofstream(fixture / "config.cfg") << "iSimulationThreads=1\n";
+		auto writeSeats = [&](std::string const& setting) {
+			std::ofstream(seatsPath) <<
+				"#Default\nsIncumbent=ALP\nsChallenger=LIB\nsRegion=Area\n"
+				"#Exception\nsIncumbent=LIB\nsChallenger=CA\nsRegion=Area\n" <<
+				"sIndependentLikePreferences=" << setting << '\n';
+		};
+		ForecastSpecification specification;
+		specification.id = "preference-test";
+		specification.electionName = "Fictional election";
+		specification.electionCode = "2030fed";
+		specification.dataSources.seats = "analysis/seats/2030fed.txt";
+		specification.partySettings = {"labor", "liberal"};
+		specification.parties = {{0,"labor","Labor","ALP"},
+			{1,"liberal","Liberal","LIB"}, {2,"independent","Independent","IND"},
+			{3,"centrist","Centrist Party","CA"}};
+		specification.partyOfficialCodes = {{"labor","ALP"}, {"liberal","LIB"},
+			{"independent","IND"}, {"centrist","CA"}};
+		specification.regions = {{0,"area","Area",10000,"Area",50}};
+		specification.models = {{"model","Model","2030fed",{{"ALP",0,0},{"LIB",0,0}}}};
+		specification.projections = {{"projection","Projection","model",10,
+			*Date::parseIso("2030-01-01"),{}}};
+		specification.simulations = {{"simulation","Simulation","projection",10}};
+		for (auto const& setting : {"CA,IND", "CA;IND", ""}) {
+			writeSeats(setting);
+			auto result = ForecastSpecificationProjectAdapter::construct(
+				specification, WorkspacePaths(fixture));
+			if (!result.valid()) {
+				std::cerr << result.errorMessage() << '\n';
+				return false;
+			}
+			auto& seats = result.project->seats();
+			std::vector<std::string> const expected = std::string(setting).empty() ?
+				std::vector<std::string>{} : std::vector<std::string>{"CA", "IND"};
+			if (!seats.viewByIndex(0).independentLikePreferences.empty() ||
+				seats.viewByIndex(1).independentLikePreferences != expected) {
+				std::cerr << "Imported preference list differs for " << setting << '\n';
+				return false;
+			}
+			seats.exportInfo();
+			seats.importInfo();
+			if (seats.viewByIndex(1).independentLikePreferences != expected) {
+				std::cerr << "Preference list changed on export for " << setting << '\n';
+				return false;
+			}
+		}
+		writeSeats("MISSPELLED");
+		auto invalid = ForecastSpecificationProjectAdapter::construct(
+			specification, WorkspacePaths(fixture));
+		return !invalid.valid() && invalid.errorMessage().find("MISSPELLED") != std::string::npos;
+	}
+
 	bool checkNationalsLookup(PollingProject& owner)
 	{
 		// Feed aliases remain useful when a project groups the Coalition together.
@@ -108,6 +168,10 @@ int main(int argc, char const* argv[])
 
 	WorkspacePaths const paths(argv[1]);
 	bool valid = true;
+	if (!checkIndependentPreferenceImport(paths.root())) {
+		std::cerr << "Independent-like preference settings failed import/export checks\n";
+		valid = false;
+	}
 	for (int argument = 2; argument < argc; ++argument) {
 		auto loaded = loadForecastSpecification(argv[argument], paths.root());
 		if (!loaded.valid()) {
@@ -130,6 +194,23 @@ int main(int argc, char const* argv[])
 
 		auto const& specification = loaded.specification;
 		auto const& project = *constructed.project;
+		// The exception is local to Sharkie's post-2016 campaigns. It must not
+		// become a CA-wide default or retrospectively change NXT in 2016.
+		for (auto const& [seatId, seat] : project.seats()) {
+			static_cast<void>(seatId);
+			bool const sharkieException = seat.name == "Mayo" &&
+				(specification.electionCode == "2019fed" ||
+				 specification.electionCode == "2022fed" ||
+				 specification.electionCode == "2025fed" ||
+				 specification.electionCode == "2028fed");
+			std::vector<std::string> const expected = sharkieException ?
+				std::vector<std::string>{"CA"} : std::vector<std::string>{};
+			if (seat.independentLikePreferences != expected) {
+				std::cerr << specification.electionCode << " / " << seat.name <<
+					": unexpected independent-like preference configuration\n";
+				valid = false;
+			}
+		}
 		if (!checkNationalsLookup(*constructed.project)) {
 			std::cerr << "Combined and separate Nationals lookups disagree\n";
 			valid = false;

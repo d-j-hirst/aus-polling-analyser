@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-10-30T09:37:00Z",
+  "updated_at_utc": "2026-11-04T07:26:16Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,12 +12,22 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 45,
+      "semantic_revision": 47,
       "files": {
+        "2013fed.txt": {
+          "sha256": "d6d75e40d7ece21df752d6edb476d99a7210847b6c1ebbb9be905b6e832cb0cd",
+          "size_bytes": 33881,
+          "recorded_mtime_utc": "2026-11-04T07:21:06.534115Z"
+        },
+        "2016fed.txt": {
+          "sha256": "27f1341018d13e79b45884e2188fe2c44644e27d73cf6f865fe951a9f74810ff",
+          "size_bytes": 30251,
+          "recorded_mtime_utc": "2026-11-02T04:55:14.057425Z"
+        },
         "2019fed.txt": {
-          "sha256": "7ec8fd1f90a1dfd922d5ffae65310204521a87b5e91aec5a5a5f7f00b242abab",
-          "size_bytes": 37570,
-          "recorded_mtime_utc": "2026-10-29T14:01:03.068578Z"
+          "sha256": "3423ebd3bad4b70f55109b21befce130c84075c65da7b297d328d3e8ce553cf2",
+          "size_bytes": 37601,
+          "recorded_mtime_utc": "2026-11-02T23:11:41.810424Z"
         },
         "2019nsw.txt": {
           "sha256": "70e88c06f5494880e5e975ce58e7efce666954c193fcbdfc1ede2580240911dd",
@@ -25,9 +35,9 @@
           "recorded_mtime_utc": "2023-03-15T11:04:51.362731Z"
         },
         "2022fed.txt": {
-          "sha256": "9087f9e7307dde21e400a91909306cfea9f0e4bfb429195b3ec8f2abc7f807f7",
-          "size_bytes": 67504,
-          "recorded_mtime_utc": "2026-10-14T12:15:14.054832Z"
+          "sha256": "1a45b69b25619cb267aec36f8b914cf2edfa1e9de35047677f6eaedc9bf2378b",
+          "size_bytes": 67535,
+          "recorded_mtime_utc": "2026-11-02T23:11:42.172393Z"
         },
         "2022sa.txt": {
           "sha256": "605dcfb3b548e9d522abcd18372f032b2d3e4bfccd441dba0c8c20ea114049f7",
@@ -50,9 +60,9 @@
           "recorded_mtime_utc": "2026-10-22T03:31:54.525072Z"
         },
         "2025fed.txt": {
-          "sha256": "bf4000b90170552b1e548a32bc7562f52ea1cec547c56e0a0b91ed2c48935464",
-          "size_bytes": 77571,
-          "recorded_mtime_utc": "2026-07-23T04:11:27.864257Z"
+          "sha256": "f31f7e4e52409028a7cd2689273a0747aa4ae7dbb558e17cc20ed14996b7d0e1",
+          "size_bytes": 77602,
+          "recorded_mtime_utc": "2026-11-02T23:11:42.466230Z"
         },
         "2025wa.txt": {
           "sha256": "d91a5e3b8e51a1faffe25175f01038ca0fa08f22f052b7532b0a41ab03af801a",
@@ -65,9 +75,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "825f052c711bad30a39def7b8015a98a84baa05e7cb6bb94e70106195531f06c",
-          "size_bytes": 23596,
-          "recorded_mtime_utc": "2026-10-30T09:37:00.457014Z"
+          "sha256": "88292f78cebc86f60d7a435b5efdcbde77f5f143f9bd55392a9483ac01961abb",
+          "size_bytes": 23597,
+          "recorded_mtime_utc": "2026-11-02T05:58:58.356171Z"
         },
         "2027nsw.txt": {
           "sha256": "9066c05124dc34153f7b56e0d6c2a7238d5a40e3e1edb7965d74778378c4120a",
@@ -75,9 +85,9 @@
           "recorded_mtime_utc": "2026-09-13T23:28:54.408756Z"
         },
         "2028fed.txt": {
-          "sha256": "fe074252b3a2158a68ff4fd9989ece8906d3a718d5454ad6e5fc6f313b32e378",
-          "size_bytes": 33905,
-          "recorded_mtime_utc": "2026-10-12T11:20:44.975754Z"
+          "sha256": "12303f27833a889d6a50300d928a721338aefd49607821003f0ec237b470cdf2",
+          "size_bytes": 33936,
+          "recorded_mtime_utc": "2026-11-02T23:11:42.759643Z"
         }
       },
       "events": [
@@ -1075,9 +1085,63 @@
             "uri": "https://www.viclabor.org.au/our-team",
             "coverage_through": "2026-10-30"
           }
+        },
+        {
+          "id": "20261103T121749Z-correction-forecast-seats-f30cb553",
+          "recorded_at_utc": "2026-11-03T12:17:49Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 46,
+          "provenance_revision": 46,
+          "summary": "NXT party vs pseudo-independent clarification",
+          "files": [
+            "2016fed.txt",
+            "2019fed.txt",
+            "2022fed.txt",
+            "2025fed.txt",
+            "2026vic.txt",
+            "2028fed.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2016fed",
+              "2019fed",
+              "2022fed",
+              "2025fed",
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261104T072616Z-coverage_extension-forecast-seats-02e40f97",
+          "recorded_at_utc": "2026-11-04T07:26:16Z",
+          "change_type": "coverage_extension",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 47,
+          "provenance_revision": 47,
+          "summary": "Configure the 2013 federal replay from the AEC ballot, 2010 comparisons and documented pre-election candidate settings.",
+          "files": [
+            "2013fed.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2013fed"
+            ],
+            "parties": [],
+            "stages": []
+          },
+          "source": {
+            "description": "2013 AEC preload and historical comparison fields, with 2010 AEC final accounts and contemporary campaign evidence."
+          }
         }
       ],
-      "provenance_revision": 45
+      "provenance_revision": 47
     }
   }
 }

@@ -1,0 +1,1089 @@
+#Banks
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=1.449284
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,OTH*
+sCandidateNames=Daryl Melham,ALP;David Coleman,LNP;Paul Spight,GRN;Jake John Wellham,UAP;Ross Richardson,KAP
+#Barton
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=6.8636173
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,OTH*
+sCandidateNames=Steve Mcmahon,ALP;Nickolas Varvaris,LNP;Jackie Brooker,GRN;Edward Caruana,UAP;Rodney Tim Wyse,KAP
+bRetirement=1
+#Bennelong
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-3.1231035
+sRunningParties=ALP,LNP,GRN,UAP,OTH***
+sCandidateNames=Jason Yat-Sen Li,ALP;John Alexander,LNP;Lindsay Peters,GRN;Robert James Marks,UAP
+#Berowra
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-16.2031636
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH*
+sCandidateNames=Michael Joseph Stove,ALP;Philip Ruddock,LNP;John Storey,GRN;Paul Frederick Graves,UAP
+#Blaxland
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=12.2348639
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH*
+sCandidateNames=Jason Clare,ALP;Anthony Khouri,LNP;John Ky,GRN;Zali Burrows,UAP;Nafez Taleb,KAP
+#Bradfield
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-18.1815051
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Chris Haviland,ALP;Paul Fletcher,LNP;Pippa Mcinnes,GRN;Blake Buchanan,UAP
+#Calare
+sRegion=NSW
+sIncumbent=NAT
+sChallenger=ALP
+fTppMargin=-10.7438202
+sRunningParties=ALP,GRN,UAP,KAP,IND,NAT,OTH**
+sCandidateNames=Jess Jennings,ALP;David Mallard,GRN;Brian Eric Cain,UAP;Billie Kirkland,KAP;John Cobb,NAT
+#Charlton
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=12.6673086
+sRunningParties=ALP,LNP,GRN,UAP,OTH**
+sCandidateNames=Pat Conroy,ALP;Kevin Baker,LNP;Dessie Kocher,GRN;Bronwyn Elizabeth Reid,UAP
+bRetirement=1
+#Chifley
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=12.3396499
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH***
+sCandidateNames=Ed Husic,ALP;Isabelle White,LNP;Ben Hammond,GRN;Christopher Ernest Buttel,UAP
+#Cook
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-12.6624101
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH*
+sCandidateNames=Peter William Scaysbrook,ALP;Scott Morrison,LNP;Mithra Cox,GRN;Matthew Gary Palise,UAP
+#Cowper
+sRegion=NSW
+sIncumbent=NAT
+sChallenger=ALP
+fTppMargin=-9.26756528
+sRunningParties=ALP,GRN,UAP,NAT,OTH
+sCandidateNames=Alfredo Navarro,ALP;Carol Vernon,GRN;Rodney Norman Jeanneret,UAP;Luke Hartsuyker,NAT
+#Cunningham
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=13.1743321
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH*
+sCandidateNames=Sharon Bird,ALP;Philip Clifford,LNP;Helen Wilson,GRN;Christopher James Atlee,UAP;John Leslie Bursill,KAP
+#Dobell
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=5.07048384
+sRunningParties=ALP,LNP,GRN,UAP,IND*,OTH**
+sCandidateNames=Emma Mcbride,ALP;Karen Mcnamara,LNP;Sue Wynn,GRN;Kate Angelique Mcgill,UAP
+bRetirement=1
+#Eden-Monaro
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=4.23895599
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH**
+sCandidateNames=Mike Kelly,ALP;Peter Hendy,LNP;Catherine Moore,GRN;Dean Lynch,UAP
+#Farrer
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-14.5146901
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH***
+sCandidateNames=Gavin Hickey,ALP;Sussan Ley,LNP;Christina Sobey,GRN;Ronald James Emmerton,UAP;Ken Trewin,KAP
+#Fowler
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=8.76277932
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH
+sCandidateNames=Chris Hayes,ALP;Andrew Nguyen,LNP;Benjamin Silaphet,GRN;Bradley Charles Pastoors,UAP;Darren C Mclean,KAP
+#Gilmore
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-5.3185586
+sRunningParties=ALP,LNP,GRN,UAP,OTH
+sCandidateNames=Neil Ernest Reilly,ALP;Ann Sudmalis,LNP;Terry Barratt,GRN;Lyndal Gai Harris,UAP
+bRetirement=1
+#Grayndler
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=GRN
+fTppMargin=20.6267495
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Anthony Albanese,ALP;Cedric Spencer,LNP;Hall Greenland,GRN;Mohanadas Balasingham,UAP
+#Greenway
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=0.883895698
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH***
+sCandidateNames=Michelle Rowland,ALP;Jaymes Diaz,LNP;Chris Brentin,GRN;Jodie Camille Wootton,UAP;Anthony Gino Belcastro,KAP
+#Hughes
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-5.17397198
+sRunningParties=ALP,LNP,GRN,UAP,OTH
+sCandidateNames=Alison Patricia Megarrity,ALP;Craig Kelly,LNP;Signe Westerberg,GRN;John Peters,UAP
+#Hume
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-8.71546083
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,OTH**
+sCandidateNames=Michael Pilbrow,ALP;Angus Taylor,LNP;Zaza Chevalier,GRN;Jason Peter Cornelius,UAP;Bruce Nicholson,KAP
+bRetirement=1
+#Hunter
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=NAT
+fTppMargin=12.4775561
+sRunningParties=ALP,GRN,UAP,NAT,OTH**
+sCandidateNames=Joel Fitzgibbon,ALP;David Atwell,GRN;Jennifer Susan Stefanac,UAP;Michael Johnsen,NAT
+#Kingsford Smith
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=5.16219873
+sRunningParties=ALP,LNP,GRN,UAP,OTH**
+sCandidateNames=Matt Thistlethwaite,ALP;Michael Feneley,LNP;James Macdonald,GRN;Diane Olga Happ,UAP
+bRetirement=1
+#Lindsay
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=1.12042967
+sRunningParties=ALP,LNP,GRN,UAP,OTH***
+sCandidateNames=David Bradbury,ALP;Fiona Scott,LNP;David Lenton,GRN;Andrew William Wilcox,UAP
+#Lyne
+sRegion=NSW
+sIncumbent=NAT
+sChallenger=ALP
+fTppMargin=-12.4536585
+sRunningParties=ALP,GRN,UAP,KAP,IND,NAT,OTH**
+sCandidateNames=Peter Alley,ALP;Ian Oxenford,GRN;Troy Alexander Wilkie,UAP;Brian Buckley Clare,KAP;David Gillespie,NAT
+#Macarthur
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-3.0184264
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH
+sCandidateNames=Ian Fulton,ALP;Russell Matheson,LNP;Patrick Darley-Jones,GRN;Goetz Robert Uwe Grosche,UAP;Mick Williams,KAP
+#Mackellar
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-15.7233065
+sRunningParties=ALP,LNP,GRN,UAP,OTH
+sCandidateNames=Chris Hedge,ALP;Bronwyn Bishop,LNP;Jonathan King,GRN;Debra Gayle Drummond,UAP
+#Macquarie
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-1.25679309
+sRunningParties=ALP,LNP,GRN,UAP,OTH***
+sCandidateNames=Susan Templeman,ALP;Louise Markus,LNP;Danielle Wheeler,GRN;Philip Daniel Maxwell,UAP
+#McMahon
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=7.81367393
+sRunningParties=ALP,LNP,GRN,UAP,OTH
+sCandidateNames=Chris Bowen,ALP;Ray King,LNP;Astrid O'Neill,GRN;Matthew Markus Dobrincic,UAP
+#Mitchell
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-17.1559436
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Andrew Thomas Punch,ALP;Alex Hawke,LNP;Michael Bellstedt,GRN;Murray Schultz,UAP
+#New England
+sRegion=NSW
+sIncumbent=NAT
+sChallenger=ALP
+fTppMargin=-16.8045014
+sRunningParties=ALP,GRN,UAP,IND*,NAT,OTH**
+sCandidateNames=Stephen Hewitt,ALP;Pat Schultz,GRN;Phillip John Girle,UAP;Barnaby Joyce,NAT
+#Newcastle
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=12.4908496
+sRunningParties=ALP,LNP,GRN,UAP,IND*,OTH***
+sCandidateNames=Sharon Claydon,ALP;Jaimie Abbott,LNP;Michael Osborne,GRN;Yegon Dally Mclellan,UAP
+bRetirement=1
+#North Sydney
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-14.0551167
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Peter Hayes,ALP;Joe Hockey,LNP;Alison Haines,GRN;Raheam Khan,UAP
+#Page
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=NAT
+fTppMargin=4.19399419
+sRunningParties=ALP,GRN,UAP,NAT,OTH*
+sCandidateNames=Janelle Saffin,ALP;Desley Banks,GRN;Stephen Bruce Janes,UAP;Kevin Hogan,NAT
+#Parkes
+sRegion=NSW
+sIncumbent=NAT
+sChallenger=ALP
+fTppMargin=-18.8571906
+sRunningParties=ALP,GRN,UAP,NAT,OTH
+sCandidateNames=Brendan Byron,ALP;Matt Parmeter,GRN;Neil John Gorman,UAP;Mark Coulton,NAT
+#Parramatta
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=4.37261386
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH**
+sCandidateNames=Julie Owens,ALP;Martin Zaiter,LNP;Phil Bradley,GRN;Ganesh Sahadev Loke,UAP
+#Paterson
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-5.32736144
+sRunningParties=ALP,LNP,GRN,UAP,OTH**
+sCandidateNames=Bay Marshall,ALP;Bob Baldwin,LNP;John Brown,GRN;Jayson Geoffrey Packett,UAP
+#Reid
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=2.68121766
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH**
+sCandidateNames=John Murphy,ALP;Craig Laundy,LNP;Pauline Tyrrell,GRN;Mohammed Nadeem Ashraf,UAP;Bishrul Hafi Ameer Izadeen,KAP
+#Richmond
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=NAT
+fTppMargin=6.99387641
+sRunningParties=ALP,GRN,UAP,IND,NAT,OTH
+sCandidateNames=Justine Elliot,ALP;Dawn Walker,GRN;Charles Philip Fitzsimonds Allen,UAP;Matthew Fraser,NAT
+#Riverina
+sRegion=NSW
+sIncumbent=NAT
+sChallenger=ALP
+fTppMargin=-18.1676119
+sRunningParties=ALP,GRN,UAP,KAP,NAT,OTH****
+sCandidateNames=Tim Kurylowicz,ALP;Ros Prangnell,GRN;Lex Stewart,UAP;Norm Dunn,KAP;Michael Mccormack,NAT
+#Robertson
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=0.99541838
+sRunningParties=ALP,LNP,GRN,UAP,IND*,OTH**
+sCandidateNames=Deborah O'Neill,ALP;Lucy Wicks,LNP;Kate Da Costa,GRN;Steven Spencer Whitaker,UAP
+#Shortland
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=12.8480642
+sRunningParties=ALP,LNP,GRN,UAP,OTH
+sCandidateNames=Jill Griffiths Hall,ALP;John Church,LNP;Jane Oakley,GRN;Philip Robert Baldwin,UAP
+#Sydney
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=17.0660267
+sRunningParties=ALP,LNP,GRN,UAP,IND*,OTH**
+sCandidateNames=Tanya Plibersek,ALP;Sean O'Connor,LNP;Dianne Hiles,GRN;Timothy Daniel Kelly,UAP
+#Throsby
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=12.1136519
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,NAT,OTH***
+sCandidateNames=Stephen Jones,ALP;Larissa Mallinson,LNP;Peter Moran,GRN;May Lee King,UAP;Glenn Turner,KAP;Gary Anderson,NAT
+fNationalsCoalitionShare=0.149314884
+#Warringah
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-13.093725
+sRunningParties=ALP,LNP,GRN,UAP,OTH**
+sCandidateNames=Jules Felix Zanetti,ALP;Tony Abbott,LNP;Will Kitching,GRN;Brodie Martin O'Connor Stewart,UAP
+#Watson
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=9.13858019
+sRunningParties=ALP,LNP,GRN,UAP,OTH**
+sCandidateNames=Tony Burke,ALP;Ron Delezio,LNP;Barbara Bloch,GRN;Zaher Nasser,UAP
+#Wentworth
+sRegion=NSW
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-14.8610919
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH
+sCandidateNames=Di Smith,ALP;Malcolm Turnbull,LNP;Matthew Robertson,GRN;Marsha Foxman,UAP
+#Werriwa
+sRegion=NSW
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=6.7490772
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH**
+sCandidateNames=Laurie Ferguson,ALP;Kent Johns,LNP;Daniel Griffiths,GRN;Katryna Marie Thirup,UAP;Kerryn Ball,KAP
+#Aston
+sRegion=VIC
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-0.670358669
+sRunningParties=ALP,LNP,GRN,UAP,OTH**
+sCandidateNames=Rupert Evans,ALP;Alan Tudge,LNP;Steve Raymond,GRN;Bradley Walter Watt,UAP
+#Ballarat
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=11.7046255
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH****
+sCandidateNames=Catherine King,ALP;John Fitzgibbon,LNP;Stephanie Hodgins-May,GRN;Gerard Anthony Murphy,UAP;Shane Edward Dunne,KAP
+#Batman
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=GRN
+fTppMargin=24.7980223
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH***
+sCandidateNames=David Feeney,ALP;George Souris,LNP;Alexandra Kaur Bhathal,GRN;Franco Guardiani,UAP
+bRetirement=1
+#Bendigo
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=9.42054667
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND*,NAT,OTH****
+sCandidateNames=Lisa Chesters,ALP;Greg Bickley,LNP;Lachlan Slade,GRN;Anita Erika Donlon,UAP;Stephen John Stingel,KAP;Sarah Sheedy,NAT
+bRetirement=1
+fNationalsCoalitionShare=0.1
+#Bruce
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=7.71491506
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH**
+sCandidateNames=Alan Griffin,ALP;Emanuele Cicchiello,LNP;Lynette Keleher,GRN;Paul Robert Jose Tuyau,UAP
+#Calwell
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=20.0623408
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH****
+sCandidateNames=Maria Vamvakinou,ALP;Ali Khan,LNP;Joanna Nevill,GRN;Bryce Newton Letcher,UAP;Brett Watson,KAP
+#Casey
+sRegion=VIC
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-1.86391772
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH***
+sCandidateNames=Cathy Farrell,ALP;Tony Smith,LNP;Steve Meacher,GRN;Milton Wilde,UAP
+#Chisholm
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=5.7788297
+sRunningParties=ALP,LNP,GRN,UAP,OTH****
+sCandidateNames=Anna Elizabeth Burke,ALP;John Nguyen,LNP;Josh Fergeus,GRN;Brian Clifford Woods,UAP
+#Corangamite
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=0.278318324
+sRunningParties=ALP,LNP,GRN,UAP,IND,NAT,OTH*****
+sCandidateNames=Darren Cheeseman,ALP;Sarah Henderson,LNP;Lloyd Davies,GRN;Buddy Igor Rojek,UAP;Andrew Black,NAT
+fNationalsCoalitionShare=0.1
+#Corio
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=13.4667544
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH****
+sCandidateNames=Richard Marles,ALP;Peter Read,LNP;Greg Lacey,GRN;Anthony John Harrington,UAP
+#Deakin
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=0.598635271
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,OTH*****
+sCandidateNames=Mike Symon,ALP;Michael Sukkar,LNP;Brendan Powell,GRN;Mario Guardiani,UAP;Steve Raskovy,KAP
+#Dunkley
+sRegion=VIC
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-1.04325877
+sRunningParties=ALP,LNP,GRN,UAP,IND*,OTH**
+sCandidateNames=Sonya Kilkenny,ALP;Bruce Billson,LNP;Simon Tiller,GRN;Kate Dolina Ryder,UAP
+#Flinders
+sRegion=VIC
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-9.13703609
+sRunningParties=ALP,LNP,GRN,UAP,IND*,OTH***
+sCandidateNames=Joshua Sinclair,ALP;Greg Hunt,LNP;Martin Rush,GRN;Linda Ruth Clark,UAP
+#Gellibrand
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=24.1311068
+sRunningParties=ALP,LNP,GRN,UAP,OTH**
+sCandidateNames=Tim Watts,ALP;David Mcconnell,LNP;Rod Swift,GRN;Dwayne Robert Singleton,UAP
+bRetirement=1
+#Gippsland
+sRegion=VIC
+sIncumbent=NAT
+sChallenger=ALP
+fTppMargin=-11.4492329
+sRunningParties=ALP,GRN,UAP,IND,NAT,OTH*****
+sCandidateNames=Jeff Mcneill,ALP;Scott Campbell-Smith,GRN;Deborah Faye Gravenall,UAP;Darren Chester,NAT
+#Goldstein
+sRegion=VIC
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-6.01132024
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Daniel Guttmann,ALP;Andrew Robb,LNP;Rose Read,GRN;Keith Rodney Ryder,UAP
+#Gorton
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=23.6310143
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH***
+sCandidateNames=Brendan O'Connor,ALP;Phil Humphreys,LNP;Dinesh Jayasuriya,GRN;Anthony Paul Barnes,UAP;Graham Macardy,KAP
+#Higgins
+sRegion=VIC
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-5.40260474
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH*
+sCandidateNames=Wesa Chau,ALP;Kelly O'Dwyer,LNP;James Harrison,GRN;Phillip Leslie Dall,UAP
+#Holt
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=13.9724829
+sRunningParties=ALP,LNP,GRN,UAP,OTH****
+sCandidateNames=Anthony Byrne,ALP;Ricardo Balancy,LNP;Jackie Mccullough,GRN;Jatinder Singh,UAP
+#Hotham
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=13.9637102
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Clare O'Neil,ALP;Fazal Cader,LNP;Lorna Wyatt,GRN;Samuel Warren Porter,UAP
+bRetirement=1
+#Indi
+sRegion=VIC
+sIncumbent=LNP
+sChallenger=IND
+fTppMargin=-8.98928095
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND*,OTH***
+sCandidateNames=Robyn Walsh,ALP;Sophie Mirabella,LNP;Jenny O'Connor,GRN;Robert Denis Murphy,UAP;Phil Rourke,KAP;Cathy Mcgowan,IND
+bConfirmedProminentIndependent=1
+sMinorViability=IND,3
+sPolls=IND,23.3,2
+#Isaacs
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=10.4056071
+sRunningParties=ALP,LNP,GRN,UAP,OTH****
+sCandidateNames=Mark Dreyfus,ALP;Garry Spencer,LNP;Sandra Miles,GRN;Avtar Singh Gill,UAP
+#Jagajaga
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=11.1463222
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Jenny Macklin,ALP;Nick Mcgowan,LNP;Chris Kearney,GRN;Kitten Leigh Snape,UAP
+#Kooyong
+sRegion=VIC
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-7.44851995
+sRunningParties=ALP,LNP,GRN,UAP,IND*,OTH*
+sCandidateNames=John Kennedy,ALP;Josh Frydenberg,LNP;Helen Mcleod,GRN;Luke Gerard Mcnamara,UAP
+#La Trobe
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=1.65561356
+sRunningParties=ALP,LNP,GRN,UAP,OTH***
+sCandidateNames=Laura Smyth,ALP;Jason Wood,LNP;Michael Schilling,GRN;Jason Grant Kennedy,UAP
+#Lalor
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=22.1158958
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH*****
+sCandidateNames=Joanne Ryan,ALP;Nihal Samara,LNP;Beck Sheffield-Brotherton,GRN;Joe Zappia,UAP
+bRetirement=1
+#Mallee
+sRegion=VIC
+sIncumbent=NAT
+sChallenger=LNP
+fTppMargin=-23.2594791
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,NAT,OTH****
+sCandidateNames=Lydia Senior,ALP;Chris Crewther,LNP;Jane Macallister,GRN;Mark Robert Cory,UAP;Vince Cirillo,KAP;Andrew Broad,NAT
+bRetirement=1
+fNationalsCoalitionShare=0.7
+#Maribyrnong
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=17.4896003
+sRunningParties=ALP,LNP,GRN,UAP,OTH****
+sCandidateNames=Bill Shorten,ALP;Ted Hatzakortzian,LNP;Richard Keech,GRN;Philip William Cutler,UAP
+#McEwen
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=9.18509006
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH***
+sCandidateNames=Rob Mitchell,ALP;Donna Petrovich,LNP;Neil Barker,GRN;Trevor Owen Dance,UAP;Bruce Stevens,KAP
+#McMillan
+sRegion=VIC
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-4.20991664
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND*,OTH*****
+sCandidateNames=Anthony Naus,ALP;Russell Broadbent,LNP;Malcolm Mckelvie,GRN;Matthew John Sherry,UAP;David John Amor,KAP
+#Melbourne
+sRegion=VIC
+sIncumbent=GRN
+sChallenger=LNP
+fTppMargin=22.7678344
+sRunningParties=ALP,LNP,GRN,UAP,IND**,OTH********
+sCandidateNames=Cath Bowtell,ALP;Sean Armistead,LNP;Adam Bandt,GRN;Martin Vrbnjak,UAP
+bIncumbentRecontestConfirmed=1
+#Melbourne Ports
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=7.89432729
+sRunningParties=ALP,LNP,GRN,UAP,OTH****
+sCandidateNames=Michael Danby,ALP;Kevin Ekendahl,LNP;Ann Birrell,GRN;Toby Simon Stodart,UAP
+#Menzies
+sRegion=VIC
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-8.65443287
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH*
+sCandidateNames=Manoj Kumar,ALP;Kevin Andrews,LNP;Richard Cranston,GRN;Agostino Guardiani,UAP
+#Murray
+sRegion=VIC
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-19.5784651
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,OTH****
+sCandidateNames=Rod Higgins,ALP;Sharman Stone,LNP;Damien Stevens,GRN;Catriona Cecilia Thoolen,UAP;Michael John Bourke,KAP
+#Scullin
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=20.5320868
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH*
+sCandidateNames=Andrew Giles,ALP;Jag Chugha,LNP;Rose Ljubicic,GRN;Peter Rex Cooper,UAP;Domenic Greco,KAP
+bRetirement=1
+#Wannon
+sRegion=VIC
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-5.66013678
+sRunningParties=ALP,LNP,GRN,UAP,OTH**
+sCandidateNames=Michael Barling,ALP;Dan Tehan,LNP;Tim Emanuelle,GRN;Bradley Ian Ferguson,UAP
+#Wills
+sRegion=VIC
+sIncumbent=ALP
+sChallenger=GRN
+fTppMargin=23.5295142
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH**
+sCandidateNames=Kelvin Thomson,ALP;Shilpa Hegde,LNP;Tim Read,GRN;Anne Marie Murray-Dufoulon,UAP
+#Blair
+sRegion=QLD
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=4.23585664
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH**
+sCandidateNames=Shayne Kenneth Neumann,ALP;Teresa Harding,LNP;Clare Rudkin,GRN;Anthony John Stanton,UAP;Dale Chorley,KAP
+#Bonner
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-2.82054403
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Laura Fraser Hardy,ALP;Ross Vasta,LNP;Dave Nelson,GRN;James Derek Macanally,UAP
+#Bowman
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-10.3941668
+sRunningParties=ALP,LNP,GRN,UAP,OTH
+sCandidateNames=Darryl Briskey,ALP;Andrew Laming,LNP;Penny Allman-Payne,GRN;John Charles Wayne,UAP
+#Brisbane
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-1.1295636
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH**
+sCandidateNames=Fiona Mcnamara,ALP;Teresa Gambaro,LNP;Rachael Jacobs,GRN;Veronica Mary Ann Ford,UAP;Connie Cicchini,KAP
+#Capricornia
+sRegion=QLD
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=3.68250809
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,OTH*
+sCandidateNames=Peter Freeleagus,ALP;Michelle Landry,LNP;Paul Bambrick,GRN;Derek James Ison,UAP;Robbie Williams,KAP
+bRetirement=1
+#Dawson
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-2.43462851
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH*
+sCandidateNames=Bronwyn Taha,ALP;George Christensen,LNP;Jonathon Dykyj,GRN;Ian Maurice Ferguson,UAP;Justin Englert,KAP
+#Dickson
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-5.12762274
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH*
+sCandidateNames=Michael Gilliver,ALP;Peter Dutton,LNP;Tyrone D'Lisle,GRN;Mark Jonathon Taverner,UAP;Jim Cornwell,KAP
+#Fadden
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-14.1863246
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,OTH*
+sCandidateNames=Nicole Lessio,ALP;Stuart Robert,LNP;Petrina Maizey,GRN;James Patrick Macanally,UAP;Billy Lawrence,KAP
+#Fairfax
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=UAP
+fTppMargin=-6.95494903
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,OTH*
+sCandidateNames=Elaine Lexie Hughes,ALP;Ted O'Brien,LNP;David Knobel,GRN;Clive Frederick Palmer,UAP;Ray Sawyer,KAP
+sProminentMinors=UAP
+#Fisher
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-4.13023407
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND*,OTH**
+sCandidateNames=Bill Gissane,ALP;Mal Brough,LNP;Garry Claridge,GRN;William Matthew Schoch,UAP;Mark Meldon,KAP
+#Flynn
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-3.57983277
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND*,OTH*
+sCandidateNames=Chris Trevor,ALP;Ken O'Dowd,LNP;Serena Thompson,GRN;Steven Philip Ensby,UAP;Richard Laing Love,KAP
+#Forde
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-1.62543767
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,OTH***
+sCandidateNames=Peter Douglas Beattie,ALP;Bert Van Manen,LNP;Sally Spain,GRN;Blair Matthew Brewster,UAP;Paul Roger Hunter,KAP
+#Griffith
+sRegion=QLD
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=8.45769288
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,OTH****
+sCandidateNames=Kevin Rudd,ALP;Bill Glasson,LNP;Geoff Ebbs,GRN;Karin Margaret Hunter,UAP;Luke Murray,KAP
+#Groom
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-18.5341002
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH**
+sCandidateNames=Troy Murray,ALP;Ian Macfarlane,LNP;Trevor Smith,GRN;Ewen James Mathieson,UAP;Chris Whitty,KAP
+#Herbert
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-2.16659495
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH****
+sCandidateNames=Cathy O'Toole,ALP;Ewen Jones,LNP;Gail Hamilton,GRN;Martin David Brewster,UAP;Bronwyn Walker,KAP
+#Hinkler
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-10.3865632
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,OTH
+sCandidateNames=Leanne Donaldson,ALP;Keith Pitt,LNP;Mark Simpson,GRN;Robert Desmond Messenger,UAP;David Dalgleish,KAP
+#Kennedy
+sRegion=QLD
+sIncumbent=KAP
+sChallenger=LNP
+fTppMargin=-11.9371023
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,OTH*
+sCandidateNames=Andrew Turnour,ALP;Noeline Ikin,LNP;Jenny Stirling,GRN;Ronald George Brazier,UAP;Bob Katter,KAP
+bIncumbentRecontestConfirmed=1
+#Leichhardt
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-4.55194708
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH*
+sCandidateNames=Billy Gordon,ALP;Warren Entsch,LNP;Johanna Kloot,GRN;Bruce Gibson,UAP;George Ryan,KAP
+#Lilley
+sRegion=QLD
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=3.17614584
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH*
+sCandidateNames=Wayne Swan,ALP;Rod Mcgarvie,LNP;Nic Forster,GRN;Benedict Figueroa,UAP;James Michael Ryan,KAP
+#Longman
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-1.91915176
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,OTH*
+sCandidateNames=Michael Caisley,ALP;Wyatt Roy,LNP;Helen Fairweather,GRN;Clemens Joseph Van Der Weegen,UAP;Brad Kennedy,KAP
+#Maranoa
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-22.8900109
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH*
+sCandidateNames=Nick Cedric-Thompson,ALP;Bruce Scott,LNP;Grant Newson,GRN;John Bjelke-Petersen,UAP;Rowell Walton,KAP
+#McPherson
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-10.2757278
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Gail Hislop,ALP;Karen Andrews,LNP;David Michael Wyatt,GRN;Susan Kim Douglas,UAP
+#Moncrieff
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-17.4938916
+sRunningParties=ALP,LNP,GRN,UAP,OTH**
+sCandidateNames=Jason David Munro,ALP;Steven Ciobo,LNP;Toni Mcpherson,GRN;Grant James Pforr,UAP
+#Moreton
+sRegion=QLD
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=1.13189159
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH***
+sCandidateNames=Graham Douglas Perrett,ALP;Malcolm Cole,LNP;Elissa Jenkins,GRN;Jeremy Peter Davey,UAP;Chris Allan Mallcott,KAP
+#Oxley
+sRegion=QLD
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=5.76928454
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH**
+sCandidateNames=Bernie Ripoll,ALP;Andrew Nguyen,LNP;Martin Stephenson,GRN;Ricky Yue Mun Tang,UAP;Kathleen Hewlett,KAP
+#Petrie
+sRegion=QLD
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=2.50772615
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH**
+sCandidateNames=Yvette D'Ath,ALP;Luke Howarth,LNP;John Marshall,GRN;Thor Leopold Prohaska,UAP;Chris Thomson,KAP
+#Rankin
+sRegion=QLD
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=5.41042675
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH
+sCandidateNames=Jim Chalmers,ALP;David Lin,LNP;Neil Cotter,GRN;William Tracy Rogan,UAP;Chris Claydon,KAP
+bRetirement=1
+#Ryan
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-7.16467866
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH*
+sCandidateNames=Damien Scott Hamwood,ALP;Jane Prentice,LNP;Charles Worringham,GRN;Craig Geoffrey Gunnis,UAP;Peter Andrew Walker,KAP
+#Wide Bay
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-15.6140738
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH*
+sCandidateNames=Lucy Stanton,ALP;Warren Truss,LNP;Joy Ringrose,GRN;Stephen Alfred Anderson,UAP;Gordon Dale,KAP
+#Wright
+sRegion=QLD
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-10.1509144
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,OTH*
+sCandidateNames=Sharon Murakami,ALP;Scott Buchholz,LNP;Judith Summers,GRN;Angie Elaine Ison,UAP;David Neuendorf,KAP
+#Brand
+sRegion=WA
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=3.32701082
+sRunningParties=ALP,LNP,GRN,UAP,OTH****
+sCandidateNames=Gary Gray,ALP;Donna Gordin,LNP;Dawn Jecks,GRN;Craig Walker Lawrence,UAP
+#Canning
+sRegion=WA
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-2.19355724
+sRunningParties=ALP,LNP,GRN,UAP,KAP,NAT,OTH**
+sCandidateNames=Joanne Carol Dean,ALP;Don Randall,LNP;Damon Pages-Oliver,GRN;Wendy Eileen Lamotte,UAP;Richard Eldridge,KAP;James Forsyth,NAT
+fNationalsCoalitionShare=0.1
+#Cowan
+sRegion=WA
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-6.28950458
+sRunningParties=ALP,LNP,GRN,UAP,OTH**
+sCandidateNames=Tristan Cockman,ALP;Luke Simpkins,LNP;Adam Collins,GRN;Vimal Kumar Sharma,UAP
+#Curtin
+sRegion=WA
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-16.1859777
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Daryl Tan,ALP;Julie Bishop,LNP;Judith Cullity,GRN;Glenn Phillip Baker,UAP
+#Durack
+sRegion=WA
+sIncumbent=LNP
+sChallenger=NAT
+fTppMargin=-13.6737415
+sRunningParties=ALP,LNP,GRN,UAP,KAP,NAT,OTH***
+sCandidateNames=Daron Keogh,ALP;Melissa Price,LNP;Ian James,GRN;Desmond John Headland,UAP;Aaron Todd,KAP;Shane Van Styn,NAT
+bRetirement=1
+fNationalsCoalitionShare=0.281977516
+#Forrest
+sRegion=WA
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-8.7382134
+sRunningParties=ALP,LNP,GRN,UAP,NAT,OTH***
+sCandidateNames=John Joseph Borlini,ALP;Nola Marino,LNP;Gordon Tayler,GRN;Edward Gregory Dabrowski,UAP;Michael Rose,NAT
+fNationalsCoalitionShare=0.108893004
+#Fremantle
+sRegion=WA
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=5.69617178
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH*****
+sCandidateNames=Melissa Parke,ALP;Matthew Hanssen,LNP;Jordon Alexander Steele-John,GRN;Vashil Vimal Sharma,UAP;Richard Mcnaught,KAP
+#Hasluck
+sRegion=WA
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-0.574573313
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH**
+sCandidateNames=Adrian Evans,ALP;Ken Wyatt,LNP;Peter Langlands,GRN;Robin David Scott,UAP;Daniel Stevens,KAP
+#Moore
+sRegion=WA
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-11.1924139
+sRunningParties=ALP,LNP,GRN,UAP,OTH**
+sCandidateNames=Jason Daniel Lawrance,ALP;Ian Goodenough,LNP;Louahna Janet Kiona Lloyd,GRN;Gary John Morris,UAP
+bRetirement=1
+#O'Connor
+sRegion=WA
+sIncumbent=NAT
+sChallenger=LNP
+fTppMargin=-22.9992768
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,NAT,OTH***
+sCandidateNames=Michael John Salt,ALP;Rick Wilson,LNP;Diane Evers,GRN;Michael Anthony Lucas,UAP;Phillip Bouwman,KAP;Chub Witham,NAT
+bRetirement=1
+fNationalsCoalitionShare=0.429274876
+#Pearce
+sRegion=WA
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-8.86496866
+sRunningParties=ALP,LNP,GRN,UAP,KAP,NAT,OTH***
+sCandidateNames=Madeleine Anne West,ALP;Christian Porter,LNP;Sarah Nielsen-Harvey,GRN;Francis Carson Hough,UAP;Eddie Richards,KAP;Craig Mcallister,NAT
+bRetirement=1
+fNationalsCoalitionShare=0.0484641307
+#Perth
+sRegion=WA
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=5.88323316
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH**
+sCandidateNames=Alannah Mactiernan,ALP;Darryl Moore,LNP;Jonathan Hallett,GRN;Gabriel Hasib Harfouche,UAP
+bRetirement=1
+#Stirling
+sRegion=WA
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-5.54728498
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH**
+sCandidateNames=Dan Caddy,ALP;Michael Keenan,LNP;Tim Clifford,GRN;Wayne Gordon Thompson,UAP
+#Swan
+sRegion=WA
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-2.52961392
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH***
+sCandidateNames=John Bissett,ALP;Steve Irons,LNP;Gerard Siero,GRN;Kenneth Michael Duncan,UAP;Noel Alexander Avery,KAP
+#Tangney
+sRegion=WA
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-12.3156439
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Luke Antony Willis,ALP;Dennis Jensen,LNP;Peter Best,GRN;Wayne Robert Driver,UAP
+#Adelaide
+sRegion=SA
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=7.51504593
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Kate Ellis,ALP;Carmen Garcia,LNP;Ruth Beach,GRN;Vincent Scali,UAP
+#Barker
+sRegion=SA
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-13.0080771
+sRunningParties=ALP,LNP,GRN,UAP,IND,NAT,OTH
+sCandidateNames=Phil Golding,ALP;Tony Pasin,LNP;Mark Keough,GRN;Balwinder Singh Jhandi,UAP;Miles Hannemann,NAT
+bRetirement=1
+fNationalsCoalitionShare=0.1
+#Boothby
+sRegion=SA
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-0.618055246
+sRunningParties=ALP,LNP,GRN,UAP,OTH
+sCandidateNames=Annabel Digance,ALP;Andrew Southcott,LNP;Stephen Thomas,GRN;Sally Dawn Cox,UAP
+#Grey
+sRegion=SA
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-11.1569407
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH
+sCandidateNames=Ben Browne,ALP;Rowan Ramsey,LNP;Alison Sentance,GRN;Kristian Rees,UAP
+#Hindmarsh
+sRegion=SA
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=6.08023402
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH*
+sCandidateNames=Steve Georganas,ALP;Matt Williams,LNP;Andrew Payne,GRN;George Peter Melissourgos,UAP;Kym Mckay,KAP
+#Kingston
+sRegion=SA
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=14.5537336
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Amanda Rishworth,ALP;Damien Mills,LNP;Palitja Moore,GRN;Mitchell Thomas Frost,UAP
+#Makin
+sRegion=SA
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=11.9960248
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH
+sCandidateNames=Tony Zappia,ALP;Sue Lawrie,LNP;Ami Harrison,GRN;Andrew Morgan Graham,UAP;Robert Jameson,KAP
+#Mayo
+sRegion=SA
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-7.29079558
+sRunningParties=ALP,LNP,GRN,UAP,OTH
+sCandidateNames=Norah Fahy,ALP;Jamie Briggs,LNP;Ian Grosser,GRN;Bikkar Singh Brar,UAP
+#Port Adelaide
+sRegion=SA
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=20.9118321
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Mark Butler,ALP;Nigel Mckenna,LNP;Dusan Popovic,GRN;Ngoc Chau Huynh,UAP
+#Sturt
+sRegion=SA
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-3.59652428
+sRunningParties=ALP,LNP,GRN,UAP,OTH
+sCandidateNames=Rick Sarre,ALP;Christopher Pyne,LNP;Anne Walker,GRN;Gabriella Alexandra Scali,UAP
+#Wakefield
+sRegion=SA
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=10.5345165
+sRunningParties=ALP,LNP,GRN,UAP,KAP,IND,OTH
+sCandidateNames=Nick Champion,ALP;Tom Zorich,LNP;Sherree Clay,GRN;Dino Musolino,UAP;Tony Musolino,KAP
+#Bass
+sRegion=TAS
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=6.73872554
+sRunningParties=ALP,LNP,GRN,UAP,OTH**
+sCandidateNames=Geoff Lyons,ALP;Andrew Nikolic,LNP;Lucy Landon-Lane,GRN;Christopher Lee Dobson,UAP
+#Braddon
+sRegion=TAS
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=7.47652851
+sRunningParties=ALP,LNP,GRN,UAP,OTH
+sCandidateNames=Sid Sidebottom,ALP;Brett Whiteley,LNP;Melissa Houghton,GRN;Kevin Morgan,UAP
+#Denison
+sRegion=TAS
+sIncumbent=IND
+sChallenger=LNP
+fTppMargin=15.8222579
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH****
+sCandidateNames=Jane Austin,ALP;Tanya Denison,LNP;Anna Reynolds,GRN;Debra Joyce Thurley,UAP;Andrew Wilkie,IND
+bIncumbentRecontestConfirmed=1
+#Franklin
+sRegion=TAS
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=10.8200699
+sRunningParties=ALP,LNP,GRN,UAP,KAP,OTH*
+sCandidateNames=Julie Collins,ALP;Bernadette Black,LNP;Rosalie Woodruff,GRN;Marti Zucco,UAP;Sarah Ugalde,KAP
+#Lyons
+sRegion=TAS
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=12.2903201
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Dick Adams,ALP;Eric Hutchinson,LNP;Pip Brinklow,GRN;Quentin Von Stieglitz,UAP
+#Canberra
+sRegion=ACT
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=9.14529762
+sRunningParties=ALP,LNP,GRN,UAP,OTH*
+sCandidateNames=Gai Brodtmann,ALP;Tom Sefton,LNP;Julie Melrose,GRN;Tony Hanley,UAP
+#Fraser
+sRegion=ACT
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=14.2032974
+sRunningParties=ALP,LNP,GRN,UAP,OTH**
+sCandidateNames=Andrew Leigh,ALP;Elizabeth Lee,LNP;Adam Verwey,GRN;Freddy Alejandro Alcazar,UAP
+#Lingiari
+sRegion=NT
+sIncumbent=ALP
+sChallenger=LNP
+fTppMargin=3.6981387
+sRunningParties=ALP,LNP,GRN,UAP,IND,OTH**
+sCandidateNames=Warren Snowdon,ALP;Tina Macfarlane,LNP;Barbara Shaw,GRN;Trevor Hedland,UAP
+#Solomon
+sRegion=NT
+sIncumbent=LNP
+sChallenger=ALP
+fTppMargin=-1.75249235
+sRunningParties=ALP,LNP,GRN,UAP,OTH****
+sCandidateNames=Luke Gosling,ALP;Natasha Griggs,LNP;Todd Williams,GRN;Stephen Christopher Spain,UAP

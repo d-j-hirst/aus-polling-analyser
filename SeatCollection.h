@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <map>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -112,7 +113,11 @@ public:
 
 	// Import seat info from the configured source, or from the legacy
 	// analysis/seats/<term>.txt path when no source has been configured.
-	void importInfo();
+	// Return the complete file contents used by this import, so a simulation can
+	// check whether retained calibration/baseline results still apply. An absent
+	// return means no usable file was imported in the warning-only legacy path;
+	// strict imports throw instead. Other callers can ignore the returned text.
+	std::optional<std::string> importInfo();
 
 	std::filesystem::path importSourcePath() const;
 

@@ -7,6 +7,7 @@
 #include "LiveInputRecovery.h"
 #include <optional>
 #include "Party.h"
+#include "SimulationSeatLookup.h"
 
 #include <array>
 #include <cstdint>
@@ -24,6 +25,7 @@ class RegionCollection;
 class Seat;
 class SeatCollection;
 class Simulation;
+class SimulationInputs;
 class Outcome;
 
 constexpr float BoothTransformCap = 4.0f;
@@ -259,6 +261,15 @@ private:
 
 	Simulation& sim;
 
+	// Rebuilt by preparation in this run's project context, after seat import.
+	// Background jobs bind these references to their own worker project, never
+	// to the original GUI project or another live job.
+	SimulationSeatLookup<Seat> seatLookup;
+	// Reporting inputs fixed for this snapshot. Current seat sizes still come
+	// from each scenario's turnout account when aggregating that scenario.
+	std::vector<double> aggregationHistoricalWeights;
+	double aggregationTurnoutFraction = 0;
+
 	std::unique_ptr<LiveData::Provider> liveElection;
 
 	bool doingBettingOddsCalibrations = false;
@@ -267,6 +278,9 @@ private:
 
 	bool doingLiveBaselineSimulation = false; // Are we running the baseline simulation (i.e. NOT final output) for live results? 
 	Date nowcastDate;
+	// Main preparation and every supporting calibration/baseline run read the
+	// same captured non-live files. They contain no project/window references.
+	std::shared_ptr<SimulationInputs const> preparationInputs;
 
 	mutable std::mutex warningMutex;
 	std::map<WarningCategory, Warning> warnings;
@@ -351,6 +365,9 @@ private:
 	std::vector<std::array<int, BucketCount>> seatTppDistribution;
 
 	std::vector<std::vector<int>> seatProminentMinors;
+	// Resolved party indices for each seat's explicit independent-like
+	// Greens/ALP preference exceptions; prepared once for all iterations.
+	std::vector<std::vector<int>> seatIndependentLikePreferences;
 	std::vector<float> seatPreviousTppSwing;
 	std::vector<float> seatFirstPartyPreferenceFlow;
 	std::vector<float> seatPreferenceFlowVariation;

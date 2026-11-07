@@ -1,5 +1,6 @@
 #include "LiveRunExport.h"
 #include "LiveFpIntegration.h"
+#include "LiveAggregation.h"
 
 #include "Date.h"
 #include "LiveAnalysisArchive.h"
@@ -23,6 +24,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <numeric>
 #include <limits>
 #include <map>
 #include <optional>
@@ -998,20 +1000,35 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 	for (auto const& seat : seats) for (auto const& [party, flow] : seat.partyPreferenceFlows)
 		partyPriors.push_back({{"seat", seat.name}, {"party", party}, {"alp_flow_percent", 100*flow}});
 	result["party_conversion_priors"] = std::move(partyPriors);
-	// Use the same historical FP weights as the national histogram. This is a
-	// transformed-scale composition diagnostic, before finite-count bounds and
-	// sampled turnout; it is not a substitute for the exported TPP quantiles.
+	// Summarise the same aggregation policy as the main live histogram, using
+	// prepared mean seat sizes here instead of individual scenarios' count draws.
+	// The centre and covariance below describe joint composition uncertainty;
+	// finite-count bounds, sampled turnout and count revisions remain in the full
+	// simulation quantiles. This reporting calculation never changes the update.
 	if (run.pastSeatResults.size() == names.size()) {
-		double total = 0, priorVariance = 0, posteriorVariance = 0, posteriorCentre = 0;
-		for (auto const& seat : run.pastSeatResults) total += seat.turnoutCount;
+		std::vector<double> historical;
+		for (auto const& seat : run.pastSeatResults) historical.push_back(double(seat.turnoutCount));
+		auto progress = getCountProgress();
+		auto weights = LiveAggregation::prepare(historical,progress,[&](std::size_t s) {
+			auto totals = getSeatAggregateVoteTotals(names.at(s));
+			if (!totals) throw std::runtime_error("Missing diagnostic aggregation totals for " + names.at(s));
+			return *totals;
+		});
+		double total = std::accumulate(weights.tpp.begin(),weights.tpp.end(),0.);
+		double fpTotal = std::accumulate(weights.fp.begin(),weights.fp.end(),0.);
+		double priorVariance = 0, posteriorVariance = 0, posteriorCentre = 0;
 		if (total > 0) {
+			json seatWeights = json::array();
 			for (std::size_t i = 0; i < names.size(); ++i) {
+				double seatWeight = weights.tpp[i]/total;
+				seatWeights.push_back({{"seat",names[i]},
+					{"fp_weight",weights.fp[i]/fpTotal},{"tpp_weight",seatWeight}});
 				// Convert each seat centre back to vote share before aggregation.
 				// This is a prepared centre, not the mean of bounded simulation draws.
-				posteriorCentre += run.pastSeatResults[i].turnoutCount / total
+				posteriorCentre += seatWeight
 					* LiveTppComposition::share(accountedTpp(liveIndex[i],update.posterior.mean[i]));
 				for (std::size_t j = 0; j < names.size(); ++j) {
-					double w = double(run.pastSeatResults[i].turnoutCount) * run.pastSeatResults[j].turnoutCount / (total * total);
+					double w = seatWeight*weights.tpp[j]/total;
 					priorVariance += w * update.prior.covariance[i][j];
 					posteriorVariance += w * update.posterior.covariance[i][j]
 						* accountedTppDerivative(liveIndex[i],update.posterior.mean[i])
@@ -1019,16 +1036,21 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 				}
 			}
 			for (std::size_t i = 0; i < names.size(); ++i) {
+				if (auto const& final = seats.at(liveIndex[i]).finalResult; final && !final->tpp.empty()) continue;
 				auto const& account = tppCategoryAccounts->at(liveIndex[i]);
 				double amount = std::max(account.expectedVotes(),account.direct.votes);
 				if (amount <= 0) continue;
-				double exposure = run.pastSeatResults[i].turnoutCount/total*account.direct.inferredVotes/amount
+				double exposure = weights.tpp[i]/total*account.direct.inferredVotes/amount
 					* LiveTppComposition::conversionShareJacobian(LiveTppComposition::share(accountedTpp(liveIndex[i],update.posterior.mean[i])));
 				posteriorVariance += exposure*exposure*account.direct.conversionVariance;
 			}
 			result["weighted_posterior_centre"] = posteriorCentre;
 			result["weighted_prior_sd"] = std::sqrt(std::max(0., priorVariance));
 			result["weighted_posterior_sd"] = std::sqrt(std::max(0., posteriorVariance));
+			result["aggregation_weighting"] = {{"method",LiveAggregation::Method},
+				{"curve","smoothstep"},{"fp_completion",LiveAggregation::fpCompletion(progress)},
+				{"full_weight_fp_completion",LiveAggregation::FullTurnoutWeightFpCompletion},
+				{"turnout_fraction",weights.turnoutFraction},{"seat_weights",std::move(seatWeights)}};
 		}
 	}
 	return result;
@@ -1070,6 +1092,10 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 	for (auto const& seat : seats) {
 		json seatJson;
 		seatJson["name"] = seat.name;
+		seatJson["final_result"] = nullptr;
+		if (seat.finalResult) seatJson["final_result"] = {
+			{"basis",seat.finalResult->basis}, {"winner",optionalInt(seat.finalResult->winner)}, {"fp",parties.values(seat.finalResult->fp)},
+			{"tcp",parties.values(seat.finalResult->tcp)}, {"tpp",parties.values(seat.finalResult->tpp)}};
 		seatJson["parent_region_index"] = seat.parentRegionIndex;
 		if (seat.parentRegionIndex >= 0 &&
 			seat.parentRegionIndex < int(largeRegions.size())) {

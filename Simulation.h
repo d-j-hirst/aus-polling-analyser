@@ -404,6 +404,11 @@ public:
 	// report or any explicitly saved reports.
 	void invalidate();
 
+	// Called after input capture, before calibration or the live baseline is used.
+	// Discard both if the non-live inputs differ or reuse cannot be verified.
+	// Reports already shown remain intact.
+	void checkPreparationInputs(std::shared_ptr<SimulationInputs const> inputs);
+
 	void saveReport(std::string label);
 
 	bool isValid() const;
@@ -421,6 +426,7 @@ public:
 		Timestamp updated;
 		std::vector<LiveData::BoothSnapshot> booths;
 		nlohmann::json diagnostic, details;
+		std::shared_ptr<SimulationInputs const> preparationInputs;
 	};
 	Simulation copyForLiveRun() const;
 	PublishedLiveState completedLiveState() const;
@@ -456,11 +462,18 @@ private:
 
 	std::vector<std::map<int, float>> previousLiveSeats;
 
-	// Live runs reuse betting calibration only while its effective inputs and
-	// sample size remain unchanged.
+	// Retain the expensive betting-odds calibration BETWEEN live runs/snapshots.
+	// cachedOddsFinalMeans contains the fitted primary-vote centres; the input
+	// values and sample size let the next run check whether they still apply.
+	// These belong to Simulation, which outlives an individual SimulationRun,
+	// and are copied into/out of background live jobs. They are not saved to .pol2.
 	std::map<std::pair<int, int>, float> cachedOddsFinalMeans;
 	std::map<std::pair<int, int>, float> cachedOddsInputs;
 	int cachedOddsIterations = 0;
+	// Immutable record of files and settings used for the retained calculations.
+	// Shared with worker copies, never saved to .pol2. No record means reuse
+	// cannot be verified; SimulationInputs explains which live settings are excluded.
+	std::shared_ptr<SimulationInputs const> cachedPreparationInputs;
 
 	std::shared_ptr<SimulationRun> latestRun;
 	std::vector<LiveData::BoothSnapshot> publishedBooths;

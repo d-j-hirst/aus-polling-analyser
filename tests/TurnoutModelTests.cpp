@@ -155,6 +155,7 @@ void checkSignedCountRevisions() {
     TurnoutModel::Unit unit; unit.name = unit.category = "Booth"; unit.kind = "ordinary";
     unit.weight = 1; unit.counted = 8000; prior.units = {unit};
     auto counts = LiveTurnout::Prepared::prepare(artifact,prior.units,{0},1,{false},{},"2025-03-09T10:00:00");
+    assert(!counts->hasComposition() && !counts->findSeatIndex("Example"));
     for (double coverage : {0.,.5,1.}) {
         LiveTurnout::UnitComposition u; u.fp = {{0,4000},{1,3000},{2,1000}};
         u.tpp = {{0,4800*coverage},{1,3200*coverage}}; u.tcp = {{0,4800*coverage},{1,3200*coverage}};
@@ -163,6 +164,9 @@ void checkSignedCountRevisions() {
         LiveTurnout::SeatComposition s; s.name = "Example"; s.fp = u.fp; s.tpp = u.tpp; s.tcp = u.tcp;
         s.projectedFp = u.projectedFp; s.projectedTpp = u.projectedTpp; s.projectedTcp = u.projectedTcp;
         auto ready = counts->withComposition({u},{s});
+        assert(ready->hasComposition() && ready->findSeatIndex("Example")==0);
+        assert(!ready->findSeatIndex("Unknown") && !ready->findSeatIndex("Inactive"));
+        rejects([&]{ (void)ready->seatIndex("Unknown"); });
         int unchanged = 0, negative = 0, positive = 0; double meanChange = 0;
         auto preferenceRecheck = [&](auto& projected, auto& observed) {
             if (coverage == 0) return;
@@ -354,7 +358,12 @@ void checkPreparedComponent(std::filesystem::path const& root) {
             compositions.push_back(u);
         }
         auto ready = prepared->withComposition(compositions,seats);
-        for (std::size_t s = 0; s < n; ++s) assert(ready->seatIndex(seats[s].name) == s);
+        assert(ready->hasComposition());
+        for (std::size_t s = 0; s < n; ++s) {
+            assert(ready->seatIndex(seats[s].name) == s);
+            assert(ready->findSeatIndex(seats[s].name) == s);
+        }
+        assert(!ready->findSeatIndex("Unknown district"));
         for (unsigned long long seed = 0; seed < 64; ++seed) {
             auto sampled = ready->draw(seed);
             auto counts = TurnoutModel::drawUnitCounts(expected,plan,seed);

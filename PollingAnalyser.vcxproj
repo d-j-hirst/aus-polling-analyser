@@ -408,6 +408,7 @@
     <ClCompile Include="SimulationCollectionReports.cpp" />
     <ClCompile Include="SimulationCompletion.cpp" />
     <ClCompile Include="SimulationIteration.cpp" />
+    <ClCompile Include="SimulationInputs.cpp" />
     <ClCompile Include="SimulationPreparation.cpp" />
     <ClCompile Include="SimulationRun.cpp" />
     <ClCompile Include="SimulationsFrame.cpp" />
@@ -450,6 +451,8 @@
     <ClInclude Include="LiveBoothFrame.h" />
     <ClInclude Include="LiveV2.h" />
     <ClInclude Include="LiveTurnoutMath.h" />
+    <ClInclude Include="LiveAggregation.h" />
+    <ClInclude Include="SimulationSeatLookup.h" />
     <ClInclude Include="LiveCountRevisions.h" />
     <ClInclude Include="WaEarlyCounting.h" />
     <ClInclude Include="UnreportedPlaceCounting.h" />
@@ -507,6 +510,7 @@
     <ClInclude Include="SimulationCollection.h" />
     <ClInclude Include="SimulationCompletion.h" />
     <ClInclude Include="SimulationIteration.h" />
+    <ClInclude Include="SimulationInputs.h" />
     <ClInclude Include="SimulationPreparation.h" />
     <ClInclude Include="SimulationRun.h" />
     <ClInclude Include="SourceLocation.h" />
@@ -540,6 +544,7 @@
 	<ClInclude Include="LiveSimulationMath.h" />
 	<ClInclude Include="IndependentCandidacy.h" />
 	<ClInclude Include="CoalitionCandidacy.h" />
+	<ClInclude Include="CoalitionPairing.h" />
 	<ClInclude Include="MajorPartyFpMath.h" />
 	<ClInclude Include="SeatVolatility.h" />
 	<ClInclude Include="LiveVariability.h" />

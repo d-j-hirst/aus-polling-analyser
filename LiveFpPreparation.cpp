@@ -67,10 +67,8 @@ void LiveV2::Election::refreshFpEvidenceProjections() {
 LiveData::FpIntegrationInformation const* LiveV2::Election::getSeatFpIntegrationInformation(
     std::string const& seatName) const {
     if (!fpIntegration) return nullptr;
-    for (std::size_t s = 0; s < seats.size(); ++s)
-        if (seats[s].name == seatName)
-            return &fpIntegration->at(s);
-    return nullptr;
+    int seatIndex = findSeatIndex(seatName);
+    return seatIndex != int(seats.size()) ? &fpIntegration->at(seatIndex) : nullptr;
 }
 
 int LiveV2::Election::fpEvidenceCandidate(int seatIndex, int partyId) const {

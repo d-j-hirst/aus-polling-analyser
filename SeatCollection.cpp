@@ -155,6 +155,7 @@ constexpr std::string_view IncumbentRecontestConfirmed = "bIncumbentRecontestCon
 constexpr std::string_view ConfirmedProminentIndependent = "bConfirmedProminentIndependent";
 constexpr std::string_view PreviousIndRunning = "bPreviousIndRunning";
 constexpr std::string_view ProminentMinors = "sProminentMinors";
+constexpr std::string_view IndependentLikePreferences = "sIndependentLikePreferences";
 constexpr std::string_view BettingOdds = "sBettingOdds";
 constexpr std::string_view Polls = "sPolls";
 constexpr std::string_view TppPolls = "sTppPolls";
@@ -237,6 +238,7 @@ void SeatCollection::exportInfo() const
 		if (seat.confirmedProminentIndependent) os << ConfirmedProminentIndependent << "=" << seat.confirmedProminentIndependent << "\n";
 		if (seat.previousIndRunning) os << PreviousIndRunning << "=" << seat.previousIndRunning << "\n";
 		if (seat.prominentMinors.size()) os << ProminentMinors << "=" << joinString(seat.prominentMinors, ";") << "\n";
+		if (!seat.independentLikePreferences.empty()) os << IndependentLikePreferences << "=" << joinString(seat.independentLikePreferences, ";") << "\n";
 
 		auto stringFloatConversion = [&](decltype(seat.bettingOdds)::value_type a) {return a.first + "," + formatFloat(a.second, 2); };
 		auto bettingOddsTransformed = mapTransform<std::string>(seat.bettingOdds, stringFloatConversion);
@@ -298,7 +300,7 @@ std::filesystem::path SeatCollection::importSourcePath() const
 		std::filesystem::path("analysis/seats") / (termCode + ".txt"));
 }
 
-void SeatCollection::importInfo()
+std::optional<std::string> SeatCollection::importInfo()
 {
 	auto const sourcePath = importSourcePath();
 	auto const filename = sourcePath.string();
@@ -315,13 +317,25 @@ void SeatCollection::importInfo()
 
 	if (sourcePath.empty()) {
 		issue(0, "no seat source is configured");
-		return;
+		return std::nullopt;
 	}
-	std::ifstream is(sourcePath);
-	if (!is) {
+	std::ifstream input(sourcePath, std::ios::binary);
+	if (!input) {
 		issue(0, "could not open the file");
-		return;
+		return std::nullopt;
 	}
+	// Parse the same contents that the caller will compare with its retained
+	// simulation inputs. Read once, without relying on modification timestamps:
+	// a replacement file may preserve its timestamp while changing a seat's
+	// margin, candidates, preferences or any other setting used by the forecast.
+	std::ostringstream sourceText;
+	sourceText << input.rdbuf();
+	if (input.bad() || sourceText.bad()) {
+		issue(0, "could not read the complete file");
+		return std::nullopt;
+	}
+	std::string contents = sourceText.str();
+	std::istringstream is(contents);
 
 	std::map<std::string, Seat> oldSeats;
 	for (auto const& [id, seat] : seats) {
@@ -431,6 +445,15 @@ void SeatCollection::importInfo()
 				seat.previousIndRunning = parseInteger(value) != 0;
 			else if (tag == ProminentMinors)
 				seat.prominentMinors = splitSeatList(value);
+			else if (tag == IndependentLikePreferences) {
+				seat.independentLikePreferences = value.empty() ?
+					std::vector<std::string>{} : splitSeatList(value);
+				// Catch misspelled campaign exceptions at import, rather than
+				// silently applying the ordinary centrist-party assumption.
+				for (auto const& code : seat.independentLikePreferences) {
+					static_cast<void>(partyId(code));
+				}
+			}
 			else if (tag == BettingOdds) {
 				for (auto const& item : splitString(value, ";")) {
 					auto const values = fields(item, 2);
@@ -530,7 +553,7 @@ void SeatCollection::importInfo()
 
 	if (importedSeats.empty()) {
 		issue(0, "the file contains no seats");
-		return;
+		return std::nullopt;
 	}
 	for (auto const& [id, seat] : importedSeats) {
 		if (seat.incumbent == Party::InvalidId) {
@@ -563,4 +586,5 @@ void SeatCollection::importInfo()
 	seats = std::move(importedSeats);
 	nextId = importedNextId;
 	logger << "Completed importing seat info from " << filename << "\n";
+	return contents;
 }

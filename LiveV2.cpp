@@ -768,8 +768,21 @@ std::unique_ptr<LiveData::Provider> LiveV2::Election::generateScenario(
   return newElection;
 }
 
+int LiveV2::Election::findSeatIndex(std::string const& seatName) const {
+  // Completed models already share turnout's checked name-to-index map. An
+  // absent/inactive district returns the same end index as the original scan.
+  // Keep the scan available during construction, before party composition has
+  // attached that index; this fallback stores no partial or scenario values.
+  if (turnout && turnout->hasComposition()) {
+    auto index = turnout->findSeatIndex(seatName);
+    return index ? int(*index) : int(seats.size());
+  }
+  return int(std::find_if(seats.begin(), seats.end(),
+    [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin());
+}
+
 LiveV2::Election::FloatInformation LiveV2::Election::getSeatOthersInformation(std::string const& seatName, std::map<int, float> const& representedParties) const {
-  int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+  int seatIndex = findSeatIndex(seatName);
   if (seatIndex != int(seats.size())) {
     float othersVotes = 0.0f;
     float totalVotes = seats[seatIndex].node.totalFpVotesProjected();
@@ -840,6 +853,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   prepareTurnout(currentElection, std::move(turnoutInput));
   reportLimitedHistoricalPreferenceEvidence(currentElection.sourceTime);
   prepareNewVoteContexts();
+  prepareFinalResults(previousElection,currentElection);
   recomposeVoteCounts();
   prepareFpEvidence();
   refreshFpEvidenceProjections();
@@ -3640,6 +3654,11 @@ void Election::prepareSeatTppProjectionSensitivities(int seatIndex) {
 }
 
 void Election::recomposeSeatFpVotes(int seatIndex) {
+  if (auto const& final = seats[seatIndex].finalResult) {
+    seats[seatIndex].node.fpVotesProjected = {final->fp.begin(),final->fp.end()};
+    seats[seatIndex].node.fpCompletion = seats[seatIndex].node.fpConfidence = 1;
+    return;
+  }
   seats[seatIndex].node.fpVotesProjected = std::map<int, float>();
   for (auto const& boothIndex : seats[seatIndex].booths) {
     for (auto const& [partyId, votes] : readBooths()[boothIndex].node.fpVotesProjected) {
@@ -3668,6 +3687,17 @@ void Election::recomposeSeatFpVotes(int seatIndex) {
 }
 
 void Election::recomposeSeatTcpVotes(int seatIndex) {
+  if (auto const& final = seats[seatIndex].finalResult) {
+    auto& n = seats[seatIndex].node;
+    n.tcpVotesProjected = {final->tcp.begin(),final->tcp.end()};
+    n.tcpShares.clear();
+    // A quarter-vote equivalent keeps display log odds finite at a zero end
+    // point; the final counted votes and reported percentages stay exact.
+    for (auto const& [p,v] : n.tcpVotesProjected)
+      n.tcpShares[p] = float(25*std::log((v+.25)/(n.totalTcpVotesProjected()-v+.25)));
+    n.tcpCompletion = n.tcpConfidence = 1;
+    return;
+  }
   seats[seatIndex].node.tcpVotesProjected = std::map<int, float>();
   auto& seatNode = seats[seatIndex].node;
   seatNode.tcpShares.clear();
@@ -3725,6 +3755,10 @@ void Election::recomposeSeatTcpVotes(int seatIndex) {
 }
 
 void Election::recomposeSeatTppVotes(int seatIndex) {
+  if (auto const& final = seats[seatIndex].finalResult; final && !final->tpp.empty()) {
+    seats[seatIndex].node.tppVotesProjected = {final->tpp.begin(),final->tpp.end()};
+    return;
+  }
   // Just collect all the tpp votes from the booths in the seat
   // then convert them in to shares
 
@@ -4222,13 +4256,43 @@ std::vector<LiveVariability::Baseline> Election::prepareVariabilityBaselines(boo
   return baselines;
 }
 
+void Election::resetVariabilitySample(Election& working, int sampleIndex) const {
+  // Uncertainty preparation tries many possible allocations of the uncounted
+  // votes to measure how uncertain each seat's projected FP/TCP shares are,
+  // with an optional TPP diagnostic calculated alongside them.
+  // sampleVariability calls this before each trial. working is a private copy
+  // of this snapshot's prepared election, reused by one worker; sampleIndex
+  // identifies the trial's random draws. Resetting it prevents one trial's
+  // altered projections from becoming the next trial's starting evidence.
+  //
+  // Restore all writable booth fields before visiting any booth: a projection
+  // can read another booth, so a partial reset during calculation would be unsafe.
+  // Parent seat/region evidence and source counts remain fixed during sampling.
+  auto& workingBooths = working.preparationBooths();
+  auto const& preparedBooths = readBooths();
+  for (std::size_t b = 0; b < preparedBooths.size(); ++b)
+    LiveVariability::restoreBoothForSample(workingBooths.at(b), preparedBooths[b]);
+  working.createRandomVariation = true;
+  working.variabilitySampleIndex = sampleIndex;
+}
+
 LiveVariability::Sample Election::sampleVariability(int sampleIndex,
-  std::vector<LiveVariability::Baseline> const& baselines) const {
-  // Samples deliberately recompose booths, unlike the seat-level main draws.
-  // Their writable scratch data must remain private to each preparation sample.
-  auto sampleElection = copyForPreparation();
-  sampleElection.createRandomVariation = true;
-  sampleElection.variabilitySampleIndex = sampleIndex;
+  std::vector<LiveVariability::Baseline> const& baselines, Election& sampleElection) const {
+  // Perform one trial in runVariabilitySamples: vary booth projections, add
+  // them to seat totals and compare their shares with the unvaried projections
+  // in baselines. The returned differences are on the model's transformed
+  // vote-share scale; storePreparedVariability combines trials to estimate the
+  // local FP/TCP uncertainty later used when integrating counts with the
+  // forecast. The optional TPP differences are for inspection; the separate
+  // joint TPP calculation supplies the forecast's TPP uncertainty.
+  //
+  // sampleElection is private working storage, restored before each trial.
+  // Reusing it saves copying and allocating memory; it must not alter which
+  // seats or booths are included, the number of trials, or their random draws.
+  // We also retain the order of vote additions and subsequent calculations:
+  // floating-point rounding can depend on that order. These constraints let
+  // the optimization preserve the previous calculation's numerical results.
+  resetVariabilitySample(sampleElection, sampleIndex);
   LiveVariability::Sample result(seats.size());
   for (std::size_t seatIndex = 0; seatIndex < seats.size(); ++seatIndex) {
     auto const& seat = sampleElection.seats[seatIndex];
@@ -4263,6 +4327,13 @@ std::vector<LiveVariability::Sample> Election::runVariabilitySamples(
   // worker writes one preallocated slot, so normal results need no mutex.
   int const preparationThreads = std::clamp(
     project.config().getSimulationThreads(), 1, VariabilityPreparationThreads);
+  // Keep the existing batches and their join boundary. A slot is used by at
+  // most one worker in a batch, and its next use starts only after joining all
+  // workers. Lazily copy the prepared election on first use, then restore its
+  // small writable portion for later samples. Immutable evidence stays shared;
+  // source/booth data and temporary projections are private to each slot.
+  // These copies die before preparation returns and never survive a snapshot.
+  std::vector<std::unique_ptr<Election>> workingCopies(preparationThreads);
   int nextProgressSample = VariabilityPreparationSamples / 8;
   for (int batchStart = 0; batchStart < VariabilityPreparationSamples; batchStart += preparationThreads) {
     int const batchSize = std::min(preparationThreads, VariabilityPreparationSamples - batchStart);
@@ -4274,9 +4345,11 @@ std::vector<LiveVariability::Sample> Election::runVariabilitySamples(
     threads.reserve(batchSize);
     for (int index = 0; index < batchSize; ++index) {
       int const sampleIndex = batchStart + index;
-      threads.emplace_back([&, sampleIndex]() {
+      threads.emplace_back([&, sampleIndex, index]() {
         try {
-          samples[sampleIndex] = sampleVariability(sampleIndex, baselines);
+          auto& working = workingCopies[index];
+          if (!working) working.reset(new Election(copyForPreparation()));
+          samples[sampleIndex] = sampleVariability(sampleIndex, baselines, *working);
         } catch (...) {
           std::lock_guard lock(failureMutex);
           if (!failure) failure = std::current_exception();
@@ -4333,6 +4406,14 @@ void LiveV2::Election::generateSharedFpVariability() {
 
 std::map<int,double> LiveV2::Election::drawSeatFpChanges(int seatIndex) const {
     auto const& seat = seats.at(seatIndex);
+    // A final district has no remaining FP composition uncertainty. Its
+    // authoritative totals can group minor candidates into Others even though
+    // booth-derived variability still names them separately. Main scenarios
+    // already skip final seats, but preparation also calls this helper while
+    // measuring FP moments: do not draw or validate obsolete booth identities
+    // before the final-count account has a chance to hold its values fixed.
+    // Unfinished districts retain the normal candidate checks and draws below.
+    if (seat.finalResult) return {};
     std::map<int,double> changes;
     auto sensitivity = [&](double votes) {
         if (!std::isfinite(votes) || votes < 0 || (votes > 0 && seat.node.totalVotesPrevious() <= 0))
@@ -4382,6 +4463,10 @@ void Election::generateVariability(int iterationIndex) {
   for (int seatIndex = 0; seatIndex < int(seats.size()); ++seatIndex) {
     auto& seat = seats[seatIndex];
     std::string const seatContext = "Seat " + seat.name;
+    // Official final district results have no remaining FP/TCP share draw.
+    // Inferred TPP, if no final TPP was supplied, still uses its separate joint
+    // uncertainty at the handoff; this loop does not generate TPP variation.
+    if (seat.finalResult) continue;
     // Unphased FP draws are integrated by their measured precision at the
     // simulator boundary. Both preparation and scenarios use this same finite
     // outstanding-vote response; there is no second local progress weight.

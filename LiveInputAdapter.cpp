@@ -207,11 +207,15 @@ LiveData::CountProgress reportedCountProgress(Results2::Election const& source, 
     // towards the current count. Candidate IDs, not party IDs, distinguish two
     // independents or different candidates from the same party.
     std::map<std::string,std::set<int>> publishedPairs;
-    for (auto const& [id,seat] : source.seats)
+    std::set<std::string> finalDistricts;
+    for (auto const& [id,seat] : source.seats) {
+        if (seat.finalResult) finalDistricts.insert(seat.name);
         for (auto const& [candidate,counts] : seat.tcpVotesCandidate)
             publishedPairs[seat.name].insert(candidate);
+    }
     LiveData::CountProgress result;
     for (auto const& record : effective.records) {
+        if (finalDistricts.contains(record.district)) continue;
         if (record.fp.votes) result.fpVotes += total(*record.fp.votes);
         if (!record.tcp.votes || record.tcp.votes->size() != 2) continue;
         auto pair = publishedPairs.find(record.district);
@@ -222,13 +226,18 @@ LiveData::CountProgress reportedCountProgress(Results2::Election const& source, 
             [&](auto const& row) { return pair->second.contains(row.first); });
         if (samePair) result.tcpVotes += total(*record.tcp.votes);
     }
+    for (auto const& [id,seat] : source.seats) if (seat.finalResult) {
+        for (auto const& [c,v] : seat.finalResult->fp) result.fpVotes += v;
+        for (auto const& [c,v] : seat.finalResult->tcp) result.tcpVotes += v;
+    }
     return result;
 }
 
 void apply(Results2::Election& election, Snapshot const& effective) {
     election.reportedCountProgress = reportedCountProgress(election,effective);
     // All seat summaries are rebuilt from the same effective records as the
-    // booths. Current summary totals must never override restored constituents.
+    // booths. Progressive summary totals never override restored constituents;
+    // explicitly final district accounts remain separate and authoritative.
     election.sourceTime = effective.sourceTime;
     for (auto& [id,seat] : election.seats) {
         auto district = effective.districts.find(seat.name);
@@ -236,6 +245,9 @@ void apply(Results2::Election& election, Snapshot const& effective) {
         seat.fpVotes.clear(); seat.tcpVotes.clear(); seat.tcpVotesCandidate.clear(); seat.tppVotes.clear();
         seat.fpFinalised = district->second.finalised;
         for (auto const& record : effective.records) if (record.district == seat.name) applyRecord(election,seat,record);
+        // Booth recovery remains inspectable, but a separately validated final
+        // district summary has its own authority and closes this district.
+        if (seat.finalResult) seat.fpFinalised = true;
     }
 }
 

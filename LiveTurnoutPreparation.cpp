@@ -157,6 +157,7 @@ TurnoutCompositionInputs collectTurnoutComposition(std::vector<LiveV2::Seat> con
     seatInputs.resize(seats.size());
     for (std::size_t s = 0; s < seats.size(); ++s) {
         auto const& seat = seats[s]; auto& input = seatInputs[s]; input.name = seat.name;
+        input.finalised = seat.finalResult.has_value();
         input.projectedFp = seat.node.fpVotesProjected; input.projectedTpp = seat.node.tppVotesProjected; input.projectedTcp = seat.node.tcpVotesProjected;
         input.fpConfidence = seat.node.fpConfidence; input.tppConfidence = seat.node.tppConfidence; input.tcpConfidence = seat.node.tcpConfidence;
         auto mapParty = [&](int p) { return p == seat.liveIndependentPartyIndex ? independentPartyIndex : p; };
@@ -179,9 +180,16 @@ TurnoutCompositionInputs collectTurnoutComposition(std::vector<LiveV2::Seat> con
             }
             unitInputs.push_back(std::move(unit));
         }
-        if (std::abs(total(input.projectedFp) - expected) > std::max(.001, expected * 1e-6))
+        if (seat.finalResult) {
+            // Final district summaries are independent observations, not sums
+            // of recovered service records. Preserve both for diagnostics; do
+            // not spread an aggregate discrepancy back into invented booth votes.
+            input.fp = seat.finalResult->fp; input.tcp = seat.finalResult->tcp;
+            if (!seat.finalResult->tpp.empty()) input.tpp = seat.finalResult->tpp;
+        }
+        if (!input.finalised && std::abs(total(input.projectedFp) - expected) > std::max(.001, expected * 1e-6))
             throw std::runtime_error("Turnout FP account does not reconcile in " + seat.name);
-        inputs.projections.push_back({{"seat",seat.name},{"counted_fp",seat.node.totalFpVotesCurrent()},
+        inputs.projections.push_back({{"seat",seat.name},{"finalised",input.finalised},{"counted_fp",seat.node.totalFpVotesCurrent()},
             {"model_mean_fp",expected},{"projected_fp",total(input.projectedFp)},{"projected_tcp",total(input.projectedTcp)},
             {"projected_tpp",total(input.projectedTpp)},{"fp_completion",seat.node.fpCompletion},
             {"fp_without_reported_tcp",missingPreferences},{"tcp_above_reported_fp",pairExcess},
@@ -336,6 +344,8 @@ void aggregatePairProgress(LiveV2::Node& node, std::vector<LiveV2::Seat>& seats,
     std::vector<double> seatWeights(seats.size()), regionWeights(largeRegions.size());
     for (std::size_t s = 0; s < seats.size(); ++s)
         seatWeights[s] = refresh(seats[s].node, seats[s].booths, booths, boothWeights);
+    for (auto& seat : seats) if (seat.finalResult && !seat.finalResult->tpp.empty())
+        seat.node.tppCompletion = seat.node.tppConfidence = 1;
     for (std::size_t r = 0; r < largeRegions.size(); ++r)
         regionWeights[r] = refresh(largeRegions[r].node, largeRegions[r].seats, seats, seatWeights);
     std::vector<int> regions(largeRegions.size()); std::iota(regions.begin(), regions.end(), 0);
@@ -350,6 +360,47 @@ void LiveV2::Election::configureInactiveTurnoutContests(TurnoutModelIO::Artifact
     for (auto const& [name, contest] : inactiveContests)
         if (project.seats().indexByName(name) == SeatCollection::InvalidIndex)
             throw std::runtime_error("Inactive turnout contest is not a forecast seat: " + name);
+}
+
+void LiveV2::Election::prepareFinalResults(Results2::Election const& previousElection,
+    Results2::Election const& currentElection) {
+    // Commission candidate IDs become the same configured parties used by
+    // ordinary live accounts. A principal independent retains its normal slot;
+    // an unconfigured finalist uses an emerging slot so its known victory is
+    // not discarded merely because the prior failed to model that candidate.
+    for (auto& seat : seats) {
+        auto raw = std::find_if(currentElection.seats.begin(),currentElection.seats.end(),
+            [&](auto const& row) { return row.second.name == seat.name; });
+        if (raw == currentElection.seats.end() || !raw->second.finalResult) continue;
+        auto const& source = *raw->second.finalResult;
+        auto mapCandidate = [&](int candidate) {
+            int party = mapPartyId(candidate,false,previousElection,currentElection);
+            if (party == seat.liveIndependentPartyIndex) return run.indPartyIndex;
+            if (party >= 0 && party < project.parties().count()) return party;
+            if (!source.tcp.contains(candidate)) return OthersIndex;
+            return party >= IndependentPartyIdOffset ? EmergingIndIndex : EmergingPartyIndex;
+        };
+        LiveData::FinalSeatResult final;
+        final.basis = source.basis;
+        for (auto const& [c,v] : source.fp) final.fp[mapCandidate(c)] += v;
+        for (auto const& [c,v] : source.tcp) final.tcp[mapCandidate(c)] += v;
+        for (auto const& [coalition,v] : source.tpp) final.tpp[coalition == 1 ? 0 : 1] = v;
+        if (source.winner) final.winner = mapCandidate(*source.winner);
+        if (final.tcp.size() != 2)
+            throw std::runtime_error("Final TCP candidates require distinct model identities in " + seat.name);
+        seat.finalResult = std::move(final);
+        hasFinalResults = true;
+        // Keep the input seat/booth counts in their existing live identities.
+        // They still supply cohort comparisons and inspectable booth evidence.
+        // Ordinary configured parties usually have the same identity in both
+        // accounts, but an unconfigured finalist can become Emerging Party (or
+        // Emerging Independent) only in this simulator-facing final summary.
+        // Replacing the input seat pair with that generic slot would make booth
+        // matching search for a candidate absent from the actual booth records.
+        // recomposeSeat* and the finite-count handoff separately install the
+        // authoritative final projections/counts, so the forecast still uses
+        // the final totals, pairing and winner without modelling them again.
+    }
 }
 
 void LiveV2::Election::prepareTurnout(Results2::Election const& currentElection, TurnoutModelIO::Artifact artifact) {
@@ -404,8 +455,13 @@ void LiveV2::Election::prepareTurnout(Results2::Election const& currentElection,
     // represented in this forecast. Scenario copies keep this same display value.
     countProgress = currentElection.reportedCountProgress;
     if (countProgress) {
+        std::map<std::string,double> finalTotals;
+        for (auto const& [id,raw] : currentElection.seats) if (raw.finalResult)
+            finalTotals[raw.name] = total(raw.finalResult->fp);
         for (std::size_t b = 0; b < readBooths().size(); ++b)
-            countProgress->expectedFormalVotes += turnout->fpTarget(b);
+            if (!finalTotals.contains(seats.at(readBooths()[b].parentSeatId).name))
+                countProgress->expectedFormalVotes += turnout->fpTarget(b);
+        for (auto const& [name,votes] : finalTotals) countProgress->expectedFormalVotes += votes;
         if (!(countProgress->expectedFormalVotes > 0)) countProgress.reset();
     }
     // Persist only received measured counts. It is safe to start with an empty
@@ -442,6 +498,26 @@ std::optional<LiveData::VoteCountAccount> LiveV2::Election::getSeatVoteCountAcco
     if (kind == LiveData::CountKind::Tcp && n.tcpVotesProjected.size() == 2)
         return LiveData::VoteCountAccount{scenarioCountedVotes ? &scenarioCountedVotes->tcp[s] : &turnout->counted(kind, s), &n.tcpVotesProjected};
     return {};
+}
+
+LiveData::FinalSeatResult const* LiveV2::Election::getFinalSeatResult(std::string const& seatName) const {
+    // Election-night sources normally have no final districts. Avoid an extra
+    // scan of every seat for every iteration; otherwise use the existing index.
+    if (!hasFinalResults || inactiveContests.contains(seatName)) return nullptr;
+    auto const& final = seats.at(turnout->seatIndex(seatName)).finalResult;
+    return final ? &*final : nullptr;
+}
+
+std::optional<LiveData::AggregateVoteTotals> LiveV2::Election::getSeatAggregateVoteTotals(
+    std::string const& seatName) const {
+    // Aggregation needs sizes even in unreported districts, rather than just
+    // received counts. Preparation holds mean projections; scenario generation
+    // replaces them with its existing turnout draw. Summing those same party
+    // accounts also retains any sampled count revisions and OPV exhaustion.
+    // Inactive/postponed contests have no current-election vote account.
+    if (inactiveContests.contains(seatName)) return LiveData::AggregateVoteTotals{};
+    auto const& n = seats.at(turnout->seatIndex(seatName)).node;
+    return LiveData::AggregateVoteTotals{total(n.fpVotesProjected),total(n.tppVotesProjected)};
 }
 
 void LiveV2::Election::refreshTurnoutFpProgress() {

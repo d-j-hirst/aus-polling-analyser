@@ -81,6 +81,7 @@ run_test LiveSnapshotDataTests
 run_test ResponsiveLiveTests
 run_test MacroTargetResolverTests
 run_test MajorPartyFpMathTests
+run_test CoalitionPairingTests
 run_test RandomGeneratorTests
 run_test RegionalSwingMathTests
 run_test SeatVolatilityTests "$ROOT_DIRECTORY"

@@ -247,6 +247,10 @@ public:
   const int parentRegionIndex;
 
   Node node;
+  // Mapped authoritative district summary, fixed through turnout, preference
+  // rechecking and simulation draws. Booth/category accounts remain separate;
+  // a published notional TPP need not have a corresponding booth breakdown.
+  std::optional<LiveData::FinalSeatResult> finalResult;
 };
 
 class LargeRegion {
@@ -335,7 +339,7 @@ public:
   }
 
   FloatBaselineInformation getSeatTppInformation(std::string const& seatName) const override {
-    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    int seatIndex = findSeatIndex(seatName);
 		if (seatIndex != int(seats.size())) {
       float deviation = seats[seatIndex].finalSpecificTppDeviation.value_or(0.0f);
       float confidence = seats[seatIndex].node.tppConfidence;
@@ -347,7 +351,7 @@ public:
   }
 
   std::map<int, FloatBaselineInformation> getSeatFpInformation(std::string const& seatName) const override {
-    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    int seatIndex = findSeatIndex(seatName);
 		if (seatIndex != int(seats.size())) {
       std::map<int, FloatBaselineInformation> result;
       for (auto [party, deviation] : seats[seatIndex].finalSpecificFpDeviations) {
@@ -363,7 +367,7 @@ public:
     std::string const& seatName) const override;
 
   std::map<int, float> getSeatOverallFpDeviations(std::string const& seatName) const {
-    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    int seatIndex = findSeatIndex(seatName);
 		if (seatIndex != int(seats.size())) {
       std::map<int, float> seatDeviations = seats[seatIndex].finalSpecificFpDeviations;
       for (auto const& [partyId, deviation] : largeRegions[seats[seatIndex].parentRegionIndex].finalSpecificFpDeviations) {
@@ -382,7 +386,7 @@ public:
   }
 
   float getSeatEstimatedTppSwing(std::string const& seatName) const override {
-    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    int seatIndex = findSeatIndex(seatName);
 		if (seatIndex != int(seats.size())) {
       auto const& seatNode = seats[seatIndex].node;
       // The Results column describes the prepared, seat-wide live estimate:
@@ -413,7 +417,7 @@ public:
   float getSeatRawTppSwing(std::string const& seatName) const override;
 
   float getSeatFpCompletion(std::string const& seatName) const override {
-    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    int seatIndex = findSeatIndex(seatName);
 		if (seatIndex != int(seats.size())) {
 			return seats[seatIndex].node.fpCompletion;
 		}
@@ -421,7 +425,7 @@ public:
   }
 
   float getSeatTppCompletion(std::string const& seatName) const override {
-    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    int seatIndex = findSeatIndex(seatName);
     if (seatIndex != int(seats.size())) {
       return seats[seatIndex].node.tppCompletion;
     }
@@ -429,7 +433,7 @@ public:
   }
 
   float getSeatTcpCompletion(std::string const& seatName) const override {
-    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    int seatIndex = findSeatIndex(seatName);
     if (seatIndex != int(seats.size())) {
       return seats[seatIndex].node.tcpCompletion;
     }
@@ -438,7 +442,7 @@ public:
 
   // Returns *specific* preference flow deviations ()
   FloatInformation getSeatPreferenceFlowInformation(std::string const& seatName) const {
-    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    int seatIndex = findSeatIndex(seatName);
     if (seatIndex != int(seats.size())) {
       float totalPreferenceFlowDeviation = 0.0f;
       float totalPreferenceFlowConfidence = 0.0f;
@@ -457,7 +461,7 @@ public:
   }
 
   FloatInformation getSeatLivePreferenceFlowDeviation(std::string const& seatName) const {
-    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    int seatIndex = findSeatIndex(seatName);
     if (seatIndex != int(seats.size())) {
       float confidence = std::min(
         seats[seatIndex].node.fpConfidence,
@@ -469,7 +473,7 @@ public:
 
   // Returns Labor's share of the major party vote (including Nationals)
   FloatInformation getSeatMajorPartyBalance(std::string const& seatName) const {
-    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    int seatIndex = findSeatIndex(seatName);
     if (seatIndex != int(seats.size())) {
       auto const& fpVotes = seats[seatIndex].node.fpVotesCurrent;
       if (fpVotes.empty() || !fpVotes.contains(0) || fpVotes.at(0) == 0) return {0.0f, 0.0f};
@@ -488,7 +492,7 @@ public:
   }
 
   TcpShareInformation getSeatTcpInformation(std::string const& seatName) const override {
-    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    int seatIndex = findSeatIndex(seatName);
     if (seatIndex != int(seats.size())) {
       return {seats[seatIndex].node.tcpShares, seats[seatIndex].node.tcpCompletion, seats[seatIndex].node.tcpConfidence};
     }
@@ -496,7 +500,7 @@ public:
   }
 
   std::optional<FloatInformation> getSeatNationalsProportion(std::string const& seatName) const override {
-    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    int seatIndex = findSeatIndex(seatName);
     if (seatIndex != int(seats.size()) && seats[seatIndex].nationalsProportion.has_value()) {
       return std::make_optional<FloatInformation>(
         seats[seatIndex].nationalsProportion.value_or(0.0f),
@@ -515,6 +519,9 @@ public:
 
   std::optional<LiveData::VoteCountAccount> getSeatVoteCountAccount(
     std::string const& seatName, LiveData::CountKind kind) const override;
+  std::optional<LiveData::AggregateVoteTotals> getSeatAggregateVoteTotals(
+    std::string const& seatName) const override;
+  LiveData::FinalSeatResult const* getFinalSeatResult(std::string const& seatName) const override;
 
   // Expose some internals for diagnostics/analysis
   std::optional<LiveData::CountProgress> getCountProgress() const override { return countProgress; }
@@ -549,6 +556,10 @@ public:
   std::optional<std::vector<double>> integrateTpp(std::vector<double> const& prior) const override;
 
 private:
+  // Resolve identity only. The caller must read projections, confidence and
+  // deviations from this Election's own seat after locating it, because those
+  // values can differ in each scenario. Return seats.size() for an unknown name.
+  int findSeatIndex(std::string const& seatName) const;
   // Callers choose a named copy path. Preparation samples own mutable booths;
   // forecast scenarios share frozen booths but still copy seat/region state.
   Election(Election const&) = default;
@@ -773,6 +784,7 @@ private:
   // Pair targets include preferences missing on already-counted FP votes.
   void configureInactiveTurnoutContests(TurnoutModelIO::Artifact const& artifact);
   void prepareTurnout(Results2::Election const& currentElection, TurnoutModelIO::Artifact artifact);
+  void prepareFinalResults(Results2::Election const& previousElection, Results2::Election const& currentElection);
   float turnoutFpTarget(int boothIndex) const;
   float turnoutPairTarget(int boothIndex) const;
   void refreshTurnoutPairProgress();
@@ -838,8 +850,9 @@ private:
   std::vector<LiveVariability::Baseline> prepareVariabilityBaselines(bool includeTpp) const;
   std::vector<LiveVariability::Sample> runVariabilitySamples(
     std::vector<LiveVariability::Baseline> const& baselines) const;
+  void resetVariabilitySample(Election& working, int sampleIndex) const;
   LiveVariability::Sample sampleVariability(int sampleIndex,
-    std::vector<LiveVariability::Baseline> const& baselines) const;
+    std::vector<LiveVariability::Baseline> const& baselines, Election& sampleElection) const;
   void storePreparedVariability(std::vector<LiveVariability::Sample> const& samples);
   void logPreparedSummary() const;
 
@@ -925,6 +938,7 @@ private:
   // Shared immutable preparation; each scenario owns only its projected votes.
   std::shared_ptr<LiveTurnout::Prepared const> turnout;
   std::optional<LiveData::CountProgress> countProgress;
+  bool hasFinalResults = false; // Fast absent-result check in ordinary live iterations.
   // One immutable ordinary-based prior per declaration service. Scenarios
   // share these compact maps and own only their varied future compositions.
   std::shared_ptr<std::vector<LiveNewVotes::Shares> const> newVoteContexts;

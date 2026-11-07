@@ -696,6 +696,16 @@ void LiveV2::Election::prepareDirectTppVotes(int seatIndex, TppCategoryAccount& 
 }
 
 double LiveV2::Election::accountedTpp(int seatIndex, double transformed, bool sample) const {
+    if (auto const& final = seats.at(seatIndex).finalResult; final && !final->tpp.empty()) {
+        // The ordinary account below and transform() both use percentage
+        // shares (0--100), not fractions (0--1). Apply that same scale to a
+        // final count before returning its 25*log-odds value. The final counted
+        // account also fixes simulated output; diagnostics need the correct
+        // scale here rather than relying on that later count constraint.
+        double total = final->tpp.at(0)+final->tpp.at(1);
+        double percent = 100*final->tpp.at(0)/total;
+        return LiveTppComposition::transform(percent);
+    }
     auto const& account = tppCategoryAccounts->at(seatIndex);
     if (account.direct.votes <= 0) return transformed;
     double inferred = account.direct.inferredShare();
@@ -709,6 +719,7 @@ double LiveV2::Election::accountedTpp(int seatIndex, double transformed, bool sa
 }
 
 double LiveV2::Election::accountedTppDerivative(int seatIndex, double transformed) const {
+    if (auto const& final = seats.at(seatIndex).finalResult; final && !final->tpp.empty()) return 0;
     auto const& account = tppCategoryAccounts->at(seatIndex);
     double total = std::max(account.expectedVotes(),account.direct.votes);
     if (total <= 0 || account.direct.votes <= 0) return 1;
@@ -725,6 +736,8 @@ double LiveV2::Election::tppScenarioCountChange(int seatIndex) const {
 }
 
 float LiveV2::Election::preparedTppShare(int seatIndex) const {
+    if (auto const& final = seats.at(seatIndex).finalResult; final && !final->tpp.empty())
+        return float(100*final->tpp.at(0)/(final->tpp.at(0)+final->tpp.at(1)));
     // Results' estimated swing follows the same prepared centre as the new
     // simulator handoff. Keep the older composition centre only during setup,
     // before the joint state exists; the raw-swing column is independent.

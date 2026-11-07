@@ -1410,6 +1410,368 @@
           "support": "historical moments"
         }
       }
+    },
+    "2016fed/earlier_only": {
+      "schema_version": 3,
+      "model_version": "proportional-prior-6",
+      "rates": {
+        "drift_log_odds": -0.013640479292834276,
+        "units": "natural log odds",
+        "common_covariance": [
+          [
+            0.025065505582100994,
+            0.006928516716287147
+          ],
+          [
+            0.006928516716287147,
+            0.022423512538689256
+          ]
+        ],
+        "local_covariance": [
+          [
+            0.009053301995999739,
+            0.0024524248476890803
+          ],
+          [
+            0.0024524248476890803,
+            0.027286520276593795
+          ]
+        ],
+        "training_elections": [
+          "2007fed",
+          "2008wa",
+          "2009qld",
+          "2010fed",
+          "2010sa",
+          "2010vic",
+          "2012qld",
+          "2013fed",
+          "2013wa",
+          "2014sa",
+          "2014vic",
+          "2015qld"
+        ],
+        "stable_formality_elections": 12,
+        "broad_default": false
+      },
+      "controls": {
+        "early": {
+          "factor": 1.021044109949282,
+          "common_sd": 0.1021044109949282,
+          "local_sd": null,
+          "training_elections": [
+            "2013fed"
+          ],
+          "fallback": "",
+          "broad_default": true,
+          "resident_distribution": {
+            "relative_sd": 0.1683406779741243,
+            "fitted_units": "centered logarithms of resident shares of the national count",
+            "training_elections": [
+              "2013fed"
+            ],
+            "broad_default": false
+          },
+          "measure": "federal_prepoll_national",
+          "observation_status": "final_reconciled",
+          "cutoff": [
+            "2016-07-01",
+            "2016-07-01"
+          ]
+        },
+        "postal": {
+          "factor": 0.8259318836168146,
+          "common_sd": 0.005910734097635519,
+          "local_sd": 0.02786022377388723,
+          "training_elections": [
+            "2007fed",
+            "2010fed",
+            "2013fed"
+          ],
+          "fallback": "",
+          "broad_default": false,
+          "measure": "postal_applications_cumulative",
+          "observation_status": "final_reconciled",
+          "cutoff": [
+            "2016-07-01",
+            "2016-07-01"
+          ]
+        }
+      },
+      "compositions": {
+        "early": {
+          "common_covariance": [
+            [
+              0.08220099996787206,
+              -0.08220099996787206
+            ],
+            [
+              -0.08220099996787206,
+              0.08220099996787206
+            ]
+          ],
+          "local_covariance": [
+            [
+              0.04407284535520215,
+              -0.044072845355202145
+            ],
+            [
+              -0.044072845355202145,
+              0.044072845355202145
+            ]
+          ],
+          "units": "centred natural log proportions",
+          "total_anchor": "early_declaration",
+          "training_elections": [
+            "2013fed"
+          ],
+          "mean_training_log_errors": [
+            [
+              -0.0001517276815409273,
+              0.00015172768154092886
+            ]
+          ],
+          "mean_training_share_changes": [
+            [
+              -0.1216199546189182,
+              0.1216199546189182
+            ]
+          ],
+          "support": "broad composition default"
+        },
+        "postal": {
+          "common_covariance": [
+            [
+              0
+            ]
+          ],
+          "local_covariance": [
+            [
+              0
+            ]
+          ],
+          "training_elections": [],
+          "support": "single category identity"
+        },
+        "remainder": {
+          "common_covariance": [
+            [
+              0.13093915759854913,
+              -0.04053252304433537,
+              -0.09040663455421374
+            ],
+            [
+              -0.04053252304433537,
+              0.11914206870457013,
+              -0.07860954566023474
+            ],
+            [
+              -0.09040663455421374,
+              -0.07860954566023474,
+              0.1690161802144485
+            ]
+          ],
+          "local_covariance": [
+            [
+              0.047709833807135116,
+              -0.005732111474133862,
+              -0.04197772233300125
+            ],
+            [
+              -0.005732111474133862,
+              0.04826333527538809,
+              -0.04253122380125422
+            ],
+            [
+              -0.04197772233300125,
+              -0.04253122380125422,
+              0.08450894613425547
+            ]
+          ],
+          "units": "centred natural log proportions",
+          "total_anchor": null,
+          "training_elections": [
+            "2013fed"
+          ],
+          "mean_training_log_errors": [
+            [
+              -0.14607482672625524,
+              -0.09767684530699433,
+              0.2437516720332496
+            ]
+          ],
+          "mean_training_share_changes": [
+            [
+              -0.002875615766891061,
+              0.001572855654400646,
+              0.00130276011249041
+            ]
+          ],
+          "support": "broad composition default"
+        }
+      }
+    },
+    "2013fed/earlier_only": {
+      "schema_version": 3,
+      "model_version": "proportional-prior-6",
+      "rates": {
+        "drift_log_odds": -0.005611702845137706,
+        "units": "natural log odds",
+        "common_covariance": [
+          [
+            0.03541830120354705,
+            0.012346361875127401
+          ],
+          [
+            0.012346361875127401,
+            0.03195790596103812
+          ]
+        ],
+        "local_covariance": [
+          [
+            0.0094232928559418,
+            0.0031479589050428533
+          ],
+          [
+            0.0031479589050428533,
+            0.026367845590320453
+          ]
+        ],
+        "training_elections": [
+          "2007fed",
+          "2008wa",
+          "2009qld",
+          "2010fed",
+          "2010sa",
+          "2010vic",
+          "2012qld",
+          "2013wa"
+        ],
+        "stable_formality_elections": 8,
+        "broad_default": false
+      },
+      "controls": {
+        "postal": {
+          "factor": 0.825993968637569,
+          "common_sd": 0.04027157906001083,
+          "local_sd": 0.029761253148131103,
+          "training_elections": [
+            "2007fed",
+            "2010fed"
+          ],
+          "fallback": "",
+          "broad_default": false,
+          "measure": "postal_applications_cumulative",
+          "observation_status": "final_reconciled",
+          "cutoff": [
+            "2013-09-05",
+            "2013-09-05"
+          ]
+        },
+        "early": {
+          "factor": 0.944346050471959,
+          "common_sd": 0.11332152605663508,
+          "local_sd": null,
+          "training_elections": [],
+          "broad_default": true,
+          "measure": "prepoll_votes_issued_cumulative",
+          "cutoff": [
+            "2013-09-06",
+            "2013-09-06"
+          ],
+          "resident_distribution": {
+            "relative_sd": 0.4,
+            "broad_default": true,
+            "training_elections": []
+          }
+        }
+      },
+      "compositions": {
+        "postal": {
+          "common_covariance": [
+            [
+              0
+            ]
+          ],
+          "local_covariance": [
+            [
+              0
+            ]
+          ],
+          "training_elections": [],
+          "support": "single category identity"
+        },
+        "remainder": {
+          "common_covariance": [
+            [
+              0.10960130259544362,
+              -0.054800651297721804,
+              -0.054800651297721804
+            ],
+            [
+              -0.054800651297721804,
+              0.10960130259544362,
+              -0.054800651297721804
+            ],
+            [
+              -0.054800651297721804,
+              -0.054800651297721804,
+              0.10960130259544362
+            ]
+          ],
+          "local_covariance": [
+            [
+              0.033195362995411586,
+              -0.01659768149770579,
+              -0.01659768149770579
+            ],
+            [
+              -0.01659768149770579,
+              0.033195362995411586,
+              -0.01659768149770579
+            ],
+            [
+              -0.01659768149770579,
+              -0.01659768149770579,
+              0.033195362995411586
+            ]
+          ],
+          "units": "centred natural log proportions",
+          "total_anchor": null,
+          "training_elections": [],
+          "mean_training_log_errors": [],
+          "mean_training_share_changes": [],
+          "support": "broad composition default"
+        },
+        "early": {
+          "common_covariance": [
+            [
+              0.08220097694658271,
+              -0.08220097694658271
+            ],
+            [
+              -0.08220097694658271,
+              0.08220097694658271
+            ]
+          ],
+          "local_covariance": [
+            [
+              0.024896522246558684,
+              -0.024896522246558684
+            ],
+            [
+              -0.024896522246558684,
+              0.024896522246558684
+            ]
+          ],
+          "units": "centred natural log proportions",
+          "total_anchor": "early_declaration",
+          "training_elections": [],
+          "mean_training_log_errors": [],
+          "mean_training_share_changes": [],
+          "support": "broad composition default"
+        }
+      }
     }
   },
   "ppvc_starting_sizes": {

@@ -56,23 +56,27 @@ Date StanModel::getEndDate() const
 	return startDate + int(rawTppSupport.timePoint.size()) - 1;
 }
 
-// Prepare this election's polling model for C++ forecasting. Workspace files
-// supply previously fitted trends and adjustment estimates; configured party
-// codes and preference settings describe how this model uses them. This entry
-// point loads those inputs and builds adjusted daily summaries for reports.
+// Prepare this election's polling model for C++ forecasting. The "workspace" is
+// the base folder containing analysis/ and the files this project reads or
+// generates; paths supplies that location. Those files supply fitted trends
+// and adjustment estimates, while configured party codes and preference settings
+// describe how this model uses them. This entry point also builds daily summaries
+// for reports: averages and ranges of adjusted party vote shares through time.
 // feedback receives progress and handled failures; numThreads controls concurrent
 // work on model dates. A successful call records the model's update time.
 bool StanModel::loadData(
 	WorkspacePaths const& paths, FeedbackFunc feedback, int numThreads)
 {
 	logger << "Starting model run: " << Timestamp::now().formatIsoLocal() << "\n";
-	// Input preparation is also available on its own for projection sampling.
+	// Preparing inputs alone also lets projections generate possible vote shares.
 	if (!prepareForRun(paths, feedback)) return false;
 	logger << "Model end date: " << getEndDate().formatIso() << "\n";
 	logger << "Prepared model inputs: " << Timestamp::now().formatIsoLocal() << "\n";
-	// Complete the daily summaries as well. If this stage reports failure, revoke
-	// the readiness set by input preparation so this load cannot be used as a
-	// successfully completed model update.
+	// Summarise each modelled date's possible adjusted party vote shares with
+	// an average and points across their range. Reports use these daily summaries
+	// to show how estimated support and uncertainty change through time.
+	// If this stage reports failure, revoke the readiness set by input preparation
+	// so this load cannot be used as a successfully completed model update.
 	if (!updateAdjustedData(feedback, numThreads)) {
 		readyForProjection = false;
 		return false;
@@ -185,9 +189,13 @@ std::string StanModel::rawPartyCodeByIndex(int index) const
 	return std::next(rawSupport.begin(), index)->first;
 }
 
-// Load the information shared by support draws: party definitions, historical
-// estimates, preference assumptions, polls and daily trend distributions.
-// paths resolves workspace files; termCode selects the election (e.g. 2026vic).
+// Load the inputs reused when generating possible overall vote shares and
+// preferences. One possibility selected at random according to the model's
+// uncertainty is called a "draw"; repeated draws explore its possible results.
+// The shared inputs are party definitions, historical estimates, preference
+// assumptions, polls and daily trend distributions. paths finds files within
+// the workspace defined at loadData above; termCode selects the election
+// (e.g. 2026vic).
 // Required inputs are checked by their loaders, which report failures to feedback.
 //
 // Success sets readyForProjection because fresh support can now be drawn from
@@ -197,6 +205,7 @@ std::string StanModel::rawPartyCodeByIndex(int index) const
 bool StanModel::prepareForRun(
 	WorkspacePaths const& paths, FeedbackFunc feedback)
 {
+	preparedRevision = std::make_shared<int const>(0);
 	// Remove the previous trends, summaries and polls, and keep sampling disabled
 	// until the new inputs are ready. A failed load must not leave the old model
 	// marked as ready while some of its data has been replaced.
@@ -213,12 +222,14 @@ bool StanModel::prepareForRun(
 	if (!loadPartyCodes(feedback)) return false;
 	if (!loadPartyGroups(paths, feedback)) return false;
 
-	// The Python stage analysis/scripts/pipeline/trend_adjust.py writes baseline
-	// vote estimates in analysis/Fundamentals and corrections in analysis/Adjustments.
-	// The baseline ("fundamentals") uses election history and political context;
-	// corrections allow for systematic over- or underestimation in the trend and
-	// baseline, supply further uncertainty, and set the weight given to polling.
+	// Load the baseline vote estimates ("fundamentals"), which use election history
+	// and political context. The Python stage analysis/scripts/pipeline/trend_adjust.py
+	// writes these estimates to analysis/Fundamentals.
 	if (!loadFundamentalsPredictions(paths, feedback)) return false;
+
+	// Load corrections written by the same Python stage to analysis/Adjustments.
+	// These allow for systematic over- or underestimation in the polling trend and
+	// baseline, supply further uncertainty, and set the weight given to polling.
 	if (!loadParameters(paths, feedback)) return false;
 
 	// Historical election analysis supplies estimates for an emerging party:
@@ -1826,6 +1837,7 @@ bool StanModel::loadGeneratedData(
 	}
 
 	numDays = loadedNumDays;
+	preparedRevision = std::make_shared<int const>(0);
 	rawSupport = std::move(loadedRawSupport);
 	rawTppSupport = std::move(loadedRawTppSupport);
 	adjustedSupport = std::move(loadedAdjustedSupport);

@@ -761,6 +761,7 @@ TurnoutModelIO::Artifact LivePreparation::prepareCurrentInput()
 	auto artifact = TurnoutModelIO::loadForElection(project.paths().root(), run.getTermCode());
 	auto const recoveryStarted = std::chrono::steady_clock::now();
 	auto const historyBefore = LiveInputHistory::statistics();
+	logger << "Recovering current counts and updating accepted-count history...\n";
 	auto recovered = LiveInputAdapter::prepare(currentElection, artifact,
 		project.paths().root(), LiveResultsInput::pathFromUtf8(xmlFilename));
 	auto const preferencesStarted = std::chrono::steady_clock::now();
@@ -775,7 +776,8 @@ TurnoutModelIO::Artifact LivePreparation::prepareCurrentInput()
 		<< " seconds; preference history: "
 		<< std::chrono::duration<double>(std::chrono::steady_clock::now() - preferencesStarted).count()
 		<< " seconds; history index source reads: " << historyAfter.sourceReads - historyBefore.sourceReads
-		<< "; builds: " << historyAfter.builds - historyBefore.builds << "\n";
+		<< "; builds: " << historyAfter.builds - historyBefore.builds
+		<< "; append batches: " << historyAfter.appendBatches - historyBefore.appendBatches << "\n";
 	if (historyAfter.fallbacks > historyBefore.fallbacks)
 		logger << "Live history used original snapshots because its derived index was unavailable: "
 			<< historyAfter.lastFailure << "\n";

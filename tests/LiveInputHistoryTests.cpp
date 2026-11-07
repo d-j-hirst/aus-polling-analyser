@@ -158,6 +158,90 @@ void checkRepairAndCoverage(Path const& folder) {
     assert(LiveInputHistory::statistics().retainedBytes <= 16 * 1024 * 1024);
 }
 
+void checkBulkAppend(Path const& folder) {
+    LiveInputHistory::clearMemoryCache(1024); // Exercise eviction during maintenance too.
+    auto first = source(0);
+    first["records"][0]["tcp_basis"] = {{"legacy", true}};
+    save(folder, first);
+    auto withdrawn = source(1);
+    withdrawn["records"].erase(0);
+    save(folder, withdrawn);
+    compareAll(folder, 2);
+    auto before = LiveInputHistory::statistics();
+
+    // A short replay jumps over many existing accepted captures. Preserve all
+    // transitions, including a restoration that drops an older optional field.
+    for (int minute = 2; minute < 50; ++minute) {
+        auto value = source(minute, 100 + minute / 6);
+        if (minute % 5 == 0) {
+            value["records"][0]["fp"]["t"] = timeAt(0);
+            value["records"][0]["fp"]["s"] = 1;
+        }
+        if (minute % 7 == 0) value["records"][0]["tcp"]["v"] = nullptr;
+        if (minute % 9 == 0) value["records"][0]["fp"].erase("stage");
+        if (minute % 11 == 0) value["records"].erase(0);
+        if (minute == 20) {
+            auto additional = value["records"][0];
+            additional["k"] = "East/ordinary/New";
+            additional["d"] = "East"; additional["n"] = "New";
+            value["records"].push_back(additional);
+            value["districts"]["East"] = {1000, false};
+        }
+        if (minute % 13 == 0) std::reverse(value["records"].begin(), value["records"].end());
+        save(folder, value);
+    }
+    auto future = source(120);
+    future["version"] = 999; // Must not be read/validated by this earlier query.
+    save(folder, future);
+    compareAll(folder, 50);
+    auto after = LiveInputHistory::statistics();
+    assert(after.builds == before.builds && after.appendBatches == before.appendBatches + 1);
+    assert(after.sourceReads == before.sourceReads + 48);
+    // This is the performance regression: one write per district and one
+    // publication for the whole gap, rather than repeating these for 48 captures.
+    assert(after.partitionWrites == before.partitionWrites + 3);
+    assert(after.publications == before.publications + 1);
+    compareAll(folder, 20);
+    compareAll(folder, 50);
+    assert(LiveInputHistory::statistics().sourceReads == after.sourceReads);
+    LiveInputHistory::clearMemoryCache();
+    compareAll(folder, 50);
+    assert(LiveInputHistory::statistics().sourceReads == 0);
+
+    // Mix middle replacements/deletion with a later append batch. Retaining the
+    // later manifest coverage must not leak those counts into earlier queries.
+    auto correction = source(10, 700);
+    correction["records"][0]["i"] = "changed candidates";
+    save(folder, correction);
+    std::filesystem::remove(folder / (stem(timeAt(15)) + ".json"));
+    save(folder, source(55)); save(folder, source(56));
+    compareAll(folder, 60);
+    assert(LiveInputHistory::statistics().appendBatches == 1);
+    compareAll(folder, 12); compareAll(folder, 50);
+    assert(LiveInputHistory::statistics().fallbacks == 0);
+}
+
+void checkInterruptedBatch(Path const& folder) {
+    LiveInputHistory::clearMemoryCache();
+    save(folder, source(0)); compareAll(folder, 1);
+    auto index = folder / "change-index-v1";
+    auto original = read(index / "manifest.json");
+    save(folder, source(1, 150)); save(folder, source(2, 200));
+    std::filesystem::create_directory(index / "manifest.tmp");
+    bool failed = false;
+    try { compareAll(folder, 3); }
+    catch (LiveInputHistory::Unavailable const&) { failed = true; }
+    assert(failed && read(index / "manifest.json") == original);
+    assert(std::filesystem::exists(folder / (stem(timeAt(2)) + ".json")));
+    std::size_t partitions = 0;
+    for (auto const& file : std::filesystem::directory_iterator(index))
+        if (file.path().filename().string().starts_with("part-")) ++partitions;
+    assert(partitions == original.at("payload").at("partitions").size());
+    std::filesystem::remove(index / "manifest.tmp");
+    compareAll(folder, 3);
+    LiveInputHistory::clearMemoryCache(); // The deliberately failed batch is isolated.
+}
+
 json cohort(std::optional<PreferenceCohort> const& value) {
     if (!value) return nullptr;
     return {{"fp", value->fp}, {"tcp", value->tcp}, {"fpTime", value->fpTime}, {"tcpTime", value->tcpTime},
@@ -298,6 +382,9 @@ int main() {
     checkRepresentationAndUpdates(root / "updates");
     std::cout << "Checking repair and timestamp coverage...\n";
     checkRepairAndCoverage(root / "repair");
+    std::cout << "Checking bulk catch-up and interrupted publication...\n";
+    checkBulkAppend(root / "bulk");
+    checkInterruptedBatch(root / "interrupted-batch");
     std::cout << "Checking matching equivalence...\n";
     checkMatchingEquivalence(root / "matching");
     checkUnavailableIndex(root / "unavailable");

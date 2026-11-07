@@ -96,6 +96,13 @@ public:
 
 	std::vector<std::string> prominentMinors;
 	std::vector<std::string> runningParties;
+	// Party codes whose local candidate uses the independent-like Greens/ALP
+	// preference split (50–90% of their combined allocation to the candidate),
+	// rather than the centrist-party split (40–75%). This is an explicit campaign
+	// assumption for this seat and election, not a change to party identity,
+	// primary-vote modelling or configured final-two preference flows. Genuine
+	// and emerging independents already use the independent-like split.
+	std::vector<std::string> independentLikePreferences;
 
 	// Optional Coalition-specific candidacy model. An omitted party does not
 	// run; each listed party maps to its probability of running.

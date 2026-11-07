@@ -650,8 +650,12 @@ but are not displayed as columns:
 | Ordinary FP/TCP coverage (%) | The smaller of election-wide vote and location coverage for each reporting sample; denominators include unreported ordinary booths. |
 | Category cov. scale (%) | Percentage of the historical shared category covariance retained within the baseline covariance budget; 100 means no reduction. It can fall below 100 when the full category covariance does not fit that budget, so it remains visible. |
 
-The centre and aggregate SDs use the same historical seat vote weights as the
-national simulation histogram. These columns are stored in the small snapshot
+The centre and aggregate SDs use the same live aggregation phase-in as the
+national simulation histogram, using prepared mean sizes rather than sampled
+scenario sizes. The phase starts at historical weights and reaches current
+turnout weights at 50% FP coverage; [the turnout documentation](live-turnout.md#combining-seat-forecasts-into-election-totals)
+defines its formula, practical rationale and scope. This changes only aggregate
+reporting, not the joint conditioning or seat forecasts. These columns are stored in the small snapshot
 summary and append through the existing asynchronous viewer. They require no
 full analysis-file reads. Older snapshots without these fields show blank cells;
 they are not retrospectively calculated. The existing graph series remain

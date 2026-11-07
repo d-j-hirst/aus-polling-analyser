@@ -5,6 +5,7 @@
 // live forecasts also use LivePreparation to obtain and interpret reported votes.
 
 #include "SimulationPreparation.h"
+#include "LiveAggregation.h"
 #include "CoalitionCandidacy.h"
 #include "SeatVolatility.h"
 
@@ -100,10 +101,11 @@ namespace {
 	}
 
 	std::vector<float> loadRequiredFloatLines(
+		SimulationInputs const& inputs,
 		std::string const& fileName,
 		std::size_t required)
 	{
-		auto file = std::ifstream(fileName);
+		auto file = inputs.open(fileName);
 		if (!file) {
 			throw SimulationPreparation::Exception(
 				"Could not find file " + fileName + "!");
@@ -144,10 +146,11 @@ namespace {
 	}
 
 	void loadSeatStatisticsFile(
+		SimulationInputs const& inputs,
 		std::string const& fileName,
 		SimulationRun::SeatStatistics& statistics)
 	{
-		auto file = std::ifstream(fileName);
+		auto file = inputs.open(fileName);
 		if (!file) {
 			throw SimulationPreparation::Exception(
 				"Could not find file " + fileName + "!");
@@ -242,6 +245,7 @@ namespace {
 	}
 
 	void loadSeatModifierFile(
+		SimulationInputs const& inputs,
 		PollingProject const& project,
 		std::string const& regionCode,
 		std::string const& fileName,
@@ -251,7 +255,7 @@ namespace {
 			project.seats().count(),
 			std::numeric_limits<float>::quiet_NaN());
 		std::vector<int> matchPriority(project.seats().count(), 0);
-		auto file = std::ifstream(fileName);
+		auto file = inputs.open(fileName);
 		if (!file) {
 			throw SimulationPreparation::Exception(
 				"Could not find file " + fileName + "!");
@@ -308,10 +312,9 @@ SimulationPreparation::SimulationPreparation(PollingProject& project, Simulation
 {
 }
 
-std::string SimulationPreparation::workspaceFile(
-	std::string const& relativePath) const
+std::string const& SimulationPreparation::inputFile(SimulationInputs::File file) const
 {
-	return project.paths().resolveString(relativePath);
+	return run.preparationInputs->path(file);
 }
 
 // Prepare the shared inputs for one simulation run before any iterations begin.
@@ -328,6 +331,12 @@ std::string SimulationPreparation::workspaceFile(
 // report in sim that iteration and completion will fill.
 void SimulationPreparation::prepareForIterations()
 {
+	// SimulationRun captures these files before deciding whether calibration and
+	// the pre-count baseline can be reused. Every supporting run receives the
+	// same immutable record, so file loading cannot disagree with that check.
+	if (!run.preparationInputs) {
+		throw Exception("Simulation inputs must be captured before preparation.");
+	}
 	// Start a new report for this run: the summary of vote shares, seat counts
 	// and outcome probabilities across its simulated elections. For the main
 	// forecast, this supplies the results that can later be exported to
@@ -343,6 +352,7 @@ void SimulationPreparation::prepareForIterations()
 	storeTermCode();
 	determineSpecificPartyIndices();
 	validateIterationInputs();
+	prepareSeatLookups();
 
 	// Clear seat, regional and overall totals so earlier calculations cannot
 	// contribute to this run's probabilities or average vote shares. Reserve
@@ -445,9 +455,11 @@ void SimulationPreparation::prepareForIterations()
 	// Use confirmed new prominent independents and time until the election to
 	// adjust the chance of further competitive independents. Then translate the
 	// project's candidate lists into the party information used by iterations:
-	// which minor parties are prominent locally and which parties are running.
+	// which minor parties are prominent locally, which local campaigns use an
+	// independent-like preference assumption, and which parties are running.
 	calculateIndEmergenceModifier();
 	prepareProminentMinors();
+	prepareIndependentLikePreferences();
 	prepareRunningParties();
 
 	// A live forecast incorporates votes reported so far. The automatic route
@@ -473,11 +485,39 @@ void SimulationPreparation::prepareForIterations()
 	// This older live-summary call is also disabled; automatic live information
 	// is prepared through LivePreparation above.
 	calculateLiveAggregates();
+	prepareAggregationInputs();
 
 	// Start counts of government outcomes, seat totals and overall vote shares
 	// at zero. Iterations will accumulate these and completion will turn them
 	// into the forecast's probabilities and distributions of possible results.
 	resetResultCounts();
+}
+
+void SimulationPreparation::prepareSeatLookups()
+{
+	// Seat import and validation precede this step. Iterations share this
+	// calculation context without editing its seats or regions; a later run
+	// rebuilds the lookup rather than retaining references to an earlier context.
+	run.seatLookup.prepare(project.seats(), project.regions().count(),
+		[&](Region::Id id) { return project.regions().idToIndex(id); });
+}
+
+void SimulationPreparation::prepareAggregationInputs()
+{
+	// Historical seat sizes and published count coverage are fixed for this
+	// run. Cache their reporting-only inputs after live preparation has produced
+	// the count-progress account. Supporting/ordinary runs retain historical
+	// weighting. Neither the estimated final size of a seat nor its candidate
+	// allocation is cached: both can vary between live scenarios.
+	run.aggregationHistoricalWeights.clear();
+	run.aggregationHistoricalWeights.reserve(run.pastSeatResults.size());
+	for (auto const& seat : run.pastSeatResults)
+		run.aggregationHistoricalWeights.push_back(double(seat.turnoutCount));
+	std::optional<LiveData::CountProgress> progress;
+	if (run.isLiveAutomatic() && !run.doingBettingOddsCalibrations
+		&& !run.doingLiveBaselineSimulation && run.liveElection)
+		progress = run.liveElection->getCountProgress();
+	run.aggregationTurnoutFraction = LiveAggregation::turnoutFraction(progress);
 }
 
 void SimulationPreparation::resetLatestReport()
@@ -1219,11 +1259,11 @@ void SimulationPreparation::determineSpecificPartyIndices()
 void SimulationPreparation::loadPreviousPreferenceFlows() {
 	run.previousPreferenceFlow.clear();
 	run.previousExhaustRate.clear();
-	std::string const fileName = workspaceFile(
-		"analysis/Data/preference-estimates.csv");
+	std::string const fileName = inputFile(SimulationInputs::File::Preferences);
 	std::vector<std::vector<std::string>> lines;
 	try {
-		lines = extractElectionDataFromFile(fileName, run.getTermCode());
+		auto file = run.preparationInputs->open(fileName);
+		lines = extractElectionDataFromStream(file, fileName, run.getTermCode());
 	}
 	catch (std::exception const& error) {
 		throw Exception(error.what());
@@ -1354,14 +1394,13 @@ void SimulationPreparation::loadPastSeatResults()
 	run.pastSeatResults.assign(
 		project.seats().count(), SimulationRun::PastSeatResult());
 	run.totalPreviousTurnout = 0;
-	std::string const fileName = workspaceFile(
-		"analysis/elections/results_" +
-		sim.settings.prevTermCodes[0] + ".csv");
-	auto file = std::ifstream(fileName);
+	std::string const fileName = inputFile(SimulationInputs::File::PastSeatResults);
+	auto file = run.preparationInputs->open(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	bool fpMode = false;
 	int currentSeat = -1;
 	bool indSeen = false;
+	std::string historicalSeat;
 	std::map<std::string, SimulationRun::PastSeatResult> unmatchedResults;
 	std::string currentUnmatched;
 	std::string line;
@@ -1377,6 +1416,7 @@ void SimulationPreparation::loadPastSeatResults()
 		else if (values[0] == "Seat") {
 			requireColumns(values, 2, fileName, "seat row");
 			indSeen = false;
+			historicalSeat = values[1];
 			try {
 				currentSeat = project.seats().idToIndex(project.seats().accessByName(values[1], true).first);
 			}
@@ -1407,6 +1447,16 @@ void SimulationPreparation::loadPastSeatResults()
 			std::string shortCodeUsed;
 			if (simplifiedStringToPartyCode.count(partyStr)) {
 				shortCodeUsed = simplifiedStringToPartyCode.at(partyStr);
+			}
+			// Ordinarily a previous primary or preference count belongs to the
+			// party recorded at that election. For the 2013 Kennedy forecast,
+			// Bob Katter's 2010 Independent votes instead describe the sitting
+			// candidate who is now running for Katter's Australian Party.
+			// Carry that support into KAP in both the primary and TCP baselines.
+			if (run.getTermCode() == "2013fed" && sim.settings.prevTermCodes[0] == "2010fed"
+				&& historicalSeat == "Kennedy" && values[0] == "Bob Katter"
+				&& shortCodeUsed == "IND" && project.parties().indexByShortCode("KAP") != PartyCollection::InvalidIndex) {
+				shortCodeUsed = "KAP";
 			}
 			// Historical parties not represented in the current project are
 			// deliberately combined into Others.
@@ -1611,8 +1661,8 @@ void SimulationPreparation::loadSeatTypes()
 	run.seatTypes.assign(
 		project.seats().count(), SimulationRun::SeatType::InnerMetro);
 	std::vector<int> matchPriority(project.seats().count(), 0);
-	std::string const fileName = workspaceFile("analysis/Data/seat-types.csv");
-	auto file = std::ifstream(fileName);
+	std::string const fileName = inputFile(SimulationInputs::File::SeatTypes);
+	auto file = run.preparationInputs->open(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	std::string line;
 	while (std::getline(file, line)) {
@@ -1663,37 +1713,38 @@ void SimulationPreparation::loadSeatTypes()
 void SimulationPreparation::loadGreensSeatStatistics()
 {
 	loadSeatStatisticsFile(
-		workspaceFile("analysis/Seat Statistics/statistics_GRN.csv"),
+		*run.preparationInputs,
+		inputFile(SimulationInputs::File::GreensStatistics),
 		run.greensSeatStatistics);
 }
 
 void SimulationPreparation::loadIndSeatStatistics()
 {
 	loadSeatStatisticsFile(
-		workspaceFile("analysis/Seat Statistics/statistics_IND.csv"),
+		*run.preparationInputs,
+		inputFile(SimulationInputs::File::IndependentStatistics),
 		run.indSeatStatistics);
 }
 
 void SimulationPreparation::loadOthSeatStatistics()
 {
 	loadSeatStatisticsFile(
-		workspaceFile("analysis/Seat Statistics/statistics_OTH.csv"),
+		*run.preparationInputs,
+		inputFile(SimulationInputs::File::OthersStatistics),
 		run.othSeatStatistics);
 }
 
 void SimulationPreparation::loadGreensIndependentCorrelation()
 {
-	std::string const fileName = workspaceFile(
-		"analysis/Seat Statistics/GRN_IND_correlation.csv");
+	std::string const fileName = inputFile(SimulationInputs::File::GreensIndependentCorrelation);
 	run.greensIndependentCorrelation =
-		loadRequiredFloatLines(fileName, 1).front();
+		loadRequiredFloatLines(*run.preparationInputs, fileName, 1).front();
 }
 
 void SimulationPreparation::loadIndEmergence()
 {
-	std::string const fileName = workspaceFile(
-		"analysis/Seat Statistics/statistics_emerging_IND.csv");
-	auto const values = loadRequiredFloatLines(fileName, 15);
+	std::string const fileName = inputFile(SimulationInputs::File::IndependentEmergence);
+	auto const values = loadRequiredFloatLines(*run.preparationInputs, fileName, 15);
 	if (values[0] <= 0.0f || values[0] >= 100.0f) {
 		throw Exception(
 			fileName + " has an FP threshold outside the open range 0-100.");
@@ -1727,9 +1778,8 @@ void SimulationPreparation::loadIndEmergence()
 
 void SimulationPreparation::loadPopulistSeatStatistics()
 {
-	std::string const fileName = workspaceFile(
-		"analysis/Seat Statistics/statistics_populist.csv");
-	auto const values = loadRequiredFloatLines(fileName, 5);
+	std::string const fileName = inputFile(SimulationInputs::File::PopulistStatistics);
+	auto const values = loadRequiredFloatLines(*run.preparationInputs, fileName, 5);
 	run.populistStatistics.lowerRmse = values[0];
 	run.populistStatistics.upperRmse = values[1];
 	run.populistStatistics.lowerKurtosis = values[2];
@@ -1744,16 +1794,16 @@ void SimulationPreparation::loadPopulistSeatStatistics()
 void SimulationPreparation::loadPopulistSeatModifiers()
 {
 	loadSeatModifierFile(
+		*run.preparationInputs,
 		project, run.regionCode,
-		workspaceFile("analysis/Seat Statistics/modifiers_populist.csv"),
+		inputFile(SimulationInputs::File::PopulistModifiers),
 		run.seatPopulistModifiers);
 }
 
 void SimulationPreparation::loadCentristSeatStatistics()
 {
-	std::string const fileName = workspaceFile(
-		"analysis/Seat Statistics/statistics_centrist.csv");
-	auto const values = loadRequiredFloatLines(fileName, 5);
+	std::string const fileName = inputFile(SimulationInputs::File::CentristStatistics);
+	auto const values = loadRequiredFloatLines(*run.preparationInputs, fileName, 5);
 	run.centristStatistics.lowerRmse = values[0];
 	run.centristStatistics.upperRmse = values[1];
 	run.centristStatistics.lowerKurtosis = values[2];
@@ -1768,16 +1818,17 @@ void SimulationPreparation::loadCentristSeatStatistics()
 void SimulationPreparation::loadCentristSeatModifiers()
 {
 	loadSeatModifierFile(
+		*run.preparationInputs,
 		project, run.regionCode,
-		workspaceFile("analysis/Seat Statistics/modifiers_centrist.csv"),
+		inputFile(SimulationInputs::File::CentristModifiers),
 		run.seatCentristModifiers);
 }
 
 void SimulationPreparation::loadPreviousElectionBaselineVotes()
 {
 	run.previousFpVoteShare.clear();
-	std::string const fileName = workspaceFile("analysis/Data/prior-results.csv");
-	auto file = std::ifstream(fileName);
+	std::string const fileName = inputFile(SimulationInputs::File::PriorResults);
+	auto file = run.preparationInputs->open(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	std::string line;
 	while (std::getline(file, line)) {
@@ -1805,9 +1856,8 @@ void SimulationPreparation::loadPreviousElectionBaselineVotes()
 void SimulationPreparation::loadRegionBaseBehaviours()
 {
 	run.regionBaseBehaviour.clear();
-	std::string const fileName = workspaceFile(
-		"analysis/Regional/" + run.getTermCode() + "-regions-base.csv");
-	auto file = std::ifstream(fileName);
+	std::string const fileName = inputFile(SimulationInputs::File::RegionBase);
+	auto file = run.preparationInputs->open(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
 		if (run.regionCode == "fed") logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
@@ -1845,9 +1895,8 @@ void SimulationPreparation::loadRegionPollBehaviours()
 {
 	run.regionPollBehaviour.clear();
 	run.generalPollBehaviour = SimulationRun::RegionPollBehaviour();
-	std::string const fileName = workspaceFile(
-		"analysis/Regional/" + run.getTermCode() + "-regions-polled.csv");
-	auto file = std::ifstream(fileName);
+	std::string const fileName = inputFile(SimulationInputs::File::RegionPolls);
+	auto file = run.preparationInputs->open(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
 		if (run.regionCode == "fed") logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
@@ -1884,9 +1933,8 @@ void SimulationPreparation::loadRegionPollBehaviours()
 void SimulationPreparation::loadRegionMixBehaviours()
 {
 	run.regionMixBehaviour.clear();
-	std::string const fileName = workspaceFile(
-		"analysis/Regional/" + run.getTermCode() + "-mix-regions.csv");
-	auto file = std::ifstream(fileName);
+	std::string const fileName = inputFile(SimulationInputs::File::RegionMix);
+	auto file = run.preparationInputs->open(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
 		if (run.regionCode == "fed") logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
@@ -1919,9 +1967,8 @@ void SimulationPreparation::loadRegionMixBehaviours()
 void SimulationPreparation::loadOverallRegionMixParameters()
 {
 	run.regionMixParameters = SimulationRun::RegionMixParameters();
-	std::string const fileName = workspaceFile(
-		"analysis/Regional/" + run.getTermCode() + "-mix-parameters.csv");
-	auto file = std::ifstream(fileName);
+	std::string const fileName = inputFile(SimulationInputs::File::RegionMixParameters);
+	auto file = run.preparationInputs->open(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
 		if (run.regionCode == "fed") logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
@@ -1974,7 +2021,7 @@ void SimulationPreparation::loadRegionSwingDeviations()
 
 	auto loadValues = [&](std::string const& fileName) {
 		std::vector<float> values;
-		auto file = std::ifstream(fileName);
+		auto file = run.preparationInputs->open(fileName);
 		if (!file) return values;
 
 		std::string header;
@@ -2062,9 +2109,7 @@ void SimulationPreparation::loadRegionSwingDeviations()
 		return false;
 	};
 
-	std::string const baseName = workspaceFile(
-		"analysis/Regional/" + run.getTermCode() + "-swing-deviations");
-	std::string const tppFileName = baseName + ".csv";
+	std::string const tppFileName = inputFile(SimulationInputs::File::RegionTppDeviations);
 	auto const tppValues = loadValues(tppFileName);
 	if (!tppValues.empty()) {
 		applyConversion(
@@ -2077,10 +2122,10 @@ void SimulationPreparation::loadRegionSwingDeviations()
 
 	int const onIndex = project.parties().indexByShortCode("ON");
 	if (onIndex != PartyCollection::InvalidIndex) {
-		std::string onFileName = baseName + "-ON.csv";
-		if (!std::ifstream(onFileName)) {
+		std::string onFileName = inputFile(SimulationInputs::File::RegionOnDeviations);
+		if (!run.preparationInputs->open(onFileName)) {
 			// Generated state files currently use a lowercase suffix.
-			onFileName = baseName + "-on.csv";
+			onFileName = inputFile(SimulationInputs::File::RegionOnDeviationsLowercase);
 		}
 		auto const onValues = loadValues(onFileName);
 		if (!onValues.empty()) {
@@ -2102,9 +2147,8 @@ void SimulationPreparation::loadRegionSwingDeviations()
 void SimulationPreparation::loadTppSwingFactors()
 {
 	run.tppSwingFactors = SimulationRun::TppSwingFactors();
-	std::string const fileName = workspaceFile(
-		"analysis/Seat Statistics/tpp-swing-factors.csv");
-	auto file = std::ifstream(fileName);
+	std::string const fileName = inputFile(SimulationInputs::File::TppSwingFactors);
+	auto file = run.preparationInputs->open(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	std::map<std::string, float*> destinations = {
 		{ "mean-swing-deviation",
@@ -2158,9 +2202,8 @@ void SimulationPreparation::loadTppSwingFactors()
 void SimulationPreparation::loadNationalsParameters()
 {
 	run.nationalsParameters = SimulationRun::NationalsParameters();
-	std::string const fileName = workspaceFile(
-		"analysis/Nationals/" + run.getTermCode() + "_stats.csv");
-	auto file = std::ifstream(fileName);
+	std::string const fileName = inputFile(SimulationInputs::File::NationalsParameters);
+	auto file = run.preparationInputs->open(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	std::string header;
 	std::string data;
@@ -2186,9 +2229,8 @@ void SimulationPreparation::loadNationalsParameters()
 
 void SimulationPreparation::loadNationalsSeatExpectations()
 {
-	std::string const fileName = workspaceFile(
-		"analysis/Nationals/" + run.getTermCode() + "_seats.csv");
-	auto file = std::ifstream(fileName);
+	std::string const fileName = inputFile(SimulationInputs::File::NationalsSeats);
+	auto file = run.preparationInputs->open(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	std::string line;
 	if (!std::getline(file, line)) {
@@ -2299,9 +2341,8 @@ void SimulationPreparation::loadIndividualSeatParameters()
 
 SeatVolatility::Table SimulationPreparation::readIndividualSeatParameters() const
 {
-    std::string const fileName = workspaceFile(
-        "analysis/Seat Statistics/individual-seat-factors/" + run.getTermCode() + ".csv");
-    auto file = std::ifstream(fileName);
+    std::string const fileName = inputFile(SimulationInputs::File::IndividualSeats);
+    auto file = run.preparationInputs->open(fileName);
     if (!file) throw Exception("Could not find " + fileName +
         "; generate election-specific seat volatility parameters.");
     SeatVolatility::Table table;
@@ -2346,6 +2387,29 @@ void SimulationPreparation::prepareProminentMinors()
 					code + ".");
 			}
 			run.seatProminentMinors[seatIndex].push_back(partyIndex);
+		}
+	}
+}
+
+void SimulationPreparation::prepareIndependentLikePreferences()
+{
+	// Seat files retain the party label of quasi-independents such as Sharkie.
+	// Resolve only their explicit preference exception here: lacking a national
+	// trend is not sufficient evidence, since ordinary parties such as NXT in
+	// 2016 can also lack one. The iteration uses these indices when Greens votes
+	// are divided between Labor and a surviving centrist/independent candidate.
+	run.seatIndependentLikePreferences.assign(project.seats().count(), {});
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		auto const& seat = project.seats().viewByIndex(seatIndex);
+		for (auto const& code : seat.independentLikePreferences) {
+			int const partyIndex = project.parties().indexByShortCode(code);
+			if (partyIndex == PartyCollection::InvalidIndex || partyIndex < 2 ||
+				project.parties().viewByIndex(partyIndex).countsAsMajor()) {
+				throw Exception("Seat " + seat.name +
+					" requires a known minor-party code in sIndependentLikePreferences: " +
+					code + ".");
+			}
+			run.seatIndependentLikePreferences[seatIndex].push_back(partyIndex);
 		}
 	}
 }

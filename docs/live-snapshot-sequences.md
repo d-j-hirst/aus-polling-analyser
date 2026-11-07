@@ -8,6 +8,60 @@ Each completed snapshot produces a retained result that the Live Booths tab can 
 
 Set up and run the election's automatic live simulation normally first, including its previous-election results, preload data, base projection and turnout inputs. A sequence uses those same settings and iteration count. All participating live simulations must use the same election. Manual live simulations are not supported by the current live pipeline.
 
+### Keep simulation inputs fixed while running
+
+Changing seat settings or other simulation inputs during a run is unsupported,
+for both ordinary and live forecasts. This includes preparation, betting-odds
+calibration, calculation of the pre-count
+baseline and the main simulation iterations. For an active sequence, select
+**Stop after current snapshot**, wait for it to finish, then edit the inputs and
+start a new run. The application does not monitor external file edits or update
+an already running calculation to match them.
+
+At the start of each run, the application checks the inputs used by the retained
+betting-odds calibration and live baseline (the forecast before current counts
+are added). If those inputs have changed, it discards both retained calculations
+before they can be reused. Existing latest and saved reports are preserved.
+
+The comparison covers:
+
+- The complete imported seat file, including margins, candidates, preferences
+  and other settings, even when the betting odds themselves are unchanged.
+- Every direct non-live file input to simulation preparation: previous results,
+  preference estimates, seat types and statistics, election-specific seat factors,
+  Nationals estimates and regional estimates. Optional files participate too:
+  creating or deleting one can change the fallback assumptions.
+- Party and region configuration, the selected projection and prepared polling
+  model, and simulation settings used by these calculations: iteration count,
+  previous election and TPP, forced TPP, federal-election comparison date, and
+  nowcast mode/date where applicable.
+
+The check deliberately excludes live feed locations, selected snapshots, live
+output folders, manual count information and display settings. Moving feeds or
+changing the export folder therefore does not require another calibration or
+baseline. The date changing during replay does not invalidate an election-date
+baseline; changing the date of a nowcast does, because it samples voting intention
+for that date.
+
+File comparisons use complete contents, rather than timestamps or file sizes.
+Formatting-only edits also cause recalculation; changing only a timestamp does
+not. Preparation and its supporting runs read the same captured contents used by
+the comparison. Missing required files still produce the usual loader errors;
+missing optional files retain their existing fallbacks. If no usable seat file
+was imported, reuse cannot be verified and both retained calculations are cleared.
+
+The already prepared model and projection carry in-memory revision markers;
+replacement or reloading invalidates dependent calculations without comparing
+their large distributions on every snapshot. Copying them into a live worker, or
+refining a projection's daily summaries for nowcast use, keeps their revision.
+This does not reload upstream polling-model files automatically: use the normal
+model/projection update workflow when those source files change.
+
+`SimulationInputs` maintains the direct-file list and the settings comparison.
+New preparation file inputs must be added there so that the reader and the check
+use the same information. The captured inputs and revision markers are held only
+in memory alongside the reusable results; there is no `.pol2` format change.
+
 Put retained feeds in `forecasts/<election>/live-snapshots/feeds/`, for example `forecasts/2026sa/live-snapshots/feeds/`. This directory is gitignored. The initial implementation recognises:
 
 - SA XML captures named `el2026260321183853.xml`, where the election year precedes the 12-digit timestamp code `260321183853`.

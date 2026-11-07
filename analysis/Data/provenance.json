@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-11-01T12:56:29Z",
+  "updated_at_utc": "2026-11-06T10:46:51Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -88,12 +88,12 @@
         "poll-data-*.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 83,
+      "semantic_revision": 85,
       "files": {
         "poll-data-fed.csv": {
-          "sha256": "4d86094774f9e2f4483cfbfc0e9291261818578b617f817c71562f80df1e2580",
-          "size_bytes": 287149,
-          "recorded_mtime_utc": "2026-11-01T12:55:32.276428Z"
+          "sha256": "41a1812941b337bb4b286167b87eb8056153c495164585e026a0457b84da8eb9",
+          "size_bytes": 287214,
+          "recorded_mtime_utc": "2026-11-03T11:07:46.655923Z"
         },
         "poll-data-nsw.csv": {
           "sha256": "ae8c780dce86256fe1095b6471f48cceaa1b4b65d18a1bd452d7f0562060beab",
@@ -111,9 +111,9 @@
           "recorded_mtime_utc": "2026-09-03T06:19:32.111274Z"
         },
         "poll-data-vic.csv": {
-          "sha256": "3ac7d1e3fc67f648d293700996e594d9d3f5ee782dad041f82839544f1de6da9",
-          "size_bytes": 38281,
-          "recorded_mtime_utc": "2026-10-31T01:33:41.075611Z"
+          "sha256": "cb82e7c13f8582d4693e099b18d3e13d8a08ba58cff2e141313264111f59193b",
+          "size_bytes": 38339,
+          "recorded_mtime_utc": "2026-11-06T10:45:52.917209Z"
         },
         "poll-data-wa.csv": {
           "sha256": "d09f6b3606e7b2cfb27c3c17ce9e44f378c9d7c94eea774af6b0b3fb35974bf5",
@@ -2074,9 +2074,51 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261103T121841Z-new_polling-raw-poll-data-0301dd62",
+          "recorded_at_utc": "2026-11-03T12:18:41Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 84,
+          "provenance_revision": 84,
+          "summary": "YouGov poll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261106T104651Z-new_polling-raw-poll-data-b749690f",
+          "recorded_at_utc": "2026-11-06T10:46:51Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 85,
+          "provenance_revision": 85,
+          "summary": "Lighthouse Poll",
+          "files": [
+            "poll-data-vic.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 83
+      "provenance_revision": 85
     },
     "poll_model_configuration": {
       "description": "Party coverage, discontinuities and sampling settings used by fp_model.py.",
@@ -2086,7 +2128,7 @@
         "desired-iterations.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 3,
+      "semantic_revision": 4,
       "files": {
         "desired-iterations.csv": {
           "sha256": "c7dc09f871dce7dc4d6869a711a72be8ebc65c7e7de776723a0ac9ac0ccf2eac",
@@ -2099,9 +2141,9 @@
           "recorded_mtime_utc": "2026-07-29T00:59:27.373937Z"
         },
         "significant-parties.csv": {
-          "sha256": "48f45096852689f5ab59c0dc9cebe18199d6c87619fecec2f774cde9afb0d26e",
-          "size_bytes": 3607,
-          "recorded_mtime_utc": "2026-07-25T08:11:13.960239Z"
+          "sha256": "af1432eca2e61d9f3edab9b1f648bed5d7a3acb8e2774d94c52a7698c427af6d",
+          "size_bytes": 3600,
+          "recorded_mtime_utc": "2026-11-02T04:55:11.557099Z"
         }
       },
       "events": [
@@ -2183,9 +2225,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261102T045550Z-correction-poll-model-configuration-60b4a286",
+          "recorded_at_utc": "2026-11-02T04:55:50Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "provenance_revision": 4,
+          "summary": "Remove UAP from the separately modelled 2016 federal parties: PUP contested only Herbert and is covered by aggregate Others; no separate national target is appropriate.",
+          "files": [
+            "significant-parties.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2016fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 3
+      "provenance_revision": 4
     },
     "preference_estimates": {
       "description": "Preference-flow and exhaust-rate estimates used by trend generation and simulation.",
@@ -2250,12 +2313,12 @@
         "prior-results.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 3,
+      "semantic_revision": 4,
       "files": {
         "prior-results.csv": {
-          "sha256": "b835a3445d9a8f48a9fdda83fb13dea2e5400395cf87ab5765dc01398b6e3669",
-          "size_bytes": 29836,
-          "recorded_mtime_utc": "2026-08-02T16:37:56.346436Z"
+          "sha256": "ccf591dc68ed8693e7e70f2e4a809f65380f0100c71bda3d12df20aba5a1a244",
+          "size_bytes": 29803,
+          "recorded_mtime_utc": "2026-11-02T04:55:11.558100Z"
         }
       },
       "events": [
@@ -2313,9 +2376,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261102T045550Z-correction-prior-result-inputs-d58903fd",
+          "recorded_at_utc": "2026-11-02T04:55:50Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "provenance_revision": 4,
+          "summary": "Remove the unused 2016 UAP prior and restore its 5.49-point historical national component to residual Others; regional priors are unchanged.",
+          "files": [
+            "prior-results.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2016fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 3
+      "provenance_revision": 4
     },
     "eventual_result_inputs": {
       "description": "Final election outcomes used to calibrate pollsters and trend adjustments.",

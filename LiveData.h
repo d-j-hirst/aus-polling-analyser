@@ -13,6 +13,11 @@
 // Portable boundary between the core simulation and a live-results analysis
 // implementation. These types deliberately have no dependency on electoral-
 // commission parsers, wxWidgets, or third-party libraries.
+// A "provider" here is a C++ object supplying that analysis, not an electoral
+// commission or an external data service. LiveV2::Election implements it for
+// automatic feeds. The simulator asks it for prepared count evidence and for
+// a separate possible live outcome to combine with each pre-election draw;
+// result tables and exports also read its summaries and diagnostics.
 namespace LiveData {
 
 // Election-wide reporting coverage, separate from the model's confidence in
@@ -128,6 +133,25 @@ struct VoteCountAccount {
 };
 enum class CountKind { Fp, Tpp, Tcp };
 
+// Authoritative final district counts, with the same party identities as the
+// provider's finite account. FP/TCP are final together; TPP can be absent if no
+// Labor/Coalition scrutiny was published. These votes cannot be resampled,
+// shrunk towards a prior, or replaced by a different modelled finalist pair.
+struct FinalSeatResult {
+	std::map<int, double> fp, tcp, tpp;
+	std::string basis;
+	std::optional<int> winner;
+};
+
+// Final seat sizes used ONLY when aggregating already-calculated live shares.
+// FP is formal ballots; TPP is continuing ballots after any exhaustion. A
+// scenario returns its own drawn totals and a prepared provider returns means.
+// An explicitly inactive contest returns both zeros. These are estimated final
+// totals, not the currently received count or a confidence measure.
+struct AggregateVoteTotals {
+	double fp = 0, tpp = 0;
+};
+
 // Moments of actual FP draws, measured in natural log odds and vote fractions.
 // Share covariances allow the simulator to combine ballot candidates into its
 // anonymous Others group without treating their uncertainties as independent.
@@ -223,18 +247,22 @@ struct BoothSnapshot {
 	bool sameSeat = false;
 };
 
-// Read-only contract consumed by simulation iterations, completion reporting,
-// and live-result GUI views. Implementations own their internal data and return
-// an independently owned provider for each stochastic scenario.
+// Common set of requests the simulator and result views can make of the live
+// analysis object described above. Its prepared form owns the count evidence;
+// generateScenario creates a separate possible outcome for one iteration,
+// including uncertainty about votes still outstanding. Optional responses let
+// simpler implementations (including test substitutes) omit features for which
+// they have no data. Missing responses must not be interpreted as zero votes.
 class Provider {
 public:
 	virtual ~Provider() = default;
 	// Unavailable for providers without an automatic accepted count account.
 	virtual std::optional<CountProgress> getCountProgress() const { return {}; }
 
-	// Input/output are transformed TPP draws in project seat order. Automatic
-	// live providers condition the whole vector together; legacy/manual providers
-	// can retain their existing handoff by leaving this boundary unavailable.
+	// Input/output are transformed TPP draws in project seat order. The automatic
+	// live analysis combines these with count evidence jointly across seats. An
+	// implementation without this joint calculation returns no result, allowing
+	// the simulator to use its separate seat-by-seat integration instead.
 	virtual std::optional<std::vector<double>> integrateTpp(
 		std::vector<double> const&) const { return {}; }
 
@@ -259,6 +287,14 @@ public:
 	// intentionally unused parameters unnamed in the default implementation.
 	virtual std::optional<VoteCountAccount> getSeatVoteCountAccount(
 		std::string const&, CountKind) const { return {}; }
+	virtual FinalSeatResult const* getFinalSeatResult(std::string const&) const { return nullptr; }
+	// LiveAggregation uses these final-size estimates to weight seat vote shares
+	// in election/region summaries. Automatic live analysis supplies every seat,
+	// including zeros for explicitly inactive contests. Implementations without
+	// a count-progress account use historical weights and do not need these totals;
+	// this is about available information, not the age of a feed or saved project.
+	virtual std::optional<AggregateVoteTotals> getSeatAggregateVoteTotals(
+		std::string const&) const { return {}; }
 	// Borrowed immutable moments for the FP precision handoff. Its lifetime is
 	// the provider's; scenario copies share preparation rather than copying draws.
 	virtual FpIntegrationInformation const* getSeatFpIntegrationInformation(

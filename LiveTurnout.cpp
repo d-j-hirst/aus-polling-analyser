@@ -114,6 +114,7 @@ void Prepared::Composition::prepareUnitResponses(Counts const& countAccount,
     for (std::size_t j = 0; j < countAccount.boothIndexes.size(); ++j) {
         int b = countAccount.boothIndexes[j]; if (b < 0) continue;
         auto const& u = *byBooth.at(std::size_t(b));
+        if (seats.at(u.seat).finalised) continue;
         auto fp = LiveTurnoutMath::prepareUnitComposition(u.projectedFp, u.fp, countAccount.drawPlan.counted[j]);
         auto tpp = LiveTurnoutMath::prepareUnitComposition(u.projectedTpp, u.tpp, countAccount.drawPlan.counted[j]);
         auto tcp = LiveTurnoutMath::prepareUnitComposition(u.projectedTcp, u.tcp, countAccount.drawPlan.counted[j]);
@@ -131,6 +132,14 @@ void Prepared::Composition::prepareUnitResponses(Counts const& countAccount,
             if (fp.additionShares.empty()) throw std::runtime_error("No composition for unfinished turnout unit: " + countAccount.units[j].name);
             responses.push_back({j, u.seat, std::move(fp.additionShares), std::move(tpp.additionShares), std::move(tcp.additionShares)});
         }
+    }
+    // A final aggregate replaces its constituent means once, with no service
+    // responses or correction distributions. Notional TPP is an actual counted
+    // district result even when the feed supplies no booth-level TPP breakdown.
+    for (std::size_t s = 0; s < seats.size(); ++s) if (seats[s].finalised) {
+        baseFp[s] = {seats[s].projectedFp.begin(),seats[s].projectedFp.end()};
+        baseTpp[s] = {seats[s].projectedTpp.begin(),seats[s].projectedTpp.end()};
+        baseTcp[s] = {seats[s].projectedTcp.begin(),seats[s].projectedTcp.end()};
     }
 }
 
@@ -216,6 +225,7 @@ void Prepared::revise(unsigned long long seed, std::vector<Projection>& projecte
 
 Projected Prepared::vary(LiveData::CountKind kind, std::size_t seat,
     Projected const& sampled, std::map<int, double> const& changes) const {
+    if (composition->seats.at(seat).finalised) return mean(kind,seat);
     return LiveTurnoutMath::varySampledRemaining(sampled, mean(kind, seat), counted(kind, seat),
         changes, kind == LiveData::CountKind::Fp);
 }
@@ -238,6 +248,12 @@ float Prepared::confidence(LiveData::CountKind kind, std::size_t seat) const {
     return s.tcpConfidence;
 }
 std::size_t Prepared::seatIndex(std::string const& name) const { return composition->indexes.at(name); }
+std::optional<std::size_t> Prepared::findSeatIndex(std::string const& name) const {
+    if (!composition) return {};
+    auto found = composition->indexes.find(name);
+    if (found == composition->indexes.end()) return {};
+    return found->second;
+}
 nlohmann::json Prepared::diagnostic() const {
     auto value = TurnoutModelIO::diagnostic(counts->artifact, counts->units, counts->result, counts->sourceTime);
     value["composition_responses"] = composition ? composition->responses.size() : 0;

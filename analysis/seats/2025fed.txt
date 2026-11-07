@@ -1544,6 +1544,7 @@ sTppMrpPolls=Redbridge,2024-04-01,61;Redbridge,2024-07-31,57;Redbridge,2024-11-0
 sCandidateNames=Tony Zappia,ALP;Irena Zagladov,LNP;Samuel Moore,GRN;Alison Dew-Fennell,ON
 sRunningParties=LNP,ALP,GRN,ON,OTH***
 #Mayo
+sIndependentLikePreferences=CA
 sIncumbent=CA
 sChallenger=LNP
 sRegion=SA

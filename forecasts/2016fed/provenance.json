@@ -1,0 +1,72 @@
+{
+  "purpose": "Source identities and explicit modelling assumptions for the fresh 2016 replay; no current counts supply pre-election priors.",
+  "sources": [
+    {
+      "source": "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Preload/aec-mediafeed-Detailed-Preload-20499-20160629114751.zip",
+      "member": "xml/aec-mediafeed-pollingdistricts-20499.xml",
+      "destination": "downloads\\2016fed-preload@polling_places.xml",
+      "bytes": 9064431
+    },
+    {
+      "source": "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Preload/aec-mediafeed-Detailed-Preload-20499-20160629114751.zip",
+      "member": "xml/aec-mediafeed-results-detailed-preload-20499.xml",
+      "destination": "downloads\\2016fed-preload.xml",
+      "bytes": 27890478
+    },
+    {
+      "source": "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Preload/aec-mediafeed-Detailed-Preload-20499-20160629114751.zip",
+      "member": "xml/eml-230-candidates-20499.xml",
+      "destination": "downloads\\2016fed-preload@candidates.xml",
+      "bytes": 1892333
+    },
+    {
+      "source": "ftp://mediafeedarchive.aec.gov.au/17496/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-17496-20140516155658.zip",
+      "member": "xml/aec-mediafeed-results-detailed-verbose-17496.xml",
+      "destination": "downloads\\2013fed-final.xml",
+      "bytes": 34244545
+    }
+  ],
+  "hashes": {
+    "downloads\\2016fed-preload.xml": "76d63e622699b0bd7445c37be22d55e97c3886aa880ca12f049dbc322af47f46",
+    "downloads\\2016fed-preload@candidates.xml": "69bbce088f7a7a467b4d10c0b3722aa37c37377be3f9e131ce54f02c3d17956e",
+    "downloads\\2016fed-preload@polling_places.xml": "a603720fef17b25e19a77cbe6f7201324f8ff51cc88795bd15a8a10ef7eb60f4",
+    "downloads\\2013fed-final.xml": "3056e2dae0faa9fb20cabce74df011c0e84eba8d80587e1a146355c143368dc6"
+  },
+  "assumptions": {
+    "nxt_odds": {
+      "Mayo": 1.5,
+      "Grey": 2.857142857142857,
+      "Barker": 4
+    },
+    "national_split": {
+      "Murray": 0.55,
+      "Ballarat": 0.1,
+      "Indi": 0.1,
+      "McEwen": 0.1
+    },
+    "note": "Mayo odds requested by operator; other NXT odds broad diagnostic priors, not exact archived quotes. New dual Coalition splits are assumptions; other splits use historical preload counts. See README.md."
+  },
+  "model_inputs": {
+    "policy": "Reuse existing generated CSVs; no Stan refit.",
+    "start": "2013-09-11",
+    "end": "2016-06-30",
+    "codes": [
+      "ALP",
+      "LNP",
+      "GRN",
+      "OTH",
+      "xOTH",
+      "eOTH"
+    ],
+    "correction": "PUP/UAP is no longer modelled separately. Aggregate Others retains its component; the residual Others prior and non-Stan adjustments/fundamentals were regenerated.",
+    "regeneration_command": "analysis/.venv-win/Scripts/python.exe -B -m scripts.pipeline.trend_adjust --election 2016-fed (from analysis/)",
+    "historical_poll_component": "Raw separately reported PUP poll values and their preference conversion remain source evidence; they are included in aggregate Others and do not define a forecast party."
+  },
+  "validation": {
+    "seats": 150,
+    "candidates": 994,
+    "accounts": 8928,
+    "selected_snapshots": 60,
+    "original_project_preserved": true
+  }
+}

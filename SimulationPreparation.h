@@ -3,6 +3,8 @@
 // Preparation of the shared inputs and result storage for one simulation run.
 // The sequence is explained in prepareForIterations in the .cpp file.
 
+#include "SimulationInputs.h"
+
 #include <map>
 #include <stdexcept>
 #include <vector>
@@ -49,6 +51,8 @@ private:
 	void resetOtherOutput();
 	void storeTermCode();
 	void validateIterationInputs() const;
+	void prepareSeatLookups();
+	void prepareAggregationInputs();
 	void validatePastSeatResults() const;
 	void determineEffectiveSeatTppModifiers();
 	void determinePreviousSwingDeviations();
@@ -94,9 +98,10 @@ private:
 	SeatVolatility::Table readIndividualSeatParameters() const;
 	void applyIndividualSeatParameters(SeatVolatility::Table const& table);
 	void prepareProminentMinors();
+	void prepareIndependentLikePreferences();
 	void prepareRunningParties();
 	void calculateIndEmergenceModifier();
-	std::string workspaceFile(std::string const& relativePath) const;
+	std::string const& inputFile(SimulationInputs::File file) const;
 
 	void initializeGeneralLiveData();
 

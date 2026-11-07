@@ -21,6 +21,9 @@ struct UnitComposition {
 };
 struct SeatComposition {
     std::string name;
+    // An authoritative district result replaces all its booth-derived totals.
+    // No additions, signed revisions or preference variation apply to it.
+    bool finalised = false;
     Counted fp, tpp, tcp;
     Projected projectedFp, projectedTpp, projectedTcp;
     float fpConfidence = 0, tppConfidence = 0, tcpConfidence = 0;
@@ -57,6 +60,11 @@ public:
     Counted const& counted(LiveData::CountKind kind, std::size_t seat) const;
     float confidence(LiveData::CountKind kind, std::size_t seat) const;
     std::size_t seatIndex(std::string const& name) const;
+    // The name index contains identities only and is shared by all scenarios.
+    // Permissive live getters use findSeatIndex so unknown/inactive names keep
+    // their existing empty results; strict count-account callers use seatIndex.
+    bool hasComposition() const { return bool(composition); }
+    std::optional<std::size_t> findSeatIndex(std::string const& name) const;
     nlohmann::json diagnostic() const;
     nlohmann::json revisionDiagnostic() const;
 

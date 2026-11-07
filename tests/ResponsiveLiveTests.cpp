@@ -2,6 +2,7 @@
 #include "LiveSnapshotViewer.h"
 #include "ForecastSpecificationProjectAdapter.h"
 #include "WorkspacePaths.h"
+#include "SimulationInputs.h"
 
 #include <cassert>
 #include <chrono>
@@ -101,6 +102,232 @@ std::unique_ptr<PollingProject> fictionalProject(std::filesystem::path const& ro
     return std::move(result.project);
 }
 
+// Exercise the production import and invalidation boundary without calculating
+// a forecast. A non-odds edit must invalidate both expensive retained results,
+// even with unchanged file length/time; unchanged imports must still reuse them.
+void testSeatFileCache(std::filesystem::path const& root) {
+    auto folder = root / "seat-cache";
+    std::filesystem::create_directory(folder);
+    auto project = fictionalProject(folder);
+    auto& sim = project->simulations().access(project->simulations().indexToId(0));
+    auto& seats = project->seats();
+    auto original = seats.importInfo();
+    assert(original);
+
+    auto completed = sim.completedLiveState();
+    completed.report.dateCode = "retained result";
+    completed.baseline = Simulation::Report{};
+    completed.oddsMeans[{0,1}] = 7;
+    completed.oddsInputs[{0,1}] = .5f;
+    completed.oddsIterations = 10;
+    completed.preparationInputs = SimulationInputs::capture(*project, sim, original, Date{});
+    completed.updated = Timestamp::now();
+    sim.publishLiveState(completed);
+    sim.saveReport("Saved before edit");
+
+    auto assertReusable = [&] {
+        auto state = sim.completedLiveState();
+        assert(state.baseline && state.oddsMeans.at({0,1}) == 7);
+        assert(state.oddsInputs.at({0,1}) == .5f && state.oddsIterations == 10);
+    };
+    auto assertCleared = [&] {
+        auto state = sim.completedLiveState();
+        assert(!state.baseline && state.oddsMeans.empty() && state.oddsInputs.empty());
+        assert(state.oddsIterations == 0);
+        assert(state.report.dateCode == "retained result");
+        assert(sim.viewSavedReports().size() == 1);
+    };
+    sim.checkPreparationInputs(SimulationInputs::capture(*project, sim, seats.importInfo(), Date{}));
+    assertReusable();
+
+    auto path = seats.importSourcePath();
+    auto stamp = std::filesystem::last_write_time(path);
+    std::filesystem::last_write_time(path, stamp + std::chrono::seconds(2));
+    sim.checkPreparationInputs(SimulationInputs::capture(*project, sim, seats.importInfo(), Date{}));
+    assertReusable(); // Merely touching a file does not change its contents.
+
+    auto changed = *original;
+    auto margin = changed.find("fTppMargin=2");
+    assert(margin != std::string::npos);
+    changed.replace(margin, std::string("fTppMargin=2").size(), "fTppMargin=4");
+    { std::ofstream output(path, std::ios::binary); output << changed; }
+    std::filesystem::last_write_time(path, stamp);
+    assert(std::filesystem::file_size(path) == original->size());
+    auto imported = seats.importInfo();
+    assert(imported == changed && seats.viewByIndex(0).tppMargin == 4);
+    sim.checkPreparationInputs(SimulationInputs::capture(*project, sim, imported, Date{}));
+    assertCleared();
+    assert(sim.completedLiveState().preparationInputs->reusableWith(
+        *SimulationInputs::capture(*project, sim, imported, Date{})));
+
+    // Simulate successful recalibration and publication. The next job can reuse
+    // it, while a later return to the old file must invalidate it again.
+    completed.preparationInputs = SimulationInputs::capture(*project, sim, imported, Date{});
+    sim.publishLiveState(completed);
+    auto workerCopy = sim.copyForLiveRun();
+    workerCopy.checkPreparationInputs(SimulationInputs::capture(*project, workerCopy, seats.importInfo(), Date{}));
+    auto workerState = workerCopy.completedLiveState();
+    assert(workerState.baseline && workerState.oddsMeans.at({0,1}) == 7);
+    sim.publishLiveState(std::move(workerState));
+    assertReusable();
+    sim.checkPreparationInputs(SimulationInputs::capture(*project, sim, original, Date{}));
+    assertCleared();
+
+    // Unknown source contents cannot certify reuse, including when an older
+    // retained state has no file record. Warning-only imports preserve their
+    // existing behaviour, but may not preserve the associated caches.
+    completed.preparationInputs.reset();
+    sim.publishLiveState(completed);
+    sim.checkPreparationInputs(SimulationInputs::capture(*project, sim, imported, Date{}));
+    assertCleared();
+    sim.publishLiveState(completed);
+    seats.configureImportSource(folder / "missing.txt", false);
+    auto missing = seats.importInfo();
+    assert(!missing);
+    sim.checkPreparationInputs(SimulationInputs::capture(*project, sim, missing, Date{}));
+    assertCleared();
+    assert(!sim.completedLiveState().preparationInputs->reusableWith(
+        *SimulationInputs::capture(*project, sim, missing, Date{})));
+}
+
+// Verify dependency coverage and exclusions without running a forecast. The
+// retained reports are markers, so cache decisions can be checked exactly.
+void testPreparationInputs(std::filesystem::path const& root) {
+    auto folder = root / "preparation-inputs";
+    std::filesystem::create_directory(folder);
+    auto project = fictionalProject(folder);
+    auto& sim = project->simulations().access(project->simulations().indexToId(0));
+    auto seatText = project->seats().importInfo();
+    auto day = *Date::parseIso("2029-12-01");
+    auto capture = [&] { return SimulationInputs::capture(*project, sim, seatText, day); };
+    Party on;
+    on.name = "One Nation"; on.abbreviation = "ON"; on.officialCodes = {"ON"};
+    project->parties().add(on);
+    auto original = capture();
+    assert(original->reusableWith(*capture()));
+
+    // Every registered direct input must participate, even while absent. Full
+    // byte comparisons catch edits which preserve both length and timestamp.
+    using File = SimulationInputs::File;
+    for (int i = int(File::Preferences); i <= int(File::RegionOnDeviationsLowercase); ++i) {
+        auto path = std::filesystem::path(original->path(File(i)));
+        std::filesystem::create_directories(path.parent_path());
+        auto absent = capture();
+        assert(!absent->open(path.string()));
+        { std::ofstream file(path, std::ios::binary); file << "a,b\r\n1,2\r\n"; }
+        auto present = capture();
+        assert(!absent->reusableWith(*present));
+        auto stamp = std::filesystem::last_write_time(path);
+        { std::ofstream file(path, std::ios::binary); file << "a,b\r\n1,3\r\n"; }
+        std::filesystem::last_write_time(path, stamp);
+        assert(!present->reusableWith(*capture()));
+        auto stored = present->open(path.string());
+        std::string header, row;
+        std::getline(stored, header); std::getline(stored, row);
+#ifdef _WIN32
+        assert(header == "a,b" && row == "1,2");
+#else
+        assert(header == "a,b\r" && row == "1,2\r");
+#endif
+        std::filesystem::remove(path);
+        assert(absent->reusableWith(*capture()));
+        assert(!present->reusableWith(*capture()));
+    }
+
+    auto before = sim.getSettings();
+    auto live = before;
+    live.name = "Different output label";
+    live.previousResultsUrl = "other previous feed";
+    live.preloadUrl = "other preload";
+    live.currentTestUrl = "new snapshot";
+    live.currentRealUrl = "new live source";
+    live.currentResultsDirectory = "another feed folder";
+    live.liveOutputFolder = "another output folder";
+    live.reportMode = Simulation::Settings::ReportMode::LiveForecast;
+    sim.replaceSettings(live);
+    day = *Date::parseIso("2029-12-02");
+    assert(original->reusableWith(*capture()));
+    std::ofstream(folder / "unrelated-feed.xml") << "new count";
+    project->seats().access(project->seats().indexToId(0)).liveUseTpp = Seat::UseTpp::Yes;
+    assert(original->reusableWith(*capture()));
+
+    auto completed = sim.completedLiveState();
+    completed.preparationInputs = original;
+    completed.baseline = Simulation::Report{};
+    completed.oddsMeans[{0,1}] = 7;
+    completed.oddsInputs[{0,1}] = .5f;
+    completed.oddsIterations = 10;
+    sim.publishLiveState(completed);
+    sim.checkPreparationInputs(capture());
+    assert(sim.completedLiveState().baseline && sim.completedLiveState().oddsMeans.at({0,1}) == 7);
+
+    auto checkSetting = [&](auto change) {
+        auto settings = before;
+        change(settings);
+        sim.replaceSettings(settings);
+        assert(!original->reusableWith(*capture()));
+        sim.checkPreparationInputs(capture());
+        assert(!sim.completedLiveState().baseline && sim.completedLiveState().oddsMeans.empty());
+        sim.replaceSettings(before);
+        assert(original->reusableWith(*capture()));
+    };
+    checkSetting([](auto& s) { ++s.numIterations; });
+    checkSetting([](auto& s) { s.prevTermCodes = {"2026fed"}; });
+    checkSetting([](auto& s) { s.prevElection2pp += 1; });
+    checkSetting([](auto& s) { s.forceTpp = 51.0f; });
+    checkSetting([](auto& s) { s.fedElectionDate = *Date::parseIso("2028-01-01"); });
+    checkSetting([](auto& s) { s.reportMode = Simulation::Settings::ReportMode::Nowcast; });
+    auto nowcastSettings = before;
+    nowcastSettings.reportMode = Simulation::Settings::ReportMode::Nowcast;
+    sim.replaceSettings(nowcastSettings);
+    auto nowcast = capture();
+    day = *Date::parseIso("2029-12-03");
+    assert(!nowcast->reusableWith(*capture()));
+    sim.replaceSettings(before);
+
+    auto& party = project->parties().begin()->second;
+    party.colour.r += 1;
+    assert(original->reusableWith(*capture()));
+    party.p1PreferenceFlow += 1;
+    assert(!original->reusableWith(*capture()));
+    party.p1PreferenceFlow -= 1;
+    auto others = project->parties().getOthersPreferenceFlow();
+    project->parties().setOthersPreferenceFlow(others + 1);
+    assert(!original->reusableWith(*capture()));
+    project->parties().setOthersPreferenceFlow(others);
+    auto& region = project->regions().begin()->second;
+    region.population += 10;
+    assert(!original->reusableWith(*capture()));
+    region.population -= 10;
+    auto codes = StanModel::getMajorPartyCodes();
+    auto otherCodes = codes; otherCodes.insert("TEST");
+    StanModel::setMajorPartyCodes(otherCodes);
+    assert(!original->reusableWith(*capture()));
+    StanModel::setMajorPartyCodes(codes);
+    assert(original->reusableWith(*capture()));
+
+    // A copied worker uses the same prepared inputs. A newly loaded model or
+    // cleared projection must be distinguishable even with unchanged settings
+    // and timestamps (these fictional models have never been fitted).
+    auto context = project->createLiveRunContext({project->simulations().indexToId(0)});
+    auto const& workerSim = context->simulations().viewByIndex(0);
+    auto copied = SimulationInputs::capture(*context, workerSim, seatText, day);
+    assert(original->reusableWith(*copied));
+    auto projectionId = before.baseProjection;
+    auto& projection = project->projections().access(projectionId);
+    projection.invalidate();
+    assert(!original->reusableWith(*capture()));
+    auto projected = capture();
+    auto modelId = projection.getSettings().baseModel;
+    auto& model = project->models().access(modelId);
+    auto modelCopy = model;
+    project->models().replace(modelId, StanModel("New model", "2030fed", "ALP,LIB"));
+    assert(!projected->reusableWith(*capture()));
+    auto modelRevision = modelCopy.preparedDataRevision();
+    assert(!modelCopy.prepareForRun(WorkspacePaths(folder), [](std::string) {}));
+    assert(modelRevision != modelCopy.preparedDataRevision());
+}
+
 void testContext(PollingProject& source) {
     auto id = source.simulations().indexToId(0);
     auto initial = source.simulations().view(id).completedLiveState();
@@ -108,6 +335,9 @@ void testContext(PollingProject& source) {
     initial.baseline = Simulation::Report{}; initial.baseline->dateCode = "baseline";
     initial.oddsMeans[std::make_pair(0,1)] = 7;
     initial.oddsInputs[std::make_pair(0,1)] = .5f; initial.oddsIterations = 10;
+    initial.preparationInputs = SimulationInputs::capture(
+        source, source.simulations().view(id), source.seats().importInfo(), Date{});
+    assert(initial.preparationInputs);
     initial.updated = Timestamp::now();
     initial.booths.push_back({"Example","Fictional booth"});
     source.simulations().access(id).publishLiveState(initial);
@@ -116,6 +346,10 @@ void testContext(PollingProject& source) {
     assert(context->simulations().indexToId(0) == id);
     auto copied = context->simulations().view(id).completedLiveState();
     assert(copied.baseline->dateCode == "baseline" && copied.oddsMeans.at({0,1}) == 7);
+    assert(copied.preparationInputs == initial.preparationInputs);
+    copied.preparationInputs.reset();
+    context->simulations().access(id).publishLiveState(std::move(copied));
+    assert(source.simulations().view(id).completedLiveState().preparationInputs == initial.preparationInputs);
     auto modelId = context->models().indexToId(0);
     context->models().replace(modelId, StanModel("Worker model", "2030fed", "ALP,LIB"));
     assert(source.models().view(modelId).getName() == "Model");
@@ -157,6 +391,8 @@ void testPublication(PollingProject& source) {
         }
         auto state = sim.completedLiveState();
         assert(state.baseline && state.oddsMeans.at({0,1}) == 7);
+        assert(state.preparationInputs->reusableWith(
+            *SimulationInputs::capture(context, sim, context.seats().importInfo(), Date{})));
         state.report.dateCode = "completed"; state.updated = Timestamp::now();
         state.report.countProgress = LiveData::CountProgress{1200,1050,2000};
         state.diagnostic = {{"completed",true}};
@@ -360,6 +596,8 @@ int main() {
         ("polling-responsive-live-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     std::filesystem::create_directory(root);
     auto project = fictionalProject(root);
+    testSeatFileCache(root);
+    testPreparationInputs(root);
     testMailboxAndShutdown(); testContext(*project); testPublication(*project);
     testRepeatedPublication(*project); testViewer(root);
     // This test deletes only the unique temporary directory it created.

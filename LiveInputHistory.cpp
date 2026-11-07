@@ -1,3 +1,12 @@
+// Keep a compact record of how accepted booth/category counts changed over time.
+// Live input preparation consults this history to distinguish new counting from
+// corrections, withdrawals and restorations, and to find earlier compatible
+// FP/TCP observations. A replay may use only observations up to its own timestamp.
+//
+// Recording each changed field with its observation time avoids repeatedly
+// reading every full snapshot. Histories are stored by district and reconstructed
+// when requested. The accepted snapshot files remain the authoritative source:
+// this index can be rebuilt from them if it is missing or damaged.
 #include "LiveInputHistory.h"
 #include <algorithm>
 #include <chrono>
@@ -279,6 +288,7 @@ public:
 
     void refresh(std::string const& cutoff, Validate const& validate, std::string const& force = {});
     void build(std::map<std::string, json> const& sources, Validate const& validate);
+    void ingest(std::map<std::string, json> const& sources, Validate const& validate, bool append);
     void update(std::string const& source, std::optional<json> const& stamp, Validate const& validate);
     void prepare(Selection const& selection, std::string const& cutoff);
     void visit(std::string const& cutoff, Selection const& selection, Visitor const& visitor, RequiredCount required);
@@ -338,6 +348,7 @@ json Store::savePartition(std::string const& id, std::string const& district, Pa
     while (std::filesystem::exists(directory / file)) file = "part-" + generation() + "-" + id + ".json";
     unpublishedFiles.push_back(directory / file);
     writeText(directory / file, text);
+    ++counters.partitionWrites;
     return {{"district", district}, {"file", file}, {"hash", hashText(text)}};
 }
 
@@ -346,6 +357,7 @@ void Store::publish(json next) {
     auto temporary = directory / "manifest.tmp";
     writeText(temporary, json{{"payload", next}, {"hash", hashText(next.dump())}}.dump());
     replaceFile(temporary, directory / "manifest.json");
+    ++counters.publications;
     // These partitions are now referenced by the authoritative index manifest.
     // Subsequent cleanup/stat failures must never delete a published generation.
     unpublishedFiles.clear();
@@ -368,12 +380,49 @@ void Store::publish(json next) {
 
 void Store::build(std::map<std::string, json> const& sources, Validate const& validate) {
     ++counters.builds;
+    ingest(sources, validate, false);
+}
+
+// In a live count, one new capture normally needs only a small incremental
+// update. A replay can instead jump over hundreds of already accepted captures.
+// Process those in one pass, retaining every observation clock, but write each
+// changed district history only once at the end. Rebuilding an absent/damaged
+// index uses the same change detection, starting with no previous observations.
+//
+// sources contains only captures before the requesting replay's cutoff. Append
+// additionally requires them to follow ALL already indexed sources. Replacements,
+// deletions and middle insertions still use update(), which protects the next
+// existing observation. No later source is read to accelerate an earlier replay.
+void Store::ingest(std::map<std::string, json> const& sources, Validate const& validate, bool append) {
     discardUnpublished();
     clearPartitions();
-    json next = {{"version", FormatVersion}, {"sources", json::object()},
+    json next = append ? manifest : json{{"version", FormatVersion}, {"sources", json::object()},
         {"orders", json::object()}, {"partitions", json::object()}};
     struct Latest { json row; bool present = false; };
     std::map<std::string, std::map<std::string, Latest>> latest;
+    if (append && !manifest.at("sources").empty()) {
+        auto const& indexed = manifest.at("sources").get_ref<json::object_t const&>();
+        auto const& lastSource = indexed.rbegin()->first;
+        if (!sources.empty() && sources.begin()->first <= lastSource)
+            throw Unavailable("History append overlaps existing observations.");
+        // Start the comparison with each field's most recently recorded value,
+        // rather than retaining every past value in this working table. Incoming
+        // observations are compared against these values to identify changes.
+        // Include withdrawn records too: a later restoration must detect fields
+        // removed since their last appearance, rather than revive stale metadata.
+        for (auto const& item : manifest.at("partitions").items()) {
+            std::string district = item.value().at("district");
+            auto history = partition(item.key());
+            for (auto const& [key, record] : *history) {
+                auto& previous = latest[district][key];
+                previous.present = at(record.present, lastSource) == Value("true");
+                for (auto const& [field, changes] : record.fields)
+                    if (auto const& value = at(changes, lastSource); value)
+                        previous.row[field] = json::parse(*value);
+            }
+        }
+        clearPartitions();
+    }
     std::map<std::string, std::ofstream> streams;
     std::map<std::string, std::string> districts;
     auto workGeneration = generation();
@@ -392,9 +441,9 @@ void Store::build(std::map<std::string, json> const& sources, Validate const& va
         stream << json::array({key, field, source, exists, value}).dump() << '\n';
         if (!stream) throw Unavailable("Cannot spool live history changes.");
     };
-    // Read each complete source just once. Keep only its predecessor's field
-    // values in memory, spooling changes by district. Then assemble one compact
-    // partition at a time, rather than holding the election's full history.
+    // Read each new complete source just once. Keep only its predecessor's field
+    // values in memory, spooling changes by district. This preserves withdrawals,
+    // restorations and observation times even when vote numbers are unchanged.
     for (auto const& [source, stamp] : sources) {
         ++counters.sourceReads;
         auto data = json::parse(readText(folder / (source + ".json")));
@@ -425,7 +474,7 @@ void Store::build(std::map<std::string, json> const& sources, Validate const& va
     for (auto& [id, stream] : streams) {
         stream.close();
         if (!stream) throw Unavailable("Cannot finish spooling live history changes.");
-        Partition partitionData;
+        Partition partitionData = append ? *partition(id) : Partition{};
         std::ifstream input(directory / ("work-" + workGeneration + "-" + id + ".jsonl"));
         std::string line;
         while (std::getline(input, line)) {
@@ -582,8 +631,23 @@ void Store::refresh(std::string const& cutoff, Validate const& validate, std::st
             manifest.at("sources").at(source).at("revision") != stamp) changed.insert(source);
     for (auto const& item : manifest.at("sources").items())
         if (item.key() < cutoff && !sources.contains(item.key())) changed.insert(item.key());
-    for (auto const& source : changed)
-        update(source, sources.contains(source) ? std::optional<json>(sources.at(source)) : std::nullopt, validate);
+    std::string lastIndexed;
+    if (!manifest.at("sources").empty())
+        lastIndexed = manifest.at("sources").get_ref<json::object_t const&>().rbegin()->first;
+    std::map<std::string, json> appended;
+    for (auto const& source : changed) {
+        if (source > lastIndexed && sources.contains(source)) appended.emplace(source, sources.at(source));
+        else update(source, sources.contains(source) ? std::optional<json>(sources.at(source)) : std::nullopt, validate);
+    }
+    // A single new observation keeps the lightweight existing path. More than
+    // one is a batch: repeatedly encoding the same growing district histories
+    // and publishing the whole manifest was particularly costly on long replays.
+    if (appended.size() > 1) {
+        ++counters.appendBatches;
+        ingest(appended, validate, true);
+    }
+    else if (!appended.empty())
+        update(appended.begin()->first, appended.begin()->second, validate);
 }
 
 void Store::prepare(Selection const& selection, std::string const& cutoff) {
