@@ -218,8 +218,8 @@ json projected2pp(LiveV2::Node const& node)
 		!node.tppVotesProjected.contains(1)) {
 		return nullptr;
 	}
-	float const alp = node.tppVotesProjected.at(0);
-	float const lnp = node.tppVotesProjected.at(1);
+	double const alp = node.tppVotesProjected.at(0);
+	double const lnp = node.tppVotesProjected.at(1);
 	if (!std::isfinite(alp) || !std::isfinite(lnp)) {
 		return {
 			{"non_finite", "projected_2pp_input"},
@@ -243,11 +243,11 @@ json lookupOrNull(Map const& items, Key const& key)
 
 template <typename Enum, typename NameFn>
 json categoryEvidenceArray(
-	std::map<Enum, float> const& biases,
-	std::map<Enum, float> const& stdDevs,
-	std::map<Enum, float> const& raw,
-	std::map<Enum, float> const& sourceCount,
-	std::map<Enum, float> const& voteCount,
+	std::map<Enum, double> const& biases,
+	std::map<Enum, double> const& stdDevs,
+	std::map<Enum, double> const& raw,
+	std::map<Enum, double> const& sourceCount,
+	std::map<Enum, double> const& voteCount,
 	NameFn nameFn)
 {
 	std::set<Enum> keys;
@@ -285,7 +285,7 @@ std::string voteTypeCategoryName(Results2::VoteType type)
 
 template <typename Enum, typename NameFn>
 json categorySensitivityArray(
-	std::map<Enum, float> const& sensitivities,
+	std::map<Enum, double> const& sensitivities,
 	NameFn nameFn)
 {
 	json array = json::array();
@@ -300,7 +300,7 @@ json categorySensitivityArray(
 
 template <typename Enum, typename NameFn>
 json partyCategorySensitivityArray(
-	std::map<int, std::map<Enum, float>> const& sensitivities,
+	std::map<int, std::map<Enum, double>> const& sensitivities,
 	PartyNames const& parties,
 	NameFn nameFn)
 {
@@ -322,17 +322,18 @@ typename Outer::mapped_type const& innerMap(
 	return found == outer.end() ? empty : found->second;
 }
 
-json floatArray(std::vector<float> const& values)
+template<class Value>
+json floatArray(std::vector<Value> const& values)
 {
 	json array = json::array();
-	for (float value : values) array.push_back(number(value));
+	for (auto value : values) array.push_back(number(value));
 	return array;
 }
 
 json seatCompletionArray(
 	LiveData::Provider const& election,
 	std::vector<std::string> const& seatNames,
-	float (LiveData::Provider::*getter)(std::string const&) const)
+	double (LiveData::Provider::*getter)(std::string const&) const)
 {
 	json array = json::array();
 	for (auto const& name : seatNames) {

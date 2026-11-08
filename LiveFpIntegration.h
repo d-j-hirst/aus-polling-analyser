@@ -4,6 +4,7 @@
 #include "LiveTurnoutMath.h"
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <set>
 
 // Combine a pre-election draw (including accepted movement shared across seats)
@@ -34,7 +35,7 @@ struct MomentAccumulator {
     std::map<int,std::size_t> observations;
     std::map<int,double> shares, odds, squaredOdds;
     std::map<std::pair<int,int>,double> products;
-    void add(std::map<int,float> const& percentages) {
+    void add(std::map<int,double> const& percentages) {
         ++samples;
         for (auto const& [id,percent] : percentages) {
             double p = percent/100., z = logOdds(p);
@@ -108,7 +109,7 @@ inline double countWeight(double baselineVariance, double countVariance, double 
     return prior > 0 && sum > 0 ? prior/sum : 0;
 }
 
-inline std::map<int,float> constrainToCounted(
+inline std::map<int,double> constrainToCounted(
     LiveTurnoutMath::PartyAccount const& account, std::map<int,double> target) {
     double total = 0, counted = 0;
     for (auto const& [id,votes] : account.projected) {
@@ -122,11 +123,25 @@ inline std::map<int,float> constrainToCounted(
     for (auto const& [id,p] : target)
         if (!std::isfinite(p) || p < 0) throw std::runtime_error("Invalid FP integration target.");
     if (total <= 0) throw std::runtime_error("FP integration has no projected vote account.");
-    // These are strict numerical checks on a validated account, not recovery
-    // from a feed error. Float projections may differ by a fraction of a vote.
-    if (counted > total+std::max(.1,total*1e-6))
+    // These are numerical checks on a validated double-precision account, not
+    // recovery from a feed error. Allow only accumulated arithmetic round-off.
+    double const roundoff = 32 * std::numeric_limits<double>::epsilon()
+        * std::max(total,counted) * (account.projected.size()+account.counted.size()+1);
+    if (counted > total+roundoff)
         throw std::runtime_error("FP integration exceeds its counted account.");
     total = std::max(total,counted);
+    double targetSum = 0;
+    bool boundsSatisfied = true;
+    for (auto const& [id,p] : target) {
+        targetSum += p;
+        if (total * (p / 100) < value(account.counted,id)) boundsSatisfied = false;
+    }
+    if (!std::isfinite(targetSum)) throw std::runtime_error("Invalid FP integration target total.");
+    // A percentage allocation that already sums to 100 and respects every
+    // counted lower bound needs no redistribution. Preserve it bit for bit at
+    // any count stage. Non-normalised targets and active bounds follow the
+    // ordinary allocation below; no small electoral change is clipped away.
+    if (targetSum == 100 && boundsSatisfied) return target;
     std::map<int,double> votes;
     std::set<int> fixed;
     double remaining = total;
@@ -155,14 +170,14 @@ inline std::map<int,float> constrainToCounted(
             votes[id] = weight > 0 ? remaining*p/weight : remaining/(target.size()-fixed.size());
         break;
     }
-    std::map<int,float> result;
-    for (auto const& [id,n] : votes) result[id] = float(100*n/total);
+    std::map<int,double> result;
+    for (auto const& [id,n] : votes) result[id] = double(100*n/total);
     return result;
 }
 
 template<class PriorClassify, class CountClassify>
-std::map<int,float> integrate(LiveTurnoutMath::PartyAccount const& account,
-    std::map<int,float> const& prior, LiveData::FpIntegrationInformation const& information,
+std::map<int,double> integrate(LiveTurnoutMath::PartyAccount const& account,
+    std::map<int,double> const& prior, LiveData::FpIntegrationInformation const& information,
     PriorClassify priorClassify, CountClassify countClassify) {
     // The conditional prior has already received accepted election/regional
     // movement, which is also present in the count estimate. Only their local
@@ -194,7 +209,15 @@ std::map<int,float> integrate(LiveTurnoutMath::PartyAccount const& account,
             ? countWeight(baseline.variance,count.variance,information.evidenceGate) : 0;
         // A newly represented candidate takes its prior from the source group
         // before this call; the normal case uses the actual correlated draw.
-        target[id] = shareFromLogOdds((1-weight)*logOdds(p)+weight*logOdds(live));
+        // An unused count estimate cannot introduce log-odds floors or rounding
+        // into this candidate's prior. Use percentages on both branches so the
+        // ordinary count constraint can also recognise an unchanged full draw.
+        if (weight == 0 || p == live) {
+            target[id] = prior.contains(id) ? prior.at(id) : 0;
+        }
+        else {
+            target[id] = 100*shareFromLogOdds((1-weight)*logOdds(p)+weight*logOdds(live));
+        }
     }
     return constrainToCounted(account,std::move(target));
 }

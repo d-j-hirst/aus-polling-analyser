@@ -1643,12 +1643,12 @@ void SimulationPreparation::loadPastSeatResults()
 			bool const isMajor =
 				party == Mp::One || party == Mp::Two;
 			if (!isMajor && party != run.grnPartyIndex) {
-				results.prevOthers += std::min(
+				results.prevOthers += std::min<double>(
 					voteShare,
 					detransformVoteShare(run.indEmergence.fpThreshold));
 			}
 		}
-		results.prevOthers = std::max(2.0f, results.prevOthers);
+		results.prevOthers = std::max(2.0, results.prevOthers);
 		for (auto const& [party, voteCount] : results.fpVoteCount) {
 			results.turnoutCount += voteCount;
 		}

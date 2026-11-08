@@ -205,16 +205,18 @@ bool contains(std::vector<T> const& vec, T find) {
 	return std::find(vec.begin(), vec.end(), find) != vec.end();
 }
 
-template<typename T>
-T mix(T lower, T upper, T upperFactor) {
-	return upper * upperFactor + lower * (T(1.0) - upperFactor);
+template<typename T, typename U, typename V>
+auto mix(T lower, U upper, V upperFactor) {
+	using Result = std::common_type_t<T, U, V>;
+	return Result(upper) * Result(upperFactor) + Result(lower) * (Result(1.0) - Result(upperFactor));
 }
 
 // Read an optional input without inserting a default into the shared map.
 // Simulation workers may use this concurrently after preparation has finished;
-// borrow the map rather than copying it for every lookup.
+// borrow the map rather than copying it for every lookup. Preserve the stored
+// value's type: a float default must not narrow a double-precision calculation.
 template<typename T, typename U, typename V>
-V getAt(T const& map, U key, V defaultVal) {
+typename T::mapped_type getAt(T const& map, U key, V defaultVal) {
 	auto it = map.find(key);
 	if (it == map.end()) return defaultVal;
 	return it->second;
@@ -240,8 +242,9 @@ bool isBoundedBy(const T& val, const T& lower, const T& upper) {
 	return lower <= val && val <= upper;
 }
 
-// Efficient (for small e) method for raising a float to an integer power
-inline float myPow(float b, unsigned int e) {
+// Raise a number to a small non-negative integer power without narrowing its type.
+template<class T>
+inline T myPow(T b, unsigned int e) {
 	{
 		if (e == 0)
 			return 1;

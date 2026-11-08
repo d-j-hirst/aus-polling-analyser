@@ -308,8 +308,23 @@ bool SimulationRun::run(
 	// and waits for them to finish. A reported failure prevents an incomplete set of
 	// scenarios from being passed to the report-summary stage.
 	const int cycleIterations = sim.settings.numIterations;
+	auto const& auditDirectory = project.config().getSimulationAuditDirectory();
+	precisionAudit.reset();
+	if (!auditDirectory.empty()) {
+		std::vector<std::string> seatNames;
+		for (int s = 0; s < project.seats().count(); ++s) seatNames.push_back(seatLookup.seat(s).name);
+		std::vector<std::string> partyCodes;
+		for (int p = 0; p < project.parties().count(); ++p) partyCodes.push_back(project.parties().viewByIndex(p).abbreviation);
+		precisionAudit = std::make_unique<SimulationAudit::Writer>(project.paths().resolve(auditDirectory),
+			nlohmann::json{{"election", getTermCode()}, {"seats", seatNames},
+				{"parties", partyCodes}, {"simulation", sim.settings.name},
+				{"snapshot", snapshotInput ? snapshotInput->timestamp.value_or("") : ""},
+				{"iterations", cycleIterations}, {"automatic_live", isLiveAutomatic()}});
+		logger << "Full-precision simulation comparison: " << precisionAudit->filename().string() << "\n";
+	}
 	reportProgress("Calculating forecast iterations...");
 	if (!runIterations(*this, cycleIterations, 0, "simulation", feedback)) return false;
+	if (precisionAudit) precisionAudit->finish(cycleIterations);
 
 	// Summarise only the main iterations into vote shares, seat counts and outcome
 	// probabilities. Automatic live completion also attempts local summary and

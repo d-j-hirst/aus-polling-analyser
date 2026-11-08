@@ -561,10 +561,11 @@ Results2::Election Results2::Election::createAec(tinyxml2::XMLDocument const& xm
   return election;
 }
 
-Results2::Election Results2::Election::createVec(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates, tinyxml2::XMLDocument const& input_booths, std::string const& termCode)
+Results2::Election Results2::Election::createVec(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates, tinyxml2::XMLDocument const& input_booths, std::string const& termCode,
+  std::map<std::string, std::string> const& previousSeatNames)
 {
   Election election(termCode);
-  election.update2022VicPrev(results, input_candidates, input_booths);
+  election.update2022VicPrev(results, input_candidates, input_booths, previousSeatNames);
   return election;
 }
 
@@ -721,7 +722,15 @@ void Results2::Election::preload2022Vic(tinyxml2::XMLDocument const& input_candi
   }
 }
 
-void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates, tinyxml2::XMLDocument const& input_booths)
+// Prepare historical counts for live booth comparisons. The source JSON has
+// historical district/candidate names; the current preload supplies the polling
+// places and identifiers used by the new feed. Unique venue names normally link
+// directly. Shared names need a district as well, including its configured old
+// name after a rename. This attaches existing evidence, not an estimate of votes
+// transferred by redistribution: keep each old district's totals and candidates
+// intact for the later comparison and preference calculations.
+void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates, tinyxml2::XMLDocument const& input_booths,
+  std::map<std::string, std::string> const& previousSeatNames)
 {
   preload2022Vic(input_candidates, input_booths);
   std::map<std::string, int> seatNameToId;
@@ -752,17 +761,25 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
     }
   }
   std::map<std::string, int> boothNameToId;
-  std::map<std::pair<std::string, std::string>, int> ambiguousBoothNameToId;
+  std::map<std::pair<std::string, std::string>, std::set<int>> ambiguousBoothNameToIds;
   for (auto [boothId, booth] : booths) {
     if (ambiguousBooths.contains(booth.name)) {
-      ambiguousBoothNameToId[{booth.name, seats[booth.parentSeat].name}] = boothId;
+      auto const& currentSeatName = seats.at(booth.parentSeat).name;
+      ambiguousBoothNameToIds[{booth.name, currentSeatName}].insert(boothId);
+      auto previous = previousSeatNames.find(currentSeatName);
+      if (previous != previousSeatNames.end() && !previous->second.empty()) {
+        // For example, "School / Gembrook" can identify the current
+        // "School / Berwick" record. Sets preserve ambiguity if two current
+        // districts claim that predecessor or it is still a current name;
+        // configuration order must not choose which district gets the votes.
+        ambiguousBoothNameToIds[{booth.name, previous->second}].insert(boothId);
+      }
     }
     else {
       boothNameToId[booth.name] = boothId;
     }
   }
   //PA_LOG_VAR(boothNameToId);
-  //PA_LOG_VAR(ambiguousBoothNameToId);
   int dummyCandidateId = -100000; // Low numbers that will never be mistaken for an official id
   int dummyBoothId = -100000; // Low numbers that will never be mistaken for an official id
   // Not worth soft-coding this
@@ -855,15 +872,20 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
       if (boothNameToId.contains(boothName)) {
         boothId = boothNameToId[boothName];
       }
-      else if (ambiguousBoothNameToId.contains({ boothName, seatName })) {
-        boothId = ambiguousBoothNameToId[{ boothName, seatName }];
-      }
       else {
-        Booth booth;
-        booth.name = boothName;
-        booth.id = dummyBoothId;
-        booths[booth.id] = booth;
-        --dummyBoothId;
+        auto matches = ambiguousBoothNameToIds.find({boothName, seatName});
+        if (matches != ambiguousBoothNameToIds.end() && matches->second.size() == 1) {
+          boothId = *matches->second.begin();
+        }
+        else {
+          // Keep unlinked history under its own ID rather than inventing a
+          // comparison or assigning one old account to several current booths.
+          Booth booth;
+          booth.name = boothName;
+          booth.id = dummyBoothId;
+          booths[booth.id] = booth;
+          --dummyBoothId;
+        }
       }
       if (matchedIds.contains(boothId)) {
         // If two "old" booths match to one "new" booth then we don't know

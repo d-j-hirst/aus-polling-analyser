@@ -45,18 +45,18 @@ void checkRevisionRounding() {
     for (double amount : {.15, -.15, .301732, -.301732}) {
         for (double coverage : {0., .5, 1.}) {
             LiveCountRevisions::Counts counted{{0,46000}};
-            std::map<int,float> projected{{0,47000}};
+            std::map<int,double> projected{{0,47000}};
             double expectedCount = 46000, expectedTotal = 47000;
             for (int i = 0; i < 100; ++i) {
                 LiveCountRevisions::apply(counted,projected,{{0,1}},coverage,amount);
                 expectedCount += amount*coverage; expectedTotal += amount;
                 assert(std::abs(counted.at(0)-expectedCount) < 1e-8);
-                assert(std::abs(projected.at(0)-expectedTotal) < .2);
+                assert(std::abs(projected.at(0)-expectedTotal) < 1e-7);
                 LiveTurnoutMath::remaining(projected.at(0),counted.at(0));
             }
         }
         LiveCountRevisions::Counts counted{{0,46000},{1,20000}};
-        std::map<int,float> projected{{0,46000},{1,20000}};
+        std::map<int,double> projected{{0,46000},{1,20000}};
         for (int i = 0; i < 100; ++i) {
             LivePreferenceCorrections::transfer(counted,projected,0,1,amount);
             LiveCountRevisions::apply(counted,projected,{{0,1}},1,amount);
@@ -70,17 +70,18 @@ void checkRevisionRounding() {
         }
     }
     // Several candidate accounts can become one anonymous Others group. Sum
-    // their float inputs in double precision before storing the group once.
+    // their double inputs before storing the group once; both sides must retain
+    // the same complete counted allocation after grouping.
     LiveCountRevisions::Counts counted;
-    std::map<int,float> projected;
+    std::map<int,double> projected;
     for (int party = 0; party < 20; ++party) {
-        counted[party] = 2300.15; projected[party] = float(counted.at(party));
+        counted[party] = 2300.15; projected[party] = double(counted.at(party));
     }
     auto grouped = LiveTurnoutMath::partitionAccount({&counted,&projected},[](int) { return -1; });
     LiveTurnoutMath::remaining(grouped.projected.at(-1),grouped.counted.at(-1));
     rejects([] {
         LiveCountRevisions::Counts observed{{0,46000}};
-        std::map<int,float> invalid{{0,45999}};
+        std::map<int,double> invalid{{0,45999}};
         LiveCountRevisions::apply(observed,invalid,{{0,1}},1,.15);
     });
 }
@@ -349,9 +350,9 @@ void checkPreparedComponent(std::filesystem::path const& root) {
             u.fp = {{0,.6*counted},{1,.4*counted}};
             u.tpp = {{0,.54*counted},{1,.36*counted}}; // 10% preferences not yet reported.
             u.tcp = {{10,.54*counted},{11,.36*counted}};
-            u.projectedFp = {{0,float(.6*counted+.55*addition)},{1,float(.4*counted+.45*addition)}};
-            u.projectedTpp = {{0,float(.6*counted+.55*addition)},{1,float(.4*counted+.45*addition)}};
-            u.projectedTcp = {{10,float(.6*counted+.55*addition)},{11,float(.4*counted+.45*addition)}};
+            u.projectedFp = {{0,double(.6*counted+.55*addition)},{1,double(.4*counted+.45*addition)}};
+            u.projectedTpp = {{0,double(.6*counted+.55*addition)},{1,double(.4*counted+.45*addition)}};
+            u.projectedTcp = {{10,double(.6*counted+.55*addition)},{11,double(.4*counted+.45*addition)}};
             auto add = [](auto const& from, auto& to) { for (auto const& [p,v] : from) to[p] += v; };
             add(u.fp,seats[s].fp); add(u.tpp,seats[s].tpp); add(u.tcp,seats[s].tcp);
             add(u.projectedFp,seats[s].projectedFp); add(u.projectedTpp,seats[s].projectedTpp); add(u.projectedTcp,seats[s].projectedTcp);
@@ -386,8 +387,8 @@ void checkPreparedComponent(std::filesystem::path const& root) {
         for (auto& seat : seats) { seat.projectedFp.clear(); seat.projectedTpp.clear(); seat.projectedTcp.clear(); }
         for (auto& u : compositions) {
             double counted = units[u.booth].counted;
-            u.projectedFp = {{0,float(.6*counted)},{1,float(.4*counted)}};
-            u.projectedTpp = u.projectedFp; u.projectedTcp = {{10,float(.6*counted)},{11,float(.4*counted)}};
+            u.projectedFp = {{0,double(.6*counted)},{1,double(.4*counted)}};
+            u.projectedTpp = u.projectedFp; u.projectedTcp = {{10,double(.6*counted)},{11,double(.4*counted)}};
             for (auto const& [p,v] : u.projectedFp) seats[u.seat].projectedFp[p] += v;
             for (auto const& [p,v] : u.projectedTpp) seats[u.seat].projectedTpp[p] += v;
             for (auto const& [p,v] : u.projectedTcp) seats[u.seat].projectedTcp[p] += v;
@@ -419,7 +420,7 @@ void checkLiveAccounts() {
     // The main sampler may move preferences among outstanding votes but cannot
     // rewrite published counts. Exercise both ordinary variation and large
     // opposing changes, including a candidate whose expected addition is zero.
-    std::map<int,float> projected{{0,610},{1,345},{7,45}};
+    std::map<int,double> projected{{0,610},{1,345},{7,45}};
     std::map<int,double> counted{{0,600},{1,340},{7,45}};
     assert(LiveTurnoutMath::varyRemaining(projected,counted,{}) == projected);
     assert(LiveTurnoutMath::varyRemaining(projected,counted,{{0,0},{1,0}}) == projected);
@@ -427,9 +428,9 @@ void checkLiveAccounts() {
         auto varied = LiveTurnoutMath::varyRemaining(projected,counted,{{0,change},{1,-change}});
         double total = 0;
         for (auto const& [party,votes] : varied) { assert(votes >= counted.at(party)); total += votes; }
-        assert(std::abs(total-1000) < .0002); // projected party maps use float.
+        assert(std::abs(total-1000) < 1e-9);
     }
-    std::map<int,float> finished{{0,600},{1,340},{7,45}};
+    std::map<int,double> finished{{0,600},{1,340},{7,45}};
     assert(LiveTurnoutMath::varyRemaining(finished,counted,{{0,100},{1,-100}}) == finished);
     // With no fixed votes, a small binary change agrees with the existing
     // transformed-scale response; smoothing contributes less than 0.001 share.
@@ -446,7 +447,7 @@ void checkLiveAccounts() {
     // Exercise both classic TPP and arbitrary TCP identities, including both
     // movement directions and a starting pair that is already unequal.
     for (auto pair : {std::pair{0,1}, std::pair{17,42}}) {
-        for (float start : {50.f,60.f}) for (float target : {40.f,50.f,60.f,75.f}) {
+        for (double start : {50.,60.}) for (double target : {40.,50.,60.,75.}) {
             auto shares = LiveTurnoutMath::reconcileForecast(
                 {{},{{pair.first,10*start},{pair.second,10*(100-start)}}},
                 {{pair.first,target},{pair.second,100-target}});
@@ -479,7 +480,7 @@ void checkLiveAccounts() {
     auto grouped = LiveTurnoutMath::partitionAccount(source, [](int p) { return p == 9 ? -1 : p; });
     assert(grouped.counted.at(7) == 1400 && grouped.counted.at(-1) == 1700);
     auto reconciled = LiveTurnoutMath::reconcileForecast(grouped,
-        {{0,48.f},{1,30.f},{7,6.f},{-1,16.f}},true);
+        {{0,48.},{1,30.},{7,6.},{-1,16.}},true);
     double n = 0, shares = 0;
     for (auto const& [p,v] : grouped.projected) n += v;
     for (auto const& [p,v] : reconciled) {
@@ -988,7 +989,7 @@ void checkSavedHandoff(std::filesystem::path const& diagnosticPath,
     std::ifstream ds(diagnosticPath), rs(reportPath); json diagnostic, report;
     ds >> diagnostic; rs >> report; auto const& sr = report.at("simulation_report");
     auto readMap = [](json const& rows) {
-        std::map<int,float> values;
+        std::map<int,double> values;
         for (auto const& row : rows) values[row.at("party_index")] = row.at("value");
         return values;
     };

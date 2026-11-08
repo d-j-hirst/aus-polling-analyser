@@ -51,53 +51,53 @@ public:
   std::map<int, int> fpVotesPrevious;
   std::map<int, int> tcpVotesCurrent;
   std::map<int, int> tcpVotesPrevious;
-  std::map<int, float> fpShares; // transformed vote share
-  std::map<int, float> fpSwings; // change in transformed vote share
-  std::map<int, float> tcpShares; // transformed vote share
-  std::map<int, float> tcpSwings; // change in transformed vote share
-  std::optional<float> tppSharePrevious; // 2pp share at previous election, estimate if not directly available
-  std::optional<float> tppShare; // transformed vote share, only filled if 2pp is available at both elections 
-  std::optional<float> tppSwing; // change in transformed vote share, only filled if 2pp is available at both elections
-  std::map<int, float> fpSharesBaseline; // transformed vote share, median result from baseline (no-results) simulation
-  std::map<int, float> fpSwingsBaseline; // change in transformed vote share, median result from baseline (no-results) simulation
-  std::map<int, float> tcpSharesBaseline; // transformed vote share, median result from baseline (no-results) simulation
-  std::map<int, float> tcpSwingsBaseline; // change in transformed vote share, median result from baseline (no-results) simulation
-  std::optional<float> tppShareBaseline; // transformed vote share, median result from baseline (no-results) simulation
-  std::optional<float> tppSwingBaseline; // change in transformed vote share, median result from baseline (no-results) simulation
-  std::map<int, float> fpDeviations; // observed deviation from baseline
-  std::optional<float> tppDeviation; // observed deviation from baseline
-  std::map<int, float> specificFpDeviations; // deviations reduced according to confidence level
-  std::optional<float> specificTppDeviation; // deviations reduced according to confidence level
-  std::optional<float> preferenceFlowDeviation; // deviation from baseline preference flows
-  std::optional<float> specificPreferenceFlowDeviation; // deviations reduced according to confidence level
-  std::map<int, float> fpVotesProjected; // median projected vote count
-  std::map<int, float> tppVotesProjected; // median projected vote count, use this for the process of calculating underlying tpp estimates
-  std::map<int, float> tcpVotesProjected; // median projected vote count, Important: only calculated when a real TCP count is available.
-  std::map<int, float> tempFpVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
-  std::map<int, float> tempTppVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
-  std::map<int, float> tempTcpVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
+  std::map<int, double> fpShares; // transformed vote share
+  std::map<int, double> fpSwings; // change in transformed vote share
+  std::map<int, double> tcpShares; // transformed vote share
+  std::map<int, double> tcpSwings; // change in transformed vote share
+  std::optional<double> tppSharePrevious; // 2pp share at previous election, estimate if not directly available
+  std::optional<double> tppShare; // transformed vote share, only filled if 2pp is available at both elections
+  std::optional<double> tppSwing; // change in transformed vote share, only filled if 2pp is available at both elections
+  std::map<int, double> fpSharesBaseline; // transformed vote share, median result from baseline (no-results) simulation
+  std::map<int, double> fpSwingsBaseline; // change in transformed vote share, median result from baseline (no-results) simulation
+  std::map<int, double> tcpSharesBaseline; // transformed vote share, median result from baseline (no-results) simulation
+  std::map<int, double> tcpSwingsBaseline; // change in transformed vote share, median result from baseline (no-results) simulation
+  std::optional<double> tppShareBaseline; // transformed vote share, median result from baseline (no-results) simulation
+  std::optional<double> tppSwingBaseline; // change in transformed vote share, median result from baseline (no-results) simulation
+  std::map<int, double> fpDeviations; // observed deviation from baseline
+  std::optional<double> tppDeviation; // observed deviation from baseline
+  std::map<int, double> specificFpDeviations; // deviations reduced according to confidence level
+  std::optional<double> specificTppDeviation; // deviations reduced according to confidence level
+  std::optional<double> preferenceFlowDeviation; // deviation from baseline preference flows
+  std::optional<double> specificPreferenceFlowDeviation; // deviations reduced according to confidence level
+  std::map<int, double> fpVotesProjected; // median projected vote count
+  std::map<int, double> tppVotesProjected; // median projected vote count, use this for the process of calculating underlying tpp estimates
+  std::map<int, double> tcpVotesProjected; // median projected vote count, Important: only calculated when a real TCP count is available.
+  std::map<int, double> tempFpVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
+  std::map<int, double> tempTppVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
+  std::map<int, double> tempTcpVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
   std::set<int> runningParties;
 
   // Confidence = how useful the existing results are for projection remaining results.
   // So this will include estimates from fp, but not include results where swing can't be calculated
-  float fpConfidence = 0.0f;
+  double fpConfidence = 0.0;
   // Candidate-specific effective votes for movement shared across districts.
   // These never reduce the confidence in this district's own reported FP.
   std::map<int, double> fpPoolingVotes;
-  float tcpConfidence = 0.0f;
-  float tppConfidence = 0.0f;
-  float preferenceFlowConfidence = 0.0f;
+  double tcpConfidence = 0.0;
+  double tppConfidence = 0.0;
+  double preferenceFlowConfidence = 0.0;
 
   // Completion = how much of this result is counted - for weghting versus pre-election and completion statistics
   // So this will include results where swing can't be calculated, but not include estimates from fp
-  float fpCompletion = 0.0f;
-  float tcpCompletion = 0.0f;
-  float tppCompletion = 0.0f;
+  double fpCompletion = 0.0;
+  double tcpCompletion = 0.0;
+  double tppCompletion = 0.0;
 
-  float relevanceModifier = 1.0f;
+  double relevanceModifier = 1.0;
 
   auto fpSharesPercent() const {
-    std::map<int, float> result;
+    std::map<int, double> result;
     for (auto const& [partyId, share] : fpShares) {
       result[partyId] = detransformVoteShare(share);
     }
@@ -105,7 +105,7 @@ public:
   }
 
   auto tcpSharesPercent() const {
-    std::map<int, float> result;
+    std::map<int, double> result;
     for (auto const& [partyId, share] : tcpShares) {
       result[partyId] = detransformVoteShare(share);
     }
@@ -116,8 +116,8 @@ public:
   int totalVotesPrevious() const;
   int totalTcpVotesCurrent() const;
   int totalTcpVotesPrevious() const;
-  float totalFpVotesProjected() const;
-  float totalTcpVotesProjected() const;
+  double totalFpVotesProjected() const;
+  double totalTcpVotesProjected() const;
 };
 
 class Booth {
@@ -155,8 +155,8 @@ public:
 
   Results2::VoteType voteType = Results2::VoteType::Ordinary;
   Results2::Booth::Type boothType = Results2::Booth::Type::Normal;
-  std::optional<std::pair<float, float>> coords; // latitude, longitude; unset if the source booth has none
-  std::map<int, float> tppVotesEstimated; // estimate-only count for tpp votes, used for calculating general bias in TPP estimates
+  std::optional<std::pair<double, double>> coords; // latitude, longitude; unset if the source booth has none
+  std::map<int, double> tppVotesEstimated; // estimate-only count for tpp votes, used for calculating general bias in TPP estimates
 
   // Prepared once from compatible accepted counts. Main scenarios share this
   // frozen measurement, never retaining source documents or disk history.
@@ -222,26 +222,26 @@ public:
   // matched to the prominent Independent in the baseline projection.
   int liveIndependentPartyIndex = InvalidPartyIndex;
 
-  std::map<int, float> finalSpecificFpDeviations; // deviations taking into account change in voter categories
-  std::optional<float> finalSpecificTppDeviation; // deviations taking into account change in voter categories
-  std::map<int, float> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
-  std::optional<float> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
-  std::map<int, float> fpAllBoothsStdDev; // variability of (transformed) fp votes across all remaining booths
-  std::optional<float> tppAllBoothsStdDev; // optional legacy RMS diagnostic; joint TPP uncertainty is always prepared
+  std::map<int, double> finalSpecificFpDeviations; // deviations taking into account change in voter categories
+  std::optional<double> finalSpecificTppDeviation; // deviations taking into account change in voter categories
+  std::map<int, double> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
+  std::optional<double> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
+  std::map<int, double> fpAllBoothsStdDev; // variability of (transformed) fp votes across all remaining booths
+  std::optional<double> tppAllBoothsStdDev; // optional legacy RMS diagnostic; joint TPP uncertainty is always prepared
   // Frozen received-source evidence, shared by all scenarios in this snapshot.
   // Inferred TPP does not supply a counted lower bound, even at full FP count.
   LiveEstimatedTpp::Evidence estimatedTppEvidence;
-  float estimatedTppInfluence = 0.0f;
-  std::optional<float> tcpAllBoothsStdDev; // variability of (transformed) tcp votes across all remaining booths
-  float livePreferenceFlowDeviation = 0.0f; // deviations from the "expected" pre-election preference flows
-  std::map<Results2::VoteType, float> tppVoteTypeSensitivity; // expected number of (entirely) uncounted votes in this category
-  std::map<Results2::Booth::Type, float> tppBoothTypeSensitivity; // expected number of (entirely) uncounted votes in this category
-  std::map<int, std::map<Results2::VoteType, float>> fpVoteTypeSensitivity; // expected number of (entirely) uncounted votes in this category
-  std::map<int, std::map<Results2::Booth::Type, float>> fpBoothTypeSensitivity; // expected number of (entirely) uncounted votes in this category
+  double estimatedTppInfluence = 0.0;
+  std::optional<double> tcpAllBoothsStdDev; // variability of (transformed) tcp votes across all remaining booths
+  double livePreferenceFlowDeviation = 0.0; // deviations from the "expected" pre-election preference flows
+  std::map<Results2::VoteType, double> tppVoteTypeSensitivity; // expected number of (entirely) uncounted votes in this category
+  std::map<Results2::Booth::Type, double> tppBoothTypeSensitivity; // expected number of (entirely) uncounted votes in this category
+  std::map<int, std::map<Results2::VoteType, double>> fpVoteTypeSensitivity; // expected number of (entirely) uncounted votes in this category
+  std::map<int, std::map<Results2::Booth::Type, double>> fpBoothTypeSensitivity; // expected number of (entirely) uncounted votes in this category
   std::optional<int> tcpFocusPartyIndex;
-  std::optional<float> tcpFocusPartyPrefFlow; // batched among all parties not in the top 2
-  std::optional<float> tcpFocusPartyConfidence;
-  std::optional<float> nationalsProportion;
+  std::optional<double> tcpFocusPartyPrefFlow; // batched among all parties not in the top 2
+  std::optional<double> tcpFocusPartyConfidence;
+  std::optional<double> nationalsProportion;
 
   // Index into Election::largeRegions, not the persistent project region ID.
   const int parentRegionIndex;
@@ -266,10 +266,10 @@ public:
   // and allows the vector to be resized
   std::vector<int> seats;
 
-  std::map<int, float> finalSpecificFpDeviations; // deviations taking into account change in voter categories
-  std::optional<float> finalSpecificTppDeviation; // deviations taking into account change in voter categories
-  std::map<int, float> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
-  std::optional<float> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
+  std::map<int, double> finalSpecificFpDeviations; // deviations taking into account change in voter categories
+  std::optional<double> finalSpecificTppDeviation; // deviations taking into account change in voter categories
+  std::map<int, double> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
+  std::optional<double> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
 
   Node node;
 };
@@ -297,19 +297,19 @@ public:
 	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run, TurnoutModelIO::Artifact turnoutInput,
     LiveInputRecovery::PreferenceHistories preferenceHistory = {});
 
-  float getTppShareBaseline() const {
-    return node.tppShareBaseline.value_or(0.0f);
+  double getTppShareBaseline() const {
+    return node.tppShareBaseline.value_or(0.0);
   }
 
-  float getTransformedBaselineFp(int partyIndex) const {
+  double getTransformedBaselineFp(int partyIndex) const {
     if (node.fpSharesBaseline.contains(partyIndex)) {
       return node.fpSharesBaseline.at(partyIndex);
     }
-    return 1.0f;
+    return 1.0;
   }
 
-  float getRegionTppBaseline(int regionIndex) const {
-    return largeRegions[regionIndex].node.tppShareBaseline.value_or(0.0f);
+  double getRegionTppBaseline(int regionIndex) const {
+    return largeRegions[regionIndex].node.tppShareBaseline.value_or(0.0);
   }
 
    // baseline: revert "simulated" 2PP to this as confidence increases
@@ -319,35 +319,35 @@ public:
    // Note this should be used from a randomized instance of the live results simulation
    // to reflect uncertainty in the remaining live results
   FloatBaselineInformation getFinalSpecificTppInformation() const override {
-    float baseline = node.tppShareBaseline.value_or(0.0f);
-    float deviation = finalSpecificTppDeviation.value_or(0.0f);
-    float confidence = node.tppConfidence;
-    float completion = node.tppCompletion;
+    double baseline = node.tppShareBaseline.value_or(0.0);
+    double deviation = finalSpecificTppDeviation.value_or(0.0);
+    double confidence = node.tppConfidence;
+    double completion = node.tppCompletion;
     return { baseline, completion, confidence, deviation, };
   }
 
-  std::map<int, float> getFinalSpecificFpDeviations() const override {
+  std::map<int, double> getFinalSpecificFpDeviations() const override {
     return finalSpecificFpDeviations;
   }
 
-  float getRegionFinalSpecificTppDeviation(int regionIndex) const override {
-    return largeRegions[regionIndex].finalSpecificTppDeviation.value_or(0.0f);
+  double getRegionFinalSpecificTppDeviation(int regionIndex) const override {
+    return largeRegions[regionIndex].finalSpecificTppDeviation.value_or(0.0);
   }
 
-  std::map<int, float> getRegionFinalSpecificFpDeviations(int regionIndex) const override {
+  std::map<int, double> getRegionFinalSpecificFpDeviations(int regionIndex) const override {
     return largeRegions[regionIndex].finalSpecificFpDeviations;
   }
 
   FloatBaselineInformation getSeatTppInformation(std::string const& seatName) const override {
     int seatIndex = findSeatIndex(seatName);
 		if (seatIndex != int(seats.size())) {
-      float deviation = seats[seatIndex].finalSpecificTppDeviation.value_or(0.0f);
-      float confidence = seats[seatIndex].node.tppConfidence;
-      float completion = seats[seatIndex].node.tppCompletion;
-      float baseline = seats[seatIndex].node.tppShareBaseline.value_or(0.0f);
+      double deviation = seats[seatIndex].finalSpecificTppDeviation.value_or(0.0);
+      double confidence = seats[seatIndex].node.tppConfidence;
+      double completion = seats[seatIndex].node.tppCompletion;
+      double baseline = seats[seatIndex].node.tppShareBaseline.value_or(0.0);
       return { baseline, completion, confidence, deviation };
 		}
-    return {0.0f, 0.0f, 0.0f, 0.0f};
+    return {0.0, 0.0, 0.0, 0.0};
   }
 
   std::map<int, FloatBaselineInformation> getSeatFpInformation(std::string const& seatName) const override {
@@ -366,10 +366,10 @@ public:
   LiveData::FpIntegrationInformation const* getSeatFpIntegrationInformation(
     std::string const& seatName) const override;
 
-  std::map<int, float> getSeatOverallFpDeviations(std::string const& seatName) const {
+  std::map<int, double> getSeatOverallFpDeviations(std::string const& seatName) const {
     int seatIndex = findSeatIndex(seatName);
 		if (seatIndex != int(seats.size())) {
-      std::map<int, float> seatDeviations = seats[seatIndex].finalSpecificFpDeviations;
+      std::map<int, double> seatDeviations = seats[seatIndex].finalSpecificFpDeviations;
       for (auto const& [partyId, deviation] : largeRegions[seats[seatIndex].parentRegionIndex].finalSpecificFpDeviations) {
         if (seatDeviations.contains(partyId)) {
           seatDeviations[partyId] += deviation;
@@ -385,7 +385,7 @@ public:
     return {};
   }
 
-  float getSeatEstimatedTppSwing(std::string const& seatName) const override {
+  double getSeatEstimatedTppSwing(std::string const& seatName) const override {
     int seatIndex = findSeatIndex(seatName);
 		if (seatIndex != int(seats.size())) {
       auto const& seatNode = seats[seatIndex].node;
@@ -399,76 +399,76 @@ public:
           || (!seatNode.totalFpVotesCurrent() && !seatNode.totalTcpVotesCurrent())
           || !seatNode.tppVotesProjected.contains(0)
           || !seatNode.tppVotesProjected.contains(1)) {
-        return std::numeric_limits<float>::quiet_NaN();
+        return std::numeric_limits<double>::quiet_NaN();
       }
-      float const pairTotal = seatNode.tppVotesProjected.at(0)
+      double const pairTotal = seatNode.tppVotesProjected.at(0)
         + seatNode.tppVotesProjected.at(1);
-      if (!std::isfinite(pairTotal) || pairTotal <= 0.0f) {
-        return std::numeric_limits<float>::quiet_NaN();
+      if (!std::isfinite(pairTotal) || pairTotal <= 0.0) {
+        return std::numeric_limits<double>::quiet_NaN();
       }
-      float const originalTpp = detransformVoteShare(
+      double const originalTpp = detransformVoteShare(
         *seatNode.tppShareBaseline - *seatNode.tppSwingBaseline);
-      float const currentTpp = preparedTppShare(seatIndex);
+      double const currentTpp = preparedTppShare(seatIndex);
       return currentTpp - originalTpp;
 		}
-    return std::numeric_limits<float>::quiet_NaN();
+    return std::numeric_limits<double>::quiet_NaN();
   }
 
-  float getSeatRawTppSwing(std::string const& seatName) const override;
+  double getSeatRawTppSwing(std::string const& seatName) const override;
 
-  float getSeatFpCompletion(std::string const& seatName) const override {
+  double getSeatFpCompletion(std::string const& seatName) const override {
     int seatIndex = findSeatIndex(seatName);
 		if (seatIndex != int(seats.size())) {
 			return seats[seatIndex].node.fpCompletion;
 		}
-    return 0.0f;
+    return 0.0;
   }
 
-  float getSeatTppCompletion(std::string const& seatName) const override {
+  double getSeatTppCompletion(std::string const& seatName) const override {
     int seatIndex = findSeatIndex(seatName);
     if (seatIndex != int(seats.size())) {
       return seats[seatIndex].node.tppCompletion;
     }
-    return 0.0f;
+    return 0.0;
   }
 
-  float getSeatTcpCompletion(std::string const& seatName) const override {
+  double getSeatTcpCompletion(std::string const& seatName) const override {
     int seatIndex = findSeatIndex(seatName);
     if (seatIndex != int(seats.size())) {
       return seats[seatIndex].node.tcpCompletion;
     }
-    return 0.0f;
+    return 0.0;
   }
 
   // Returns *specific* preference flow deviations ()
   FloatInformation getSeatPreferenceFlowInformation(std::string const& seatName) const {
     int seatIndex = findSeatIndex(seatName);
     if (seatIndex != int(seats.size())) {
-      float totalPreferenceFlowDeviation = 0.0f;
-      float totalPreferenceFlowConfidence = 0.0f;
+      double totalPreferenceFlowDeviation = 0.0;
+      double totalPreferenceFlowConfidence = 0.0;
       auto const& seatNode = seats[seatIndex].node;
-      totalPreferenceFlowDeviation += seatNode.specificPreferenceFlowDeviation.value_or(0.0f);
+      totalPreferenceFlowDeviation += seatNode.specificPreferenceFlowDeviation.value_or(0.0);
       totalPreferenceFlowConfidence += seatNode.preferenceFlowConfidence;
       auto const& largeRegionNode = largeRegions[seats[seatIndex].parentRegionIndex].node;
-      totalPreferenceFlowDeviation += largeRegionNode.specificPreferenceFlowDeviation.value_or(0.0f);
+      totalPreferenceFlowDeviation += largeRegionNode.specificPreferenceFlowDeviation.value_or(0.0);
       totalPreferenceFlowConfidence += largeRegionNode.preferenceFlowConfidence;
-      totalPreferenceFlowDeviation += node.specificPreferenceFlowDeviation.value_or(0.0f);
+      totalPreferenceFlowDeviation += node.specificPreferenceFlowDeviation.value_or(0.0);
       totalPreferenceFlowConfidence += node.preferenceFlowConfidence;
-      float finalConfidence = totalPreferenceFlowConfidence / 3.0f;
+      double finalConfidence = totalPreferenceFlowConfidence / 3.0;
       return {totalPreferenceFlowDeviation, 0, finalConfidence};
     }
-    return {0.0f, 0.0f};
+    return {0.0, 0.0};
   }
 
   FloatInformation getSeatLivePreferenceFlowDeviation(std::string const& seatName) const {
     int seatIndex = findSeatIndex(seatName);
     if (seatIndex != int(seats.size())) {
-      float confidence = std::min(
+      double confidence = std::min(
         seats[seatIndex].node.fpConfidence,
         seats[seatIndex].node.tppConfidence);
       return {seats[seatIndex].livePreferenceFlowDeviation, 0, confidence};
     }
-    return {0.0f, 0.0f};
+    return {0.0, 0.0};
   }
 
   // Returns Labor's share of the major party vote (including Nationals)
@@ -476,19 +476,19 @@ public:
     int seatIndex = findSeatIndex(seatName);
     if (seatIndex != int(seats.size())) {
       auto const& fpVotes = seats[seatIndex].node.fpVotesCurrent;
-      if (fpVotes.empty() || !fpVotes.contains(0) || fpVotes.at(0) == 0) return {0.0f, 0.0f};
-      float totalMajorPartyVotes = 0.0f;
+      if (fpVotes.empty() || !fpVotes.contains(0) || fpVotes.at(0) == 0) return {0.0, 0.0};
+      double totalMajorPartyVotes = 0.0;
       std::vector<int> majorPartyIds = {0, 1, natPartyIndex};
       for (auto const& partyId : majorPartyIds) {
         if (fpVotes.contains(partyId)) {
           totalMajorPartyVotes += fpVotes.at(partyId);
         }
       }
-      float completion = seats[seatIndex].node.fpCompletion;
-      float confidence = seats[seatIndex].node.fpConfidence;
-      return {static_cast<float>(fpVotes.at(0)) / static_cast<float>(totalMajorPartyVotes), completion, confidence};
+      double completion = seats[seatIndex].node.fpCompletion;
+      double confidence = seats[seatIndex].node.fpConfidence;
+      return {static_cast<double>(fpVotes.at(0)) / static_cast<double>(totalMajorPartyVotes), completion, confidence};
     }
-    return {0.0f, 0.0f, 0.0f};
+    return {0.0, 0.0, 0.0};
   }
 
   TcpShareInformation getSeatTcpInformation(std::string const& seatName) const override {
@@ -496,14 +496,14 @@ public:
     if (seatIndex != int(seats.size())) {
       return {seats[seatIndex].node.tcpShares, seats[seatIndex].node.tcpCompletion, seats[seatIndex].node.tcpConfidence};
     }
-    return {std::map<int, float>(), 0.0f, 0.0f};
+    return {std::map<int, double>(), 0.0, 0.0};
   }
 
   std::optional<FloatInformation> getSeatNationalsProportion(std::string const& seatName) const override {
     int seatIndex = findSeatIndex(seatName);
     if (seatIndex != int(seats.size()) && seats[seatIndex].nationalsProportion.has_value()) {
       return std::make_optional<FloatInformation>(
-        seats[seatIndex].nationalsProportion.value_or(0.0f),
+        seats[seatIndex].nationalsProportion.value_or(0.0),
         seats[seatIndex].node.fpCompletion,
         seats[seatIndex].node.fpConfidence
       );
@@ -515,7 +515,7 @@ public:
 
   // Returns untransformed vote share belonging to parties not included among the project's
   // significant parties, along with independents who don't make the threshold for significance
-  FloatInformation getSeatOthersInformation(std::string const& seatName, std::map<int, float> const& representedParties) const override;
+  FloatInformation getSeatOthersInformation(std::string const& seatName, std::map<int, double> const& representedParties) const override;
 
   std::optional<LiveData::VoteCountAccount> getSeatVoteCountAccount(
     std::string const& seatName, LiveData::CountKind kind) const override;
@@ -541,7 +541,7 @@ public:
     internals.projected2pp =
       node.tppVotesProjected.at(0)
       / (node.tppVotesProjected.at(0) + node.tppVotesProjected.at(1))
-      * 100.0f;
+      * 100.0;
     internals.raw2ppDeviation = node.tppDeviation.value_or(0);
     return internals;
   }
@@ -609,7 +609,7 @@ private:
     std::map<int, LiveTppIntegration::CategoryEvidence>& categories,
     LiveTppIntegration::EvidenceSourceGroup sourceGroup, std::map<int, double> const& qualityFloors) const;
   double tppScenarioCountChange(int seatIndex) const;
-  float preparedTppShare(int seatIndex) const;
+  double preparedTppShare(int seatIndex) const;
   nlohmann::json tppIntegrationDiagnostic() const;
   nlohmann::json tppConversionDiagnostic() const;
   std::shared_ptr<LiveTppIntegration::Update const> tppIntegration;
@@ -699,16 +699,16 @@ private:
     Results2::Election const& currentElection, LiveInputRecovery::PreferenceHistory const& history);
   LivePartialCount::Flows classicPreferenceFlows(Booth const& booth, int coalitionParty, bool previous = false) const;
   LivePartialCount::Flows pairPreferenceFlows(Booth const& booth, int first, int second) const;
-  std::optional<float> preferenceRateOffset(Booth const& booth, bool current) const;
+  std::optional<double> preferenceRateOffset(Booth const& booth, bool current) const;
   double preferencePriorOffset(Booth const& booth, bool includeLocal = true) const;
-  std::map<int,float> projectCountedTpp(int boothIndex, double contextShare);
+  std::map<int,double> projectCountedTpp(int boothIndex, double contextShare);
   std::optional<double> rawPendingFirstVotes(Booth const& booth) const;
   void prepareTcpBases(Results2::Election const& previousElection, Results2::Election const& currentElection,
     LiveInputRecovery::PreferenceHistories const& history);
   std::optional<LivePartialCount::RevisedTcp> revisedBoothTcp(Booth const& booth,
     int first, int second, double variation = 0) const;
   std::optional<LiveTppIntegration::ReceivedTpp> receivedBoothTpp(Booth const& booth) const;
-  std::map<int,float> projectDeclarationTpp(int boothIndex);
+  std::map<int,double> projectDeclarationTpp(int boothIndex);
   bool usesUnmatchedFpTpp(Booth const& booth) const;
   double projectUnmatchedBoothTpp(int boothIndex, double futureShare, double preferenceVariation) const;
   int coalitionFinalist(Booth const& booth) const;
@@ -741,9 +741,9 @@ private:
   LiveNewVotes::FpEvidence primaryEvidence(Node const& node) const;
   void prepareIndependentPooling(LiveNewVotes::FpEvidence& evidence, Seat const& seat) const;
   void prepareSeatIndependentPooling(Seat& seat) const;
-  float fpPoolingObservationWeight(Node const& node, int party, float strength) const;
-  std::map<int,double> fpPoolingObservationWeights(LiveNewVotes::FpEvidence const& evidence, float strength) const;
-  void retainObservedIndependentPooling(Node const& node, std::map<int,float>& finalDeviations) const;
+  double fpPoolingObservationWeight(Node const& node, int party, double strength) const;
+  std::map<int,double> fpPoolingObservationWeights(LiveNewVotes::FpEvidence const& evidence, double strength) const;
+  void retainObservedIndependentPooling(Node const& node, std::map<int,double>& finalDeviations) const;
 
   Node aggregateFromChildren(const std::vector<Node const*>& nodesToAggregate, Node const* parentNode = nullptr) const;
 
@@ -767,8 +767,8 @@ private:
   void prepareTppProjectionSensitivities();
   void prepareSeatTppProjectionSensitivities(int seatIndex);
   int fpEvidenceCandidate(int seatIndex, int partyId) const;
-  float fpEvidenceNormalStdDev(int seatIndex, int partyId, float localStdDev) const;
-  float fpEvidenceDisagreement(int seatIndex, int partyId, double quantile) const;
+  double fpEvidenceNormalStdDev(int seatIndex, int partyId, double localStdDev) const;
+  double fpEvidenceDisagreement(int seatIndex, int partyId, double quantile) const;
   void prepareFpIntegration();
   std::vector<LiveData::FpIntegrationInformation> fpIntegrationCentres() const;
   std::vector<LiveData::FpDistributionMoments> measureFpCountMoments();
@@ -785,8 +785,8 @@ private:
   void configureInactiveTurnoutContests(TurnoutModelIO::Artifact const& artifact);
   void prepareTurnout(Results2::Election const& currentElection, TurnoutModelIO::Artifact artifact);
   void prepareFinalResults(Results2::Election const& previousElection, Results2::Election const& currentElection);
-  float turnoutFpTarget(int boothIndex) const;
-  float turnoutPairTarget(int boothIndex) const;
+  double turnoutFpTarget(int boothIndex) const;
+  double turnoutPairTarget(int boothIndex) const;
   void refreshTurnoutPairProgress();
   void prepareTurnoutComposition();
   void drawTurnoutCounts(int iterationIndex);
@@ -804,18 +804,21 @@ private:
   void conditionOrdinaryFpEvidence(OrdinaryFpHierarchy& hierarchy) const;
   void prepareNewVoteContexts();
   std::vector<LiveNewVotes::Shares> declarationFpContexts(OrdinaryFpHierarchy const& hierarchy) const;
-  std::map<int,float> projectUnreportedFp(bool allowCurrentData, int boothIndex,
+  LiveNewVotes::Shares declarationFpContext(bool allowCurrentData, int boothIndex,
     OrdinaryFpHierarchy const* hierarchy = nullptr) const;
-  void assignBlindFpOthers(std::map<int,float>& projection, std::set<int> const& candidates,
-    int projectSeatIndex, float target, float accounted) const;
+  std::map<int,double> projectUnreportedFp(bool allowCurrentData, int boothIndex,
+    OrdinaryFpHierarchy const* hierarchy = nullptr) const;
+  void assignBlindFpOthers(std::map<int,double>& projection, std::set<int> const& candidates,
+    int projectSeatIndex, double target, double accounted) const;
   void projectDeclarationFp(int boothIndex);
   LiveNewVotes::Shares composeDeclarationFp(int boothIndex) const;
   void updateDeclarationFpProgress(int boothIndex);
   void projectCountedOrdinaryFp(int boothIndex);
   void clearFpProjection(int boothIndex);
-  std::map<int,float> mapFpProjection(int boothIndex, LiveNewVotes::Shares const& raw) const;
-  void storeFpProjection(int boothIndex, std::map<int,float> projection);
-  void recordFpProjectionSensitivity(int boothIndex, float additions);
+  std::map<int,double> mapFpProjection(int boothIndex, LiveNewVotes::Shares const& raw,
+    bool allowCurrentData = true) const;
+  void storeFpProjection(int boothIndex, std::map<int,double> projection);
+  void recordFpProjectionSensitivity(int boothIndex, double additions);
   // recomposing 2CP votes is only ever done with current data
   // as there is no useful offset to calculate
   void recomposeBoothTcpVotes(int boothIndex);
@@ -872,9 +875,9 @@ private:
     Results2::Election const& previousElection,
     Results2::Election const& currentElection);
 
-  float variabilityNormal(float mean, float sd, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
+  double variabilityNormal(double mean, double sd, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
   std::uint64_t variabilityKey(int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
-  float drawFpVariability(int seatIndex, int partyId, float localStdDev) const;
+  double drawFpVariability(int seatIndex, int partyId, double localStdDev) const;
 
   void log(bool includeLargeRegions = false, bool includeSeats = false, bool includeBooths = false) const;
 
@@ -891,46 +894,46 @@ private:
   LivePartyMapping::CommissionIds ecPartyToInternalParty;
   std::map<std::string, int> ecAbbreviationToInternalParty;
 
-  std::map<int, float> preferenceFlowMap; // preference flows as a percentage
-  std::map<int, float> preferenceExhaustMap;
-  std::map<int, float> prevPreferenceOverrides; // Covers cases where the preference flow last election is expected to be different
+  std::map<int, double> preferenceFlowMap; // preference flows as a percentage
+  std::map<int, double> preferenceExhaustMap;
+  std::map<int, double> prevPreferenceOverrides; // Covers cases where the preference flow last election is expected to be different
 
   
-  std::map<int, float> finalSpecificFpDeviations; // deviations taking into account change in voter categories
-  std::optional<float> finalSpecificTppDeviation; // deviations taking into account change in voter categories
-  std::map<int, float> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
-  std::optional<float> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
+  std::map<int, double> finalSpecificFpDeviations; // deviations taking into account change in voter categories
+  std::optional<double> finalSpecificTppDeviation; // deviations taking into account change in voter categories
+  std::map<int, double> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
+  std::optional<double> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
 
-  std::map<Results2::Booth::Type, float> boothTypeTppBiases;
-  std::map<Results2::VoteType, float> voteTypeTppBiases;
-  std::map<Results2::Booth::Type, float> boothTypeTppBiasStdDev;
-  std::map<Results2::VoteType, float> voteTypeTppBiasStdDev;
-  std::map<Results2::Booth::Type, float> boothTypeTppSourceCount;
-  std::map<Results2::VoteType, float> voteTypeTppSourceCount;
-  std::map<Results2::Booth::Type, float> boothTypeTppVoteCount;
-  std::map<Results2::VoteType, float> voteTypeTppVoteCount;
+  std::map<Results2::Booth::Type, double> boothTypeTppBiases;
+  std::map<Results2::VoteType, double> voteTypeTppBiases;
+  std::map<Results2::Booth::Type, double> boothTypeTppBiasStdDev;
+  std::map<Results2::VoteType, double> voteTypeTppBiasStdDev;
+  std::map<Results2::Booth::Type, double> boothTypeTppSourceCount;
+  std::map<Results2::VoteType, double> voteTypeTppSourceCount;
+  std::map<Results2::Booth::Type, double> boothTypeTppVoteCount;
+  std::map<Results2::VoteType, double> voteTypeTppVoteCount;
 
-  std::map<int, std::map<Results2::Booth::Type, float>> boothTypeFpBiases;
-  std::map<int, std::map<Results2::VoteType, float>> voteTypeFpBiases;
-  std::map<int, std::map<Results2::Booth::Type, float>> boothTypeFpBiasStdDev;
-  std::map<int, std::map<Results2::VoteType, float>> voteTypeFpBiasStdDev;
-  std::map<int, std::map<Results2::Booth::Type, float>> boothTypeFpIterationVariation;
-  std::map<int, std::map<Results2::VoteType, float>> voteTypeFpIterationVariation;
-  std::map<int, std::map<Results2::Booth::Type, float>> boothTypeFpSourceCount;
-  std::map<int, std::map<Results2::VoteType, float>> voteTypeFpSourceCount;
-  std::map<int, std::map<Results2::Booth::Type, float>> boothTypeFpVoteCount;
-  std::map<int, std::map<Results2::VoteType, float>> voteTypeFpVoteCount;
+  std::map<int, std::map<Results2::Booth::Type, double>> boothTypeFpBiases;
+  std::map<int, std::map<Results2::VoteType, double>> voteTypeFpBiases;
+  std::map<int, std::map<Results2::Booth::Type, double>> boothTypeFpBiasStdDev;
+  std::map<int, std::map<Results2::VoteType, double>> voteTypeFpBiasStdDev;
+  std::map<int, std::map<Results2::Booth::Type, double>> boothTypeFpIterationVariation;
+  std::map<int, std::map<Results2::VoteType, double>> voteTypeFpIterationVariation;
+  std::map<int, std::map<Results2::Booth::Type, double>> boothTypeFpSourceCount;
+  std::map<int, std::map<Results2::VoteType, double>> voteTypeFpSourceCount;
+  std::map<int, std::map<Results2::Booth::Type, double>> boothTypeFpVoteCount;
+  std::map<int, std::map<Results2::VoteType, double>> voteTypeFpVoteCount;
 
   // Debug/internal analysis only
-  std::map<Results2::Booth::Type, float> boothTypeTppBiasesRaw;
-  std::map<Results2::VoteType, float> voteTypeTppBiasesRaw;
-  std::map<int, std::map<Results2::Booth::Type, float>> boothTypeFpBiasesRaw;
-  std::map<int, std::map<Results2::VoteType, float>> voteTypeFpBiasesRaw;
+  std::map<Results2::Booth::Type, double> boothTypeTppBiasesRaw;
+  std::map<Results2::VoteType, double> voteTypeTppBiasesRaw;
+  std::map<int, std::map<Results2::Booth::Type, double>> boothTypeFpBiasesRaw;
+  std::map<int, std::map<Results2::VoteType, double>> voteTypeFpBiasesRaw;
 
   int natPartyIndex;
 
-  float nonClassicTppBiasPercentagePoints = 0.0f;
-  float nonClassicTppBiasConfidence = 0.0f;
+  double nonClassicTppBiasPercentagePoints = 0.0;
+  double nonClassicTppBiasConfidence = 0.0;
 
   int variabilitySampleIndex = 0;
   std::uint64_t variabilityBaseSeed = 0x9e3779b97f4a7c15ULL;

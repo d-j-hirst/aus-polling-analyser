@@ -226,7 +226,7 @@ int main() {
     // when there are no additions, despite the prior proposing another share.
     std::map<int, double> const reported{{0, 8000}, {1, 6000}};
     auto counted = reported;
-    std::map<int, float> projected{{0, 8000}, {1, 6000}};
+    std::map<int, double> projected{{0, 8000}, {1, 6000}};
     transfer(counted, projected, 0, 1, -1000);
     assert(counted.at(0) == 7000 && counted.at(1) == 7000);
     assert(reported.at(0) == 8000 && reported.at(1) == 6000);
@@ -246,13 +246,12 @@ int main() {
     assert(shares.at(0) * 144 >= counted.at(0) - .001);
     assert(shares.at(1) * 144 >= counted.at(1) - .001);
 
-    // Real rechecking draws have arbitrary fractional parts. Float storage can
-    // round both projected candidates below their double-precision counted
-    // allocation, unlike the exactly representable transfers tested above.
-    // Reproduce the progress refresh and then the final forecast handoff.
+    // Real rechecking draws have arbitrary fractional parts. Both accounts now
+    // retain doubles, including through progress refresh and the final handoff.
+    // These cases previously lost precision at the projected-count boundary.
     for (double revision : {.3, -.3, 27.812341, -127.812341}) {
         std::map<int, double> fractionalCounts{{0, 8000}, {1, 1000}};
-        std::map<int, float> fractionalProjection{{0, 8000}, {1, 1000}};
+        std::map<int, double> fractionalProjection{{0, 8000}, {1, 1000}};
         transfer(fractionalCounts, fractionalProjection, 0, 1, revision);
         double const total = double(fractionalProjection.at(0)) + double(fractionalProjection.at(1));
         double const progress = LiveTurnoutMath::completion(9000, total);

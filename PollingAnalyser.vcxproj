@@ -513,6 +513,7 @@
     <ClInclude Include="SimulationInputs.h" />
     <ClInclude Include="SimulationPreparation.h" />
     <ClInclude Include="SimulationRun.h" />
+    <ClInclude Include="SimulationAudit.h" />
     <ClInclude Include="SourceLocation.h" />
     <ClInclude Include="StanModel.h" />
     <ClInclude Include="SwingAnalyser.h" />

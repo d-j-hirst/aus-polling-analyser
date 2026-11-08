@@ -24,19 +24,19 @@ struct PreferencePool {
     // restricted to scalar preference evidence. Unreported seats stay in the
     // coverage denominator. No results or project objects are copied.
     double expected = 0, weight = 0, sum = 0;
-    void add(double target, double relevance, double confidence, std::optional<float> deviation) {
+    void add(double target, double relevance, double confidence, std::optional<double> deviation) {
         expected += target;
         if (!deviation) return;
         double w = target*relevance*confidence;
         weight += w; sum += w * *deviation;
     }
     double confidence() const { return expected > 0 ? weight/expected : 0; }
-    std::optional<float> deviation() const {
-        return weight > 0 ? std::optional<float>(float(sum/weight)) : std::nullopt;
+    std::optional<double> deviation() const {
+        return weight > 0 ? std::optional<double>(double(sum/weight)) : std::nullopt;
     }
 };
 
-double transformedCounts(std::map<int, float> const& votes) {
+double transformedCounts(std::map<int, double> const& votes) {
     double total = 0;
     for (auto const& [id, count] : votes) total += count;
     if (total <= 0) return 0;
@@ -84,12 +84,12 @@ double LiveV2::Election::heldOutPreferenceOffset(int excludedSeat) const {
     for (std::size_t r = 0; r < regions.size(); ++r)
         election.add(regions[r].expected,largeRegions[r].node.relevanceModifier,
             regions[r].confidence(),regions[r].deviation());
-    constexpr float FlowConfidenceStrength = 200; // existing preference hierarchy
+    constexpr double FlowConfidenceStrength = 200; // existing preference hierarchy
     double overall = election.deviation().value_or(0)*LiveSimulationMath::observationWeight(
-        float(election.confidence()),FlowConfidenceStrength);
+        double(election.confidence()),FlowConfidenceStrength);
     auto const& region = regions.at(seats.at(excludedSeat).parentRegionIndex);
     double regional = region.deviation() ? (*region.deviation()-overall)*
-        LiveSimulationMath::observationWeight(float(region.confidence()),FlowConfidenceStrength) : 0;
+        LiveSimulationMath::observationWeight(double(region.confidence()),FlowConfidenceStrength) : 0;
     return (overall+regional)/25;
 }
 
@@ -152,11 +152,11 @@ void LiveV2::Election::prepareCategoryHistory(int seatIndex, Results2::Seat cons
     // match. Completion can then compare aggregate PPVC results even after moves.
     // A zero historical account supplies neither a comparison nor provenance.
     auto add = [&](int code, auto const& fp, auto const& tcp, bool synthetic) {
-        std::map<int, float> primaries, preferences;
+        std::map<int, double> primaries, preferences;
         for (auto const& [id, votes] : fp)
-            primaries[mapPartyId(id,true,previousElection,currentElection)] += float(votes);
+            primaries[mapPartyId(id,true,previousElection,currentElection)] += double(votes);
         for (auto const& [id, votes] : tcp)
-            preferences[mapPartyId(id,true,previousElection,currentElection)] += float(votes);
+            preferences[mapPartyId(id,true,previousElection,currentElection)] += double(votes);
         double first = 0, total = 0;
         bool classic = preferences.contains(0) && (preferences.contains(1) || preferences.contains(natPartyIndex));
         for (auto const& [party, votes] : preferences) if (classic) {
@@ -712,7 +712,7 @@ double LiveV2::Election::accountedTpp(int seatIndex, double transformed, bool sa
     if (sample && account.direct.inferredVotes > 0) {
         double sd = std::sqrt(account.direct.conversionVariance)*LiveTppComposition::conversionShareJacobian(inferred);
         inferred = LiveTppComposition::share(LiveTppComposition::transform(inferred)
-            + variabilityNormal(0,float(sd),seatIndex,0,72));
+            + variabilityNormal(0,double(sd),seatIndex,0,72));
     }
     return LiveTppComposition::transform(account.direct.shareAt(
         LiveTppComposition::share(transformed),account.expectedVotes(),inferred));
@@ -735,9 +735,9 @@ double LiveV2::Election::tppScenarioCountChange(int seatIndex) const {
         - transformedCounts(turnout->mean(LiveData::CountKind::Tpp, seatIndex));
 }
 
-float LiveV2::Election::preparedTppShare(int seatIndex) const {
+double LiveV2::Election::preparedTppShare(int seatIndex) const {
     if (auto const& final = seats.at(seatIndex).finalResult; final && !final->tpp.empty())
-        return float(100*final->tpp.at(0)/(final->tpp.at(0)+final->tpp.at(1)));
+        return double(100*final->tpp.at(0)/(final->tpp.at(0)+final->tpp.at(1)));
     // Results' estimated swing follows the same prepared centre as the new
     // simulator handoff. Keep the older composition centre only during setup,
     // before the joint state exists; the raw-swing column is independent.
@@ -745,7 +745,7 @@ float LiveV2::Election::preparedTppShare(int seatIndex) const {
     double transformed = tppIntegration
         ? accountedTpp(seatIndex,tppIntegration->posterior.mean.at(tppProjectSeatIndices.at(seatIndex)))
         : transformedCounts(projected);
-    double share = detransformVoteShare(float(transformed));
+    double share = detransformVoteShare(double(transformed));
     auto account = LiveTurnoutMath::partitionAccount(
         {&turnout->counted(LiveData::CountKind::Tpp, seatIndex), &projected}, [](int id) { return id; });
     return LiveFpIntegration::constrainToCounted(account, {{0, share}, {1, 100 - share}}).at(0);

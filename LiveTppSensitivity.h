@@ -14,13 +14,13 @@ namespace LiveTppSensitivity {
 struct Unit {
     LiveData::BoothType boothType;
     LiveData::VoteType voteType;
-    float expectedVotes;
+    double expectedVotes;
     bool hasObservedTpp;
 };
 
 struct Sensitivities {
-    std::map<LiveData::BoothType, float> boothTypes;
-    std::map<LiveData::VoteType, float> voteTypes;
+    std::map<LiveData::BoothType, double> boothTypes;
+    std::map<LiveData::VoteType, double> voteTypes;
 };
 
 inline Sensitivities prepare(std::span<Unit const> units, bool optionalPreferential) {

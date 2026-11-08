@@ -6,6 +6,7 @@
 #include "LiveInputRecovery.h"
 
 #include <array>
+#include <map>
 #include <numeric>
 #include <optional>
 #include <set>
@@ -313,11 +314,16 @@ namespace Results2 {
 		Election(std::string const& termCode) : termCode(termCode) {parties.insert({-1, {-1, "Independent", "IND"}});}
 
 		static Election createAec(tinyxml2::XMLDocument const& xml, std::string const& termCode);
+		// Attach historical VEC counts to current polling-place IDs. The optional
+		// map is current district name -> configured predecessor name. It resolves
+		// shared venue names after a district rename; historical result ownership
+		// still uses the original district, and genuinely ambiguous links stay unset.
 		static Election createVec(
 			nlohmann::json const& results,
 			tinyxml2::XMLDocument const& input_candidates,
 			tinyxml2::XMLDocument const& input_booths,
-			std::string const& termCode
+			std::string const& termCode,
+			std::map<std::string, std::string> const& previousSeatNames = {}
 		);
 		static Election createVec(
 			tinyxml2::XMLDocument const& input_candidates,
@@ -342,7 +348,8 @@ namespace Results2 {
 		void updateEcsa(tinyxml2::XMLDocument const& xml);
 
 		void update2022VicPrev(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates,
-			tinyxml2::XMLDocument const& input_booths);
+			tinyxml2::XMLDocument const& input_booths,
+			std::map<std::string, std::string> const& previousSeatNames = {});
 		void preload2022Vic(tinyxml2::XMLDocument const& input_candidates,
 			tinyxml2::XMLDocument const& input_booths, bool includeSeatBooths = false);
 

@@ -11,7 +11,7 @@
 // Simulation copies share that work and draw only counts and composition.
 namespace LiveTurnout {
 using Counted = std::map<int, double>;
-using Projected = std::map<int, float>;
+using Projected = std::map<int, double>;
 
 struct UnitComposition {
     std::size_t booth = 0, seat = 0;
@@ -26,7 +26,7 @@ struct SeatComposition {
     bool finalised = false;
     Counted fp, tpp, tcp;
     Projected projectedFp, projectedTpp, projectedTcp;
-    float fpConfidence = 0, tppConfidence = 0, tcpConfidence = 0;
+    double fpConfidence = 0, tppConfidence = 0, tcpConfidence = 0;
 };
 struct Projection {
     Projected fp, tpp, tcp;
@@ -58,7 +58,7 @@ public:
         Projected const& sampled, std::map<int, double> const& changes) const;
     Projected const& mean(LiveData::CountKind kind, std::size_t seat) const;
     Counted const& counted(LiveData::CountKind kind, std::size_t seat) const;
-    float confidence(LiveData::CountKind kind, std::size_t seat) const;
+    double confidence(LiveData::CountKind kind, std::size_t seat) const;
     std::size_t seatIndex(std::string const& name) const;
     // The name index contains identities only and is shared by all scenarios.
     // Permissive live getters use findSeatIndex so unknown/inactive names keep

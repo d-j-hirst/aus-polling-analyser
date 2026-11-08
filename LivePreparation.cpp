@@ -380,7 +380,15 @@ void LivePreparation::parsePreviousResults()
 		tinyxml2::XMLDocument boothsXml;
 		loadLiveXml(boothsXml, "downloads/" + getTermCode() + "_booths.xml");
 		nlohmann::json resultsJson = loadLiveJson("analysis/Booth Results/" + prevTermCode + ".json");
-		previousElection = Results2::Election::createVec(resultsJson, candidatesXml, boothsXml, prevTermCode);
+		// The historical reader needs predecessor names while linking shared
+		// venue names to current IDs. Supplying them only later to LiveV2 cannot
+		// recover a historical booth that the reader left unattached here.
+		std::map<std::string, std::string> previousSeatNames;
+		for (auto const& [seatId, seat] : project.seats()) {
+			(void)seatId;
+			if (!seat.previousName.empty()) previousSeatNames[seat.name] = seat.previousName;
+		}
+		previousElection = Results2::Election::createVec(resultsJson, candidatesXml, boothsXml, prevTermCode, previousSeatNames);
 	}
 	else if (run.regionCode == "nsw") {
 		tinyxml2::XMLDocument zerosXml;

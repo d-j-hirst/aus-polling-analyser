@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored election-specific regional polling inputs.",
   "created_at_utc": "2026-07-23T23:21:58Z",
-  "updated_at_utc": "2026-10-13T13:06:22Z",
+  "updated_at_utc": "2026-11-08T10:31:29Z",
   "categories": {
     "regional_poll_inputs": {
       "description": "Election-specific regional poll breakdowns used by region_model.py.",
@@ -13,7 +13,7 @@
         "*-polls-ON.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 8,
+      "semantic_revision": 9,
       "files": {
         "2024qld-polls.csv": {
           "sha256": "87b685e3a3be3c726a75e09ffebcefa603b4c55ad3556e937a2db810e3f94412",
@@ -46,14 +46,14 @@
           "recorded_mtime_utc": "2026-07-29T14:17:40.248107Z"
         },
         "2028fed-polls-ON.csv": {
-          "sha256": "017025e5640594f60167876fdc181a69d12118c6e05c94beaa7cfe7bd1a76e90",
-          "size_bytes": 2220,
-          "recorded_mtime_utc": "2026-10-13T10:13:29.805670Z"
+          "sha256": "4311f751d217341594156d269a20bce5ab4eb247f4ca10f65d15bab020c75f14",
+          "size_bytes": 2279,
+          "recorded_mtime_utc": "2026-11-08T10:30:29.948136Z"
         },
         "2028fed-polls.csv": {
-          "sha256": "7bcd5451a9ca61316a3e220cc3df455c517e56bb0d036ad05e95ea1a06d98a8e",
-          "size_bytes": 3485,
-          "recorded_mtime_utc": "2026-10-13T10:13:35.396153Z"
+          "sha256": "35fde6af49abb6e5321db37b44940796218716da5a3e7bc5bb63e2a5a9976281",
+          "size_bytes": 3576,
+          "recorded_mtime_utc": "2026-11-08T10:27:53.373576Z"
         },
         "2028qld-polls-ON.csv": {
           "sha256": "948e26ac2d7c1b3f413d64aec71a58335881f830cea6224d892162a4984ea0c2",
@@ -318,9 +318,31 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261108T103129Z-new_polling-regional-poll-inputs-bbf6422b",
+          "recorded_at_utc": "2026-11-08T10:31:29Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 9,
+          "provenance_revision": 9,
+          "summary": "Resolve state breakdowns",
+          "files": [
+            "2028fed-polls-ON.csv",
+            "2028fed-polls.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 8
+      "provenance_revision": 9
     }
   }
 }

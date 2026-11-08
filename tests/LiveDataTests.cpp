@@ -161,7 +161,7 @@ void testJointTppIntegration()
     // A weaker transferable comparison never reopens ballots already counted
     // in this seat. The same finite-count bound used by the TPP handoff fixes
     // a complete local account regardless of the shared/prior draw.
-    LiveTurnoutMath::PartyAccount finished{{{0,55.},{1,45.}},{{0,55.f},{1,45.f}}};
+    LiveTurnoutMath::PartyAccount finished{{{0,55.},{1,45.}},{{0,55.},{1,45.}}};
     auto completedShares=LiveFpIntegration::constrainToCounted(finished,{{0,5.},{1,95.}});
     assert(completedShares.at(0)==55 && completedShares.at(1)==45);
     inconsistent.add(5000,2000,1,-30,0,10);
@@ -442,6 +442,63 @@ void testHistoricalIndependentEligibility()
     assert(usePreviousResult(false, true, false));
 }
 
+void testEmergingIndependentPreferenceAndReportingGroups()
+{
+    using IndependentCandidacy::hasKnownEmergingCandidate;
+    using IndependentCandidacy::mergeSmallEmergingFpIntoOthers;
+
+    // The ballot supplies the same candidacy evidence in a baseline and an
+    // empty live forecast. One known IND cannot also confirm a second one.
+    assert(hasKnownEmergingCandidate(1, false, false));
+    assert(hasKnownEmergingCandidate(2, true, false));
+    assert(!hasKnownEmergingCandidate(1, true, false));
+    assert(!hasKnownEmergingCandidate(0, false, false));
+    assert(hasKnownEmergingCandidate(0, false, true));
+
+    constexpr int namedIndependent = 3;
+    constexpr double reportingThreshold = 8.0; // Synthetic test threshold.
+    std::map<int, double> primaryShares{
+        {0, 42}, {1, 40}, {namedIndependent, 5},
+        {EmergingIndIndex, 6}, {OthersIndex, 7}};
+    auto const candidateShares = primaryShares;
+    LiveFpIntegration::MomentAccumulator baselineMoments;
+    baselineMoments.add(candidateShares);
+    mergeSmallEmergingFpIntoOthers(primaryShares, reportingThreshold);
+    assert(primaryShares.at(EmergingIndIndex) == 0);
+    assert(primaryShares.at(OthersIndex) == 13);
+    assert(primaryShares.at(namedIndependent) == 5);
+    assert(primaryShares.at(0) == 42 && primaryShares.at(1) == 40);
+    double total = 0;
+    for (auto const& [party, share] : primaryShares) {
+        (void)party;
+        total += share;
+    }
+    assert(total == 100);
+
+    // The numerical baseline describes the real candidate draws, including
+    // smaller known candidates. Reporting zeros must not broaden that prior.
+    auto moments = baselineMoments.finish();
+    assert(std::abs(moments.shareMean.at(EmergingIndIndex) - .06) < 1e-12);
+    assert(std::abs(moments.shareMean.at(OthersIndex) - .07) < 1e-12);
+    assert(std::abs(moments.logOddsVariance.at(EmergingIndIndex)) < 1e-12);
+    auto const groupedOnce = primaryShares;
+    mergeSmallEmergingFpIntoOthers(primaryShares, reportingThreshold);
+    assert(primaryShares == groupedOnce);
+
+    // Boundary cases do not invent an Others entry or affect an established
+    // independent. Values exactly at the threshold stay separately reported.
+    for (double emergingShare : {0.0, 8.0, 12.0}) {
+        std::map<int, double> shares{{namedIndependent, 2}, {EmergingIndIndex, emergingShare}};
+        auto const original = shares;
+        mergeSmallEmergingFpIntoOthers(shares, reportingThreshold);
+        assert(shares == original);
+    }
+    std::map<int, double> noEmerging{{namedIndependent, 2}};
+    auto const original = noEmerging;
+    mergeSmallEmergingFpIntoOthers(noEmerging, reportingThreshold);
+    assert(noEmerging == original);
+}
+
 void testKnownCoalitionBallot()
 {
     using CoalitionCandidacy::candidateChance;
@@ -462,34 +519,34 @@ void testSharedFinalistTcpCoverage() {
     // Another 79,800 votes belong to unreported or unmatched locations. A
     // complete first booth must not receive the whole-seat confidence cap.
     SharedFinalistTcpEvidence sparse;
-    sparse.addBooth(200.0f, 2.0f, 300.0f);
-    sparse.addBooth(40000.0f); // TCP not reported.
-    sparse.addBooth(39800.0f); // No compatible historical pair.
+    sparse.addBooth(200.0, 2.0, 300.0);
+    sparse.addBooth(40000.0); // TCP not reported.
+    sparse.addBooth(39800.0); // No compatible historical pair.
     assert(sparse.available());
-    assert(sparse.meanSwing() == 2.0f);
-    assert(std::abs(sparse.confidence() - 0.006123724f) < 0.0000001f);
-    assert(LiveSimulationMath::evidenceWeight(sparse.confidence(), 14.0f) < 0.04f);
+    assert(sparse.meanSwing() == 2.0);
+    assert(std::abs(sparse.confidence() - 0.006123724) < 0.0000001);
+    assert(LiveSimulationMath::evidenceWeight(sparse.confidence(), 14.0) < 0.04);
 
     // Widespread observations strengthen the comparison normally. Unmatched
     // locations dilute its coverage without fabricating a zero measured swing.
     SharedFinalistTcpEvidence broad;
-    broad.addBooth(30000.0f, 2.0f, 30000.0f);
-    broad.addBooth(30000.0f, -4.0f, 30000.0f);
-    broad.addBooth(20000.0f);
-    assert(broad.meanSwing() == -1.0f);
-    assert(std::abs(broad.confidence() - 0.08660254f) < 0.0000001f);
+    broad.addBooth(30000.0, 2.0, 30000.0);
+    broad.addBooth(30000.0, -4.0, 30000.0);
+    broad.addBooth(20000.0);
+    assert(broad.meanSwing() == -1.0);
+    assert(std::abs(broad.confidence() - 0.08660254) < 0.0000001);
     assert(broad.confidence() > sparse.confidence());
 
     SharedFinalistTcpEvidence none;
-    none.addBooth(80000.0f);
-    none.addBooth(0.0f); // An unavailable service with no expected votes.
-    assert(!none.available() && none.confidence() == 0.0f);
+    none.addBooth(80000.0);
+    none.addBooth(0.0); // An unavailable service with no expected votes.
+    assert(!none.available() && none.confidence() == 0.0);
     SharedFinalistTcpEvidence complete;
-    complete.addBooth(80000.0f, 0.0f, 90000.0f);
-    assert(complete.available() && complete.meanSwing() == 0.0f);
+    complete.addBooth(80000.0, 0.0, 90000.0);
+    assert(complete.available() && complete.meanSwing() == 0.0);
     assert(complete.confidence() == SharedFinalistTcpEvidence::MaximumConfidence);
     SharedFinalistTcpEvidence empty;
-    assert(!empty.available() && empty.confidence() == 0.0f);
+    assert(!empty.available() && empty.confidence() == 0.0);
 }
 
 void testHistoricalPreferenceReliability() {
@@ -625,13 +682,13 @@ void testNewVoteComposition() {
 
     // A four-vote ordinary record must not impersonate its historical size.
     // Complete ordinary counts retain their usual full observed evidence.
-    FpEvidence partial{700,4,1,1,{{1,-100.0f}},{}}, complete{700,700,1,1,{{1,0.0f}},{}};
+    FpEvidence partial{700,4,1,1,{{1,-100.0}},{}}, complete{700,700,1,1,{{1,0.0}},{}};
     assert(evidenceWeight(partial) == 4);
     assert(evidenceWeight(complete) == 700);
     auto parent = aggregate({partial,complete},1400);
     assert(std::abs(parent.deviations.at(1)+400.0/704) < 1e-6);
     assert(std::abs(parent.confidence-704.0/1400) < 1e-12);
-    FpEvidence declaration{3000,1000,0,1,{{1,100.0f}},{}};
+    FpEvidence declaration{3000,1000,0,1,{{1,100.0}},{}};
     auto ordinaryOnly = aggregate({complete,declaration},3700);
     assert(ordinaryOnly.deviations.at(1) == 0);
     assert(std::abs(ordinaryOnly.confidence-700.0/3700) < 1e-12);
@@ -648,8 +705,8 @@ void testIndependentPooling() {
     // Fictional small campaigns rise from low bases while established
     // candidates fall. Preserve each seat's own evidence and reduce only
     // the movement it contributes to other districts.
-    FpEvidence small{10000,5000,.5,1,{{0,4.0f},{3,20.0f}},{},{}};
-    FpEvidence strong{10000,5000,.5,1,{{0,4.0f},{3,-10.0f}},{},{}};
+    FpEvidence small{10000,5000,.5,1,{{0,4.0},{3,20.0}},{},{}};
+    FpEvidence strong{10000,5000,.5,1,{{0,4.0},{3,-10.0}},{},{}};
     prepareIndependentPooling(small,3,.01);
     prepareIndependentPooling(strong,3,.2);
     assert(small.deviations.at(3) == 20 && small.confidence == .5);
@@ -669,7 +726,7 @@ void testIndependentPooling() {
     assert(std::abs(nested.deviations.at(3)-combined.deviations.at(3)) < 1e-6);
     assert(std::abs(nested.poolingVotes.at(3)-combined.poolingVotes.at(3)) < 1e-9);
     assert(poolingConfidence(nested,3) == poolingConfidence(combined,3));
-    FpEvidence absent{10000,5000,.5,1,{{0,4.0f}},{},{}};
+    FpEvidence absent{10000,5000,.5,1,{{0,4.0}},{},{}};
     prepareIndependentPooling(absent,3,.2);
     assert(candidateEvidenceWeight(absent,3) == 0);
     auto sparse = aggregate({absent,strong},20000);
@@ -814,7 +871,7 @@ void testFpDisagreementEndpoints() {
     // choice changes future composition, keeps the seat total, and permits
     // ordinary normal variation in addition to the endpoint contribution.
     p.weight[900]=.7;
-    std::map<int,float> projected{{0,4730.f},{1,4560.f},{900,710.f}};
+    std::map<int,double> projected{{0,4730.},{1,4560.},{900,710.}};
     for (double u : {.1,.9}) {
         double offset=25*disagreementVariation(p,900,u);
         for (double normal : {-2.,0.,2.}) {
@@ -849,8 +906,8 @@ void testFpPrecisionIntegration() {
     auto identity = [](int id) { return id; };
     // Record unrounded draws and the implicit zero when a candidate is absent.
     MomentAccumulator baseline;
-    baseline.add({{0,40.f},{1,50.f},{2,10.f}});
-    baseline.add({{0,50.f},{1,50.f}});
+    baseline.add({{0,40.},{1,50.},{2,10.}});
+    baseline.add({{0,50.},{1,50.}});
     auto moments = baseline.finish();
     double expected = (logOdds(.1)+logOdds(0))/2;
     assert(std::abs(moments.logOddsMean.at(2)-expected)<1e-10);
@@ -865,8 +922,8 @@ void testFpPrecisionIntegration() {
     // that prior and must borrow its source group's uncertainty when observed.
     MomentAccumulator zeroOnly;
     for (int sample = 0; sample < 10000; ++sample) {
-        float offset = sample % 2 ? 3.f : -3.f;
-        zeroOnly.add({{0,40.f},{1,0.f},{7,45.f-offset},{-1,15.f+offset}});
+        double offset = sample % 2 ? 3. : -3.;
+        zeroOnly.add({{0,40.},{1,0.},{7,45.-offset},{-1,15.+offset}});
     }
     auto zeroMoments = zeroOnly.finish();
     auto missing = group(zeroMoments,1,identity);
@@ -875,7 +932,7 @@ void testFpPrecisionIntegration() {
     // Tiny but positive support remains a real distribution, even if the
     // finite transform uses the same floor as a zero observation.
     MomentAccumulator tinyPositive;
-    tinyPositive.add({{1,0.0000001f}});
+    tinyPositive.add({{1,0.0000001}});
     assert(!group(tinyPositive.finish(),1,identity).allZero);
 
     LiveData::FpIntegrationInformation newcomer;
@@ -887,10 +944,10 @@ void testFpPrecisionIntegration() {
     }
     newcomer.evidenceGate = 1;
     LiveTurnoutMath::PartyAccount newcomerAccount{
-        {{0,40.f},{1,100.f},{7,50.f},{-1,10.f}},
-        {{0,4000.f},{1,1400.f},{7,3200.f},{-1,1400.f}}};
+        {{0,40.},{1,100.},{7,50.},{-1,10.}},
+        {{0,4000.},{1,1400.},{7,3200.},{-1,1400.}}};
     auto learned = integrate(newcomerAccount,
-        {{0,40.f},{1,1.f},{7,44.f},{-1,15.f}},newcomer,identity,identity);
+        {{0,40.},{1,1.},{7,44.},{-1,15.}},newcomer,identity,identity);
     assert(learned.at(1)>5); // Not frozen at its 1% counted lower bound.
 
     // Broad early count draws earn less weight than a narrow pre-election prior.
@@ -914,12 +971,12 @@ void testFpPrecisionIntegration() {
     information.baseline.logOddsVariance={{0,.04},{1,.04}};
     information.baseline.shareMean={{0,.3},{1,.7}};
     information.count.logOddsMean={{0,logOdds(.45)},{1,logOdds(.55)}};
-    information.count.logOddsVariance={{0,1.f},{1,1.f}};
+    information.count.logOddsVariance={{0,1.},{1,1.}};
     information.count.shareMean={{0,.45},{1,.55}};
-    std::map<int,float> prior{{0,30.f},{1,70.f}};
-    LiveTurnoutMath::PartyAccount early{{{0,40.f},{1,40.f}},{{0,18000.f},{1,22000.f}}};
+    std::map<int,double> prior{{0,30.},{1,70.}};
+    LiveTurnoutMath::PartyAccount early{{{0,40.},{1,40.}},{{0,18000.},{1,22000.}}};
     // No observations preserves the exact prior; eighty votes move it smoothly.
-    auto unreported=early; unreported.counted={{0,0.f},{1,0.f}};
+    auto unreported=early; unreported.counted={{0,0.},{1,0.}};
     assert(integrate(unreported,prior,information,identity,identity)==prior);
     information.evidenceGate=tinyGate;
     auto first=integrate(early,prior,information,identity,identity);
@@ -928,21 +985,21 @@ void testFpPrecisionIntegration() {
 
     // Shared movement survives even when local uncertainty is very broad. The
     // caller supplies the same conditional prior shift as the count's centre.
-    auto shifted=early; shifted.projected={{0,14000.f},{1,26000.f}};
-    auto common=integrate(shifted,{{0,35.f},{1,65.f}},information,identity,identity);
+    auto shifted=early; shifted.projected={{0,14000.},{1,26000.}};
+    auto common=integrate(shifted,{{0,35.},{1,65.}},information,identity,identity);
     assert(std::abs(common.at(0)-35)<1e-5);
 
     // Tight count evidence replaces an implausible prior tail, while fixed
     // counts always bound the result, even if a precise prior contradicts them.
     information.evidenceGate=.9;
     information.count.logOddsVariance={{0,.00001},{1,.00001}};
-    auto strong=integrate(early,{{0,90.f},{1,10.f}},information,identity,identity);
+    auto strong=integrate(early,{{0,90.},{1,10.}},information,identity,identity);
     assert(strong.at(0)>44.9 && strong.at(0)<45.1);
-    LiveTurnoutMath::PartyAccount late{{{0,490.f},{1,450.f},{2,50.f}},{{0,500.f},{1,450.f},{2,50.f}}};
+    LiveTurnoutMath::PartyAccount late{{{0,490.},{1,450.},{2,50.}},{{0,500.},{1,450.},{2,50.}}};
     auto bounded=constrainToCounted(late,{{0,.01},{1,.98},{2,.01}});
     assert(bounded.at(0)>=49 && bounded.at(1)>=45 && bounded.at(2)>=5);
     assert(std::abs(bounded.at(0)+bounded.at(1)+bounded.at(2)-100)<1e-5);
-    auto complete=late; complete.counted={{0,500.f},{1,450.f},{2,50.f}};
+    auto complete=late; complete.counted={{0,500.},{1,450.},{2,50.}};
     auto exact=constrainToCounted(complete,{{0,.8},{1,.1},{2,.1}});
     assert(exact.at(0)==50 && exact.at(1)==45 && exact.at(2)==5);
     // Identical moments under an independent proxy or Liberal/National
@@ -956,10 +1013,10 @@ void testFpPrecisionIntegration() {
     proxy.count.shareMean=relabel(information.count.shareMean);
     proxy.count.logOddsMean=relabel(information.count.logOddsMean);
     proxy.count.logOddsVariance=relabel(information.count.logOddsVariance);
-    LiveTurnoutMath::PartyAccount alias{{{0,40.f},{900,40.f}},{{0,18000.f},{900,22000.f}}};
+    LiveTurnoutMath::PartyAccount alias{{{0,40.},{900,40.}},{{0,18000.},{900,22000.}}};
     auto partition=[](int id) { return id == 900 ? 1 : id; };
     auto renamed=integrate(LiveTurnoutMath::partitionAccount({&alias.counted,&alias.projected},partition),
-        {{0,90.f},{1,10.f}},proxy,identity,partition);
+        {{0,90.},{1,10.}},proxy,identity,partition);
     assert(renamed==strong);
 }
 
@@ -1026,7 +1083,7 @@ void testRevisedTcpAccount() {
     auto bounds = revisedLowerBounds(fp,basis.tcp,basis);
     assert(bounds.at(0) == 1856 && bounds.at(1) == 2891);
     auto composition = LiveTurnoutMath::prepareUnitComposition(
-        {{0,float(revised->first)},{1,float(revised->votes-revised->first)}},bounds,revised->votes);
+        {{0,double(revised->first)},{1,double(revised->votes-revised->first)}},bounds,revised->votes);
     assert(std::abs(composition.base.at(0)-revised->first) < .001);
     assert(std::abs(composition.base.at(0)+composition.base.at(1)-4750) < .001);
     for (int count : {1,7,300}) {
@@ -1069,6 +1126,7 @@ int main()
 	testEstimatedTppSourceInfluence();
 	testSharedFinalistTcpCoverage();
     testHistoricalIndependentEligibility();
+    testEmergingIndependentPreferenceAndReportingGroups();
 	testHistoricalPreferenceReliability();
     testKnownCoalitionBallot();
     testIndependentPooling();
@@ -1160,57 +1218,57 @@ int main()
 	assert(snapshot.voteType == LiveData::VoteType::Invalid);
 
 	LiveData::Internals internals;
-	assert(internals.projected2pp == 0.0f);
-	assert(internals.raw2ppDeviation == 0.0f);
+	assert(internals.projected2pp == 0.0);
+	assert(internals.raw2ppDeviation == 0.0);
 
-	assert(LiveSimulationMath::evidenceWeight(0.0f) == 0.0f);
+	assert(LiveSimulationMath::evidenceWeight(0.0) == 0.0);
 	assert(LiveSimulationMath::evidenceWeight(
-		LiveSimulationMath::EvidenceEpsilon) == 0.0f);
-	assert(LiveSimulationMath::evidenceWeight(0.000001f) > 0.0f);
-	assert(LiveSimulationMath::evidenceWeight(1.0f) == 1.0f);
-	assert(LiveSimulationMath::evidenceWeight(0.0f, 14.0f) == 0.0f);
-	assert(LiveSimulationMath::evidenceWeight(1.0f, 14.0f) == 1.0f);
-	float previousWeight = 0.0f;
+		LiveSimulationMath::EvidenceEpsilon) == 0.0);
+	assert(LiveSimulationMath::evidenceWeight(0.000001) > 0.0);
+	assert(LiveSimulationMath::evidenceWeight(1.0) == 1.0);
+	assert(LiveSimulationMath::evidenceWeight(0.0, 14.0) == 0.0);
+	assert(LiveSimulationMath::evidenceWeight(1.0, 14.0) == 1.0);
+	double previousWeight = 0.0;
 	for (int step = 1; step <= 100; ++step) {
-		float const weight = LiveSimulationMath::evidenceWeight(
-			float(step) * 0.01f);
+		double const weight = LiveSimulationMath::evidenceWeight(
+			double(step) * 0.01);
 		assert(weight >= previousWeight);
 		previousWeight = weight;
 	}
 
 	auto noActivation = LiveSimulationMath::activateFromSource(
-		12.0f, 0.0f, 8.0f);
-	assert(noActivation.partyShare == 0.0f);
-	assert(noActivation.sourceShare == 8.0f);
+		12.0, 0.0, 8.0);
+	assert(noActivation.partyShare == 0.0);
+	assert(noActivation.sourceShare == 8.0);
 	assert(!noActivation.requiresNormalisation);
 
 	auto partialActivation = LiveSimulationMath::activateFromSource(
-		12.0f, 0.25f, 8.0f);
-	assert(std::abs(partialActivation.partyShare - 3.0f) < 0.00001f);
-	assert(std::abs(partialActivation.sourceShare - 5.0f) < 0.00001f);
+		12.0, 0.25, 8.0);
+	assert(std::abs(partialActivation.partyShare - 3.0) < 0.00001);
+	assert(std::abs(partialActivation.sourceShare - 5.0) < 0.00001);
 	assert(std::abs(
 		partialActivation.partyShare + partialActivation.sourceShare -
-		8.0f) < 0.00001f);
+		8.0) < 0.00001);
 	assert(!partialActivation.requiresNormalisation);
 
 	auto limitedActivation = LiveSimulationMath::activateFromSource(
-		12.0f, 1.0f, 8.0f);
-	assert(limitedActivation.partyShare == 12.0f);
-	assert(limitedActivation.sourceShare == 0.0f);
+		12.0, 1.0, 8.0);
+	assert(limitedActivation.partyShare == 12.0);
+	assert(limitedActivation.sourceShare == 0.0);
 	assert(limitedActivation.requiresNormalisation);
 
 	auto reservedActivation = LiveSimulationMath::activateFromSource(
-		12.0f, 1.0f, 8.0f, 2.0f);
-	assert(reservedActivation.partyShare == 12.0f);
-	assert(reservedActivation.sourceShare == 2.0f);
+		12.0, 1.0, 8.0, 2.0);
+	assert(reservedActivation.partyShare == 12.0);
+	assert(reservedActivation.sourceShare == 2.0);
 	assert(reservedActivation.requiresNormalisation);
 
-	float const equalStrengthReserve = LiveSimulationMath::othersReserve(
-		10.0f, 4, {2.0f});
-	float const strongPartyReserve = LiveSimulationMath::othersReserve(
-		10.0f, 4, {6.0f});
-	assert(std::abs(equalStrengthReserve - 8.0f) < 0.00001f);
-	assert(std::abs(strongPartyReserve - (40.0f / 7.0f)) < 0.00001f);
+	double const equalStrengthReserve = LiveSimulationMath::othersReserve(
+		10.0, 4, {2.0});
+	double const strongPartyReserve = LiveSimulationMath::othersReserve(
+		10.0, 4, {6.0});
+	assert(std::abs(equalStrengthReserve - 8.0) < 0.00001);
+	assert(std::abs(strongPartyReserve - (40.0 / 7.0)) < 0.00001);
 	assert(strongPartyReserve < equalStrengthReserve);
 
 	std::cout << "Live data tests passed\n";

@@ -219,8 +219,8 @@ void checkLiveComposition() {
         double counted = units[j].counted, target = prepared->fpTarget(j);
         unit.fp = unit.tpp = {{0,.6*counted},{1,.4*counted}};
         unit.tcp = {{10,.6*counted},{11,.4*counted}};
-        unit.projectedFp = unit.projectedTpp = {{0,float(.6*target)},{1,float(.4*target)}};
-        unit.projectedTcp = {{10,float(.6*target)},{11,float(.4*target)}};
+        unit.projectedFp = unit.projectedTpp = {{0,double(.6*target)},{1,double(.4*target)}};
+        unit.projectedTcp = {{10,double(.6*target)},{11,double(.4*target)}};
         for (auto const& [party,votes] : unit.fp) { seat.fp[party] += votes; seat.tpp[party] += votes; }
         for (auto const& [party,votes] : unit.tcp) seat.tcp[party] += votes;
         for (auto const& [party,votes] : unit.projectedFp) { seat.projectedFp[party] += votes; seat.projectedTpp[party] += votes; }

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <limits>
 #include <optional>
 #include <stdexcept>
 #include <utility>
@@ -54,6 +55,7 @@ inline Shares normalize(Shares shares) {
     }
     if (!std::isfinite(sum) || sum <= 0)
         throw std::runtime_error("No positive future-voter primary composition.");
+    if (sum == 1) return shares;
     for (auto& [candidate,share] : shares) share /= sum;
     return shares;
 }
@@ -63,20 +65,42 @@ inline Shares composition(LivePartialCount::Counts const& counted, Shares const&
     double n = LivePartialCount::total(counted);
     double weight = observedWeight(n,expected,category);
     Shares result;
+    bool changed = false;
+    double contextTotal = 0;
     // The prepared context carries the current ballot identities. Do not add
     // historical candidates or invented zero-count candidates to that ballot.
     for (auto const& [candidate,prior] : context) {
+        if (!std::isfinite(prior) || prior < 0 || prior > 1)
+            throw std::runtime_error("Invalid future-voter primary context.");
+        contextTotal += prior;
+        double const adjustment = variation.contains(candidate) ? variation.at(candidate) : 0;
+        // With no observed movement or sampled change, retain the supplied
+        // composition exactly. Going through log odds would round every share
+        // and would turn a genuine zero into the transformation's small floor.
+        // Observed zeros still receive the ordinary half-vote treatment below.
+        if (weight == 0 && adjustment == 0) {
+            result[candidate] = prior;
+            continue;
+        }
         double transformed = LivePartialCount::logOdds(prior);
+        changed = true;
         if (weight > 0) {
             double observed = smoothedShare(LivePartialCount::value(counted,candidate),n,context.size());
             double shifted = LivePartialCount::logOdds(observed);
             if (observedOffsets.contains(candidate)) shifted += observedOffsets.at(candidate);
             transformed += weight*(shifted-transformed);
         }
-        if (variation.contains(candidate)) transformed += variation.at(candidate);
+        transformed += adjustment;
         result[candidate] = LivePartialCount::inverseLogOdds(transformed);
     }
-    return normalize(std::move(result));
+    // Callers supply a normalised context. A neutral update preserves even its
+    // last-bit summation error; normalising it twice would create a difference
+    // between the reference projection and the otherwise unchanged live one.
+    // Check that contract without silently accepting an empty or invalid account.
+    double const roundoff = 8*std::numeric_limits<double>::epsilon()*(context.size()+1);
+    if (!std::isfinite(contextTotal) || std::abs(contextTotal-1) > roundoff)
+        throw std::runtime_error("Future-voter primary context is not normalised.");
+    return changed ? normalize(std::move(result)) : context;
 }
 
 inline Shares project(LivePartialCount::Counts const& counted, Shares const& future, double expected) {
@@ -119,7 +143,7 @@ inline double nonClassicFirstShare(Shares const& primaries, LivePartialCount::Fl
 // partial record must never acquire its much larger historical booth's weight.
 struct FpEvidence {
     double expected = 0, counted = 0, confidence = 0, relevance = 1;
-    std::map<int,float> deviations, specific;
+    std::map<int,double> deviations, specific;
     // Effective observed votes for cross-district pooling only. An explicit
     // zero means no evidence for that candidate, even if other parties have
     // reported. Carry these votes upward without borrowing general confidence
@@ -162,7 +186,7 @@ inline FpEvidence aggregate(std::vector<FpEvidence> const& children, double expe
     }
     if (denominator > 0) result.confidence = confidenceVotes/denominator;
     for (auto const& [candidate,sum] : sums)
-        if (weights[candidate] > 0) result.deviations[candidate] = float(sum/weights[candidate]);
+        if (weights[candidate] > 0) result.deviations[candidate] = double(sum/weights[candidate]);
     for (auto& [candidate,votes] : result.poolingVotes) votes = weights[candidate];
     return result;
 }
@@ -175,7 +199,7 @@ inline void condition(FpEvidence& evidence, std::vector<FpEvidence const*> const
         for (auto parent : parents)
             if (parent->specific.contains(candidate)) residual -= parent->specific.at(candidate);
         double candidateWeight = candidateWeights.contains(candidate) ? candidateWeights.at(candidate) : weight;
-        evidence.specific[candidate] = float(residual*candidateWeight);
+        evidence.specific[candidate] = double(residual*candidateWeight);
     }
 }
 }

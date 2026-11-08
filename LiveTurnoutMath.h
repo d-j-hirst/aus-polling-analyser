@@ -23,12 +23,11 @@ inline double remaining(double expected, double counted) {
     // a substantive shortfall is an input/calculation error, not negative votes.
     if (!std::isfinite(expected) || !std::isfinite(counted) || expected < 0 || counted < 0)
         throw std::runtime_error("Invalid live turnout count account.");
-    // Candidate projections are stored as floats, while counted allocations
-    // use doubles. Fractional preference transfers can round a projection (or
-    // the sum of a pair) just below its counted allocation. Allow that storage
-    // error, scaled to the count, without accepting a substantive shortfall.
+    // Fractional preference transfers and summation can round a projected total
+    // just below its counted allocation. Both now use doubles. The allowance is
+    // only arithmetic noise (at least 0.0000001 vote), not a count revision.
     double const tolerance = std::max(1e-7,
-        double(std::numeric_limits<float>::epsilon()) * std::max(expected, counted));
+        double(std::numeric_limits<double>::epsilon()) * std::max(expected, counted));
     if (expected < counted - tolerance)
         throw std::runtime_error("Invalid live turnout count account: projected "
             + std::to_string(expected) + ", counted " + std::to_string(counted) + ".");
@@ -43,8 +42,8 @@ inline double revisedProjection(double projected, double counted,
     // its estimated, as-yet-uncounted preferences by a different amount.
     //
     // Keep that outstanding amount separate from the precise counted account.
-    // Repeatedly adding fractions straight to a float projection can accumulate
-    // rounding below its double-precision counted total. Rebuilding from the
+    // Repeatedly adding fractions straight to a projection can accumulate
+    // rounding below its counted total. Rebuilding from the
     // updated counted amount prevents that drift. remaining() still rejects
     // substantive shortfalls before and after the revision; only accepted
     // storage rounding is removed from an otherwise exhausted account.
@@ -78,8 +77,8 @@ inline double pairTarget(double expectedFp, double countedFp, double countedPair
     return std::max(countedFp, countedPair) + addition;
 }
 
-inline std::map<int, float> varyRemaining(
-    std::map<int, float> const& projected,
+inline std::map<int, double> varyRemaining(
+    std::map<int, double> const& projected,
     std::map<int, double> const& counted,
     std::map<int, double> const& transformedChanges,
     bool normaliseFpChanges = false) {
@@ -140,17 +139,17 @@ inline std::map<int, float> varyRemaining(
     }
     double denominator = 0;
     for (auto const& [party, value] : logWeights) denominator += std::exp(value - maximum);
-    std::map<int, float> result;
+    std::map<int, double> result;
     for (auto const& [party, value] : logWeights) {
         double fixed = counted.count(party) ? counted.at(party) : 0;
-        result[party] = float(fixed + pool * std::exp(value - maximum) / denominator);
+        result[party] = double(fixed + pool * std::exp(value - maximum) / denominator);
     }
     return result;
 }
 
 struct PartyAccount {
     std::map<int, double> counted;
-    std::map<int, float> projected;
+    std::map<int, double> projected;
 };
 
 struct UnitComposition {
@@ -158,7 +157,7 @@ struct UnitComposition {
     std::vector<std::pair<int, double>> additionShares;
 };
 
-inline UnitComposition prepareUnitComposition(std::map<int, float> const& projected,
+inline UnitComposition prepareUnitComposition(std::map<int, double> const& projected,
     std::map<int, double> const& counted, double countedFp) {
     // Freeze the mix of future voters in a reporting unit. Its base also holds
     // estimated preferences on already-counted FP votes, including a partially
@@ -176,9 +175,9 @@ inline UnitComposition prepareUnitComposition(std::map<int, float> const& projec
     if (!(total > 0)) return result;
     double pool = remaining(total,observed);
     double missingPreferences = std::max(0., countedFp - observed);
-    // Projected party maps are floats. Allow their reduction error, while
+    // Allow double-precision summation error, while
     // rejecting a projection that omits a substantive known FP preference pool.
-    if (missingPreferences > pool + std::max(.02, total * 2e-6))
+    if (missingPreferences > pool + std::max(1e-7, total * 32 * std::numeric_limits<double>::epsilon()))
         throw std::runtime_error("Live pair projection omits preferences on counted FP votes.");
     for (auto const& [p,v] : projected) {
         double fixed = counted.count(p) ? counted.at(p) : 0;
@@ -189,8 +188,8 @@ inline UnitComposition prepareUnitComposition(std::map<int, float> const& projec
     return result;
 }
 
-inline std::map<int, float> varySampledRemaining(std::map<int, float> const& sampled,
-    std::map<int, float> const& mean, std::map<int, double> const& counted,
+inline std::map<int, double> varySampledRemaining(std::map<int, double> const& sampled,
+    std::map<int, double> const& mean, std::map<int, double> const& counted,
     std::map<int, double> const& changes, bool normaliseFpChanges = false) {
     // Reduced preparation measured composition variation at the mean count.
     // Transfer that remaining-voter mix to the sampled count, so a late batch
@@ -217,9 +216,9 @@ inline std::map<int, float> varySampledRemaining(std::map<int, float> const& sam
     }
     double denominator = 0;
     for (auto const& [p,v] : weights) denominator += std::exp(v-maximum);
-    std::map<int,float> result;
+    std::map<int,double> result;
     for (auto const& [p,v] : weights)
-        result[p] = float((counted.count(p) ? counted.at(p) : 0)+pool*std::exp(v-maximum)/denominator);
+        result[p] = double((counted.count(p) ? counted.at(p) : 0)+pool*std::exp(v-maximum)/denominator);
     return result;
 }
 
@@ -231,11 +230,11 @@ inline PartyAccount partitionAccount(LiveData::VoteCountAccount const& source, C
     if (!source.counted || !source.projected) throw std::runtime_error("Missing live vote account.");
     PartyAccount result;
     // Several candidate identities may share one model group. Sum in double
-    // precision and store each group once, so combining individually rounded
-    // projections cannot accumulate another float rounding at every addition.
+    // precision and store each group once, using the same party grouping for
+    // both projected and counted allocations.
     std::map<int, double> groupedProjections;
     for (auto const& [party, votes] : *source.projected) groupedProjections[classify(party)] += votes;
-    for (auto const& [party, votes] : groupedProjections) result.projected[party] = float(votes);
+    for (auto const& [party, votes] : groupedProjections) result.projected[party] = double(votes);
     for (auto const& [party, votes] : *source.counted) result.counted[classify(party)] += votes;
     return result;
 }
@@ -248,21 +247,22 @@ inline PartyAccount resizeAccount(PartyAccount account, double target) {
     double total = 0, counted = 0;
     for (auto const& [party, votes] : account.projected) total += votes;
     for (auto const& [party, votes] : account.counted) counted += votes;
-    // Shares cross the simulator boundary as floats. Permit their rounding
-    // error at a finished subset's count, but reject a substantive shortfall.
-    if (target < counted && counted - target <= std::max(1e-7, counted * 2e-7)) target = counted;
+    // Permit arithmetic round-off at a finished subset's count, while rejecting
+    // a substantive shortfall. This never changes an observed candidate count.
+    if (target < counted && counted - target <= std::max(1e-7,
+        counted * 32 * std::numeric_limits<double>::epsilon())) target = counted;
     double oldPool = remaining(total, counted), newPool = remaining(target, counted);
     for (auto& [party, votes] : account.projected) {
         double fixed = account.counted.count(party) ? account.counted.at(party) : 0;
         double weight = oldPool > 0 ? remaining(votes, fixed) / oldPool
             : (total > 0 ? votes / total : 1./account.projected.size());
-        votes = float(fixed + newPool * weight);
+        votes = double(fixed + newPool * weight);
     }
     return account;
 }
 
-inline std::map<int, float> reconcileForecast(
-    PartyAccount account, std::map<int, float> const& proposedShares, bool normaliseFpChanges = false) {
+inline std::map<int, double> reconcileForecast(
+    PartyAccount account, std::map<int, double> const& proposedShares, bool normaliseFpChanges = false) {
     // Called after the main simulator has blended its prior and live evidence.
     // Interpret that blend as a preference for the outstanding pool, relative
     // to the live scenario's composition. Reallocate that finite pool on the
@@ -272,7 +272,7 @@ inline std::map<int, float> reconcileForecast(
     for (auto const& [party, share] : proposedShares) {
         if (!std::isfinite(share) || share < 0) throw std::runtime_error("Invalid proposed live share.");
         proposedTotal += share;
-        if (share > 0) account.projected.try_emplace(party, 0.f);
+        if (share > 0) account.projected.try_emplace(party, 0.);
     }
     if (!(total > 0) || !(proposedTotal > 0)) throw std::runtime_error("Empty live forecast account.");
     double observed = 0;
@@ -283,7 +283,7 @@ inline std::map<int, float> reconcileForecast(
     if (remaining(total,observed) == 0) {
         // Most late iterations choose no additions. Preserve their exact
         // account directly, avoiding unnecessary transforms in this hot path.
-        for (auto& [party,votes] : account.projected) votes = float(100*double(votes)/total);
+        for (auto& [party,votes] : account.projected) votes = double(100*double(votes)/total);
         return account.projected;
     }
     std::map<int, double> changes;
@@ -301,7 +301,7 @@ inline std::map<int, float> reconcileForecast(
         if (singlePairChange) break;
     }
     auto votes = varyRemaining(account.projected, account.counted, changes, normaliseFpChanges);
-    for (auto& [party, count] : votes) count = float(100 * double(count) / total);
+    for (auto& [party, count] : votes) count = double(100 * double(count) / total);
     return votes;
 }
 }

@@ -12,6 +12,7 @@ public:
 	// Expensive inspection-only work is opt-in; neither option changes draws.
 	bool getLiveDetailedLogging() const { return liveDetailedLogging; }
 	bool getLiveLegacyTppDiagnostic() const { return liveLegacyTppDiagnostic; }
+	std::string const& getSimulationAuditDirectory() const { return simulationAuditDirectory; }
 	void limitBackgroundSimulationThreads(unsigned logicalProcessors) {
 		int available = logicalProcessors > 1 ? int(logicalProcessors - 1) : 1;
 		simulationThreads = std::max(1, std::min(simulationThreads, available));
@@ -23,4 +24,5 @@ private:
 	bool beepOnCompletion = true;
 	bool liveDetailedLogging = false;
 	bool liveLegacyTppDiagnostic = false;
+	std::string simulationAuditDirectory;
 };

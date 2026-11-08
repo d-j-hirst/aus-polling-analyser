@@ -207,17 +207,17 @@ nlohmann::json describeIntegratedTurnout(nlohmann::json const& previous, nlohman
     return diagnostic;
 }
 
-std::vector<float> refreshFpBoothProgress(std::vector<LiveV2::Booth>& booths,
+std::vector<double> refreshFpBoothProgress(std::vector<LiveV2::Booth>& booths,
     LiveTurnout::Prepared const& countAccount) {
     // Reported ordinary booths normally supply completed counts. Declaration
     // confidence instead follows its partial count; zero-size closed services
     // receive no evidence weight. All targets come from the same count model.
-    std::vector<float> boothWeights(booths.size());
+    std::vector<double> boothWeights(booths.size());
     for (std::size_t b = 0; b < booths.size(); ++b) {
         auto& booth = booths[b];
         double expected = countAccount.fpTarget(b);
-        boothWeights[b] = float(expected);
-        booth.node.fpCompletion = float(LiveTurnoutMath::completion(booth.node.totalFpVotesCurrent(), expected));
+        boothWeights[b] = double(expected);
+        booth.node.fpCompletion = double(LiveTurnoutMath::completion(booth.node.totalFpVotesCurrent(), expected));
         if (booth.receivesFpBatches()) booth.node.fpConfidence = booth.node.fpCompletion;
         if (expected == 0) booth.node.fpConfidence = 0;
     }
@@ -226,7 +226,7 @@ std::vector<float> refreshFpBoothProgress(std::vector<LiveV2::Booth>& booths,
 
 void aggregateFpProgress(LiveV2::Node& node, std::vector<LiveV2::Seat>& seats,
     std::vector<LiveV2::LargeRegion>& largeRegions, std::vector<LiveV2::Booth> const& booths,
-    std::vector<float> const& boothWeights) {
+    std::vector<double> const& boothWeights) {
     // Weight completion by expected votes, rather than the number of booths.
     // Confidence also retains the live model's discount for less useful matches.
     auto refresh = [](LiveV2::Node& parent, auto const& indexes, auto const& children, auto const& weights) {
@@ -236,8 +236,8 @@ void aggregateFpProgress(LiveV2::Node& node, std::vector<LiveV2::Seat>& seats,
             complete += w * n.fpCompletion;
             if (!n.fpDeviations.empty()) confidence += w * n.fpConfidence * n.relevanceModifier;
         }
-        parent.fpCompletion = sum > 0 ? float(complete / sum) : 0;
-        parent.fpConfidence = sum > 0 ? float(confidence / sum) : 0;
+        parent.fpCompletion = sum > 0 ? double(complete / sum) : 0;
+        parent.fpConfidence = sum > 0 ? double(confidence / sum) : 0;
         return sum;
     };
     std::vector<double> seatWeights(seats.size()), regionWeights(largeRegions.size());
@@ -255,7 +255,7 @@ void applyTurnoutProjections(std::vector<LiveV2::Seat>& seats, std::vector<LiveT
         n.fpVotesProjected = std::move(projected[s].fp); n.tppVotesProjected = std::move(projected[s].tpp); n.tcpVotesProjected = std::move(projected[s].tcp);
         if (!n.tcpShares.empty()) {
             double sum = total(n.tcpVotesProjected);
-            for (auto const& [p, v] : n.tcpVotesProjected) n.tcpShares[p] = float(25 * std::log((v + .25) / (sum - v + .25)));
+            for (auto const& [p, v] : n.tcpVotesProjected) n.tcpShares[p] = double(25 * std::log((v + .25) / (sum - v + .25)));
         }
     }
 }
@@ -264,13 +264,13 @@ void refreshScenarioSeatProgress(std::vector<LiveV2::Seat>& seats, LiveTurnout::
     LiveTurnout::ScenarioCounts const* revised) {
     // Completion uses sampled expected counts. Preserve the evidence discount
     // measured at the mean count, including preferences inferred from FP votes.
-    auto confidence = [](double value, double mean, double sampled) { return sampled > 0 ? float(std::clamp(value * mean / sampled, 0., 1.)) : 0.f; };
+    auto confidence = [](double value, double mean, double sampled) { return sampled > 0 ? double(std::clamp(value * mean / sampled, 0., 1.)) : 0.; };
     for (std::size_t s = 0; s < seats.size(); ++s) {
         auto& n = seats[s].node;
         double fp = total(n.fpVotesProjected), tpp = total(n.tppVotesProjected), tcp = total(n.tcpVotesProjected);
-        n.fpCompletion = float(LiveTurnoutMath::completion(total(revised ? revised->fp[s] : countAccount.counted(LiveData::CountKind::Fp, s)), fp));
-        n.tppCompletion = float(LiveTurnoutMath::completion(total(revised ? revised->tpp[s] : countAccount.counted(LiveData::CountKind::Tpp, s)), tpp));
-        n.tcpCompletion = tcp > 0 ? float(LiveTurnoutMath::completion(total(revised ? revised->tcp[s] : countAccount.counted(LiveData::CountKind::Tcp, s)), tcp)) : 0;
+        n.fpCompletion = double(LiveTurnoutMath::completion(total(revised ? revised->fp[s] : countAccount.counted(LiveData::CountKind::Fp, s)), fp));
+        n.tppCompletion = double(LiveTurnoutMath::completion(total(revised ? revised->tpp[s] : countAccount.counted(LiveData::CountKind::Tpp, s)), tpp));
+        n.tcpCompletion = tcp > 0 ? double(LiveTurnoutMath::completion(total(revised ? revised->tcp[s] : countAccount.counted(LiveData::CountKind::Tcp, s)), tcp)) : 0;
         n.fpConfidence = confidence(countAccount.confidence(LiveData::CountKind::Fp, s), total(countAccount.mean(LiveData::CountKind::Fp, s)), fp);
         n.tppConfidence = confidence(countAccount.confidence(LiveData::CountKind::Tpp, s), total(countAccount.mean(LiveData::CountKind::Tpp, s)), tpp);
         n.tcpConfidence = confidence(countAccount.confidence(LiveData::CountKind::Tcp, s), total(countAccount.mean(LiveData::CountKind::Tcp, s)), tcp);
@@ -289,10 +289,10 @@ void aggregateScenarioProgress(LiveV2::Node& node, std::vector<LiveV2::Seat> con
             if (!n.fpDeviations.empty()) fpConfidence += w * n.fpConfidence * n.relevanceModifier;
             if (n.tppDeviation) tppConfidence += w * n.tppConfidence * n.relevanceModifier;
         }
-        parent.fpCompletion = sum > 0 ? float(fpComplete / sum) : 0;
-        parent.tppCompletion = sum > 0 ? float(tppComplete / sum) : 0;
-        parent.fpConfidence = sum > 0 ? float(fpConfidence / sum) : 0;
-        parent.tppConfidence = sum > 0 ? float(tppConfidence / sum) : 0;
+        parent.fpCompletion = sum > 0 ? double(fpComplete / sum) : 0;
+        parent.tppCompletion = sum > 0 ? double(tppComplete / sum) : 0;
+        parent.fpConfidence = sum > 0 ? double(fpConfidence / sum) : 0;
+        parent.tppConfidence = sum > 0 ? double(tppConfidence / sum) : 0;
     };
     for (auto& region : largeRegions) aggregate(region.node, region.seats, seats);
     std::vector<int> regions(largeRegions.size()); std::iota(regions.begin(), regions.end(), 0);
@@ -312,11 +312,11 @@ void refreshPairBoothProgress(std::vector<LiveV2::Booth>& booths,
         double measured = n.totalTcpVotesCurrent();
         if (booth.hasTcpRevision()) measured = total(booth.tcpLowerBounds());
         double pairExpected = LiveTurnoutMath::pairTarget(expected, n.totalFpVotesCurrent(), measured);
-        float pairProgress = float(LiveTurnoutMath::completion(measured, pairExpected));
+        double pairProgress = double(LiveTurnoutMath::completion(measured, pairExpected));
         n.tcpCompletion = pairProgress;
         n.tppCompletion = classic ? pairProgress : 0;
         if (classic) n.tppConfidence = pairProgress;
-        else if (!classic) n.tppConfidence = n.fpConfidence * .5f;
+        else if (!classic) n.tppConfidence = n.fpConfidence * .5;
         if (expected == 0) { n.tcpConfidence = 0; n.tppConfidence = 0; }
         if (n.preferenceFlowDeviation) n.preferenceFlowConfidence = std::min(n.fpConfidence, n.tppCompletion);
     }
@@ -335,8 +335,8 @@ void aggregatePairProgress(LiveV2::Node& node, std::vector<LiveV2::Seat>& seats,
             total += weight; complete += weight * child.tppCompletion;
             if (child.tppDeviation) confidence += weight * child.tppConfidence * child.relevanceModifier;
         }
-        parent.tppCompletion = total > 0 ? float(complete / total) : 0;
-        parent.tppConfidence = total > 0 ? float(confidence / total) : 0;
+        parent.tppCompletion = total > 0 ? double(complete / total) : 0;
+        parent.tppConfidence = total > 0 ? double(confidence / total) : 0;
         return total;
     };
     std::vector<double> boothWeights(booths.size());
@@ -474,14 +474,14 @@ void LiveV2::Election::prepareTurnout(Results2::Election const& currentElection,
     turnoutDiagnostic = std::make_shared<nlohmann::json const>(std::move(diagnostic));
 }
 
-float LiveV2::Election::turnoutFpTarget(int boothIndex) const {
+double LiveV2::Election::turnoutFpTarget(int boothIndex) const {
     double expected = turnout->fpTarget(boothIndex);
     LiveTurnoutMath::remaining(expected, readBooths().at(boothIndex).node.totalFpVotesCurrent());
-    return float(expected);
+    return double(expected);
 }
-float LiveV2::Election::turnoutPairTarget(int boothIndex) const {
+double LiveV2::Election::turnoutPairTarget(int boothIndex) const {
     auto const& booth = readBooths().at(boothIndex);
-    return float(LiveTurnoutMath::pairTarget(turnout->fpTarget(boothIndex),
+    return double(LiveTurnoutMath::pairTarget(turnout->fpTarget(boothIndex),
         booth.node.totalFpVotesCurrent(), booth.hasTcpRevision() ? booth.node.totalFpVotesCurrent() : booth.node.totalTcpVotesCurrent()));
 }
 

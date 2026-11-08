@@ -176,7 +176,7 @@ void LiveV2::Election::applyPreferenceCorrections(int iterationIndex) {
             double total = 0;
             for (auto const& [p, v] : projected) total += v;
             for (auto const& [p, v] : projected)
-                n.tcpShares[p] = float(25 * std::log((double(v) + .25) / (total - v + .25)));
+                n.tcpShares[p] = double(25 * std::log((double(v) + .25) / (total - v + .25)));
         }
     }
     scenarioCountedVotes = std::move(adjusted);

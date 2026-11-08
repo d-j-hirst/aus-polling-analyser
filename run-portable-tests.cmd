@@ -61,6 +61,8 @@ call :run ForecastSpecificationTests
 if errorlevel 1 goto :failure
 call :run LiveDataTests
 if errorlevel 1 goto :failure
+call :run LivePrecisionTests
+if errorlevel 1 goto :failure
 call :run LiveTppCompositionTests
 if errorlevel 1 goto :failure
 call :run LivePreferenceCorrectionTests

@@ -18,6 +18,10 @@
 // automatic feeds. The simulator asks it for prepared count evidence and for
 // a separate possible live outcome to combine with each pre-election draw;
 // result tables and exports also read its summaries and diagnostics.
+// Working shares, deviations and estimated counts use double precision across
+// this boundary. Narrowing an estimate here and widening it again later creates
+// apparent movement even when the count supplies no adjustment. Raw published
+// integer votes and the existing saved-report representation remain separate.
 namespace LiveData {
 
 // Election-wide reporting coverage, separate from the model's confidence in
@@ -103,22 +107,22 @@ constexpr std::string_view boothTypeName(BoothType boothType)
 }
 
 struct ValueInformation {
-	float value = 0.0f;
-	float completion = 0.0f;
-	float confidence = 0.0f;
+	double value = 0.0;
+	double completion = 0.0;
+	double confidence = 0.0;
 };
 
 struct BaselineInformation {
-	float baseline = 0.0f;
-	float completion = 0.0f;
-	float confidence = 0.0f;
-	float deviation = 0.0f;
+	double baseline = 0.0;
+	double completion = 0.0;
+	double confidence = 0.0;
+	double deviation = 0.0;
 };
 
 struct TcpShareInformation {
-	std::map<int, float> shares;
-	float completion = 0.0f;
-	float confidence = 0.0f;
+	std::map<int, double> shares;
+	double completion = 0.0;
+	double confidence = 0.0;
 };
 
 // A scenario's finite vote account. References remain valid while its provider
@@ -129,7 +133,7 @@ struct TcpShareInformation {
 // integrated turnout counts leave this optional boundary unavailable.
 struct VoteCountAccount {
 	std::map<int, double> const* counted = nullptr;
-	std::map<int, float> const* projected = nullptr;
+	std::map<int, double> const* projected = nullptr;
 };
 enum class CountKind { Fp, Tpp, Tcp };
 
@@ -166,25 +170,25 @@ struct FpIntegrationInformation {
 	// Accepted election + region movement, in the analyser's log odds times 25.
 	// Freeze the prepared mean: local random count errors must not also enter
 	// the conditional prior indirectly through recalculated regional summaries.
-	std::map<int,float> sharedDeviation;
+	std::map<int,double> sharedDeviation;
 	double evidenceGate = 0;
 };
 
 // Diagnostic values used by the live summary export. They remain DTOs rather
 // than exposing the live analyser's internal node hierarchy.
 struct Internals {
-	std::map<BoothType, float> boothTypeBiases;
-	std::map<VoteType, float> voteTypeBiases;
-	std::map<BoothType, float> boothTypeBiasStdDev;
-	std::map<VoteType, float> voteTypeBiasStdDev;
-	std::map<BoothType, float> boothTypeBiasesRaw;
-	std::map<VoteType, float> voteTypeBiasesRaw;
-	std::map<BoothType, float> boothTypeSourceCount;
-	std::map<VoteType, float> voteTypeSourceCount;
-	std::map<BoothType, float> boothTypeVoteCount;
-	std::map<VoteType, float> voteTypeVoteCount;
-	float projected2pp = 0.0f;
-	float raw2ppDeviation = 0.0f;
+	std::map<BoothType, double> boothTypeBiases;
+	std::map<VoteType, double> voteTypeBiases;
+	std::map<BoothType, double> boothTypeBiasStdDev;
+	std::map<VoteType, double> voteTypeBiasStdDev;
+	std::map<BoothType, double> boothTypeBiasesRaw;
+	std::map<VoteType, double> voteTypeBiasesRaw;
+	std::map<BoothType, double> boothTypeSourceCount;
+	std::map<VoteType, double> voteTypeSourceCount;
+	std::map<BoothType, double> boothTypeVoteCount;
+	std::map<VoteType, double> voteTypeVoteCount;
+	double projected2pp = 0.0;
+	double raw2ppDeviation = 0.0;
 };
 
 // A display statistic from received booth/category evidence. Counted classic
@@ -234,8 +238,8 @@ struct RawTppSwing {
 		weightedSwing += weight * (*currentShare-*previousShare);
 		countedVotes += weight;
 	}
-	std::optional<float> value() const {
-		return countedVotes > 0 ? std::optional<float>(float(weightedSwing/countedVotes)) : std::nullopt;
+	std::optional<double> value() const {
+		return countedVotes > 0 ? std::optional<double>(double(weightedSwing/countedVotes)) : std::nullopt;
 	}
 };
 
@@ -270,9 +274,9 @@ public:
 		int iterationIndex) const = 0;
 
 	virtual BaselineInformation getFinalSpecificTppInformation() const = 0;
-	virtual std::map<int, float> getFinalSpecificFpDeviations() const = 0;
-	virtual float getRegionFinalSpecificTppDeviation(int regionIndex) const = 0;
-	virtual std::map<int, float> getRegionFinalSpecificFpDeviations(
+	virtual std::map<int, double> getFinalSpecificFpDeviations() const = 0;
+	virtual double getRegionFinalSpecificTppDeviation(int regionIndex) const = 0;
+	virtual std::map<int, double> getRegionFinalSpecificFpDeviations(
 		int regionIndex) const = 0;
 	virtual BaselineInformation getSeatTppInformation(
 		std::string const& seatName) const = 0;
@@ -280,7 +284,7 @@ public:
 		std::string const& seatName) const = 0;
 	virtual ValueInformation getSeatOthersInformation(
 		std::string const& seatName,
-		std::map<int, float> const& representedParties) const = 0;
+		std::map<int, double> const& representedParties) const = 0;
 	virtual TcpShareInformation getSeatTcpInformation(
 		std::string const& seatName) const = 0;
 	// Providers without turnout integration return no account. Leave these
@@ -304,13 +308,13 @@ public:
 
 	// Prepared seat-wide TPP estimate (counted plus outstanding votes), relative
 	// to the configured previous margin. Returns NaN before live evidence exists.
-	virtual float getSeatEstimatedTppSwing(std::string const& seatName) const = 0;
+	virtual double getSeatEstimatedTppSwing(std::string const& seatName) const = 0;
 	// Raw, count-weighted booth swing (TCP where available, otherwise FP-derived),
 	// without forecast blending or outstanding-vote adjustments.
-	virtual float getSeatRawTppSwing(std::string const& seatName) const = 0;
-	virtual float getSeatFpCompletion(std::string const& seatName) const = 0;
-	virtual float getSeatTppCompletion(std::string const& seatName) const = 0;
-	virtual float getSeatTcpCompletion(std::string const& seatName) const = 0;
+	virtual double getSeatRawTppSwing(std::string const& seatName) const = 0;
+	virtual double getSeatFpCompletion(std::string const& seatName) const = 0;
+	virtual double getSeatTppCompletion(std::string const& seatName) const = 0;
+	virtual double getSeatTcpCompletion(std::string const& seatName) const = 0;
 
 	virtual Internals getInternals() const = 0;
 	virtual std::vector<BoothSnapshot> getBoothSnapshots() const = 0;

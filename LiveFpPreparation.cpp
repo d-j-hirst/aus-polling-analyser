@@ -79,19 +79,19 @@ int LiveV2::Election::fpEvidenceCandidate(int seatIndex, int partyId) const {
         ? seat.liveIndependentPartyIndex : partyId;
 }
 
-float LiveV2::Election::fpEvidenceNormalStdDev(int seatIndex, int partyId, float localStdDev) const {
+double LiveV2::Election::fpEvidenceNormalStdDev(int seatIndex, int partyId, double localStdDev) const {
     if (!fpEvidence) return localStdDev;
     double variance = LiveFpEvidence::earlyVariance(fpEvidence->at(seatIndex),fpEvidenceCandidate(seatIndex,partyId));
     // Local preparation already describes projection uncertainty. Retain it,
     // adding the early reporting-location allowance. Disagreement is drawn
     // separately so it cannot add a second, unbounded normal tail. The helper
     // uses natural log odds; LiveV2 uses log odds times 25.
-    return float(std::sqrt(localStdDev*localStdDev+625*variance));
+    return double(std::sqrt(localStdDev*localStdDev+625*variance));
 }
 
-float LiveV2::Election::fpEvidenceDisagreement(int seatIndex, int partyId, double quantile) const {
+double LiveV2::Election::fpEvidenceDisagreement(int seatIndex, int partyId, double quantile) const {
     if (!fpEvidence) return 0;
-    return float(25*LiveFpEvidence::disagreementVariation(
+    return double(25*LiveFpEvidence::disagreementVariation(
         fpEvidence->at(seatIndex),fpEvidenceCandidate(seatIndex,partyId),quantile));
 }
 
@@ -139,7 +139,7 @@ std::vector<LiveData::FpDistributionMoments> LiveV2::Election::measureFpCountMom
             double total = 0;
             for (auto const& [id,n] : projected) total += n;
             if (total <= 0) continue;
-            for (auto& [id,n] : projected) n = float(100*n/total);
+            for (auto& [id,n] : projected) n = double(100*n/total);
             accumulators[s].add(projected);
         }
     }

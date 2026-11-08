@@ -27,6 +27,10 @@ class Simulation;
 // iterations are calculated concurrently. A successful result contributes to
 // totals in run and sim's report; SimulationCompletion later turns the combined
 // results into forecast probabilities and summaries of vote shares and seats.
+// Working electoral quantities use double precision, including intermediate
+// preference allocations. Stored model inputs can still be floats: promoting
+// them once is safe, while rounding a live update back to float during the draw
+// would hide small real changes and manufacture differences in unchanged values.
 class SimulationIteration {
 public:
 	// Refer to the shared settings and prepared inputs. iterationIndex identifies
@@ -39,6 +43,8 @@ public:
 	// An unrecoverable error is passed to SimulationRun instead of a result.
 	int runIteration();
 private:
+	void capturePrecisionAudit(char const* stage);
+	nlohmann::json precisionStages;
 	void reset();
 	bool hasInvalidValues(std::string const& location, bool forceDebug = false, bool checkTppMargins = true);
 	void initialiseIterationSpecificCounts();
@@ -60,11 +66,11 @@ private:
 	void determineSpecificPartyFp(
 		int seatIndex,
 		int partyIndex,
-		float& voteShare,
+		double& voteShare,
 		SimulationRun::SeatStatistics const& seatStatistics);
-	float applyIndependentSeatPolls(
-		int seatIndex, float transformedVoteShare) const;
-	void determinePopulistFp(int seatIndex, int partyIndex, float& voteShare);
+	double applyIndependentSeatPolls(
+		int seatIndex, double transformedVoteShare) const;
+	void determinePopulistFp(int seatIndex, int partyIndex, double& voteShare);
 	void determineSeatConfirmedInds(int seatIndex);
 	void determineSeatEmergingInds(int seatIndex);
 	void determineSeatOthers(int seatIndex);
@@ -73,20 +79,20 @@ private:
 	void determineSeatEmergingParties(int seatIndex);
 	void determineNationalsShare(int seatIndex);
 	struct MajorPartyFpAllocation {
-		float nonExhaustedVote = 0.0f;
-		float directPartyOneFp = 0.0f;
-		float directPartyTwoFp = 0.0f;
+		double nonExhaustedVote = 0.0;
+		double directPartyOneFp = 0.0;
+		double directPartyTwoFp = 0.0;
 	};
 	MajorPartyFpAllocation allocateMajorPartyFp(
 		int seatIndex,
-		float preferenceFlowDeviation = 0.0f);
+		double preferenceFlowDeviation = 0.0);
 	void allocateMajorPartyFpsWithCompatibleTpp();
-	void normaliseSeatFp(int seatIndex, int fixedParty = -10000, float fixedVote = 0.0f);
+	void normaliseSeatFp(int seatIndex, int fixedParty = -10000, double fixedVote = 0.0);
 	void reconcileSeatAndOverallFp();
 	void calculateNewFpVoteTotals(
 		bool finalCheckpoint = false,
-		std::map<int, float> const* preTerminalFp = nullptr,
-		float preTerminalFpError = 0.0f);
+		std::map<int, double> const* preTerminalFp = nullptr,
+		double preTerminalFpError = 0.0);
 	void calculatePreferenceCorrections();
 	void applyCorrectionsToSeatFps();
 	void correctMajorPartyFpBias(bool accountForSeatNormalisation = false);
@@ -101,7 +107,7 @@ private:
 	void recombineLiveCoalition(int seatIndex);
 	void integrateLiveFpAccount(int seatIndex, LiveData::VoteCountAccount const& account,
 		LiveData::FpIntegrationInformation const& information);
-	void restoreLiveFpGroups(int seatIndex, std::map<int,float> integrated, int independentGroup);
+	void restoreLiveFpGroups(int seatIndex, std::map<int,double> integrated, int independentGroup);
 	void determineSeatFinalResult(int seatIndex);
 	void assignNationalsVotes(int seatIndex);
 	void applyLiveManualOverrides(int seatIndex);
@@ -124,16 +130,16 @@ private:
 	void recordSwings();
 	void recordSwingFactors();
 
-	float calculateEffectiveSeatModifier(int seatIndex, int partyIndex) const;
+	double calculateEffectiveSeatModifier(int seatIndex, int partyIndex) const;
 
-	float variabilityNormal(float mean, float sd, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
-	float variabilityUniform(float low, float high, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
+	double variabilityNormal(double mean, double sd, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
+	double variabilityUniform(double low, double high, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
 	int variabilityUniformInt(int low, int high, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
-	float variabilityGamma(float alpha, float beta, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
-	float variabilityBeta(float alpha, float beta, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
+	double variabilityGamma(double alpha, double beta, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
+	double variabilityBeta(double alpha, double beta, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
 	int randomSampleIndex() const;
 
-	struct SeatCandidate { int vote; Party::Id partyId; float weight; };
+	struct SeatCandidate { int vote; Party::Id partyId; double weight; };
 	typedef std::vector<SeatCandidate> SeatCandidates;
 
 	PollingProject & project;
@@ -146,7 +152,7 @@ private:
 	// or in recordWarning(), which provides its own synchronization.
 	SimulationRun& recordedRun;
 
-	typedef std::map<int, float> FloatByPartyIndex;
+	typedef std::map<int, double> ShareByPartyIndex;
 
 	// Per-attempt state. Add new generated values here to reset().
 	std::unique_ptr<LiveData::Provider> liveElection;
@@ -157,29 +163,29 @@ private:
 	std::vector<SimulationRun::PastSeatResult> pastSeatResults;
 	std::map<int, std::vector<int>> regionSeatCount; // party, then region
 	std::map<int, int> partyWins;
-	std::vector<float> regionSwing;
-	std::vector<float> partyOneNewTppMargin;
+	std::vector<double> regionSwing;
+	std::vector<double> partyOneNewTppMargin;
 	std::vector<Party::Id> seatWinner;
-	std::vector<FloatByPartyIndex> seatFpVoteShare;
-	std::vector<std::pair<std::pair<int, int>, float>> seatTcpVoteShare;
-	std::vector<float> nationalsShare; // Nationals' share of the LIB/NAT vote
-	float iterationOverallTpp = 0.0f;
-	float iterationOverallSwing = 0.0f;
-	float intraCoalitionSwing = 0.0f;
+	std::vector<ShareByPartyIndex> seatFpVoteShare;
+	std::vector<std::pair<std::pair<int, int>, double>> seatTcpVoteShare;
+	std::vector<double> nationalsShare; // Nationals' share of the LIB/NAT vote
+	double iterationOverallTpp = 0.0;
+	double iterationOverallSwing = 0.0;
+	double intraCoalitionSwing = 0.0;
 	int daysToElection = 0;
-	FloatByPartyIndex overallFpTarget;
-	FloatByPartyIndex overallFpSwing;
-	FloatByPartyIndex overallPreferenceFlow;
-	FloatByPartyIndex overallExhaustRate; // for TPP distribution
+	ShareByPartyIndex overallFpTarget;
+	ShareByPartyIndex overallFpSwing;
+	ShareByPartyIndex overallPreferenceFlow;
+	ShareByPartyIndex overallExhaustRate; // for TPP distribution
 	std::map<Party::Id, int> homeRegion;
 	std::map<Party::Id, std::vector<bool>> seatContested;
-	FloatByPartyIndex centristPopulistFactor; // e.g. 1 = full populist, 0 = full centrist
+	ShareByPartyIndex centristPopulistFactor; // e.g. 1 = full populist, 0 = full centrist
 	std::map<Party::Id, int> partyIdeologies;
 	std::map<Party::Id, int> partyConsistencies;
-	FloatByPartyIndex fpModificationAdjustment;
-	FloatByPartyIndex tempOverallFp;
+	ShareByPartyIndex fpModificationAdjustment;
+	ShareByPartyIndex tempOverallFp;
 
-	std::map<Party::Id, float> postCountFpShift;
+	std::map<Party::Id, double> postCountFpShift;
 
 	std::vector<double> seatRegionSwing;
 	std::vector<double> seatElasticitySwing;
@@ -191,13 +197,13 @@ private:
 	std::vector<double> seatPollEffect;
 	std::vector<double> seatMrpPollEffect;
 
-	float prefCorrection = 0.0f;
-	float overallFpError = 0.0f;
-	float othersCorrectionFactor = 0.0f;
-	float fedStateCorrelation = 0.0f;
-	float ppvcBias = 0.0f;
-	float indAlpha = 1.0f;
-	float indBeta = 1.0f;
+	double prefCorrection = 0.0;
+	double overallFpError = 0.0;
+	double othersCorrectionFactor = 0.0;
+	double fedStateCorrelation = 0.0;
+	double ppvcBias = 0.0;
+	double indAlpha = 1.0;
+	double indBeta = 1.0;
 	bool neededTerminalFpReconciliation = false;
 
 	// Stable identity and retry bookkeeping. These are intentionally not reset

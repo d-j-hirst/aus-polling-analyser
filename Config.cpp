@@ -12,6 +12,7 @@ Config::Config(std::string const& filename)
 		std::string line;
 		std::getline(file, line);
 		if (!file) break;
+		if (!line.empty() && line.back() == '\r') line.pop_back();
 		auto values = splitString(line, "=");
 		if (values.size() != 2) continue;
 		try {
@@ -29,6 +30,9 @@ Config::Config(std::string const& filename)
 			}
 			if (values[0] == "bLiveLegacyTppDiagnostic") {
 				liveLegacyTppDiagnostic = std::stoi(values[1]) == 1;
+			}
+			if (values[0] == "sSimulationAuditDirectory") {
+				simulationAuditDirectory = values[1];
 			}
 		} 
 		catch (std::invalid_argument) {

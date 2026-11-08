@@ -180,7 +180,7 @@ std::vector<Projection> Prepared::draw(unsigned long long seed) const {
         for (auto const& [p, w] : r.tcp) tcp[r.seat][p] += addition * w;
     }
     std::vector<Projection> result(composition->seats.size());
-    auto copy = [](auto const& source, auto& target) { for (auto const& [p, v] : source) target[p] = float(v); };
+    auto copy = [](auto const& source, auto& target) { for (auto const& [p, v] : source) target[p] = double(v); };
     for (std::size_t s = 0; s < result.size(); ++s) {
         copy(fp[s], result[s].fp); copy(tpp[s], result[s].tpp); copy(tcp[s], result[s].tcp);
     }
@@ -214,8 +214,8 @@ void Prepared::revise(unsigned long long seed, std::vector<Projection>& projecte
         LiveCountRevisions::bound(fp,p.fp,fpDirection,1,limit);
         LiveCountRevisions::bound(tpp,p.tpp,direction.tpp,r.distribution.tppCoverage,limit);
         LiveCountRevisions::bound(tcp,p.tcp,direction.tcp,r.distribution.tcpCoverage,limit);
-        // Leave numerical room at zero when moving between double counted
-        // maps and float projections. This is a rounding guard, not a model floor.
+        // Leave numerical room at zero when applying the same signed revision
+        // to counted and projected maps. This is a rounding guard, not a model floor.
         double amount = std::clamp(draw.amount,-limit*(1-1e-12),limit*(1-1e-12));
         LiveCountRevisions::apply(fp,p.fp,fpDirection,1,amount);
         LiveCountRevisions::apply(tpp,p.tpp,direction.tpp,r.distribution.tppCoverage,amount);
@@ -241,7 +241,7 @@ Counted const& Prepared::counted(LiveData::CountKind kind, std::size_t seat) con
     if (kind == LiveData::CountKind::Tpp) return s.tpp;
     return s.tcp;
 }
-float Prepared::confidence(LiveData::CountKind kind, std::size_t seat) const {
+double Prepared::confidence(LiveData::CountKind kind, std::size_t seat) const {
     auto const& s = composition->seats.at(seat);
     if (kind == LiveData::CountKind::Fp) return s.fpConfidence;
     if (kind == LiveData::CountKind::Tpp) return s.tppConfidence;

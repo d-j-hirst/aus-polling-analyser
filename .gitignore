@@ -386,6 +386,8 @@ analysis/betting_odds/tab-current.json
 /downloads/turnout/
 # Downloaded category research responses and their hashed metadata are caches.
 /downloads/category-tpp-research/
+# Optional full-precision iteration traces are large, local diagnostic outputs.
+/downloads/simulation-audits/
 # Authorised live feeds and their close derivatives remain operator-local.
 /downloads/**/*.xml
 /downloads/**/*.XML

@@ -5,6 +5,7 @@ DateTests
 ForecastSpecificationProjectAdapterTests
 ForecastSpecificationTests
 LiveDataTests
+LivePrecisionTests
 LiveVariabilityTests
 LivePreparedStorageTests
 LiveTppCompositionTests

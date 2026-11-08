@@ -13,7 +13,7 @@
 
 namespace CoalitionPairing {
 
-using PartyShare = std::pair<int, float>;
+using PartyShare = std::pair<int, double>;
 using PartyShares = std::vector<PartyShare>;
 
 enum class Status { NotApplicable, OnePartnerRemains, BothFinalists, Invalid };
@@ -30,11 +30,11 @@ struct Decision {
 // National fractions about 25--75%. Varying log(fraction / (1-fraction)) keeps
 // draws between zero and one, unlike adding an unbounded error to a percentage.
 // See docs/coalition-pairing.md for the scope of the historical checks.
-inline constexpr float IncomingSplitLogOddsSd = 0.6679f;
+inline constexpr double IncomingSplitLogOddsSd = 0.6679;
 
-inline float nationalIncomingFraction(float logOddsDraw)
+inline double nationalIncomingFraction(double logOddsDraw)
 {
-	return float(1.0 / (1.0 + std::exp(-double(logOddsDraw))));
+	return double(1.0 / (1.0 + std::exp(-double(logOddsDraw))));
 }
 
 // original/excluded contain party identities and original FP percentage shares
@@ -59,33 +59,33 @@ inline float nationalIncomingFraction(float logOddsDraw)
 template<typename SampleIncomingFraction, typename AllocatePreferences>
 Decision determine(
 	PartyShares const& original, PartyShares const& excluded,
-	int coalitionParty, int nationalParty, float nationalPrimaryFraction,
+	int coalitionParty, int nationalParty, double nationalPrimaryFraction,
 	SampleIncomingFraction const& sampleIncomingFraction,
 	AllocatePreferences const& allocatePreferences)
 {
 	if (nationalParty < 0) return {};
 	if (nationalParty == coalitionParty ||
 		!std::isfinite(nationalPrimaryFraction) ||
-		nationalPrimaryFraction < 0.0f || nationalPrimaryFraction > 1.0f) {
+		nationalPrimaryFraction < 0.0 || nationalPrimaryFraction > 1.0) {
 		return {Status::Invalid};
 	}
 	auto const coalition = std::find_if(original.begin(), original.end(),
 		[&](PartyShare const& entry) { return entry.first == coalitionParty; });
 	if (coalition == original.end()) return {};
-	float const combinedPrimary = coalition->second;
-	if (!std::isfinite(combinedPrimary) || combinedPrimary < 0.0f) {
+	double const combinedPrimary = coalition->second;
+	if (!std::isfinite(combinedPrimary) || combinedPrimary < 0.0) {
 		return {Status::Invalid};
 	}
-	float const nationalPrimary = combinedPrimary * nationalPrimaryFraction;
-	float const liberalPrimary = combinedPrimary - nationalPrimary;
+	double const nationalPrimary = combinedPrimary * nationalPrimaryFraction;
+	double const liberalPrimary = combinedPrimary - nationalPrimary;
 	// The common one-candidate/merged-party case keeps its existing path, without
 	// an extra draw or working copies. A small but positive partner is still a
 	// candidate: there is no arbitrary primary threshold for being considered.
-	if (nationalPrimary <= 0.0f || liberalPrimary <= 0.0f) return {};
+	if (nationalPrimary <= 0.0 || liberalPrimary <= 0.0) return {};
 
-	float const nationalIncoming = sampleIncomingFraction();
+	double const nationalIncoming = sampleIncomingFraction();
 	if (!std::isfinite(nationalIncoming) ||
-		nationalIncoming < 0.0f || nationalIncoming > 1.0f) {
+		nationalIncoming < 0.0 || nationalIncoming > 1.0) {
 		return {Status::Invalid};
 	}
 	auto remaining = original;
@@ -96,19 +96,19 @@ Decision determine(
 		auto const group = std::find_if(allocated.begin(), allocated.end(),
 			[&](PartyShare const& entry) { return entry.first == coalitionParty; });
 		if (group == allocated.end()) return {Status::Invalid};
-		float const incomingPreferences = group->second - combinedPrimary;
-		if (!std::isfinite(incomingPreferences) || incomingPreferences < 0.0f) {
+		double const incomingPreferences = group->second - combinedPrimary;
+		if (!std::isfinite(incomingPreferences) || incomingPreferences < 0.0) {
 			return {Status::Invalid};
 		}
 
 		// Preserve own primaries and divide only the additional Coalition votes.
 		// For example, LIB 35 + NAT 25 receiving 10 points becomes 40/30 under
 		// an even split, not 35/35. The group's total receiving weight is unchanged.
-		float const liberal = liberalPrimary + (1.0f - nationalIncoming) * incomingPreferences;
-		float const national = nationalPrimary + nationalIncoming * incomingPreferences;
+		double const liberal = liberalPrimary + (1.0 - nationalIncoming) * incomingPreferences;
+		double const national = nationalPrimary + nationalIncoming * incomingPreferences;
 		auto weakestOutside = allocated.end();
 		for (auto candidate = allocated.begin(); candidate != allocated.end(); ++candidate) {
-			if (!std::isfinite(candidate->second) || candidate->second < 0.0f) {
+			if (!std::isfinite(candidate->second) || candidate->second < 0.0) {
 				return {Status::Invalid};
 			}
 			if (candidate->first != coalitionParty &&

@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-11-04T07:26:16Z",
+  "updated_at_utc": "2026-11-08T10:00:52Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 47,
+      "semantic_revision": 48,
       "files": {
         "2013fed.txt": {
           "sha256": "d6d75e40d7ece21df752d6edb476d99a7210847b6c1ebbb9be905b6e832cb0cd",
@@ -75,9 +75,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "88292f78cebc86f60d7a435b5efdcbde77f5f143f9bd55392a9483ac01961abb",
-          "size_bytes": 23597,
-          "recorded_mtime_utc": "2026-11-02T05:58:58.356171Z"
+          "sha256": "f2e031fb6b72a1a00481b5023a99a725c4c329f95077dc3e86f093486d75a8f1",
+          "size_bytes": 23641,
+          "recorded_mtime_utc": "2026-11-08T00:59:06.101020Z"
         },
         "2027nsw.txt": {
           "sha256": "9066c05124dc34153f7b56e0d6c2a7238d5a40e3e1edb7965d74778378c4120a",
@@ -1139,9 +1139,30 @@
           "source": {
             "description": "2013 AEC preload and historical comparison fields, with 2010 AEC final accounts and contemporary campaign evidence."
           }
+        },
+        {
+          "id": "20261108T100052Z-other-forecast-seats-b6862616",
+          "recorded_at_utc": "2026-11-08T10:00:52Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 48,
+          "provenance_revision": 48,
+          "summary": "seat/candidate updates",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 47
+      "provenance_revision": 48
     }
   }
 }

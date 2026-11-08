@@ -81,7 +81,7 @@ struct Evidence {
         // Use the same response as the accepted TPP movement, then retain only
         // the part supplied by estimates. This permits extrapolation beyond the
         // counted FP fraction while smoothly limiting a first small booth.
-        return inferredShare()*LiveSimulationMath::observationWeight(float(confidence()));
+        return inferredShare()*LiveSimulationMath::observationWeight(confidence());
     }
 };
 

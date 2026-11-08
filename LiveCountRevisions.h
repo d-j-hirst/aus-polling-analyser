@@ -127,7 +127,8 @@ inline void apply(Counts& counted, Projected& projected, Weights const& weights,
         double const countedChange = totalChange*coverage;
         // Preserve the remaining-voter allocation while updating its counted
         // base. Several booth revisions can affect the same district candidate;
-        // direct repeated additions to its float projection lose that base.
+        // adding changes separately to two running totals can lose their exact
+        // relationship through accumulated rounding, even with doubles.
         double const revised = LiveTurnoutMath::revisedProjection(
             projected.at(p),previousCounted,countedChange,totalChange);
         if (coverage > 0) counted[p] = previousCounted+countedChange;

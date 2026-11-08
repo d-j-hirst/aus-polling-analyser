@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SimulationAudit.h"
+
 #include "Date.h"
 #include "LiveData.h"
 #include "LiveFpIntegration.h"
@@ -46,12 +48,12 @@ public:
 	friend class LiveV2::Election;
 
 	struct PastSeatResult {
-		std::map<int, float> fpVotePercent; // map from party index -> percentage
+		std::map<int, double> fpVotePercent; // map from party index -> percentage
 		std::map<int, int> fpVoteCount; // map from party index -> number
-		std::map<int, float> tcpVotePercent; // map from party index -> percentage
-		std::map<int, float> tcpVoteCount; // map from party index -> number
+		std::map<int, double> tcpVotePercent; // map from party index -> percentage
+		std::map<int, double> tcpVoteCount; // map from party index -> number
 		int turnoutCount = 0;
-		float prevOthers = 0.0f; // Special variable for calculating emergence of independents
+		double prevOthers = 0.0f; // Special variable for calculating emergence of independents
 	};
 
 	struct SeatStatistics {
@@ -220,6 +222,9 @@ public:
 	nlohmann::json inputRecoveryDetails() const { return inputIssues.details(); }
 
 private:
+	// Only the main run opens this opt-in trace. Supporting baseline/calibration
+	// simulations retain their separate sample indices and produce no trace.
+	std::unique_ptr<SimulationAudit::Writer> precisionAudit;
 	// Background jobs display stages without treating routine progress as an
 	// operator warning. Synchronous callers retain their existing feedback path.
 	FeedbackFunc progressFeedback;
@@ -325,12 +330,16 @@ private:
 	std::vector<double> partyTwoWinPercent;
 	std::vector<double> othersWinPercent;
 	std::vector<std::map<int, double>> cumulativeSeatPartyFpShare;
-	// Only the live baseline records these moments; ordinary forecasts keep the
-	// existing summaries. No simulation draws or per-snapshot history are held.
+	// Only the live baseline records these moments, retaining candidate shares
+	// before the FP report merges small emerging independents into Others. These
+	// means and variances describe the draws used by live integration, rather
+	// than the report's thresholded categories. No individual draws are retained.
 	std::vector<LiveFpIntegration::MomentAccumulator> liveBaselineFpMoments;
 	LiveTppIntegration::Accumulator liveBaselineTppMoments;
 	std::vector<std::map<int, std::array<int, BucketCount>>> seatPartyFpDistribution;
-	std::vector<std::map<int, int>> seatPartyFpZeros; // frequency of seat total being actually zero, i.e. candidate didn't run
+	// Zero FP entries include absent candidates and emerging independents whose
+	// below-threshold primary shares were classified as Others for reporting.
+	std::vector<std::map<int, int>> seatPartyFpZeros;
 	std::vector<double> coalitionWinPercent;
 
 	std::vector<std::map<int, std::array<int, BucketCount>>> regionPartyFpDistribution;
