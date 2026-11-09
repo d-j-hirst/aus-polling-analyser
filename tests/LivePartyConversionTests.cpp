@@ -18,6 +18,52 @@ History fictionalHistory(std::string previous = "2019fed", std::string current =
     return readHistory(input, previous, current);
 }
 
+void testHistoricalCategoryConsistency() {
+    auto history = fictionalHistory();
+    auto green = historicalFlow(history,"Hill","GRN");
+    auto independent = historicalFlow(history,"Hill","IND",candidateKey("RIVER, Lee"));
+    assert(green && independent);
+    double greenRate = *green, independentRate = *independent;
+    auto row = history.find("Hill","GRN");
+    close(*green,greensFlow(logistic(history.greensLevel),row->strength(),history.greensResidual(*row),history));
+    close(*independent,1400.5/2001);
+    assert(!historicalFlow(history,"Renamed Hill","GRN"));
+    assert(!historicalFlow(history,"Hill","IND",candidateKey("River, Sam")));
+    assert(!historicalFlow(History{},"Hill","GRN"));
+    assert(!historicalFlow(history,"Hill","VS"));
+
+    // Unmatched early places must not lose the historical information used by
+    // matched booths. Different category FP mixtures share the same rates;
+    // their estimated Labor votes sum to the combined population's estimate.
+    LivePartialCount::Counts ordinary{{0,300},{1,200},{2,300},{100001,200}};
+    LivePartialCount::Counts early{{0,100},{1,300},{2,100},{100001,500}};
+    LivePartialCount::Counts combined{{0,400},{1,500},{2,400},{100001,700}};
+    LivePartialCount::Flows rates{{2,greenRate},{100001,independentRate}};
+    LivePartialCount::Flows configured{{-1,50},{2,80}};
+    auto a = historicalCategoryTpp(ordinary,{},rates,configured,{},10);
+    auto b = historicalCategoryTpp(early,{},rates,configured,{},10);
+    auto both = historicalCategoryTpp(combined,{},rates,configured,{},10);
+    close(a.first,300+300*greenRate+200*independentRate);
+    close(b.first,100+100*greenRate+500*independentRate);
+    close(a.first+b.first,both.first);
+    close(a.second+b.second,2000);
+
+    // A non-classic pair supplies no measured TPP. A real classic pair is exact
+    // even when its implied preferences differ from the district assumptions.
+    auto nonclassic = historicalCategoryTpp(early,{{1,600},{100001,400}},rates,configured,{},10);
+    close(nonclassic.first,b.first);
+    auto measured = historicalCategoryTpp(early,{{0,420},{10,580}},rates,configured,{},10);
+    close(measured.first,420);close(measured.second,1000);
+    auto generic = historicalCategoryTpp(early,{}, {},configured,{},10);
+    close(generic.first,430); // 100 Labor + 80 Greens + 250 independent.
+    auto overridden = historicalCategoryTpp(early,{}, {},configured,{{2,70}},10);
+    close(overridden.first,420);
+    auto historical = historicalCategoryTpp(early,{},rates,configured,{{2,70}},10);
+    close(historical.first,b.first);
+    auto empty = historicalCategoryTpp({}, {}, {},configured,{},10);
+    close(empty.first,0);close(empty.second,0);
+}
+
 void testHistorySelection() {
     auto history = fictionalHistory();
     assert(history.records.size() == 3 && history.hasGreens);
@@ -180,6 +226,7 @@ void testMatchedCalibration() {
 }
 
 int main() {
+    testHistoricalCategoryConsistency();
     testMatchedCalibration();
     testHistorySelection();
     testStrengthAndHistoricalOffsets();

@@ -152,12 +152,12 @@ void testJointTppIntegration()
     CategoryEvidence empty, tiny, many, one, complete, inconsistent;
     empty.add(10000,0,1,0,0,10); assert(empty.weight==0 && empty.expected==10000);
     tiny.add(10000,80,1,3,1,10);
-    assert(tiny.variance()>100); // One tiny location cannot override the prior.
+    assert(tiny.variance(tiny)>100); // One tiny location cannot override the prior.
     one.add(10000,5000,1,3,0,10);
     for(int i=0;i<10;++i) many.add(1000,500,1,3,0,10);
-    assert(many.variance()<one.variance()/9);
-    complete.add(10000,10000,1,3,0,10);assert(complete.variance()==.0001);
-    assert(complete.locationVariance() > complete.variance());
+    assert(many.variance(many)<one.variance(one)/9);
+    complete.add(10000,10000,1,3,0,10);assert(complete.variance(complete)==.0001);
+    assert(complete.locationVariance(complete) > complete.variance(complete));
     // A weaker transferable comparison never reopens ballots already counted
     // in this seat. The same finite-count bound used by the TPP handoff fixes
     // a complete local account regardless of the shared/prior draw.
@@ -166,7 +166,7 @@ void testJointTppIntegration()
     assert(completedShares.at(0)==55 && completedShares.at(1)==45);
     inconsistent.add(5000,2000,1,-30,0,10);
     inconsistent.add(5000,2000,1,30,0,10);
-    assert(inconsistent.variance()>one.variance());
+    assert(inconsistent.variance(inconsistent)>one.variance(one));
     bool rejected=false;
     try {prepare(two,{{{1,0,0},0,-1}});} catch(std::logic_error const&){rejected=true;}
     assert(rejected);

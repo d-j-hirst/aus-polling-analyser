@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-11-08T10:00:52Z",
+  "updated_at_utc": "2026-11-09T09:27:04Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 48,
+      "semantic_revision": 49,
       "files": {
         "2013fed.txt": {
           "sha256": "d6d75e40d7ece21df752d6edb476d99a7210847b6c1ebbb9be905b6e832cb0cd",
@@ -75,9 +75,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "f2e031fb6b72a1a00481b5023a99a725c4c329f95077dc3e86f093486d75a8f1",
-          "size_bytes": 23641,
-          "recorded_mtime_utc": "2026-11-08T00:59:06.101020Z"
+          "sha256": "3115c7f28a5df768314f554e31861779ead2b7374cabc37ff5c59da05878577e",
+          "size_bytes": 27277,
+          "recorded_mtime_utc": "2026-11-09T09:23:17.422375Z"
         },
         "2027nsw.txt": {
           "sha256": "9066c05124dc34153f7b56e0d6c2a7238d5a40e3e1edb7965d74778378c4120a",
@@ -1160,9 +1160,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261109T092704Z-other-forecast-seats-eab333f4",
+          "recorded_at_utc": "2026-11-09T09:27:04Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 49,
+          "provenance_revision": 49,
+          "summary": "Final candidate lists",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 48
+      "provenance_revision": 49
     }
   }
 }

@@ -120,7 +120,7 @@ void checkPreferenceHistory(std::filesystem::path const& folder) {
     record.candidates = {11,12,13};
     record.fp = {Counts{{11,100},{12,80},{13,20}},Status::Current,first.sourceTime};
     record.tcp = {};
-    commit(folder,first);
+    commitLegacySnapshot(folder,first);
     auto current = first; current.sourceTime = "2026-03-30T09:00:00";
     current.records.front().fp = {Counts{{11,150},{12,160},{13,40}},Status::Current,current.sourceTime};
     current.records.front().tcp = {Counts{{11,116},{12,84}},Status::Current,current.sourceTime};
@@ -138,14 +138,14 @@ void checkPreferenceHistory(std::filesystem::path const& folder) {
     auto aligned = first; aligned.sourceTime = "2026-03-30T08:30:00";
     aligned.records.front().tcp = current.records.front().tcp;
     aligned.records.front().tcp.observedAt = aligned.sourceTime;
-    commit(folder,aligned);
+    commitLegacySnapshot(folder,aligned);
     selected = loadPreferenceHistory(folder,current).at(record.key);
     assert(selected.previousAligned && selected.previousAligned->tcpTime == aligned.sourceTime);
     auto future = current; future.sourceTime = "2026-03-30T10:00:00";
     future.records.front().fp.votes = Counts{{11,90},{12,90},{13,20}};
-    commit(folder,future);
+    commitLegacySnapshot(folder,future);
     retainPreferenceHistory(current,loadPreferenceHistory(folder,current));
-    commit(folder,current);
+    commitLegacySnapshot(folder,current);
     selected = loadPreferenceHistory(folder,current).at(record.key);
     assert(selected.matchingCurrentTcp->fp.at(11) == 100);
     // The 09:00 TCP matched an older FP batch even though that source's FP
@@ -241,7 +241,7 @@ void checkRecheckedPrimaryRecovery(std::filesystem::path const& folder) {
     booth.tcp.votes = Counts{{11,45},{12,155}};
     booth.fp.stage = booth.tcp.stage = CountStage::Preliminary;
     auto old = recover(source,{}).snapshot;
-    commit(folder,old);
+    commitLegacySnapshot(folder,old);
     auto current = source; current.sourceTime = "2026-03-30T09:00:00";
     current.records.front().fp.votes = Counts{{11,110},{12,70},{13,20}};
     current.records.front().fp.stage = CountStage::Rechecked;
@@ -299,7 +299,7 @@ void checkRecheckedPrimaryRecovery(std::filesystem::path const& folder) {
         LivePartialCount::evidenceOffset(0,flow,11,12));
     assert(predicted > 110 && predicted < 130);
     retainPreferenceHistory(recovered.snapshot,history);
-    commit(folder,recovered.snapshot);
+    commitLegacySnapshot(folder,recovered.snapshot);
     auto later = recovered.snapshot; later.sourceTime = "2026-03-30T10:00:00";
     auto saved = loadPrevious(folder,later.election,later.sourceTime);
     assert(saved && saved->records.front().fp.stage == CountStage::Rechecked);
@@ -324,7 +324,7 @@ void checkRecheckedPrimaryRecovery(std::filesystem::path const& folder) {
     earlier.records.front().fp.votes = current.records.front().fp.votes;
     earlier.records.front().tcp.votes = Counts{{11,120},{12,80}};
     for (auto& r : earlier.records) r.fp.observedAt = r.tcp.observedAt = earlier.sourceTime;
-    commit(folder,earlier);
+    commitLegacySnapshot(folder,earlier);
     auto invalidNewTcp = current;
     invalidNewTcp.records.front().tcp.votes = Counts{{11,10},{12,190}};
     auto fallback = recover(invalidNewTcp,old,[&](auto const& effective,auto previous,auto account) {
@@ -513,7 +513,7 @@ void checkFailedUpdateTransaction(std::filesystem::path const& folder) {
         auto prepared = recover(current,old);
         outcomes["North"] = 500; report["forecast"] = "workspace";
         current.sourceTime.clear(); recover(current,old); // Unusable input.
-        commit(countFile,prepared.snapshot);
+        commitLegacySnapshot(countFile,prepared.snapshot);
         std::ofstream stream(exportFile); stream << report;
         reportTransaction.commit(); outcomeTransaction.commit();
     } catch (std::runtime_error const&) { failed = true; }
@@ -585,18 +585,18 @@ void checkFreshProgressEvidence() {
 void checkHistory(std::filesystem::path const& folder) {
     std::filesystem::create_directories(folder);
     auto first = recover(example(),{}).snapshot;
-    commit(folder,first);
+    commitLegacySnapshot(folder,first);
     auto current = example("2026-03-30T09:00:00");
     auto earlier = loadCompatiblePrevious(folder,current);
     assert(earlier && earlier->sourceTime == first.sourceTime);
     auto revision = first; revision.sourceHash = "revised"; revision.records[0].fp.votes = Counts{{11,190},{12,120}};
-    commit(folder,revision);
+    commitLegacySnapshot(folder,revision);
     earlier = loadPrevious(folder,current.election,current.sourceTime);
     assert(earlier->sourceHash == "revised" && total(earlier->records[0].fp.votes) == 310);
     assert(!loadPrevious(folder,current.election,first.sourceTime));
     auto changed = current; changed.records[0].identity += "wrong identity";
     changed.records[1].fp.votes = Counts{{11,100},{12,100}};
-    changed = recover(changed,{}).snapshot; commit(folder,changed);
+    changed = recover(changed,{}).snapshot; commitLegacySnapshot(folder,changed);
     auto later = example("2026-03-30T10:00:00");
     earlier = loadCompatiblePrevious(folder,later);
     auto north = std::find_if(earlier->records.begin(),earlier->records.end(),[](auto const& record) { return record.key == "North/ordinary/School"; });
@@ -624,7 +624,7 @@ void checkHistory(std::filesystem::path const& folder) {
     for (int i = 0; i < 150; ++i) {
         auto state = example("2026-03-30T10:" + std::string(i/60 < 10 ? "0" : "") + std::to_string(i/60) + ":" + std::string(i%60 < 10 ? "0" : "") + std::to_string(i%60));
         auto result = recover(state,loadCompatiblePrevious(folder,state));
-        commit(folder,result.snapshot);
+        commitLegacySnapshot(folder,result.snapshot);
         assert(result.snapshot.records.size() == 4 && result.issues.summary().size() == 1);
         assert(result.issues.summary().at(0).at("routine") == true);
     }
@@ -634,7 +634,7 @@ void checkIncrementalHistory(std::filesystem::path const& folder) {
     auto source = example();
     source.records.front().incremental = true;
     auto first = recover(source,{}).snapshot;
-    commit(folder,first);
+    commitLegacySnapshot(folder,first);
     auto later = source; later.sourceTime = "2026-03-30T09:00:00";
     auto saved = loadCompatiblePrevious(folder,later);
     assert(saved && saved->records.front().incremental);
@@ -650,11 +650,11 @@ void checkIncrementalHistory(std::filesystem::path const& folder) {
 
 void checkOlderCompatibleCounts(std::filesystem::path const& folder) {
     auto first = recover(example(),{}).snapshot;
-    commit(folder,first);
+    commitLegacySnapshot(folder,first);
     auto large = example("2026-03-30T09:00:00");
     large.records[0].fp.votes = Counts{{11,360},{12,240}};
     large.records[0].tcp.votes = Counts{{11,390},{12,210}};
-    commit(folder,recover(large,{}).snapshot);
+    commitLegacySnapshot(folder,recover(large,{}).snapshot);
     auto corrected = example("2026-03-30T10:00:00");
     corrected.records[0].tcp.error = "Malformed preference record";
     auto lookup = [&](Snapshot const& effective, Snapshot const* previous, HistoryAccount account) {
@@ -666,20 +666,20 @@ void checkOlderCompatibleCounts(std::filesystem::path const& folder) {
     assert(total(result.snapshot.records[0].tcp.votes) == 300);
     assert(result.snapshot.records[0].tcp.observedAt == first.sourceTime);
     large.records[0].tcp.votes.reset();
-    commit(folder,recover(large,{}).snapshot);
+    commitLegacySnapshot(folder,recover(large,{}).snapshot);
     result = recover(corrected,loadCompatiblePrevious(folder,corrected),lookup);
     assert(total(result.snapshot.records[0].tcp.votes) == 300);
     // Unavailable FP in a later consistent partial district account also must
     // not erase an older compatible count when the next record is malformed.
     large.records[0].fp.votes.reset();
-    commit(folder,recover(large,{}).snapshot);
+    commitLegacySnapshot(folder,recover(large,{}).snapshot);
     corrected.records[0].fp.error = "Malformed first preferences";
     result = recover(corrected,loadCompatiblePrevious(folder,corrected),lookup);
     assert(total(result.snapshot.records[0].fp.votes) == 300);
     assert(result.snapshot.records[0].fp.observedAt == first.sourceTime);
 
     auto fractional = example("2026-03-30T11:00:00.10");
-    commit(folder,recover(fractional,{}).snapshot);
+    commitLegacySnapshot(folder,recover(fractional,{}).snapshot);
     assert(!loadPrevious(folder,"fictional","2026-03-30T08:00:00.0"));
     auto earlier = loadPrevious(folder,"fictional","2026-03-30T11:00:00.100");
     assert(earlier && earlier->sourceTime == "2026-03-30T09:00:00");
@@ -691,12 +691,12 @@ void checkOlderCompatibleCounts(std::filesystem::path const& folder) {
 void checkReconciliationHistory(std::filesystem::path const& folder) {
     auto first = example(); first.records[1].tcp.votes = Counts{{11,60},{12,40}};
     auto accepted = recover(first,{}).snapshot;
-    commit(folder,accepted);
+    commitLegacySnapshot(folder,accepted);
     // A compatible nearest cache can lack usable preferences. Select an older
     // joint record, rather than combining independent FP and TCP fallbacks.
     auto missing = example("2026-03-30T09:00:00");
     missing.records[1].tcp.votes.reset();
-    commit(folder,recover(missing,{}).snapshot);
+    commitLegacySnapshot(folder,recover(missing,{}).snapshot);
     auto current = example("2026-03-30T10:00:00");
     current.records[1].fp.votes = Counts{{11,0},{12,0}};
     current.records[1].tcp.votes = first.records[1].tcp.votes;
@@ -707,11 +707,11 @@ void checkReconciliationHistory(std::filesystem::path const& folder) {
     assert(total(held.snapshot.records[1].fp.votes) == 100 && total(held.snapshot.records[1].tcp.votes) == 100);
     assert(held.snapshot.records[1].fp.observedAt == first.sourceTime);
     assert(held.snapshot.records[1].tcp.observedAt == first.sourceTime);
-    commit(folder,held.snapshot);
+    commitLegacySnapshot(folder,held.snapshot);
 
     auto future = first; future.sourceTime = "2026-03-30T12:00:00";
     future.records[1].fp.votes = future.records[1].tcp.votes = Counts{{11,150},{12,100}};
-    commit(folder,recover(future,{}).snapshot);
+    commitLegacySnapshot(folder,recover(future,{}).snapshot);
     current.sourceTime = "2026-03-30T11:00:00";
     current.records[1].fp.votes = Counts{{11,8},{12,5}};
     auto repeated = recover(current,loadCompatiblePrevious(folder,current),lookup);
@@ -724,7 +724,7 @@ void checkReconciliationHistory(std::filesystem::path const& folder) {
     revision.records[1].fp.votes = revision.records[1].tcp.votes = Counts{{11,45},{12,35}};
     auto reconciled = recover(revision,loadCompatiblePrevious(folder,revision),lookup);
     assert(reconciled.snapshot.records[1].fp.fresh() && !hasIssue(reconciled,"reconciliation_hold"));
-    commit(folder,reconciled.snapshot);
+    commitLegacySnapshot(folder,reconciled.snapshot);
     repeated = recover(current,loadCompatiblePrevious(folder,current),lookup);
     assert(total(repeated.snapshot.records[1].fp.votes) == 80 && total(repeated.snapshot.records[1].tcp.votes) == 80);
     assert(repeated.snapshot.records[1].fp.observedAt == revision.sourceTime);
@@ -1065,6 +1065,53 @@ void checkParserAndAdapter() {
     assert(priorQec.parties.at(priorQec.candidates.at(historicalCandidate).party).shortCode == "UAP");
     assert(priorQec.seats.at(1).fpVotes.at(historicalCandidate).at(Results2::VoteType::PrePoll) == 60);
     assert(priorQec.seats.at(1).totalVotesFp() == 130);
+
+    // Historical early venues can disappear from the current roster. Their
+    // counts still belong to the early comparison, rather than defaulting to
+    // ordinary day voting. Test both recognised early names, plus an unmatched
+    // mobile venue and a matched CBD early venue. Candidate totals are retained.
+    tinyxml2::XMLDocument replacementRoster;
+    replacementRoster.Parse("<ecq><election id='99'><districts><district number='1' districtName='North District' enrolment='20000'><candidates><candidate ballotName='One' party='Australian Labor Party (State of Queensland)'/><candidate ballotName='Two' party='Liberal National Party of Queensland'/></candidates><countRound><booths><booth id='7' name='School'/><booth id='9' name='Brisbane CBD Early Voting Centre'/></booths></countRound></district></districts></election></ecq>");
+    for (std::string const oldEarlyName : {"Returning Officer North District", "Former Early Voting Centre"}) {
+        auto older = nlohmann::json::parse(R"json({"North District":{"candidates":{"0":{"name":"One","party":"Australian Labor Party (State of Queensland)"},"1":{"name":"Two","party":"Liberal National Party of Queensland"}},"booths":{"School":{"fp":{"0":4000,"1":3455},"tcp":{"0":4263,"1":3192}},"Brisbane CBD Early Voting Centre":{"fp":{"0":18,"1":14},"tcp":{"0":20,"1":12}},"Mobile Polling":{"fp":{"0":40,"1":60},"tcp":{"0":50,"1":50}}}}})json");
+        older["North District"]["booths"][oldEarlyName] = nlohmann::json::parse(
+            R"json({"fp":{"0":5000,"1":5658},"tcp":{"0":5280,"1":5378}})json");
+        auto classified = Results2::Election::createQec(older,replacementRoster,"fictional");
+        int earlyTotal = 0, earlyLabor = 0, dayTotal = 0, mobileTotal = 0;
+        for (auto const& [id, venue] : classified.booths) {
+            if (venue.parentSeat != 1) continue;
+            if (venue.type == Results2::Booth::Type::Ppvc) {
+                earlyTotal += venue.totalVotesTcp();
+                for (auto const& [candidate,votes] : venue.tcpVotesCandidate)
+                    if (classified.candidates.at(candidate).name == "One") earlyLabor += votes;
+            }
+            else if (venue.type == Results2::Booth::Type::Hospital) mobileTotal += venue.totalVotesTcp();
+            else dayTotal += venue.totalVotesTcp();
+        }
+        assert(earlyTotal==10690 && earlyLabor==5300);
+        assert(dayTotal==7455 && mobileTotal==100);
+        assert(classified.seats.at(1).totalVotesFp()==18245);
+    }
+
+    // One current early venue can match old same-name venues in two districts.
+    // Both old records are detached to avoid a false identity match, but each
+    // must retain its own district, early category and candidate counts.
+    tinyxml2::XMLDocument ambiguousRoster;
+    ambiguousRoster.Parse("<ecq><election id='99'><districts><district number='1' districtName='North District' enrolment='1000'><candidates><candidate ballotName='One' party='Australian Labor Party (State of Queensland)'/><candidate ballotName='Two' party='Liberal National Party of Queensland'/></candidates><countRound><booths><booth id='9' name='Shared Early Voting Centre'/></booths></countRound></district><district number='2' districtName='South District' enrolment='1000'><candidates><candidate ballotName='One' party='Australian Labor Party (State of Queensland)'/><candidate ballotName='Two' party='Liberal National Party of Queensland'/></candidates><countRound><booths><booth id='7' name='Other School'/></booths></countRound></district></districts></election></ecq>");
+    auto ambiguousHistory = nlohmann::json::parse(R"json({"North District":{"candidates":{"0":{"name":"One","party":"Australian Labor Party (State of Queensland)"},"1":{"name":"Two","party":"Liberal National Party of Queensland"}},"booths":{"Shared Early Voting Centre":{"fp":{"0":60,"1":40},"tcp":{"0":65,"1":35}}}}})json");
+    ambiguousHistory["South District"] = ambiguousHistory["North District"];
+    ambiguousHistory["South District"]["booths"]["Shared Early Voting Centre"] = nlohmann::json::parse(
+        R"json({"fp":{"0":120,"1":80},"tcp":{"0":130,"1":70}})json");
+    auto detached = Results2::Election::createQec(ambiguousHistory,ambiguousRoster,"fictional");
+    int detachedEarly = 0;
+    for (auto const& [id, venue] : detached.booths) {
+        if (venue.name != "Shared Early Voting Centre") continue;
+        assert(venue.type==Results2::Booth::Type::Ppvc);
+        assert(venue.totalVotesFp()==(venue.parentSeat==1 ? 100 : 200));
+        ++detachedEarly;
+    }
+    assert(detachedEarly==2);
+    assert(detached.seats.at(1).totalVotesFp()==100 && detached.seats.at(2).totalVotesFp()==200);
     tinyxml2::XMLDocument emptySource;
     rejected = false;
     try { qec.updateLive(emptySource,Results2::Election::Format::WAEC); }
@@ -1109,7 +1156,7 @@ void checkTcpRevisionBasis(std::filesystem::path const& folder) {
     assert(recovered.records[0].fp.votes == changed.records[0].fp.votes);
     assert(recovered.records[0].tcpBasis->fp == *old.records[0].fp.votes);
     assert(!recovered.records[0].tcpBasis->recheckedReconciledPair);
-    commit(folder,recovered);
+    commitLegacySnapshot(folder,recovered);
     auto next = changed; next.sourceTime = "2026-03-30T10:00:00";
     next.records[0].tcpBasis.reset();
     auto saved = loadCompatiblePrevious(folder,next);
@@ -1157,7 +1204,7 @@ void checkRetainedRecheckStatus(std::filesystem::path const& folder) {
     changed.records[0].fp.votes->at(13) += 5;
     auto revised = recover(changed,original).snapshot;
     assert(revised.records[0].tcpBasis->recheckedReconciledPair);
-    commit(folder,revised);
+    commitLegacySnapshot(folder,revised);
     auto next = changed; next.sourceTime = "2026-03-30T10:00:00";
     auto saved = loadCompatiblePrevious(folder,next);
     assert(saved && saved->records[0].tcpBasis->recheckedReconciledPair);
@@ -1194,7 +1241,7 @@ void checkFpTotalHistory(std::filesystem::path const& folder) {
         int votes = hour <= 9 ? 300 : hour == 10 ? 800 : hour == 11 ? 780 : 900;
         r.fp.votes = Counts{{11,votes},{12,0}}; r.tcp.votes = Counts{{11,votes},{12,0}};
         previous = recover(source,previous).snapshot;
-        commit(folder,*previous);
+        commitLegacySnapshot(folder,*previous);
     }
     std::map<std::string,std::set<std::string>> selection{{"North",{"North/ordinary/School"}}};
     auto query = [&](std::string const& time, HistoryReadMode mode) {
@@ -1216,7 +1263,7 @@ void checkFpTotalHistory(std::filesystem::path const& folder) {
         record.fp.votes = Counts{{11,votes},{12,0}};
         record.tcp.votes = Counts{{11,votes},{12,0}};
         previous = recover(source,previous).snapshot;
-        commit(folder,*previous);
+        commitLegacySnapshot(folder,*previous);
     }
     auto withdrawn = query("2026-03-30T14:00:00",HistoryReadMode::Indexed);
     assert(withdrawn == query("2026-03-30T14:00:00",HistoryReadMode::SourceFiles));
@@ -1235,7 +1282,7 @@ void checkFpTotalHistory(std::filesystem::path const& folder) {
         auto source = example(time); source.districts.at("North").enrolment = 10000;
         auto& record = source.records[0]; record.incremental = true;
         record.fp.votes = record.tcp.votes = Counts{{11,votes},{12,0}};
-        auto accepted = recover(source,{}).snapshot; commit(folder,accepted);
+        auto accepted = recover(source,{}).snapshot; commitLegacySnapshot(folder,accepted);
         return accepted;
     };
     insert("2026-03-30T12:30:00",550);
@@ -1256,7 +1303,7 @@ void checkFpTotalHistory(std::filesystem::path const& folder) {
     previous = recover(invalid,previous).snapshot;
     assert(previous->records[0].fp.status == Status::Restored);
     assert(previous->records[0].fp.observedAt == "2026-03-30T15:00:00");
-    commit(folder,*previous);
+    commitLegacySnapshot(folder,*previous);
     insert("2026-03-30T17:00:00",1200);
     assert(equalHistory("2026-03-30T17:00:00") == std::vector<double>({300,800,780,900,550,0,1200,0}));
     assert(equalHistory("2026-03-30T18:00:00") == std::vector<double>({300,800,780,900,550,0,1200,0,1200}));
@@ -1277,7 +1324,7 @@ void checkFpRunObservationClocks(std::filesystem::path const& folder) {
         record.fp.observedAt = observed.empty() ? time : observed;
         record.fp.status = observed.empty() ? Status::Current : Status::Restored;
         record.fp.complete = false; record.matchedPreferences.reset(); record.tcpBasis.reset();
-        commit(folder,snapshot);
+        commitLegacySnapshot(folder,snapshot);
         return snapshot;
     };
     save("2026-03-30T08:00:00",0); save("2026-03-30T09:00:00",0); save("2026-03-30T10:00:00",0);
@@ -1293,14 +1340,14 @@ void checkFpRunObservationClocks(std::filesystem::path const& folder) {
     save("2026-03-30T13:00:00",900,"2026-03-30T08:30:00");
     assert(query("2026-03-30T14:00:00") == std::vector<double>({0,900,0,800,0}));
     auto missing = save("2026-03-30T09:00:00",0);
-    missing.records.erase(missing.records.begin()); commit(folder,missing);
+    missing.records.erase(missing.records.begin()); commitLegacySnapshot(folder,missing);
     assert(query("2026-03-30T14:00:00") == std::vector<double>({0,900,800,0}));
     auto unavailable = save("2026-03-30T09:00:00",0);
     unavailable.records[0].fp.votes.reset(); unavailable.records[0].fp.status = Status::Unavailable;
-    commit(folder,unavailable);
+    commitLegacySnapshot(folder,unavailable);
     assert(query("2026-03-30T14:00:00") == std::vector<double>({0,900,800,0}));
     auto otherElection = save("2026-03-30T09:00:00",0);
-    otherElection.election = "another-election"; commit(folder,otherElection);
+    otherElection.election = "another-election"; commitLegacySnapshot(folder,otherElection);
     assert(query("2026-03-30T14:00:00") == std::vector<double>({0,900,800,0}));
     save("2026-03-30T10:00:00.01",5);
     assert(query("2026-03-30T10:00:00.01") == std::vector<double>({0}));
@@ -1333,7 +1380,7 @@ void checkFpRunGrouping(std::filesystem::path const& folder) {
     for (int minute = 0; minute < 48; ++minute) {
         auto source = example("2026-03-30T08:"+std::string(minute < 10 ? "0" : "")+std::to_string(minute)+":00");
         source.records[0].fp.votes = source.records[0].tcp.votes = Counts{{11,0},{12,0}};
-        commit(folder,recover(source,{}).snapshot);
+        commitLegacySnapshot(folder,recover(source,{}).snapshot);
     }
     LiveInputHistory::clearMemoryCache();
     LiveInputHistory::Selection selection{{"North",{"North/ordinary/School"}}};

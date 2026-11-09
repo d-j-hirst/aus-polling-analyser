@@ -10,6 +10,7 @@ LiveVariabilityTests
 LivePreparedStorageTests
 LiveTppCompositionTests
 LivePartyConversionTests
+LiveHistoricalPreferencesTests
 LivePreferenceCorrectionTests
 LiveResultsInputTests
 LiveRunExportTests

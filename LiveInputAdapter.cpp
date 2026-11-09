@@ -255,7 +255,7 @@ Result prepare(Results2::Election& election, TurnoutModelIO::Artifact const& art
     std::filesystem::path const& root, std::filesystem::path const& source) {
     auto identified = identify(election,artifact,fingerprint(source));
     auto folder = directory(root,election.termCode);
-    auto previous = loadCompatiblePrevious(folder,identified);
+    auto previous = loadAcceptedCompatiblePrevious(folder,identified);
     auto result = recover(std::move(identified),previous,[&](Snapshot const& effective, Snapshot const* old, HistoryAccount account) {
         return loadEarlierCounts(folder,effective,old,account);
     });

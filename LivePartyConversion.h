@@ -13,6 +13,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 // District-level candidate preference destinations inform FP-to-TPP conversion.
@@ -155,6 +156,114 @@ inline double greensFlow(double base, double strength, double residual, History 
     if (!history.hasGreens || base <= 0 || base >= 1) return base;
     return logistic(logit(base) + GreensStrengthSlope*(strength-history.greensStrength)
         + GreensHistoryRetention*residual);
+}
+
+// Reconstruct the PREVIOUS election using the same historical information for
+// matched booths and whole-category comparisons. These are district-wide rates:
+// they do not assert that each booth/category had identical preferences. Their
+// purpose is a consistent estimate where actual historical TPP is unavailable;
+// measured historical TPP always takes precedence in the caller.
+//
+// The returned fraction reaches Labor. Greens retain the existing district-
+// strength/history rule; independents require the exact normalised candidate
+// name. Missing or ambiguous history returns no override, leaving the usual
+// configured party estimate in place. Forward-reuse discounts (for example an
+// exceptional past campaign) do not alter reconstruction of that past election.
+inline std::optional<double> historicalFlow(History const& history, std::string const& seat,
+    std::string const& party, std::string const& candidate = {}) {
+    auto row = history.find(seat,party,candidate);
+    if (!row) return {};
+    if (party == "GRN" && history.hasGreens)
+        return greensFlow(logistic(history.greensLevel),row->strength(),history.greensResidual(*row),history);
+    if (party == "IND") return logistic(row->flow());
+    return {};
+}
+
+// A deliberately discounted past campaign must not return through the new
+// aggregate historical residual. Usually the old party rates remain unchanged.
+// For an explicitly excluded part of a Greens district residual, explain that
+// part using its observed OLD flow before fitting what remains in the pooled
+// preference account. Today's Greens prior still uses its existing forward
+// weight. Otherwise, for example, Melbourne's exceptional 2019 campaign could
+// depress current preferences again despite forwardResidualWeight being zero.
+//
+// All rates are fractions reaching Labor. This changes only a private set of
+// rates for fitting the additional old notional account, never historical votes,
+// the old comparison share, current party priors or existing classic TCP fits.
+inline LivePartialCount::Flows notionalCalibrationFlows(LivePartialCount::Flows rates,
+    History const& history, std::string const& seat, int greens) {
+    auto row = history.find(seat,"GRN");
+    if (!row || greens < 0 || row->forwardResidualWeight == 1 || !rates.contains(greens)) return rates;
+    double retained = row->forwardResidualWeight;
+    rates[greens] = logistic(retained*logit(rates.at(greens))+(1-retained)*row->flow());
+    return rates;
+}
+
+// Form one historical category's estimated Labor TPP votes and comparison total.
+// An actual historical Labor/Coalition TCP is used exactly. A separately counted
+// notional TPP can supply a missing classic account after an exact raw-FP match.
+// Otherwise FP supplies the population and the historical party/candidate rates
+// above fill in preferences, with configured estimates for missing history.
+// The caller preserves the category's real/synthetic provenance separately.
+//
+// Counts and returned values are votes: TCP supplies the denominator when
+// measured, otherwise the existing FP comparison denominator is retained.
+// historicalRates are fractions reaching
+// Labor; configuredPercent and previousPercent are the existing percentage
+// inputs, keyed by internal party ID (-1 is generic Others). The latter can
+// explicitly override a generic estimate for the previous election. Historical
+// party-specific information takes the same precedence as in matched booths.
+// notional is the additional old Labor/Coalition count with the same mapped
+// party IDs and FP population; it is not a current count or an estimated share.
+// Both Coalition parties remain outside the non-major preference pool here,
+// preserving this aggregate category comparison's existing treatment.
+inline std::pair<double,double> historicalCategoryTpp(LivePartialCount::Counts const& fp,
+    LivePartialCount::Counts const& tcp, LivePartialCount::Flows const& historicalRates,
+    LivePartialCount::Flows const& configuredPercent, LivePartialCount::Flows const& previousPercent,
+    int nationals, LivePartialCount::Counts const& notional = {}) {
+    double first = 0, total = 0;
+    bool classic = tcp.contains(0) && (tcp.contains(1) || tcp.contains(nationals));
+    if (classic) {
+        for (auto const& [party,votes] : tcp) {
+            total += votes;
+            if (party == 0) first += votes;
+        }
+    }
+    if (total > 0) return {first,total};
+    // An independently counted old Labor/Coalition scrutiny can fill a missing
+    // classic comparison. Its raw candidate population was checked by the
+    // historical loader; keep the same account here as in matched booths.
+    // Otherwise a category fallback would reintroduce the old conversion error
+    // into reference centering even after preference calibration removed it.
+    double notionalTotal = LivePartialCount::total(notional);
+    bool matchedNotional = notional.size() == 2 && notional.contains(0)
+        && (notional.contains(1) || notional.contains(nationals))
+        && notionalTotal > 0 && notionalTotal == LivePartialCount::total(fp);
+    if (matchedNotional) return {notional.at(0),notionalTotal};
+    for (auto const& [party,votes] : fp) {
+        double percent = 0;
+        if (party == 0) {
+            percent = 100;
+        }
+        else if (party == 1 || party == nationals) {
+            percent = 0;
+        }
+        else if (historicalRates.contains(party)) {
+            percent = 100*historicalRates.at(party);
+        }
+        else if (previousPercent.contains(party)) {
+            percent = previousPercent.at(party);
+        }
+        else if (configuredPercent.contains(party)) {
+            percent = configuredPercent.at(party);
+        }
+        else {
+            percent = configuredPercent.at(-1);
+        }
+        total += votes;
+        first += votes*percent*.01;
+    }
+    return {first,total};
 }
 
 inline double returningIndependentFlow(Record const& history, double currentBase, double previousBase) {

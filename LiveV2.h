@@ -5,6 +5,7 @@
 #include "LiveEstimatedTpp.h"
 #include "LiveTppComposition.h"
 #include "LivePartyConversion.h"
+#include "LiveHistoricalPreferences.h"
 #include "LivePartyMapping.h"
 #include "LiveVariability.h"
 #include "LivePreparedStorage.h"
@@ -190,6 +191,12 @@ public:
   bool incrementalFp = false;
   bool receivesFpBatches() const { return incrementalFp || voteType != Results2::VoteType::Ordinary; }
   std::string previousPreferenceSeat;
+  // Independent old Labor/Coalition scrutiny, separate from the old contest's
+  // actual TCP pairing. It is attached only after an exact original-FP match.
+  // Its preference offset is fitted once after historical party priors; frozen
+  // scenarios reuse that scalar rather than repeating the numerical fit.
+  LivePartialCount::Counts notionalTppPrevious;
+  std::optional<double> notionalPreferenceOffset;
   std::map<int, double> previousPartyPreferenceFlows;
 
   Node node;
@@ -592,7 +599,9 @@ private:
   // baseline seat swing, or baseline seat absolute TPP when unmatched.
   double tppBoothBaseline(int boothIndex) const;
   void prepareCategoryHistory(int seatIndex, Results2::Seat const& previousSeat,
-    Results2::Election const& previousElection, Results2::Election const& currentElection);
+    Results2::Election const& previousElection, Results2::Election const& currentElection,
+    LivePartyConversion::History const& history,
+    LiveHistoricalPreferences::History const& notionalHistory);
 
   double tppSeatReferenceShift(int seatIndex, double priorShare) const;
   double tppBoothMatchedPreferenceUnit(int boothIndex) const;
@@ -602,12 +611,12 @@ private:
   // seatIndex is the live seat-vector index. referenceShift aligns its booth
   // expectations to the pre-count baseline on the transformed scale. The source
   // group partitions information by TCP coverage, never by map coordinates;
-  // qualityFloors supplies category-specific minimum comparison weights [0,1].
+  // Source groups remain private predictors of places whose FP has not arrived.
   std::map<int, LiveTppIntegration::CategoryEvidence> tppCategoryEvidence(int seatIndex, double referenceShift,
-    LiveTppIntegration::EvidenceSourceGroup sourceGroup = LiveTppIntegration::EvidenceSourceGroup::All, std::map<int, double> const& qualityFloors = {}) const;
+    LiveTppIntegration::EvidenceSourceGroup sourceGroup = LiveTppIntegration::EvidenceSourceGroup::All) const;
   void appendTppBoothEvidence(int boothIndex, double referenceShift,
     std::map<int, LiveTppIntegration::CategoryEvidence>& categories,
-    LiveTppIntegration::EvidenceSourceGroup sourceGroup, std::map<int, double> const& qualityFloors) const;
+    LiveTppIntegration::EvidenceSourceGroup sourceGroup) const;
   double tppScenarioCountChange(int seatIndex) const;
   double preparedTppShare(int seatIndex) const;
   nlohmann::json tppIntegrationDiagnostic() const;
@@ -621,23 +630,23 @@ private:
     std::map<int, LiveTppComposition::BaselineSource> sources;
     LiveTppComposition::DirectVotes direct;
     std::map<int, LiveTppIntegration::CategoryEvidence> evidence;
+    std::map<int, LiveTppComposition::CategoryVoteAccount> votes;
     std::array<std::map<int, LiveTppIntegration::CategoryEvidence>, 2> observationEvidence;
-    // Only the current preparation's compact sums are retained. Historical
-    // weighting supplies the small-sample variance bound after completion lifts
-    // comparison weights; it is not another observation or prior draw.
-    std::map<int, LiveTppIntegration::CategoryEvidence> unfadedEvidence;
-    std::array<std::map<int, LiveTppIntegration::CategoryEvidence>, 2> unfadedObservationEvidence;
     std::map<int, LiveTppIntegration::ReportingProgress> fpProgress;
     std::vector<int> codes;
     LiveTppComposition::Account account;
     double expectedVotes() const;
   };
   TppCategoryAccount prepareTppCategoryAccount(int seatIndex);
+  void prepareTppCategoryVotes(int seatIndex, TppCategoryAccount& account) const;
+  LiveTppIntegration::Observation unifyTppCategoryObservation(TppCategoryAccount const& account,
+    int category, std::vector<LiveTppIntegration::Observation> const& comparisons,
+    double budgetFraction) const;
   void identifySyntheticTppCategories(std::vector<TppCategoryAccount> const& accounts);
   void prepareDirectTppVotes(int seatIndex, TppCategoryAccount& account) const;
   double accountedTpp(int seatIndex, double transformed, bool sample = false) const;
   double accountedTppDerivative(int seatIndex, double transformed) const;
-  void applyTppCategoryCompletion(int seatIndex, TppCategoryAccount& account) const;
+  void prepareTppCategoryProgress(int seatIndex, TppCategoryAccount& account) const;
   void applyTppObservationCoverage(TppCategoryAccount const& account, int group, int code,
     LiveTppIntegration::Observation& observation) const;
   std::shared_ptr<std::vector<TppCategoryAccount> const> tppCategoryAccounts;
@@ -653,8 +662,18 @@ private:
   void getNatPartyIndex();
 
   void loadEstimatedPreferenceFlows();
-  void preparePartyConversionPriors(Results2::Election const& previousElection,
+  LivePartyConversion::History readPartyConversionHistory(Results2::Election const& previousElection,
+    Results2::Election const& currentElection) const;
+  LiveHistoricalPreferences::History readNotionalPreferenceHistory(Results2::Election const& previousElection,
+    Results2::Election const& currentElection) const;
+  void prepareNotionalPreferenceOffsets(LivePartyConversion::History const& history);
+  LivePartialCount::Counts const& historicalTppCounts(Booth const& booth) const;
+  void preparePartyConversionPriors(LivePartyConversion::History const& history,
+    Results2::Election const& previousElection,
     Results2::Election const& currentElection);
+  LivePartialCount::Flows historicalPartyPreferenceFlows(LivePartyConversion::History const& history,
+    std::string const& previousSeatName, LivePartialCount::Counts const& primaries,
+    Results2::Election const& previousElection) const;
   void prepareHistoricalBoothFlows(LivePartyConversion::History const& history,
     Results2::Election const& previousElection);
   void prepareDistrictPartyFlows(LivePartyConversion::History const& history,
@@ -673,7 +692,9 @@ private:
 
   void createNodesFromElectionData(
     Results2::Election const& previousElection,
-    Results2::Election const& currentElection);
+    Results2::Election const& currentElection,
+    LivePartyConversion::History const& history,
+    LiveHistoricalPreferences::History const& notionalHistory);
 
   template<typename T>
   std::vector<Node const*> getThisAndParents(T& child) const;

@@ -147,47 +147,49 @@ void LiveV2::Election::identifyTppIntegrationSeats() {
 }
 
 void LiveV2::Election::prepareCategoryHistory(int seatIndex, Results2::Seat const& previousSeat,
-    Results2::Election const& previousElection, Results2::Election const& currentElection) {
+    Results2::Election const& previousElection, Results2::Election const& currentElection,
+    LivePartyConversion::History const& partyFlowHistory,
+    LiveHistoricalPreferences::History const& notionalHistory) {
     // Retain the whole old category, including old locations with no current ID
     // match. Completion can then compare aggregate PPVC results even after moves.
     // A zero historical account supplies neither a comparison nor provenance.
-    auto add = [&](int code, auto const& fp, auto const& tcp, bool synthetic) {
-        std::map<int, double> primaries, preferences;
+    auto add = [&](int code, auto const& fp, auto const& tcp, bool synthetic,
+        std::string const& kind, int identifier) {
+        LivePartialCount::Counts primaries, preferences;
         for (auto const& [id, votes] : fp)
-            primaries[mapPartyId(id,true,previousElection,currentElection)] += double(votes);
+            primaries[mapPartyId(id,true,previousElection,currentElection)] += votes;
         for (auto const& [id, votes] : tcp)
-            preferences[mapPartyId(id,true,previousElection,currentElection)] += double(votes);
-        double first = 0, total = 0;
-        bool classic = preferences.contains(0) && (preferences.contains(1) || preferences.contains(natPartyIndex));
-        for (auto const& [party, votes] : preferences) if (classic) {
-            total += votes; if (party == 0) first += votes;
+            preferences[mapPartyId(id,true,previousElection,currentElection)] += votes;
+        // Actual classic TCP wins. Non-classic FP uses the same historical
+        // Greens/candidate priors as matched booths, retaining generic estimates
+        // when those priors are absent. Category-specific flows may differ; this
+        // shared assumption is not a measurement of preferences in the category.
+        // Generic-only category estimates would otherwise create a comparison
+        // mismatch and a compensating seat-wide reference shift.
+        auto historicalFlows = historicalPartyPreferenceFlows(partyFlowHistory,
+            previousSeat.name,primaries,previousElection);
+        LivePartialCount::Counts notional;
+        if (!synthetic) {
+            LivePartialCount::Counts raw(fp.begin(),fp.end());
+            auto record = notionalHistory.find(previousSeat.name,kind,identifier,raw);
+            if (record) notional = LiveHistoricalPreferences::mappedTpp(*record,primaries,natPartyIndex);
         }
-        if (total <= 0) {
-            // Non-classic historical FP remains actual category composition;
-            // ordinary conversion uncertainty is separate from invented category
-            // allocations such as the historical SA declaration split.
-            first = total = 0;
-            for (auto const& [party, votes] : primaries) {
-                double flow = party == 0 ? 100 : party == 1 || party == natPartyIndex ? 0 :
-                    prevPreferenceOverrides.contains(party) ? prevPreferenceOverrides.at(party) :
-                    preferenceFlowMap.contains(party) ? preferenceFlowMap.at(party) : preferenceFlowMap.at(-1);
-                total += votes; first += votes*flow*.01;
-            }
-        }
+        auto [first,total] = LivePartyConversion::historicalCategoryTpp(primaries,preferences,
+            historicalFlows,preferenceFlowMap,prevPreferenceOverrides,natPartyIndex,notional);
         if (total <= 0) return;
         auto& history = seats.at(seatIndex).categoryHistory[code];
         history.first += first; history.total += total; history.synthetic |= synthetic;
     };
     for (auto const& [id, booth] : previousElection.booths)
         if (booth.parentSeat == previousSeat.id)
-            add(int(booth.type),booth.fpVotes,booth.tcpVotesCandidate,booth.syntheticBaseline);
+            add(int(booth.type),booth.fpVotes,booth.tcpVotesCandidate,booth.syntheticBaseline,"booth",id);
     std::map<Results2::VoteType,std::map<int,int>> fp, tcp;
     for (auto const& [candidate, types] : previousSeat.fpVotes)
         for (auto const& [type, votes] : types) if (type != Results2::VoteType::Ordinary) fp[type][candidate] += votes;
     for (auto const& [candidate, types] : previousSeat.tcpVotesCandidate)
         for (auto const& [type, votes] : types) if (type != Results2::VoteType::Ordinary) tcp[type][candidate] += votes;
     for (auto const& [type, counts] : fp)
-        add(100+int(type),counts,tcp[type],previousSeat.syntheticBaselineTypes.contains(type));
+        add(100+int(type),counts,tcp[type],previousSeat.syntheticBaselineTypes.contains(type),"declaration",int(type));
 }
 
 void LiveV2::Election::prepareMatchedCategoryHistory(int seatIndex) {
@@ -235,7 +237,8 @@ LiveV2::Election::TppCategoryAccount LiveV2::Election::prepareTppCategoryAccount
         prepared.sources[code] = found == seats[seatIndex].categoryHistory.end()
             ? LiveTppComposition::BaselineSource::Unavailable : found->second.source();
     }
-    applyTppCategoryCompletion(seatIndex, prepared);
+    prepareTppCategoryProgress(seatIndex, prepared);
+    prepareTppCategoryVotes(seatIndex, prepared);
     prepareDirectTppVotes(seatIndex, prepared);
     LiveTppIntegration::Vector shares, amounts;
     for (auto const& [code, evidence] : prepared.evidence) {
@@ -255,10 +258,11 @@ void LiveV2::Election::identifySyntheticTppCategories(std::vector<TppCategoryAcc
     tppSyntheticCategoryCodes.assign(synthetic.begin(),synthetic.end());
 }
 
-void LiveV2::Election::applyTppCategoryCompletion(int seatIndex, TppCategoryAccount& account) const {
-    // Measure physical FP coverage before historical relevance or conversion
-    // discounts. A few outstanding small booths then have only their expected
-    // vote weight, rather than holding a near-complete category at low quality.
+void LiveV2::Election::prepareTppCategoryProgress(int seatIndex, TppCategoryAccount& account) const {
+    // Physical coverage describes how much of the category is already in its
+    // vote account. It does not establish how representative the TCP subset is:
+    // FP completion cannot upgrade an unmatched booth's TCP comparison. Actual
+    // received votes instead get their full weight in prepareTppCategoryVotes.
     for (int index : seats.at(seatIndex).booths) {
         // Use formal FP targets even under optional preferential voting;
         // exhausted ballots are still received FP, not unreported ballots.
@@ -267,24 +271,72 @@ void LiveV2::Election::applyTppCategoryCompletion(int seatIndex, TppCategoryAcco
         auto const& booth = readBooths()[index];
         account.fpProgress[categoryCode(booth)].add(target,booth.node.totalFpVotesCurrent(),0);
     }
-    std::map<int,double> floors;
-    for (auto const& [code,progress] : account.fpProgress) {
-        double coverage = progress.fpVotes/progress.expectedVotes;
-        double floor = LiveTppIntegration::comparisonQualityFloor(coverage);
-        if (floor > 0 && account.sources.at(code) != LiveTppComposition::BaselineSource::Unavailable)
-            floors.emplace(code,floor);
-    }
-    if (floors.empty()) return; // Keep the established sparse early-count path.
+}
 
-    // The same whole-category floor applies to both measured and FP-derived
-    // subsets. Rebuild all weighted sums together: lifting only precision would
-    // give extra authority to a mean still dominated by the old booth matches.
-    account.unfadedEvidence = std::move(account.evidence);
-    account.unfadedObservationEvidence = std::move(account.observationEvidence);
-    account.evidence = tppCategoryEvidence(seatIndex,account.referenceShift,LiveTppIntegration::EvidenceSourceGroup::All,floors);
-    for (int group = 0; group < 2; ++group)
-        account.observationEvidence[group] = tppCategoryEvidence(
-            seatIndex,account.referenceShift,group == 0 ? LiveTppIntegration::EvidenceSourceGroup::MeasuredTcp : LiveTppIntegration::EvidenceSourceGroup::FpDerivedTpp,floors);
+void LiveV2::Election::prepareTppCategoryVotes(int seatIndex, TppCategoryAccount& account) const {
+    // Assemble received continuing ballots independently of the comparisons
+    // used to predict missing places. The historical alignment remains on those
+    // comparison copies; it cannot transfer known FP or TCP votes between sides.
+    for (int index : seats.at(seatIndex).booths) {
+        auto const& booth = readBooths()[index];
+        auto const& n = booth.node;
+        double target = tppBoothTarget(index);
+        if (target <= 0) continue;
+        int code = categoryCode(booth);
+        if (account.sources.at(code) == LiveTppComposition::BaselineSource::Unavailable)
+            continue; // Its existing direct received-vote replacement is prepared separately.
+        double baseline = LiveTppComposition::share(tppBoothBaseline(index)+account.referenceShift);
+        auto received = receivedBoothTpp(booth);
+        auto& votes = account.votes[code];
+        if (!received) {
+            votes.add(target,0,0,0,0,baseline,0,0,0);
+            continue;
+        }
+        double pending = received->votes;
+        double pendingFirst = received->inferredFirst;
+        double first = pendingFirst;
+        double tcp = LiveEstimatedTpp::observedTppVotes(n.tcpVotesCurrent,natPartyIndex);
+        double continuing = received->votes;
+        if (optionalPreferential && tcp <= 0) {
+            // FP includes ballots that will exhaust, whereas this account's
+            // target is continuing TPP. Retain the existing projected exhaustion
+            // allowance for the received fraction rather than counting exhausted
+            // ballots as additional outstanding TPP. Actual TCP below stays exact.
+            double fpTarget = turnoutFpTarget(index);
+            continuing = fpTarget > 0 ? target*std::min(1.,n.totalFpVotesCurrent()/fpTarget) : 0;
+            double fraction = received->votes > 0 ? continuing/received->votes : 0;
+            pendingFirst *= fraction;
+            first = pendingFirst;
+            pending = continuing;
+        }
+        if (tcp > 0) {
+            if (auto revised = revisedBoothTcp(booth,0,coalitionFinalist(booth))) {
+                pending = revised->uncertainVotes();
+                first = revised->first;
+                votes.revisionVariance += std::pow(pending/2,2);
+            }
+            else {
+                // Subtract counts directly. Reversing a rounded fraction can
+                // turn exactly one pending ballot into slightly less than one.
+                pending = received->votes-tcp;
+                first += n.tcpVotesCurrent.at(0);
+            }
+        }
+        else if (!optionalPreferential) {
+            // Allocate exact major FP plus the existing corrected preference
+            // flows. A smoothed absolute TPP estimate must not move known major
+            // primaries. Zero future share excludes not-yet-received ballots.
+            first = projectUnmatchedBoothTpp(index,0,0);
+            pendingFirst = first;
+        }
+        double fp = n.totalFpVotesCurrent(), greens = 0, independent = 0;
+        if (fp > 0) for (auto const& [party,count] : n.fpVotesCurrent) {
+            if (party == run.grnPartyIndex) greens += count/fp;
+            else if (party >= IndependentPartyIdOffset) independent += count/fp;
+        }
+        votes.add(target,continuing,first,pending,pendingFirst,baseline,
+            LiveTppComposition::preferencePoolFraction(n.fpVotesCurrent,natPartyIndex),greens,independent);
+    }
 }
 
 LiveTppIntegration::Moments LiveV2::Election::tppJointPrior() {
@@ -373,10 +425,12 @@ double LiveV2::Election::tppSeatReferenceShift(int seatIndex, double priorShare)
     // Align at the reporting-unit level BEFORE comparing evidence. Usually
     // this reconciles modest category-size/redistribution differences. Where
     // previous TPP is synthetic (a non-classic contest), its absolute level can
-    // be much further from the configured seat history. Align only that
-    // comparison baseline. Received FP plus estimated preference transfers is
-    // an absolute vote estimate, just as received TCP is an absolute count;
-    // neither is translated to agree with the pre-election expectation.
+    // be much further from the configured seat history. Use the same common
+    // seat offset for the historical comparisons and their current FP-derived
+    // counterparts; otherwise a shared conversion error becomes apparent swing.
+    // appendTppBoothEvidence adjusts detached inferred comparisons, retaining
+    // measured TCP and the original received/projected vote accounts. This
+    // offset uses expected final vote sizes, not current TCP reporting confidence.
     LiveTppIntegration::Vector shares, amounts;
     for (int index : seats.at(seatIndex).booths) {
         double expected = tppBoothTarget(index);
@@ -391,12 +445,12 @@ double LiveV2::Election::tppSeatReferenceShift(int seatIndex, double priorShare)
 
 std::map<int, LiveTppIntegration::CategoryEvidence>
 LiveV2::Election::tppCategoryEvidence(int seatIndex, double referenceShift,
-    LiveTppIntegration::EvidenceSourceGroup sourceGroup, std::map<int,double> const& qualityFloors) const {
+    LiveTppIntegration::EvidenceSourceGroup sourceGroup) const {
     // Each physical reporting unit contributes once to its published category.
     // The per-booth helper owns partial-preference and comparison-quality rules.
     std::map<int, LiveTppIntegration::CategoryEvidence> categories;
     for (int index : seats.at(seatIndex).booths)
-        appendTppBoothEvidence(index, referenceShift, categories, sourceGroup, qualityFloors);
+        appendTppBoothEvidence(index, referenceShift, categories, sourceGroup);
     return categories;
 }
 
@@ -418,7 +472,7 @@ double LiveV2::Election::tppBoothMatchedPreferenceUnit(int index) const {
 
 void LiveV2::Election::appendTppBoothEvidence(int index, double referenceShift,
     std::map<int, LiveTppIntegration::CategoryEvidence>& categories,
-    LiveTppIntegration::EvidenceSourceGroup sourceGroup, std::map<int,double> const& qualityFloors) const {
+    LiveTppIntegration::EvidenceSourceGroup sourceGroup) const {
     // index identifies a prepared reporting unit (physical booth or declaration
     // service). readBooths() gives the immutable prepared records: recovered
     // current candidate counts, historical comparisons and live TPP estimates.
@@ -427,8 +481,7 @@ void LiveV2::Election::appendTppBoothEvidence(int index, double referenceShift,
     // referenceShift is a seat-wide offset in 25*log-odds units aligning booth
     // comparisons with the pre-count seat baseline. categories accumulates
     // evidence by voting category. sourceGroup selects all information or its
-    // measured/FP-derived fraction. qualityFloors maps category codes to the
-    // minimum comparison quality [0,1] justified by category FP completion.
+    // measured/FP-derived fraction for private prediction of unreported places.
     auto const& booth = readBooths()[index];
     auto const& n = booth.node;
     double expected = tppBoothTarget(index); // Expected final continuing votes, not a TPP share.
@@ -455,25 +508,24 @@ void LiveV2::Election::appendTppBoothEvidence(int index, double referenceShift,
     // A substantial newly added batch need not resemble the earlier TCP. The
     // CategoryEvidence accumulator partitions its precision as well as weight.
     double contribution = LiveTppIntegration::evidenceGroupFraction(sourceGroup, received->inferredFraction);
-    // Reference alignment belongs only to baseline above. Both FP-derived TPP
-    // and pending-preference allocations already describe received ballots.
-    // Retain their measured preference-flow corrections and uncertainty, but
-    // never move their central estimates by the seat's prior-reference gap.
+    // Put inferred evidence on the same reference as baseline above. This
+    // changes only this comparison copy, after its usual preference correction;
+    // it does not overwrite the booth's raw estimate, counted votes or direct
+    // received-vote replacement. Fully measured TCP is unchanged. See
+    // alignInferredReference for the shared-error assumption and partial counts.
+    *received = LiveTppIntegration::alignInferredReference(*received, referenceShift);
     // Only received votes enter this estimate. A first partial TCP retains
     // the pending-FP allocation used by the forecast, not an extrapolation
     // of its possibly unrepresentative small TCP batch. Under OPV the FP/TCP
     // gap can be exhaustion, so use the observed continuing-vote share.
     // Matched booths compare with their historical lean; genuinely new
-    // locations use the seat baseline with reduced comparison quality.
+    // locations use category history (or the seat fallback) with reduced
+    // comparison quality. Full physical FP coverage does not lift that quality.
     double quality = n.relevanceModifier * (n.tppSharePrevious ? 1 : .1);
     // Retain the existing comparison-weight convention, but no additional
     // blanket variance multiplier. Explicit conversion uncertainty now owns
     // the precision difference; reporting order also covers measured TCP.
     quality *= 1 - .5 * received->inferredFraction;
-    if (auto floor = qualityFloors.find(categoryCode(booth)); floor != qualityFloors.end())
-        quality = std::max(quality,floor->second);
-    // Completion lifts historical comparison quality, not preference certainty.
-    // Unresolved preferences retain their explicit conversion covariance below.
     // Existing unreported-booth TPP scale, now used as reporting-location
     // uncertainty before any progress gate. Heterogeneous observed swings
     // can increase this allowance; votes in one booth do not create breadth.
@@ -566,14 +618,70 @@ LiveTppComposition::ObservationBlock LiveV2::Election::tppSeatObservations(int s
     double matchedUnits) const {
     auto const& prepared = tppCategoryAccounts->at(s);
     if (prepared.codes.empty()) return {};
-    auto [rows, localExposures] = tppSeatObservationRows(s, matchedUnits);
+    auto [comparisons, comparisonExposures] = tppSeatObservationRows(s, matchedUnits);
+    for (auto& comparison : comparisons) LiveTppComposition::prepareConversionScales(comparison);
+    // Private source comparisons retain their own precision for unreported
+    // places. The joint seat model receives one finite vote account per category,
+    // rather than two extrapolations over the same already received population.
+    std::vector<LiveTppIntegration::Observation> rows;
+    LiveTppIntegration::Matrix localExposures;
+    double budget = prepared.expectedVotes()/electionExpected;
+    for (int code : prepared.codes) {
+        std::vector<LiveTppIntegration::Observation> sources;
+        LiveTppIntegration::Vector exposure;
+        for (std::size_t i = 0; i < comparisons.size(); ++i) if (comparisons[i].category == code) {
+            sources.push_back(comparisons[i]);
+            exposure = comparisonExposures[i];
+        }
+        if (sources.empty()) continue; // Unsupported categories retain their direct count path.
+        rows.push_back(unifyTppCategoryObservation(prepared,code,sources,budget));
+        localExposures.push_back(std::move(exposure));
+    }
     auto block = LiveTppComposition::observationBlock(std::move(rows), localExposures,
         LiveTppComposition::categoryCovariance(prepared.codes, run.regionCode, true, std::stoi(run.yearCode)));
-    LiveTppComposition::allowForConversionUncertainty(block, prepared.expectedVotes()/electionExpected);
+    // Scales have already been attached to their received/future components.
+    // Recomputing them from a pooled inferred fraction would recreate the loss
+    // of measured information which originally motivated source separation.
+    LiveTppComposition::addLocalConversionCovariance(block,budget);
     auto transferStart = sim.getLiveBaselineReport()->liveBaselineTppMoments.mean.size()
         + tppCategoryCodes.size() + LiveTppComposition::ReportingOrderFactors;
     LiveTppComposition::applyPartyTransfer(block, transferStart, tppTransferCalibration->factors.covariance);
     return block;
+}
+
+LiveTppIntegration::Observation LiveV2::Election::unifyTppCategoryObservation(
+    TppCategoryAccount const& account, int category,
+    std::vector<LiveTppIntegration::Observation> const& comparisons, double budgetFraction) const {
+    auto const& votes = account.votes.at(category);
+    auto const& baseline = sim.getLiveBaselineReport()->liveBaselineTppMoments;
+    auto orderStart = baseline.mean.size()+tppCategoryCodes.size();
+    auto const& transfer = tppTransferCalibration->factors.covariance;
+    // Determine how to average the two raw swing comparisons for UNCOUNTED
+    // locations. Common category departures cancel when comparing their
+    // precision; local preference errors and shared order/transfer errors do
+    // not. Keeping their covariance avoids treating correlated estimates as
+    // independent extra information. There are at most two sources here.
+    auto covariance = LiveTppComposition::futureComparisonCovariance(comparisons,
+        budgetFraction,transfer,orderStart);
+    LiveTppIntegration::Observation pending;
+    pending.localMatchedUnits = comparisons.front().localMatchedUnits;
+    pending.sharedMatchedUnits = comparisons.front().sharedMatchedUnits;
+    if (votes.pending > 0) {
+        // The pool proportions refer to received ballots still awaiting TCP,
+        // before division by the WHOLE category. This preserves the existing
+        // pool-variance rule while scaling its effect by the affected ballots.
+        pending.inferredFraction = 1;
+        pending.unresolvedPreferenceFraction = votes.preferencePool/votes.pending;
+        pending.greensPreferenceFraction = votes.greensPool/votes.pending;
+        pending.independentPreferenceFraction = votes.independentPool/votes.pending;
+        pending.conversionJacobian = LiveTppComposition::conversionShareJacobian(
+            100*votes.pendingFirst/votes.pending);
+        LiveTppComposition::prepareConversionScales(pending);
+    }
+    auto position = std::find(account.codes.begin(),account.codes.end(),category)-account.codes.begin();
+    int seat = comparisons.front().seat;
+    return LiveTppComposition::unifiedCategoryObservation(votes,comparisons,covariance,pending,
+        baseline.mean.at(seat),account.account.shares.at(position),orderStart);
 }
 
 std::pair<std::vector<LiveTppIntegration::Observation>, LiveTppIntegration::Matrix>
@@ -637,36 +745,32 @@ LiveV2::Election::tppSeatObservationRows(int s, double matchedUnits) const {
 void LiveV2::Election::applyTppObservationCoverage(TppCategoryAccount const& prepared,
     int group, int code, LiveTppIntegration::Observation& observation) const {
     auto const& evidence = prepared.observationEvidence[group].at(code);
-    // Received counts remain in the finite-vote account. These variances govern
-    // what their comparison teaches about general seat/category movement, not
-    // whether the published ballots are accepted. Small completed categories
-    // retain the same underlying comparison scatter as incomplete categories;
-    // only the uncertainty about still-unreported locations disappears.
-    observation.variance = evidence.variance(prepared.evidence.at(code).heterogeneity());
+    auto const& wholeCategory = prepared.evidence.at(code);
+    // These PRIVATE comparison variances determine how the source predicts
+    // unreported places. The unified category row later scales that uncertainty
+    // by its remaining population. Physical FP completion does not promote the
+    // historical quality of this TCP subset. Both sources retain the combined
+    // usable sample for sparse-size adjustments, avoiding a second penalty just
+    // because one received population is divided between two information types.
+    double scatter = wholeCategory.heterogeneity();
+    observation.variance = evidence.variance(wholeCategory,scatter);
     observation.sampleVotes = evidence.reporting.fpVotes;
     observation.sampleCoverage = evidence.sampleCoverage();
-    observation.sparseSampleVariance = evidence.sparseSampleVariance(observation.variance);
+    observation.categorySampleVotes = wholeCategory.reporting.fpVotes;
+    observation.categorySampleCoverage = wholeCategory.sampleCoverage();
+    observation.categoryComparisonCoverage = wholeCategory.comparisonCoverage();
+    observation.sparseSampleVariance = evidence.sparseSampleVariance(observation.variance,wholeCategory);
     observation.variance += observation.sparseSampleVariance;
-    observation.comparisonVariance = evidence.comparisonVariance(prepared.evidence.at(code).heterogeneity());
+    observation.comparisonVariance = evidence.comparisonVariance(scatter);
     observation.comparisonVarianceFloor = LiveTppIntegration::retainSmallCategoryVariance(
-        0,observation.comparisonVariance,observation.sampleVotes);
+        0,observation.comparisonVariance,observation.categorySampleVotes);
     double reportingVariance = observation.variance;
-    observation.variance = evidence.locationVariance(prepared.evidence.at(code).heterogeneity());
+    observation.variance = evidence.locationVariance(wholeCategory,scatter);
     observation.retainedComparisonVariance = observation.variance-reportingVariance;
 
     auto const& progress = prepared.fpProgress.at(code);
     observation.categoryFpCoverage = progress.fpVotes/progress.expectedVotes;
-    observation.comparisonQualityFloor = LiveTppIntegration::comparisonQualityFloor(observation.categoryFpCoverage);
     observation.unfadedLocationVariance = observation.variance;
-    if (prepared.unfadedEvidence.empty()) return;
-    auto const& original = prepared.unfadedObservationEvidence[group].at(code);
-    observation.restoredComparisonFraction = std::clamp(1-original.weight/evidence.weight,0.,1.);
-    observation.unfadedLocationVariance = original.locationVariance(
-        prepared.unfadedEvidence.at(code).heterogeneity());
-    double retained = LiveTppIntegration::retainSmallCategoryVariance(
-        observation.variance,observation.unfadedLocationVariance,progress.fpVotes);
-    observation.retainedSmallSampleVariance = retained-observation.variance;
-    observation.variance = retained;
 }
 
 void LiveV2::Election::prepareDirectTppVotes(int seatIndex, TppCategoryAccount& account) const {

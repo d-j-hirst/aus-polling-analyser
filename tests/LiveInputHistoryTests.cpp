@@ -271,11 +271,11 @@ void comparePreferences(Path const& folder, Snapshot const& now) {
 }
 void checkMatchingEquivalence(Path const& folder) {
     auto fpOnly = accepted(0, {{1, 100}, {2, 80}, {3, 20}}, {});
-    commit(folder, fpOnly);
+    commitLegacySnapshot(folder, fpOnly);
     fpOnly.sourceTime = timeAt(10); fpOnly.records[0].fp.observedAt = timeAt(10);
-    commit(folder, fpOnly);
+    commitLegacySnapshot(folder, fpOnly);
     fpOnly.sourceTime = timeAt(20); fpOnly.records[0].fp.observedAt = timeAt(20);
-    commit(folder, fpOnly);
+    commitLegacySnapshot(folder, fpOnly);
     auto now = accepted(30, {{1, 150}, {2, 160}, {3, 40}}, Counts{{1, 116}, {2, 84}});
     now.records[0].tcp.observedAt = timeAt(15);
     comparePreferences(folder, now);
@@ -290,13 +290,13 @@ void checkMatchingEquivalence(Path const& folder) {
     now.sourceTime = timeAt(10); comparePreferences(folder, now);
 
     auto old = accepted(40, {{1, 480}, {2, 480}, {3, 40}}, Counts{{1, 500}, {2, 500}});
-    commit(folder, old);
+    commitLegacySnapshot(folder, old);
     now = accepted(50, {{1, 520}, {2, 480}, {3, 0}}, Counts{{1, 520}, {2, 480}});
     now.records[0].fp.stage = now.records[0].tcp.stage = CountStage::Rechecked;
     comparePreferences(folder, now);
     assert(loadPreferenceHistory(folder, now).at(now.records[0].key).previousAligned->fp.at(3) == 40);
     auto previous = accepted(45, {{1, 100}, {2, 80}, {3, 20}}, {});
-    previous.records[0].fp.votes.reset(); commit(folder, previous);
+    previous.records[0].fp.votes.reset(); commitLegacySnapshot(folder, previous);
     now.records[0].fp.votes.reset(); now.records[0].tcp.votes.reset();
     for (auto account : {HistoryAccount::FirstPreferences, HistoryAccount::TwoCandidatePreferred, HistoryAccount::Reconciled}) {
         auto a = loadEarlierCounts(folder, now, &previous, account);
@@ -318,7 +318,7 @@ void checkMatchingEquivalence(Path const& folder) {
 
 void checkUnavailableIndex(Path const& folder) {
     auto first = accepted(0, {{1, 100}, {2, 80}, {3, 20}}, {});
-    commit(folder, first);
+    commitLegacySnapshot(folder, first);
     // A read-only/busy/unwritable cache must not prevent a valid original history
     // from supplying its match. A regular file here prevents index-directory use.
     write(folder / "change-index-v1", {{"blocked", true}});
@@ -371,6 +371,218 @@ void checkMixedEdits(Path const& folder) {
     }
     LiveInputHistory::clearMemoryCache();
 }
+
+void verifyAccepted(Path const& folder, std::map<std::string,json> const& originals, int before=60) {
+    LiveInputHistory::Selection selection;
+    std::size_t count=0;
+    for (auto const& [code,value] : originals) if (code<stem(timeAt(before)))
+        for (auto const& row : value.at("records")) {
+            selection[row.at("d").get<std::string>()].insert(row.at("k").get<std::string>());++count;
+        }
+    std::size_t seen=0;
+    LiveInputHistory::visitAcceptedEarlier(folder,stem(timeAt(before)),selection,validate,
+        [&](std::string const& code,std::size_t position,json const& value) {
+            auto expected=originals.at(code);
+            expected["records"]=json::array({expected.at("records").at(position)});
+            assert(value==expected);++seen;return true;
+        });
+    assert(seen==count);
+    // Whole-district reconstruction must preserve a single original source,
+    // including omissions and metadata, rather than mixing last-known records.
+    LiveInputHistory::visitAcceptedDistricts(folder,stem(timeAt(before)),selection,validate,
+        [&](std::string const& code,json const& value) {
+            auto expected=originals.at(code);
+            std::string district=value.at("districts").begin().key();
+            expected["districts"]=json{{district,expected.at("districts").at(district)}};
+            auto records=json::array();
+            for (auto const& row : expected.at("records"))
+                if (row.at("d")==district && selection.at(district).contains(row.at("k").get<std::string>()))
+                    records.push_back(row);
+            expected["records"]=std::move(records);assert(value==expected);return true;
+        });
+}
+
+void checkAcceptedAuthority(Path const& folder) {
+    std::map<std::string,json> originals;
+    for (int minute : {0,10,20,30}) {
+        auto value=source(minute,100+minute);
+        if (minute==20) {
+            value["records"][0]["fp"]["v"]=nullptr;
+            value["records"][0]["fp"]["s"]=2;
+            value["records"][0]["fp"]["t"]="";
+        }
+        if (minute==30) {
+            value["records"][0]["fp"]["t"]=timeAt(0);
+            value["records"][0]["fp"]["s"]=1; // Restored, not fresh at source 30.
+        }
+        save(folder,value);originals[stem(timeAt(minute))]=value;
+    }
+    compareAll(folder); // Existing v1 index, like an already-run checkpoint.
+    auto before=LiveInputHistory::statistics();
+    verifyAccepted(folder,originals);
+    auto after=LiveInputHistory::statistics();
+    assert(after.sourceReads==before.sourceReads); // Adoption used the compact data.
+    assert(after.adoptions==before.adoptions+1);
+    assert(read(folder/"change-history-v1"/"manifest.json").at("payload").at("legacy_sources").empty());
+    // Make all full snapshots and the disposable index unavailable. Cold reads,
+    // regular reruns and new/middle updates must continue from durable history.
+    for (auto const& [code,value] : originals) std::filesystem::remove(folder/(code+".json"));
+    std::filesystem::rename(folder/"change-index-v1",folder/"legacy-index-hidden");
+    LiveInputHistory::clearMemoryCache();
+    before=LiveInputHistory::statistics();verifyAccepted(folder,originals);
+    auto manifest=folder/"change-history-v1"/"manifest.json";
+    auto modified=std::filesystem::last_write_time(manifest);
+    auto writes=LiveInputHistory::statistics();
+    LiveInputHistory::accept(folder,stem(timeAt(20)),originals.at(stem(timeAt(20))),validate);
+    after=LiveInputHistory::statistics();
+    assert(after.unchangedCommits==writes.unchangedCommits+1);
+    assert(after.publications==writes.publications && after.partitionWrites==writes.partitionWrites);
+    assert(after.sourceReads==before.sourceReads && std::filesystem::last_write_time(manifest)==modified);
+    assert(!std::filesystem::exists(folder/(stem(timeAt(20))+".json")));
+
+    auto insert=[&](json value) {
+        std::string code=stem(value.at("source_time"));
+        LiveInputHistory::accept(folder,code,value,validate);originals[code]=std::move(value);
+        verifyAccepted(folder,originals);
+    };
+    insert(source(5,999)); // Preserve the original source 10 and all its successors.
+    auto replacement=originals.at(stem(timeAt(10)));
+    replacement["records"][0]["fp"]["v"][0][1]=7; // Same raw fingerprint, changed accepted data.
+    replacement["records"][0]["fp"]["stage"]=2;
+    insert(replacement);
+    auto withdrawn=source(15);withdrawn["records"].erase(0);insert(withdrawn);
+    auto zero=source(25,0);zero["records"][0]["fp"]["v"]={{1,0},{2,0},{3,0}};insert(zero);
+    LiveInputHistory::eraseAccepted(folder,stem(timeAt(10)),validate);originals.erase(stem(timeAt(10)));
+    verifyAccepted(folder,originals);verifyAccepted(folder,originals,12);
+    LiveInputHistory::clearMemoryCache();verifyAccepted(folder,originals);
+    assert(LiveInputHistory::statistics().sourceReads==before.sourceReads);
+
+    // Publication failure cannot replace the prior valid manifest. Subsequent
+    // reads must still see exactly the previous accepted source states.
+    auto priorManifest=read(manifest);
+    std::filesystem::create_directory(folder/"change-history-v1"/"manifest.tmp");
+    bool failed=false;
+    try { LiveInputHistory::accept(folder,stem(timeAt(40)),source(40),validate); }
+    catch (LiveInputHistory::Unavailable const&) { failed=true; }
+    assert(failed && read(manifest)==priorManifest);
+    std::filesystem::remove(folder/"change-history-v1"/"manifest.tmp");
+    verifyAccepted(folder,originals);
+
+    // A lost manifest after a cold restart cannot silently adopt stale legacy
+    // evidence. The root marker records that authority already changed hands.
+    std::filesystem::rename(manifest,folder/"change-history-v1"/"manifest.saved");
+    LiveInputHistory::clearMemoryCache();failed=false;
+    try { verifyAccepted(folder,originals); } catch (LiveInputHistory::Unavailable const&) { failed=true; }
+    assert(failed);
+    std::filesystem::rename(folder/"change-history-v1"/"manifest.saved",manifest);
+}
+
+void checkAcceptedPendingImports(Path const& folder) {
+    std::map<std::string,json> originals;
+    for (int minute : {0,10,20,30}) { auto value=source(minute);save(folder,value);originals[stem(timeAt(minute))]=value; }
+    // No derived index exists: adopt only evidence before the first requested
+    // timestamp. Later legacy sources are remembered, then imported once as
+    // the replay reaches them; no future capture influences an earlier query.
+    verifyAccepted(folder,originals,5);
+    auto before=LiveInputHistory::statistics();
+    verifyAccepted(folder,originals,5);assert(LiveInputHistory::statistics().sourceReads==before.sourceReads);
+    verifyAccepted(folder,originals,15);verifyAccepted(folder,originals,25);
+    before=LiveInputHistory::statistics();
+    verifyAccepted(folder,originals,5);verifyAccepted(folder,originals,25);
+    assert(LiveInputHistory::statistics().sourceReads==before.sourceReads);
+    // Explicit source removal also removes any deferred legacy-import marker.
+    LiveInputHistory::eraseAccepted(folder,stem(timeAt(10)),validate);originals.erase(stem(timeAt(10)));
+    verifyAccepted(folder,originals,25);
+    // A deferred capture may itself be the object of repair, without importing
+    // its missing old full file before honouring the explicit removal.
+    std::filesystem::remove(folder/(stem(timeAt(30))+".json"));
+    LiveInputHistory::eraseAccepted(folder,stem(timeAt(30)),validate);originals.erase(stem(timeAt(30)));
+    verifyAccepted(folder,originals,35);
+}
+
+void checkAcceptedProductionRecovery(Path const& folder) {
+    auto first=accepted(0,{{1,100},{2,80},{3,20}},{});
+    commit(folder,first);
+    assert(!std::filesystem::exists(folder/(stem(timeAt(0))+".json")));
+    auto now=accepted(30,{{1,150},{2,160},{3,40}},Counts{{1,116},{2,84}});
+    now.records[0].tcp.observedAt=timeAt(15);
+    auto previous=loadAcceptedCompatiblePrevious(folder,now);
+    assert(previous && previous->records[0].fp.votes==first.records[0].fp.votes);
+    auto matching=loadPreferenceHistory(folder,now);
+    assert(matching.at(now.records[0].key).matchingCurrentTcp->fpTime==timeAt(0));
+    auto stats=LiveInputHistory::statistics();commit(folder,first);
+    assert(LiveInputHistory::statistics().unchangedCommits==stats.unchangedCommits+1);
+    LiveInputHistory::Selection selection{{"North",{first.records[0].key}}};
+    auto totals=loadFpTotalHistory(folder,"fictional",timeAt(30),selection);
+    assert(totals.at(first.records[0].key)==std::vector<double>({200}));
+    // A corrupt partition is an authoritative input error, even if stale full
+    // files could supply a plausible alternative. It must never trigger fallback.
+    auto manifest=read(folder/"change-history-v1"/"manifest.json").at("payload");
+    std::string file=manifest.at("partitions").begin().value().at("file");
+    write(folder/(stem(timeAt(0))+".json"),source(0));
+    { std::ofstream out(folder/"change-history-v1"/file);out<<"damaged test history"; }
+    LiveInputHistory::clearMemoryCache();bool failed=false;
+    try { loadPreferenceHistory(folder,now); } catch (LiveInputHistory::Unavailable const&) { failed=true; }
+    assert(failed);
+}
+
+void checkAcceptedDeferredReplacement(Path const& folder) {
+    std::map<std::string,json> originals;
+    for (int minute : {0,10,20}) {
+        auto value=source(minute);save(folder,value);originals[stem(timeAt(minute))]=value;
+    }
+    compareAll(folder);
+    // A future legacy file was replaced before adoption, while the derived
+    // index still contains its old version. Keep that import pending until its
+    // timestamp is eligible; merely finding its identity in the index is not
+    // enough to conclude that its corrected contents have been imported.
+    auto amended=source(20,4321);save(folder,amended);
+    originals[stem(timeAt(20))]=amended;
+    verifyAccepted(folder,originals,5);
+    auto manifest=folder/"change-history-v1"/"manifest.json";
+    assert(read(manifest).at("payload").at("legacy_sources").size()==1);
+    verifyAccepted(folder,originals,25);
+    assert(read(manifest).at("payload").at("legacy_sources").empty());
+    LiveInputHistory::clearMemoryCache();verifyAccepted(folder,originals,25);
+    assert(LiveInputHistory::statistics().sourceReads==0);
+}
+
+void checkAcceptedCompatibleRecovery(Path const& folder) {
+    auto first=accepted(0,{{1,100},{2,80},{3,20}},Counts{{1,110},{2,90}});
+    auto hall=first.records[0];hall.name="Hall";hall.key="North/ordinary/Hall";
+    auto south=first.records[0];south.district="South";south.key="South/ordinary/School";
+    first.districts["South"]={20000,false};
+    first.records.push_back(hall);first.records.push_back(south);
+    commitLegacySnapshot(folder,first);
+    auto revised=first;revised.sourceTime=timeAt(10);
+    revised.records[0].fp.votes=Counts{{1,101},{2,80},{3,20}};
+    revised.records[1].identity="different candidates";
+    commitLegacySnapshot(folder,revised);
+    auto current=first;current.sourceTime=timeAt(15);
+    auto expected=loadCompatiblePrevious(folder,current);
+    auto compare=[&] {
+        auto actual=loadAcceptedCompatiblePrevious(folder,current);
+        assert(actual && expected && actual->sourceTime==expected->sourceTime);
+        assert(actual->records.size()==expected->records.size());
+        for (std::size_t i=0;i<actual->records.size();++i) {
+            auto const& a=actual->records[i];auto const& b=expected->records[i];
+            assert(a.key==b.key && a.identity==b.identity && a.fp.votes==b.fp.votes &&
+                a.tcp.votes==b.tcp.votes && a.fp.observedAt==b.fp.observedAt &&
+                a.tcp.observedAt==b.tcp.observedAt);
+        }
+        // Local recovery takes the latest compatible School but the older Hall.
+        // Whole-district rollback must retain the complete earlier North account.
+        assert(actual->wholeDistricts.size()==1 && actual->wholeDistricts.contains("North"));
+        auto const& whole=actual->wholeDistricts.at("North").records;
+        assert(whole.size()==2 && whole[0].fp.votes==first.records[0].fp.votes);
+        assert(!actual->districts.at("North").wholeAccount);
+        assert(actual->districts.at("South").wholeAccount);
+    };
+    compare();
+    for (int minute : {0,10}) std::filesystem::remove(folder/(stem(timeAt(minute))+".json"));
+    LiveInputHistory::clearMemoryCache();compare();
+    assert(LiveInputHistory::statistics().sourceReads==0);
+}
 }
 
 int main() {
@@ -390,6 +602,12 @@ int main() {
     checkUnavailableIndex(root / "unavailable");
     checkInterruptedPublication(root / "interrupted");
     checkMixedEdits(root / "mixed");
+    std::cout << "Checking authoritative adoption, reruns and atomic updates...\n";
+    checkAcceptedAuthority(root/"accepted");
+    checkAcceptedPendingImports(root/"accepted-imports");
+    checkAcceptedProductionRecovery(root/"accepted-recovery");
+    checkAcceptedDeferredReplacement(root/"accepted-replacement");
+    checkAcceptedCompatibleRecovery(root/"accepted-compatible");
     LiveInputHistory::clearMemoryCache();
     std::filesystem::remove_all(root);
     std::cout << "Live input history checks passed.\n";

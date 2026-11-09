@@ -785,7 +785,8 @@ TurnoutModelIO::Artifact LivePreparation::prepareCurrentInput()
 		<< std::chrono::duration<double>(std::chrono::steady_clock::now() - preferencesStarted).count()
 		<< " seconds; history index source reads: " << historyAfter.sourceReads - historyBefore.sourceReads
 		<< "; builds: " << historyAfter.builds - historyBefore.builds
-		<< "; append batches: " << historyAfter.appendBatches - historyBefore.appendBatches << "\n";
+		<< "; append batches: " << historyAfter.appendBatches - historyBefore.appendBatches
+		<< "; authoritative adoptions: " << historyAfter.adoptions - historyBefore.adoptions << "\n";
 	if (historyAfter.fallbacks > historyBefore.fallbacks)
 		logger << "Live history used original snapshots because its derived index was unavailable: "
 			<< historyAfter.lastFailure << "\n";
@@ -797,9 +798,8 @@ TurnoutModelIO::Artifact LivePreparation::prepareCurrentInput()
 		auto const after = LiveInputHistory::statistics();
 		logger << "Live accepted-count history commit: "
 			<< std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count()
-			<< " seconds; index source reads: " << after.sourceReads - before.sourceReads << "\n";
-		if (after.updateFailures > before.updateFailures)
-			logger << "Live history index update deferred: " << after.lastFailure << "\n";
+			<< " seconds; legacy source reads: " << after.sourceReads - before.sourceReads
+			<< "; unchanged commits: " << after.unchangedCommits - before.unchangedCommits << "\n";
 	});
 	return artifact;
 }

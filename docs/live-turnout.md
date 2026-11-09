@@ -222,23 +222,40 @@ Where a feed explicitly identifies count rounds, a usable FP recheck takes prior
 
 An earlier compatible FP/TCP pair can remain evidence about preference flow after its TCP becomes unavailable. Its source times and measured vectors remain historical; it supplies no counted lower bound, completion or fresh progress. For a comparable-sized FP recheck, corrected primaries can replace the old composition while the measured flow retains its existing sample-size weight. A cohort that is no longer contained in current FP cannot be subtracted as a batch, and a changed finalist pairing cannot borrow the old pair's flow.
 
-The private cache at `forecasts/<election>/live-snapshots/accepted-counts/` stores integer candidate counts, identities, status, completion information and original observation times. It starts empty for a real election. Matching uses election, district, booth/category role and candidate identities, rather than array positions. Earlier forecast exports and aggregate turnout history cannot supply accepted candidate-count fallbacks. Repeated source times replace their cache record atomically; a content fingerprint distinguishes source revisions. Recovery reads only earlier sources and keeps only the needed count state in memory.
+The private history at `forecasts/<election>/live-snapshots/accepted-counts/`
+preserves accepted candidate counts so that later updates can recover compatible
+evidence and distinguish new counting from corrections. It starts empty for a
+real election. Matching uses election, district, booth/category role and candidate
+identities, rather than array positions. Earlier forecast exports and aggregate
+turnout history cannot supply accepted candidate-count fallbacks.
 
-Deeper historical searches use a derived `change-index-v1/` directory inside that
-cache. Its purpose is to avoid repeatedly parsing every complete election snapshot
-when one booth needs an older compatible count. It stores changes separately for
-FP, TCP, retained preference pairs and other record fields, grouped by district.
-A source inventory preserves capture times, source revisions and record ordering.
-The original accepted-count files remain authoritative and unchanged in format.
+The authoritative store is `change-history-v1/` inside that directory. It records
+timestamped changes separately for FP, TCP, retained preference pairs and other
+record fields, grouped by district. Its manifest preserves capture metadata and
+record ordering. A small `accepted-history-format` marker beside the directory
+identifies this as the accepted record, rather than a disposable cache. Keep and
+back up this directory and marker; they are needed even when old complete
+accepted-count JSON files are removed. Original electoral-commission feed
+archives remain separate inputs to each replay.
 
-An unchanged vote vector can still have a newer observation time. The index stores
+On first use, an existing valid `change-index-v1/` is adopted by copying its compact
+district files into the authoritative directory. The old index and complete JSON
+files are left in place. Missing or revised legacy captures before the requested
+time are imported once. If there is no old index, earlier complete snapshots are
+read in one traversal. Later legacy captures awaiting import are recorded in the
+manifest's `legacy_sources` map and imported as the replay reaches them. An empty
+map means the authoritative store no longer depends on those old complete files.
+This migration does not generate another set of complete election snapshots.
+
+An unchanged vote vector can still have a newer observation time. The history stores
 that time as a reference to the source clock where applicable, preserving fixed
 older clocks for restored counts and retained pairs. Queries reconstruct original
 observations and apply the same compatibility, precedence and stopping rules as
 the source-file reader. They retain unavailable/zero distinctions, candidate
 identities, recheck authority, completion and transfers. Strict source-time cutoffs
 exclude same-time and future observations during replay. Whole-district rollback
-continues to read a complete historical account from a single source.
+reconstructs a coherent historical account for that district at one capture time;
+it does not combine incompatible records from different captures.
 
 Numeric FP histories use a narrower query: read each distinct FP state once,
 without rebuilding its TCP, preference metadata or original array position.
@@ -252,36 +269,41 @@ for conflicting versions of one observation time, then removes consecutive equal
 totals. Zero withdrawals, later returns and unavailable records remain distinct.
 The general compatibility searches retain their existing per-capture procedure.
 
-The first search builds the necessary index from existing earlier snapshots in
-one traversal. Successful accepted-count commits then update it incrementally.
-If a replay jumps past multiple captures that follow the indexed history, those
-captures are read in one batch. Only the latest existing record states and one
-new source are held for comparison; field changes are temporarily grouped on
-disk by district. Each changed district is then written once and a single
-manifest publishes the batch. This avoids repeatedly rewriting the same growing
-histories when a short diagnostic sequence skips weeks of previously saved
-captures. Every capture clock and every change is retained, including withdrawals
-and restorations; captures at or after the replay cutoff are not ingested.
-The existing middle-insertion/replacement/deletion procedure runs first if
-needed, and already indexed later coverage is retained for subsequent queries.
-The source inventory detects added, replaced and deleted files using file size
-and modification time; application commits also explicitly notify same-time
-replacements. Backfills preserve the next existing snapshot's value: inserting B
-between two captures of A creates A, B, A, rather than carrying B forward. External
-tools that deliberately preserve both size and modification time while editing
-sources must also discard the derived index so it can rebuild.
+Successful runs update the history directly from the accepted in-memory state.
+An identical rerun reads and writes no complete accepted-count file and publishes
+no new history generation. Equality checks cover accepted fields, observation
+clocks, source metadata and record order, not just the raw feed fingerprint:
+corrected recovery rules can change the accepted state of an unchanged feed.
+Inserting or replacing an earlier capture preserves the next capture's original
+values. For example, inserting B between two captures of A creates A, B, A,
+rather than carrying B forward. Every capture clock and change is retained,
+including withdrawals, genuine zeros, unavailable counts and restorations.
 
-District files are written before an atomic manifest replacement publishes their
-generation. Unpublished files are ignored, checksums detect damaged index files,
-and required partitions can rebuild from the originals. A bounded memory cache
-retains recently used district views up to the replay's timestamp, avoiding
-repeated loading of future changes during an early replay. Oversized views are
-read without retaining them. Searches skip unavailable accounts only when that
-account is required for a match; measured zeros and older available states remain
-eligible. Index unavailability falls back to the original reader and is logged. Failed
-forecasts cannot add accepted observations to either history. `PALog.log` separates
-input recovery and preference-history time and records index source reads/builds.
-Accepted-history commit time is logged separately, including deferred index updates.
+Normal reads do not scan the old complete files. Removing a legacy file therefore
+does not erase accepted history, and editing one does not replace authoritative
+evidence. An intentional correction must be committed through the accepted-history
+writer, normally by rerunning that source. Explicit history-repair operations can
+remove a capture without later importing it again from an old file.
+
+Deferred legacy imports use one batch when a replay jumps over multiple later
+captures. Only the latest field values and one incoming full source are held for
+comparison; changes are temporarily grouped on disk by district. Each changed
+district is written once, then a single manifest publishes the batch. Sources at
+or after the replay cutoff are not imported by that query; already stored later
+history is retained but cannot influence an earlier replay.
+
+District files are written before an atomic manifest replacement publishes them.
+Unpublished files are ignored and checksums detect damaged history. A missing or
+damaged authoritative store stops preparation with a diagnostic; it never silently
+substitutes stale legacy full files. The old disposable-index reader retains its
+source-file fallback for migration comparisons only. A bounded memory cache keeps
+recently used district views up to the replay's timestamp; oversized views are read
+without retention. Searches skip unavailable accounts only when that account is
+required for a match; measured zeros and older available states remain eligible.
+Failed forecasts cannot add accepted observations. `PALog.log` records recovery,
+preference-history and commit times, legacy source reads, adoption and unchanged
+commits. Existing full files are retained for checkpoint comparison; this change
+does not automatically delete them.
 
 `LiveInputHistoryTests` checks exact reconstruction, observation-time matching,
 incremental changes, batched catch-up, backfills, missing records, replacements,
@@ -1113,4 +1135,9 @@ cl /nologo /std:c++20 /O2 /EHsc /I. /Fo"cli-build\unreported-place-tests\\" /Fe"
 
 `LiveInputRecoveryTests` checks indexed and original-file history agree through
 a withdrawal to zero and excludes a later restoration from earlier queries.
+`LiveInputHistoryTests` also checks authoritative adoption, cold reads after
+removing full files, identical commits with no writes, middle insertions and
+replacements, deferred legacy imports, coherent district rollback, damaged-history
+errors and interrupted publication. The original full-file reader remains an
+independent comparison for these reconstruction and matching tests.
 These controlled tests require no private feed archive or model fitting.

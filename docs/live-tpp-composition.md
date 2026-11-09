@@ -64,6 +64,115 @@ booth identities have changed, provide the usual comparison. Historical FP used
 to estimate a non-classic TPP is still observed category composition; uncertainty
 in converting those primaries is handled separately.
 
+### Matched historical notional TPP
+
+When the previous contest's actual TCP involved Greens or an independent, its
+Labor/Coalition TPP can still have been counted separately. The live forecast
+uses these **notional TPP counts** to fill a missing historical preference
+comparison. It keeps the original TCP pairing and counts separate. A current
+measured TCP remains fixed; historical TPP neither adds current votes nor marks
+the current count complete.
+
+The ordinary path is unchanged: an existing usable historical classic TCP keeps
+its established pooled preference calculation. The additional path requires an
+exact match to the old district, polling-place ID or declaration type, and the
+complete positive candidate FP vector **before** model parties are grouped.
+An omitted zero candidate is harmless; equal totals with different candidate
+counts do not qualify. Synthetic historical allocations cannot supply this match.
+
+Starting rates already include available historical Greens and exact-name
+independent information. The new calculation fits only their remaining error:
+it holds major primaries fixed and finds one common shift in the other
+candidates' preference log odds that reconstructs the old TPP. Log odds is a
+different scale for probabilities; shifting there and converting back keeps
+every flow between zero and 100%, while preserving different parties' starting
+rates. The actual old party mix determines the shift. This cannot identify which
+candidate caused a discrepancy or guarantee its persistence at the next election.
+The existing half-vote endpoint smoothing is retained. The historical fit runs
+once during preparation and is shared unchanged by scenario draws.
+
+An explicit discount for an exceptional previous Greens campaign, such as
+Melbourne in 2019, also applies to this additional route. Its excluded component
+is explained by the observed historical Greens flow before fitting the aggregate
+residual. It therefore cannot reappear indirectly as a common preference shift.
+The historical count/comparison stays unchanged, and normal source districts
+retain the usual historical party rates.
+
+Current preference movement on this added path compares equivalent mixture fits
+on aligned old and current accounts. Mixing an exact old fit with a pooled
+current approximation could report movement from identical counts. Existing
+classic comparisons retain their pooled calculations. Partial or revised current
+counts keep their normal cohort/recheck handling and cannot train this new exact
+fit without an aligned FP/TPP population. Current booth/seat/regional preference
+corrections then describe movement **after** the historical offset, rather than
+adding the historical effect again. Existing uncertainty about current preferences
+and shared conversion errors remains in place.
+
+The same actual old TPP is used in booth and whole-category comparison accounts.
+Leaving a generic old estimate in the reference after fitting preferences to
+the actual old count would make seat reference centering compensate for the
+same old conversion error twice. This does not copy a category/district preference
+offset to unmatched current locations: the additional rate correction requires
+the direct population match described above.
+
+Eligibility depends on the missing historical comparison, rather than the
+current contest's eventual pairing. It therefore also covers a current classic
+seat with a matched non-classic predecessor and stays stable when today's TCP
+pairing changes. It affects automatic live analysis only; pre-election simulations
+do not read this input.
+
+The maintained [count table](../analysis/Data/historical-notional-tpp.csv) contains
+6,991 accounts from the 2010, 2013, 2016, 2019, 2022 and 2025 federal elections.
+Only previous non-classic districts are included. Dual Liberal/National source
+districts are outside this addition; their existing comparisons retain their
+normal handling. Separate non-classic declaration TPP is unavailable before
+2016 and remains missing. Other jurisdictions without these additional counts
+retain their existing conversion. Optional-preferential elections require a
+separate exhaustion treatment and do not use this table.
+
+The [source manifest](../analysis/Data/historical-notional-tpp-sources.json) records
+commission URLs, response/archive hashes, coverage and exclusions. Reproduce from
+the stored final commission feed ZIPs and the cached AEC downloads, from the
+repository root, without fitting a model:
+
+```powershell
+.\analysis\.venv-win\Scripts\python.exe -B analysis\scripts\diagnostics\collect_historical_preference_counts.py --check
+```
+
+Omit `--check` to regenerate the two maintained files; `--output-dir` writes a
+review copy. Missing public downloads require explicit `--download`. Runtime
+loading selects only the configured previous election, strictly earlier and in
+the same jurisdiction. Missing optional coverage retains the usual fallback.
+Analysis sidecars record each added account under `historical_notional_tpp`,
+including the source district, mapped old votes and the prepared offset in
+`25 × log odds` units. Raw old/current TCP maps remain unchanged.
+
+Controlled FP-to-TPP tests across five federal elections used complete FP while
+withholding each tested seat's current TPP and local correction. Adding matched
+history while preserving existing arithmetic reduced mean absolute error in 95
+non-classic seat results from approximately 3.28 to 2.58 Labor TPP percentage
+points. Classic-seat error was essentially unchanged across 583 results. These
+are preference-conversion checks, not full live forecasts or interval calibration.
+They motivated the coverage choice; production reference alignment and current
+preference learning also require replay checks.
+Candidates and seats recur, and significant changes such as Mayo 2022 can still
+defeat their historical correction. Current measured counts and uncertainty
+remain necessary; the historical counts do not determine today's preferences.
+
+### Estimated and synthetic comparisons
+
+Where historical TPP must be estimated, whole-category comparisons use the same
+available historical preference information as matched booths: district Greens
+strength/history and exact-name independent candidate history. The information
+is read before either account is prepared, and the original district supplies
+it when a seat is renamed or booths transfer. This assumes the district rates
+are useful for its categories; it does not treat them as measured category flows.
+Actual historical classic TCP retains precedence. Parties/candidates with no
+usable history keep their configured preference estimates, and existing
+synthetic-baseline uncertainty remains in place. This prevents an unmatched
+early-voting centre from losing preference information already used for matched
+locations and thereby creating an artificial seat-wide reference adjustment.
+
 An explicitly reconstructed category, such as the split of SA's combined
 historical declaration account, is labelled **synthetic** by its reader. Its
 comparison retains a working error of five transformed points: four district-local
@@ -101,19 +210,41 @@ account for 600 and 400 votes, a composition change that adds 12 Labor votes
 to ordinary must remove 12 elsewhere if the seat total is unchanged. The
 model allows such offsetting changes in either direction.
 
-Reference alignment applies only to the historical comparison baseline. Both
-recorded TCP and TPP inferred from received FP remain absolute vote estimates.
-The FP conversion still uses configured preference flows and corrections from
-matched FP/TCP evidence; it receives no shift to agree with the seat prior.
-The prior influences the joint posterior through its covariance and the evidence
-uncertainty, rather than by changing the observations themselves.
+Historical comparisons and their current FP-derived counterparts receive the
+same common seat reference offset. This reconciles two starting points: the
+whole-seat forecast anchored to the configured previous result, and booth TPP
+estimates reconstructed using preference assumptions. If both historical and
+current conversion estimates share an error, shifting only the historical
+comparison would incorrectly interpret that error as new swing. For example,
+an unchanged FP-derived estimate of 40% should show no movement when its
+historical comparison is recentered from 40% to 50%: its comparison estimate
+also becomes 50%. Actual measured TCP remains an absolute count and never moves.
 
-For example, if a booth's historical estimate is 40% but its comparison baseline
-is recentered to 50%, a current FP-derived estimate of 40% stays at 40%. It is
-negative evidence against that expectation. In a partial TCP count, counted
-candidate totals and the estimated allocation of pending preferences likewise
-retain their original values. Feed records, accepted-count history and raw-swing
-diagnostics are unchanged.
+This reference calculation uses historical comparisons and expected final vote
+sizes, not current TCP reporting confidence. It supplies one offset per seat,
+shared across vote categories. Ordinary and early categories can have different
+historical levels without receiving independently fitted corrections. The
+separate preference-flow correction still pools measured FP/TCP evidence across
+categories through the booth, seat, region and election hierarchy.
+
+Only a detached inferred comparison is translated. For a mixed FP/TCP account,
+the translation applies to the pending allocation while measured candidate
+counts stay fixed. The stored raw FP estimate, feed records, accepted-count
+history, raw-swing diagnostics and direct received-vote replacement are unchanged.
+The offset assumes a historical conversion discrepancy carries into the current
+estimate; changed candidate composition or preference behaviour can weaken that
+assumption. Existing preference-flow learning and conversion uncertainty remain
+in use. See `LiveTppIntegration::alignInferredReference` for the comparison rule.
+
+Historical category classification must survive venue replacements. The
+Queensland reader applies the same physical-venue rules to matched, unmatched
+and ambiguity-detached historical records: Returning Officer and Early Voting
+Centre venues are early voting; Mobile Polling is mobile voting. Booth identity
+matching does not change those channels. In the 2020 Caloundra records, the
+10,658-vote Returning Officer count and 32-vote CBD count together give 49.58%
+Labor early TPP. Dropping the former into ordinary voting would instead make
+62.5% from just 32 votes the comparison for large replacement early centres,
+distorting the common reference offset. Source candidate counts are retained.
 
 The internal projected-vote account also uses received FP for physical booths
 (including PPVC) with no measured or FP-inferred historical TPP comparison.
@@ -215,9 +346,10 @@ contrast priors (SD 5 on the transformed scale).
 
 ## Uncertainty in FP-derived TPP
 
-The existing conversion of first preferences into TPP remains the point estimate.
+The booth's raw TPP estimate retains the existing conversion of first preferences.
 It already adjusts configured preference flows using measured FP/TCP comparisons
-where those are available. The joint update also allows shared uncertainty about
+where those are available. Its detached joint-model comparison also receives the
+reference alignment described above. The joint update allows shared uncertainty about
 transferring those relationships to Greens and independent voter pools. Conditional
 shared-error means can reflect disagreement with the seat priors; they are not
 measured preference-flow corrections and are never fed back into booth conversion.
@@ -321,41 +453,53 @@ too high for Labor. These means never modify the underlying booth flow
 estimates or the next snapshot's prior. All allowances enter before conditioning;
 there is no extra noise afterwards and no additional snapshot history.
 
-Within each district/category, measured-TCP and FP-derived information form
-separate observations of the same category movement. Let `f` be the fraction of
-received FP votes awaiting preferences. A booth allocates information weight
-`1 / (1 + (19*f/(1-f))²)` to the measured group, and the remainder to the
-FP-derived group. At `f=1` the measured weight is zero. This smooth curve splits
-information evenly at a 5% gap. Seven outstanding preferences out of 2,004 retain
-99.56% measured weight, while a 25% gap retains only 2.43%: a substantial added
-batch may have a very different primary composition from the earlier TCP batch.
-The 5% midpoint is a working setting, not a fitted optimum. There is no one-vote
-switch or hard cutoff. This curve changes information weights, not the actual
-unresolved fraction used for vote accounting and preference-conversion error.
+Each district/category supplies **one observation**, assembled from measured
+TCP, received FP awaiting preferences, and genuinely uncounted votes. Measured
+TCP and known major-party FP receive their full vote weight. Only the unresolved
+preferences and uncounted population need an allocation estimate. For example,
+Caloundra's early category at 22:41 on 26 October 2024 has 4,894 measured Labor
+TCP votes, 3,519 Labor FP awaiting TCP, and an estimated 902 preferences from
+1,486 non-major ballots. Their sum is approximately 47.32% of 19,686 early votes.
+A high-Labor centre's TCP arrival does not separately extrapolate its own share
+over those already received ballots.
 
-Both contributions use the existing measured-plus-pending-FP estimate. Its
-unresolved preference fraction retains explicit conversion uncertainty in both
-groups, with correlated conversion errors; a measured-group label does not erase
-that uncertainty. Fully measured booths and FP-only booths still contribute
-only to their respective groups. New FP-only booths therefore do not dilute
-the measured group's estimate.
+The uncounted population starts with its own expected historical booth/category
+lean, aligned to the seat prior as described above. Raw current comparisons
+supply its swing estimate, before any further joint prior shrinkage; prior-shrunk
+future projections are not reused as new evidence. Measured and FP-derived
+comparisons retain separate precision privately when estimating that swing.
+Their covariance includes shared preference and reporting-order errors. A
+nonnegative minimum-variance average prevents new FP-only information from
+weakening an already available measured comparison's precision. It also avoids
+extrapolating beyond both comparisons when their errors are nearly identical.
+This is a modelling safeguard, not an empirically fitted source-selection rule.
 
-This partitions information rather than duplicating a booth. For original
-comparison weight `w` and allocated fraction `a`, its mean weight is `a*w`,
-while its contribution to the location-variance numerator is `a*w²`, rather
-than `(a*w)²`. Thus two group contributions cannot each claim the original
-booth's precision. Received-vote and location coverage are also multiplied by `a`;
-both groups retain the full expected category population as their denominator.
-They share the category error and retain scatter across the combined sample.
-This conservative partition is continuous, but does not impose monotonic
-precision when substantive new counts reveal heterogeneity or revise results.
+Let `f` be the fraction of received FP awaiting preferences. A booth allocates
+private comparison information weight `1 / (1 + (19*f/(1-f))^2)` to the measured
+source and the remainder to the FP-derived source. The 5% midpoint remains a
+working setting. Small rechecks therefore change information continuously;
+large unmatched batches do not inherit the precision of an earlier TCP batch.
+The partition applies to the existing measured-plus-pending-FP estimate and
+retains scatter across both sources. It is not a partition of physical votes
+into two competing whole-category results.
 
-All uncertainty enters before conditioning, so the same calculation determines
-the mean's response and remaining covariance. No independent noise is added
-afterwards. Direct TCP receives no conversion allowance and a fully measured
-count retains its existing completion behaviour. Existing measured
-preference-flow corrections and snapshot-history requirements are retained;
-the historical party-flow priors are applied before those corrections.
+Received preferences retain the existing party-pool, matched-evidence and shared
+conversion allowances. Their effect is scaled by the actual affected population.
+For fixed category size `N`, pending FP population `F` and uncounted population
+`U`, a share error on pending FP contributes `F/N` times that error to category
+TPP; a transformed swing error on future places also uses the derivative for
+their partisan lean. The local conversion and shared transfer errors affecting
+both parts are added before their covariance is calculated. They are correlated,
+not two independent new errors. Received major-party primaries never acquire
+preference-conversion error. Unreconciled candidate revisions retain the existing
+batch-sized transfer-interval allowance.
+
+These category accounts enter the existing whole-seat joint update. The final
+whole-seat drawing, count bounds, turnout/recheck scenario adjustments and
+classic/non-classic result routing remain unchanged. This is not a replacement
+which assembles the final seat result directly from sampled category totals.
+Categories without a usable historical baseline retain their separate direct
+received-vote replacement, without teaching an unsupported swing.
 
 ## Extrapolating small received samples
 
@@ -367,12 +511,29 @@ the national forecast too strongly.
 
 Each district/category observation therefore receives extra sampling variance
 `V * [5000 * (1 - c) / max(1, N)]^2`. Here `V` is the existing location/sampling
-variance (including the combined sample's scatter), `N` is received votes capped
-at each location's expected total, and `c` is `N` divided by the category's
-expected total. Measured and conversion-dependent observation groups each use
-their own received sample and the same full-category denominator. Votes are
-counted before the FP comparison-weight discount; preference uncertainty remains
-in its separate allowance.
+variance (including the combined sample's scatter), `N` is usable received votes
+across both source groups, capped at each location's expected total, and `c` is
+`N` divided by the category's expected total. Both groups use this same combined
+count, before historical-quality or FP comparison-weight discounts. A record
+without a usable TPP comparison contributes no received votes to this sample;
+its expected size remains in the denominator. Counts are combined only within
+one district and voting category, keeping ordinary, early and postal evidence
+separate. Under optional preferences the comparison account uses continuing
+votes; exhausted ballots are outside that account.
+
+For example, dividing a 3,000-vote sample equally between measured and FP-derived
+observations leaves 3,000 votes for both sparse multipliers. Each observation
+still receives only its share of the comparison information. Its mean,
+location scatter and preference uncertainty remain separate. Treating the two
+groups as independent 1,500-vote samples would penalise the same evidence merely
+because some preferences had been counted and others had not.
+
+The underlying location variance decreases as more of the expected category
+supplies a usable comparison. Its counting-completion multiplier is one minus
+combined comparison weight divided by expected votes. Comparison weight retains
+the existing quality discounts, unlike the undiscounted physical coverage `c`
+above. A low-quality historical match therefore still slows the completion
+adjustment, but splitting its information cannot slow it again.
 
 The 5,000-vote scale is a smooth working setting, not a minimum count for using
 evidence. When coverage is low, 1,000 votes multiply the location/sampling
@@ -389,80 +550,38 @@ the influence of tiny completed booths without unnecessarily delaying broader
 FP samples. It introduces no timestamps, election-specific branches, new replay
 memory, or signed corrections to the evidence.
 
-## Comparison quality near category completion
+## Received votes and category completion
 
-Early in counting, a booth with a reliable previous-election comparison has
-more influence than a genuinely new or redistributed booth. As most votes in
-a category become known, retaining that discount can instead distort the
-category average. For example, a large new early-voting centre should receive
-its actual vote weight once the early category is fully received, even if only
-a smaller centre has a direct historical match.
+Full FP coverage establishes which voters are represented by the category,
+not the missing preferences or the representativeness of its TCP-ready subset.
+The update therefore uses actual vote weights in the received account, without
+raising an unmatched booth's historical comparison quality because other
+locations have reported FP. A new booth can contribute all its counted votes
+while supplying only weak evidence about the swing at still-unreported places.
+At complete FP coverage there are no such places to extrapolate over; uncertainty
+in the category allocation remains only in preferences and potential revisions.
+For OPV, received and expected quantities use continuing TPP ballots. Actual
+TCP remains exact; FP-only continuing totals retain the existing projected
+exhaustion allowance rather than treating exhausted FP as outstanding TPP.
 
-The update therefore puts a smooth floor under each location's comparison
-quality. Coverage is received FP votes divided by expected FP votes across the
-whole district/category, before historical or preference-conversion discounts.
-Each location's received votes are capped at its own expected total for this
-calculation. Unreported locations retain their expected size in the denominator;
-explicitly closed services have no expected votes. Coverage uses formal FP
-votes even under optional preferential voting, where some later exhaust.
-It is weighted by vote size, so a tiny outstanding hospital booth cannot hold
-back a nearly complete category as much as a large unreported booth.
+A precisely counted small category can still be weak evidence about the wider
+seat or other seats. The existing comparison floor is retained for that transfer.
+For private source comparison variance `C` and combined usable sample `N`, it is
+`C * (5000 / (5000 + N))^2`. The two sources' floors are combined with squared
+future-comparison weights; the unified observation uses the larger of that
+comparison floor and its remaining-location variance. This does not change its
+received-vote mean or invent missing ballots. It preserves the protection for
+sparse mobile, hospital, prison and remote categories after they complete.
+The 5,000-vote scale is unchanged and has not been recalibrated by this change.
 
-For coverage `c`, set `t = clamp((c - 0.75) / 0.25, 0, 1)`. The minimum
-quality is `t²(3 - 2t)`: zero through 75% coverage, 0.104 at 80%, 0.648 at 90%,
-0.896 at 95%, and 1 at 100%. Existing quality is retained whenever higher.
-The curve flattens at both ends, avoiding a jump at its start or when the last
-small location reports. The 75% start is a working setting: Queensland saved
-evidence trials found little difference between starts at 70%, 75% and 80%.
-Those trials assess reweighting of the joint update, not full simulation replay
-or multi-election calibration.
-
-The same whole-category floor applies to measured and FP-derived location
-groups. Their weighted observed shares, historical comparison shares, scatter
-and preference-pool exposures are rebuilt together. Increasing precision alone
-would give extra authority to an average still dominated by the old matches.
-Uncertainty about uncounted preferences remains separate, including when FP
-coverage reaches 100%.
-
-A category can also finish with very few votes. Its exact count is then known,
-but it remains weak evidence for a general district or election-wide swing.
-To retain that distinction, location/sampling variance after reweighting is
-bounded below by `V_old × (5000 / (5000 + N))²`, where `V_old` is the variance
-under the original comparison weights, including its sparse-sample allowance,
-and `N` is whole-category received FP votes capped as above. The revised
-variance is used if larger. At 100 votes the bound retains approximately 96%
-of the original variance; at 20,000 it retains 4%. This reuses the existing
-5,000-vote scale without a new exclusion rule or category-specific exception.
-It concerns extrapolation from a small sample, not errors in counted integers:
-the forecast's counted-vote bounds remain in force. Category and conversion
-covariances are not multiplied by this bound.
-
-Completing a small category also leaves uncertainty about how representative
-its comparison is of movement elsewhere. The update therefore retains a
-second floor even when the original comparison weights were already full.
-Let `C` be the location-comparison variance **before** multiplying by the
-uncounted fraction. It uses the larger of the existing location/sample
-allowance and observed variation between booth movements, with weights that
-recognise the effective number of locations. A large count at one place does
-not create the information of many independent places.
-
-For `N` received FP votes allocated to the observation, the comparison floor
-is `C × (5000 / (5000 + N))²`. The update uses whichever is larger: that floor
-or the existing reporting/sparse-sample variance. Thus the existing early-count
-protection remains whenever stronger; comparison uncertainty does not collapse
-when the last mobile, hospital or prison record arrives. The same rule applies
-to other categories. Broad samples release the floor smoothly: it retains 96%
-of `C` at 100 votes, 25% at 5,000 and about 0.83% at 50,000. The 5,000-vote
-scale is reused as a working safeguard, not a newly calibrated accuracy rule
-for completed categories.
-
-This changes how much a comparison can teach the joint model, including its
-influence on other divisions. Actual candidate counts still constrain the
-local forecast through the finite-vote account. No votes are removed, no
-historical benchmark is shifted, and preference-conversion uncertainty remains
-separate. This floor uses observed comparison scatter and the existing quality
-weights; it does not yet propagate finite historical-count uncertainty as a
-separate term.
+The source variances keep the preceding sparse-sample adjustments before they
+are combined. Remaining-location variance and reporting-order exposure are
+then scaled by the uncounted part of the final account. A numerical residual
+variance of at least `1e-8` squared transformed points permits the existing
+matrix solver to handle fully known categories whose comparison errors cancel.
+This corresponds to SD 0.0001 percentage points near 50:50, not a substantive
+vote-count uncertainty allowance. Published final results retain their exact
+override path.
 
 ## Shared ordinary reporting-order uncertainty
 
@@ -472,8 +591,9 @@ district errors would average away too quickly if the same reporting pattern
 affects many districts, such as small rural booths finishing first.
 
 Two correlated, zero-mean error terms represent these samples: one for rows still
-allocated to the FP-derived group and one to the measured-TCP group. They enter the
-observation model before conditioning. They do not change the seat/category
+allocated to the FP-derived group and one to the measured-TCP group. The private comparisons retain these errors when predicting uncounted
+locations. Their weighted loadings are scaled to that remaining population in
+the single category observation before conditioning. They do not change the seat/category
 prior covariance or add noise to the final simulation afterwards. Their
 correlation is 0.5, allowing shared geography without treating the two samples
 as identical. This first implementation applies only to ordinary-day booths.
@@ -571,22 +691,26 @@ unknown splits, covariance budgets, correlated draws, local cancellation,
 fully counted limits and a fictional regional-miss regression. It also checks
 removal of the overlapping FP variance penalty, cross-category matched-location
 precision, reporting coverage and shared reporting-order covariance, sparse-sample
-attenuation, a persistent sparse-comparison floor at category completion, completion-quality curves and
-vote-weighted full-category accounting, a shared completion floor across
-measured/inferred groups, small completed-category precision, preservation
+attenuation, a persistent sparse-comparison floor at category completion, legacy completion-curve arithmetic and unified received-vote accounting,
+Caloundra's source handover, Ryan-style measured-precision retention,
+partial/revised counts, small completed-category transfer precision, preservation
 of measured information when FP-only locations arrive, the general shared covariance bound,
 no artificial precision from splitting observations, smooth replacement by TCP,
 party-sensitive local precision, exact shared-factor versus dense covariance,
 order-independent conditioning, and scenario moments. Reference-alignment
-regressions keep absolute received FP/TCP estimates unchanged when the prior
-changes, including Baringa's FP-to-TCP handover. `LiveDataTests` checks the
+regressions check that shared historical/current conversion gaps do not create
+spurious swing, including heterogeneous partial reporting, unchanged measured
+TCP and preservation of measured votes inside mixed accounts. Caloundra/Baringa
+checks distinguish the faulty and corrected historical offsets. Parser-enabled
+`LiveInputRecoveryTests` retain early/mobile categories for replaced historical
+venues and preserve their candidate totals. `LiveDataTests` checks the
 unmatched-booth allocation, exact primary-vote lower bounds under preference
 variation, and separation of received voters from future voters. These suites
 are included in the portable C++ test runners. Python calibration tests use
 fictional data.
 
 Private analysis exports identify this implementation as
-`joint_category_composition_v19`, record its covariance-budget scale and each
+`joint_category_composition_v20`, record its covariance-budget scale and each
 seat's booth-reference shift, and retain
 readable observations before numerical decorrelation. Their residual variances
 include local category variation and local/general conversion allowances. The
@@ -595,24 +719,37 @@ excluded from residual variance to avoid counting it twice. `conversion_variance
 includes all conversion components on the marginal observation diagonal. Each raw row
 also reports its measured/inferred location group, inferred fraction, local
 and shared effective matched-location counts, both conversion SDs, and the
-resulting conversion variance. Each observation also records its received sample
-votes, category coverage and added sparse-sample variance; the export records
-the 5,000-vote setting as `sparse_sample_vote_scale`. Whole-category FP coverage
-and the comparison floor are `category_fp_coverage` and
-`comparison_quality_floor`. `unfaded_location_variance` records the original
-location/sampling variance, while `retained_small_sample_variance` is the extra
-variance needed to meet the small-category bound after reweighting. The export
-separately records `comparison_variance` before the completion multiplier,
-`comparison_variance_floor` after vote-volume retention, and
-`retained_comparison_variance`, the amount added above reporting variance by
-that floor. These are variances in squared transformed units, not uncertainty
-about the published candidate counts. The comparison method is
-`persistent_location_comparison_floor`. The export
-also records `comparison_completion_start` and `comparison_completion_curve`.
-`restored_comparison_fraction` records `u`, and `compensation_reporting_order_sd`
-records `a`. The exported `reporting_order_loadings` include their combined effect;
-the election-wide ordinary FP/TCP order SD fields retain the base allowance alone.
-`reporting_order_compensation_strength` records the multiplier 5.
+resulting conversion variance. Each observation retains its source-group sample
+votes and coverage as `sample_votes` and `sample_coverage`. The combined usable
+sample actually used for the sparse multiplier and comparison floor is
+`category_sample_votes` and `category_sample_coverage`;
+`category_comparison_coverage` includes quality discounts and controls counting
+completion. These combined values repeat on both source rows and must not be
+added together. `sparse_sample_variance` records the resulting extra variance.
+Older exports without the `category_sample_*` fields used source-group counts
+for these adjustments. The export records the unchanged 5,000-vote setting as
+`sparse_sample_vote_scale`. Whole-category FP coverage is recorded as `category_fp_coverage`. Method
+`joint_category_composition_v21` replaces the former FP-completion comparison
+boost with `comparison_completion_curve=received_vote_account`; the old
+`comparison_quality_floor`, `restored_comparison_fraction` and compensation
+fields remain zero for new observations. Older archives retain their original
+meaning. The location group is `unified` and each observation additionally records
+`received_votes`, `received_first_votes`, `pending_preference_votes`,
+`remaining_votes`, `category_estimate` and `remaining_estimate`. The latter two
+are absolute Labor percentages within that category or its remaining population,
+not whole-seat TPP. `measured_future_weight` and `inferred_future_weight` describe
+the private comparison average for uncounted places; they are not vote weights.
+`unfaded_location_variance` is the allocation variance before the persistent
+comparison floor. `comparison_variance_floor` and `retained_comparison_variance`
+describe the floor and its contribution in squared transformed units. Shared
+reporting-order loadings refer only to the uncounted component. Existing
+whole-seat `posterior_mean` and `accounted_posterior_mean` diagnostics keep their
+previous meanings; a category estimate is an input to those quantities.
+`pending_preference_votes` counts all received FP awaiting TCP, including known
+major primaries; the unresolved non-major pool can be smaller. In unified rows,
+`inferred_fraction` and `unresolved_preference_fraction` divide those pending FP
+and received non-major pool quantities by the expected category total. Their
+conversion scales additionally include the separate future-prediction exposure.
 The conversion method is
 `matched_conversion_with_external_transfer_states`: row precision uses pooled matches, while
 category summaries retain separate match counts for inspection. The export also

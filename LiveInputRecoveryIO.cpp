@@ -1,3 +1,8 @@
+// Read and publish the accepted booth/category evidence used by live recovery,
+// preference comparisons and counting-progress estimates. The normal path uses
+// durable timestamped changes, reconstructing only the required district or
+// record. Complete accepted snapshots remain readable for one-off legacy imports
+// and independent equivalence tests; successful runs no longer write them.
 #include "LiveInputRecovery.h"
 #include "LivePartialCount.h"
 #include "LiveInputHistory.h"
@@ -290,8 +295,10 @@ std::optional<Snapshot> readEarlierCountRecords(std::filesystem::path const& fol
             }
         };
         std::map<Location, Record> matches;
+        bool authoritative = LiveInputHistory::hasAcceptedHistory(folder);
         try {
-            LiveInputHistory::visitEarlier(folder, fileCode(effective.sourceTime), selection,
+            auto visit = authoritative ? LiveInputHistory::visitAcceptedEarlier : LiveInputHistory::visitEarlier;
+            visit(folder, fileCode(effective.sourceTime), selection,
                 [](json const& value) { decode(value); },
                 [&](std::string const& source, std::size_t position, json const& value) {
                     auto old = decode(value);
@@ -308,7 +315,8 @@ std::optional<Snapshot> readEarlierCountRecords(std::filesystem::path const& fol
             for (auto& [location, record] : matches) result.records.push_back(std::move(record));
             return result.records.empty() ? std::optional<Snapshot>{} : std::move(result);
         } catch (LiveInputHistory::Unavailable const&) {
-            // The index is disposable. Restart against originals, so a partial
+            if (authoritative) throw;
+            // Only the legacy index is disposable. Restart against originals, so a partial
             // index read cannot leak selections or suppress an original error.
             return readEarlierCountRecords(folder, effective, account, std::move(needed), HistoryReadMode::SourceFiles);
         }
@@ -359,6 +367,10 @@ std::optional<Snapshot> loadPrevious(std::filesystem::path const& folder,
     return {};
 }
 void commit(std::filesystem::path const& folder, Snapshot const& snapshot) {
+    LiveInputHistory::accept(folder,fileCode(snapshot.sourceTime),encode(snapshot),
+        [](json const& value) { decode(value); });
+}
+void commitLegacySnapshot(std::filesystem::path const& folder, Snapshot const& snapshot) {
     std::filesystem::create_directories(folder);
     auto target = folder/(fileCode(snapshot.sourceTime)+".json");
     auto temporary = target; temporary += ".tmp";
@@ -369,7 +381,8 @@ void commit(std::filesystem::path const& folder, Snapshot const& snapshot) {
         LiveInputHistory::committed(folder, fileCode(snapshot.sourceTime), [](json const& value) { decode(value); });
     } catch (...) { std::error_code error; std::filesystem::remove(temporary,error); throw; }
 }
-std::optional<Snapshot> loadCompatiblePrevious(std::filesystem::path const& folder, Snapshot const& current) {
+static std::optional<Snapshot> compatiblePrevious(std::filesystem::path const& folder,
+    Snapshot const& current, bool authoritative) {
     Snapshot result; result.election = current.election;
     result.optionalPreferential = current.optionalPreferential;
     std::map<std::string,std::vector<Record const*>> districtRecords;
@@ -380,11 +393,9 @@ std::optional<Snapshot> loadCompatiblePrevious(std::filesystem::path const& fold
     std::map<std::string,std::size_t> selected;
     std::map<std::string,std::string> selectedAt;
     std::set<std::string> wholeAccounts;
-    for (auto const& path : earlierFiles(folder,current.sourceTime)) {
-        std::ifstream stream(path); json value; stream >> value;
-        auto old = decode(value);
+    auto consider = [&](Snapshot const& old) {
         if (old.election != current.election || old.sourceTime >= canonicalTime(current.sourceTime) ||
-            old.optionalPreferential != current.optionalPreferential) continue;
+            old.optionalPreferential != current.optionalPreferential) return;
         std::map<std::string,Record const*> oldRecords;
         for (auto const& record : old.records) oldRecords.emplace(record.key,&record);
         for (auto const& [district,account] : current.districts) {
@@ -420,10 +431,39 @@ std::optional<Snapshot> loadCompatiblePrevious(std::filesystem::path const& fold
                 for (auto record : matches) whole.records.push_back(*record);
             }
         }
-        if (selected.size() == current.records.size() && wholeAccounts.size() == current.districts.size()) break;
+    };
+    if (authoritative) {
+        LiveInputHistory::Selection selection;
+        for (auto const& record : current.records) selection[record.district].insert(record.key);
+        LiveInputHistory::visitAcceptedDistricts(folder,fileCode(current.sourceTime),selection,
+            [](json const& value) { decode(value); },
+            [&](std::string const&, json const& value) {
+                auto old=decode(value);consider(old);
+                return !wholeAccounts.contains(old.districts.begin()->first);
+            });
+        // Preserve the legacy reader's global ordering: most recent compatible
+        // source first, then district and the current source's record order.
+        std::map<std::string,std::size_t> positions;
+        for (std::size_t i=0;i<current.records.size();++i) positions[current.records[i].key]=i;
+        std::stable_sort(result.records.begin(),result.records.end(),[&](Record const& a,Record const& b) {
+            if (selectedAt.at(a.key)!=selectedAt.at(b.key)) return selectedAt.at(a.key)>selectedAt.at(b.key);
+            if (a.district!=b.district) return a.district<b.district;
+            return positions.at(a.key)<positions.at(b.key);
+        });
+    }
+    else for (auto const& path : earlierFiles(folder,current.sourceTime)) {
+        std::ifstream stream(path);json value;stream>>value;consider(decode(value));
+        if (selected.size()==current.records.size() && wholeAccounts.size()==current.districts.size()) break;
     }
     if (result.districts.empty()) return {};
     return result;
+}
+
+std::optional<Snapshot> loadCompatiblePrevious(std::filesystem::path const& folder, Snapshot const& current) {
+    return compatiblePrevious(folder,current,false);
+}
+std::optional<Snapshot> loadAcceptedCompatiblePrevious(std::filesystem::path const& folder, Snapshot const& current) {
+    return compatiblePrevious(folder,current,true);
 }
 
 namespace {
@@ -493,8 +533,10 @@ PreferenceHistories loadPreferenceHistory(std::filesystem::path const& folder,
     if (mode == HistoryReadMode::Indexed) {
         LiveInputHistory::Selection selection;
         for (auto const& [key, record] : needed) selection[record->district].insert(key);
+        bool authoritative = LiveInputHistory::hasAcceptedHistory(folder);
         try {
-            LiveInputHistory::visitEarlier(folder, fileCode(effective.sourceTime), selection,
+            auto visit = authoritative ? LiveInputHistory::visitAcceptedEarlier : LiveInputHistory::visitEarlier;
+            visit(folder, fileCode(effective.sourceTime), selection,
                 [](json const& value) { decode(value); },
                 [&](std::string const&, std::size_t, json const& value) {
                     auto old = decode(value);
@@ -505,6 +547,7 @@ PreferenceHistories loadPreferenceHistory(std::filesystem::path const& folder,
                 }, LiveInputHistory::RequiredCount::FirstPreferences);
             return result;
         } catch (LiveInputHistory::Unavailable const&) {
+            if (authoritative) throw;
             return loadPreferenceHistory(folder, effective, HistoryReadMode::SourceFiles);
         }
     }
@@ -545,9 +588,11 @@ std::map<std::string,std::vector<double>> loadFpTotalHistory(std::filesystem::pa
         }
     };
     if (mode == HistoryReadMode::Indexed) {
+        bool authoritative = LiveInputHistory::hasAcceptedHistory(folder);
         try {
             std::map<std::string,std::string> canonicalClocks;
-            LiveInputHistory::visitFirstPreferenceRuns(folder,fileCode(sourceTime),selection,
+            auto visit = authoritative ? LiveInputHistory::visitAcceptedFirstPreferenceRuns : LiveInputHistory::visitFirstPreferenceRuns;
+            visit(folder,fileCode(sourceTime),selection,
                 [](json const& value) { decode(value); },
                 [&](std::string const& key, json const& value, bool followsSource,
                     std::span<LiveInputHistory::CountSourceClock const> sources) {
@@ -569,6 +614,7 @@ std::map<std::string,std::vector<double>> loadFpTotalHistory(std::filesystem::pa
                     }
                 });
         } catch (LiveInputHistory::Unavailable const&) {
+            if (authoritative) throw;
             return loadFpTotalHistory(folder,election,sourceTime,selection,HistoryReadMode::SourceFiles);
         }
     } else for (auto const& path : earlierFiles(folder,sourceTime)) {

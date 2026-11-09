@@ -137,6 +137,20 @@ inline T detransformVoteShare(T transformedVoteShare) {
 	return T(100.0) / (T(1.0) + std::exp(-T(0.04) * transformedVoteShare));
 }
 
+// Convert a percentage share (0--100) to its share of a supplied vote total.
+// Projections use fractional expected votes, rather than rounding every booth
+// to an integer. Form the 0--1 fraction before multiplying by that total: this
+// keeps a 100% allocation exactly equal to the total. Multiplying by 100 first
+// and dividing afterwards can round slightly above it, creating a negative
+// remainder for the other candidate. For example, 100 * 0.7 * 0.01 can exceed
+// 0.7 even in double precision. Interior shares retain ordinary precision;
+// invalid shares are not clipped and remain visible to the caller's checks.
+template<typename T,
+	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
+inline T votesFromPercentage(T voteShare, T totalVotes) {
+	return (voteShare * T(0.01)) * totalVotes;
+}
+
 // Get the derivative of the logit function for a given regular vote share
 template<typename T,
 	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>

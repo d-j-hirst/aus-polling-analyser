@@ -5,7 +5,8 @@ sRegion=Inner Melbourne
 fTppMargin=11.2
 fPreviousTppSwing=-1.9
 fTransposedFederalSwing=0.0
-sBettingOdds=GRN,3.75
+sBettingOdds=GRN,3.875
+sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH
 sCandidateNames=Nina Taylor,ALP;Andrew Cook,LNP;Sonya Semmens,GRN;Tammy Lindrum,ONP
 #Ashwood
 sIncumbent=ALP
@@ -17,6 +18,7 @@ fTransposedFederalSwing=-1.0
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
 sBettingOdds=IND,35.00
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH*
 sCandidateNames=Matt Fregon,ALP;Theo Zographos,LNP;Tim Randall,GRN;Hitendra Joshi,IND;Steven Mitchell,ONP
 #Bass
 sIncumbent=ALP
@@ -29,6 +31,7 @@ fTransposedFederalSwing=2.7
 bRetirement=1
 sCoalitionCandidates=LNP;NAT,0.2
 fNationalsCoalitionShare=0.3064516129
+sRunningParties=LNP,ALP,GRN,ONP,OTH*
 sCandidateNames=Chris Buckingham,ALP;Rochelle Halstead,LNP;Sophie Thorn,GRN;Nikole Schellekens,ONP
 #Bayswater
 sIncumbent=ALP
@@ -38,6 +41,7 @@ fTppMargin=4.2
 fPreviousTppSwing=4.8
 fTransposedFederalSwing=2.1
 bRetirement=1
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Julie Buxton,ALP;David Kitchen,LNP;Jess Kennedy,GRN;Kayte Bleakney,ONP
 #Bellarine
 sIncumbent=ALP
@@ -47,6 +51,7 @@ fTppMargin=8.5
 fPreviousTppSwing=-3.0
 fTransposedFederalSwing=-0.8
 bSophomoreCandidate=1
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Alison Marchant,ALP;Callum Whitehead,LNP;Mitch Pope,GRN;Ross McRae,ONP
 #Benambra
 sIncumbent=LNP
@@ -60,7 +65,8 @@ bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
 sCoalitionCandidates=LNP;NAT,0.075
 fNationalsCoalitionShare=0.28
-sBettingOdds=IND,5.25
+sBettingOdds=IND,8.25
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH***
 sCandidateNames=Steve Martin,LNP;Graham Parton,GRN;Lachie McKeeman,IND;Kellie Sheppard,ONP;Ollie Young,ALP
 #Bendigo East
 sIncumbent=ALP
@@ -72,6 +78,7 @@ fTransposedFederalSwing=-11.3
 bRetirement=1
 sCoalitionCandidates=NAT;LNP,0.1
 fNationalsCoalitionShare=0.7
+sRunningParties=NAT,ALP,GRN,ONP,IND*,OTH**
 sCandidateNames=Tim Rickwood,ALP;Andrew Lethlean,NAT;Michael Tolhurst,GRN;Cheryl Hawken,ONP
 #Bendigo West
 sIncumbent=ALP
@@ -83,6 +90,7 @@ fTransposedFederalSwing=-11.3
 bRetirement=1
 sCoalitionCandidates=NAT;LNP,0.1
 fNationalsCoalitionShare=0.6
+sRunningParties=NAT,ALP,GRN,ONP,OTH**
 sCandidateNames=Brenton Baldwin,ALP;David Hutchings,NAT;Liza Shaw,GRN;Ellen Morgan,ONP
 #Bentleigh
 sIncumbent=ALP
@@ -91,6 +99,7 @@ sRegion=Frankston Line
 fTppMargin=8
 fPreviousTppSwing=-3.4
 fTransposedFederalSwing=-0.1
+sRunningParties=LNP,ALP,GRN,ONP,OTH*
 sCandidateNames=Nick Staikos,ALP;Tynan Putt,LNP;Claire Proctor,GRN;Herbert Lonsing,ONP
 #Berwick
 sIncumbent=LNP
@@ -99,6 +108,7 @@ sRegion=Pakenham Line
 fTppMargin=-4.7
 fPreviousTppSwing=-3.4
 fTransposedFederalSwing=7.5
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH***
 sCandidateNames=Rana Khan,ALP;Brad Battin,LNP;Roshan De Silva,GRN;Michael Piastrino,ONP
 #Box Hill
 sIncumbent=ALP
@@ -107,6 +117,7 @@ sRegion=Inner East Melbourne
 fTppMargin=7.2
 fPreviousTppSwing=4.1
 fTransposedFederalSwing=1.9
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Paul Hamer,ALP;Sally Houguet,LNP;Aaron Qin,GRN;Jamie Baker,ONP
 #Brighton
 sIncumbent=LNP
@@ -115,6 +126,7 @@ sRegion=Inner East Melbourne
 fTppMargin=-5.1
 fPreviousTppSwing=-4.6
 fTransposedFederalSwing=-1.4
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Bridget Mullahy,ALP;James Newbury,LNP;Ebony Bain,GRN;Alexander Fagan,ONP
 #Broadmeadows
 sIncumbent=ALP
@@ -124,6 +136,7 @@ fTppMargin=15.5
 fPreviousTppSwing=-0.7
 bSophomoreCandidate=1
 fTransposedFederalSwing=2.4
+sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH***
 sCandidateNames=Kathleen Matthews-Ward,ALP;Maryam Nasim,GRN;Ethan Keirs,ONP;Baris Duzova,LNP
 #Brunswick
 sIncumbent=GRN
@@ -133,7 +146,8 @@ fTppMargin=34.1
 fPreviousTppSwing=0.5
 fTransposedFederalSwing=2.3
 bRetirement=1
-sBettingOdds=GRN,1.10
+sBettingOdds=GRN,1.065
+sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH*
 sCandidateNames=Gabe Steger,ALP;Adam Pulford,GRN;Adam Helman,ONP;John Margelis,LNP
 #Bulleen
 sIncumbent=LNP
@@ -142,6 +156,7 @@ sRegion=Inner East Melbourne
 fTppMargin=-5.9
 fPreviousTppSwing=-0.4
 fTransposedFederalSwing=-1.9
+sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH*
 sCandidateNames=Matt Guy,LNP;Tomas Lightbody,GRN;Tim Dale,ALP;Mahdi Athari,ONP
 #Bundoora
 sIncumbent=ALP
@@ -150,6 +165,7 @@ sRegion=Northern Melbourne
 fTppMargin=12.7
 fPreviousTppSwing=-3.6
 fTransposedFederalSwing=-1.7
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Colin Brooks,ALP;Chris Parr,LNP;Nina Laitala,GRN;Bruce Whalley,ONP
 #Carrum
 sIncumbent=ALP
@@ -158,6 +174,7 @@ sRegion=Frankston Line
 fTppMargin=9.8
 fPreviousTppSwing=-2.2
 fTransposedFederalSwing=-0.7
+sRunningParties=LNP,ALP,GRN,ONP,OTH***
 sCandidateNames=Sonya Kilkenny,ALP;Jeff Shelley,LNP;Zoe Pegrum,GRN;Joshua Mathews,ONP
 #Caulfield
 sIncumbent=LNP
@@ -166,6 +183,7 @@ sRegion=Inner East Melbourne
 fTppMargin=-2.1
 fPreviousTppSwing=-2.0
 fTransposedFederalSwing=-3.5
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH*
 sCandidateNames=Mikaela Stafrace,ALP;David Southwick,LNP;Angel Dolejší,GRN;Michael Abelman,ONP
 #Clarinda
 sIncumbent=ALP
@@ -177,7 +195,8 @@ fTransposedFederalSwing=2.1
 bConfirmedProminentIndependent=1
 bPreviousIndRunning=1
 sMinorViability=IND,-1
-sBettingOdds=IND,38.50
+sBettingOdds=IND,37.00
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH*
 sCandidateNames=Meng Heang Tak,ALP;Conor Boyd-Eedle,GRN;Gavin Bain,ONP;John Paganis,LNP;Caroline White,IND
 #Cranbourne
 sIncumbent=ALP
@@ -186,6 +205,7 @@ sRegion=Pakenham Line
 fTppMargin=9.0
 fPreviousTppSwing=-0.3
 fTransposedFederalSwing=6.7
+sRunningParties=LNP,ALP,GRN,ONP,OTH***
 sCandidateNames=Pauline Richards,ALP;Annalise Mercer,GRN;Gino Tripodi,LNP;Andrew Hirst,ONP
 #Croydon
 sIncumbent=LNP
@@ -197,7 +217,8 @@ fTransposedFederalSwing=1.8
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
-sBettingOdds=IND,42.50
+sBettingOdds=IND,46.00
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Richard Farr,ALP;Toby Wooldridge,LNP;Lini Fernando,GRN;Glenn Brindley,ONP;David Vanderwolf,IND
 #Dandenong
 sIncumbent=ALP
@@ -206,6 +227,7 @@ sRegion=Pakenham Line
 fTppMargin=18.3
 fPreviousTppSwing=-4.8
 fTransposedFederalSwing=6.9
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Gabrielle Williams,ALP;Catherine D’Arcy,GRN;Glenda Wright,ONP;William Billings,LNP
 #Eildon
 sIncumbent=LNP
@@ -215,6 +237,7 @@ fTppMargin=-7.0
 fPreviousTppSwing=-5.9
 fTransposedFederalSwing=-3.6
 sCoalitionCandidates=LNP
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Kevin Gibson,ALP;Cindy McLeish,LNP;Talia Gulpilil,GRN;Tim Barber,ONP
 #Eltham
 sIncumbent=ALP
@@ -223,6 +246,7 @@ sRegion=Northern Melbourne
 fTppMargin=9.0
 fPreviousTppSwing=-1.5
 fTransposedFederalSwing=1.6
+sRunningParties=LNP,ALP,GRN,ONP,OTH**
 sCandidateNames=Vicki Ward,ALP;Paul Byrnes,LNP;Rachel Busbridge,GRN;Jessie Weatherley,ONP
 #Essendon
 sIncumbent=ALP
@@ -235,6 +259,7 @@ bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,1
 sBettingOdds=IND,6.75
+sRunningParties=LNP,ALP,GRN,ONP,IND**,OTH
 sCandidateNames=Kat Theodosis,ALP;Tommy Le Deux,LNP;James Williams,GRN;John Barnes,ONP;Oscar Yildiz,IND
 #Eureka
 sIncumbent=ALP
@@ -245,6 +270,7 @@ fPreviousTppSwing=-2.4
 fTransposedFederalSwing=-2.1
 sCoalitionCandidates=LNP;NAT,0.03
 fNationalsCoalitionShare=0.15
+sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH**
 sCandidateNames=Michaela Settle,ALP;Emma Muir,LNP;Sam McColl,GRN;Paul Ballinger,ONP
 #Euroa
 sIncumbent=NAT
@@ -255,6 +281,7 @@ fPreviousTppSwing=5.4
 fTransposedFederalSwing=-3.7
 bSophomoreCandidate=1
 sCoalitionCandidates=NAT
+sRunningParties=NAT,ALP,GRN,ONP,OTH**
 sCandidateNames=Annabelle Cleeland,NAT;Alysia Regan,GRN;Steve Campbell,ONP;Julian Kelly,ALP
 #Evelyn
 sIncumbent=LNP
@@ -263,6 +290,7 @@ sRegion=Outer East Melbourne
 fTppMargin=-5.4
 fPreviousTppSwing=-3.6
 fTransposedFederalSwing=-3.9
+sRunningParties=LNP,ALP,GRN,ONP,OTH**
 sCandidateNames=Analise Sherlock,ALP;Bridget Vallence,LNP;Andrew Henley,GRN;Daniel Killey,ONP
 #Footscray
 sIncumbent=ALP
@@ -273,7 +301,8 @@ fPreviousTppSwing=-3.0
 fTransposedFederalSwing=3.9
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
-sBettingOdds=GRN,3.10;IND,12.00
+sBettingOdds=GRN,2.85;IND,13.00
+sRunningParties=LNP,ALP,GRN,ONP,IND***,OTH******
 sCandidateNames=Katie Hall,ALP;Elena Pereyra,GRN;Alexander Lopez,ONP;Jess Marsh,IND;Tim Chang,LNP
 #Frankston
 sIncumbent=ALP
@@ -282,6 +311,7 @@ sRegion=Frankston Line
 fTppMargin=8.7
 fPreviousTppSwing=-1.5
 fTransposedFederalSwing=-0.9
+sRunningParties=LNP,ALP,GRN,ONP,IND**,OTH***
 sCandidateNames=Paul Edbrooke,ALP;Bree Ambry,LNP;Katie Goulas,GRN;Paul Stafford,ONP
 #Geelong
 sIncumbent=ALP
@@ -290,6 +320,7 @@ sRegion=Geelong
 fTppMargin=14.7
 fPreviousTppSwing=4.4
 fTransposedFederalSwing=-1.8
+sRunningParties=LNP,ALP,GRN,ONP,OTH***
 sCandidateNames=Chris Couzens,ALP;Andy Pobjoy,LNP;Emilie Flynn,GRN;John De Lorenzo,ONP
 #Gippsland East
 sIncumbent=NAT
@@ -301,6 +332,7 @@ fTransposedFederalSwing=-0.2
 bRetirement=1
 sCoalitionCandidates=NAT;LNP,0.1
 fNationalsCoalitionShare=0.78
+sRunningParties=NAT,ALP,GRN,ONP,OTH**
 sCandidateNames=Sonny Stephens,ALP;Gemma Rendell,NAT;Ash Munro,GRN;Steve Goodman,ONP
 #Gippsland South
 sIncumbent=NAT
@@ -310,6 +342,7 @@ fTppMargin=-15.6
 fPreviousTppSwing=-1.6
 fTransposedFederalSwing=-0.1
 sCoalitionCandidates=NAT
+sRunningParties=NAT,ALP,GRN,ONP,IND,OTH*
 sCandidateNames=Danny O'Brien,NAT;Zave Evans,GRN;Bianca Wilkie,ONP;Amy Barry-Macaulay,ALP
 #Glen Waverley
 sIncumbent=ALP
@@ -320,6 +353,7 @@ fPreviousTppSwing=4.2
 fTransposedFederalSwing=1.9
 bSophomoreCandidate=1
 bSophomoreParty=1
+sRunningParties=LNP,ALP,GRN,ONP,OTH**
 sCandidateNames=John Mullahy,ALP;Jacky Sun,LNP;Toyo White,GRN;Brad Cox,ONP
 #Greenvale
 sIncumbent=ALP
@@ -329,6 +363,7 @@ fTppMargin=7.1
 fPreviousTppSwing=-14.9
 fTransposedFederalSwing=2.0
 bSophomoreCandidate=1
+sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH***
 sCandidateNames=Iwan Walters,ALP;Jim Overend,LNP;Declan McGinness,GRN;Chris Moore,ONP
 #Hastings
 sIncumbent=ALP
@@ -339,6 +374,7 @@ fPreviousTppSwing=1.3
 fTransposedFederalSwing=0.6
 bSophomoreCandidate=1
 bSophomoreParty=1
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH*
 sCandidateNames=Paul Mercurio,ALP;Frank Schiefler,LNP;Isaac Willoughby,GRN;Peter Angelico,ONP
 #Hawthorn
 sIncumbent=LNP
@@ -352,6 +388,7 @@ bSophomoreParty=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,0
 sBettingOdds=IND,7.25
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH*
 sCandidateNames=Clive Crosby,ALP;John Pesutto,LNP;Kylie Rocha,GRN;Shima Ibuki,IND;Paul Pribilovics,ONP
 #Ivanhoe
 sIncumbent=ALP
@@ -363,6 +400,7 @@ fTransposedFederalSwing=0.1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
 sBettingOdds=IND,35.00
+sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH*
 sCandidateNames=Anthony Carbines,ALP;Oscar Lopez,LNP;Nina Crawley,GRN;Wayne Hutchinson,ONP;Michelle Kennedy,IND
 #Kalkallo
 sIncumbent=ALP
@@ -371,6 +409,7 @@ sRegion=Northern Melbourne
 fTppMargin=16.5
 fPreviousTppSwing=-4.4
 fTransposedFederalSwing=1.5
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Ros Spence,ALP;Payal Tiwari,GRN;Troy Steans,ONP;Eddie Dadisho,LNP
 #Kew
 sIncumbent=LNP
@@ -384,6 +423,7 @@ bConfirmedProminentIndependent=1
 sMinorViability=IND,1
 bPreviousIndRunning=1
 sBettingOdds=IND,7.75
+sRunningParties=LNP,ALP,GRN,ONP,IND**,OTH**
 sCandidateNames=David Sun,ALP;Jess Wilson,LNP;Jackie Carter,GRN;Sophie Torney,IND;David Laird,ONP
 #Kororoit
 sIncumbent=ALP
@@ -393,6 +433,7 @@ fTppMargin=14.5
 fPreviousTppSwing=-10.8
 fTransposedFederalSwing=0.8
 bSophomoreCandidate=1
+sRunningParties=LNP,ALP,GRN,ONP,OTH****
 sCandidateNames=Luba Grigorovitch,ALP;Joyce McDonald,GRN;Jack Chakoma,LNP;Seva Melnikov,ONP
 #Lara
 sIncumbent=ALP
@@ -402,6 +443,7 @@ fTppMargin=15.9
 fPreviousTppSwing=-3.3
 fTransposedFederalSwing=-0.4
 bSophomoreCandidate=1
+sRunningParties=LNP,ALP,GRN,ONP,OTH***
 sCandidateNames=Ella George,ALP;Theresa Slater,GRN;Stephen Spyros,ONP;Tim Beddoe,LNP
 #Laverton
 sIncumbent=ALP
@@ -411,6 +453,7 @@ fTppMargin=18.4
 fPreviousTppSwing=-5.0
 fTransposedFederalSwing=4.3
 bSophomoreCandidate=1
+sRunningParties=LNP,ALP,GRN,ONP,OTH****
 sCandidateNames=Sarah Connolly,ALP;Ghada Noune,LNP;Lucy Nguyen,GRN;Rufo Paredes,ONP
 #Lowan
 sIncumbent=NAT
@@ -420,6 +463,7 @@ fTppMargin=-21.6
 fPreviousTppSwing=-0.5
 fTransposedFederalSwing=-3.3
 sCoalitionCandidates=NAT
+sRunningParties=NAT,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Emma Kealy,NAT;Sue Pavlovich,ALP;Jeff Moran,GRN;Andrew Partridge,ONP
 #Macedon
 sIncumbent=ALP
@@ -432,6 +476,7 @@ bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
 sBettingOdds=IND,42.50
+sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH**
 sCandidateNames=Annette Death,ALP;Kate Kendall,LNP;Marley McRae McLeod,GRN;Damien Parolin,ONP;Dom Bonanno,IND
 #Malvern
 sIncumbent=LNP
@@ -444,6 +489,7 @@ bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
 sBettingOdds=IND,27.50
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH*
 sCandidateNames=Amelia Hamer,LNP;Georgia Katsikis,GRN;Edward Bode,ONP;Christina Zigouras,IND;Peter Martin,ALP
 #Melbourne
 sIncumbent=GRN
@@ -452,7 +498,8 @@ sRegion=Inner Melbourne
 fTppMargin=25
 fPreviousTppSwing=0.6
 fTransposedFederalSwing=0.3
-sBettingOdds=GRN,1.22
+sBettingOdds=GRN,1.185
+sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH**
 sCandidateNames=Ellen Sandell,GRN;Davydd Griffiths,ALP;Rafael Camillo,LNP;Phillip Courtis,ONP
 #Melton
 sIncumbent=ALP
@@ -462,6 +509,7 @@ fTppMargin=4.6
 fPreviousTppSwing=-0.4
 fTransposedFederalSwing=-1.9
 bRetirement=1
+sRunningParties=LNP,ALP,GRN,ONP,IND**,OTH***
 sCandidateNames=Broden Borg,ALP;Jarrod Bingham,LNP;Veronika Levchenkova,GRN;Matthew Katselis,ONP
 #Mildura
 sIncumbent=NAT
@@ -471,6 +519,7 @@ fTppMargin=-14.1
 fPreviousTppSwing=-8.0
 fTransposedFederalSwing=0.1
 sCoalitionCandidates=NAT
+sRunningParties=NAT,ALP,GRN,ONP,OTH**
 sCandidateNames=Jade Benham,NAT;Katie Clements,GRN;Guy Cooper,ONP;Stella Zigouras,ALP
 #Mill Park
 sIncumbent=ALP
@@ -480,6 +529,7 @@ fTppMargin=11.6
 fPreviousTppSwing=-13.3
 fTransposedFederalSwing=-2.0
 bRetirement=1
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Elizabeth Nealy,ALP;Joel Drysdale,LNP;Binoy Zacharias,GRN;Arthur Tsoutsoulis,ONP
 #Monbulk
 sIncumbent=ALP
@@ -489,6 +539,7 @@ fTppMargin=7.6
 fPreviousTppSwing=0.5
 fTransposedFederalSwing=-0.5
 bSophomoreCandidate=1
+sRunningParties=LNP,ALP,GRN,ONP,OTH**
 sCandidateNames=Daniela De Martino,ALP;Clare Fitzmaurice,LNP;Dr Merran Blair,GRN;Adrian Dowell,ONP
 #Mordialloc
 sIncumbent=ALP
@@ -497,6 +548,7 @@ sRegion=Frankston Line
 fTppMargin=8.2
 fPreviousTppSwing=-5.2
 fTransposedFederalSwing=2.4
+sRunningParties=LNP,ALP,GRN,ONP,OTH***
 sCandidateNames=Tim Richardson,ALP;Paul O'Halloran,LNP;Alex Breskin,GRN;Nadia Ticehurst,ONP
 #Mornington
 sIncumbent=LNP
@@ -509,6 +561,7 @@ bSophomoreCandidate=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
 sBettingOdds=IND,22.50
+sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH
 sCandidateNames=Chris Crewther,LNP;Ashli Beards,ONP;Melissa Goffin,IND;Kai Titcher,GRN;Kerry Macdonald,ALP
 #Morwell
 sIncumbent=NAT
@@ -520,6 +573,7 @@ fTransposedFederalSwing=0.8
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCoalitionCandidates=NAT
+sRunningParties=NAT,ALP,GRN,ONP,OTH**
 sCandidateNames=Tracie Lund,ALP;Martin Cameron,NAT;Rochelle Hine,GRN;Casey Murphy,ONP
 #Mulgrave
 sIncumbent=ALP
@@ -531,7 +585,8 @@ fByElectionSwing=-5.53
 fTransposedFederalSwing=5.2
 bConfirmedProminentIndependent=1
 bPreviousIndRunning=1
-sBettingOdds=IND,4.00
+sBettingOdds=IND,4.50
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Eden Foster,ALP;Charles Tran,LNP;Paul Schofield,GRN;Cody Rebbechi,ONP;Ian Cook,IND
 #Murray Plains
 sIncumbent=NAT
@@ -543,6 +598,7 @@ fTransposedFederalSwing=-3.0
 bRetirement=1
 sCoalitionCandidates=NAT;LNP,0.075
 fNationalsCoalitionShare=0.82
+sRunningParties=NAT,ALP,GRN,ONP,OTH**
 sCandidateNames=Brett Hosking,NAT;Zoe Cook,GRN;Garner Smith,ONP;Christine Grundy,ALP
 #Narracan
 sIncumbent=LNP
@@ -553,6 +609,7 @@ fPreviousTppSwing=-3.0
 fTransposedFederalSwing=1.7
 bSophomoreCandidate=1
 sCoalitionCandidates=LNP
+sRunningParties=LNP,ALP,GRN,ONP,OTH*
 sCandidateNames=Jannette Langley,ALP;Wayne Farnham,LNP;Alyssa Weaver,GRN;Ben Lucas,ONP
 #Narre Warren North
 sIncumbent=ALP
@@ -562,6 +619,7 @@ fTppMargin=8.7
 fPreviousTppSwing=-1.7
 fTransposedFederalSwing=10.8
 bSophomoreCandidate=1
+sRunningParties=LNP,ALP,GRN,ONP,OTH***
 sCandidateNames=Belinda Wilson,ALP;Hayley Perry,GRN;Sebastian Crutchfield,ONP;Shemane Nathanielsz,LNP
 #Narre Warren South
 sIncumbent=ALP
@@ -571,6 +629,7 @@ fTppMargin=8.3
 fPreviousTppSwing=-2.1
 fTransposedFederalSwing=6.7
 bRetirement=1
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Stefan Koomen,ALP;Norliah Peterson,LNP;Jill Nambu,GRN;Trevor Hammond,ONP
 #Nepean
 sIncumbent=LNP
@@ -584,6 +643,7 @@ bSophomoreParty=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
 sBettingOdds=IND,33.50
+sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH**
 sCandidateNames=Anthony Marsh,LNP;Sianan Healy,GRN;Darren Hercus,ONP;Kim Robbins,IND;Surbhi Snowball,ALP
 #Niddrie
 sIncumbent=ALP
@@ -592,6 +652,7 @@ sRegion=Western Melbourne
 fTppMargin=6.7
 fPreviousTppSwing=-5.8
 fTransposedFederalSwing=0.0
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH*****
 sCandidateNames=Ben Carroll,ALP;Samantha Byrne,LNP;Lana Nguyen,GRN;Jason Taverna,ONP
 #Northcote
 sIncumbent=ALP
@@ -600,7 +661,8 @@ sRegion=Inner Melbourne
 fTppMargin=31.7
 fPreviousTppSwing=-1.5
 fTransposedFederalSwing=1.3
-sBettingOdds=GRN,1.35
+sBettingOdds=GRN,1.30
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH****
 sCandidateNames=Kat Theophanous,ALP;Lynda Awad,LNP;Campbell Gome,GRN;Christopher Bradbury,ONP
 #Oakleigh
 sIncumbent=ALP
@@ -609,6 +671,7 @@ sRegion=Pakenham Line
 fTppMargin=13.5
 fPreviousTppSwing=-2.6
 fTransposedFederalSwing=0.5
+sRunningParties=LNP,ALP,GRN,ONP,OTH*
 sCandidateNames=Steve Dimopoulos,ALP;Martin Jung,LNP;Hsiang-Han Hsieh,GRN;Brooke Carter,ONP
 #Ovens Valley
 sIncumbent=NAT
@@ -621,6 +684,7 @@ sCoalitionCandidates=NAT
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
 sBettingOdds=IND,51.00
+sRunningParties=NAT,ALP,GRN,ONP,IND,OTH***
 sCandidateNames=Tim McCurdy,NAT;Ben Gilbert,GRN;James Rouel,ONP;Steve Manning,IND;Jennifer Smith,ALP
 #Pakenham
 sIncumbent=ALP
@@ -630,6 +694,7 @@ fTppMargin=0.4
 fPreviousTppSwing=-1.8
 fTransposedFederalSwing=3.6
 bRetirement=1
+sRunningParties=LNP,ALP,GRN,ONP,IND**,OTH**
 sCandidateNames=Alessandra Soliven,ALP;Radmila Dyson,LNP;Nasser Yawari,GRN;Warren Pickering,ONP
 #Pascoe Vale
 sIncumbent=ALP
@@ -639,6 +704,7 @@ fTppMargin=22.2
 fPreviousTppSwing=0.0
 fTransposedFederalSwing=2.2
 sBettingOdds=GRN,2.475
+sRunningParties=LNP,ALP,GRN,ONP,OTH*****
 sCandidateNames=Anthony Cianflone,ALP;Angelica Panopoulos,GRN;Rosemarie Pauline Ganci,ONP;Rohit Taggar,LNP
 #Point Cook
 sIncumbent=ALP
@@ -648,6 +714,7 @@ fTppMargin=8.3
 fPreviousTppSwing=-4.4
 fTransposedFederalSwing=4.9
 bSophomoreCandidate=1
+sRunningParties=LNP,ALP,GRN,ONP,OTH****
 sCandidateNames=Mathew Hilakari,ALP;Raja Reddy,LNP;Ponraj Krishna Pandi,GRN;Cameron Reid,ONP
 #Polwarth
 sIncumbent=LNP
@@ -656,6 +723,7 @@ sRegion=Rural Outer West
 fTppMargin=-1.8
 fPreviousTppSwing=0.2
 fTransposedFederalSwing=-3.6
+sRunningParties=LNP,ALP,GRN,ONP,OTH**
 sCandidateNames=Hutch Hussein,ALP;Richard Riordan,LNP;Jesse Holden,GRN;Anna Malcolm,ONP
 #Prahran
 sIncumbent=LNP
@@ -668,6 +736,7 @@ fTransposedFederalSwing=-0.8
 bSophomoreCandidate=1
 bSophomoreParty=1
 sBettingOdds=GRN,1.49
+sRunningParties=LNP,ALP,GRN,ONP,IND***,OTH****
 sCandidateNames=Rachel Westaway,LNP;Angelica Di Camillo,GRN;Meghan Hopper,ALP;Shaun Virsu,ONP
 #Preston
 sIncumbent=ALP
@@ -678,6 +747,7 @@ fPreviousTppSwing=-8.6
 fTransposedFederalSwing=1.3
 bSophomoreCandidate=1
 sBettingOdds=GRN,3.75
+sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH****
 sCandidateNames=Nathan Lambert,ALP;Loki Sangarya,GRN;Franco Guardiani,ONP;Hamza Al Katranji,LNP
 #Richmond
 sIncumbent=GRN
@@ -686,7 +756,8 @@ sRegion=Inner Melbourne
 fTppMargin=24.1
 fPreviousTppSwing=-7.1
 fTransposedFederalSwing=-0.4
-sBettingOdds=GRN,1.34
+sBettingOdds=GRN,1.29
+sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH**
 sCandidateNames=Gabrielle de Vietri,GRN;Sarah McKenzie,ALP;Harrison Rindfleish,ONP;Charles Aponso,LNP
 #Ringwood
 sIncumbent=ALP
@@ -698,7 +769,8 @@ fTransposedFederalSwing=1.4
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,0
-sBettingOdds=IND,14.00
+sBettingOdds=IND,15.50
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH***
 sCandidateNames=Rachel Halse,ALP;Nick McGowan,LNP;Amy Mills,GRN;Prue Cutts,IND;John O'Connor,ONP
 #Ripon
 sIncumbent=ALP
@@ -711,6 +783,7 @@ bSophomoreCandidate=1
 bSophomoreParty=1
 sCoalitionCandidates=LNP;NAT
 fNationalsCoalitionShare=0.32
+sRunningParties=LNP,NAT,ALP,GRN,ONP,IND*,OTH****
 sCandidateNames=Martha Haylett,ALP;Megan Read,LNP;Jo Armstrong,NAT;Tim Drylie,GRN;Donna Buxton,ONP
 #Rowville
 sIncumbent=LNP
@@ -720,6 +793,7 @@ fTppMargin=-3.7
 fPreviousTppSwing=1.8
 fTransposedFederalSwing=3.8
 bRetirement=1
+sRunningParties=LNP,ALP,GRN,ONP,OTH**
 sCandidateNames=Dr Muhammad Shahbaz,ALP;Max Williams,LNP;Dave Massey,GRN;Bradley Watt,ONP
 #Sandringham
 sIncumbent=LNP
@@ -728,6 +802,7 @@ sRegion=Inner East Melbourne
 fTppMargin=-5.0
 fPreviousTppSwing=-4.6
 fTransposedFederalSwing=-1.1
+sRunningParties=LNP,ALP,GRN,ONP,OTH
 sCandidateNames=Anastasia Sagris-Desmond,ALP;Brad Rowswell,LNP;Timon Fotakis,GRN;Anthony Blight,ONP
 #Shepparton
 sIncumbent=NAT
@@ -743,6 +818,7 @@ fNationalsCoalitionShare=0.52
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
 sBettingOdds=IND,11.50
+sRunningParties=NAT,ALP,GRN,ONP,IND*,OTH**
 sCandidateNames=Cayla Fin,ALP;Shane Sali,NAT;Grace Verney,GRN;Phillip Bryant,ONP;Lou Costa,IND
 #South Barwon
 sIncumbent=ALP
@@ -754,7 +830,8 @@ fTransposedFederalSwing=-0.4
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,0
-sBettingOdds=IND,12.00
+sBettingOdds=IND,14.00
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Rebecca Thistleton,ALP;Libby Pettit,LNP;Izzy Scherrer,GRN;Josh Geard,ONP;Ron Nelson,IND
 #South-West Coast
 sIncumbent=LNP
@@ -763,6 +840,7 @@ sRegion=Rural Outer West
 fTppMargin=-8.0
 fPreviousTppSwing=-4.8
 fTransposedFederalSwing=-3.8
+sRunningParties=LNP,ALP,GRN,ONP,OTH*
 sCandidateNames=Andrew Govanstone,ALP;Roma Britnell,LNP;Silver Rose,GRN;Richard Hughes,ONP
 #St Albans
 sIncumbent=ALP
@@ -771,6 +849,7 @@ sRegion=Western Melbourne
 fTppMargin=9.6
 fPreviousTppSwing=-12.4
 fTransposedFederalSwing=3.1
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH***
 sCandidateNames=Natalie Suleyman,ALP;Bao Huynh,GRN;John Cowell,ONP;Rob Dunstan,LNP
 #Sunbury
 sIncumbent=ALP
@@ -779,6 +858,7 @@ sRegion=Northern Melbourne
 fTppMargin=6.4
 fPreviousTppSwing=-8.1
 fTransposedFederalSwing=-0.9
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH*****
 sCandidateNames=Josh Bull,ALP;Simmone Cottom,LNP;Elita Dabrowski,ONP;Lauren Granger-Brown,GRN
 #Sydenham
 sIncumbent=ALP
@@ -788,6 +868,7 @@ fTppMargin=8.8
 fPreviousTppSwing=-8.9
 fTransposedFederalSwing=-1.3
 bRetirement=1
+sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH*****
 sCandidateNames=Uros Rasic,ALP;Nathalie Moussi,LNP;Maggie Jane,GRN;Joh Bauch,ONP
 #Tarneit
 sIncumbent=ALP
@@ -797,6 +878,7 @@ fTppMargin=12.3
 fPreviousTppSwing=-5.6
 fTransposedFederalSwing=1.5
 bSophomoreCandidate=1
+sRunningParties=LNP,ALP,GRN,ONP,IND**,OTH****
 sCandidateNames=Dylan Wight,ALP;Venkat Ram Upparlapalle,LNP;Rifai A. Raheem,GRN;Walter Villagonzalo OAM,ONP
 #Thomastown
 sIncumbent=ALP
@@ -805,6 +887,7 @@ sRegion=Northern Melbourne
 fTppMargin=15.8
 fPreviousTppSwing=-11.6
 fTransposedFederalSwing=-2.9
+sRunningParties=LNP,ALP,GRN,ONP,OTH*
 sCandidateNames=Bronwyn Halfpenny,ALP;Nadia Anthony,ONP;Belinda Stojcevski,LNP;Gavin Trewella,GRN
 #Warrandyte
 sIncumbent=LNP
@@ -813,6 +896,7 @@ sRegion=Outer East Melbourne
 fTppMargin=-4.3
 fPreviousTppSwing=-0.5
 fTransposedFederalSwing=-0.9
+sRunningParties=LNP,ALP,GRN,ONP,OTH*
 sCandidateNames=Nicole Werner,LNP;Mark Burnside,ONP;Vanessa Muradian,GRN;Rebecca Paterson,ALP
 #Wendouree
 sIncumbent=ALP
@@ -821,6 +905,7 @@ sRegion=Ballarat & Bendigo
 fTppMargin=11.9
 fPreviousTppSwing=0.9
 fTransposedFederalSwing=-4.0
+sRunningParties=LNP,ALP,GRN,ONP,OTH**
 sCandidateNames=Juliana Addison,ALP;Ellen Burns,GRN;Stuart Robinson,ONP;Gav Ronan,LNP
 #Werribee
 sIncumbent=ALP
@@ -832,7 +917,8 @@ fByElectionSwing=-10.1
 fTransposedFederalSwing=-2.4
 bConfirmedProminentIndependent=1
 sMinorViability=IND,1
-sBettingOdds=IND,17.00
+sBettingOdds=IND,18.50
+sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH***
 sCandidateNames=John Lister,ALP;Reece Clark,LNP;Tushar Kumar,GRN;Paul Pateras,ONP;Paul Hopper,IND
 #Williamstown
 sIncumbent=ALP
@@ -844,6 +930,7 @@ fTransposedFederalSwing=2.2
 bConfirmedProminentIndependent=1
 sMinorViability=IND,0
 sBettingOdds=IND,11.00
+sRunningParties=LNP,ALP,GRN,ONP,IND,OTH***
 sCandidateNames=Melissa Horne,ALP;Paul Lindemann,LNP;Ben Hocking,GRN;Catherine Loughnan,ONP;Tony Briffa,IND
 #Yan Yean
 sIncumbent=ALP
@@ -853,4 +940,5 @@ fTppMargin=4.3
 fPreviousTppSwing=-12.7
 fTransposedFederalSwing=0.1
 bSophomoreCandidate=1
+sRunningParties=LNP,ALP,GRN,ONP,OTH***
 sCandidateNames=Lauren Kathage,ALP;Amanda Dow,LNP;Gufran Mohammed,GRN;Jeremy Johnson,ONP

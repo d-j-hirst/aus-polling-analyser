@@ -10,8 +10,36 @@
 #include <limits>
 #include <type_traits>
 
+void testProjectedVoteShareEndpoints()
+{
+    // A historical one-vote category can be 0% or 100%. Test the full numeric
+    // route from that observed percentage through the log-odds transformation
+    // and back to expected counts, including fractional turnout targets which
+    // previously produced tiny negative remainders. The production projection
+    // uses this same percentage-to-count conversion.
+    for (double target : {0.,.1,.7,1.234,100.1,35000.123}) {
+        for (double percent : {0.,1e-10,25.,50.,75.,100.-1e-10,100.}) {
+            double transformed = transformVoteShare(percent);
+            double votes = votesFromPercentage(detransformVoteShare(transformed),target);
+            assert(std::isfinite(votes));
+            assert(votes >= 0 && votes <= target);
+            assert(target-votes >= 0);
+            if (percent == 0) assert(votes == 0);
+            if (percent == 100) assert(votes == target);
+        }
+    }
+    // Preserve small genuine changes rather than replacing all near-endpoint
+    // shares with endpoints, and leave invalid input for the caller to reject.
+    assert(votesFromPercentage(100.-1e-10,100.) < 100.);
+    assert(votesFromPercentage(1e-10,100.) > 0);
+    assert(votesFromPercentage(100.+1e-10,100.) > 100.);
+    assert(votesFromPercentage(-1e-10,100.) < 0);
+    assert(std::isnan(votesFromPercentage(std::numeric_limits<double>::quiet_NaN(),100.)));
+}
+
 int main()
 {
+    testProjectedVoteShareEndpoints();
     static_assert(std::is_same_v<decltype(LiveTurnoutMath::PartyAccount{}.projected)::mapped_type, double>);
     static_assert(std::is_same_v<decltype(getAt(std::map<int,double>{},0,0.f)), double>);
     std::map<int,double> precise{{0,50.000000000001}};

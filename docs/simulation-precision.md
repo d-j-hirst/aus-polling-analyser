@@ -23,12 +23,27 @@ zeros instead of passing them through the small floor needed for log odds.
 These are properties of individual operations at any counting stage, not a rule
 that bypasses live calculation when the election has no reported votes.
 
+The live TPP projection converts a percentage to a 0--1 fraction before
+multiplying by expected votes. This preserves exact 0% and 100% allocations
+even when a reporting unit's expected total is fractional. For example,
+`100 × 0.7 × 0.01` can round slightly above 0.7, leaving a negative remainder
+for the other party. Converting 100% to 1 first avoids that error. Historical
+one-vote categories can reach these endpoints; interior shares retain ordinary
+precision, and invalid values still fail the projection's validation.
+
 Double precision reduces arithmetic error but does not prove two paths are
 equivalent. The comparison below therefore reports every exact difference,
 including very small differences, without clipping them to zero. Deliberate
 electoral thresholds and statistical assumptions are separate from this check.
 
 ## Running a comparison
+
+**Storage warning:** this diagnostic records every iteration of every main
+simulation until it is disabled. A 200,000-iteration federal run has produced
+about 26 GiB, and repeated runs can fill a disk. Enable it only for a planned
+comparison with sufficient free space. Afterwards remove or blank
+`sSimulationAuditDirectory`, restart the application, and retain or remove the
+comparison files deliberately. Routine forecasting does not need this setting.
 
 Add this optional setting to the workspace's `config.cfg`, then restart the
 application:

@@ -55,6 +55,21 @@ Results2::VoteType qecVoteType(std::string const& name)
   return V::Ordinary;
 }
 
+Results2::Booth::Type qecPhysicalBoothType(std::string const& name)
+{
+  // Queensland physical venues all belong to VoteType::Ordinary, but the live
+  // forecast compares day, early and mobile voting separately within it. Use
+  // the same name rules for the current roster and the historical results.
+  // An old venue can be replaced or renamed without its votes changing channel:
+  // a former Returning Officer early count must still inform the early-vote
+  // comparison even when none of the current venues has that name.
+  using B = Results2::Booth::Type;
+  if (name == "Mobile Polling") return B::Hospital;
+  if (name.find("Returning Officer") != std::string::npos ||
+      name.find("Early Voting Centre") != std::string::npos) return B::Ppvc;
+  return B::Normal;
+}
+
 [[noreturn]] void throwInvalidXml(
   std::string const& context,
   std::string const& problem)
@@ -1399,11 +1414,7 @@ void Results2::Election::preloadQec([[maybe_unused]] nlohmann::json const& resul
       booth.id += seat.id * 100000; // create unique booth ID for booths with the same name in different seats
       booth.name = requiredAttribute(*currentBooth, "name",
         seatContext + "/countRound/booths/booth");
-      if (booth.name.find("Returning Officer") != std::string::npos ||
-        booth.name.find("Early Voting Centre") != std::string::npos) {
-        booth.type = Booth::Type::Ppvc;
-      }
-      if (booth.name == "Mobile Polling") booth.type = Booth::Type::Hospital;
+      booth.type = qecPhysicalBoothType(booth.name);
       booth.parentSeat = seat.id;
       booths[booth.id] = booth;
       currentBooth = currentBooth->NextSiblingElement("booth");
@@ -1556,6 +1567,10 @@ void Results2::Election::preloadQec([[maybe_unused]] nlohmann::json const& resul
         booth.parentSeat = seatId;
         booth.id = boothId;
         booth.name = boothName;
+        // Identity matching decides which historical count belongs to a venue;
+        // it must not decide the voting channel. Classify after matching so
+        // unmatched and detached ambiguous records retain their old channel too.
+        booth.type = qecPhysicalBoothType(booth.name);
         auto fps = boothValue["fp"];
         for (auto const& [fpCandIndex, fpVotes] : fps.items()) {
           int fpCandIndexI = std::stoi(fpCandIndex);

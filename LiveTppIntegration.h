@@ -39,7 +39,8 @@ using Matrix = std::vector<Vector>;
 struct ReceivedTpp {
     double votes = 0, transformedShare = 0, inferredFraction = 0;
     double samplingVariance = 0;
-    // Candidate-one votes inferred from FP, excluding any measured TCP.
+    // Candidate-one votes inferred from FP, excluding any measured TCP. The
+    // alignment helper can translate these in a detached comparison copy.
     double inferredFirst = 0;
 };
 
@@ -72,6 +73,51 @@ inline std::optional<ReceivedTpp> receivedComparison(double fp, double tcp, doub
     return ReceivedTpp{total, 25 * std::log((first + .25) / (total - first + .25)),
         std::clamp(1 - tcp / total, 0., 1.), samplingVariance(total, first),
         total > tcp ? *pendingFirst : 0};
+}
+
+// Prepare an inferred observation for comparison with the recentered historical
+// booth baseline. The seat prior and the FP-to-TPP conversion can have different
+// starting levels: for example, generic preferences can overestimate both the
+// previous and current TPP in a non-classic seat. Moving only the historical
+// comparison would turn that shared estimation error into an apparent new swing.
+// Apply the same seat offset to its current inferred counterpart.
+//
+// result is a detached received-vote comparison, not the stored source record or
+// the physical booth's projected vote account. shift is the common seat offset
+// in 25*log-odds units: positive raises Labor's comparison TPP. It is calculated
+// from historical booth/category comparisons, expected final vote sizes and the
+// pre-count seat prior, not learned from current preference-flow discrepancies.
+// Those preference corrections have already been applied by the caller.
+//
+// Actual TCP stays fixed. A mixed account moves only the inferred allocation;
+// a wholly FP-derived account moves its entire comparison share. This assumes
+// the historical conversion discrepancy also affects current estimates. The
+// offset can additionally reflect changed category composition or missing
+// matches, so correct historical classification and comparisons are important.
+inline ReceivedTpp alignInferredReference(ReceivedTpp result, double shift) {
+    double inferredVotes = result.votes * result.inferredFraction;
+    if (inferredVotes <= 0 || shift == 0) return result;
+    // Retain the established endpoint bound for inferred allocations only.
+    // It keeps the log-odds calculation finite at zero/all inferred votes;
+    // genuine measured zeros and fully measured accounts never enter this path.
+    double fraction = std::clamp(result.inferredFirst / inferredVotes, 1e-8, 1-1e-8);
+    double adjustedFirst = inferredVotes / (1 + std::exp(-(
+        std::log(fraction/(1-fraction)) + shift/25)));
+    if (result.inferredFraction == 1) {
+        result.transformedShare += shift;
+        result.samplingVariance = samplingVariance(result.votes, adjustedFirst);
+    }
+    else {
+        // Recover the received count before receivedComparison's quarter-vote
+        // endpoint smoothing, replace only its inferred part, then apply the
+        // same smoothing. The measured candidate totals are thereby preserved.
+        double first = (result.votes+.5)/(1+std::exp(-result.transformedShare/25))-.25;
+        first += adjustedFirst-result.inferredFirst;
+        result.transformedShare = 25*std::log((first+.25)/(result.votes-first+.25));
+        result.samplingVariance = samplingVariance(result.votes, first);
+    }
+    result.inferredFirst = adjustedFirst;
+    return result;
 }
 
 struct Moments {
@@ -122,7 +168,10 @@ struct Observation {
     Vector h;
     double value = 0, variance = 0;
     int seat = -1, category = 0; // Diagnostic identities, not matrix positions.
-    double inferredFraction = 0, conversionVariance = 0; // Raw-row diagnostics only.
+    // Private comparisons divide pending FP by their received comparison weight.
+    // Unified diagnostics divide pending FP by the expected category population;
+    // actual component error scales have already been combined at that stage.
+    double inferredFraction = 0, conversionVariance = 0;
     double localConversionSd = 0, sharedConversionSd = 0;
     // Local party components are separate so a Greens-heavy category does not
     // acquire the uncertainty of an unrelated independent-heavy category.
@@ -135,14 +184,31 @@ struct Observation {
     // The group's statistical role, not an assertion that every contributing
     // ballot is inferred. Partial booths allocate information to both groups.
     bool fpDerivedGroup = false;
+    // Published observations contain one physical vote account per category.
+    // Source groups remain private comparisons for its unreported portion.
+    bool unifiedCategory = false;
+    double receivedVotes = 0, receivedFirstVotes = 0, pendingPreferenceVotes = 0;
+    double remainingVotes = 0, categoryEstimate = 0, remainingEstimate = 0;
+    double measuredFutureWeight = 0, inferredFutureWeight = 0;
     double syntheticBaselineSd = 0; // Same-category comparison error, retained at completion.
-    // Quality-weighted fraction of comparison votes still requiring an
-    // estimated preference transfer, and conversion from share points to z.
+    // Private comparisons use the quality-weighted unresolved preference pool.
+    // Unified rows report received unresolved preferences per expected category
+    // vote; their scales also retain future-prediction conversion uncertainty.
     double unresolvedPreferenceFraction = 0, conversionJacobian = 1;
     double comparisonWeight = 0; // Diagnostic averaging weight, not new votes.
     double sparseSampleVariance = 0, sampleVotes = 0, sampleCoverage = 0;
-    // Whole-category FP coverage controls historical comparison quality. The
-    // small-sample allowance concerns extrapolation, not counted vote accuracy.
+    // sampleVotes/sampleCoverage describe this source group's contribution.
+    // The sparse allowance instead uses the combined usable sample below,
+    // before dividing its information between measured and FP-derived groups.
+    // Votes are received continuing votes, capped at each location's target;
+    // coverage is a fraction of the category's expected continuing votes.
+    double categorySampleVotes = 0, categorySampleCoverage = 0;
+    // Unlike physical sample coverage, this fraction includes historical
+    // comparison-quality discounts. It controls the completion multiplier.
+    double categoryComparisonCoverage = 0;
+    // Physical FP coverage is diagnostic. It does not promote TCP comparison
+    // quality. The former completion-boost fields remain zero in unified rows
+    // so older archive readers can continue reading their existing schema.
     double categoryFpCoverage = 0, comparisonQualityFloor = 0;
     double unfadedLocationVariance = 0, retainedSmallSampleVariance = 0;
     // A completed small category still gives a weak comparison for movement
@@ -394,8 +460,20 @@ struct CategoryEvidence {
         // not establish a precise swing transferable to other divisions.
         return std::max(residualVarianceSum, scatter * squaredWeight) / (weight * weight);
     }
-    double variance(double scatterFloor = 0) const {
-        double coverage = expected > 0 ? std::clamp(weight / expected, 0., 1.) : 0;
+    // Fraction of the expected vote weight supplying a usable comparison,
+    // after historical-quality and FP comparison-weight discounts.
+    double comparisonCoverage() const {
+        return expected > 0 ? std::clamp(weight / expected, 0., 1.) : 0;
+    }
+    // The two source groups retain their own comparison variance: each may
+    // contain different locations and disagree by a different amount. However,
+    // counting progress belongs to their combined usable sample in this seat
+    // and voting category. wholeCategory is that sample before the information
+    // split, including targets for locations not yet reported. Pass this same
+    // object for an unsplit observation. Combining the two groups' expected
+    // totals would count the same unreported population twice.
+    double variance(CategoryEvidence const& wholeCategory, double scatterFloor = 0) const {
+        double coverage = wholeCategory.comparisonCoverage();
         // Completion removes uncertainty about unreported locations. FP-derived
         // TPP retains separate conversion error. locationVariance() also retains
         // comparison uncertainty, distinct from whether more votes remain.
@@ -405,30 +483,38 @@ struct CategoryEvidence {
     double sampleCoverage() const {
         return expected > 0 ? std::clamp(reporting.fpVotes / expected, 0., 1.) : 0;
     }
-    double sparseSampleVariance(double locationVariance) const {
+    double sparseSampleVariance(double locationVariance, CategoryEvidence const& wholeCategory) const {
         // Normally a broad sample already has enough precision, and this
         // allowance quickly becomes small. For a handful of completed tiny
         // booths, averaging weights otherwise cancel out and allow their
         // movement to inform an entire district and correlated national swing.
         // Inflate only sampling/location variance, not category contrasts or
-        // conversion uncertainty. Use received votes before the FP discount:
-        // uncertain preferences do not erase the sample's geographic coverage.
+        // conversion uncertainty. Use the combined usable count before quality
+        // discounts or division between source groups: uncertain preferences
+        // do not erase the sample's geographic coverage. For example, dividing
+        // 3,000 received votes equally leaves a 3,000-vote sample for both
+        // groups' sparse multipliers, not two independent 1,500-vote samples.
+        // Whole categories without a usable comparison cannot supply swing
+        // evidence; their counted votes enter the separate direct-vote account.
         if (weight <= 0 || !std::isfinite(locationVariance) || locationVariance < 0)
             throw std::logic_error("Invalid sparse TPP sample.");
-        double ratio = SparseSampleVoteScale * (1 - sampleCoverage())
-            / std::max(1., reporting.fpVotes);
+        double ratio = SparseSampleVoteScale * (1 - wholeCategory.sampleCoverage())
+            / std::max(1., wholeCategory.reporting.fpVotes);
         return locationVariance * ratio * ratio;
     }
-    double locationVariance(double scatterFloor = 0) const {
-        double residual = variance(scatterFloor);
+    double locationVariance(CategoryEvidence const& wholeCategory, double scatterFloor = 0) const {
+        double residual = variance(wholeCategory, scatterFloor);
         // The original sparse-reporting allowance still controls early
         // reactions. A second, non-vanishing comparison floor prevents category
         // completion from making a tiny sample authoritative elsewhere. Reuse
         // the existing 5,000-vote retention scale rather than introducing a new
         // cutoff or election-specific setting. Broad samples release this floor
         // smoothly; effective location count and scatter still set its size.
-        return retainSmallCategoryVariance(residual+sparseSampleVariance(residual),
-            comparisonVariance(scatterFloor),reporting.fpVotes);
+        // This floor also uses the combined physical sample, so splitting its
+        // information cannot make the retention stronger. The group's own
+        // comparison variance still limits what its locations can teach us.
+        return retainSmallCategoryVariance(residual+sparseSampleVariance(residual, wholeCategory),
+            comparisonVariance(scatterFloor),wholeCategory.reporting.fpVotes);
     }
 };
 } // namespace LiveTppIntegration

@@ -493,6 +493,8 @@ inline ObservationBlock observationBlock(std::vector<Observation> rows,
 }
 
 inline void prepareConversionScales(Observation& row) {
+    if (row.unifiedCategory)
+        throw std::logic_error("Unified category retains component conversion scales.");
     // Normally measured TPP has no conversion exposure. FP-derived TPP keeps
     // uncertainty only for unresolved preference ballots; known major-party
     // FPs and reporting-order uncertainty are accounted for elsewhere.
@@ -577,6 +579,222 @@ inline double transform(double percent) {
     return 25*std::log(percent/(100-percent));
 }
 inline double derivative(double percent) { return percent*(100-percent)/2500; }
+
+// A category contributes its received ballots once. Historical comparisons
+// estimate only the ballots whose FP has not arrived; received FP needs only
+// its still-unmeasured preferences. Counts are continuing TPP ballots (so OPV
+// exhaustion has already been handled by the caller), and firstVotes means
+// Labor TPP votes. No historical-quality discount is applied to actual votes.
+struct CategoryVoteAccount {
+    double expected = 0, received = 0, firstVotes = 0;
+    double pending = 0, pendingFirst = 0;
+    double preferencePool = 0, greensPool = 0, independentPool = 0;
+    double remaining = 0, remainingBaselineFirst = 0;
+    double revisionVariance = 0; // Votes squared; existing unreconciled transfer interval.
+
+    void add(double target, double votes, double first, double unresolved,
+        double inferredFirst, double baselinePercent, double poolFraction,
+        double greensFraction, double independentFraction) {
+        if (!std::isfinite(target) || !std::isfinite(votes) || !std::isfinite(first)
+            || !std::isfinite(unresolved) || !std::isfinite(inferredFirst)
+            || !std::isfinite(baselinePercent) || !std::isfinite(poolFraction)
+            || !std::isfinite(greensFraction) || !std::isfinite(independentFraction)
+            || target < 0 || votes < 0 || first < 0 || first > votes
+            || unresolved < 0 || unresolved > votes || inferredFirst < 0
+            || inferredFirst > unresolved || baselinePercent < 0 || baselinePercent > 100
+            || poolFraction < 0 || poolFraction > 1 || greensFraction < 0
+            || independentFraction < 0 || greensFraction+independentFraction > poolFraction+1e-10)
+            throw std::logic_error("Invalid unified category vote account.");
+        // Received counts are the current accepted account. Negative revisions
+        // remain in the existing scenario-count adjustment; they are not
+        // invented here by subtracting received ballots from an expected size.
+        double future = std::max(0., target-votes);
+        expected += votes+future;
+        received += votes;
+        firstVotes += first;
+        pending += unresolved;
+        pendingFirst += inferredFirst;
+        preferencePool += unresolved*poolFraction;
+        greensPool += unresolved*greensFraction;
+        independentPool += unresolved*independentFraction;
+        remaining += future;
+        remainingBaselineFirst += future*baselinePercent/100;
+    }
+
+    double remainingShare(double swing) const {
+        if (remaining <= 0) return 0;
+        return share(transform(100*remainingBaselineFirst/remaining)+swing);
+    }
+    double meanShare(double swing) const {
+        if (expected <= 0) throw std::logic_error("Empty unified category vote account.");
+        return 100*(firstVotes+remaining*remainingShare(swing)/100)/expected;
+    }
+};
+
+// Two sources may have different precision when predicting UNCOUNTED places.
+// Preserve measured TCP information when uncertain FP-only places arrive, but
+// do not let either source extrapolate over already received ballots. Their
+// errors can be correlated. Nonnegative weights keep this a comparison average
+// rather than extrapolating beyond both sources when a covariance is nearly
+// singular; this is a numerical/conservative modelling safeguard, not a fitted
+// election parameter. A source with an additional independent error can never
+// reduce the precision already supplied by the other source.
+inline Vector futureComparisonWeights(Matrix const& covariance) {
+    if (covariance.empty() || covariance.size() > 2)
+        throw std::logic_error("Invalid category comparison count.");
+    for (auto const& row : covariance) {
+        if (row.size() != covariance.size()) throw std::logic_error("Invalid category comparison covariance.");
+        for (double value : row) if (!std::isfinite(value))
+            throw std::logic_error("Invalid category comparison covariance.");
+    }
+    for (std::size_t i = 0; i < covariance.size(); ++i)
+        if (covariance[i][i] < 0) throw std::logic_error("Negative category comparison variance.");
+    if (covariance.size() == 1) return {1};
+    double first = covariance[0][0], second = covariance[1][1];
+    double common = covariance[0][1];
+    if (std::abs(common) > std::sqrt(first*second)+1e-10*std::max({1.,first,second}))
+        throw std::logic_error("Invalid category comparison correlation.");
+    double difference = first+second-2*common;
+    if (difference <= 1e-12*std::max({1.,first,second})) return {.5,.5};
+    double weight = std::clamp((second-common)/difference,0.,1.);
+    return {weight,1-weight};
+}
+
+// Prediction errors shared by the source comparisons must be counted once.
+// Category departures are omitted here: both sources estimate the same voting
+// category, so that common error cannot tell us which is more informative.
+// The whole-seat model adds that departure back once to the unified row.
+inline Matrix futureComparisonCovariance(std::vector<Observation> const& sources,
+    double budgetFraction, Matrix const& transfer, std::size_t orderStart) {
+    if (!std::isfinite(budgetFraction) || budgetFraction <= 0 || budgetFraction > 1)
+        throw std::logic_error("Invalid category conversion budget.");
+    Matrix covariance(sources.size(),Vector(sources.size()));
+    for (std::size_t i = 0; i < sources.size(); ++i) {
+        auto const& a = sources[i];
+        for (std::size_t j = 0; j < sources.size(); ++j) {
+            auto const& b = sources[j];
+            double value = a.greensLocalConversionSd*b.greensLocalConversionSd
+                + a.otherLocalConversionSd*b.otherLocalConversionSd
+                + a.sharedConversionSd*b.sharedConversionSd/budgetFraction;
+            value += a.greensTransferSd*b.greensTransferSd*transfer.at(0).at(0)
+                + a.independentTransferSd*b.independentTransferSd*transfer.at(1).at(1)
+                + (a.greensTransferSd*b.independentTransferSd
+                    + a.independentTransferSd*b.greensTransferSd)*transfer.at(0).at(1);
+            for (std::size_t x = 0; x < ReportingOrderFactors; ++x)
+                for (std::size_t y = 0; y < ReportingOrderFactors; ++y)
+                    value += a.h.at(orderStart+x)*b.h.at(orderStart+y)
+                        * (x == y ? 1 : ReportingOrderCorrelation);
+            if (i == j) value += a.variance;
+            covariance[i][j] = value;
+        }
+    }
+    return covariance;
+}
+
+// Construct the ONE observation supplied by a category to the whole-seat joint
+// update. comparisons describe the precision and swing learned from measured
+// and FP-derived places; covariance includes their shared prediction errors.
+// They predict only votes.remaining. pendingConversion describes the existing
+// preference uncertainty on received FP, expressed per pending ballot before
+// converting it to the final category's scale. Historical quality never changes
+// votes.firstVotes. baselinePercent is the category's pre-count expectation;
+// priorSeat is its seat's pre-count 25*log-odds mean. orderStart identifies the
+// two existing shared reporting-order errors inside each observation's h vector.
+// The returned row retains the existing seat/category relationships, so this
+// changes category evidence, not the final whole-seat drawing/recording path.
+inline Observation unifiedCategoryObservation(CategoryVoteAccount const& votes,
+    std::vector<Observation> const& comparisons, Matrix const& covariance,
+    Observation const& pendingConversion, double priorSeat, double baselinePercent,
+    std::size_t orderStart) {
+    if (comparisons.empty() || covariance.size() != comparisons.size())
+        throw std::logic_error("Missing unified category comparisons.");
+    Vector weights = futureComparisonWeights(covariance);
+    Observation result = comparisons.front();
+    double swing = 0;
+    for (std::size_t i = 0; i < comparisons.size(); ++i)
+        swing += weights[i]*(comparisons[i].value-comparisons[i].h.at(result.seat)*priorSeat);
+    double percent = votes.meanShare(swing);
+    double futurePercent = votes.remainingShare(swing);
+    double jacobian = conversionShareJacobian(percent);
+    // A transformed swing changes only the remaining allocation. Its derivative
+    // accounts for both that population fraction and the different partisan lean
+    // of the remaining places. At completion this sensitivity is exactly zero.
+    double futureScale = votes.remaining/votes.expected
+        * derivative(futurePercent)*jacobian;
+    double pendingScale = votes.pending/votes.expected
+        * jacobian/pendingConversion.conversionJacobian;
+    result.value = result.h.at(result.seat)*priorSeat+transform(percent)-transform(baselinePercent);
+    result.unifiedCategory = true;
+    result.receivedVotes = votes.received;
+    result.receivedFirstVotes = votes.firstVotes;
+    result.pendingPreferenceVotes = votes.pending;
+    result.remainingVotes = votes.remaining;
+    result.categoryEstimate = percent;
+    result.remainingEstimate = futurePercent;
+    result.measuredFutureWeight = 0;
+    result.inferredFutureWeight = 0;
+    result.inferredFraction = votes.pending/votes.expected;
+    result.unresolvedPreferenceFraction = votes.preferencePool/votes.expected;
+    result.greensPreferenceFraction = votes.greensPool/votes.expected;
+    result.independentPreferenceFraction = votes.independentPool/votes.expected;
+    result.conversionJacobian = jacobian;
+    result.conversionVariance = 0;
+    result.greensLocalConversionSd = pendingScale*pendingConversion.greensLocalConversionSd;
+    result.otherLocalConversionSd = pendingScale*pendingConversion.otherLocalConversionSd;
+    result.sharedConversionSd = pendingScale*pendingConversion.sharedConversionSd;
+    result.greensTransferSd = pendingScale*pendingConversion.greensTransferSd;
+    result.independentTransferSd = pendingScale*pendingConversion.independentTransferSd;
+    result.comparisonWeight = 0;
+    result.sampleVotes = votes.received;
+    result.sampleCoverage = votes.received/votes.expected;
+    result.sparseSampleVariance = 0;
+    result.comparisonVariance = 0;
+    result.comparisonVarianceFloor = 0;
+    result.retainedComparisonVariance = 0;
+    result.compensationReportingOrderSd = 0;
+    for (std::size_t j = 0; j < ReportingOrderFactors; ++j) result.h.at(orderStart+j) = 0;
+    result.variance = 0;
+    for (std::size_t i = 0; i < comparisons.size(); ++i) {
+        auto const& source = comparisons[i];
+        double scale = futureScale*weights[i];
+        result.variance += scale*scale*source.variance;
+        result.sparseSampleVariance += scale*scale*source.sparseSampleVariance;
+        result.comparisonVariance += weights[i]*weights[i]*source.comparisonVariance;
+        result.comparisonVarianceFloor += weights[i]*weights[i]*source.comparisonVarianceFloor;
+        result.comparisonWeight += source.comparisonWeight;
+        result.greensLocalConversionSd += scale*source.greensLocalConversionSd;
+        result.otherLocalConversionSd += scale*source.otherLocalConversionSd;
+        result.sharedConversionSd += scale*source.sharedConversionSd;
+        result.greensTransferSd += scale*source.greensTransferSd;
+        result.independentTransferSd += scale*source.independentTransferSd;
+        for (std::size_t j = 0; j < ReportingOrderFactors; ++j)
+            result.h.at(orderStart+j) += scale*source.h.at(orderStart+j);
+        if (source.fpDerivedGroup) result.inferredFutureWeight += weights[i];
+        else result.measuredFutureWeight += weights[i];
+    }
+    result.localConversionSd = std::hypot(result.greensLocalConversionSd,result.otherLocalConversionSd);
+    // A corrected FP vector can leave an older TCP's transfer allocation
+    // unresolved. Retain its existing batch-sized allowance separately from
+    // normal preference conversion; it need not shrink like independent votes.
+    double countToTransformed = 100*jacobian/votes.expected;
+    result.variance += votes.revisionVariance*countToTransformed*countToTransformed;
+    result.unfadedLocationVariance = result.variance;
+    // A small complete category is precisely counted but can still be weak
+    // evidence for the wider district/election. Retain the existing volume-
+    // based COMPARISON floor for that transfer (e.g. one remote/mobile place).
+    // It does not change the received category mean or invent missing ballots.
+    // Larger categories release this floor on the existing 5,000-vote scale.
+    double retained = std::max(result.variance,result.comparisonVarianceFloor);
+    result.retainedComparisonVariance = retained-result.variance;
+    result.variance = retained;
+    // The existing matrix solver requires strictly positive residual variance,
+    // even when all ballots are measured and category errors cancel exactly.
+    // This numerical allowance is SD 0.0001 share points near 50:50, not a
+    // modelling allowance for additional votes. Explicit final counts still
+    // override the simulation exactly through their established path.
+    result.variance = std::max(result.variance,1e-8);
+    return result;
+}
 
 inline double observedShare(CategoryEvidence const& evidence) {
     // Compare like locations on the count scale, then carry their bounded

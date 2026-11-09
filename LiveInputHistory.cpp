@@ -5,8 +5,9 @@
 //
 // Recording each changed field with its observation time avoids repeatedly
 // reading every full snapshot. Histories are stored by district and reconstructed
-// when requested. The accepted snapshot files remain the authoritative source:
-// this index can be rebuilt from them if it is missing or damaged.
+// when requested. Production uses a durable change-history-v1 store; full JSON
+// snapshots are legacy import material only. The older derived index reader is
+// retained for migration and independent equivalence tests, not routine recovery.
 #include "LiveInputHistory.h"
 #include <algorithm>
 #include <chrono>
@@ -35,6 +36,8 @@ using Path = std::filesystem::path;
 using Value = std::optional<std::string>; // Absent field differs from JSON null.
 constexpr int FormatVersion = 1;
 char const* IndexDirectory = "change-index-v1";
+char const* AcceptedDirectory = "change-history-v1";
+char const* AuthorityMarker = "accepted-history-format";
 Statistics counters;
 std::size_t memoryBudget = 16 * 1024 * 1024;
 std::mutex indexMutex;
@@ -278,18 +281,25 @@ struct CachedPartition {
 // files; they never expose a mixture of old and new district histories.
 class Store {
 public:
-    explicit Store(Path root) : folder(std::move(root)), directory(folder / IndexDirectory) {}
+    explicit Store(Path root, bool accepted = false) : folder(std::move(root)),
+        directory(folder / (accepted ? AcceptedDirectory : IndexDirectory)), authoritative(accepted) {}
     ~Store() { discardUnpublished(); }
     Path folder, directory;
     json manifest;
     std::optional<json> manifestRevision;
     std::list<CachedPartition> cache;
     std::vector<Path> unpublishedFiles;
+    bool authoritative;
 
     void refresh(std::string const& cutoff, Validate const& validate, std::string const& force = {});
     void build(std::map<std::string, json> const& sources, Validate const& validate);
     void ingest(std::map<std::string, json> const& sources, Validate const& validate, bool append);
-    void update(std::string const& source, std::optional<json> const& stamp, Validate const& validate);
+    void update(std::string const& source, std::optional<json> const& stamp, Validate const& validate,
+        json const* supplied = nullptr);
+    void refreshAccepted(std::string const& cutoff, Validate const& validate);
+    void adopt(std::string const& cutoff, Validate const& validate);
+    void accept(std::string const& source, json const& data, Validate const& validate);
+    void visitDistricts(std::string const& cutoff, Selection const& selection, DistrictVisitor const& visitor);
     void prepare(Selection const& selection, std::string const& cutoff);
     void visit(std::string const& cutoff, Selection const& selection, Visitor const& visitor, RequiredCount required);
     void visitFirstPreferenceRuns(std::string const& cutoff, Selection const& selection,
@@ -353,6 +363,17 @@ json Store::savePartition(std::string const& id, std::string const& district, Pa
 }
 
 void Store::publish(json next) {
+    if (next.contains("legacy_sources")) {
+        // A migrated capture no longer depends on its old complete file. Keep
+        // only deferred imports, so an empty map explicitly means the authority
+        // is self-contained even if every legacy snapshot/index is later removed.
+        std::vector<std::string> imported;
+        for (auto const& item : next.at("legacy_sources").items())
+            if (next.at("sources").contains(item.key()) &&
+                next.at("sources").at(item.key()).at("revision") == item.value())
+                imported.push_back(item.key());
+        for (auto const& source : imported) next["legacy_sources"].erase(source);
+    }
     next["generation"] = generation();
     auto temporary = directory / "manifest.tmp";
     writeText(temporary, json{{"payload", next}, {"hash", hashText(next.dump())}}.dump());
@@ -364,8 +385,9 @@ void Store::publish(json next) {
     manifest = std::move(next);
     manifestRevision = revision(directory / "manifest.json");
     clearPartitions();
-    // Only derived, recognizably named index files are eligible for cleanup. The
-    // source directory and its accepted-count JSON files are never modified here.
+    // Remove only recognizably named, superseded partition generations and
+    // temporary work files. Never remove the manifest's accepted data, or the
+    // legacy complete snapshots in the parent directory.
     std::set<std::string> keep;
     for (auto const& item : manifest.at("partitions").items()) keep.insert(item.value().at("file").get<std::string>());
     for (auto const& entry : std::filesystem::directory_iterator(directory)) {
@@ -449,6 +471,7 @@ void Store::ingest(std::map<std::string, json> const& sources, Validate const& v
         auto data = json::parse(readText(folder / (source + ".json")));
         validate(data);
         next["sources"][source] = sourceInfo(source, stamp, data, next, districtHashes(data));
+        if (next.contains("legacy_sources")) next["legacy_sources"].erase(source);
         std::set<std::pair<std::string, std::string>> present;
         for (auto row : data.at("records")) {
             std::string district = row.at("d"), key = row.at("k");
@@ -531,13 +554,17 @@ std::shared_ptr<Partition const> Store::partition(std::string const& id, std::st
     return data;
 }
 
-void Store::update(std::string const& source, std::optional<json> const& stamp, Validate const& validate) {
+void Store::update(std::string const& source, std::optional<json> const& stamp, Validate const& validate,
+    json const* supplied) {
     json data, next = manifest;
     json hashes = json::object();
     std::map<std::string, std::map<std::string, json>> rows;
     if (stamp) {
-        ++counters.sourceReads;
-        data = json::parse(readText(folder / (source + ".json")));
+        if (supplied) data = *supplied;
+        else {
+            ++counters.sourceReads;
+            data = json::parse(readText(folder / (source + ".json")));
+        }
         validate(data);
         hashes = districtHashes(data);
         for (auto row : data.at("records")) {
@@ -593,6 +620,7 @@ void Store::update(std::string const& source, std::optional<json> const& stamp, 
     }
     if (stamp) next["sources"][source] = sourceInfo(source, *stamp, data, next, hashes);
     else next["sources"].erase(source);
+    if (next.contains("legacy_sources")) next["legacy_sources"].erase(source);
     publish(std::move(next));
 }
 
@@ -648,6 +676,167 @@ void Store::refresh(std::string const& cutoff, Validate const& validate, std::st
     }
     else if (!appended.empty())
         update(appended.begin()->first, appended.begin()->second, validate);
+}
+
+json checkedManifest(Path const& path, bool authoritative) {
+    auto envelope = json::parse(readText(path));
+    auto value = envelope.at("payload");
+    if (value.at("version") != FormatVersion || hashText(value.dump()) != envelope.at("hash") ||
+        !value.at("sources").is_object() || !value.at("partitions").is_object() ||
+        !value.at("orders").is_object() || (authoritative && !value.value("authoritative",false)))
+        throw Unavailable("Unsupported or damaged accepted change history: " + path.string());
+    for (auto const& item : value.at("sources").items())
+        if (item.value().at("source") != item.key() ||
+            !value.at("orders").contains(item.value().at("order").get<std::string>()) ||
+            !item.value().at("district_hashes").is_object())
+            throw Unavailable("Incomplete accepted history source inventory.");
+    return value;
+}
+
+void Store::adopt(std::string const& cutoff, Validate const& validate) {
+    // Import once, per election, without rewriting its multi-gigabyte full
+    // snapshots. A valid legacy change index already contains every field and
+    // source clock. Copy its immutable compact partitions into a distinct
+    // authoritative directory, protected from older builds' cache maintenance.
+    // Original files are deliberately left untouched for later checkpoint cleanup.
+    Store legacy(folder);
+    FileLock legacyLock(legacy.directory);
+    auto allLegacy = inventory(folder,"~");
+    auto legacyManifest = legacy.directory/"manifest.json";
+    if (std::filesystem::exists(legacyManifest)) {
+        legacy.manifest = checkedManifest(legacyManifest,false);
+        legacy.manifestRevision = revision(legacyManifest);
+        // A previous failed cache update may have left one or more full sources
+        // unindexed. Import those before this replay's cutoff once. Missing old
+        // files do NOT delete accepted observations already in the compact data.
+        for (auto const& [source,stamp] : allLegacy) {
+            if (source >= cutoff) continue;
+            if (!legacy.manifest.at("sources").contains(source) ||
+                legacy.manifest.at("sources").at(source).at("revision") != stamp)
+                legacy.update(source,std::optional<json>(stamp),validate);
+        }
+    }
+    else {
+        legacy.build(inventory(folder,cutoff),validate);
+    }
+    auto next = legacy.manifest;
+    next["authoritative"] = true;
+    // If no older index existed, later full captures have not yet been imported.
+    // Remember their identities now; normal reads thereafter do not rescan the
+    // legacy directory. A later replay imports only the still-missing earlier
+    // captures, and never interprets removal of legacy files as lost history.
+    next["legacy_sources"] = allLegacy;
+    for (auto& item : next["partitions"].items()) {
+        auto const& info = legacy.manifest.at("partitions").at(item.key());
+        auto text = readText(legacy.directory/info.at("file").get<std::string>());
+        if (hashText(text) != info.at("hash"))
+            throw Unavailable("Cannot adopt a damaged legacy history partition; full sources were not modified.");
+        decodePartition(text); // Check structure before making this durable evidence.
+        auto name = "part-"+generation()+"-"+item.key()+".json";
+        unpublishedFiles.push_back(directory/name);
+        writeText(directory/name,text);
+        item.value()["file"] = name;
+    }
+    publish(std::move(next));
+    ++counters.adoptions;
+}
+
+void Store::refreshAccepted(std::string const& cutoff, Validate const& validate) {
+    auto path = directory/"manifest.json";
+    if (!std::filesystem::exists(path)) {
+        // Once this instance has opened an authority, its disappearance is not
+        // permission to reconstruct a potentially stale version from old files.
+        if (manifestRevision || std::filesystem::exists(folder/AuthorityMarker))
+            throw Unavailable("Authoritative accepted history is missing; refusing a stale legacy fallback.");
+        adopt(cutoff,validate);
+    }
+    auto stamp = revision(path);
+    if (!manifestRevision || *manifestRevision != stamp) {
+        manifest = checkedManifest(path,true);
+        manifestRevision = std::move(stamp);
+        clearPartitions();
+    }
+    if (!std::filesystem::exists(folder/AuthorityMarker)) {
+        auto temporary=folder/(std::string(AuthorityMarker)+".tmp");
+        writeText(temporary,std::string(AcceptedDirectory)+"\n");
+        replaceFile(temporary,folder/AuthorityMarker);
+    }
+    std::map<std::string,json> imports;
+    if (manifest.contains("legacy_sources")) for (auto const& item : manifest.at("legacy_sources").items()) {
+        if (item.key() < cutoff) {
+            auto file = folder/(item.key()+".json");
+            if (!std::filesystem::exists(file))
+                throw Unavailable("Legacy accepted source was removed before its one-off import: "+file.string());
+            imports.emplace(item.key(),revision(file));
+        }
+    }
+    // Retain the existing bulk catch-up path for a replay jumping over many
+    // legacy captures. Middle insertions preserve the next accepted state.
+    std::map<std::string,json> append;
+    std::string last;
+    if (!manifest.at("sources").empty()) last=manifest.at("sources").get_ref<json::object_t const&>().rbegin()->first;
+    for (auto const& [source,sourceStamp] : imports) {
+        if (source > last) append.emplace(source,sourceStamp);
+        else update(source,std::optional<json>(sourceStamp),validate);
+    }
+    if (append.size() > 1) { ++counters.appendBatches;ingest(append,validate,true); }
+    else if (!append.empty()) update(append.begin()->first,std::optional<json>(append.begin()->second),validate);
+}
+
+void Store::accept(std::string const& source, json const& data, Validate const& validate) {
+    validate(data);
+    auto hashes = districtHashes(data);
+    json metadata = json::object();
+    for (auto const& item : data.items()) if (item.key() != "records") metadata[item.key()] = item.value();
+    auto order = json::array();
+    for (auto const& record : data.at("records")) order.push_back(record.at("k"));
+    if (manifest.at("sources").contains(source)) {
+        auto const& old = manifest.at("sources").at(source);
+        if (old.at("metadata") == metadata && old.at("district_hashes") == hashes &&
+            manifest.at("orders").at(old.at("order").get<std::string>()) == order) {
+            // A legacy file can have a different filesystem stamp but identical
+            // accepted contents. The supplied state completes that deferred
+            // import without needing to read its full file.
+            if (manifest.contains("legacy_sources") && manifest.at("legacy_sources").contains(source)) {
+                auto next = manifest;
+                next["legacy_sources"].erase(source);
+                publish(std::move(next));
+            }
+            ++counters.unchangedCommits;
+            return; // No partition read, manifest publication or full-file rewrite.
+        }
+    }
+    // Compare all accepted fields, not only the feed fingerprint. Corrected
+    // recovery rules can change the effective state of the same raw capture.
+    update(source,std::optional<json>(json{{"accepted",hashText(data.dump())}}),validate,&data);
+    ++counters.acceptedCommits;
+}
+
+void Store::visitDistricts(std::string const& cutoff, Selection const& selection,
+    DistrictVisitor const& visitor) {
+    for (auto const& [district,keys] : selection) {
+        auto history = partition(hashText(district),cutoff);
+        for (auto source=manifest.at("sources").rbegin();source!=manifest.at("sources").rend();++source) {
+            if (source.key() >= cutoff) continue;
+            auto const& metadata = source.value().at("metadata");
+            if (!metadata.at("districts").contains(district)) continue;
+            auto snapshot = metadata;
+            snapshot["districts"] = json{{district,metadata.at("districts").at(district)}};
+            snapshot["records"] = json::array();
+            // Preserve original within-source ordering. Whole-district recovery
+            // sees one coherent timestamp, never a mixture of latest field dates.
+            auto const& order=manifest.at("orders").at(source.value().at("order").get<std::string>());
+            for (auto const& keyValue : order) {
+                auto key=keyValue.get<std::string>();
+                if (!keys.contains(key)) continue;
+                auto found=history->find(key);
+                if (found==history->end()) continue;
+                auto record=reconstruct(found->second,source.key(),metadata.at("source_time"));
+                if (!record.is_null()) snapshot["records"].push_back(std::move(record));
+            }
+            if (!visitor(source.key(),snapshot)) break;
+        }
+    }
 }
 
 void Store::prepare(Selection const& selection, std::string const& cutoff) {
@@ -753,17 +942,67 @@ void Store::visitFirstPreferenceRuns(std::string const& cutoff, Selection const&
     }
 }
 
-Store& storeFor(Path const& folder) {
+Store& storeFor(Path const& folder, bool authoritative = false) {
     // Lexical normalization does not require traversing protected ancestor
     // directories (which can fail in sandboxed Windows runs). Alias paths may
     // cost a cache reload, but the directory's OS lock still guards publication.
     auto canonical = std::filesystem::absolute(folder).lexically_normal();
-    if (!currentStore || currentStore->folder != canonical) {
-        currentStore = std::make_unique<Store>(canonical);
+    if (!currentStore || currentStore->folder != canonical || currentStore->authoritative != authoritative) {
+        currentStore = std::make_unique<Store>(canonical,authoritative);
         counters.retainedBytes = 0;
     }
     return *currentStore;
 }
+
+template<class Work>
+void withAcceptedStore(Path const& folder, std::string const& cutoff,
+    Validate const& validate, Work work) {
+    std::lock_guard lock(indexMutex);
+    try {
+        auto& store=storeFor(folder,true);
+        FileLock fileLock(store.directory);
+        store.refreshAccepted(cutoff,validate);
+        // Authoritative errors propagate to preparation; there is no partial
+        // selection followed by a stale legacy fallback. Districts can therefore
+        // be read/validated once instead of a second full prevalidation traversal.
+        work(store);
+    } catch (std::exception const& error) {
+        currentStore.reset();counters.retainedBytes=0;counters.lastFailure=error.what();
+        throw Unavailable(std::string("Accepted change history: ")+error.what());
+    }
+}
+}
+
+bool hasAcceptedHistory(Path const& folder) {
+    return std::filesystem::exists(folder/AuthorityMarker) ||
+        std::filesystem::exists(folder/AcceptedDirectory/"manifest.json");
+}
+
+void accept(Path const& folder, std::string const& source, json const& data, Validate const& validate) {
+    withAcceptedStore(folder,source,validate,[&](Store& store) { store.accept(source,data,validate); });
+}
+
+void eraseAccepted(Path const& folder, std::string const& source, Validate const& validate) {
+    // Do not first import the capture being removed: an explicit repair must
+    // also be able to discard a deferred legacy source whose file is missing.
+    withAcceptedStore(folder,source,validate,[&](Store& store) { store.update(source,{},validate); });
+}
+
+void visitAcceptedDistricts(Path const& folder, std::string const& cutoff, Selection const& selection,
+    Validate const& validate, DistrictVisitor const& visitor) {
+    withAcceptedStore(folder,cutoff,validate,[&](Store& store) { store.visitDistricts(cutoff,selection,visitor); });
+}
+
+void visitAcceptedEarlier(Path const& folder, std::string const& cutoff, Selection const& selection,
+    Validate const& validate, Visitor const& visitor, RequiredCount required) {
+    withAcceptedStore(folder,cutoff,validate,[&](Store& store) { store.visit(cutoff,selection,visitor,required); });
+}
+
+void visitAcceptedFirstPreferenceRuns(Path const& folder, std::string const& cutoff,
+    Selection const& selection, Validate const& validate, FirstPreferenceRunVisitor const& visitor) {
+    withAcceptedStore(folder,cutoff,validate,[&](Store& store) {
+        store.visitFirstPreferenceRuns(cutoff,selection,visitor);
+    });
 }
 
 void visitEarlier(Path const& folder, std::string const& cutoff, Selection const& selection,

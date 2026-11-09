@@ -832,9 +832,15 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   getNatPartyIndex();
   loadEstimatedPreferenceFlows();
   initializePartyMappings(previousElection, currentElection);
-  createNodesFromElectionData(previousElection, currentElection);
+  // Both complete historical categories and matched booths need the same
+  // previous-election preference information. Read it once before constructing
+  // either account; this local preparation input is not retained by scenarios.
+  auto partyFlowHistory = readPartyConversionHistory(previousElection,currentElection);
+  auto notionalHistory = readNotionalPreferenceHistory(previousElection,currentElection);
+  createNodesFromElectionData(previousElection, currentElection, partyFlowHistory, notionalHistory);
   prepareTcpBases(previousElection,currentElection,preferenceHistory);
-  preparePartyConversionPriors(previousElection, currentElection);
+  preparePartyConversionPriors(partyFlowHistory, previousElection, currentElection);
+  prepareNotionalPreferenceOffsets(partyFlowHistory);
   calculateTppEstimates(true); // This is done now so that we can observe deviations from preference flows
   aggregate(); // preliminary, for calculating preference flow and seat fp totals
   calculatePreferenceFlowDeviations();
@@ -976,7 +982,9 @@ void Election::initializePartyMappings(
 
 void Election::createNodesFromElectionData(
   Results2::Election const& previousElection,
-  Results2::Election const& currentElection) {
+  Results2::Election const& currentElection,
+  LivePartyConversion::History const& history,
+  LiveHistoricalPreferences::History const& notionalHistory) {
   for (auto const& [regionId, region] : project.regions()) {
     largeRegions.push_back(LargeRegion(region));
   }
@@ -1040,6 +1048,16 @@ void Election::createNodesFromElectionData(
       preparationBooths().back().previousPreferenceSeat = previousSeatName;
       preparationBooths().back().syntheticPreviousCategory = previousBoothPtr && (*previousBoothPtr)->syntheticBaseline;
       preparationBooths().back().incrementalFp = currentBooth.incrementalFp;
+      if (previousBoothPtr && !(*previousBoothPtr)->syntheticBaseline) {
+        // Match commission candidate counts BEFORE modelling-party grouping.
+        // Equal totals alone cannot distinguish a revised or reconstructed FP
+        // account. Do not replace the old TCP: it still describes its real pair.
+        auto const& old = **previousBoothPtr;
+        LivePartialCount::Counts raw(old.fpVotes.begin(),old.fpVotes.end());
+        auto record = notionalHistory.find(previousSeatName,"booth",old.id,raw);
+        if (record) preparationBooths().back().notionalTppPrevious = LiveHistoricalPreferences::mappedTpp(
+          *record,preparationBooths().back().node.fpVotesPrevious,natPartyIndex);
+      }
       // A reconstructed composition is useful but is not a new observed
       // historical sample. Quarter weight is a conservative working safeguard
       // for swing pooling, not a fitted WA coefficient. Absolute current votes
@@ -1081,7 +1099,8 @@ void Election::createNodesFromElectionData(
         break;
       }
     }
-    if (previousSeatPtr) prepareCategoryHistory(seatIndex, **previousSeatPtr, previousElection, currentElection);
+    if (previousSeatPtr)
+      prepareCategoryHistory(seatIndex, **previousSeatPtr, previousElection, currentElection, history, notionalHistory);
     std::set<Results2::VoteType> declarationVoteTypes;
     for (auto const& [candidateId, votesByType] : seat.fpVotes) {
       for (auto const& [voteType, votes] : votesByType) {
@@ -1119,6 +1138,16 @@ void Election::createNodesFromElectionData(
       if (previousSeatPtr) {
         preparationBooths().back().previousPreferenceSeat = (*previousSeatPtr)->name;
         preparationBooths().back().syntheticPreviousCategory = (*previousSeatPtr)->syntheticBaselineTypes.contains(voteType);
+        if (!preparationBooths().back().syntheticPreviousCategory) {
+          LivePartialCount::Counts raw;
+          for (auto const& [candidate,types] : (*previousSeatPtr)->fpVotes) {
+            auto found = types.find(voteType);
+            if (found != types.end()) raw[candidate] = found->second;
+          }
+          auto record = notionalHistory.find((*previousSeatPtr)->name,"declaration",int(voteType),raw);
+          if (record) preparationBooths().back().notionalTppPrevious = LiveHistoricalPreferences::mappedTpp(
+            *record,preparationBooths().back().node.fpVotesPrevious,natPartyIndex);
+        }
         if (run.regionCode == "wa" && preparationBooths().back().syntheticPreviousCategory)
           preparationBooths().back().node.relevanceModifier *= .25;
       }
@@ -1148,41 +1177,93 @@ std::vector<Node const*> Election::getThisAndParents(T& child) const {
   return parents;
 }
 
-void Election::preparePartyConversionPriors(Results2::Election const& previousElection,
-  Results2::Election const& currentElection) {
+LiveHistoricalPreferences::History Election::readNotionalPreferenceHistory(
+  Results2::Election const& previousElection, Results2::Election const& currentElection) const {
+  if (optionalPreferential) return {}; // Continuing-vote/exhaustion populations need a separate treatment.
+  std::ifstream input("analysis/Data/historical-notional-tpp.csv");
+  if (!input) return {}; // Optional additional coverage; ordinary historical TCP remains available.
+  return LiveHistoricalPreferences::readHistory(input,previousElection.termCode,currentElection.termCode);
+}
+
+LivePartialCount::Counts const& Election::historicalTppCounts(Booth const& booth) const {
+  // The existing real TCP comparison wins. Independent notional TPP fills
+  // only its missing Labor/Coalition account; it never changes that old TCP's
+  // finalist identities or becomes evidence of a current-election count.
+  if (booth.notionalPreferenceOffset) return booth.notionalTppPrevious;
+  return booth.node.tcpVotesPrevious;
+}
+
+void Election::prepareNotionalPreferenceOffsets(LivePartyConversion::History const& history) {
+  // Historical party priors have already been attached. Fit only their residual
+  // against the additional count, once per matched reporting unit. The usual
+  // historical TCP keeps its pooled arithmetic and takes precedence below.
+  for (auto& booth : preparationBooths()) {
+    booth.notionalPreferenceOffset.reset();
+    if (booth.notionalTppPrevious.empty()) continue;
+    if (preferenceRateOffset(booth,false)) {
+      // The established comparison is already usable. Do not add another
+      // correction, or change its arithmetic, merely because a duplicate old
+      // count happens to be available through the additional source.
+      booth.notionalTppPrevious.clear();
+      continue;
+    }
+    int coalition = booth.notionalTppPrevious.contains(natPartyIndex) ? natPartyIndex : 1;
+    auto rates = LivePartyConversion::notionalCalibrationFlows(
+      classicPreferenceFlows(booth,coalition,true),history,booth.previousPreferenceSeat,run.grnPartyIndex);
+    booth.notionalPreferenceOffset = LiveHistoricalPreferences::fitOffset(
+      booth.node.fpVotesPrevious,booth.notionalTppPrevious,rates,0,coalition);
+    if (!booth.notionalPreferenceOffset) booth.notionalTppPrevious.clear();
+  }
+}
+
+LivePartyConversion::History Election::readPartyConversionHistory(Results2::Election const& previousElection,
+  Results2::Election const& currentElection) const {
   // Historical candidate destinations are available for some compulsory-
   // preferential elections. Unsupported systems keep the existing conversion;
   // optional exhaustion needs its own denominator and is not fitted here.
-  if (optionalPreferential) return;
+  if (optionalPreferential) return {};
   std::ifstream input("analysis/Data/historical-party-tpp-flows.csv");
   if (!input) throw std::runtime_error("Cannot open historical party TPP flows.");
-  auto history = LivePartyConversion::readHistory(input, previousElection.termCode, currentElection.termCode);
+  return LivePartyConversion::readHistory(input, previousElection.termCode, currentElection.termCode);
+}
+
+void Election::preparePartyConversionPriors(LivePartyConversion::History const& history,
+  Results2::Election const& previousElection, Results2::Election const& currentElection) {
   if (history.records.empty()) return;
   prepareHistoricalBoothFlows(history, previousElection);
   prepareDistrictPartyFlows(history, currentElection);
 }
 
+LivePartialCount::Flows Election::historicalPartyPreferenceFlows(LivePartyConversion::History const& history,
+  std::string const& previousSeatName, LivePartialCount::Counts const& primaries,
+  Results2::Election const& previousElection) const {
+  // Select only the historical party-specific rates actually available. Both
+  // matched locations and aggregate categories use the source district's name,
+  // so renamed/transferred booths do not acquire another district's history.
+  // Independent IDs are decoded through the historical candidate roster; the
+  // complete normalised name must match before that rate can be used.
+  LivePartialCount::Flows flows;
+  auto green = LivePartyConversion::historicalFlow(history,previousSeatName,"GRN");
+  if (green) flows[run.grnPartyIndex] = *green;
+  for (auto const& [party, votes] : primaries) {
+    if (party < IndependentPartyIdOffset) continue;
+    auto candidate = previousElection.candidates.find(party-IndependentPartyIdOffset);
+    if (candidate == previousElection.candidates.end()) continue;
+    auto flow = LivePartyConversion::historicalFlow(history,previousSeatName,"IND",
+      LivePartyConversion::candidateKey(candidate->second.name));
+    if (flow) flows[party] = *flow;
+  }
+  return flows;
+}
+
 void Election::prepareHistoricalBoothFlows(LivePartyConversion::History const& history,
   Results2::Election const& previousElection) {
-  // Re-express old booth residuals against the party-flow rule used for current
-  // conversion, avoiding a second addition of the Greens district effect.
-  // Keep the original historical residual here even when its forward reuse is
-  // discounted: an exceptional old campaign still belongs to the old account.
-  // Observed old TPP itself remains unchanged.
-  for (auto& booth : preparationBooths()) {
-    if (auto green = history.find(booth.previousPreferenceSeat, "GRN"); green && history.hasGreens)
-      booth.previousPartyPreferenceFlows[run.grnPartyIndex] = LivePartyConversion::greensFlow(
-        LivePartyConversion::logistic(history.greensLevel), green->strength(),
-        history.greensResidual(*green), history);
-    for (auto const& [party, votes] : booth.node.fpVotesPrevious) {
-      if (party < IndependentPartyIdOffset) continue;
-      auto candidate = previousElection.candidates.find(party-IndependentPartyIdOffset);
-      if (candidate == previousElection.candidates.end()) continue;
-      auto row = history.find(booth.previousPreferenceSeat, "IND",
-        LivePartyConversion::candidateKey(candidate->second.name));
-      if (row) booth.previousPartyPreferenceFlows[party] = LivePartyConversion::logistic(row->flow());
-    }
-  }
+  // Re-express old booth residuals against the shared historical party rule,
+  // avoiding a second addition of the Greens district effect. A measured old
+  // TPP remains unchanged; these priors estimate only missing old preferences.
+  for (auto& booth : preparationBooths())
+    booth.previousPartyPreferenceFlows = historicalPartyPreferenceFlows(history,
+      booth.previousPreferenceSeat,booth.node.fpVotesPrevious,previousElection);
 }
 
 double Election::districtGreensStrength(Seat const& seat, int party) const {
@@ -1295,17 +1376,31 @@ std::optional<double> Election::preferenceRateOffset(Booth const& booth, bool cu
   auto const& fp = current ? (booth.hasTcpRevision() ? booth.tcpBasis->fp : booth.node.fpVotesCurrent)
     : booth.node.fpVotesPrevious;
   auto const& tcp = current ? booth.node.tcpVotesCurrent : booth.node.tcpVotesPrevious;
-  if (!isTppSet(tcp,natPartyIndex)) return {};
+  if (!isTppSet(tcp,natPartyIndex)) {
+    if (!current && booth.notionalPreferenceOffset) return *booth.notionalPreferenceOffset*25;
+    return {};
+  }
   int coalition = tcp.contains(natPartyIndex) ? natPartyIndex : 1;
+  if (current && booth.notionalPreferenceOffset) {
+    // Movement must compare like calculations. Against a newly fitted exact
+    // historical mixture, use that same mixture calculation for its current
+    // measured counterpart. Subtracting the old exact fit from today's pooled
+    // approximation could otherwise manufacture movement even from identical
+    // FP/TPP counts. Existing historical TCP comparisons retain their old path.
+    auto offset = LiveHistoricalPreferences::fitOffset(fp,tcp,classicPreferenceFlows(booth,coalition),0,coalition);
+    return offset ? std::optional<double>(*offset*25) : std::nullopt;
+  }
   auto evidence = LivePartialCount::measure(fp,tcp,classicPreferenceFlows(booth,coalition,!current),0,coalition);
   if (evidence) return double(evidence->offset*25);
-  return !current && booth.node.totalVotesPrevious() > 0 &&
-    LivePartialCount::total(fp)-LivePartialCount::value(fp,0)-LivePartialCount::value(fp,coalition) == 0
-    ? std::optional<double>(0) : std::nullopt;
+  if (!current && booth.node.totalVotesPrevious() > 0 &&
+    LivePartialCount::total(fp)-LivePartialCount::value(fp,0)-LivePartialCount::value(fp,coalition) == 0)
+    return 0;
+  if (!current && booth.notionalPreferenceOffset) return *booth.notionalPreferenceOffset*25;
+  return {};
 }
 
 std::optional<LivePartialCount::PreferenceTransfer> Election::historicalPreferenceTransfer(Booth const& booth) const {
-  auto const& tcp = booth.node.tcpVotesPrevious;
+  auto const& tcp = historicalTppCounts(booth);
   if (!isTppSet(tcp,natPartyIndex)) return {};
   int coalition = tcp.contains(natPartyIndex) ? natPartyIndex : 1;
   return LivePartialCount::measureTransfer(booth.node.fpVotesPrevious,tcp,0,coalition);
@@ -1377,8 +1472,8 @@ void Election::recordLimitedHistoricalPreferenceIssue(Booth const& booth,
     << reliability*100 << "% of this comparison's extrapolation weight.\n"
     << "Previous FP: " << describePreferenceCounts(booth.node.fpVotesPrevious)
     << " (total " << booth.node.totalVotesPrevious() << ").\n"
-    << "Previous TCP: " << describePreferenceCounts(booth.node.tcpVotesPrevious)
-    << " (total " << booth.node.totalTcpVotesPrevious() << ").";
+    << "Previous Labor/Coalition count: " << describePreferenceCounts(historicalTppCounts(booth))
+    << " (total " << LivePartialCount::total(historicalTppCounts(booth)) << ").";
   run.inputIssues.add({"historical_preference_limited",seat.name+"/"+role+"/"+booth.name,
     seat.name,booth.name,explanation.str(),
     "Check the historical FP/TCP counts if available. Their extrapolation evidence has been discounted; counted TCP is retained.",
@@ -1542,6 +1637,15 @@ void Election::preparePreferenceCohort(Booth& booth, Results2::Election const& p
   auto flows = pairPreferenceFlows(booth,first,second);
   if (std::any_of(fp.begin(),fp.end(),[&](auto const& row) { return !flows.contains(row.first); })) return;
   booth.preferenceEvidence = LivePartialCount::measure(fp,tcp,flows,first,second,history.matchingCurrentTcp.has_value());
+  if (booth.notionalPreferenceOffset && booth.preferenceEvidence && first == 0
+    && (second == 1 || second == natPartyIndex)) {
+    // On the added historical path an aligned current cohort must use the same
+    // mixture calculation as current preference movement. Otherwise a precise
+    // cohort could pull the estimate back towards the pooled approximation.
+    // Other pairings and existing historical-TCP paths keep their usual rule.
+    auto exact = LiveHistoricalPreferences::fitOffset(fp,tcp,flows,first,second);
+    if (exact) booth.preferenceEvidence->offset = *exact;
+  }
   if (booth.preferenceEvidence) {
     booth.preferenceEvidence->fpSourceTime = selected->fpTime;
     booth.preferenceEvidence->tcpSourceTime = selected->tcpTime;
@@ -1619,9 +1723,15 @@ double Election::estimateBoothTpp(Booth const& booth) const {
 
 void Election::calculatePreviousTpp(Booth& booth) const {
   auto const& n = booth.node;
-  if (n.totalTcpVotesPrevious() > 0 && isTppSet(n.tcpVotesPrevious, natPartyIndex)) {
+  auto const& previous = historicalTppCounts(booth);
+  double previousTotal = LivePartialCount::total(previous);
+  if (previousTotal > 0 && isTppSet(previous, natPartyIndex)) {
+    // Use the same real old account for swing/reference comparisons and for
+    // preference calibration. Keeping an estimated historical share here after
+    // calibrating against actual TPP would make reference centering compensate
+    // for that old preference error a second time.
     booth.node.tppSharePrevious = transformVoteShare(std::clamp(
-      100.0*n.tcpVotesPrevious.at(0)/n.totalTcpVotesPrevious(), 1.0, 99.0));
+      100.0*previous.at(0)/previousTotal, 1.0, 99.0));
   } else if (n.totalVotesPrevious() > 0) {
     int coalition = n.fpVotesPrevious.contains(natPartyIndex) &&
       LivePartialCount::value(n.fpVotesPrevious, natPartyIndex) > LivePartialCount::value(n.fpVotesPrevious, 1)
@@ -3614,7 +3724,13 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
   // The turnout account varies continuously; reaching an arbitrary completion
   // percentage must not discard its remaining-vote allowance.
   double totalEstimate = currentVoteTarget;
-  double newAlpVotes = detransformVoteShare(newAlpShare) * totalEstimate * 0.01;
+  // Ordinary shares allocate the turnout target proportionally. A tiny
+  // historical category can legitimately have all its votes for one party,
+  // giving an exact 0% or 100% transformed-share endpoint. Convert the share
+  // to a fraction first so rounding cannot allocate more than the target and
+  // leave a negative Coalition remainder. This changes no preference or turnout
+  // assumption; the validation below still rejects genuinely invalid counts.
+  double newAlpVotes = votesFromPercentage(detransformVoteShare(newAlpShare),totalEstimate);
   if (allowCurrentData && usesUnmatchedFpTpp(booth)) {
     // The baseline/deviation share remains useful for genuinely unreported
     // voters. It must not replace the FP evidence from an unmatched booth:
@@ -3629,8 +3745,12 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
 
   for (auto const& [partyId, votes] : tempTppVotesProjected) {
     if (!std::isfinite(votes) || votes < 0.0) {
-      throw std::runtime_error(
-        "Invalid TPP projection for booth " + booth.name + ".");
+      std::ostringstream message;
+      message << std::setprecision(17) << "Invalid TPP projection for "
+        << seats.at(booth.parentSeatId).name << " / " << booth.name
+        << ": party " << partyId << " has " << votes
+        << " votes; expected total " << totalEstimate << ".";
+      throw std::runtime_error(message.str());
     }
   }
   if (dataExists) {

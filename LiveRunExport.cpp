@@ -838,13 +838,12 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 	if (!tppIntegration) return nullptr;
 	auto const& update = *tppIntegration;
 	auto const& names = sim.getLiveBaselineReport()->seatName;
-	json result = {{"method", "joint_category_composition_v19"},
+	json result = {{"method", "joint_category_composition_v21"},
         {"comparison_variance_method", "persistent_location_comparison_floor"},
-        {"evidence_group_partition", "squared_odds_information"},
+        {"evidence_group_partition", "unified_category_with_private_future_comparisons"},
         {"evidence_group_half_weight_gap", LiveTppIntegration::EvidenceGroupHalfWeightGap},
 		{"sparse_sample_vote_scale", LiveTppIntegration::SparseSampleVoteScale},
-		{"comparison_completion_start", LiveTppIntegration::ComparisonCompletionStart},
-		{"comparison_completion_curve", "smoothstep"},
+		{"comparison_completion_curve", "received_vote_account"},
 		{"conversion_uncertainty_method", "matched_conversion_with_external_transfer_states"},
 		{"greens_transfer_flow_sd_pp", LiveTppComposition::GreensTransferFlowSd},
 		{"independent_transfer_flow_sd_pp", LiveTppComposition::IndependentTransferFlowSd},
@@ -972,6 +971,9 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 			{"comparison_weight", number(o.comparisonWeight)},
 			{"sample_votes", number(o.sampleVotes)},
 			{"sample_coverage", number(o.sampleCoverage)},
+			{"category_sample_votes", number(o.categorySampleVotes)},
+			{"category_sample_coverage", number(o.categorySampleCoverage)},
+			{"category_comparison_coverage", number(o.categoryComparisonCoverage)},
 			{"sparse_sample_variance", number(o.sparseSampleVariance)},
 			{"comparison_variance", number(o.comparisonVariance)},
 			{"comparison_variance_floor", number(o.comparisonVarianceFloor)},
@@ -982,7 +984,15 @@ nlohmann::json LiveV2::Election::tppIntegrationDiagnostic() const
 			{"compensation_reporting_order_sd", number(o.compensationReportingOrderSd)},
 			{"unfaded_location_variance", number(o.unfadedLocationVariance)},
 			{"retained_small_sample_variance", number(o.retainedSmallSampleVariance)},
-			{"location_group", o.fpDerivedGroup ? "includes_inferred" : "measured"},
+			{"location_group", o.unifiedCategory ? "unified" : o.fpDerivedGroup ? "includes_inferred" : "measured"},
+			{"received_votes", number(o.receivedVotes)},
+			{"received_first_votes", number(o.receivedFirstVotes)},
+			{"pending_preference_votes", number(o.pendingPreferenceVotes)},
+			{"remaining_votes", number(o.remainingVotes)},
+			{"category_estimate", number(o.categoryEstimate)},
+			{"remaining_estimate", number(o.remainingEstimate)},
+			{"measured_future_weight", number(o.measuredFutureWeight)},
+			{"inferred_future_weight", number(o.inferredFutureWeight)},
 			{"local_matched_units", o.localMatchedUnits}, {"shared_matched_units", o.sharedMatchedUnits},
 			{"local_conversion_sd", o.localConversionSd}, {"shared_conversion_sd", o.sharedConversionSd},
 			{"greens_local_conversion_sd", o.greensLocalConversionSd},
@@ -1202,6 +1212,14 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 				Results2::Booth::boothTypeName(booth.boothType);
 			boothJson["coords"] = optionalCoords(booth.coords);
 			boothJson["same_seat"] = booth.sameSeat;
+			if (booth.notionalPreferenceOffset) {
+				// Independent old TPP is a comparison/prior, never a current TCP
+				// count. Keep its provenance visible beside the unchanged raw maps.
+				boothJson["historical_notional_tpp"] = {
+					{"source_seat",booth.previousPreferenceSeat},
+					{"votes",parties.values(booth.notionalTppPrevious)},
+					{"preference_offset_z",number(*booth.notionalPreferenceOffset*25)}};
+			}
 			boothJson["tpp_votes_estimated"] =
 				parties.values(booth.tppVotesEstimated);
 			if (booth.node.preferenceFlowDeviation) {

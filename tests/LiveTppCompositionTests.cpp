@@ -1,3 +1,4 @@
+// Portable tests of live TPP accounting, uncertainty and information sharing.
 #include "../LiveTppComposition.h"
 
 #include <cassert>
@@ -90,10 +91,10 @@ void testGroupedChannels() {
     checkClose(draw[1],draw[2]);
 }
 
-void testAbsoluteInferredComparisons() {
-    // Historical composition is recentered to the seat prior. Received FP
-    // estimates are absolute shares: a prior/reference gap must remain visible
-    // as evidence, not be erased by translating the received ballots too.
+void testInferredReferenceAlignment() {
+    // With no change in the underlying FP-derived result, an offset between
+    // synthetic history and the seat prior must not create an apparent swing.
+    // Check complete and partial reporting with heterogeneous booth sizes.
     Vector old{35,45}, sizes{300,700};
     for (double priorShare : {30.,55.,75.}) {
         auto aligned = centre(old,sizes,priorShare);
@@ -101,66 +102,88 @@ void testAbsoluteInferredComparisons() {
         CategoryEvidence complete;
         for (int b=0;b<2;++b) {
             double baseline = share(transform(old[b])+shift);
-            auto received = *receivedComparison(sizes[b],0,0,transform(old[b]),{},false);
+            auto received = alignInferredReference(
+                *receivedComparison(sizes[b],0,0,transform(old[b]),{},false),shift);
             complete.baselineFirst += sizes[b]*baseline;
             complete.add(sizes[b],sizes[b],.5,received.transformedShare-transform(baseline),1,5);
             complete.weightedObservedShare += sizes[b]*.5*share(received.transformedShare);
             complete.weightedBaselineShare += sizes[b]*.5*baseline;
-            checkClose(received.inferredFirst,sizes[b]*old[b]/100);
+            checkClose(received.inferredFirst,sizes[b]*baseline/100);
         }
-        // Complete coverage recovers 42% for every prior; the prior continues
-        // to influence the posterior through its uncertainty, not the data.
-        checkClose(observedShare(complete),42);
+        checkClose(observedShare(complete),priorShare);
         auto update = prepare({{transform(priorShare)},{{9}}},
-            {{{1},transform(observedShare(complete)),complete.variance()}});
-        assert(share(update.posterior.mean[0]) > std::min(42.,priorShare));
-        assert(share(update.posterior.mean[0]) < std::max(42.,priorShare));
+            {{{1},transform(observedShare(complete)),complete.variance(complete)}});
+        checkClose(share(update.posterior.mean[0]),priorShare);
     }
 
     // One reporting booth still gets its normal historical comparison; the
     // other booth contributes only its expected size, never invented evidence.
     auto aligned = centre(old,sizes,55);
+    double shift = transform(aligned.shares[0])-transform(old[0]);
     for (int reporting=0;reporting<2;++reporting) {
         CategoryEvidence partial;
         for (int b=0;b<2;++b) {
             double baseline = aligned.shares[b];
             partial.baselineFirst += sizes[b]*baseline;
             if (b != reporting) { partial.add(sizes[b],0,0,0,0,0); continue; }
-            auto received = *receivedComparison(sizes[b],0,0,transform(old[b]),{},false);
+            auto received = alignInferredReference(
+                *receivedComparison(sizes[b],0,0,transform(old[b]),{},false),shift);
             partial.add(sizes[b],sizes[b],.5,received.transformedShare-transform(baseline),1,5);
             partial.weightedObservedShare += sizes[b]*.5*share(received.transformedShare);
             partial.weightedBaselineShare += sizes[b]*.5*baseline;
         }
-        assert(observedShare(partial) < 55);
-        assert(partial.weightedDeviation < 0);
+        checkClose(observedShare(partial),55);
+        checkClose(partial.weightedDeviation,0);
     }
 
-    // Baringa's archived 22:36 FP estimate was 56.951%, despite a -6.22355
-    // transformed reference shift. Its 22:41 TCP was 3197/5620 with identical
-    // FPs. The comparison must preserve that close agreement across the handover.
+    // Baringa's archived 22:36 FP estimate was 56.951%; 22:41 TCP was 3197/5620
+    // on identical FPs. Correct historical early-venue classification changes
+    // the reference offset from -6.22355 to +.528100 without fitting that TCP.
+    // The repaired comparison stays close; measured TCP and raw FP estimates
+    // retain their values independently of either reference offset.
     auto inferred = *receivedComparison(5620,0,0,6.99647,{},false);
     auto counted = *receivedComparison(5620,5620,3197,{}, {},false);
     checkClose(share(inferred.transformedShare),56.95116,1e-5);
     assert(std::abs(share(inferred.transformedShare)-share(counted.transformedShare)) < .07);
+    auto faulty = alignInferredReference(inferred,-6.22355);
+    auto repaired = alignInferredReference(inferred,.528100);
+    assert(share(counted.transformedShare)-share(faulty.transformedShare)>6);
+    assert(std::abs(share(repaired.transformedShare)-share(counted.transformedShare))<1);
+    for (double offset : {-20.,0.,20.}) {
+        auto measured = alignInferredReference(counted,offset);
+        assert(measured.transformedShare==counted.transformedShare);
+        assert(measured.samplingVariance==counted.samplingVariance);
+        assert(measured.inferredFirst==0 && measured.inferredFraction==0);
+        assert(measured.votes==5620);
+    }
+    checkClose(inferred.transformedShare,6.99647);
 }
 
 void testAbsolutePendingPreferenceAllocation() {
     // 200 of 1000 FP ballots have a measured TCP (120 Labor); the other 800
-    // have an estimated 40% allocation. The full account stays at 440 Labor
-    // votes, regardless of where the pre-election comparison baseline sits.
+    // have an estimated 40% allocation. The raw received account has 440 Labor
+    // votes. Reference alignment changes only a detached comparison's inferred
+    // allocation, preserving the 120 measured Labor and 80 measured Coalition.
     auto original = *receivedComparison(1000,200,120,{},320,false);
     checkClose(original.inferredFirst,320);
     double first = (original.votes+.5)*share(original.transformedShare)/100-.25;
     checkClose(first,440);
     checkClose(original.inferredFraction,.8);
-    for (double baseline : {35.,55.,75.}) {
-        CategoryEvidence evidence;
-        evidence.baselineFirst=1000*baseline;
-        evidence.add(1000,1000,1,original.transformedShare-transform(baseline),.8,5);
-        evidence.weightedObservedShare=1000*share(original.transformedShare);
-        evidence.weightedBaselineShare=1000*baseline;
-        checkClose(observedShare(evidence),share(original.transformedShare));
+    for (double shift : {-20.,0.,20.}) {
+        auto aligned = alignInferredReference(original,shift);
+        double receivedFirst = (aligned.votes+.5)*share(aligned.transformedShare)/100-.25;
+        checkClose(receivedFirst-aligned.inferredFirst,120);
+        checkClose((aligned.votes-receivedFirst)-(800-aligned.inferredFirst),80);
+        double expectedPending = 800/(1+std::exp(-(std::log(.4/.6)+shift/25)));
+        checkClose(aligned.inferredFirst,expectedPending);
+        checkClose(aligned.samplingVariance,samplingVariance(1000,receivedFirst));
+        assert(aligned.votes==original.votes && aligned.inferredFraction==original.inferredFraction);
     }
+    auto unchanged = alignInferredReference(original,0);
+    assert(unchanged.transformedShare==original.transformedShare);
+    assert(unchanged.inferredFirst==original.inferredFirst);
+    assert(unchanged.samplingVariance==original.samplingVariance);
+    checkClose(original.inferredFirst,320);
     // OPV exhaustion is not missing preferences. Actual counts, genuine zero
     // pending allocations and missing observations keep their existing meaning.
     auto exhausted = *receivedComparison(1000,800,400,{}, {},true);
@@ -172,7 +195,14 @@ void testAbsolutePendingPreferenceAllocation() {
         assert(std::isfinite(endpoint.transformedShare) && endpoint.samplingVariance>0);
         double endpointFirst = (endpoint.votes+.5)*share(endpoint.transformedShare)/100-.25;
         checkClose(endpointFirst-endpoint.inferredFirst,120);
+        for (double shift : {-20.,20.}) {
+            auto aligned = alignInferredReference(endpoint,shift);
+            double receivedFirst = (aligned.votes+.5)*share(aligned.transformedShare)/100-.25;
+            checkClose(receivedFirst-aligned.inferredFirst,120);
+            assert(std::isfinite(aligned.transformedShare) && aligned.samplingVariance>0);
+        }
     }
+    assert(alignInferredReference(exhausted,20).transformedShare==exhausted.transformedShare);
 }
 
 void testBudgetAndCorrelatedDraws() {
@@ -285,7 +315,7 @@ void testInferredPrecision() {
         CategoryEvidence direct, inferred;
         direct.add(10000,10000*coverage,1,0,0,5,1);
         inferred.add(10000,10000*coverage,.5,0,1,5,1);
-        checkClose(inferred.variance()/direct.variance(),
+        checkClose(inferred.variance(inferred)/direct.variance(direct),
             (1-.5*coverage)/(1-coverage));
     }
     // Uncertain preferences must not double reporting-location heterogeneity.
@@ -294,14 +324,14 @@ void testInferredPrecision() {
         scattered.add(10000,100,1,movement,0,0,0);
         inferredScatter.add(10000,100,1,movement,1,0,0);
     }
-    checkClose(inferredScatter.variance(),scattered.variance());
+    checkClose(inferredScatter.variance(inferredScatter),scattered.variance(scattered));
     double previous = 0;
     for (int step=0;step<=100;++step) {
         double fraction=step/100.;
         CategoryEvidence partial;
         partial.add(10000,1000,1-.5*fraction,0,fraction,5,1);
-        assert(partial.variance() >= previous);
-        previous=partial.variance();
+        assert(partial.variance(partial) >= previous);
+        previous=partial.variance(partial);
     }
 }
 
@@ -465,7 +495,7 @@ void testSparseSampleUncertainty() {
     for (double votes : {1., 55., 110., 500., 1000., 5000., 10000., 50000.}) {
         CategoryEvidence evidence;
         evidence.add(50000, votes, 1, -10, 0, 10, 0);
-        double base = evidence.variance(), added = evidence.sparseSampleVariance(base);
+        double base = evidence.variance(evidence), added = evidence.sparseSampleVariance(base,evidence);
         checkClose(added, base*std::pow(5000*(1-votes/50000)/votes,2));
         assert(base+added < previous);
         previous = base+added;
@@ -477,7 +507,7 @@ void testSparseSampleUncertainty() {
     fp.add(50000,5000,.5,0,1,10,0);
     tcp.add(50000,5000,1,0,0,10,0);
     checkClose(fp.sampleCoverage(),tcp.sampleCoverage());
-    checkClose(fp.sparseSampleVariance(10),tcp.sparseSampleVariance(10));
+    checkClose(fp.sparseSampleVariance(10,fp),tcp.sparseSampleVariance(10,tcp));
 
     // Fictional correlated districts demonstrate the practical contract: a
     // tiny sample can move its own district and others, but only modestly.
@@ -485,13 +515,81 @@ void testSparseSampleUncertainty() {
     CategoryEvidence tiny;
     tiny.add(50000,110,1,-12,0,10,0);
     Moments prior{{0,0},{{9,6},{6,9}}};
-    Observation old{{1,0},-12,tiny.variance()}, limited=old;
-    limited.variance += tiny.sparseSampleVariance(old.variance);
+    Observation old{{1,0},-12,tiny.variance(tiny)}, limited=old;
+    limited.variance += tiny.sparseSampleVariance(old.variance,tiny);
     auto before=prepare(prior,{old}), after=prepare(prior,{limited});
     assert(std::abs(after.posterior.mean[0]) < .01*std::abs(before.posterior.mean[0]));
     assert(std::abs(after.posterior.mean[1]) < .01*std::abs(before.posterior.mean[1]));
     assert(after.posterior.covariance[0][0] <= prior.covariance[0][0]);
     assert(after.posterior.covariance[1][1] <= prior.covariance[1][1]);
+}
+
+void testSourcePartitionKeepsCommonSampleProgress() {
+    // These identical locations have no conversion error. Moving information
+    // between source groups must leave their combined location precision equal
+    // to the unsplit sample, through sparse counts, completion and low-quality
+    // historical comparisons. Group-specific variance still recognises that
+    // each receives only its allotted fraction of the information.
+    for (double votes : {20.,600.,2000.}) for (double quality : {.1,.5,1.}) {
+        for (double fraction : {0.,.001,.25,.5,.75,.999,1.}) {
+            CategoryEvidence whole, measured, inferred;
+            for (int booth=0;booth<5;++booth) {
+                whole.add(2000,votes,quality,3,0,10);
+                measured.add(2000,votes,quality,3,0,10,{},fraction);
+                inferred.add(2000,votes,quality,3,1,10,{},1-fraction);
+            }
+            double precision=0;
+            for (auto const* group : {&measured,&inferred}) {
+                if (group->weight <= 0) continue;
+                precision += 1/group->locationVariance(whole);
+                double base=group->variance(whole);
+                double added=group->sparseSampleVariance(base,whole);
+                double ratio=5000*(1-whole.sampleCoverage())/(5*votes);
+                checkClose(added/base,ratio*ratio);
+                // Completion uses quality-weighted combined coverage; raw
+                // sample coverage remains independent of that discount.
+                double comparison=group->comparisonVariance();
+                double missing=1-whole.comparisonCoverage();
+                checkClose(base,std::max(.0001,missing*comparison));
+            }
+            checkClose(1/precision,whole.locationVariance(whole));
+            checkClose(whole.sampleCoverage(),votes/2000);
+            checkClose(whole.comparisonCoverage(),quality*votes/2000);
+        }
+    }
+
+    // The same contract holds when the groups contain separate locations,
+    // rather than fractions of each location. Identical booths isolate the
+    // source label from genuine differences in geography or preference flows.
+    for (int measuredBooths=0;measuredBooths<=6;++measuredBooths) {
+        CategoryEvidence whole, measured, inferred;
+        for (int booth=0;booth<6;++booth) {
+            double part=booth<measuredBooths ? 1. : 0.;
+            whole.add(2000,500,1,3,1-part,10);
+            measured.add(2000,500,1,3,1-part,10,{},part);
+            inferred.add(2000,500,1,3,1-part,10,{},1-part);
+        }
+        double precision=0;
+        if (measured.weight > 0) precision += 1/measured.locationVariance(whole);
+        if (inferred.weight > 0) precision += 1/inferred.locationVariance(whole);
+        checkClose(1/precision,whole.locationVariance(whole));
+    }
+
+    // Unreported or unusable comparisons supply an expected population, not
+    // evidence. Neither group may treat the 100 usable votes as a completed
+    // sample just because other source records exist. The combined count is
+    // also capped per location, so excess at one cannot fill a missing booth.
+    CategoryEvidence whole, group;
+    whole.add(1000,100,1,3,0,10);
+    whole.add(9000,0,0,0,0,0);
+    group.add(1000,100,1,3,0,10,{},.5);
+    group.add(9000,0,0,0,0,0);
+    checkClose(group.sparseSampleVariance(1,whole),std::pow(5000*.99/100,2));
+    CategoryEvidence uneven;
+    uneven.add(1000,2000,1,3,0,10);
+    uneven.add(1000,0,0,0,0,0);
+    checkClose(uneven.reporting.fpVotes,1000);
+    checkClose(uneven.sampleCoverage(),.5);
 }
 
 void testComparisonCompletionCurve() {
@@ -574,13 +672,16 @@ void testPartialPreferenceInformationPartition() {
         double total = 2004, tcp = total-pending;
         auto received = *receivedComparison(total,tcp,.6*tcp,
             25*std::log((.3*total+.25)/(.7*total+.25)),.3*pending,false);
+        CategoryEvidence whole;
+        whole.add(3000,total,1,received.transformedShare,received.inferredFraction,
+            8,received.samplingVariance);
         std::vector<Observation> rows;
         for (auto group : {EvidenceSourceGroup::MeasuredTcp,EvidenceSourceGroup::FpDerivedTpp}) {
             double part = evidenceGroupFraction(group,received.inferredFraction);
             CategoryEvidence evidence;
             evidence.add(3000,total,1,received.transformedShare,received.inferredFraction,
                 8,received.samplingVariance,part);
-            if (evidence.weight > 0) rows.push_back({{1},received.transformedShare,evidence.locationVariance()});
+            if (evidence.weight > 0) rows.push_back({{1},received.transformedShare,evidence.locationVariance(whole)});
         }
         return prepare(Moments{{0},{{25}}},rows).posterior;
     };
@@ -610,7 +711,7 @@ void testPartialPreferenceInformationPartition() {
         checkClose((measured.squaredWeight+inferred.squaredWeight)/all.squaredWeight,1);
         checkClose(measured.reporting.fpVotes+inferred.reporting.fpVotes,all.reporting.fpVotes);
         checkClose(measured.inferredWeight+inferred.inferredWeight,all.inferredWeight);
-        assert(1/measured.locationVariance()+1/inferred.locationVariance() <= 1/all.locationVariance());
+        checkClose(1/measured.locationVariance(all)+1/inferred.locationVariance(all),1/all.locationVariance(all));
     }
 }
 
@@ -624,7 +725,7 @@ void testComparisonCompletionAccounting() {
     // Until the agreed start, normal historical matching remains unchanged.
     auto early = completionEvidence(booths,comparisonQualityFloor(.70));
     checkClose(observedShare(early),observedShare(original));
-    checkClose(early.locationVariance(),original.locationVariance());
+    checkClose(early.locationVariance(early),original.locationVariance(original));
 
     // Both groups share whole-category physical coverage. The tiny measured
     // group must not claim completion by itself, nor hold the larger FP group
@@ -651,7 +752,7 @@ void testComparisonCompletionAccounting() {
     // the same explicit conversion uncertainty after comparison weights lift.
     Observation row;
     row.inferredFraction = row.unresolvedPreferenceFraction = 1;
-    ObservationBlock block{{row},{{complete.locationVariance()}}};
+    ObservationBlock block{{row},{{complete.locationVariance(complete)}}};
     allowForConversionUncertainty(block,1);
     assert(block.rows.front().conversionVariance > 0);
 }
@@ -662,13 +763,13 @@ void testSmallCompletedCategoryPrecision() {
     // aggregation weight without bypassing that extrapolation safeguard.
     auto old = completionEvidence({{100,100,.1,50,38,0}},0);
     auto revised = completionEvidence({{100,100,.1,50,38,0}},1);
-    double guarded = retainSmallCategoryVariance(revised.locationVariance(),old.locationVariance(),100);
-    assert(guarded >= old.locationVariance()*std::pow(5000./5100,2));
-    assert(revised.locationVariance() > 90); // No longer collapses at completion.
+    double guarded = retainSmallCategoryVariance(revised.locationVariance(revised),old.locationVariance(old),100);
+    assert(guarded >= old.locationVariance(old)*std::pow(5000./5100,2));
+    assert(revised.locationVariance(revised) > 90); // No longer collapses at completion.
     Moments prior{{0,0},{{9,6},{6,9}}};
     // The old reporting-only variance vanishes at completion, even though
     // neither this small comparison nor its use elsewhere became more reliable.
-    double reportingOnly = revised.variance()+revised.sparseSampleVariance(revised.variance());
+    double reportingOnly = revised.variance(revised)+revised.sparseSampleVariance(revised.variance(revised),revised);
     Observation bare{{1,0},-12,reportingOnly}, limited=bare;
     limited.variance = guarded;
     auto before = prepare(prior,{bare}), after = prepare(prior,{limited});
@@ -697,8 +798,8 @@ void testPersistentSparseComparison() {
     incomplete.add(100,100,1,12,0,10,0);
     incomplete.add(900,0,1,0,0,10,0);
     checkClose(complete.comparisonVariance(),incomplete.comparisonVariance());
-    assert(complete.locationVariance() > 90);
-    assert(complete.locationVariance() <= incomplete.locationVariance());
+    assert(complete.locationVariance(complete) > 90);
+    assert(complete.locationVariance(complete) <= incomplete.locationVariance(incomplete));
 
     // More distinct locations with the same total votes genuinely broaden the
     // sample. A large ordinary category retains very little of the new floor.
@@ -706,20 +807,20 @@ void testPersistentSparseComparison() {
     one.add(1000,1000,1,2,0,10,0);
     for (int i=0;i<10;++i) ten.add(100,100,1,2,0,10,0);
     for (int i=0;i<100;++i) broad.add(500,500,1,2,0,10,0);
-    assert(ten.locationVariance() < one.locationVariance()/9);
-    assert(broad.locationVariance() < .01);
+    assert(ten.locationVariance(ten) < one.locationVariance(one)/9);
+    assert(broad.locationVariance(broad) < .01);
 
     // Keep the earlier sparse-count response exactly where its existing
     // reporting allowance already exceeds the comparison floor.
     for (double votes : {1.,100.,1000.,5000.,10000.}) {
         CategoryEvidence early;
         early.add(50000,votes,1,-10,0,10,0);
-        double reporting=early.variance()+early.sparseSampleVariance(early.variance());
-        checkClose(early.locationVariance(),reporting);
+        double reporting=early.variance(early)+early.sparseSampleVariance(early.variance(early),early);
+        checkClose(early.locationVariance(early),reporting);
     }
     CategoryEvidence almost;
     almost.add(100,99.999,1,12,0,10,0);
-    assert(std::abs(almost.locationVariance()-complete.locationVariance()) < .001);
+    assert(std::abs(almost.locationVariance(almost)-complete.locationVariance(complete)) < .001);
 
     // Parkes's three Remote teams (2019): the 176-vote team had only 17
     // historical votes, 16 for ALP. That produces sharply differing booth
@@ -733,12 +834,12 @@ void testPersistentSparseComparison() {
         parkes.add(total,total,1,deviation,0,location,samplingVariance(total,b[2]));
     }
     assert(parkes.sampleCoverage() == 1);
-    assert(parkes.locationVariance() > 300);
+    assert(parkes.locationVariance(parkes) > 300);
     // A correlated second district should no longer take a large inferred
     // movement from those three complete but unrepresentative comparisons.
     Moments prior{{0,0},{{9,6},{6,9}}};
-    Observation old{{1,0},-40,parkes.variance()+25}, limited=old;
-    limited.variance=parkes.locationVariance()+25; // Existing local-category variance remains.
+    Observation old{{1,0},-40,parkes.variance(parkes)+25}, limited=old;
+    limited.variance=parkes.locationVariance(parkes)+25; // Existing local-category variance remains.
     auto before=prepare(prior,{old}),after=prepare(prior,{limited});
     assert(std::abs(after.posterior.mean[1]) < .1*std::abs(before.posterior.mean[1]));
     assert(after.posterior.covariance[1][1] <= prior.covariance[1][1]);
@@ -949,7 +1050,7 @@ void testMeasuredLocationsRemainInformative() {
     direct.add(1000,1000,1,0,0,5,0);
     inferred.add(9000,0,0,0,0,0);
     inferred.add(1000,1000,.5,0,1,5,0);
-    Observation measured{{1},2,direct.variance()}, estimated{{1},2,inferred.variance()};
+    Observation measured{{1},2,direct.variance(direct)}, estimated{{1},2,inferred.variance(inferred)};
     estimated.inferredFraction=1;
     estimated.unresolvedPreferenceFraction=.5;
     estimated.localMatchedUnits=.5; estimated.sharedMatchedUnits=.5;
@@ -963,7 +1064,7 @@ void testMeasuredLocationsRemainInformative() {
     assert(after.posterior.mean[0] > before.posterior.mean[0]);
     // A common scatter floor also protects against unlike reporting subsets
     // looking individually homogeneous merely because we split the rows.
-    assert(direct.variance(100) > direct.variance());
+    assert(direct.variance(direct, 100) > direct.variance(direct));
 }
 
 void testPartyTransferUncertainty() {
@@ -1249,7 +1350,129 @@ void testSyntheticBaselineUncertaintySurvivesCompletion() {
     assert(result.posterior.covariance[0][1] > 1);
 }
 
+void testUnifiedCategoryReceivedAccount() {
+    // Caloundra at 22:41: measured Beerwah/Baringa, plus Caloundra/CBD
+    // primaries awaiting preferences. The deliberately conflicting comparison
+    // means are allowed to guide missing places, never the received population.
+    CategoryVoteAccount votes;
+    votes.add(9075,9075,4894,0,0,45.49,0,0,0);
+    votes.add(10611,10611,4421.1696964336984,10611,4421.1696964336984,
+        45.49,1486./10611,654./10611,93./10611);
+    Observation measured{{1,0,0},15,20}, inferred{{1,0,0},-15,20};
+    measured.seat=inferred.seat=0;
+    inferred.fpDerivedGroup=true;
+    Observation pending;
+    pending.inferredFraction=1;
+    pending.unresolvedPreferenceFraction=1486./10611;
+    pending.greensPreferenceFraction=654./10611;
+    pending.independentPreferenceFraction=93./10611;
+    pending.localMatchedUnits=3.12888;
+    pending.sharedMatchedUnits=323.607;
+    pending.conversionJacobian=conversionShareJacobian(100*votes.pendingFirst/votes.pending);
+    prepareConversionScales(pending);
+    auto estimate=unifiedCategoryObservation(votes,{measured,inferred},{{20,0},{0,20}},pending,0,45.49,1);
+    checkClose(estimate.categoryEstimate,47.31875290274154);
+    checkClose(estimate.receivedFirstVotes,9315.169696433699);
+    checkClose(estimate.remainingVotes,0);
+    checkClose(estimate.h[1],0);checkClose(estimate.h[2],0);
+    checkClose(estimate.variance,1e-8);
+    assert(estimate.localConversionSd > 0);
+    bool pooledAgain=false;
+    try { auto copy=estimate;prepareConversionScales(copy); }
+    catch (std::logic_error const&) { pooledAgain=true; }
+    assert(pooledAgain);
+    // Even extreme changes in source selection and their historical quality
+    // cannot move received votes when no places remain. Preference uncertainty
+    // remains on its own actual ballot population, not on the measured votes.
+    auto alternate=unifiedCategoryObservation(votes,{measured,inferred},{{2000,0},{0,1}},pending,0,45.49,1);
+    checkClose(alternate.value,estimate.value);
+    checkClose(alternate.localConversionSd,estimate.localConversionSd);
+    checkClose(alternate.sharedConversionSd,estimate.sharedConversionSd);
+
+    // The next TCP batch equal to its prediction replaces, rather than adds to,
+    // its inferred allocation. All-known results have no conversion exposure.
+    CategoryVoteAccount finalVotes;
+    finalVotes.add(19686,19686,votes.firstVotes,0,0,45.49,0,0,0);
+    auto final=unifiedCategoryObservation(finalVotes,{measured},{{20}},Observation{},0,45.49,1);
+    checkClose(final.categoryEstimate,estimate.categoryEstimate);
+    checkClose(final.localConversionSd,0);checkClose(final.sharedConversionSd,0);
+    checkClose(final.greensTransferSd,0);checkClose(final.independentTransferSd,0);
+    // Preserve the existing distinction between exact own counts and uncertain
+    // transfer of a small remote/mobile category's swing to the wider seat.
+    measured.comparisonVarianceFloor=36;
+    auto sparse=unifiedCategoryObservation(finalVotes,{measured},{{20}},Observation{},0,45.49,1);
+    checkClose(sparse.categoryEstimate,estimate.categoryEstimate);
+    checkClose(sparse.variance,36);
+}
+
+void testUnifiedCategoryPreservesMeasuredInformation() {
+    // Ryan's motivating failure: FP-only information must not assign conversion
+    // error to measured TCP. Here a newly received 1,000-vote booth has exactly
+    // the expected TPP. It replaces an uncertain unreported place; the existing
+    // measured 600/1,000 account is unchanged. Unlike the former merged row,
+    // its precision remains available for predicting the unreported population.
+    CategoryVoteAccount early, later;
+    early.add(1000,1000,600,0,0,50,0,0,0);
+    early.add(9000,0,0,0,0,50,0,0,0);
+    later.add(1000,1000,600,0,0,50,0,0,0);
+    later.add(1000,1000,500,1000,500,50,.2,.1,0);
+    later.add(8000,0,0,0,0,50,0,0,0);
+    Observation measured{{1,0,0},0,25}, inferred{{1,0,0},0,25};
+    measured.seat=inferred.seat=0;
+    inferred.fpDerivedGroup=true;inferred.greensLocalConversionSd=2;
+    Observation pending;pending.greensLocalConversionSd=2;
+    auto before=unifiedCategoryObservation(early,{measured},{{25}},Observation{},0,50,1);
+    auto after=unifiedCategoryObservation(later,{measured,inferred},{{25,0},{0,29}},pending,0,50,1);
+    checkClose(before.categoryEstimate,51);checkClose(after.categoryEstimate,51);
+    checkClose(early.firstVotes,600);checkClose(later.firstVotes,1100);
+    assert(after.variance+std::pow(after.localConversionSd,2) < before.variance);
+    // The unknown-place precision never gets worse simply from an additional
+    // source: correlated FP error cannot contaminate the measured comparison.
+    for (double extra : {0.,1.,100.,1000000.}) {
+        auto weights=futureComparisonWeights({{25,0},{0,25+extra}});
+        double variance=weights[0]*weights[0]*25+weights[1]*weights[1]*(25+extra);
+        assert(variance <= 25+1e-10);
+    }
+    auto correlated=futureComparisonWeights({{25,20},{20,100}});
+    checkClose(correlated[0],80./85);
+    checkClose(correlated[0]+correlated[1],1);
+    auto redundant=futureComparisonWeights({{25,25},{25,25}});
+    checkClose(redundant[0]+redundant[1],1);
+}
+
+void testUnifiedCategoryPartialAndUnreportedCounts() {
+    // One pending vote and small downward/changed candidate revisions use the
+    // effective received account supplied by recovery. No fractional inversion
+    // invents negative pending quantities. The category helper itself does not
+    // decide whether a source revision should be accepted.
+    CategoryVoteAccount partial;
+    partial.add(2004,2004,1200.4,1,.4,50,.3,.2,0);
+    checkClose(partial.pending,1);checkClose(partial.firstVotes,1200.4);
+    CategoryVoteAccount noCount;
+    noCount.add(10000,0,0,0,0,55,0,0,0);
+    checkClose(noCount.meanShare(0),55);
+    checkClose(noCount.meanShare(3),share(transform(55)+3));
+    // Explicitly reduced scenario counts are inputs, not an extra future pool.
+    CategoryVoteAccount revised;
+    revised.add(1997,1997,1197,0,0,50,0,0,0);
+    checkClose(revised.remaining,0);checkClose(revised.expected,1997);
+    Observation comparison{{1,0,0},0,25};comparison.seat=0;
+    auto clean=unifiedCategoryObservation(revised,{comparison},{{25}},Observation{},0,50,1);
+    revised.revisionVariance=25;
+    auto correction=unifiedCategoryObservation(revised,{comparison},{{25}},Observation{},0,50,1);
+    checkClose(correction.categoryEstimate,clean.categoryEstimate);
+    assert(correction.variance > clean.variance);
+    // OPV callers supply continuing ballots. Already exhausted FP ballots must
+    // not be reintroduced into the TPP account's denominator.
+    CategoryVoteAccount continuing;
+    continuing.add(800,600,350,0,0,50,0,0,0);
+    checkClose(continuing.meanShare(0),56.25);
+}
+
 int main() {
+    testUnifiedCategoryReceivedAccount();
+    testUnifiedCategoryPreservesMeasuredInformation();
+    testUnifiedCategoryPartialAndUnreportedCounts();
     testCategoryBaselineProvenanceAndDirectCounts();
     testDirectPendingCountEndpoints();
     testSyntheticBaselineUncertaintySurvivesCompletion();
@@ -1258,7 +1481,7 @@ int main() {
     testExactPartyTransferCovariance();
     testPartyTransferUncertainty();
     testCountScaleAccounting();
-    testAbsoluteInferredComparisons();
+    testInferredReferenceAlignment();
     testAbsolutePendingPreferenceAllocation();
     testGroupedChannels();
     testBudgetAndCorrelatedDraws();
@@ -1270,6 +1493,7 @@ int main() {
     testCompletionReportingOrder();
     testSharedReportingOrderConditioning();
     testSparseSampleUncertainty();
+    testSourcePartitionKeepsCommonSampleProgress();
     testComparisonCompletionCurve();
     testComparisonCompletionAccounting();
     testPartialPreferenceInformationPartition();

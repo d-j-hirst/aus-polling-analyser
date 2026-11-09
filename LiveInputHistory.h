@@ -10,10 +10,10 @@
 #include <stdexcept>
 #include <string>
 
-// A disposable index of accepted measurements, not another source of election
-// results. The original snapshots remain authoritative. The index stores changes
-// separately for each record field, and reconstructs their original source clocks
-// before the existing recovery and preference-matching rules see them.
+// Accepted measurements are stored as timestamped field changes, preserving
+// original clocks, missing/zero distinctions and candidate identities. Normal
+// live work uses the authoritative change-history-v1 store. The older disposable
+// change-index-v1 reader remains available for legacy imports/equivalence tests.
 namespace LiveInputHistory {
 using Selection = std::map<std::string, std::set<std::string>>; // District -> record keys.
 using Validate = std::function<void(nlohmann::json const&)>;
@@ -25,14 +25,16 @@ enum class RequiredCount { None, FirstPreferences, TwoCandidatePreferred, Both }
 // let callers preserve ordering when combining independently selected fallbacks.
 using Visitor = std::function<bool(std::string const&, std::size_t, nlohmann::json const&)>;
 
-// An unavailable/damaged derived index may fall back to the original file reader.
-// Callers must restart their search, discarding any partially selected results.
+// Legacy disposable-index readers may recover this error by restarting from the
+// full files. Authoritative-history errors must propagate: falling back could
+// silently replace accepted evidence with an older or incomplete legacy version.
 class Unavailable : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;
 };
 
-// Visit strictly earlier observations newest first FOR EACH selected record.
+// Legacy derived-index reader: visit strictly earlier observations newest first
+// FOR EACH selected record.
 // Districts are processed separately to bound memory without repeatedly reloading
 // evicted partitions. Validation uses complete original sources at ingest.
 void visitEarlier(std::filesystem::path const& folder, std::string const& cutoffFileStem,
@@ -63,11 +65,33 @@ void visitFirstPreferenceRuns(std::filesystem::path const& folder,
     std::string const& cutoffFileStem, Selection const& selection,
     Validate const& validate, FirstPreferenceRunVisitor const& visitor);
 
-// Called only AFTER the authoritative accepted-count file has been committed.
+// Legacy maintenance only, AFTER the complete accepted-count file is committed.
 // Refresh an existing index (including same-time replacements); an index failure
 // cannot turn a successful accepted-count write into a failed forecast.
 void committed(std::filesystem::path const& folder, std::string const& fileStem,
     Validate const& validate) noexcept;
+
+// New production storage. Adopt an existing validated legacy index on first use,
+// importing any missing legacy sources once. Subsequent reads never inventory
+// the old full files. Failure of an authoritative history is an error, not a
+// reason to silently use an older/incomplete legacy cache.
+bool hasAcceptedHistory(std::filesystem::path const& folder);
+void accept(std::filesystem::path const& folder, std::string const& source,
+    nlohmann::json const& snapshot, Validate const& validate);
+void eraseAccepted(std::filesystem::path const& folder, std::string const& source,
+    Validate const& validate);
+using DistrictVisitor = std::function<bool(std::string const&, nlohmann::json const&)>;
+// Visit one district at a time, newest strictly-earlier sources first. False
+// finishes that district. This preserves coherent whole-district recovery
+// without reconstructing every other district at each candidate timestamp.
+void visitAcceptedDistricts(std::filesystem::path const& folder, std::string const& cutoff,
+    Selection const& selection, Validate const& validate, DistrictVisitor const& visitor);
+void visitAcceptedEarlier(std::filesystem::path const& folder, std::string const& cutoff,
+    Selection const& selection, Validate const& validate, Visitor const& visitor,
+    RequiredCount required = RequiredCount::None);
+void visitAcceptedFirstPreferenceRuns(std::filesystem::path const& folder,
+    std::string const& cutoff, Selection const& selection, Validate const& validate,
+    FirstPreferenceRunVisitor const& visitor);
 
 // Diagnostics for portable tests and profiling. The cache holds no project or GUI
 // references, is mutex-protected, and retains at most one history directory.
@@ -77,6 +101,7 @@ struct Statistics {
     std::size_t retainedBytes = 0, peakRetainedBytes = 0;
     std::size_t fallbacks = 0, updateFailures = 0;
     std::size_t fpRunCallbacks = 0, fpSourceClocks = 0;
+    std::size_t adoptions = 0, unchangedCommits = 0, acceptedCommits = 0;
     std::string lastFailure;
 };
 Statistics statistics();

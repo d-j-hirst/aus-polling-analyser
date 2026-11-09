@@ -187,16 +187,24 @@ bool reconciliationFits(Record const& record, Record const& previous,
 TurnoutModel::Observation freshObservation(TurnoutModel::Prior const& prior,
     std::vector<TurnoutModel::Unit> const& units, RecordStatuses const& statuses,
     std::string const& sourceTime);
-// Disk state is private and integer-only. Whole-district recovery still reads
-// complete source accounts; deeper per-record searches use a derived index.
+// Accepted history is private and retains integer counts and original identities.
+// Normal preparation reconstructs earlier observations from change-history-v1;
+// the full-file readers below remain for importing/testing the legacy format.
 std::filesystem::path directory(std::filesystem::path const& root, std::string const& election);
 std::optional<Snapshot> loadPrevious(std::filesystem::path const& directory,
     std::string const& election, std::string const& sourceTime);
 std::optional<Snapshot> loadCompatiblePrevious(std::filesystem::path const& directory,
     Snapshot const& current);
+// Normal live preparation reconstructs coherent district accounts from durable
+// change history. The older reader above is retained for legacy import tests.
+std::optional<Snapshot> loadAcceptedCompatiblePrevious(std::filesystem::path const& directory,
+    Snapshot const& current);
 std::optional<Snapshot> loadEarlierCounts(std::filesystem::path const& directory,
     Snapshot const& effective, Snapshot const* previous, HistoryAccount account,
     HistoryReadMode mode = HistoryReadMode::Indexed);
 void commit(std::filesystem::path const& directory, Snapshot const& snapshot);
+// Explicit legacy writer for migration/equivalence fixtures; production does
+// not create a complete election JSON at every capture anymore.
+void commitLegacySnapshot(std::filesystem::path const& directory, Snapshot const& snapshot);
 std::string fingerprint(std::filesystem::path const& source);
 }

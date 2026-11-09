@@ -1,8 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="LiveSnapshotViewer.cpp" />
-    <ClCompile Include="LiveSimulationJob.cpp" />
     <ClCompile Include="PollingAnalyser.cpp" />
     <ClCompile Include="ProjectFrame.cpp">
       <Filter>Source Files</Filter>
@@ -283,7 +281,6 @@
     <ClCompile Include="LiveV2.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
-    <ClCompile Include="LiveTppPreparation.cpp" />
     <ClCompile Include="TurnoutModel.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
@@ -345,6 +342,15 @@
       <Filter>Source Files\Process Objects\Live</Filter>
     </ClCompile>
     <ClCompile Include="LiveTurnoutPreparation.cpp">
+      <Filter>Source Files\Process Objects\Live</Filter>
+    </ClCompile>
+    <ClCompile Include="LiveSnapshotViewer.cpp">
+      <Filter>Source Files\Process Objects\Live</Filter>
+    </ClCompile>
+    <ClCompile Include="LiveSimulationJob.cpp">
+      <Filter>Source Files\Process Objects\Live</Filter>
+    </ClCompile>
+    <ClCompile Include="LiveTppPreparation.cpp">
       <Filter>Source Files\Process Objects\Live</Filter>
     </ClCompile>
   </ItemGroup>
@@ -414,8 +420,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="LiveSnapshotViewer.h" />
-    <ClInclude Include="LiveSimulationJob.h" />
     <ClInclude Include="BackgroundTask.h" />
     <ClInclude Include="PollingProject.h">
       <Filter>Header Files</Filter>
@@ -541,8 +545,6 @@
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
     <ClInclude Include="SeatVolatility.h" />
-    <ClInclude Include="LiveVariability.h" />
-    <ClInclude Include="LivePreparedStorage.h" />
     <ClInclude Include="RegionalSwingMath.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
@@ -789,64 +791,14 @@
     <ClInclude Include="UnreportedPlaceCounting.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
-    <ClInclude Include="LivePartialCount.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LiveFpEvidence.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LiveEstimatedTpp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LiveTppIntegration.h" />
-    <ClInclude Include="LiveTppDiagnostics.h" />
-    <ClInclude Include="LiveTppComposition.h" />
-    <ClInclude Include="LivePartyConversion.h" />
-    <ClInclude Include="LiveTppCompositionParameters.h" />
-    <ClInclude Include="LiveTppSensitivity.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LiveFpIntegration.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LiveNewVotes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LivePartyMapping.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LiveIndependentMapping.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="TurnoutModel.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
     <ClInclude Include="DeclarationAllocation.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
-    <ClInclude Include="LiveInputRecovery.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LiveInputHistory.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LiveInputAdapter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LiveInputWarningPanel.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="RetainedLiveState.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="TurnoutModelIO.h">
       <Filter>Header Files\Process Objects</Filter>
-    </ClInclude>
-    <ClInclude Include="LiveSnapshotSequence.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LiveSnapshotSequenceDialog.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Utf16ToUtf8.h">
       <Filter>Header Files\Utility</Filter>
@@ -885,6 +837,81 @@
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
     <ClInclude Include="LiveTurnoutMath.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveEstimatedTpp.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveFpEvidence.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveFpIntegration.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveIndependentMapping.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveInputAdapter.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveInputHistory.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveInputRecovery.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveInputWarningPanel.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveNewVotes.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LivePartialCount.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LivePartyMapping.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveSnapshotSequence.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveSnapshotSequenceDialog.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveTppSensitivity.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="RetainedLiveState.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LivePartyConversion.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveHistoricalPreferences.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LivePreparedStorage.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveSimulationJob.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveSnapshotViewer.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveTppComposition.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveTppCompositionParameters.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveTppDiagnostics.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveTppIntegration.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveVariability.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
   </ItemGroup>
