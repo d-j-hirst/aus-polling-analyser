@@ -443,6 +443,26 @@ class SourceProvenanceTests(unittest.TestCase):
 
 
 class RepositorySourceProvenanceTests(unittest.TestCase):
+    def assert_valid_manifest_categories(self, manifest_paths, expected_categories):
+        # CI checks that the tracked manifests are readable, valid and wired to
+        # the pipeline registry. Polls, candidate settings and other inputs can
+        # legitimately change before their manual registration is recorded.
+        # Checking those current bytes belongs to analysis_provenance.py audit,
+        # while the fixture tests above check that unregistered changes are
+        # detected correctly. A pending registration must not fail this contract.
+        recorded_categories = set()
+        for manifest_path in manifest_paths:
+            manifest = source_provenance.load_manifest(manifest_path)
+            overlap = recorded_categories & set(manifest["categories"])
+            self.assertFalse(
+                overlap,
+                "tracked categories occur in multiple manifests: {}".format(
+                    ", ".join(sorted(overlap))
+                ),
+            )
+            recorded_categories.update(manifest["categories"])
+        self.assertEqual(recorded_categories, expected_categories)
+
     def test_generated_manifests_are_ignored_but_source_manifests_are_not(self):
         repository_directory = ANALYSIS_DIRECTORY.parent
         generated_paths = (
@@ -474,45 +494,48 @@ class RepositorySourceProvenanceTests(unittest.TestCase):
             "plain source provenance must remain eligible for Git",
         )
 
-    def test_authored_registry_categories_have_current_baselines(self):
+    def test_authored_registry_categories_have_valid_manifests(self):
         registry = pipeline_registry.load_registry()
         expected_categories = {
             category_id
             for category_id, category in registry["categories"].items()
             if category["kind"] in {"authored", "code"}
         }
-        recorded_categories = set()
+        self.assert_valid_manifest_categories(REPOSITORY_MANIFESTS, expected_categories)
 
-        for manifest_path in REPOSITORY_MANIFESTS:
-            manifest = source_provenance.load_manifest(manifest_path)
-            overlap = recorded_categories & set(manifest["categories"])
-            self.assertFalse(
-                overlap,
-                "tracked categories occur in multiple manifests: {}".format(
-                    ", ".join(sorted(overlap))
-                ),
-            )
-            recorded_categories.update(manifest["categories"])
+    def test_pending_poll_and_candidate_updates_do_not_fail_manifest_checks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            manifest_path = folder / "provenance.json"
+            polls = folder / "polls.csv"
+            candidates = folder / "candidates.csv"
+            removed = folder / "candidates-old.csv"
+            polls.write_text("party,vote\nALP,30\n", encoding="utf-8")
+            candidates.write_text("seat,candidate\nHill,Alex\n", encoding="utf-8")
+            removed.write_text("seat,candidate\nCoast,Sam\n", encoding="utf-8")
+            source_provenance.initialize_manifest(manifest_path, "CI registration-policy fixture.")
+            source_provenance.add_category(manifest_path, "raw_polls", "Polling inputs.", ["polls.csv"])
+            source_provenance.add_category(manifest_path, "candidates", "Candidate inputs.", ["candidates*.csv"])
 
-            comparisons = source_provenance.check_manifest(manifest_path)
-            for category_id, comparison in comparisons.items():
-                self.assertEqual(
-                    comparison["added"],
-                    [],
-                    "{} has unrecorded files".format(category_id),
-                )
-                self.assertEqual(
-                    comparison["removed"],
-                    [],
-                    "{} has missing recorded files".format(category_id),
-                )
-                self.assertEqual(
-                    comparison["modified"],
-                    [],
-                    "{} has unrecorded content changes".format(category_id),
-                )
+            polls.write_text("party,vote\nALP,31\n", encoding="utf-8")
+            candidates.write_text("seat,candidate\nHill,Pat\n", encoding="utf-8")
+            removed.unlink()
+            (folder / "candidates-new.csv").write_text("seat,candidate\nValley,Lee\n", encoding="utf-8")
+            self.assert_valid_manifest_categories([manifest_path], {"raw_polls", "candidates"})
 
-        self.assertEqual(recorded_categories, expected_categories)
+            # Operational auditing still reports all pending changes. The CI
+            # policy neither rewrites the manifest nor silently registers them.
+            comparison = source_provenance.check_manifest(manifest_path)
+            self.assertEqual(comparison["raw_polls"]["modified"], ["polls.csv"])
+            self.assertEqual(comparison["candidates"]["modified"], ["candidates.csv"])
+            self.assertEqual(comparison["candidates"]["added"], ["candidates-new.csv"])
+            self.assertEqual(comparison["candidates"]["removed"], ["candidates-old.csv"])
+
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["schema_version"] = 999
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            with self.assertRaises(source_provenance.ProvenanceError):
+                self.assert_valid_manifest_categories([manifest_path], {"raw_polls", "candidates"})
 
 
 if __name__ == "__main__":

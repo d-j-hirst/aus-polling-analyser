@@ -72,6 +72,7 @@ run_test LiveVariabilityTests
 run_test LivePreparedStorageTests
 run_test LiveTppCompositionTests
 run_test LivePartyConversionTests
+run_test LiveHistoricalPreferencesTests
 run_test LivePreferenceCorrectionTests
 run_test LiveResultsInputTests
 run_test LiveRunExportTests

@@ -83,10 +83,14 @@ def main() -> int:
         relative = path.relative_to(root)
         for pattern, dependency in FORBIDDEN_PATTERNS:
             if pattern.search(text):
-                # Atomic replacement of an existing accepted-count revision
-                # needs MoveFileExW on Windows. This isolated filesystem module
-                # has a standard-library POSIX branch and no GUI dependency.
-                if relative.as_posix() == "LiveInputRecoveryIO.cpp" and dependency == "Windows APIs":
+                # These two isolated filesystem modules publish accepted counts
+                # and their compact history on both platforms. Windows uses
+                # MoveFileExW and an exclusive file handle; the POSIX branches
+                # use rename and flock. The text audit sees both branches even
+                # when compiling on Linux. Permit their Windows filesystem API
+                # includes only; GUI and other forbidden dependencies stay blocked.
+                portable_filesystem_modules = {"LiveInputRecoveryIO.cpp", "LiveInputHistory.cpp"}
+                if relative.as_posix() in portable_filesystem_modules and dependency == "Windows APIs":
                     continue
                 errors.append(f"{relative} depends on {dependency}")
 

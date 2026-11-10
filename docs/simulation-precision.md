@@ -81,7 +81,7 @@ completion record distinguishes a full comparison from an interrupted run.
 Compare the two files from the repository root:
 
 ```powershell
-.\analysis\.venv-win\Scripts\python.exe -B analysis\compare_simulation_audits.py `
+.\analysis\.venv-win\Scripts\python.exe -B analysis\scripts\diagnostics\compare_simulation_audits.py `
   "downloads/simulation-audits/<standard-run>/iterations.jsonl" `
   "downloads/simulation-audits/<live-run>/iterations.jsonl"
 ```

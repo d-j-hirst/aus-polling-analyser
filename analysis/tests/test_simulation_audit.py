@@ -1,13 +1,10 @@
 """Check comparison ordering, exact differences and rejection of partial traces."""
-import importlib.util
 import json
 from pathlib import Path
 import tempfile
 import unittest
 
-spec = importlib.util.spec_from_file_location("audit", Path(__file__).parents[1] / "compare_simulation_audits.py")
-audit = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(audit)
+from scripts.diagnostics import compare_simulation_audits as audit
 
 
 class AuditTests(unittest.TestCase):

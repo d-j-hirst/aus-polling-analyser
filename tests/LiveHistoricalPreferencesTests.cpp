@@ -141,7 +141,7 @@ void testMaintainedAccountsAndValidation() {
             close(LivePartialCount::total(account.fp),double(account.labor)+account.coalition);
         }
     }
-    assert(count == 6991);
+    assert(count == 7116);
     for (std::string const& row : {
         "2019fed,Hill,booth,91,11:100,60,39\n",
         "2019fed,Hill,booth,91,11:100;11:1,60,41\n",

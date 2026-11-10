@@ -45,6 +45,11 @@ split where both parties stood. The starting National share is 70% in
 National-held Mallee and 10% in other newly contested Liberal–National seats.
 These are broad starting assumptions.
 
+The Liberal aliases include both `LNP` and the 2010 feed's `LNQ` code for the
+Queensland Liberal National Party. This lets the live comparison use the actual
+2010 Labor/LNP TCP as TPP, rather than treating LNP primaries as minor-party
+votes and estimating their preferences.
+
 Palmer United keeps its separately modelled 2013 national series under the
 code `UAP`. Fairfax uses the existing prominent-minor path. Indi uses Cathy
 McGowan's 23.3% primary in the August campaign poll with moderate weight.

@@ -122,7 +122,7 @@ pairing changes. It affects automatic live analysis only; pre-election simulatio
 do not read this input.
 
 The maintained [count table](../analysis/Data/historical-notional-tpp.csv) contains
-6,991 accounts from the 2010, 2013, 2016, 2019, 2022 and 2025 federal elections.
+7,116 accounts from the 2010, 2013, 2016, 2019, 2022 and 2025 federal elections.
 Only previous non-classic districts are included. Dual Liberal/National source
 districts are outside this addition; their existing comparisons retain their
 normal handling. Separate non-classic declaration TPP is unavailable before

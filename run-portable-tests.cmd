@@ -65,6 +65,8 @@ call :run LivePrecisionTests
 if errorlevel 1 goto :failure
 call :run LiveTppCompositionTests
 if errorlevel 1 goto :failure
+call :run LiveHistoricalPreferencesTests
+if errorlevel 1 goto :failure
 call :run LivePreferenceCorrectionTests
 if errorlevel 1 goto :failure
 call :run LiveResultsInputTests

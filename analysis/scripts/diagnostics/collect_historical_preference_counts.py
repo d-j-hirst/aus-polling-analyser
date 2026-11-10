@@ -27,7 +27,12 @@ from scripts.diagnostics.category_tpp_history import csv_rows
 
 EVENTS = {2010:15508, 2013:17496, 2016:20499, 2019:24310, 2022:27966, 2025:31496}
 DECLARATIONS = {'Absent':2, 'Provisional':3, 'PrePoll':4, 'Postal':5}
-COALITION = {'LIB', 'LP', 'NAT', 'NP', 'LNP', 'CLP'}
+# These are commission affiliation codes, not distinct forecast parties. The
+# 2010 Queensland results use LNQ for the same LNP that later feeds call LNP.
+# Recognise both when identifying classic contests and checking that Coalition
+# TPP cannot be smaller than Coalition primaries. Otherwise Kennedy's separate
+# historical TPP is wrongly excluded as having no Coalition candidate.
+COALITION = {'LIB', 'LP', 'NAT', 'NP', 'LNP', 'LNQ', 'CLP'}
 LABOR = {'ALP', 'CLR'}
 HEADER = ['term', 'seat', 'kind', 'id', 'fp', 'labor', 'coalition']
 

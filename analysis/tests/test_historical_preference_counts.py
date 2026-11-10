@@ -4,9 +4,10 @@ import io
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
-from scripts.diagnostics.collect_historical_preference_counts import matched_record, raw_primaries, serialize
+from scripts.diagnostics.collect_historical_preference_counts import collect_election, matched_record, raw_primaries, serialize
 
 
 class HistoricalPreferenceCountsTests(unittest.TestCase):
@@ -33,6 +34,50 @@ class HistoricalPreferenceCountsTests(unittest.TestCase):
         self.assertEqual(rows[0]['fp'], '11:300;12:400;13:300')
         with self.assertRaises(ValueError):
             matched_record('2019fed','Bad, name','booth',91,self.fp,(500,500),self.parties)
+
+    def test_historical_lnq_primaries_bound_coalition_tpp(self):
+        parties = dict(self.parties)
+        parties[12] = 'LNQ'
+        # The alias must participate in feasibility checks as well as district
+        # selection: 400 Coalition primaries cannot become only 350 TPP votes.
+        row, reason = matched_record('2010fed','Hill','booth',91,self.fp,(650,350),parties)
+        self.assertIsNone(row)
+        self.assertEqual(reason, 'TPP smaller than finalist primary')
+
+    def test_lnq_nonclassic_history_is_retained_but_classic_is_not_duplicated(self):
+        def primary(seat, candidate, party, votes):
+            row = dict(DivisionNm=seat, CandidateID=str(candidate), PartyNm=party,
+                       PartyAb=party, TotalVotes=str(votes))
+            row.update({label+'Votes':'0' for label in ['Absent','Provisional','PrePoll','Postal']})
+            return row
+
+        tables = {
+            'HouseFirstPrefsByCandidateByVoteType':[
+                primary('Hill',11,'ALP',300), primary('Hill',12,'LNQ',400),
+                primary('Hill',13,'IND',300), primary('Plain',21,'ALP',300),
+                primary('Plain',22,'LNQ',700)],
+            'HouseTcpByCandidateByVoteType':[
+                dict(DivisionNm='Hill',PartyAb='IND'), dict(DivisionNm='Hill',PartyAb='LNQ'),
+                dict(DivisionNm='Plain',PartyAb='ALP'), dict(DivisionNm='Plain',PartyAb='LNQ')],
+            'HouseTppByPollingPlace':[
+                {'DivisionNm':'Hill','PollingPlaceID':'91','Australian Labor Party Votes':'500',
+                 'Liberal/National Coalition Votes':'500'}],
+        }
+        module = 'scripts.diagnostics.collect_historical_preference_counts'
+        with tempfile.TemporaryDirectory() as folder:
+            source = Path(folder)/'feed.zip'
+            source.write_bytes(b'fictional commission source')
+            with patch(module+'.csv_table',side_effect=lambda year,stem,download,sources:tables[stem]), \
+                    patch(module+'.last_feed',return_value=source), \
+                    patch(module+'.raw_primaries',return_value={'Hill':{91:self.fp}}) as read_fp:
+                rows, manifest = collect_election(2010,Path(folder))
+            self.assertEqual(manifest['eligible_seats'], ['Hill'])
+            self.assertEqual(manifest['omitted_seats']['Plain'],
+                             'classic TCP already supplies the normal comparison')
+            self.assertEqual(set(read_fp.call_args.args[1]), {'Hill'})
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0], ['2010fed','Hill','booth',91,
+                                      '11:300;12:400;13:300',500,500])
 
     def test_feed_totals_cannot_silently_change_the_population(self):
         xml = '''<MediaFeed><Contest><ContestIdentifier><ContestName>Hill</ContestName></ContestIdentifier>

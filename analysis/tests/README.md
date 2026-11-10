@@ -34,6 +34,15 @@ now use this shared selection. The usual test dependencies are
 as installed by the workflow. Real Stan compilation/sampling is not part of
 this default suite. Windows uses `python` in place of `python3`.
 
+CI validates source-manifest structure, category coverage and the provenance
+tools using temporary fixtures. It does not require the current polling,
+candidate or other monitored input files to match their last manually registered
+fingerprints. Pending registration therefore does not fail the build. Invalid
+manifests, inconsistent category registration and failing tool tests still do.
+Use `analysis_provenance.py audit` from `analysis/` to inspect pending source
+registrations and generated-data freshness; the operational pipeline keeps its
+existing provenance checks.
+
 ## Focused And Extended Tests
 
 Select modules, a moved test-file path, or a specific dotted test method:
