@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-11-10T14:31:43Z",
+  "updated_at_utc": "2026-11-13T02:22:20Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -578,9 +578,9 @@
           "recorded_mtime_utc": "2026-10-16T23:01:16.635099Z"
         },
         "scripts/pipeline/seat_volatility.py": {
-          "sha256": "5512345b9402131a72f70ee0ca6829943ac62d18d92e5fa5f862d4744feca755",
-          "size_bytes": 5348,
-          "recorded_mtime_utc": "2026-10-17T09:20:49.097069Z"
+          "sha256": "fe046e822ff8793f30ead63dc6a5ca6b1b9c3fdbaede4cb65bbc48d5a033c701",
+          "size_bytes": 5385,
+          "recorded_mtime_utc": "2026-11-13T01:36:30.640281Z"
         }
       },
       "events": [
@@ -980,6 +980,25 @@
             "stages": [
               "analyse_elections"
             ]
+          }
+        },
+        {
+          "id": "20261113T021753Z-other-election-analysis-script-ab176845",
+          "recorded_at_utc": "2026-11-13T02:17:53Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 9,
+          "provenance_revision": 10,
+          "summary": "Include existing seat-volatility outputs in validated archive restores.",
+          "files": [
+            "scripts/pipeline/seat_volatility.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
           }
         }
       ],
@@ -5431,9 +5450,9 @@
           "recorded_mtime_utc": "2026-10-01T03:39:15.120363Z"
         },
         "lib/orchestration/generated_data_archive.py": {
-          "sha256": "3520a91f632332d83b118f9c11707cbafa5647186be64b686e5fb97f8e6891fe",
-          "size_bytes": 24442,
-          "recorded_mtime_utc": "2026-10-01T04:46:46.785839Z"
+          "sha256": "c906060f39bbdb6bf87c3d51fd23ed77d3722e2b35c05ae09ca3ed2faa71abc7",
+          "size_bytes": 27200,
+          "recorded_mtime_utc": "2026-11-13T01:38:08.378668Z"
         },
         "lib/orchestration/pipeline_registry.py": {
           "sha256": "c126daec0ec20445e17c7747462ee991b158fa16f85e7acc9d7ee441e1eb3fff",
@@ -7678,6 +7697,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261113T021754Z-other-pipeline-orchestration-tools-c246f215",
+          "recorded_at_utc": "2026-11-13T02:17:54Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Include existing seat-volatility outputs in validated archive restores.",
+          "files": [
+            "lib/orchestration/generated_data_archive.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },
@@ -9842,8 +9880,18 @@
         "Preferences/*.json.gz"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 2,
+      "semantic_revision": 4,
       "files": {
+        "Preferences/2026sa.json": {
+          "sha256": "4790e9b2b5a311eddb00a2742690c20c4d92732c373a4661d6ab5265e0da6412",
+          "size_bytes": 5941,
+          "recorded_mtime_utc": "2026-11-12T13:54:45.620250Z"
+        },
+        "Preferences/2026vic.json": {
+          "sha256": "c53561206ed42e144d73a10bdc5e0ee99469fce42b4e9160064166e95ede89af",
+          "size_bytes": 11486,
+          "recorded_mtime_utc": "2026-11-12T10:53:01.841463Z"
+        },
         "Preferences/aec-alternative-tpp-extracts.json": {
           "sha256": "937becf7a685fa1f8bf44fcb730b1f2337896820ec5cded155f6705cd20f70a9",
           "size_bytes": 104836,
@@ -9920,9 +9968,51 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261113T022110Z-methodology-preference-evidence-inputs-25af301d",
+          "recorded_at_utc": "2026-11-13T02:21:10Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Enable ranking-based preference model",
+          "files": [
+            "Preferences/2026sa.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261113T022220Z-methodology-preference-evidence-inputs-eecc298e",
+          "recorded_at_utc": "2026-11-13T02:22:20Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "provenance_revision": 4,
+          "summary": "Enable ranking-based preference model",
+          "files": [
+            "Preferences/2026vic.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 2
+      "provenance_revision": 4
     },
     "preference_evidence_tools": {
       "description": "Cache-only extraction and population/provenance validation of observed preference evidence.",

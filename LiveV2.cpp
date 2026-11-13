@@ -1034,15 +1034,19 @@ void Election::preparePreferenceLearning(Results2::Election const& previousElect
   // district. Use its prepared FP mix to choose the profile, then use each
   // observed booth's actual FP mix when measuring the residual.
   std::vector<LearnedDistrict> prepared(seats.size());
+  // Live districts follow the feed's order. Match each to the project's
+  // prepared seat type so geographic weighting uses the right district.
+  std::vector<int> seatTypeByDistrict(seats.size());
   for (int s = 0; s < int(seats.size()); ++s) {
     auto const& seat = seats.at(s);
+    int const district = project.seats().indexByName(seat.name);
+    seatTypeByDistrict[s] = int(run.seatTypes.at(district));
     std::map<int,double> districtFp;
     for (auto const& [party,votes] : seat.node.fpVotesProjected)
       districtFp[modelParty(party,seat)] += votes;
     double const total = seat.node.totalFpVotesProjected();
     if (total <= 0) continue;
     auto sources = sourcesFor(districtFp,seat,total);
-    int const district = project.seats().indexByName(seat.name);
     for (auto const& pair : pairs) {
       if (!districtFp.contains(pair[0]) || !districtFp.contains(pair[1])) continue;
       prepared[s][pair].referenceRates = model.referencePairRates(district,sources,pair);
@@ -1118,7 +1122,7 @@ void Election::preparePreferenceLearning(Results2::Election const& previousElect
       }
       auto local = pool->second.find(s);
       for (auto& [code,projection] : account.categories) {
-        projection.adjustment = estimate(pool->second,s,code);
+        projection.adjustment = estimate(pool->second,s,code,seatTypeByDistrict);
         if (!projection.adjustment.hasEvidence()) continue;
         auto const& fit = projection.adjustment;
         auto row = nlohmann::json{{"seat",seat.name},{"pair",pair},{"category",preferenceCategoryName(code)},

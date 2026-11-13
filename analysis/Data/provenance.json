@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-11-11T06:27:28Z",
+  "updated_at_utc": "2026-11-13T07:14:35Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -88,7 +88,7 @@
         "poll-data-*.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 92,
+      "semantic_revision": 94,
       "files": {
         "poll-data-fed.csv": {
           "sha256": "838ef554fc502ce3cd386adeaf2e992956d8725b94abe3647dde39a4f94edea2",
@@ -96,9 +96,9 @@
           "recorded_mtime_utc": "2026-11-09T08:02:34.096180Z"
         },
         "poll-data-nsw.csv": {
-          "sha256": "ae8c780dce86256fe1095b6471f48cceaa1b4b65d18a1bd452d7f0562060beab",
-          "size_bytes": 27260,
-          "recorded_mtime_utc": "2026-09-18T02:11:54.524617Z"
+          "sha256": "9d07c86425d2fe8532d80158743b7ef758c623b7a17189f4f0543ce3e704c5d1",
+          "size_bytes": 27329,
+          "recorded_mtime_utc": "2026-11-13T07:08:13.539550Z"
         },
         "poll-data-qld.csv": {
           "sha256": "1bc0859a328dee9c2969ebecfb27b4af22349a707229f966bcaee97712f70c65",
@@ -111,9 +111,9 @@
           "recorded_mtime_utc": "2026-09-03T06:19:32.111274Z"
         },
         "poll-data-vic.csv": {
-          "sha256": "d8af693e70058e691a178f2ca17487a926b3af2594dead852cf108d7b5e33ffe",
-          "size_bytes": 38503,
-          "recorded_mtime_utc": "2026-11-11T06:26:35.957160Z"
+          "sha256": "1a7f0c2c8df6bf8de1323eb6242c1bee102219fe02cfe46e4d2f956cbec763bf",
+          "size_bytes": 38576,
+          "recorded_mtime_utc": "2026-11-13T07:11:35.416202Z"
         },
         "poll-data-wa.csv": {
           "sha256": "d09f6b3606e7b2cfb27c3c17ce9e44f378c9d7c94eea774af6b0b3fb35974bf5",
@@ -2263,9 +2263,72 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261113T020649Z-new_polling-raw-poll-data-083280b8",
+          "recorded_at_utc": "2026-11-13T02:06:49Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 93,
+          "provenance_revision": 93,
+          "summary": "ResolvePM poll",
+          "files": [
+            "poll-data-nsw.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2027nsw"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261113T071346Z-other-raw-poll-data-c5efddc7",
+          "recorded_at_utc": "2026-11-13T07:13:46Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 93,
+          "provenance_revision": 93,
+          "summary": "(only touched)",
+          "files": [
+            "poll-data-nsw.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261113T071435Z-new_polling-raw-poll-data-5ac70a53",
+          "recorded_at_utc": "2026-11-13T07:14:35Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 94,
+          "provenance_revision": 94,
+          "summary": "Lighthouse poll",
+          "files": [
+            "poll-data-vic.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 92
+      "provenance_revision": 94
     },
     "poll_model_configuration": {
       "description": "Party coverage, discontinuities and sampling settings used by fp_model.py.",

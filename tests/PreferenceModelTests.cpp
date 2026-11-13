@@ -560,19 +560,20 @@ void checkLivePreferenceLearning()
 	assert(!observedOffset(fp,{{Labor,470},{OneNation,430}},rates,pair));
 
 	Districts observations;
+	std::array const seatTypes{0,0,0,0,0,0};
 	for (int seat : {1,2,3,4}) {
 		for (int booth = 0; booth < 12; ++booth) observations[seat][Ordinary].add(.2,600);
 		observations[seat][6].add(.6,1600);
 	}
 	// The target's early measurement can update its own projection, but it
 	// never contributes to the shared ordinary estimate or early contrast.
-	auto heldOut = estimate(observations,1,6);
+	auto heldOut = estimate(observations,1,6,seatTypes);
 	observations[1][6].add(-.9,2000);
-	auto withLocal = estimate(observations,1,6);
+	auto withLocal = estimate(observations,1,6,seatTypes);
 	assert(close(heldOut.ordinary,withLocal.ordinary) && close(heldOut.category,withLocal.category));
 	assert(withLocal.local < heldOut.local);
 	assert(heldOut.ordinary > 0 && heldOut.category > 0);
-	auto unsupportedCategory = estimate(observations,5,8);
+	auto unsupportedCategory = estimate(observations,5,8,seatTypes);
 	assert(unsupportedCategory.ordinary > 0 && unsupportedCategory.category == 0);
 	assert(close(transferRate(.42,.55,{},0),.42));
 	assert(close(transferRate(1,.55,heldOut,1),1));
@@ -604,6 +605,44 @@ void checkLivePreferenceLearning()
 	assert(reference.at(Greens) > 0 && reference.at(Greens) < 1);
 }
 
+void checkLivePreferenceGeography()
+{
+	using namespace LivePreferenceLearning;
+	constexpr int Early = 6, Target = 4;
+	std::array const seatTypes{0,1,2,3,3};
+	std::array const sameType{3,3,3,3,3};
+	std::array const ordinaryOffsets{.8,.4,.1,-.2};
+	Districts observations;
+	for (int booth = 0; booth < 4; ++booth) {
+		for (int district = 0; district < Target; ++district) {
+			observations[district][Ordinary].add(ordinaryOffsets[district],400);
+		}
+		observations[0][Early].add(.4,400);
+		observations[3][Early].add(.2,400);
+	}
+	// All districts start at half an effective observation. Only two have
+	// early counts, so the ordinary and early weights are restored separately.
+	auto const pooled = estimate(observations,Target,Early,sameType);
+	auto const geographic = estimate(observations,Target,Early,seatTypes);
+	double const ordinaryAverage = (.343*.8 + .49*.4 + .7*.1 - .2) / (.343 + .49 + .7 + 1);
+	double const earlyAverage = (.343*(-.4) + .4) / (.343 + 1);
+	assert(close(geographic.ordinary,ordinaryAverage * 2 / 4));
+	assert(close(geographic.category,earlyAverage / 3));
+	assert(geographic.otherDistrictWeight == pooled.otherDistrictWeight);
+	assert(geographic.categoryDistrictWeight == pooled.categoryDistrictWeight);
+	assert(geographic.retainedPriorSpread == pooled.retainedPriorSpread);
+
+	// Two equally distant donors retain their full combined influence even
+	// when the target's own seat type has supplied no comparisons.
+	observations.erase(2);
+	observations.erase(3);
+	std::array const equallyDistant{0,0,2,3,3};
+	auto const distant = estimate(observations,Target,Early,equallyDistant);
+	auto const same = estimate(observations,Target,Early,sameType);
+	assert(close(distant.ordinary,same.ordinary) && close(distant.category,same.category));
+	assert(distant.retainedPriorSpread == same.retainedPriorSpread);
+}
+
 int main()
 {
 	checkConfiguration();
@@ -621,4 +660,5 @@ int main()
 	checkSouthAustralianBallot();
 	checkComparisonSummary();
 	checkLivePreferenceLearning();
+	checkLivePreferenceGeography();
 }

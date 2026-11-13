@@ -7,6 +7,7 @@
 #include "PreferenceModel.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <map>
 #include <optional>
@@ -73,32 +74,70 @@ struct Adjustment {
     double mean() const { return ordinary + category + local; }
 };
 
-// Withhold the forecast district from both shared fits. Compare vote types
-// within districts so the order in which places report does not turn a
-// district difference into an apparent vote-type effect. A district supplies
-// at most one effective observation to either fit.
-inline Adjustment estimate(Districts const& districts, int target, int category) {
+// A shared estimate first averages the district shifts using geographic
+// similarity. Its total evidence weight still comes from the number and size
+// of reporting places, so reweighting the districts does not pull the result
+// further back toward the ranking prior or change the remaining uncertainty.
+struct SharedEvidence {
+    double weight = 0, geographicWeight = 0, weightedOffset = 0;
+
+    void add(double districtWeight, double similarity, double offset) {
+        double const comparableWeight = districtWeight * similarity;
+        weight += districtWeight;
+        geographicWeight += comparableWeight;
+        weightedOffset += comparableWeight * offset;
+    }
+
+    double adjustment() const {
+        if (weight == 0) return 0;
+        // Restore the original total weight before combining the evidence
+        // with the ranking prior, which counts as two effective districts.
+        double const rescaledOffset = weightedOffset * (weight / geographicWeight);
+        return rescaledOffset / (2 + weight);
+    }
+};
+
+// Estimate a shift in preference log odds for the requested vote category in
+// the target district. The input contains matched FP/TCP evidence for one
+// finalist pair, grouped by district and vote category. Seat types use the
+// same district indices, ordered inner metro, outer metro, provincial, rural.
+// The result separates the shared ordinary shift, the shared difference for
+// this category and the update from the target's own count.
+inline Adjustment estimate(Districts const& districts, int target, int category,
+    std::span<int const> seatTypeByDistrict) {
     Adjustment result;
-    double ordinarySum = 0, differenceSum = 0;
+    SharedEvidence ordinaryEvidence, categoryEvidence;
+    // Preference flows can differ across types of seat. Replay comparisons
+    // supported a modest tilt toward more similar seats. Each step retains
+    // 70% of the previous step's weight, so rural to outer metro is 49%.
+    constexpr double stepWeight = .70;
+    constexpr std::array similarityByDistance{1.0, stepWeight,
+        stepWeight * stepWeight, stepWeight * stepWeight * stepWeight};
+    int const targetType = seatTypeByDistrict[target];
     for (auto const& [district,types] : districts) {
         if (district == target) continue;
         auto ordinary = types.find(Ordinary);
         if (ordinary == types.end()) continue;
+        int const distance = std::abs(targetType - seatTypeByDistrict[district]);
+        double const similarity = similarityByDistance[distance];
+        // A district supplies at most one effective observation to each
+        // shared estimate. Comparing vote types within the same district
+        // keeps reporting order from turning geography into a vote-type effect.
         double const ordinaryWeight = ordinary->second.weight / (ordinary->second.weight + 2);
-        ordinarySum += ordinaryWeight * ordinary->second.mean();
-        result.otherDistrictWeight += ordinaryWeight;
+        ordinaryEvidence.add(ordinaryWeight, similarity, ordinary->second.mean());
         auto group = types.find(category);
         if (category == Ordinary || group == types.end()) continue;
         double const pairedWeight = std::min(ordinary->second.weight,group->second.weight);
         double const contrastWeight = pairedWeight / (pairedWeight + 2);
-        differenceSum += contrastWeight * (group->second.mean() - ordinary->second.mean());
-        result.categoryDistrictWeight += contrastWeight;
+        categoryEvidence.add(contrastWeight, similarity, group->second.mean() - ordinary->second.mean());
     }
+    result.otherDistrictWeight = ordinaryEvidence.weight;
+    result.categoryDistrictWeight = categoryEvidence.weight;
+    result.ordinary = ordinaryEvidence.adjustment();
+    result.category = categoryEvidence.adjustment();
     // Two effective districts of prior information for each shared effect.
     // A sparse count leaves most of the ranking model's uncertainty intact.
     double const sharedPrior = 2 / (2 + result.otherDistrictWeight);
-    result.ordinary = ordinarySum / (2 + result.otherDistrictWeight);
-    result.category = differenceSum / (2 + result.categoryDistrictWeight);
     // Cross-district evidence cannot remove the target district's own
     // variation. Preserve nearly half the variance even with many peers.
     result.retainedPriorSpread = std::sqrt(.45 + .55 * sharedPrior);
