@@ -19,9 +19,9 @@ from lib.provenance import generated_provenance
 OUTPUT = ANALYSIS_DIRECTORY / 'Seat Statistics/individual-seat-factors'
 
 
-def configured_elections():
-    elections = {p.stem for p in (ANALYSIS_DIRECTORY / 'seats').glob('*.txt')}
-    with (ANALYSIS_DIRECTORY / 'Data/future-elections.csv').open(encoding='utf-8') as stream:
+def configured_elections(analysis_directory=ANALYSIS_DIRECTORY):
+    elections = {p.stem for p in (analysis_directory / 'seats').glob('*.txt')}
+    with (analysis_directory / 'Data/future-elections.csv').open(encoding='utf-8') as stream:
         elections.update(r[0]+r[1] for r in csv.reader(stream))
     return sorted(elections)
 

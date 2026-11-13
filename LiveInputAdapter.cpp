@@ -108,7 +108,7 @@ Record identifyUnit(Results2::Election const& election, TurnoutModel::Prior cons
 }
 
 void applyRecord(Results2::Election& election, Results2::Seat& seat, Record const& record,
-    std::set<int> const& publishedEcsaPair) {
+    std::optional<std::set<int>> const& publishedEcsaPair) {
     auto type = record.role == "declaration" ? declarationType(record.name) : VoteType::Ordinary;
     Results2::Booth* booth = nullptr;
     if (record.role != "declaration") for (int id : seat.booths)
@@ -123,24 +123,20 @@ void applyRecord(Results2::Election& election, Results2::Seat& seat, Record cons
         seat.fpVotes[candidate][type] += count;
         if (booth) booth->fpVotes[candidate] = count;
     }
-    // ECSA can change the district's indicative pair while individual booths
-    // are still being rechecked. Recovery may restore a zero count for the old
-    // pair if a booth's replacement count fails validation. It has no ballots
-    // to contribute and would make the district look like a three-candidate
-    // count. Leave it in recovery history, but omit it from the current view.
-    // A zero for the published pair can still identify a valid finalist.
-    bool const retiredEmptyPair = !publishedEcsaPair.empty() && record.tcp.votes &&
-        std::all_of(record.tcp.votes->begin(), record.tcp.votes->end(),
-            [](auto const& row) { return row.second == 0; }) &&
-        std::any_of(record.tcp.votes->begin(), record.tcp.votes->end(),
-            [&](auto const& row) { return !publishedEcsaPair.contains(row.first); });
-    if (record.tcp.votes && !retiredEmptyPair) for (auto const& [candidate,count] : *record.tcp.votes) {
+    // ECSA publishes the indicative pair at district level. Recovery may
+    // restore earlier booth counts during a switch or withdrawal. Keep these
+    // as separate historical measurements, even when their totals are positive.
+    bool const retiredPair = publishedEcsaPair && record.tcp.votes &&
+        (publishedEcsaPair->size() != 2 ||
+            std::any_of(record.tcp.votes->begin(), record.tcp.votes->end(),
+                [&](auto const& row) { return !publishedEcsaPair->contains(row.first); }));
+    if (record.tcp.votes && !retiredPair) for (auto const& [candidate,count] : *record.tcp.votes) {
         int party = election.candidates.at(candidate).party;
         seat.tcpVotesCandidate[candidate][type] += count;
         seat.tcpVotes[party][type] += count;
         if (booth) { booth->tcpVotesCandidate[candidate] = count; booth->tcpVotes[party] += count; }
     }
-    auto const tcpStatus = retiredEmptyPair ? CountMetadata{} : record.tcp.metadata();
+    auto const tcpStatus = retiredPair ? CountMetadata{} : record.tcp.metadata();
     election.liveCountStatus[seat.name + "/" + record.role + "/" + record.name] = {record.fp.metadata(),tcpStatus};
 }
 
@@ -258,10 +254,11 @@ void apply(Results2::Election& election, Snapshot const& effective) {
         if (district == effective.districts.end()) continue;
         // Read the published candidate IDs before rebuilding the district from
         // booth and declaration records, which can still include the old pair.
-        std::set<int> publishedEcsaPair;
-        if (ecsa && seat.tcpVotesCandidate.size() == 2) {
+        std::optional<std::set<int>> publishedEcsaPair;
+        if (ecsa) {
+            publishedEcsaPair.emplace();
             for (auto const& [candidate,counts] : seat.tcpVotesCandidate)
-                publishedEcsaPair.insert(candidate);
+                publishedEcsaPair->insert(candidate);
         }
         seat.fpVotes.clear(); seat.tcpVotes.clear(); seat.tcpVotesCandidate.clear(); seat.tppVotes.clear();
         seat.fpFinalised = district->second.finalised;

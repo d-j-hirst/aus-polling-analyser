@@ -1,6 +1,7 @@
 // Verify the portable preference comparison with the actual Victorian
 // parameter file and districts whose vote arithmetic can be checked.
 #include "../PreferenceModel.h"
+#include "../LivePreferenceLearning.h"
 #include "../json.h"
 
 #include <algorithm>
@@ -546,6 +547,63 @@ void checkComparisonSummary()
 
 }
 
+void checkLivePreferenceLearning()
+{
+	using namespace LivePreferenceLearning;
+	Pair const pair{Labor, OneNation};
+	LivePartialCount::Counts fp{{Labor,300},{Liberal,200},{Greens,100},{OneNation,400}};
+	LivePartialCount::Flows rates{{Labor,1},{Liberal,.3},{Greens,.8},{OneNation,0}};
+	auto neutral = observedOffset(fp,{{Labor,440},{OneNation,560}},rates,pair);
+	assert(neutral && std::abs(*neutral) < .01);
+	auto shift = observedOffset(fp,{{Labor,470},{OneNation,530}},rates,pair);
+	assert(shift && *shift > .4);
+	assert(!observedOffset(fp,{{Labor,470},{OneNation,430}},rates,pair));
+
+	Districts observations;
+	for (int seat : {1,2,3,4}) {
+		for (int booth = 0; booth < 12; ++booth) observations[seat][Ordinary].add(.2,600);
+		observations[seat][6].add(.6,1600);
+	}
+	// The target's early measurement can update its own projection, but it
+	// never contributes to the shared ordinary estimate or early contrast.
+	auto heldOut = estimate(observations,1,6);
+	observations[1][6].add(-.9,2000);
+	auto withLocal = estimate(observations,1,6);
+	assert(close(heldOut.ordinary,withLocal.ordinary) && close(heldOut.category,withLocal.category));
+	assert(withLocal.local < heldOut.local);
+	assert(heldOut.ordinary > 0 && heldOut.category > 0);
+	auto unsupportedCategory = estimate(observations,5,8);
+	assert(unsupportedCategory.ordinary > 0 && unsupportedCategory.category == 0);
+	assert(close(transferRate(.42,.55,{},0),.42));
+	assert(close(transferRate(1,.55,heldOut,1),1));
+	assert(close(transferRate(0,.55,heldOut,1),0));
+	auto matched = LivePartialCount::measure(fp,{{Labor,440},{OneNation,560}},
+		rates,Labor,OneNation,true);
+	auto newer = fp;
+	newer.at(Liberal) += 100;
+	auto pending = pendingPrimaries(newer,matched,pair,1000,false);
+	assert(pending.size() == 1 && pending.at(Liberal) == 100);
+	auto revised = pendingPrimaries(newer,matched,pair,1000,true);
+	assert(revised.size() == 2 && !revised.contains(Labor) && !revised.contains(OneNation));
+	assert(close(revised.at(Liberal)+revised.at(Greens),100));
+	assert(pendingPrimaries(fp,matched,pair,1000,false).empty());
+
+	auto ranking = model(false);
+	std::array const ballot{Source{Labor,.43,2,1.4,1},Source{OneNation,.38,4,1.4,0},
+		Source{Greens,.19,1,1.4,.8}};
+	auto const draw = ranking.drawElection(42);
+	auto original = ranking.count(0,ballot,.5,.5,draw);
+	auto live = ranking.count(0,ballot,.5,.5,draw,Sensitivity::None,true);
+	assert(original.status == Status::Compared && live.status == Status::Compared);
+	assert(original.final.candidates == pair && original.final.firstShare == live.final.firstShare);
+	double first = 0;
+	for (auto const& source : live.finalSources) first += source.primary * source.firstRate;
+	assert(close(first,live.final.firstShare));
+	auto reference = ranking.referencePairRates(0,ballot,pair);
+	assert(close(reference.at(Labor),1) && close(reference.at(OneNation),0));
+	assert(reference.at(Greens) > 0 && reference.at(Greens) < 1);
+}
+
 int main()
 {
 	checkConfiguration();
@@ -562,4 +620,5 @@ int main()
 	checkLaborPreferenceOverlapAtExclusion();
 	checkSouthAustralianBallot();
 	checkComparisonSummary();
+	checkLivePreferenceLearning();
 }

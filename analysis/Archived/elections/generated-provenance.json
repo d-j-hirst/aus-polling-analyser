@@ -1,0 +1,5579 @@
+{
+  "$schema": "../generated_provenance.schema.json",
+  "schema_version": 1,
+  "path_base": "..",
+  "description": "Bundled provenance for checked historical election-result exports.",
+  "updated_at_utc": "2026-07-29T14:08:32Z",
+  "runs": {
+    "20260729T140831Z-c9d5d9ab": {
+      "generated_at_utc": "2026-07-29T14:08:31Z",
+      "command": [
+        "python",
+        "election_analysis.py"
+      ],
+      "source_revision": {
+        "system": "git",
+        "revision": "af588c019b5c5f21c6550b21a5f222f286f48a7e",
+        "dirty": true
+      },
+      "environment": {
+        "python_version": "3.8.10",
+        "python_implementation": "CPython",
+        "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+        "packages": {}
+      }
+    }
+  },
+  "records": {
+    "election_result_exports:1980fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1980fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1980fed_results.pkl": {
+          "sha256": "300be878e95755da2b1db29b84304ed407f0b34f46c2635097513134748d2813",
+          "size_bytes": 55095,
+          "mtime_ns": 1629641510288545700
+        },
+        "elections/results_1980fed.csv": {
+          "sha256": "23a868e3906d00d28351d6d46a5049a99587cecd4ac2b9a1827949569d1d616b",
+          "size_bytes": 30419,
+          "mtime_ns": 1785334108387319300
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1980qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1980qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1980qld_results.pkl": {
+          "sha256": "e53d39d462ab151a800d41f7e009bfd32499e729cf0dee84929e28b57c9609f6",
+          "size_bytes": 28352,
+          "mtime_ns": 1636264637755222000
+        },
+        "elections/results_1980qld.csv": {
+          "sha256": "67268a5e364ae24fd481e8e68c593c77d06569712ec0b02f31e44071e50bb5a2",
+          "size_bytes": 17435,
+          "mtime_ns": 1785334108623726900
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1980wa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1980wa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1980wa_results.pkl": {
+          "sha256": "fdaeaba7fdc30f77d996f1a4b892ef8009a76b1871dab28830dca33da4e7484d",
+          "size_bytes": 15561,
+          "mtime_ns": 1636259572242570800
+        },
+        "elections/results_1980wa.csv": {
+          "sha256": "10869b0d02ac3a539df7d693675335d68a3c3bc22282da0aec70f5b4ee3748c9",
+          "size_bytes": 10130,
+          "mtime_ns": 1785334108751979500
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1981nsw": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1981nsw"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1981nsw_results.pkl": {
+          "sha256": "5e56c96d6f62a81ae1d7d8248f2d619ec80763b7fb71b6cf8c973735d8026e85",
+          "size_bytes": 29123,
+          "mtime_ns": 1636263077794334600
+        },
+        "elections/results_1981nsw.csv": {
+          "sha256": "65fa0fc3d96054fcf97b9fbcd5679be6b1daf5e34f63f1f121bc8ea7f191eaa0",
+          "size_bytes": 19182,
+          "mtime_ns": 1785334108466158600
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1983fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1983fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1983fed_results.pkl": {
+          "sha256": "9e6f7c0a45d2aa3662f224741f1c67f8a209a7e935839d535f88d069c5075ded",
+          "size_bytes": 56086,
+          "mtime_ns": 1636260868212261000
+        },
+        "elections/results_1983fed.csv": {
+          "sha256": "0f8f4231ccdf57101020295cf9200c4e66e287fa340ea5d689787a1971960abb",
+          "size_bytes": 30903,
+          "mtime_ns": 1785334108381291600
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1983qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1983qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1983qld_results.pkl": {
+          "sha256": "21838623b9466c6af93db499eb4796da559f48c2f465a97a0f2b735ab4335e56",
+          "size_bytes": 26064,
+          "mtime_ns": 1636264513655734400
+        },
+        "elections/results_1983qld.csv": {
+          "sha256": "b76974851c7d60922f77b5addb79079568b09957c73e2afa1446aed73f994821",
+          "size_bytes": 16528,
+          "mtime_ns": 1785334108617661900
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1983wa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1983wa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1983wa_results.pkl": {
+          "sha256": "ae0fa8cb47602fb72201b98781f214ea578057976151ff1ecebeba7ae6eb2028",
+          "size_bytes": 13928,
+          "mtime_ns": 1629651387117522700
+        },
+        "elections/results_1983wa.csv": {
+          "sha256": "ac470fe9d3708ac0a7d48c4905c2da86193f07aaf472a2d109fad18076f5d6ba",
+          "size_bytes": 10551,
+          "mtime_ns": 1785334108744268300
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1984fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1984fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1984fed_results.pkl": {
+          "sha256": "018c19e3aadec83959583f1a52d05283ad2251df27f9d28c19c76e5811f326d9",
+          "size_bytes": 67025,
+          "mtime_ns": 1636260728587374100
+        },
+        "elections/results_1984fed.csv": {
+          "sha256": "599dd4dcec1fe45528be7f0e22da2ec21dfe5bab1f3bf19ac415bb7bbd1b0f64",
+          "size_bytes": 37005,
+          "mtime_ns": 1785334108374728500
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1984nsw": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1984nsw"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1984nsw_results.pkl": {
+          "sha256": "bab1c4682936a82560c2f3a5a02af7842c90b80dfb44d73bd4484e8b23ba499f",
+          "size_bytes": 31884,
+          "mtime_ns": 1636262420507656600
+        },
+        "elections/results_1984nsw.csv": {
+          "sha256": "0971a6cacfc4e150e9298f3b8fba22620e670d65f51ee2d9822907fb9616c9aa",
+          "size_bytes": 20005,
+          "mtime_ns": 1785334108460622500
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1986qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1986qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1986qld_results.pkl": {
+          "sha256": "47697b549c2e0e0d86963b99d46461fd31fb691af8f10072427c40b4dfec15ee",
+          "size_bytes": 31141,
+          "mtime_ns": 1636264400377570700
+        },
+        "elections/results_1986qld.csv": {
+          "sha256": "9747e3b1839131d719aefd1f7427992d032327a6f2137d125ca3f07879491b0f",
+          "size_bytes": 18822,
+          "mtime_ns": 1785334108611079900
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1986wa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1986wa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1986wa_results.pkl": {
+          "sha256": "17dbf81220e7c276bfb4eb03e102b8404e19ef185bf75d5f71e110c1cbf80d5e",
+          "size_bytes": 14948,
+          "mtime_ns": 1636265248532938200
+        },
+        "elections/results_1986wa.csv": {
+          "sha256": "8159d582c910da708f817b166f25a3fcbfed42bddc2fde9813a00cb000fa8ac8",
+          "size_bytes": 10703,
+          "mtime_ns": 1785334108737743600
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1987fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1987fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1987fed_results.pkl": {
+          "sha256": "75909e52baf462788fcb45615fc3e0a59eb24f5da24e8d571c19fd07ede10bc7",
+          "size_bytes": 65211,
+          "mtime_ns": 1636260584540052400
+        },
+        "elections/results_1987fed.csv": {
+          "sha256": "25c9e57a9add1643904740399eb5d55b9b6c854900d0df2e46f233ca7ff22f5b",
+          "size_bytes": 35928,
+          "mtime_ns": 1785334108367697200
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1988nsw": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1988nsw"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1988nsw_results.pkl": {
+          "sha256": "7674ccfef2eb600e9af638b322c8937254843ac8989a7fc81336f56f696292d9",
+          "size_bytes": 37930,
+          "mtime_ns": 1636262204186580500
+        },
+        "elections/results_1988nsw.csv": {
+          "sha256": "1425978bdc78e787f0cc60f54d54f2a01070ba8216836bbc57541329e00a6608",
+          "size_bytes": 23859,
+          "mtime_ns": 1785334108455053000
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1989qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1989qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1989qld_results.pkl": {
+          "sha256": "bb2ae072665d9019047c2ac76c60904bb8c15077eb5066d0d4ca21dafe7c9a1d",
+          "size_bytes": 35672,
+          "mtime_ns": 1636264286204678900
+        },
+        "elections/results_1989qld.csv": {
+          "sha256": "ce8e6f23028dec6641b55f5a3de362bdcf3644490a5b0ef4fec11000e4e73408",
+          "size_bytes": 20391,
+          "mtime_ns": 1785334108604968200
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1989wa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1989wa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1989wa_results.pkl": {
+          "sha256": "7802e595ae5ecf4b7a38acb2ca53c1a8edbec1d9843392aa62830ea68f309175",
+          "size_bytes": 23642,
+          "mtime_ns": 1636265147054357600
+        },
+        "elections/results_1989wa.csv": {
+          "sha256": "d3ceeb88c4d38ff736cb5f242623b6b3378165b1112425a27f9b5d5403570382",
+          "size_bytes": 12963,
+          "mtime_ns": 1785334108730018600
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1990fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1990fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1990fed_results.pkl": {
+          "sha256": "6a8cee1609846eeb8a33e683551ecfa1f195ce567618e4687ffd5487bbaf1fec",
+          "size_bytes": 77875,
+          "mtime_ns": 1636260443466038100
+        },
+        "elections/results_1990fed.csv": {
+          "sha256": "339d7b9a7dc2f21c0e87bd0c3cb74350c6b4e04c2573d3e450820cd6b7c8ecf6",
+          "size_bytes": 42192,
+          "mtime_ns": 1785334108360630900
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1991nsw": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1991nsw"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1991nsw_results.pkl": {
+          "sha256": "416cd03d5fd52d5375a4ceacfac274c77ad3c65e3c79ceb730415eea1e01ac2c",
+          "size_bytes": 45954,
+          "mtime_ns": 1636261990691125100
+        },
+        "elections/results_1991nsw.csv": {
+          "sha256": "3aaebeb7b599cffa6c569e357c9c2a4d14e0d937499b7dd69063a18ef06e76e7",
+          "size_bytes": 25328,
+          "mtime_ns": 1785334108449519500
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1992qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1992qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1992qld_results.pkl": {
+          "sha256": "e4b3c547b223dc7732720e30511e5b00ad552ebb21b70b59239e954e6e1a1af0",
+          "size_bytes": 34552,
+          "mtime_ns": 1636264170078739100
+        },
+        "elections/results_1992qld.csv": {
+          "sha256": "8c9005b02c412400a5b3dc84e890a69e2377e4a581a1265d8252d8438a7f21fb",
+          "size_bytes": 20053,
+          "mtime_ns": 1785334108595287000
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1992vic": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1992vic"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1992vic_results.pkl": {
+          "sha256": "3254aedfca22ae6a60596c9e55229930673b73e263cf73e9c633d7c19102dfc4",
+          "size_bytes": 37746,
+          "mtime_ns": 1636263425043360400
+        },
+        "elections/results_1992vic.csv": {
+          "sha256": "0c4406c7c76f15696c1243790e3f6c7d020e6465013f0454b545425c2713a958",
+          "size_bytes": 21553,
+          "mtime_ns": 1785334108520185200
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1993fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1993fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1993fed_results.pkl": {
+          "sha256": "ec9829e7c1621bb12b9192651f2dddf8ba5b572de5769e186f3eaf9d44812fa3",
+          "size_bytes": 88445,
+          "mtime_ns": 1636260293666464700
+        },
+        "elections/results_1993fed.csv": {
+          "sha256": "d862e914595e05103bdca26f54abd97a5d925d254dea72b084a6727b4817383f",
+          "size_bytes": 50172,
+          "mtime_ns": 1785334108353098700
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1993wa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1993wa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1993wa_results.pkl": {
+          "sha256": "60a9760f8db0ca263726d91989fe5ab8a0d57c33e4df352fe2e749d5f42e8419",
+          "size_bytes": 28644,
+          "mtime_ns": 1636265043645475300
+        },
+        "elections/results_1993wa.csv": {
+          "sha256": "cfeb447f0e4fdb7e97c7037bfca4f64ce3992038876d0ca904da0645490bec9e",
+          "size_bytes": 15718,
+          "mtime_ns": 1785334108723983400
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1995nsw": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1995nsw"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1995nsw_results.pkl": {
+          "sha256": "1fce9103e511c1661461e3cf535ad613d5f6f76f6807e6e579ba9388866886b0",
+          "size_bytes": 46766,
+          "mtime_ns": 1636261770307495300
+        },
+        "elections/results_1995nsw.csv": {
+          "sha256": "899604e4c91b7f16e1c760bdcdd98842a775454a393b6baa34c119e41944dc68",
+          "size_bytes": 26033,
+          "mtime_ns": 1785334108443212100
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1995qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1995qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1995qld_results.pkl": {
+          "sha256": "0bd56ed1ad3748bea9f5ccf7ad4b790a551adccaffc65cd188ddab26c6e11a68",
+          "size_bytes": 31222,
+          "mtime_ns": 1636264053782236000
+        },
+        "elections/results_1995qld.csv": {
+          "sha256": "d2fab2f88d5ba806fec1fd73309dc735f59e3990b373fe7e525ca819ebfee2cc",
+          "size_bytes": 18958,
+          "mtime_ns": 1785334108589752100
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1996fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1996fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1996fed_results.pkl": {
+          "sha256": "a75a8a0a0fbee1f25eda26939cb768ce4b9a15a9ec6294506c0002fa1ddf0757",
+          "size_bytes": 86147,
+          "mtime_ns": 1629640884860870800
+        },
+        "elections/results_1996fed.csv": {
+          "sha256": "6048f66eec0583c23ad4c5a29d1919fb6bcd46276d5db3824e8c3678413a478d",
+          "size_bytes": 48992,
+          "mtime_ns": 1785334108344867000
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1996vic": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1996vic"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1996vic_results.pkl": {
+          "sha256": "c5b6614ae8d925d98d28b6ab643c65685dcbf607a88608ca3368e28ee0468908",
+          "size_bytes": 35203,
+          "mtime_ns": 1636263344768817100
+        },
+        "elections/results_1996vic.csv": {
+          "sha256": "9ff72f138d924241855fc8e259dea65e8d93c1ab08104aece2a7cb76fd9feb4f",
+          "size_bytes": 19223,
+          "mtime_ns": 1785334108514003700
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1996wa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1996wa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1996wa_results.pkl": {
+          "sha256": "3d95ba5f3dfb98c44e412aaba2d9d1a509dbdb0a49b32e1b0793de5ac89c518c",
+          "size_bytes": 24354,
+          "mtime_ns": 1636268195283672700
+        },
+        "elections/results_1996wa.csv": {
+          "sha256": "6b28bebe785c5156555c7326731470987744b2dacd055ad25cf19c70608414bc",
+          "size_bytes": 13713,
+          "mtime_ns": 1785334108718910000
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1997sa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1997sa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1997sa_results.pkl": {
+          "sha256": "65fc2a142be2904828ab61a093102f7f7b92ab9562eef03a36b0aab032e1aadd",
+          "size_bytes": 21213,
+          "mtime_ns": 1629650475414372300
+        },
+        "elections/results_1997sa.csv": {
+          "sha256": "3378bd8f33b15f23673361f7cd5fb43b99a880eee420633f7206b3252fcf6c0f",
+          "size_bytes": 11709,
+          "mtime_ns": 1785334108662202400
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1998fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1998fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1998fed_results.pkl": {
+          "sha256": "95e42b803220af50ae2e56e80abd4b79830cb61245ed2772810759ff9381ea9f",
+          "size_bytes": 100312,
+          "mtime_ns": 1629640780383529700
+        },
+        "elections/results_1998fed.csv": {
+          "sha256": "9823cb889f57ac111099ab4cc1d855b62281ab71c69d3cb5746cea16f33c2367",
+          "size_bytes": 56846,
+          "mtime_ns": 1785334108337317400
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1998qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1998qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1998qld_results.pkl": {
+          "sha256": "90b4754e3b05048c46cf6da1181cddf3bcdf5aa5e20bd0c40e5dbb27960085d2",
+          "size_bytes": 43987,
+          "mtime_ns": 1629649790475969400
+        },
+        "elections/results_1998qld.csv": {
+          "sha256": "c670e47515489c8a8d9fb78526a654d91c5772fdf20197e200a482cf7cdb7be4",
+          "size_bytes": 24971,
+          "mtime_ns": 1785334108583182300
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1999nsw": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1999nsw"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1999nsw_results.pkl": {
+          "sha256": "ea0c0043d76e258052999a644fa887017ee8be892101168039bc6ea54310de24",
+          "size_bytes": 65673,
+          "mtime_ns": 1636267963803091000
+        },
+        "elections/results_1999nsw.csv": {
+          "sha256": "6f37dc4c6618ebddd0af5647f1152956db6da70f774d7bf11229576528033e9c",
+          "size_bytes": 36159,
+          "mtime_ns": 1785334108437170300
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:1999vic": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "1999vic"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/1999vic_results.pkl": {
+          "sha256": "de463789507ef537225f8ff3a536516ff4d891b7d65f0f60638834f4e8a16334",
+          "size_bytes": 33023,
+          "mtime_ns": 1636263262402297000
+        },
+        "elections/results_1999vic.csv": {
+          "sha256": "671525173d4c8774f8f0f4283e6b038883f8d71a3a9fa368b7a747f35512f858",
+          "size_bytes": 20231,
+          "mtime_ns": 1785334108508940800
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2001fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2001fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2001fed_results.pkl": {
+          "sha256": "8305cbb83353d4c3cd2dfd108ce349e764c764912b1e7140901bfac8e0297326",
+          "size_bytes": 95351,
+          "mtime_ns": 1629640678475709100
+        },
+        "elections/results_2001fed.csv": {
+          "sha256": "18bfeb4fea79f38baff6206b79acc180e90ce7fe2ec1b38fe8954a6c0d7ec4ae",
+          "size_bytes": 54369,
+          "mtime_ns": 1785334108327703900
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2001qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2001qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2001qld_results.pkl": {
+          "sha256": "1083932719fddb99c8e00957cb2f7d6e997f23b115c85b1e5e143977b859ac21",
+          "size_bytes": 38156,
+          "mtime_ns": 1636263939742323500
+        },
+        "elections/results_2001qld.csv": {
+          "sha256": "17f0e4fa715a385a826836d165922f4e3d89aebbdc75c167c3580ae927d9b8bb",
+          "size_bytes": 22119,
+          "mtime_ns": 1785334108576659900
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2001wa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2001wa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2001wa_results.pkl": {
+          "sha256": "01d2e8da2a30e75f1fa96750920fa44c2e7d57ad8b5e047c378783224f1e613b",
+          "size_bytes": 34544,
+          "mtime_ns": 1629651030374720700
+        },
+        "elections/results_2001wa.csv": {
+          "sha256": "374312116b56848e7864034870fdf01821fb27246427591945eb202730eb8313",
+          "size_bytes": 18684,
+          "mtime_ns": 1785334108710240500
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2002sa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2002sa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2002sa_results.pkl": {
+          "sha256": "53fd90d2f27e6792fb119f85e9d84feecc0d31ef17e47c141e23ded863585ff1",
+          "size_bytes": 28320,
+          "mtime_ns": 1629650448782385900
+        },
+        "elections/results_2002sa.csv": {
+          "sha256": "11bced4dc206330e7917647ea701bbdc99a650aa0acbfc31ea03886049ce9a5e",
+          "size_bytes": 15363,
+          "mtime_ns": 1785334108656139400
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2002vic": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2002vic"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2002vic_results.pkl": {
+          "sha256": "171221f3b0913e1eea69af17289e7624344c43ac0901c2391d48e7e48f833b6d",
+          "size_bytes": 39689,
+          "mtime_ns": 1629648712971107000
+        },
+        "elections/results_2002vic.csv": {
+          "sha256": "adbc1b83bcf1b36d2529e9b486917f65a93f2766e26aa5bd27bd0e73c7a20251",
+          "size_bytes": 21973,
+          "mtime_ns": 1785334108504384300
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2003nsw": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2003nsw"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2003nsw_results.pkl": {
+          "sha256": "cf167c7e3ba81ceef88da08db8a33132091cde15d004cab0a5cc25b14665d3ed",
+          "size_bytes": 60534,
+          "mtime_ns": 1636267741945919300
+        },
+        "elections/results_2003nsw.csv": {
+          "sha256": "9845e6540fd1b3f8fedf96e52caae23b4cd18de17baf4c07bcc7c48b1987562f",
+          "size_bytes": 33416,
+          "mtime_ns": 1785334108428100400
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2004fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2004fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2004fed_results.pkl": {
+          "sha256": "f212a3de763bee49bc89bcba83f6ee3ffc8594141fa72634ab963936b8c938ba",
+          "size_bytes": 99459,
+          "mtime_ns": 1629640575826790400
+        },
+        "elections/results_2004fed.csv": {
+          "sha256": "9bd0bd55b470c3602dfbafe9028d9f5920fd740b802ca93d4e7f2643fc5b7849",
+          "size_bytes": 55894,
+          "mtime_ns": 1785334108319676600
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2004qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2004qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2004qld_results.pkl": {
+          "sha256": "f334835f318c98e26afbf06e8dfd06a5f0935b16f6230a840cfd279f9b1be607",
+          "size_bytes": 37798,
+          "mtime_ns": 1636263822771333400
+        },
+        "elections/results_2004qld.csv": {
+          "sha256": "cbd09e4c436991f16728a41ea867983e6d08ba241340d9238cfb5d666d6f8d5e",
+          "size_bytes": 21309,
+          "mtime_ns": 1785334108570113000
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2005wa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2005wa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2005wa_results.pkl": {
+          "sha256": "f37a852540e8557e17fbfda4e985430db3eb0fc01057021d309b5062a2499f4c",
+          "size_bytes": 35386,
+          "mtime_ns": 1629650959012456100
+        },
+        "elections/results_2005wa.csv": {
+          "sha256": "d75fd57bafd82959c176a2fef1a2a50180aa929211d2dda85c3a8f2251246be4",
+          "size_bytes": 18797,
+          "mtime_ns": 1785334108703596100
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2006qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2006qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2006qld_results.pkl": {
+          "sha256": "f58bbe544f63e5e104f9a9bd1ad4883b088e5441f46940b0e77bf93f42c703ef",
+          "size_bytes": 36092,
+          "mtime_ns": 1636263700013907300
+        },
+        "elections/results_2006qld.csv": {
+          "sha256": "57bea564a88e2b31098ebad18491b945f1b29321c6cc8088b5f7032e7799d056",
+          "size_bytes": 20289,
+          "mtime_ns": 1785334108564076400
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2006sa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2006sa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2006sa_results.pkl": {
+          "sha256": "496981d6ffd04834b4af91961f07047e00342a68dcb6d92b4cc8e0aba2dca200",
+          "size_bytes": 26213,
+          "mtime_ns": 1636268000706032900
+        },
+        "elections/results_2006sa.csv": {
+          "sha256": "c98ab9ed5ff592f7f9464fe13c3ca7ef9c435d91b683434129202b26e6c9253d",
+          "size_bytes": 14105,
+          "mtime_ns": 1785334108650092400
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2006vic": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2006vic"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2006vic_results.pkl": {
+          "sha256": "0f862a57cf8028f7078bc422f67f8d7e06ff771c06101f79de47e1b8e27e0d63",
+          "size_bytes": 46036,
+          "mtime_ns": 1629648649280950500
+        },
+        "elections/results_2006vic.csv": {
+          "sha256": "6519a3aad074ac23a7ae5a386625a7badec5f60f044dd80f4afa4fab5b854a65",
+          "size_bytes": 25431,
+          "mtime_ns": 1785334108498369900
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2007fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2007fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2007fed_results.pkl": {
+          "sha256": "8985e85cbe050967d0b453a9842a6ab149788fdec60852616148a8d5c5aa68a5",
+          "size_bytes": 97542,
+          "mtime_ns": 1629640472263763200
+        },
+        "elections/results_2007fed.csv": {
+          "sha256": "d7e9d1b6c29c4dd30ae87f53b661cd244d2e6a41a354f9a9f2db7c4e59aa95ae",
+          "size_bytes": 54697,
+          "mtime_ns": 1785334108310575300
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2007nsw": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2007nsw"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2007nsw_results.pkl": {
+          "sha256": "3bec2cf7f2af2dfa9500db757f5e36f1d3c3564606ce5a278ee3aa59eea9312e",
+          "size_bytes": 51984,
+          "mtime_ns": 1629642714119400600
+        },
+        "elections/results_2007nsw.csv": {
+          "sha256": "4597423688c59893befe20f8d9702acfcf35108ca9678c4f8cd9373c4049957e",
+          "size_bytes": 29027,
+          "mtime_ns": 1785334108420417600
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2008wa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2008wa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2008wa_results.pkl": {
+          "sha256": "63378e2f88aacb97619ca868988cb5832cde13041a067e56994b20fc0c06e489",
+          "size_bytes": 30721,
+          "mtime_ns": 1629650886961268200
+        },
+        "elections/results_2008wa.csv": {
+          "sha256": "224ef77a89ca483f857ef791d74141a6b10bc5c6ce703123af0ee5dc775ad0ab",
+          "size_bytes": 16518,
+          "mtime_ns": 1785334108695493800
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2009qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2009qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2009qld_results.pkl": {
+          "sha256": "0c19e49986336d9a74326118395ebd07ce18bf6e178eaeac50eff628f805b461",
+          "size_bytes": 43256,
+          "mtime_ns": 1629649464443081300
+        },
+        "elections/results_2009qld.csv": {
+          "sha256": "abdf94ada1816bc66ee545ce87c1ec392c5ebd189191504472e0532b3fe39294",
+          "size_bytes": 22928,
+          "mtime_ns": 1785334108557553100
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2010fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2010fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2010fed_results.pkl": {
+          "sha256": "9e9589e941d6ffe69a82a990f2ecf32fe0faae9726bd695287e8f1ec4a72b0c0",
+          "size_bytes": 68518,
+          "mtime_ns": 1636267375505967700
+        },
+        "elections/results_2010fed.csv": {
+          "sha256": "df60e536b69191ffa0e8d636f8458ca56930530896a5ca134dcbeaf09c01b3d7",
+          "size_bytes": 38692,
+          "mtime_ns": 1785334108302887600
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2010sa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2010sa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2010sa_results.pkl": {
+          "sha256": "3c8c1fb630a69273cb794913cfca455daf9ce8b5f12da0d360d1e8113479df4a",
+          "size_bytes": 25249,
+          "mtime_ns": 1629650396690505000
+        },
+        "elections/results_2010sa.csv": {
+          "sha256": "d7ceb06408cf90b886c3270ded386f4e78c20fa0004dc8aa61257f3c466972f7",
+          "size_bytes": 13672,
+          "mtime_ns": 1785334108644494500
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2010vic": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2010vic"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2010vic_results.pkl": {
+          "sha256": "2e8edb58197a36195530a2fe4611011ca9205abb51163ab6f2f5edb1301a9f8f",
+          "size_bytes": 49412,
+          "mtime_ns": 1629648583769049100
+        },
+        "elections/results_2010vic.csv": {
+          "sha256": "61849ead8bbddac04d1aee4f763a847c71bc24cf8d61a4dc49705118fe83ddee",
+          "size_bytes": 28373,
+          "mtime_ns": 1785334108492287000
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2011nsw": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2011nsw"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2011nsw_results.pkl": {
+          "sha256": "6a8c9bf30774990c40024dd09e948a45cbc345fcd0274c16ecb150baf06e33e0",
+          "size_bytes": 49927,
+          "mtime_ns": 1636448349299850300
+        },
+        "elections/results_2011nsw.csv": {
+          "sha256": "b969b328e21ad131923a2060b24c381ed3f38ed30f04bf671c3869a6c56f85b2",
+          "size_bytes": 27369,
+          "mtime_ns": 1785334108413186000
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2012qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2012qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2012qld_results.pkl": {
+          "sha256": "3218eaf1ea3751760536c96c7df77bd53cc5f983630be27a2a4ddc1e5e188db2",
+          "size_bytes": 46335,
+          "mtime_ns": 1629649382890096600
+        },
+        "elections/results_2012qld.csv": {
+          "sha256": "e201e166d02306a7845ec20505542bbc76e601940bacc474f00e307458b3d1e3",
+          "size_bytes": 26248,
+          "mtime_ns": 1785334108551370100
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2013fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2013fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2013fed_results.pkl": {
+          "sha256": "8c4df61c17d0684dd18bd4378a2c3e2cf662b18f8c169f8bb34cfe07204a07a3",
+          "size_bytes": 109280,
+          "mtime_ns": 1629640268254466200
+        },
+        "elections/results_2013fed.csv": {
+          "sha256": "d11aa0901f4c9c9ec6813b46660cd1653d99e204106db8a5b5d865c5de6dd6b3",
+          "size_bytes": 62312,
+          "mtime_ns": 1785334108294799800
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2013wa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2013wa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2013wa_results.pkl": {
+          "sha256": "d0899278aa53cf4545a031d1e5bfbbfbb13bd1d1b5106aec4c86ebe1cd1c55a5",
+          "size_bytes": 29501,
+          "mtime_ns": 1636269395564286200
+        },
+        "elections/results_2013wa.csv": {
+          "sha256": "bb663f7939c29c3be06ab02c23adb5374037006af89bf652064f383a38bd3fea",
+          "size_bytes": 16106,
+          "mtime_ns": 1785334108690484700
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2014sa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2014sa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2014sa_results.pkl": {
+          "sha256": "db303f95f5a82b67f86e65a90fb8bf236e78d9fd97645d2cd0d3106688b5402f",
+          "size_bytes": 21800,
+          "mtime_ns": 1629650371052109700
+        },
+        "elections/results_2014sa.csv": {
+          "sha256": "efdad9bc8d6cff5c8034cb6eb32598851f2667e6bcd74beb84040745c9074bc9",
+          "size_bytes": 11707,
+          "mtime_ns": 1785334108639974900
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2014vic": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2014vic"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2014vic_results.pkl": {
+          "sha256": "8827215a04e1ad7891c1047feeba563c8b1e67559c2fe96ced1943cf0142c367",
+          "size_bytes": 52820,
+          "mtime_ns": 1629648518388722400
+        },
+        "elections/results_2014vic.csv": {
+          "sha256": "d96a18401fc93d845232f592881bb52e346186d9925df87eadad6ab15339ca44",
+          "size_bytes": 28643,
+          "mtime_ns": 1785334108486119900
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2015nsw": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2015nsw"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2015nsw_results.pkl": {
+          "sha256": "8ef7b7d3d3ecba8184ff959aea7d3208769291ca4905957da75060e6e7d07591",
+          "size_bytes": 53195,
+          "mtime_ns": 1629642148685650300
+        },
+        "elections/results_2015nsw.csv": {
+          "sha256": "df202f036b773ffe08f0820d08d6d97012735d9264ba2506868f60d4565832e9",
+          "size_bytes": 28996,
+          "mtime_ns": 1785334108407511400
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2015qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2015qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2015qld_results.pkl": {
+          "sha256": "2bf851a1966788fd14e532eb3aff9ff058c46f3745adda64a60c299165ea5687",
+          "size_bytes": 46077,
+          "mtime_ns": 1629649301268480500
+        },
+        "elections/results_2015qld.csv": {
+          "sha256": "cca79622618708d47195eebff580dfdf5819db8a7d76b9183a1e3cec0ba1f848",
+          "size_bytes": 25993,
+          "mtime_ns": 1785334108544841300
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2016fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2016fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2016fed_results.pkl": {
+          "sha256": "a67698b550bf8ad79a9cf57a0413e1310d3d22ccf0ce49dbabccc28ec837057d",
+          "size_bytes": 95010,
+          "mtime_ns": 1629640164818596800
+        },
+        "elections/results_2016fed.csv": {
+          "sha256": "0f8dedae26386a373952b62c88e31dc50c49ff0037bd6012f7fa8e79e826b37d",
+          "size_bytes": 53646,
+          "mtime_ns": 1785334108284933900
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2017qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2017qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2017qld_results.pkl": {
+          "sha256": "0823c296617ff811c0cd30e44226f4ecb83e497744ba1a808aac2da7ac2ae1c5",
+          "size_bytes": 47612,
+          "mtime_ns": 1629649220124648000
+        },
+        "elections/results_2017qld.csv": {
+          "sha256": "d4bd5a75a6e93d416691a36f2acf55fd889136dc65ba18eebb0f8f20e4986558",
+          "size_bytes": 25693,
+          "mtime_ns": 1785334108538782000
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2017wa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2017wa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2017wa_results.pkl": {
+          "sha256": "a16870050310a5237e15f0515dbe7fc96909606cfd63ecefb8b960ba56124b9e",
+          "size_bytes": 38868,
+          "mtime_ns": 1629650743748838300
+        },
+        "elections/results_2017wa.csv": {
+          "sha256": "d592280ca4c38c2531bccd2b554f11be4f18e809547e48cd998aeca0b92b94c8",
+          "size_bytes": 20661,
+          "mtime_ns": 1785334108684533400
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2018sa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2018sa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2018sa_results.pkl": {
+          "sha256": "875ba62143396ce7bd628f89bc30a2a7c4513df795a6f5676a1b09214eccd377",
+          "size_bytes": 25536,
+          "mtime_ns": 1629650345381286500
+        },
+        "elections/results_2018sa.csv": {
+          "sha256": "f157df2b639d335e069767ecd9e03295afc26ec97e889c65e6208619050dced1",
+          "size_bytes": 14415,
+          "mtime_ns": 1785334108634935900
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2018vic": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2018vic"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2018vic_results.pkl": {
+          "sha256": "5ee7b9c22d9ab7e40a25d0842ed729d2a7b63f7549d3baf51b329272491148ae",
+          "size_bytes": 50202,
+          "mtime_ns": 1629648455912674600
+        },
+        "elections/results_2018vic.csv": {
+          "sha256": "b3148fd119db00b79b18445699753e4f4c7bb57ada834645dd07c4e64ba19fa4",
+          "size_bytes": 28482,
+          "mtime_ns": 1785334108479771700
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2019fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2019fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2019fed_results.pkl": {
+          "sha256": "ce557fdc7d156e4544a6e00b083dbd1213c3b203d33b0f7a9e751158fb118cd5",
+          "size_bytes": 100633,
+          "mtime_ns": 1629640061013730900
+        },
+        "elections/results_2019fed.csv": {
+          "sha256": "691bc298b549730667238cade2f5aba7b96d9dac14f5892600474c4051c8a99f",
+          "size_bytes": 57316,
+          "mtime_ns": 1785334108274824800
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2019nsw": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2019nsw"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2019nsw_results.pkl": {
+          "sha256": "235dab9e7494c52779831d53a6147c377b1d859ff68ef6cbf2b9681d368dc5db",
+          "size_bytes": 56202,
+          "mtime_ns": 1671283817695510900
+        },
+        "elections/results_2019nsw.csv": {
+          "sha256": "63d1bd1af1e24fdafed4bb53c142ad588f51f3996fbab3f7963c0e43765b66f5",
+          "size_bytes": 31344,
+          "mtime_ns": 1785334108400916700
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2020qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2020qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2020qld_results.pkl": {
+          "sha256": "830729c8870f35fff8c034ff541032378ca3db3a35f51202d26794aa53a09dae",
+          "size_bytes": 59109,
+          "mtime_ns": 1629649138279719900
+        },
+        "elections/results_2020qld.csv": {
+          "sha256": "d637f873a2cce95a8e107bb68d0f690aff6f64fae0d872506383f5f487a57363",
+          "size_bytes": 33046,
+          "mtime_ns": 1785334108532264000
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2021wa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2021wa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2021wa_results.pkl": {
+          "sha256": "58f7e6059f341fe62c82c4a50bbffb3b1405eff0f10b6af7946b804030d4013d",
+          "size_bytes": 42895,
+          "mtime_ns": 1629650671082058000
+        },
+        "elections/results_2021wa.csv": {
+          "sha256": "765e960875910b5edf15db0b93ac93bd81b754f65ff1f6678cb02728cb8e9fee",
+          "size_bytes": 22932,
+          "mtime_ns": 1785334108676377600
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2022fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2022fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2022fed_results.pkl": {
+          "sha256": "c701205107dab7b8e97d9c577237243417b097ed4c001f8b658833b035786739",
+          "size_bytes": 111297,
+          "mtime_ns": 1656898949355586800
+        },
+        "elections/results_2022fed.csv": {
+          "sha256": "e854fe31ea823ba0b8f7ba4c2e9ca2bd5c256d1cea12a131e6f69227628e4843",
+          "size_bytes": 64477,
+          "mtime_ns": 1785334108266272400
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2022sa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2022sa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2022sa_results.pkl": {
+          "sha256": "5d68becbb531515467877f3bcfa23b3ad80685ebb25e43d39197a11f77d51ded",
+          "size_bytes": 24364,
+          "mtime_ns": 1753356744840363300
+        },
+        "elections/results_2022sa.csv": {
+          "sha256": "43eecb579ed198428a9595df239b149a41de3f570d6d6fb501a112bc2b617e94",
+          "size_bytes": 13272,
+          "mtime_ns": 1785334108628867400
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2022vic": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2022vic"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2022vic_results.pkl": {
+          "sha256": "96434c0a4d47dde1b11b595a11a96c594f77a2c012f39f2e36645dc346691ff5",
+          "size_bytes": 67446,
+          "mtime_ns": 1762687685837737000
+        },
+        "elections/results_2022vic.csv": {
+          "sha256": "c942d8c85afda107ddba0ab7d4ae205b2fccaf9f3caeb1901af7b6b8147b3dd0",
+          "size_bytes": 36946,
+          "mtime_ns": 1785334108473213000
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2023nsw": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2023nsw"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2023nsw_results.pkl": {
+          "sha256": "1035d65c6c5d636e4e4e152e8bc681fc9830b29212a79630dcdc6745a0ed2b4c",
+          "size_bytes": 55791,
+          "mtime_ns": 1754139989712251000
+        },
+        "elections/results_2023nsw.csv": {
+          "sha256": "569fc30ebc4b9bbc1140268cc41145998bc4aae6011547083eaeb0e56a98110e",
+          "size_bytes": 30317,
+          "mtime_ns": 1785334108393344400
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2024qld": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2024qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2024qld_results.pkl": {
+          "sha256": "14161b85b42543cfcaac8e78492f7033f7927d2a511cd9641e61da8e6c99356c",
+          "size_bytes": 53476,
+          "mtime_ns": 1785334107889689600
+        },
+        "elections/results_2024qld.csv": {
+          "sha256": "324da8430e0953c3585cbba31c20f44b62aa458f1e7e9d111892f74c8fb34c39",
+          "size_bytes": 29591,
+          "mtime_ns": 1785334108525233300
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2025fed": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2025fed"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2025fed_results.pkl": {
+          "sha256": "f747ec285bae583d264a2ac14a20fb1ec22aad5e96eea530fb1e92857a872063",
+          "size_bytes": 104235,
+          "mtime_ns": 1753116666530781300
+        },
+        "elections/results_2025fed.csv": {
+          "sha256": "b20a47e4fd3e9342cdd05a91c72757123baf01c8f53a6d5903ee67b6e5d279bf",
+          "size_bytes": 59293,
+          "mtime_ns": 1785334108257682700
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "election_result_exports:2025wa": {
+      "status": "generated",
+      "category": "election_result_exports",
+      "stage": "export_election_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2025wa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260729T140831Z-c9d5d9ab",
+      "random_seed": null,
+      "dependencies": {
+        "election_result_rules": {
+          "kind": "source_manifest",
+          "digest": "21269bbba2f7693f53bf2e36e63d41b8428519f82af3e05cd76a36a74c3e7ada",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_store_script": {
+          "kind": "source_manifest",
+          "digest": "60298b1a1033d45e1be66e51b778b4d5186e107ef83211d303a7b8a3d866e08a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_check_script": {
+          "kind": "source_manifest",
+          "digest": "86324f6c7ec5c5dc450441b4d1b4bb86aba6fcec051f08e2bfeb229467855b3e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_data_script": {
+          "kind": "source_manifest",
+          "digest": "304190863ab559985eb82d4fe01d8eeada53b94d1d3c88822abd8bec9c928572",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "elections/2025wa_results.pkl": {
+          "sha256": "08cc667d43f919bc999c7a023dfed711fe31fbedf0c65e55056f7d6726fdfc71",
+          "size_bytes": 36522,
+          "mtime_ns": 1753009363798912000
+        },
+        "elections/results_2025wa.csv": {
+          "sha256": "ca5347c1abb503cb8c5c9050d78f4036996b99707f6ca5c84329b4f9917ca776",
+          "size_bytes": 19655,
+          "mtime_ns": 1785334108668310400
+        }
+      },
+      "provenance_maintenance": []
+    }
+  }
+}

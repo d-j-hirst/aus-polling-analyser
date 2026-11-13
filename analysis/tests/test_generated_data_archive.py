@@ -6,6 +6,41 @@ from pathlib import Path
 from unittest import mock
 
 from lib.orchestration import generated_data_archive
+from lib.provenance import generated_provenance
+
+
+class RepositoryArchiveTests(unittest.TestCase):
+    def test_published_archive_contains_every_manifest_payload(self):
+        archive = Path(__file__).resolve().parents[1] / "Archived"
+        manifest = archive / generated_data_archive.ARCHIVE_MANIFEST_NAME
+        if not manifest.is_file():
+            self.skipTest("This checkout does not include a validated archive.")
+        generated_data_archive.validate_archive(archive)
+
+    def test_published_archive_contains_seat_factors_and_recorded_caches(self):
+        analysis = Path(__file__).resolve().parents[1]
+        archive = analysis / "Archived"
+        if not (archive / generated_data_archive.ARCHIVE_MANIFEST_NAME).is_file():
+            self.skipTest("This checkout does not include a validated archive.")
+        factor_directory = generated_data_archive.SEAT_FACTOR_DIRECTORY
+        provenance = generated_provenance.load_manifest(
+            archive / factor_directory / "generated-provenance.json"
+        )
+        payload = {
+            entry["path"]: entry["sha256"]
+            for entry in generated_data_archive.validate_archive(archive)["files"]
+        }
+        self.assertIn("seat_volatility:2026vic", provenance["records"])
+        for key, record in provenance["records"].items():
+            with self.subTest(record=key):
+                (election,) = record["scope"]["elections"]
+                for suffix in (".csv", ".json"):
+                    path = (factor_directory / (election + suffix)).as_posix()
+                    self.assertEqual(payload[path], record["outputs"][path]["sha256"])
+                history = record["dependencies"]["seat_volatility_history"]
+                for filename in history["files"]:
+                    if filename.startswith("elections/"):
+                        self.assertIn(filename, payload)
 
 
 class GeneratedDataArchiveTests(unittest.TestCase):
@@ -330,6 +365,50 @@ class GeneratedDataArchiveTests(unittest.TestCase):
         )
         self.assertEqual(set(filtered["records"]), {"active"})
         self.assertEqual(set(filtered["runs"]), {"active-run"})
+
+    def test_rebuild_includes_seat_factors_outside_the_required_graph(self):
+        self._write_scoped_generated_manifest()
+        future_elections = self.analysis / "Data" / "future-elections.csv"
+        future_elections.parent.mkdir()
+        future_elections.write_text("2028,fed,active\n2028,qld,inactive\n", encoding="utf-8")
+        factor_directory = self.analysis / generated_data_archive.SEAT_FACTOR_DIRECTORY
+        factor_directory.mkdir()
+        election_cache = self.analysis / "elections" / "2022fed_results.pkl"
+        election_cache.write_bytes(b"test cache")
+        run_id, run = generated_provenance.generation_run(
+            ["test"], generated_provenance.current_source_revision(self.analysis),
+            generated_provenance.current_environment(),
+        )
+        history = generated_provenance.file_dependency(
+            "seat_volatility_history", [election_cache], self.analysis
+        )
+        records = {}
+        for election in ("2028fed", "2028qld", "2025wa"):
+            outputs = [factor_directory / (election + suffix) for suffix in (".csv", ".json")]
+            for path in outputs:
+                path.write_text(election + "\n", encoding="utf-8")
+            records["seat_volatility:" + election] = generated_provenance.generation_record(
+                category="seat_volatility", stage="analyse_elections",
+                scope=generated_provenance.generation_scope(elections=[election]), run=run_id,
+                dependencies={"seat_volatility_history": history},
+                outputs=generated_provenance.output_fingerprints(outputs, self.analysis),
+            )
+        manifest = factor_directory / "generated-provenance.json"
+        generated_provenance.update_manifest(
+            manifest, records, {run_id: run}, path_base="../..", description="Seat factor fixture."
+        )
+
+        archive = generated_data_archive.build_archive(
+            self.analysis, audit_runner=self.required_audit
+        )["archive_directory"]
+        for path in [election_cache, *factor_directory.glob("2028*")]:
+            self.assertEqual((archive / path.relative_to(self.analysis)).read_bytes(), path.read_bytes())
+        archived_manifest = generated_provenance.load_manifest(archive / manifest.relative_to(self.analysis))
+        self.assertEqual(set(archived_manifest["records"]), {"seat_volatility:2028fed", "seat_volatility:2028qld"})
+        self.assertFalse((archive / generated_data_archive.SEAT_FACTOR_DIRECTORY / "2025wa.csv").exists())
+        (factor_directory / "2028qld.csv").unlink()
+        with self.assertRaisesRegex(generated_data_archive.GeneratedDataArchiveError, "missing output"):
+            generated_data_archive.preflight_build(self.analysis, audit_runner=self.required_audit)
 
     def test_restore_replaces_generated_data_and_preserves_authored_mixed_inputs(self):
         archive = generated_data_archive.build_archive(

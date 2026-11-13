@@ -473,6 +473,7 @@
     <ClInclude Include="LiveIndependentMapping.h" />
     <ClInclude Include="LiveTurnout.h" />
     <ClInclude Include="LivePreferenceCorrections.h" />
+    <ClInclude Include="LivePreferenceLearning.h" />
     <ClInclude Include="TurnoutModel.h" />
     <ClInclude Include="DeclarationAllocation.h" />
     <ClInclude Include="TurnoutModelIO.h" />

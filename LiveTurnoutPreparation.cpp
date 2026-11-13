@@ -174,9 +174,15 @@ TurnoutCompositionInputs collectTurnoutComposition(std::vector<LiveV2::Seat> con
             bool classic = hasClassicPair(booth.node.tcpVotesCurrent, natPartyIndex);
             auto bounds = booth.tcpLowerBounds();
             for (auto const& [p, v] : bounds) if (v > 0) {
-                if (classic) { unit.tpp[p == natPartyIndex ? 1 : p] += v; input.tpp[p == natPartyIndex ? 1 : p] += v; }
-                else if (!seat.node.tcpVotesProjected.empty()) unit.tcp[mapParty(p)] += v;
+                if (!classic && !seat.node.tcpVotesProjected.empty()) unit.tcp[mapParty(p)] += v;
                 input.tcp[mapParty(p)] += v;
+            }
+            // The same ballots may have a measured classic scrutiny and a
+            // different published TCP. Each constrains its own comparison.
+            for (auto const& [p, v] : booth.tppLowerBounds(natPartyIndex)) if (v > 0) {
+                int const side = p == natPartyIndex ? 1 : p;
+                unit.tpp[side] += v;
+                input.tpp[side] += v;
             }
             unitInputs.push_back(std::move(unit));
         }
@@ -308,15 +314,15 @@ void refreshPairBoothProgress(std::vector<LiveV2::Booth>& booths,
     for (std::size_t b = 0; b < booths.size(); ++b) {
         auto& booth = booths[b]; auto& n = booth.node;
         double expected = countAccount.fpTarget(b);
-        bool classic = hasClassicPair(n.tcpVotesCurrent, natPartyIndex) && n.totalTcpVotesCurrent() > 0;
         double measured = n.totalTcpVotesCurrent();
         if (booth.hasTcpRevision()) measured = total(booth.tcpLowerBounds());
         double pairExpected = LiveTurnoutMath::pairTarget(expected, n.totalFpVotesCurrent(), measured);
         double pairProgress = double(LiveTurnoutMath::completion(measured, pairExpected));
         n.tcpCompletion = pairProgress;
-        n.tppCompletion = classic ? pairProgress : 0;
-        if (classic) n.tppConfidence = pairProgress;
-        else if (!classic) n.tppConfidence = n.fpConfidence * .5;
+        double const tppMeasured = total(booth.tppLowerBounds(natPartyIndex));
+        double const tppExpected = LiveTurnoutMath::pairTarget(expected,n.totalFpVotesCurrent(),tppMeasured);
+        n.tppCompletion = LiveTurnoutMath::completion(tppMeasured,tppExpected);
+        n.tppConfidence = tppMeasured > 0 ? n.tppCompletion : n.fpConfidence * .5;
         if (expected == 0) { n.tcpConfidence = 0; n.tppConfidence = 0; }
         if (n.preferenceFlowDeviation) n.preferenceFlowConfidence = std::min(n.fpConfidence, n.tppCompletion);
     }

@@ -13612,6 +13612,181 @@
       "size_bytes": 15401
     },
     {
+      "path": "Seat Statistics/individual-seat-factors/2013fed.csv",
+      "sha256": "f147ec35863a6cb1f26a9fcdd5003880b5cd104d1ea500490efd3725bb6a3628",
+      "size_bytes": 6890
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2013fed.json",
+      "sha256": "826eb9e98a0b8c32aa1cf6dd133a2fd49a83f9e5bcbc16020f87151ac84d461f",
+      "size_bytes": 72055
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2016fed.csv",
+      "sha256": "c206b1e8f9fd85b3bb61c5bf56dc6af10fb61512fe0df44c2be6c6aae22af358",
+      "size_bytes": 6922
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2016fed.json",
+      "sha256": "72bcfa3902e775d9735243891479b16ea63e0042c075ed6aceca94d847e82e5f",
+      "size_bytes": 74506
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2019fed.csv",
+      "sha256": "ac8b708cab7833933ddd7c39424f35f7ae4d8f216aa823e7e0139fdb04ae2c1b",
+      "size_bytes": 7032
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2019fed.json",
+      "sha256": "6cb88fa56e6cf10bdb01bd64c4112a9c489b6a9c86b0f08f8a7826b781b02a14",
+      "size_bytes": 77443
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2019nsw.csv",
+      "sha256": "0e725a197e1d2d9b45a1ef4338554cbcc218a36d3b40839723ee15cf283b3efc",
+      "size_bytes": 5561
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2019nsw.json",
+      "sha256": "fb63533798039b7e2e153b3cfa51f1103fe0b089d98cf0019cfa210ba9ebae95",
+      "size_bytes": 73498
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2022fed.csv",
+      "sha256": "846e7efa82c904d1663469c24c608dcde575d6289df34d374ad218927f48029c",
+      "size_bytes": 7268
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2022fed.json",
+      "sha256": "382397d703bbb3e020bf353abcbe98b7024a94d8d18df5449927d050d9fd710c",
+      "size_bytes": 81350
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2022sa.csv",
+      "sha256": "c0c8721b18a5abc87133f92815e90c998dd8ad9e41ad4bb05efe78e1fa58a898",
+      "size_bytes": 2311
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2022sa.json",
+      "sha256": "80528c7a078d607100abd7883831af5f6e0f2acae1e2cb26ccf6cfc08bad3f97",
+      "size_bytes": 25076
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2022vic.csv",
+      "sha256": "cc7136d66d18bb60f5595552d5ff70c4167479d5548c11ced96f74f068441cce",
+      "size_bytes": 5040
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2022vic.json",
+      "sha256": "22d87b26aa89e0dbf1255d6d27f0309635bf5c4ec2dfb8ec3c8c27b4b2ea9b35",
+      "size_bytes": 48832
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2023nsw.csv",
+      "sha256": "1d11f0f355b420466cc3b65c647c03e2e6517aee79b1c3e81a442dc8d3d1a2be",
+      "size_bytes": 5635
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2023nsw.json",
+      "sha256": "0057b9fca4b325e1ece0eb0a507a464c6a3f5a34cce67a70434256c7f5edf5ea",
+      "size_bytes": 77827
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2024qld.csv",
+      "sha256": "1fef02ad6cb97281ba3630b727316232354e2f5406dafffbfad9dd960c53a418",
+      "size_bytes": 6037
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2024qld.json",
+      "sha256": "fef3dde460a8fc6b3a156d895dfe2746ba575ee782f10b1903a837157e676e46",
+      "size_bytes": 101675
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2025fed.csv",
+      "sha256": "9b305f0252c4c9578f93afeb2acaea4957da0c74535132c9ddf1e803646a7202",
+      "size_bytes": 7321
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2025fed.json",
+      "sha256": "c8ebbbceece548b13229a489cfd5b560096a221629d8ed1837090ce2edbbc32c",
+      "size_bytes": 83987
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2025wa.csv",
+      "sha256": "675c14f527a8050c4d14e53e5b9d280da16f96126862eece9ce8f2bd982e01ee",
+      "size_bytes": 4151
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2025wa.json",
+      "sha256": "1b56bf05c378c61f75c49ec5ea666e4231d88733472f510c2c10dcfd40a5db6b",
+      "size_bytes": 56090
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2026sa.csv",
+      "sha256": "35ef6a276bae78a1a47f124fdd08fc3224e7d986da0b674c0445537acd066c93",
+      "size_bytes": 2350
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2026sa.json",
+      "sha256": "601dfc6649b0391892bdac9072ed4064f409a83086f96a939099ab8a2e32ae5b",
+      "size_bytes": 26648
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2026vic.csv",
+      "sha256": "00875e5995e775130de6cacd7772ae44bb9e5ecae472f00bd9041faacbacb4eb",
+      "size_bytes": 5376
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2026vic.json",
+      "sha256": "eca275c36f45a69a0fc02616d9994d801f6e1541273061a09c742c77eb9e3a56",
+      "size_bytes": 53297
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2027nsw.csv",
+      "sha256": "d2299ff4b5280af73b18f1a82e18d54465bbf22cbec090794253df6ac668552b",
+      "size_bytes": 5790
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2027nsw.json",
+      "sha256": "1ad75623dd4c268da0a08384c5ddf4db1bf922943a7f168efa35f08a54d634cf",
+      "size_bytes": 82927
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2028fed.csv",
+      "sha256": "57ebab8257e183d3689130a174ec39a5e6ef4e7f653d7ec907fe8831dbcee8be",
+      "size_bytes": 7469
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2028fed.json",
+      "sha256": "ba5d41e770c09bfd0a12b5a267779f59df1dbe43982a9c135d8e81564110c899",
+      "size_bytes": 86578
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2028qld.csv",
+      "sha256": "729e9eaaf9cb924e600a3debb2cfffbb44c703901637ed81d5dc49021b9a1b92",
+      "size_bytes": 6297
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2028qld.json",
+      "sha256": "045a8e3da953bca65e83cdc827f525595793331d2cf7ab96576c81902153d482",
+      "size_bytes": 105081
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2029wa.csv",
+      "sha256": "1cdfdce1e54d1959a6490fca72d4fe678c6b8bf39e4d2dfed9266d90fc6e61be",
+      "size_bytes": 4206
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/2029wa.json",
+      "sha256": "411344d049a986714e64abdbe5acc5701c6777e55beb777fb8e135d7bcc913b2",
+      "size_bytes": 58289
+    },
+    {
+      "path": "Seat Statistics/individual-seat-factors/generated-provenance.json",
+      "sha256": "15625a01b71efce3bc62e4e3b899f12cf75f640547512f16c5590d8760f15968",
+      "size_bytes": 91064
+    },
+    {
       "path": "Seat Statistics/modifiers_centrist.csv",
       "sha256": "dcdff6db58cba0cbe39f597e1d9a7e5273b5bcabebec2de904c6a89462c0dc9c",
       "size_bytes": 17284
@@ -14416,7 +14591,7 @@
     "Seat Statistics",
     "elections"
   ],
-  "generated_at_utc": "2026-09-03T11:48:19Z",
+  "generated_at_utc": "2026-11-13T01:39:05Z",
   "partial_roots": [
     "Regional"
   ],

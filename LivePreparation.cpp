@@ -321,7 +321,7 @@ void LivePreparation::prepareLiveAutomatic()
 			<< " as an independent for this live forecast\n";
 	auto turnoutInput = prepareCurrentInput();
 	run.liveElection = std::make_unique<LiveV2::Election>(previousElection, currentElection, project, sim, run,
-		std::move(turnoutInput), std::move(preferenceHistory));
+		std::move(turnoutInput), std::move(preferenceHistory), std::move(pairPreferenceHistory));
 	recordCountedOutcomes();
 }
 
@@ -776,6 +776,8 @@ TurnoutModelIO::Artifact LivePreparation::prepareCurrentInput()
 	auto folder = LiveInputRecovery::directory(project.paths().root(), run.getTermCode());
 	preferenceHistory = LiveInputRecovery::loadPreferenceHistory(folder,recovered.snapshot);
 	LiveInputRecovery::retainPreferenceHistory(recovered.snapshot,preferenceHistory);
+	if (run.preferenceModel && run.preferenceModel->isActive())
+		pairPreferenceHistory = LiveInputRecovery::loadPairPreferenceHistory(folder,recovered.snapshot);
 	// Separate history work from count-model preparation so a one-off index build
 	// is visible in the log instead of appearing as unexplained forecast slowness.
 	auto const historyAfter = LiveInputHistory::statistics();

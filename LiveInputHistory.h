@@ -89,6 +89,13 @@ void visitAcceptedDistricts(std::filesystem::path const& folder, std::string con
 void visitAcceptedEarlier(std::filesystem::path const& folder, std::string const& cutoff,
     Selection const& selection, Validate const& validate, Visitor const& visitor,
     RequiredCount required = RequiredCount::None);
+// Visit changes to a reporting unit's accepted FP, TCP or their recorded
+// association, strictly before the replay source. Unchanged captures add no
+// preference measurement. The visitor receives the original source metadata
+// with the changed record, oldest first within each unit.
+using PreferenceChangeVisitor = std::function<void(nlohmann::json const&)>;
+void visitAcceptedPreferenceChanges(std::filesystem::path const& folder, std::string const& cutoff,
+    Selection const& selection, Validate const& validate, PreferenceChangeVisitor const& visitor);
 void visitAcceptedFirstPreferenceRuns(std::filesystem::path const& folder,
     std::string const& cutoff, Selection const& selection, Validate const& validate,
     FirstPreferenceRunVisitor const& visitor);

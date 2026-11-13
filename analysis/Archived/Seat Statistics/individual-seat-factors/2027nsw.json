@@ -1,0 +1,3892 @@
+{
+  "election": "2027nsw",
+  "generic_sd": 5.108049126885066,
+  "fallback_sd": 6.461227856396496,
+  "kurtosis": 3.5415109355337715,
+  "floor": 2.0,
+  "half_life_elections": 4.0,
+  "minimum_history": 4,
+  "disruption_sd_multiplier": 2,
+  "generic_source": "nsw",
+  "training_years": [
+    1981,
+    1984,
+    1988,
+    1991,
+    1995,
+    1999,
+    2003,
+    2007,
+    2011,
+    2015,
+    2019,
+    2023
+  ],
+  "seats": [
+    {
+      "name": "Albury",
+      "region": "none",
+      "elasticity": 0.9100404397764492,
+      "sd": 6.974567588163159,
+      "observations": 9,
+      "weight": 4.576909331802368,
+      "years": [
+        1984,
+        1988,
+        1991,
+        1995,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Ashfield",
+      "region": "none",
+      "elasticity": 0.9980526110091876,
+      "sd": 7.598587958514064,
+      "observations": 4,
+      "weight": 0.906176771939449,
+      "years": [
+        1981,
+        1988,
+        1991,
+        1995
+      ]
+    },
+    {
+      "name": "Auburn",
+      "region": "none",
+      "elasticity": 1.0334381788260651,
+      "sd": 6.933018443897371,
+      "observations": 11,
+      "weight": 5.3509109300225,
+      "years": [
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Badgerys Creek",
+      "region": "none",
+      "elasticity": 0.637345448071766,
+      "sd": 6.541602889568194,
+      "observations": 3,
+      "weight": 1.5473017787506802,
+      "years": [
+        1991,
+        1995,
+        2023
+      ]
+    },
+    {
+      "name": "Ballina",
+      "region": "none",
+      "elasticity": 0.8401115641520955,
+      "sd": 6.433611365772646,
+      "observations": 6,
+      "weight": 2.03152748078424,
+      "years": [
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007
+      ]
+    },
+    {
+      "name": "Balmain",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 7.288687501980004,
+      "observations": 2,
+      "weight": 0.325427584671977,
+      "years": [
+        1981,
+        1984
+      ]
+    },
+    {
+      "name": "Bankstown",
+      "region": "none",
+      "elasticity": 0.9725348179833353,
+      "sd": 5.988737053295322,
+      "observations": 10,
+      "weight": 5.072785124101203,
+      "years": [
+        1981,
+        1988,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Barwon",
+      "region": "none",
+      "elasticity": 1.0728669893089224,
+      "sd": 7.095360703533765,
+      "observations": 8,
+      "weight": 2.5640618466427645,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2015
+      ]
+    },
+    {
+      "name": "Bass Hill",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 7.055515936799557,
+      "observations": 2,
+      "weight": 0.3870007991100655,
+      "years": [
+        1984,
+        1988
+      ]
+    },
+    {
+      "name": "Bathurst",
+      "region": "none",
+      "elasticity": 1.217941120282769,
+      "sd": 10.03487035275209,
+      "observations": 10,
+      "weight": 4.992035936833731,
+      "years": [
+        1981,
+        1984,
+        1991,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Baulkham Hills",
+      "region": "none",
+      "elasticity": 1.0355632518084485,
+      "sd": 4.957482757260346,
+      "observations": 8,
+      "weight": 3.963910130912434,
+      "years": [
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019
+      ]
+    },
+    {
+      "name": "Bega",
+      "region": "none",
+      "elasticity": 1.0523562198999246,
+      "sd": 6.6028878634193875,
+      "observations": 10,
+      "weight": 5.174134234725862,
+      "years": [
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Blacktown",
+      "region": "none",
+      "elasticity": 1.01944184708898,
+      "sd": 4.78749835792533,
+      "observations": 11,
+      "weight": 5.3509109300225,
+      "years": [
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Bligh",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.896093703065757,
+      "observations": 2,
+      "weight": 0.325427584671977,
+      "years": [
+        1981,
+        1984
+      ]
+    },
+    {
+      "name": "Blue Mountains",
+      "region": "none",
+      "elasticity": 1.0112514855095995,
+      "sd": 5.273364597338059,
+      "observations": 11,
+      "weight": 5.3509109300225,
+      "years": [
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Broken Hill",
+      "region": "none",
+      "elasticity": 1.3436652963612996,
+      "sd": 7.768226801704934,
+      "observations": 3,
+      "weight": 0.7575258825641089,
+      "years": [
+        1988,
+        1991,
+        1995
+      ]
+    },
+    {
+      "name": "Bulli",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.803565432530252,
+      "observations": 2,
+      "weight": 0.5473017787506802,
+      "years": [
+        1991,
+        1995
+      ]
+    },
+    {
+      "name": "Burrinjuck",
+      "region": "none",
+      "elasticity": 0.9939928352451469,
+      "sd": 6.043427317416654,
+      "observations": 6,
+      "weight": 2.137781128550875,
+      "years": [
+        1981,
+        1984,
+        1995,
+        2003,
+        2007,
+        2011
+      ]
+    },
+    {
+      "name": "Burwood",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.941348501349537,
+      "observations": 2,
+      "weight": 0.325427584671977,
+      "years": [
+        1981,
+        1984
+      ]
+    },
+    {
+      "name": "Byron",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 7.218447766397948,
+      "observations": 2,
+      "weight": 0.325427584671977,
+      "years": [
+        1981,
+        1984
+      ]
+    },
+    {
+      "name": "Cabramatta",
+      "region": "none",
+      "elasticity": 1.1875132851824777,
+      "sd": 9.44106600185573,
+      "observations": 9,
+      "weight": 3.884663805923994,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        2007,
+        2011,
+        2015,
+        2023
+      ]
+    },
+    {
+      "name": "Camden",
+      "region": "none",
+      "elasticity": 1.0387021721680862,
+      "sd": 6.740878640429063,
+      "observations": 11,
+      "weight": 5.322785124101203,
+      "years": [
+        1981,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Campbelltown",
+      "region": "none",
+      "elasticity": 1.1200557346189348,
+      "sd": 5.58660334180283,
+      "observations": 10,
+      "weight": 5.174134234725862,
+      "years": [
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Canterbury",
+      "region": "none",
+      "elasticity": 1.1237178639244825,
+      "sd": 5.97523588674479,
+      "observations": 11,
+      "weight": 5.289337715584411,
+      "years": [
+        1981,
+        1984,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Castle Hill",
+      "region": "none",
+      "elasticity": 1.0284979872821247,
+      "sd": 6.455774026825766,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Castlereagh",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.997335848801962,
+      "observations": 2,
+      "weight": 0.3870007991100655,
+      "years": [
+        1984,
+        1988
+      ]
+    },
+    {
+      "name": "Cessnock",
+      "region": "none",
+      "elasticity": 0.9724730401905334,
+      "sd": 7.63545954376445,
+      "observations": 8,
+      "weight": 3.5487835258810714,
+      "years": [
+        1981,
+        1988,
+        1991,
+        1995,
+        2007,
+        2011,
+        2015,
+        2019
+      ]
+    },
+    {
+      "name": "Charlestown",
+      "region": "none",
+      "elasticity": 1.2461709883043233,
+      "sd": 6.313585540222133,
+      "observations": 10,
+      "weight": 4.404958261896479,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Clarence",
+      "region": "none",
+      "elasticity": 1.303701048411822,
+      "sd": 8.120872554044348,
+      "observations": 9,
+      "weight": 4.546083268707711,
+      "years": [
+        1984,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Coffs Harbour",
+      "region": "none",
+      "elasticity": 0.9497354631610839,
+      "sd": 7.376564915870793,
+      "observations": 10,
+      "weight": 4.238217196517268,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2007,
+        2011,
+        2015,
+        2023
+      ]
+    },
+    {
+      "name": "Coogee",
+      "region": "none",
+      "elasticity": 0.9734174772429258,
+      "sd": 4.956099695845348,
+      "observations": 12,
+      "weight": 5.499561819397839,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Cootamundra",
+      "region": "none",
+      "elasticity": 0.8230170669733163,
+      "sd": 9.457775556947945,
+      "observations": 3,
+      "weight": 2.548003196440262,
+      "years": [
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Corrimal",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.730333860626291,
+      "observations": 1,
+      "weight": 0.14865088937534013,
+      "years": [
+        1981
+      ]
+    },
+    {
+      "name": "Cronulla",
+      "region": "none",
+      "elasticity": 0.9074588060264385,
+      "sd": 5.117360338250682,
+      "observations": 12,
+      "weight": 5.499561819397839,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Davidson",
+      "region": "none",
+      "elasticity": 1.164818030890821,
+      "sd": 5.9336245812636745,
+      "observations": 8,
+      "weight": 3.1467309616427883,
+      "years": [
+        1981,
+        1984,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2023
+      ]
+    },
+    {
+      "name": "Drummoyne",
+      "region": "none",
+      "elasticity": 1.0125411174141015,
+      "sd": 6.949261400798863,
+      "observations": 11,
+      "weight": 5.322785124101203,
+      "years": [
+        1981,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Dubbo",
+      "region": "none",
+      "elasticity": 1.0161568286554141,
+      "sd": 6.9921954542224,
+      "observations": 5,
+      "weight": 2.4646326637506566,
+      "years": [
+        1988,
+        1991,
+        1995,
+        2015,
+        2023
+      ]
+    },
+    {
+      "name": "Earlwood",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.884795562647842,
+      "observations": 2,
+      "weight": 0.325427584671977,
+      "years": [
+        1981,
+        1984
+      ]
+    },
+    {
+      "name": "East Hills",
+      "region": "none",
+      "elasticity": 0.9095029869548698,
+      "sd": 5.44650637283239,
+      "observations": 11,
+      "weight": 5.289337715584411,
+      "years": [
+        1981,
+        1984,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Eastwood",
+      "region": "none",
+      "elasticity": 0.8441016273507199,
+      "sd": 7.538370615168633,
+      "observations": 5,
+      "weight": 1.0829534672360859,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995
+      ]
+    },
+    {
+      "name": "Elizabeth",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 7.638918492417271,
+      "observations": 2,
+      "weight": 0.325427584671977,
+      "years": [
+        1981,
+        1984
+      ]
+    },
+    {
+      "name": "Epping",
+      "region": "none",
+      "elasticity": 1.0748809374570474,
+      "sd": 4.903580342288136,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Ermington",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 7.030012237212302,
+      "observations": 2,
+      "weight": 0.5473017787506802,
+      "years": [
+        1991,
+        1995
+      ]
+    },
+    {
+      "name": "Fairfield",
+      "region": "none",
+      "elasticity": 1.154520119636002,
+      "sd": 5.128423323096054,
+      "observations": 11,
+      "weight": 5.3509109300225,
+      "years": [
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Georges River",
+      "region": "none",
+      "elasticity": 0.969335064378977,
+      "sd": 7.159834208001984,
+      "observations": 6,
+      "weight": 1.68017837015958,
+      "years": [
+        1981,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003
+      ]
+    },
+    {
+      "name": "Gladesville",
+      "region": "none",
+      "elasticity": 0.9300293732777393,
+      "sd": 7.238148464775815,
+      "observations": 5,
+      "weight": 1.0829534672360859,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995
+      ]
+    },
+    {
+      "name": "Gloucester",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.6737991419457785,
+      "observations": 1,
+      "weight": 0.1767766952966369,
+      "years": [
+        1984
+      ]
+    },
+    {
+      "name": "Gordon",
+      "region": "none",
+      "elasticity": 0.8422735168612374,
+      "sd": 7.562305853247656,
+      "observations": 5,
+      "weight": 1.0829534672360859,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995
+      ]
+    },
+    {
+      "name": "Gosford",
+      "region": "none",
+      "elasticity": 1.0025273115316826,
+      "sd": 4.850465208090522,
+      "observations": 12,
+      "weight": 5.499561819397839,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Goulburn",
+      "region": "none",
+      "elasticity": 1.1075692316137764,
+      "sd": 7.5390213111458815,
+      "observations": 5,
+      "weight": 3.3193834492382597,
+      "years": [
+        1984,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Granville",
+      "region": "none",
+      "elasticity": 0.9391425142413735,
+      "sd": 6.085291970613472,
+      "observations": 11,
+      "weight": 5.3509109300225,
+      "years": [
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Hawkesbury",
+      "region": "none",
+      "elasticity": 0.9858967528021942,
+      "sd": 5.294926416076213,
+      "observations": 9,
+      "weight": 4.228181566599842,
+      "years": [
+        1981,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Heathcote",
+      "region": "none",
+      "elasticity": 1.1021742018472318,
+      "sd": 4.631223837473089,
+      "observations": 10,
+      "weight": 4.952260040647159,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Heffron",
+      "region": "none",
+      "elasticity": 1.047822372078512,
+      "sd": 4.666113058302795,
+      "observations": 12,
+      "weight": 5.499561819397839,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Holsworthy",
+      "region": "none",
+      "elasticity": 0.8437082068464457,
+      "sd": 5.697452680310013,
+      "observations": 3,
+      "weight": 2.548003196440262,
+      "years": [
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Hornsby",
+      "region": "none",
+      "elasticity": 1.0760873134152615,
+      "sd": 5.580045833130348,
+      "observations": 9,
+      "weight": 4.3576564831457985,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1999,
+        2003,
+        2007,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Hurstville",
+      "region": "none",
+      "elasticity": 0.9576017598439445,
+      "sd": 7.600400012818726,
+      "observations": 4,
+      "weight": 0.906176771939449,
+      "years": [
+        1981,
+        1988,
+        1991,
+        1995
+      ]
+    },
+    {
+      "name": "Illawarra",
+      "region": "none",
+      "elasticity": 1.25244239257316,
+      "sd": 6.935081062591698,
+      "observations": 7,
+      "weight": 1.856955065456217,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003
+      ]
+    },
+    {
+      "name": "Ingleburn",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 7.109496487396161,
+      "observations": 2,
+      "weight": 0.325427584671977,
+      "years": [
+        1981,
+        1984
+      ]
+    },
+    {
+      "name": "Keira",
+      "region": "none",
+      "elasticity": 1.1011079688312004,
+      "sd": 4.861626756672422,
+      "observations": 8,
+      "weight": 4.400132636505732,
+      "years": [
+        1988,
+        1991,
+        1995,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Kellyville",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 7.008531105534939,
+      "observations": 1,
+      "weight": 1.0,
+      "years": [
+        2023
+      ]
+    },
+    {
+      "name": "Kiama",
+      "region": "none",
+      "elasticity": 0.8770263151550137,
+      "sd": 6.598068377629328,
+      "observations": 10,
+      "weight": 4.3509109300225,
+      "years": [
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019
+      ]
+    },
+    {
+      "name": "Kogarah",
+      "region": "none",
+      "elasticity": 0.942481832345673,
+      "sd": 8.19450021013873,
+      "observations": 12,
+      "weight": 5.499561819397839,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Ku-ring-gai",
+      "region": "none",
+      "elasticity": 1.395441469552726,
+      "sd": 6.9321632548052365,
+      "observations": 9,
+      "weight": 3.69473415808305,
+      "years": [
+        1981,
+        1984,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2015,
+        2019
+      ]
+    },
+    {
+      "name": "Lachlan",
+      "region": "none",
+      "elasticity": 0.8857192036431119,
+      "sd": 7.681729004996473,
+      "observations": 6,
+      "weight": 1.6467309616427883,
+      "years": [
+        1981,
+        1984,
+        1991,
+        1995,
+        1999,
+        2003
+      ]
+    },
+    {
+      "name": "Lake Macquarie",
+      "region": "none",
+      "elasticity": 1.0772515846507396,
+      "sd": 6.616326533499124,
+      "observations": 7,
+      "weight": 1.856955065456217,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003
+      ]
+    },
+    {
+      "name": "Lakemba",
+      "region": "none",
+      "elasticity": 1.2834306910802005,
+      "sd": 8.036645861032001,
+      "observations": 10,
+      "weight": 4.3509109300225,
+      "years": [
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019
+      ]
+    },
+    {
+      "name": "Lane Cove",
+      "region": "none",
+      "elasticity": 1.091574128176425,
+      "sd": 5.195636499345309,
+      "observations": 10,
+      "weight": 4.69473415808305,
+      "years": [
+        1981,
+        1984,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Leppington",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.0871861434247565,
+      "observations": 1,
+      "weight": 1.0,
+      "years": [
+        2023
+      ]
+    },
+    {
+      "name": "Lismore",
+      "region": "none",
+      "elasticity": 0.9483365100555896,
+      "sd": 6.460215177393324,
+      "observations": 8,
+      "weight": 3.8724238960379544,
+      "years": [
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Liverpool",
+      "region": "none",
+      "elasticity": 0.9311833982317304,
+      "sd": 8.022390299614813,
+      "observations": 10,
+      "weight": 4.992035936833731,
+      "years": [
+        1981,
+        1984,
+        1991,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Londonderry",
+      "region": "none",
+      "elasticity": 1.0413315324239187,
+      "sd": 5.387876489257041,
+      "observations": 8,
+      "weight": 4.503686027099005,
+      "years": [
+        1988,
+        1995,
+        1999,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Macquarie Fields",
+      "region": "none",
+      "elasticity": 0.9721795247833561,
+      "sd": 6.353581202968287,
+      "observations": 8,
+      "weight": 4.626832455975182,
+      "years": [
+        1988,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Maitland",
+      "region": "none",
+      "elasticity": 1.0058525235704436,
+      "sd": 6.37570335530191,
+      "observations": 11,
+      "weight": 4.999561819397839,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Manly",
+      "region": "none",
+      "elasticity": 0.9802941976279653,
+      "sd": 7.177219416743869,
+      "observations": 3,
+      "weight": 0.5356516884854057,
+      "years": [
+        1981,
+        1984,
+        1988
+      ]
+    },
+    {
+      "name": "Maroubra",
+      "region": "none",
+      "elasticity": 0.9674917789535535,
+      "sd": 5.291496013110303,
+      "observations": 11,
+      "weight": 5.3509109300225,
+      "years": [
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Marrickville",
+      "region": "none",
+      "elasticity": 1.001925689955063,
+      "sd": 7.651567454966498,
+      "observations": 4,
+      "weight": 0.7856516884854057,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991
+      ]
+    },
+    {
+      "name": "Menai",
+      "region": "none",
+      "elasticity": 1.2228049736484379,
+      "sd": 7.353028275320892,
+      "observations": 4,
+      "weight": 1.8686051557214916,
+      "years": [
+        1999,
+        2003,
+        2007,
+        2011
+      ]
+    },
+    {
+      "name": "Merrylands",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.6528439197970775,
+      "observations": 1,
+      "weight": 0.1767766952966369,
+      "years": [
+        1984
+      ]
+    },
+    {
+      "name": "Minchinbury",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.665537984082473,
+      "observations": 1,
+      "weight": 0.21022410381342863,
+      "years": [
+        1988
+      ]
+    },
+    {
+      "name": "Miranda",
+      "region": "none",
+      "elasticity": 1.1148857057804111,
+      "sd": 5.470872713210484,
+      "observations": 11,
+      "weight": 5.289337715584411,
+      "years": [
+        1981,
+        1984,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Monaro",
+      "region": "none",
+      "elasticity": 0.875752980955839,
+      "sd": 8.413958082066252,
+      "observations": 12,
+      "weight": 5.499561819397839,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Moorebank",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.980504585608506,
+      "observations": 2,
+      "weight": 0.5473017787506802,
+      "years": [
+        1991,
+        1995
+      ]
+    },
+    {
+      "name": "Mosman",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.86364788492895,
+      "observations": 2,
+      "weight": 0.325427584671977,
+      "years": [
+        1981,
+        1984
+      ]
+    },
+    {
+      "name": "Mount Druitt",
+      "region": "none",
+      "elasticity": 1.0314365954512528,
+      "sd": 4.4469392995262425,
+      "observations": 9,
+      "weight": 4.963910130912434,
+      "years": [
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Mulgoa",
+      "region": "none",
+      "elasticity": 1.0732959769090322,
+      "sd": 6.180683273847448,
+      "observations": 7,
+      "weight": 3.6268324559751823,
+      "years": [
+        1988,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019
+      ]
+    },
+    {
+      "name": "Murray",
+      "region": "none",
+      "elasticity": 0.6759741598930528,
+      "sd": 7.912167917048074,
+      "observations": 3,
+      "weight": 0.575427584671977,
+      "years": [
+        1981,
+        1984,
+        1991
+      ]
+    },
+    {
+      "name": "Murray-Darling",
+      "region": "none",
+      "elasticity": 1.0778222189389823,
+      "sd": 6.438603871052055,
+      "observations": 4,
+      "weight": 1.8686051557214916,
+      "years": [
+        1999,
+        2003,
+        2007,
+        2011
+      ]
+    },
+    {
+      "name": "Murrumbidgee",
+      "region": "none",
+      "elasticity": 0.9582028939621988,
+      "sd": 7.662853660810855,
+      "observations": 7,
+      "weight": 2.4440327403934687,
+      "years": [
+        1981,
+        1984,
+        1991,
+        1999,
+        2003,
+        2007,
+        2011
+      ]
+    },
+    {
+      "name": "Murwillumbah",
+      "region": "none",
+      "elasticity": 1.1007286029676981,
+      "sd": 6.939395343597742,
+      "observations": 3,
+      "weight": 0.7575258825641089,
+      "years": [
+        1988,
+        1991,
+        1995
+      ]
+    },
+    {
+      "name": "Myall Lakes",
+      "region": "none",
+      "elasticity": 1.0816627282830582,
+      "sd": 8.60706613626035,
+      "observations": 9,
+      "weight": 4.579530677224502,
+      "years": [
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Newcastle",
+      "region": "none",
+      "elasticity": 1.0176036815946699,
+      "sd": 6.915187072201574,
+      "observations": 7,
+      "weight": 3.64743237933237,
+      "years": [
+        1981,
+        1984,
+        1999,
+        2003,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "North Shore",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.479654196891706,
+      "observations": 2,
+      "weight": 0.774001598220131,
+      "years": [
+        1999,
+        2003
+      ]
+    },
+    {
+      "name": "Northcott",
+      "region": "none",
+      "elasticity": 0.9999647377865162,
+      "sd": 8.735575087479774,
+      "observations": 4,
+      "weight": 0.8727293634226573,
+      "years": [
+        1981,
+        1984,
+        1991,
+        1995
+      ]
+    },
+    {
+      "name": "Northern Tablelands",
+      "region": "none",
+      "elasticity": 0.8741934274618521,
+      "sd": 8.377158415133918,
+      "observations": 8,
+      "weight": 3.630956663676348,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Oatley",
+      "region": "none",
+      "elasticity": 0.8452250645270324,
+      "sd": 6.92117019369866,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Orange",
+      "region": "none",
+      "elasticity": 1.0701134789956317,
+      "sd": 6.489222925791626,
+      "observations": 6,
+      "weight": 2.016760067892084,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1999,
+        2003,
+        2015
+      ]
+    },
+    {
+      "name": "Oxley",
+      "region": "none",
+      "elasticity": 1.1234811070404171,
+      "sd": 6.734590711827478,
+      "observations": 10,
+      "weight": 4.69473415808305,
+      "years": [
+        1981,
+        1984,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Parramatta",
+      "region": "none",
+      "elasticity": 1.082828667039761,
+      "sd": 7.119416393002897,
+      "observations": 12,
+      "weight": 5.499561819397839,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Peats",
+      "region": "none",
+      "elasticity": 0.9298804390331745,
+      "sd": 6.354992371882899,
+      "observations": 7,
+      "weight": 1.856955065456217,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003
+      ]
+    },
+    {
+      "name": "Penrith",
+      "region": "none",
+      "elasticity": 1.110581752674846,
+      "sd": 6.311627494653689,
+      "observations": 12,
+      "weight": 5.499561819397839,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Pittwater",
+      "region": "none",
+      "elasticity": 0.7852865374837938,
+      "sd": 6.794600597685364,
+      "observations": 5,
+      "weight": 1.498080072267448,
+      "years": [
+        1984,
+        1991,
+        1995,
+        1999,
+        2003
+      ]
+    },
+    {
+      "name": "Port Jackson",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.608640777468847,
+      "observations": 1,
+      "weight": 0.3535533905932738,
+      "years": [
+        1999
+      ]
+    },
+    {
+      "name": "Port Macquarie",
+      "region": "none",
+      "elasticity": 0.8883700880746733,
+      "sd": 7.07328559942556,
+      "observations": 5,
+      "weight": 2.4488583657842162,
+      "years": [
+        1991,
+        1995,
+        1999,
+        2015,
+        2019
+      ]
+    },
+    {
+      "name": "Port Stephens",
+      "region": "none",
+      "elasticity": 1.0616662990883015,
+      "sd": 7.122128019799914,
+      "observations": 9,
+      "weight": 4.753686027099005,
+      "years": [
+        1988,
+        1991,
+        1995,
+        1999,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Prospect",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.7516603360806595,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Riverstone",
+      "region": "none",
+      "elasticity": 1.2115246848179948,
+      "sd": 5.822019994099872,
+      "observations": 10,
+      "weight": 5.112561020287774,
+      "years": [
+        1981,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Rockdale",
+      "region": "none",
+      "elasticity": 0.9657609708056933,
+      "sd": 4.517542861425335,
+      "observations": 11,
+      "weight": 5.3509109300225,
+      "years": [
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Ryde",
+      "region": "none",
+      "elasticity": 1.2847950145082088,
+      "sd": 7.253905370019734,
+      "observations": 10,
+      "weight": 4.952260040647159,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Seven Hills",
+      "region": "none",
+      "elasticity": 0.7619747744677775,
+      "sd": 7.3039693434953525,
+      "observations": 4,
+      "weight": 1.9068781896290308,
+      "years": [
+        1981,
+        1988,
+        2015,
+        2019
+      ]
+    },
+    {
+      "name": "Shellharbour",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 5.867267632415164,
+      "observations": 2,
+      "weight": 1.548003196440262,
+      "years": [
+        2015,
+        2019
+      ]
+    },
+    {
+      "name": "Smithfield",
+      "region": "none",
+      "elasticity": 1.125131014912496,
+      "sd": 7.029957025425292,
+      "observations": 6,
+      "weight": 2.4159069344721718,
+      "years": [
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011
+      ]
+    },
+    {
+      "name": "South Coast",
+      "region": "none",
+      "elasticity": 0.9941002259801205,
+      "sd": 5.995290881853454,
+      "observations": 8,
+      "weight": 4.666608352161754,
+      "years": [
+        1991,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Southern Highlands",
+      "region": "none",
+      "elasticity": 1.0644880786336655,
+      "sd": 7.201486927574514,
+      "observations": 5,
+      "weight": 1.5315274807842398,
+      "years": [
+        1988,
+        1991,
+        1995,
+        1999,
+        2003
+      ]
+    },
+    {
+      "name": "St Marys",
+      "region": "none",
+      "elasticity": 1.3250522347620564,
+      "sd": 7.594334697625617,
+      "observations": 4,
+      "weight": 0.8727293634226573,
+      "years": [
+        1981,
+        1984,
+        1991,
+        1995
+      ]
+    },
+    {
+      "name": "Strathfield",
+      "region": "none",
+      "elasticity": 1.0395673174443705,
+      "sd": 5.105748452773852,
+      "observations": 10,
+      "weight": 5.174134234725862,
+      "years": [
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Summer Hill",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.1650840814738075,
+      "observations": 1,
+      "weight": 0.8408964152537145,
+      "years": [
+        2019
+      ]
+    },
+    {
+      "name": "Sutherland",
+      "region": "none",
+      "elasticity": 0.8909932712591444,
+      "sd": 7.098694537518865,
+      "observations": 3,
+      "weight": 0.7575258825641089,
+      "years": [
+        1988,
+        1991,
+        1995
+      ]
+    },
+    {
+      "name": "Swansea",
+      "region": "none",
+      "elasticity": 0.9683207504202191,
+      "sd": 5.125380409357387,
+      "observations": 9,
+      "weight": 4.742035936833731,
+      "years": [
+        1981,
+        1984,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Tamworth",
+      "region": "none",
+      "elasticity": 1.146237857986498,
+      "sd": 7.706302576348576,
+      "observations": 3,
+      "weight": 0.5356516884854057,
+      "years": [
+        1981,
+        1984,
+        1988
+      ]
+    },
+    {
+      "name": "Terrigal",
+      "region": "none",
+      "elasticity": 1.093486169506452,
+      "sd": 6.242525754635516,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "The Entrance",
+      "region": "none",
+      "elasticity": 1.007637604810414,
+      "sd": 4.724991719564197,
+      "observations": 9,
+      "weight": 4.963910130912434,
+      "years": [
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "The Hills",
+      "region": "none",
+      "elasticity": 1.2498185857042174,
+      "sd": 7.427729533171825,
+      "observations": 4,
+      "weight": 1.0994291828921081,
+      "years": [
+        1981,
+        1984,
+        1999,
+        2003
+      ]
+    },
+    {
+      "name": "Toongabbie",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.300128607167786,
+      "observations": 2,
+      "weight": 1.0946035575013604,
+      "years": [
+        2007,
+        2011
+      ]
+    },
+    {
+      "name": "Tuggerah",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.875237680938599,
+      "observations": 2,
+      "weight": 0.325427584671977,
+      "years": [
+        1981,
+        1984
+      ]
+    },
+    {
+      "name": "Tweed",
+      "region": "none",
+      "elasticity": 1.0893505174793352,
+      "sd": 6.187283447302849,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Upper Hunter",
+      "region": "none",
+      "elasticity": 1.1210489214707149,
+      "sd": 7.6222481625799,
+      "observations": 9,
+      "weight": 4.39743237933237,
+      "years": [
+        1981,
+        1984,
+        1991,
+        1999,
+        2003,
+        2007,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Vaucluse",
+      "region": "none",
+      "elasticity": 1.008999036937262,
+      "sd": 7.367950911342809,
+      "observations": 4,
+      "weight": 1.0994291828921081,
+      "years": [
+        1981,
+        1984,
+        1999,
+        2003
+      ]
+    },
+    {
+      "name": "Wagga Wagga",
+      "region": "none",
+      "elasticity": 1.1760112521506974,
+      "sd": 6.9052488868981445,
+      "observations": 7,
+      "weight": 2.6038377428293358,
+      "years": [
+        1981,
+        1984,
+        1995,
+        1999,
+        2003,
+        2007,
+        2015
+      ]
+    },
+    {
+      "name": "Wahroonga",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.22837738410036,
+      "observations": 1,
+      "weight": 1.0,
+      "years": [
+        2023
+      ]
+    },
+    {
+      "name": "Wakehurst",
+      "region": "none",
+      "elasticity": 0.9035743025414501,
+      "sd": 5.310700021597516,
+      "observations": 10,
+      "weight": 3.904958261896479,
+      "years": [
+        1981,
+        1984,
+        1988,
+        1991,
+        1995,
+        1999,
+        2003,
+        2007,
+        2015,
+        2019
+      ]
+    },
+    {
+      "name": "Wallsend",
+      "region": "none",
+      "elasticity": 0.9762061186207381,
+      "sd": 5.867583144338998,
+      "observations": 9,
+      "weight": 4.815259241537094,
+      "years": [
+        1981,
+        1991,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Waratah",
+      "region": "none",
+      "elasticity": 1.4483838978854648,
+      "sd": 7.809820122984166,
+      "observations": 4,
+      "weight": 0.8727293634226573,
+      "years": [
+        1981,
+        1984,
+        1991,
+        1995
+      ]
+    },
+    {
+      "name": "Wentworthville",
+      "region": "none",
+      "elasticity": 1.040779559932628,
+      "sd": 7.00840471411477,
+      "observations": 4,
+      "weight": 1.1610023973301966,
+      "years": [
+        1984,
+        1988,
+        1999,
+        2003
+      ]
+    },
+    {
+      "name": "Willoughby",
+      "region": "none",
+      "elasticity": 1.2280687409397852,
+      "sd": 6.732670123238104,
+      "observations": 4,
+      "weight": 1.5198773905189653,
+      "years": [
+        1981,
+        1984,
+        1999,
+        2019
+      ]
+    },
+    {
+      "name": "Winston Hills",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.106604004147875,
+      "observations": 1,
+      "weight": 1.0,
+      "years": [
+        2023
+      ]
+    },
+    {
+      "name": "Wollondilly",
+      "region": "none",
+      "elasticity": 0.9633907784192465,
+      "sd": 6.251019742035826,
+      "observations": 3,
+      "weight": 1.801710338687908,
+      "years": [
+        2007,
+        2011,
+        2015
+      ]
+    },
+    {
+      "name": "Wollongong",
+      "region": "none",
+      "elasticity": 1.0388549442132178,
+      "sd": 6.9464510028196536,
+      "observations": 4,
+      "weight": 2.6944498058469883,
+      "years": [
+        1999,
+        2007,
+        2019,
+        2023
+      ]
+    },
+    {
+      "name": "Woronora",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.639178505944456,
+      "observations": 1,
+      "weight": 0.1767766952966369,
+      "years": [
+        1984
+      ]
+    },
+    {
+      "name": "Wyong",
+      "region": "none",
+      "elasticity": 0.9402893151889589,
+      "sd": 5.480619118033409,
+      "observations": 8,
+      "weight": 4.666608352161754,
+      "years": [
+        1991,
+        1999,
+        2003,
+        2007,
+        2011,
+        2015,
+        2019,
+        2023
+      ]
+    }
+  ],
+  "excluded_comparisons": [
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Ballina",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Balmain",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Barwon",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Cessnock",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Kiama",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Lake Macquarie",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Manly",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Murray",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Newtown",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "North Shore",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Orange",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Pittwater",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Port Macquarie",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Shellharbour",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Summer Hill",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Sydney",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Tamworth",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Vaucluse",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Wagga Wagga",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Wakehurst",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Willoughby",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2023,
+      "jurisdiction": "nsw",
+      "seat": "Wollondilly",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Ballina",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Balmain",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Barwon",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Cabramatta",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Coffs Harbour",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Davidson",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Dubbo",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Lake Macquarie",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Manly",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Murray",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Newtown",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "North Shore",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Orange",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Pittwater",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Sydney",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Tamworth",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Vaucluse",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Wagga Wagga",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2019,
+      "jurisdiction": "nsw",
+      "seat": "Wollondilly",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Ballina",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Balmain",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Davidson",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Lake Macquarie",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Lismore",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Manly",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Murray",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Newtown",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "North Shore",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Pittwater",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Prospect",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Summer Hill",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Sydney",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Tamworth",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Vaucluse",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Willoughby",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2015,
+      "jurisdiction": "nsw",
+      "seat": "Wollongong",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Ballina",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Balmain",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Barwon",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Charlestown",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Clarence",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Davidson",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Dubbo",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Hawkesbury",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Hornsby",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Ku-ring-gai",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Lake Macquarie",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Lane Cove",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Lismore",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Manly",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Marrickville",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Myall Lakes",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Newcastle",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "North Shore",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Northern Tablelands",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Orange",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Oxley",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Pittwater",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Port Macquarie",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Shellharbour",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Sydney",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Tamworth",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Upper Hunter",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Vaucluse",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Wagga Wagga",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Wakehurst",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Willoughby",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2011,
+      "jurisdiction": "nsw",
+      "seat": "Wollongong",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Balmain",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Barwon",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Charlestown",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Dubbo",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Goulburn",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Hawkesbury",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Lake Macquarie",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Maitland",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Manly",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Marrickville",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Newcastle",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "North Shore",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Northern Tablelands",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Orange",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Pittwater",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Port Macquarie",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Shellharbour",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Sydney",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Tamworth",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Vaucluse",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2007,
+      "jurisdiction": "nsw",
+      "seat": "Willoughby",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Albury",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Bligh",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Cabramatta",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Cessnock",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Coffs Harbour",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Dubbo",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Keira",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Londonderry",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Manly",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Marrickville",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Northern Tablelands",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Port Jackson",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Port Macquarie",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Port Stephens",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Tamworth",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Willoughby",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2003,
+      "jurisdiction": "nsw",
+      "seat": "Wollongong",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "nsw",
+      "seat": "Albury",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "nsw",
+      "seat": "Bligh",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "nsw",
+      "seat": "Burrinjuck",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "nsw",
+      "seat": "Cabramatta",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "nsw",
+      "seat": "Cessnock",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "nsw",
+      "seat": "Dubbo",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "nsw",
+      "seat": "Keira",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "nsw",
+      "seat": "Manly",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "nsw",
+      "seat": "Marrickville",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "nsw",
+      "seat": "Northern Tablelands",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "nsw",
+      "seat": "Tamworth",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Bathurst",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Bligh",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Liverpool",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Manly",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Marrickville",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Murray",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Murrumbidgee",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Newcastle",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "North Shore",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Orange",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Port Jackson",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "South Coast",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Swansea",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Tamworth",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "The Hills",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Upper Hunter",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Vaucluse",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Wallsend",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Willoughby",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Wollongong",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1995,
+      "jurisdiction": "nsw",
+      "seat": "Wyong",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "Bankstown",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "Bligh",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "Burrinjuck",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "Londonderry",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "Manly",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "Newcastle",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "North Shore",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "Orange",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "Port Jackson",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "Swansea",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "Tamworth",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "The Hills",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "Vaucluse",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "Wagga Wagga",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "Willoughby",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1991,
+      "jurisdiction": "nsw",
+      "seat": "Wollongong",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Balmain",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Bathurst",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Bligh",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Burragorang",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Burrinjuck",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Canterbury",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Carlingford",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Clarence",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Davidson",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Earlwood",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "East Hills",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Goulburn",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Ku-ring-gai",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Lachlan",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Lane Cove",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Liverpool",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Manning",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "McKell",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Middle Harbour",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Miranda",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Mosman",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Murray",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Murrumbidgee",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Newcastle",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "North Shore",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Northcott",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Pittwater",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Port Macquarie",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Riverstone",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Smithfield",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "South Coast",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Swansea",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "The Entrance",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "The Hills",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Upper Hunter",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Vaucluse",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Wagga Wagga",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Wallsend",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Waratah",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Wollongong",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1988,
+      "jurisdiction": "nsw",
+      "seat": "Wyong",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Ashfield",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Bankstown",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Broken Hill",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Camden",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Campbelltown",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Cessnock",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Corrimal",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Drummoyne",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Dubbo",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Georges River",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Hawkesbury",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Hurstville",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Lismore",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "North Shore",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Riverstone",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Seven Hills",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "South Coast",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Wallsend",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1984,
+      "jurisdiction": "nsw",
+      "seat": "Wollongong",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Albury",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Auburn",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Bass Hill",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Blacktown",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Blue Mountains",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Broken Hill",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Campbelltown",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Castlereagh",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Clarence",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Dubbo",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Fairfield",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Gloucester",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Goulburn",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Granville",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Kiama",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Lakemba",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Lismore",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Maroubra",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Merrylands",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "North Shore",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Pittwater",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Rockdale",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "South Coast",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Wentworthville",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Wollongong",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1981,
+      "jurisdiction": "nsw",
+      "seat": "Woronora",
+      "reason": "No valid comparable TPP swing"
+    }
+  ]
+}

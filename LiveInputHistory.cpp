@@ -302,6 +302,8 @@ public:
     void visitDistricts(std::string const& cutoff, Selection const& selection, DistrictVisitor const& visitor);
     void prepare(Selection const& selection, std::string const& cutoff);
     void visit(std::string const& cutoff, Selection const& selection, Visitor const& visitor, RequiredCount required);
+    void visitPreferenceChanges(std::string const& cutoff, Selection const& selection,
+        PreferenceChangeVisitor const& visitor);
     void visitFirstPreferenceRuns(std::string const& cutoff, Selection const& selection,
         FirstPreferenceRunVisitor const& visitor);
     std::shared_ptr<Partition const> partition(std::string const& id, std::string const& cutoff = {});
@@ -894,6 +896,38 @@ void Store::visit(std::string const& cutoff, Selection const& selection, Visitor
     }
 }
 
+void Store::visitPreferenceChanges(std::string const& cutoff, Selection const& selection,
+    PreferenceChangeVisitor const& visitor) {
+    auto const& sources = manifest.at("sources");
+    for (auto const& [district, keys] : selection) {
+        auto history = partition(hashText(district), cutoff);
+        for (auto const& key : keys) {
+            auto record = history->find(key);
+            if (record == history->end()) continue;
+            // Include changes in the recorded batch association even if the
+            // raw vote vectors are unchanged. The district partitions already
+            // enforce the cutoff, so late replays never reconstruct later data.
+            std::set<std::string> changes;
+            for (auto const& change : record->second.present) changes.insert(change.source);
+            for (auto const* field : {"fp", "tcp", "tcp_basis", "matched_preferences", "i"}) {
+                auto timeline = record->second.fields.find(field);
+                if (timeline == record->second.fields.end()) continue;
+                for (auto const& change : timeline->second) changes.insert(change.source);
+            }
+            for (auto const& source : changes) {
+                // A cached partition can also be the untrimmed maintenance
+                // view. Always enforce the replay cutoff here as well.
+                if (source >= cutoff) break;
+                auto snapshot = sources.at(source).at("metadata");
+                auto row = reconstruct(record->second, source, snapshot.at("source_time"));
+                if (row.is_null()) continue;
+                snapshot["records"] = json::array({std::move(row)});
+                visitor(snapshot);
+            }
+        }
+    }
+}
+
 void Store::visitFirstPreferenceRuns(std::string const& cutoff, Selection const& selection,
     FirstPreferenceRunVisitor const& visitor) {
     // The source inventory supplies clocks only. In contrast with recovery's
@@ -996,6 +1030,13 @@ void visitAcceptedDistricts(Path const& folder, std::string const& cutoff, Selec
 void visitAcceptedEarlier(Path const& folder, std::string const& cutoff, Selection const& selection,
     Validate const& validate, Visitor const& visitor, RequiredCount required) {
     withAcceptedStore(folder,cutoff,validate,[&](Store& store) { store.visit(cutoff,selection,visitor,required); });
+}
+
+void visitAcceptedPreferenceChanges(Path const& folder, std::string const& cutoff,
+    Selection const& selection, Validate const& validate, PreferenceChangeVisitor const& visitor) {
+    withAcceptedStore(folder,cutoff,validate,[&](Store& store) {
+        store.visitPreferenceChanges(cutoff,selection,visitor);
+    });
 }
 
 void visitAcceptedFirstPreferenceRuns(Path const& folder, std::string const& cutoff,

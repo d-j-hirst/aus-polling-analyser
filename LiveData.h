@@ -1,13 +1,16 @@
 #pragma once
 
 #include "LiveTppIntegration.h"
+#include "PreferenceModel.h"
 
 #include <map>
 #include <cmath>
+#include <array>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <span>
 #include <vector>
 
 // Portable boundary between the core simulation and a live-results analysis
@@ -287,6 +290,10 @@ public:
 		std::map<int, double> const& representedParties) const = 0;
 	virtual TcpShareInformation getSeatTcpInformation(
 		std::string const& seatName) const = 0;
+	// A conditional share of votes for the first supplied finalist. Providers
+	// without live preference learning use the ordinary TCP integration.
+	virtual std::optional<double> getLearnedTcpShare(std::string const&, std::array<int,2>,
+		std::span<PreferenceModel::FinalSource const>) const { return {}; }
 	// Providers without turnout integration return no account. Leave these
 	// intentionally unused parameters unnamed in the default implementation.
 	virtual std::optional<VoteCountAccount> getSeatVoteCountAccount(

@@ -303,8 +303,8 @@ __pycache__/
 /analysis/stan-cache
 /analysis/Data/poll-data-fed-test.xlsx
 /analysis/Data/poll-data-fed-test2.xlsx
-# Generated provenance describes local output state and belongs in archives,
-# not Git. Source provenance uses the distinct plain provenance.json name.
+# Ignore generated provenance in working output directories. Validated
+# archive copies are included below. Source provenance uses provenance.json.
 **/generated-provenance.json
 **/*-generated-provenance.json
 */env
@@ -312,6 +312,12 @@ __pycache__/
 /analysis/Adjustments/*
 /Federal Election 2022 test v14.pol2
 *.pkl
+# The validated archive restores both the generated outputs' provenance and
+# the election-result caches needed to reproduce seat statistics offline.
+!/analysis/Archived/**/generated-provenance.json
+!/analysis/Archived/**/*-generated-provenance.json
+!/analysis/Archived/elections/*_results.pkl
+!/analysis/Archived/Federal-State/*.pkl
 /analysis/Fundamentals
 /analysis/Seat Statistics
 /analysis/elections

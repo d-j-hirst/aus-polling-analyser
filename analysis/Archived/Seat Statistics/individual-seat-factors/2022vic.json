@@ -1,0 +1,2349 @@
+{
+  "election": "2022vic",
+  "generic_sd": 3.42231267233626,
+  "fallback_sd": 4.328921163936041,
+  "kurtosis": 4.325363831624386,
+  "floor": 2.0,
+  "half_life_elections": 4.0,
+  "minimum_history": 4,
+  "disruption_sd_multiplier": 2,
+  "generic_source": "vic",
+  "training_years": [
+    1992,
+    1996,
+    1999,
+    2002,
+    2006,
+    2010,
+    2014,
+    2018
+  ],
+  "seats": [
+    {
+      "name": "Albert Park",
+      "region": "none",
+      "elasticity": 0.9813356351283619,
+      "sd": 3.9748100535494717,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Altona",
+      "region": "none",
+      "elasticity": 1.0223707573655598,
+      "sd": 4.156121096886009,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Ballarat East",
+      "region": "none",
+      "elasticity": 0.8231195506235363,
+      "sd": 3.841648767498014,
+      "observations": 6,
+      "weight": 2.873013715658719,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Ballarat West",
+      "region": "none",
+      "elasticity": 0.8953830379151432,
+      "sd": 3.7443801938215886,
+      "observations": 6,
+      "weight": 2.873013715658719,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Bass",
+      "region": "none",
+      "elasticity": 1.1350829950665924,
+      "sd": 3.947959587309364,
+      "observations": 4,
+      "weight": 3.1426067539416227,
+      "years": [
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Bayswater",
+      "region": "none",
+      "elasticity": 1.055141741894305,
+      "sd": 3.235828312541194,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Bellarine",
+      "region": "none",
+      "elasticity": 1.0444233332253139,
+      "sd": 3.455163310745329,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Benalla",
+      "region": "none",
+      "elasticity": 1.0154119611498182,
+      "sd": 6.746449864788862,
+      "observations": 6,
+      "weight": 2.873013715658719,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Benambra",
+      "region": "none",
+      "elasticity": 0.8230575711184505,
+      "sd": 5.554171810952716,
+      "observations": 7,
+      "weight": 3.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014
+      ]
+    },
+    {
+      "name": "Bendigo East",
+      "region": "none",
+      "elasticity": 1.0253961840733234,
+      "sd": 4.054703517855383,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Bendigo West",
+      "region": "none",
+      "elasticity": 0.9886953302096724,
+      "sd": 3.953635171468303,
+      "observations": 7,
+      "weight": 4.006803349725886,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Bennettswood",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.443659089441574,
+      "observations": 2,
+      "weight": 0.650855169343954,
+      "years": [
+        1992,
+        1996
+      ]
+    },
+    {
+      "name": "Bentleigh",
+      "region": "none",
+      "elasticity": 1.042346726029553,
+      "sd": 4.184483467757574,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Berwick",
+      "region": "none",
+      "elasticity": 1.135519408167682,
+      "sd": 4.793976597678044,
+      "observations": 3,
+      "weight": 1.0713033769708113,
+      "years": [
+        1992,
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "Box Hill",
+      "region": "none",
+      "elasticity": 1.0349881440644488,
+      "sd": 3.1598582443550844,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Brighton",
+      "region": "none",
+      "elasticity": 1.113480178134531,
+      "sd": 3.390747585063642,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Broadmeadows",
+      "region": "none",
+      "elasticity": 0.942851252949316,
+      "sd": 6.436230538674871,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Bulleen",
+      "region": "none",
+      "elasticity": 1.093095896216859,
+      "sd": 3.157735432775046,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Bundoora",
+      "region": "none",
+      "elasticity": 1.0612592981851685,
+      "sd": 3.1281225178105823,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Buninyong",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 3.879422477513113,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Burwood",
+      "region": "none",
+      "elasticity": 1.063973312586275,
+      "sd": 3.2771833598629607,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Carrum",
+      "region": "none",
+      "elasticity": 1.084575465446366,
+      "sd": 4.172054154563638,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Caulfield",
+      "region": "none",
+      "elasticity": 0.9923596234910717,
+      "sd": 3.4596095389985795,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Clarinda",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.213227477660375,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Clayton",
+      "region": "none",
+      "elasticity": 1.030484842412711,
+      "sd": 4.206192694717546,
+      "observations": 6,
+      "weight": 2.873013715658719,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Coburg",
+      "region": "none",
+      "elasticity": 1.0566224886552154,
+      "sd": 4.615601741989185,
+      "observations": 3,
+      "weight": 1.0713033769708113,
+      "years": [
+        1992,
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "Cranbourne",
+      "region": "none",
+      "elasticity": 1.0204681576631176,
+      "sd": 4.150056671217297,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Croydon",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 3.8855941827292573,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Dandenong",
+      "region": "none",
+      "elasticity": 1.0548212905479946,
+      "sd": 4.617895903124288,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Dandenong North",
+      "region": "none",
+      "elasticity": 1.1194162541594779,
+      "sd": 4.449839022469793,
+      "observations": 3,
+      "weight": 1.0713033769708113,
+      "years": [
+        1992,
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "Derrimut",
+      "region": "none",
+      "elasticity": 1.1472306105376875,
+      "sd": 4.3549642209710315,
+      "observations": 3,
+      "weight": 1.801710338687908,
+      "years": [
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Doncaster",
+      "region": "none",
+      "elasticity": 1.2074564639290166,
+      "sd": 4.137702189677211,
+      "observations": 6,
+      "weight": 2.873013715658719,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Dromana",
+      "region": "none",
+      "elasticity": 1.185462216098757,
+      "sd": 4.5923303792337204,
+      "observations": 3,
+      "weight": 1.0713033769708113,
+      "years": [
+        1992,
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "Eildon",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.292465191356601,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Eltham",
+      "region": "none",
+      "elasticity": 1.063915718160894,
+      "sd": 3.889386760831528,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Essendon",
+      "region": "none",
+      "elasticity": 1.1042635318590661,
+      "sd": 3.2136340739410363,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Euroa",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 5.168424906488858,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Evelyn",
+      "region": "none",
+      "elasticity": 1.1988136448756728,
+      "sd": 3.455547070244295,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Ferntree Gully",
+      "region": "none",
+      "elasticity": 1.1282540713566929,
+      "sd": 3.761611949593456,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Footscray",
+      "region": "none",
+      "elasticity": 1.1372063926893716,
+      "sd": 6.034681253069603,
+      "observations": 7,
+      "weight": 4.293461923285577,
+      "years": [
+        1992,
+        1996,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Forest Hill",
+      "region": "none",
+      "elasticity": 1.0724383056163216,
+      "sd": 4.089687268151544,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Frankston",
+      "region": "none",
+      "elasticity": 1.0872689226929908,
+      "sd": 3.6747833170508706,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Frankston East",
+      "region": "none",
+      "elasticity": 1.0203063275563455,
+      "sd": 5.0077379139202645,
+      "observations": 3,
+      "weight": 1.0713033769708113,
+      "years": [
+        1992,
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "Geelong",
+      "region": "none",
+      "elasticity": 0.9093195462110429,
+      "sd": 3.7472686584819592,
+      "observations": 7,
+      "weight": 3.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014
+      ]
+    },
+    {
+      "name": "Geelong North",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.367680188917049,
+      "observations": 2,
+      "weight": 0.7177499863775375,
+      "years": [
+        1992,
+        1999
+      ]
+    },
+    {
+      "name": "Gembrook",
+      "region": "none",
+      "elasticity": 1.0092541726936743,
+      "sd": 3.8167265244639994,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Gippsland East",
+      "region": "none",
+      "elasticity": 0.9646719038730539,
+      "sd": 5.336858439742097,
+      "observations": 4,
+      "weight": 2.4917515845976688,
+      "years": [
+        1992,
+        1996,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Gippsland South",
+      "region": "none",
+      "elasticity": 0.8919164374993326,
+      "sd": 5.848216371594525,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Gippsland West",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.4997717194796465,
+      "observations": 2,
+      "weight": 0.650855169343954,
+      "years": [
+        1992,
+        1996
+      ]
+    },
+    {
+      "name": "Gisborne",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.826917566720943,
+      "observations": 2,
+      "weight": 0.774001598220131,
+      "years": [
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "Glen Waverley",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.859937400666358,
+      "observations": 2,
+      "weight": 0.650855169343954,
+      "years": [
+        1992,
+        1996
+      ]
+    },
+    {
+      "name": "Hastings",
+      "region": "none",
+      "elasticity": 1.0467131940470134,
+      "sd": 3.5264695382910625,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Hawthorn",
+      "region": "none",
+      "elasticity": 1.1067712442042552,
+      "sd": 4.17574778814458,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Ivanhoe",
+      "region": "none",
+      "elasticity": 1.0658980926969306,
+      "sd": 3.3864848370193092,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Keilor",
+      "region": "none",
+      "elasticity": 0.9965606133876628,
+      "sd": 4.792394523814092,
+      "observations": 6,
+      "weight": 2.873013715658719,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Kew",
+      "region": "none",
+      "elasticity": 1.0698687524937123,
+      "sd": 3.385975916979093,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Keysborough",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 3.9768152698735277,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Kilsyth",
+      "region": "none",
+      "elasticity": 1.1211991037500393,
+      "sd": 4.18701955077859,
+      "observations": 3,
+      "weight": 1.801710338687908,
+      "years": [
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Knox",
+      "region": "none",
+      "elasticity": 1.0577790254637367,
+      "sd": 4.980900203458102,
+      "observations": 3,
+      "weight": 1.0713033769708113,
+      "years": [
+        1992,
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "Kororoit",
+      "region": "none",
+      "elasticity": 1.0146783380708655,
+      "sd": 3.5727429595087705,
+      "observations": 4,
+      "weight": 2.935499972755075,
+      "years": [
+        2002,
+        2006,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Lara",
+      "region": "none",
+      "elasticity": 0.9771232133946663,
+      "sd": 3.974364106189837,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Lowan",
+      "region": "none",
+      "elasticity": 0.5283228463929479,
+      "sd": 5.645977350218931,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Lyndhurst",
+      "region": "none",
+      "elasticity": 1.286388821379066,
+      "sd": 4.571661892686351,
+      "observations": 3,
+      "weight": 1.801710338687908,
+      "years": [
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Macedon",
+      "region": "none",
+      "elasticity": 1.0616090352224488,
+      "sd": 3.846911929810654,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Malvern",
+      "region": "none",
+      "elasticity": 1.1341370864492875,
+      "sd": 4.081218376627562,
+      "observations": 7,
+      "weight": 4.293461923285577,
+      "years": [
+        1992,
+        1996,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Melbourne",
+      "region": "none",
+      "elasticity": 0.8999655167117907,
+      "sd": 4.848512495389721,
+      "observations": 3,
+      "weight": 1.0713033769708113,
+      "years": [
+        1992,
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "Melton",
+      "region": "none",
+      "elasticity": 0.7078948913452808,
+      "sd": 6.277199795256066,
+      "observations": 7,
+      "weight": 4.36035674031916,
+      "years": [
+        1992,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Mildura",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.556506434574693,
+      "observations": 1,
+      "weight": 0.29730177875068026,
+      "years": [
+        1992
+      ]
+    },
+    {
+      "name": "Mill Park",
+      "region": "none",
+      "elasticity": 1.109754491921504,
+      "sd": 4.29041541371298,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Mitcham",
+      "region": "none",
+      "elasticity": 1.0718707149252835,
+      "sd": 3.9460477033943833,
+      "observations": 6,
+      "weight": 2.873013715658719,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Monbulk",
+      "region": "none",
+      "elasticity": 1.0195500301580531,
+      "sd": 3.5671743870122783,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Mooroolbark",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.935188443433747,
+      "observations": 2,
+      "weight": 0.650855169343954,
+      "years": [
+        1992,
+        1996
+      ]
+    },
+    {
+      "name": "Mordialloc",
+      "region": "none",
+      "elasticity": 1.05701283478008,
+      "sd": 3.961424669184802,
+      "observations": 7,
+      "weight": 4.293461923285577,
+      "years": [
+        1992,
+        1996,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Mornington",
+      "region": "none",
+      "elasticity": 1.1470477436660773,
+      "sd": 3.936298933929561,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Morwell",
+      "region": "none",
+      "elasticity": 0.8101651811339897,
+      "sd": 8.421016141694995,
+      "observations": 5,
+      "weight": 2.6988583657842162,
+      "years": [
+        1992,
+        1996,
+        2002,
+        2010,
+        2014
+      ]
+    },
+    {
+      "name": "Mount Waverley",
+      "region": "none",
+      "elasticity": 1.092239921691851,
+      "sd": 3.3720291402119136,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Mulgrave",
+      "region": "none",
+      "elasticity": 1.1134970308899321,
+      "sd": 3.7619285981888253,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Murray Plains",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 6.071384151550504,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Murray Valley",
+      "region": "none",
+      "elasticity": 0.7141971688715307,
+      "sd": 6.2772151120297215,
+      "observations": 4,
+      "weight": 2.155263729281182,
+      "years": [
+        1996,
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Narracan",
+      "region": "none",
+      "elasticity": 1.0454847640664817,
+      "sd": 3.847852560364613,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Narre Warren North",
+      "region": "none",
+      "elasticity": 1.0771402676216009,
+      "sd": 4.252457123639923,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Narre Warren South",
+      "region": "none",
+      "elasticity": 0.9758723841370306,
+      "sd": 4.84056887215589,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Nepean",
+      "region": "none",
+      "elasticity": 1.0532555558000511,
+      "sd": 4.308091893845036,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Niddrie",
+      "region": "none",
+      "elasticity": 0.999882928914895,
+      "sd": 3.313016370049397,
+      "observations": 7,
+      "weight": 4.36035674031916,
+      "years": [
+        1992,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Northcote",
+      "region": "none",
+      "elasticity": 1.0988207576457372,
+      "sd": 4.453120798573263,
+      "observations": 3,
+      "weight": 1.0713033769708113,
+      "years": [
+        1992,
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "Oakleigh",
+      "region": "none",
+      "elasticity": 1.1276719180902526,
+      "sd": 3.263672938445794,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Ovens Valley",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 3.855991532779407,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Pakenham",
+      "region": "none",
+      "elasticity": 1.2553598033400926,
+      "sd": 4.508284561556874,
+      "observations": 3,
+      "weight": 1.0713033769708113,
+      "years": [
+        1992,
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "Pascoe Vale",
+      "region": "none",
+      "elasticity": 0.8788868252672101,
+      "sd": 4.232306310630147,
+      "observations": 6,
+      "weight": 3.2934619232855766,
+      "years": [
+        1992,
+        1996,
+        2002,
+        2006,
+        2010,
+        2014
+      ]
+    },
+    {
+      "name": "Polwarth",
+      "region": "none",
+      "elasticity": 0.8455137797961714,
+      "sd": 3.9321777593376543,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Portland",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.621190194121739,
+      "observations": 2,
+      "weight": 0.774001598220131,
+      "years": [
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "Prahran",
+      "region": "none",
+      "elasticity": 1.025358041402736,
+      "sd": 3.8613610308427373,
+      "observations": 6,
+      "weight": 2.873013715658719,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Preston",
+      "region": "none",
+      "elasticity": 0.9886339657358434,
+      "sd": 3.6972731265439034,
+      "observations": 7,
+      "weight": 3.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014
+      ]
+    },
+    {
+      "name": "Richmond",
+      "region": "none",
+      "elasticity": 0.8533839883358898,
+      "sd": 4.699406325773078,
+      "observations": 3,
+      "weight": 1.0713033769708113,
+      "years": [
+        1992,
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "Ringwood",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.033009732983508,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Ripon",
+      "region": "none",
+      "elasticity": 0.7871835090115591,
+      "sd": 3.7324309686846386,
+      "observations": 7,
+      "weight": 4.293461923285577,
+      "years": [
+        1992,
+        1996,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Rodney",
+      "region": "none",
+      "elasticity": 0.7751561845464714,
+      "sd": 6.325929510506316,
+      "observations": 3,
+      "weight": 1.0713033769708113,
+      "years": [
+        1992,
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "Rowville",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.089480205619217,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Sandringham",
+      "region": "none",
+      "elasticity": 1.216939093729322,
+      "sd": 4.1212126701046,
+      "observations": 7,
+      "weight": 4.293461923285577,
+      "years": [
+        1992,
+        1996,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Scoresby",
+      "region": "none",
+      "elasticity": 1.0836095446144163,
+      "sd": 4.744137732412865,
+      "observations": 3,
+      "weight": 1.801710338687908,
+      "years": [
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Seymour",
+      "region": "none",
+      "elasticity": 1.1069675279500997,
+      "sd": 3.7667444220488586,
+      "observations": 6,
+      "weight": 2.873013715658719,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Shepparton",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.410378769126144,
+      "observations": 1,
+      "weight": 0.3535533905932738,
+      "years": [
+        1996
+      ]
+    },
+    {
+      "name": "South Barwon",
+      "region": "none",
+      "elasticity": 1.040398119147579,
+      "sd": 3.1197117265726573,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "South-West Coast",
+      "region": "none",
+      "elasticity": 0.9770174470793255,
+      "sd": 3.911529887845939,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Springvale",
+      "region": "none",
+      "elasticity": 0.8137066939044426,
+      "sd": 4.475873636703797,
+      "observations": 3,
+      "weight": 1.0713033769708113,
+      "years": [
+        1992,
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "St Albans",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 3.837931679057543,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Sunbury",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.935518672293443,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Sunshine",
+      "region": "none",
+      "elasticity": 0.8345842366940281,
+      "sd": 4.7626883769649355,
+      "observations": 3,
+      "weight": 1.0713033769708113,
+      "years": [
+        1992,
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "Swan Hill",
+      "region": "none",
+      "elasticity": 0.9077415391429716,
+      "sd": 7.238545491052041,
+      "observations": 5,
+      "weight": 2.4525655080318622,
+      "years": [
+        1992,
+        1996,
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Sydenham",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.26109574860263,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Tarneit",
+      "region": "none",
+      "elasticity": 0.9066613863415544,
+      "sd": 3.7735242530165305,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Thomastown",
+      "region": "none",
+      "elasticity": 1.0047615513867019,
+      "sd": 6.233028958300285,
+      "observations": 7,
+      "weight": 4.293461923285577,
+      "years": [
+        1992,
+        1996,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Tullamarine",
+      "region": "none",
+      "elasticity": 1.010844328304518,
+      "sd": 4.750514531436913,
+      "observations": 3,
+      "weight": 1.0713033769708113,
+      "years": [
+        1992,
+        1996,
+        1999
+      ]
+    },
+    {
+      "name": "Wantirna",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 5.01512378367138,
+      "observations": 2,
+      "weight": 0.650855169343954,
+      "years": [
+        1992,
+        1996
+      ]
+    },
+    {
+      "name": "Warrandyte",
+      "region": "none",
+      "elasticity": 1.1000831806190443,
+      "sd": 3.8749476852070606,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Warrnambool",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 5.478148132396032,
+      "observations": 1,
+      "weight": 0.3535533905932738,
+      "years": [
+        1996
+      ]
+    },
+    {
+      "name": "Wendouree",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.007217084826713,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Werribee",
+      "region": "none",
+      "elasticity": 0.86094497259602,
+      "sd": 6.262827639625153,
+      "observations": 4,
+      "weight": 1.9121997922245257,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2014
+      ]
+    },
+    {
+      "name": "Williamstown",
+      "region": "none",
+      "elasticity": 1.124092770933026,
+      "sd": 3.8922108851819357,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Wimmera",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 5.007081836855508,
+      "observations": 1,
+      "weight": 0.3535533905932738,
+      "years": [
+        1996
+      ]
+    },
+    {
+      "name": "Yan Yean",
+      "region": "none",
+      "elasticity": 1.0527464887135294,
+      "sd": 4.717274046400594,
+      "observations": 8,
+      "weight": 4.713910130912434,
+      "years": [
+        1992,
+        1996,
+        1999,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Yuroke",
+      "region": "none",
+      "elasticity": 1.0816354184368269,
+      "sd": 4.367028290751227,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    }
+  ],
+  "excluded_comparisons": [
+    {
+      "year": 2018,
+      "jurisdiction": "vic",
+      "seat": "Benambra",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "vic",
+      "seat": "Brunswick",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "vic",
+      "seat": "Geelong",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "vic",
+      "seat": "Melbourne",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "vic",
+      "seat": "Mildura",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "vic",
+      "seat": "Morwell",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "vic",
+      "seat": "Northcote",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "vic",
+      "seat": "Pascoe Vale",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "vic",
+      "seat": "Prahran",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "vic",
+      "seat": "Preston",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "vic",
+      "seat": "Richmond",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "vic",
+      "seat": "Shepparton",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "vic",
+      "seat": "Werribee",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2014,
+      "jurisdiction": "vic",
+      "seat": "Brunswick",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2014,
+      "jurisdiction": "vic",
+      "seat": "Melbourne",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2014,
+      "jurisdiction": "vic",
+      "seat": "Mildura",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2014,
+      "jurisdiction": "vic",
+      "seat": "Northcote",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2014,
+      "jurisdiction": "vic",
+      "seat": "Prahran",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2014,
+      "jurisdiction": "vic",
+      "seat": "Richmond",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2014,
+      "jurisdiction": "vic",
+      "seat": "Shepparton",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "vic",
+      "seat": "Bendigo West",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "vic",
+      "seat": "Brunswick",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "vic",
+      "seat": "Gippsland East",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "vic",
+      "seat": "Kororoit",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "vic",
+      "seat": "Melbourne",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "vic",
+      "seat": "Mildura",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "vic",
+      "seat": "Northcote",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "vic",
+      "seat": "Richmond",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "vic",
+      "seat": "Rodney",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "vic",
+      "seat": "Shepparton",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "vic",
+      "seat": "Brunswick",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "vic",
+      "seat": "Gippsland East",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "vic",
+      "seat": "Melbourne",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "vic",
+      "seat": "Mildura",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "vic",
+      "seat": "Morwell",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "vic",
+      "seat": "Northcote",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "vic",
+      "seat": "Richmond",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "vic",
+      "seat": "Rodney",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "vic",
+      "seat": "Shepparton",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "vic",
+      "seat": "Bass",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "vic",
+      "seat": "Brunswick",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "vic",
+      "seat": "Gippsland East",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "vic",
+      "seat": "Melbourne",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "vic",
+      "seat": "Mildura",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "vic",
+      "seat": "Northcote",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "vic",
+      "seat": "Richmond",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "vic",
+      "seat": "Rodney",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "vic",
+      "seat": "Shepparton",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Bennettswood",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Footscray",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Gippsland East",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Gippsland West",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Glen Waverley",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Malvern",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Mildura",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Mooroolbark",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Mordialloc",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Morwell",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Murray Valley",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Pascoe Vale",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Ripon",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Sandringham",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Shepparton",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Swan Hill",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Thomastown",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Wantirna",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Warrnambool",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1999,
+      "jurisdiction": "vic",
+      "seat": "Wimmera",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1996,
+      "jurisdiction": "vic",
+      "seat": "Geelong North",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1996,
+      "jurisdiction": "vic",
+      "seat": "Melton",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1996,
+      "jurisdiction": "vic",
+      "seat": "Mildura",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1996,
+      "jurisdiction": "vic",
+      "seat": "Niddrie",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1992,
+      "jurisdiction": "vic",
+      "seat": "Gisborne",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1992,
+      "jurisdiction": "vic",
+      "seat": "Murray Valley",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1992,
+      "jurisdiction": "vic",
+      "seat": "Oakleigh",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1992,
+      "jurisdiction": "vic",
+      "seat": "Polwarth",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1992,
+      "jurisdiction": "vic",
+      "seat": "Portland",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1992,
+      "jurisdiction": "vic",
+      "seat": "Shepparton",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1992,
+      "jurisdiction": "vic",
+      "seat": "Warrnambool",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1992,
+      "jurisdiction": "vic",
+      "seat": "Wimmera",
+      "reason": "No valid comparable TPP swing"
+    }
+  ]
+}

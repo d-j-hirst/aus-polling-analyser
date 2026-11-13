@@ -930,7 +930,7 @@ void checkReportedCountProgress() {
     assert(LiveInputAdapter::reportedCountProgress(source,effective).fpVotes == 1300);
 }
 
-void checkEcsaRetiredEmptyTcpPair() {
+void checkEcsaRetiredTcpPair() {
     auto makeElection = [](std::string const& term) {
         Results2::Election election(term);
         election.candidates.emplace(11,Results2::Candidate{11,"Labor",1});
@@ -958,7 +958,7 @@ void checkEcsaRetiredEmptyTcpPair() {
         effective.records.push_back(std::move(record));
     };
     add("School",{{11,45},{13,55}},Status::Current);
-    add("Hall",{{11,0},{12,0}},Status::Restored);
+    add("Hall",{{11,50},{12,50}},Status::Restored);
     add("Early Centre",{{11,0},{13,0}},Status::Current);
 
     auto election = makeElection("2026sa");
@@ -1439,6 +1439,47 @@ void checkFpRunGrouping(std::filesystem::path const& folder) {
     assert(result == loadFpTotalHistory(folder,"fictional","2026-03-30T09:00:00",selection,HistoryReadMode::SourceFiles));
 }
 
+void checkPreferenceHistoryAcrossPairChange(std::filesystem::path const& folder) {
+    auto snapshot = [&](std::string const& time, Counts fp, Counts tcp) {
+        auto source = example(time);
+        source.records.resize(1);
+        auto& booth = source.records.front();
+        booth.candidates = {11,12,13};
+        booth.fp.votes = std::move(fp);
+        booth.tcp.votes = std::move(tcp);
+        return recover(source,{}).snapshot;
+    };
+    auto first = snapshot("2026-03-30T08:00:00",{{11,100},{12,80},{13,20}},{{11,112},{12,88}});
+    auto oldPair = snapshot("2026-03-30T09:00:00",{{11,110},{12,85},{13,25}},{{11,123},{12,97}});
+    auto newPair = snapshot("2026-03-30T10:00:00",{{11,110},{12,85},{13,25}},{{11,154},{13,66}});
+    auto later = snapshot("2026-03-30T11:00:00",{{11,112},{12,86},{13,27}},{{11,158},{13,67}});
+    auto const key = first.records.front().key;
+    commit(folder,first); commit(folder,oldPair); commit(folder,newPair); commit(folder,later);
+    auto beforeSwitch = loadPairPreferenceHistory(folder,oldPair).at(key);
+    assert(beforeSwitch.size() == 1 && beforeSwitch.at({11,12}).tcpTime == oldPair.sourceTime);
+    auto afterSwitch = loadPairPreferenceHistory(folder,newPair).at(key);
+    assert(afterSwitch.size() == 2);
+    assert(afterSwitch.at({11,12}).tcp.at(11) == 123);
+    assert(afterSwitch.at({11,13}).tcp.at(11) == 154); // Future cache entry is excluded.
+    auto revised = snapshot("2026-03-30T12:00:00",{{11,109},{12,86},{13,27}},{{11,155},{13,67}});
+    assert(loadPairPreferenceHistory(folder,revised).at(key).at({11,12}).tcpTime == oldPair.sourceTime);
+    auto fallback = snapshot("2026-03-30T12:00:00",{{11,106},{12,86},{13,27}},{{11,152},{13,67}});
+    assert(loadPairPreferenceHistory(folder,fallback).at(key).at({11,12}).tcpTime == first.sourceTime);
+    auto incompatible = snapshot("2026-03-30T12:00:00",{{11,96},{12,86},{13,27}},{{11,142},{13,67}});
+    assert(!loadPairPreferenceHistory(folder,incompatible).at(key).contains({11,12}));
+    auto reduced = snapshot("2026-03-30T12:00:00",{{11,112},{12,86},{13,27}},{{11,153},{13,65}});
+    assert(!loadPairPreferenceHistory(folder,reduced).at(key).contains({11,13}));
+    commit(folder,reduced);
+    auto restored = reduced;
+    restored.sourceTime = "2026-03-30T13:00:00";
+    restored.records.front().tcp.status = Status::Restored;
+    restored.records.front().matchedPreferences = LiveInputRecovery::PreferenceCohort{
+        *later.records.front().fp.votes,*later.records.front().tcp.votes,later.sourceTime,later.sourceTime,{},false};
+    assert(!loadPairPreferenceHistory(folder,restored).at(key).contains({11,13}));
+    revised.optionalPreferential = true;
+    assert(loadPairPreferenceHistory(folder,revised).empty());
+}
+
 int main(int argc, char** argv) {
     auto root = argc > 1 ? std::filesystem::path(argv[1]) : std::filesystem::current_path();
     auto folder = root/"cli-build"/"input-recovery-tests";
@@ -1455,6 +1496,7 @@ int main(int argc, char** argv) {
     checkOlderCompatibleCounts(folder/"older-compatible");
     checkReconciliationHistory(folder/"reconciliation");
     checkPreferenceHistory(folder/"preferences");
+    checkPreferenceHistoryAcrossPairChange(folder/"pair-preferences");
     checkTcpRevisionBasis(folder/"tcp-revision");
     checkRetainedRecheckStatus(folder/"retained-recheck-status");
     checkRecheckedPrimaryRecovery(folder/"rechecked-primaries");
@@ -1463,7 +1505,7 @@ int main(int argc, char** argv) {
     checkQecPartialRechecks();
     checkSyntheticCategoryProvenance();
     checkReportedCountProgress();
-    checkEcsaRetiredEmptyTcpPair();
+    checkEcsaRetiredTcpPair();
     checkParserAndAdapter();
 #endif
     std::filesystem::remove_all(folder);

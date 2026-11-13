@@ -646,6 +646,11 @@ It preserves authored inputs in mixed directories, including `Regional/*-polls`
 and `Federal-State/booths-*.txt`. It is intentionally available only through
 the interactive menu, because restoration replaces local generated data.
 
+Restoration installs the election-specific seat volatility files, including
+`Seat Statistics/individual-seat-factors/2026vic.csv`. For older archives
+or to regenerate the files offline from the restored election caches, see
+[seat volatility regeneration](../docs/seat-volatility.md#regeneration-and-simulation-use).
+
 Do not copy archive files over the working tree manually. An archive created
 before this workflow has no validation manifest and is a legacy archive; it can
 be retained for reference but should be replaced by a newly generated archive
@@ -662,7 +667,9 @@ data to a temporary sibling directory, validates its manifest and hashes, and
 replaces `Archived/` only after validation succeeds.
 
 The archive includes generated/cache roots such as `Outputs`, `Adjustments`,
-`Fundamentals`, `Seat Statistics`, `Nationals` and `elections`. It includes only
+`Fundamentals`, `Seat Statistics`, `Nationals` and `elections`. It includes
+seat volatility tables and their audit and provenance files for every
+configured election, including inactive future elections. It includes only
 the generated files from mixed `Regional` and `Federal-State` directories, not
 their authored inputs. Calibration diagnostic traces, local calibration
 checkpoints, cutoff `.in-progress` drafts and incomplete staging files are

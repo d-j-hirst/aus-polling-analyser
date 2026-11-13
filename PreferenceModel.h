@@ -20,6 +20,11 @@ using Shares = std::map<int, double>;
 using Pair = std::array<int, 2>;
 using ConfiguredFlows = std::map<int, std::map<std::pair<int, int>, float>>;
 
+// Higher consistency makes the generic rankings more responsive to distance
+// on the configured political scale. Use the same weights for a forecast
+// draw and the central reference used to compare live preference counts.
+double proximityForConsistency(int consistency);
+
 struct Ranking {
 	std::vector<int> order;
 	double fraction = 0.0; // of this source's original ballots
@@ -74,6 +79,13 @@ struct PairResult {
 	int winner() const;
 };
 
+// Original FP share and fraction of those ballots reaching the first
+// finalist. Only automatic live counts request these after exclusions.
+struct FinalSource {
+	int id;
+	double primary, firstRate;
+};
+
 struct ClassicCheck {
 	// All quantities are fractions. The bounds and the error are shares of
 	// district formal votes. The largest rate change is within one source.
@@ -93,6 +105,7 @@ struct CountResult {
 	ClassicCheck classic;
 	double laborTpp = 0.0;
 	std::string issue;
+	std::vector<FinalSource> finalSources;
 };
 
 // Each sensitivity count changes one assumption for the same district draw.
@@ -123,12 +136,17 @@ public:
 		std::uint64_t seed = 0;
 		std::array<std::array<double, 5>, ProfileCount> commonNodes{};
 		bool liberalLaborFirst = false;
+		bool central = false;
 	};
 
 	ElectionDraw drawElection(std::uint64_t seed) const;
 	CountResult count(int district, std::span<Source const> sources,
 		double laborTpp, double nationalIncoming, ElectionDraw const& election,
-		Sensitivity sensitivity = Sensitivity::None) const;
+		Sensitivity sensitivity = Sensitivity::None, bool reportFinalSources = false) const;
+	// Expected original-source rates from the same ranking profiles, using
+	// the supplied district primaries and pre-count classic flow assumptions.
+	Shares referencePairRates(int district, std::span<Source const> sources, Pair pair) const;
+	bool learnsPair(Pair pair) const;
 	SensitivityTests const& sensitivityTests(int district) const;
 	bool isActive() const { return active; }
 	std::string const& version() const { return modelVersion; }
@@ -156,6 +174,16 @@ private:
 		bool rightIndependent = false;
 		SensitivityTests sensitivity;
 	};
+
+	struct SourceProfile {
+		int id;
+		double primary;
+		RankingProfile ranking;
+		bool coalitionSlot;
+	};
+	std::vector<SourceProfile> buildSourceProfiles(int district, std::span<Source const> ballot,
+		Shares const& primaries, double leakageVotes, bool dual, bool classicAvailable,
+		Shares const& classicRates, ElectionDraw const& election, Sensitivity sensitivity) const;
 
 	Nodes drawNodes(ProfileIndex profile, double primary, std::optional<double> classicRate,
 		int district, ElectionDraw const& election) const;

@@ -1,0 +1,425 @@
+{
+  "$schema": "../generated_provenance.schema.json",
+  "schema_version": 1,
+  "path_base": "../..",
+  "description": "Generated historical booth-result JSON used by automatic live analysis.",
+  "updated_at_utc": "2026-09-03T07:06:24Z",
+  "runs": {
+    "20260903T060318Z-009e567b": {
+      "generated_at_utc": "2026-09-03T06:03:18Z",
+      "command": [
+        "python.exe",
+        "fetch_booth_results.py",
+        "--election",
+        "2022sa"
+      ],
+      "source_revision": {
+        "system": "git",
+        "revision": "f8448a45a65753b54a95e4754214ce5fc85129c4",
+        "dirty": true
+      },
+      "environment": {
+        "python_version": "3.12.1",
+        "python_implementation": "CPython",
+        "platform": "Windows-11-10.0.26200-SP0",
+        "packages": {}
+      }
+    },
+    "20260903T061625Z-1dc7da98": {
+      "generated_at_utc": "2026-09-03T06:16:25Z",
+      "command": [
+        "python3",
+        "fetch_booth_results.py",
+        "--election",
+        "2018vic"
+      ],
+      "source_revision": {
+        "system": "git",
+        "revision": "f8448a45a65753b54a95e4754214ce5fc85129c4",
+        "dirty": true
+      },
+      "environment": {
+        "python_version": "3.8.10",
+        "python_implementation": "CPython",
+        "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+        "packages": {}
+      }
+    },
+    "20260903T062605Z-4eb1069c": {
+      "generated_at_utc": "2026-09-03T06:26:05Z",
+      "command": [
+        "python3",
+        "fetch_booth_results.py",
+        "--election",
+        "2019nsw"
+      ],
+      "source_revision": {
+        "system": "git",
+        "revision": "f8448a45a65753b54a95e4754214ce5fc85129c4",
+        "dirty": true
+      },
+      "environment": {
+        "python_version": "3.8.10",
+        "python_implementation": "CPython",
+        "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+        "packages": {}
+      }
+    },
+    "20260903T062633Z-da232ad7": {
+      "generated_at_utc": "2026-09-03T06:26:33Z",
+      "command": [
+        "python3",
+        "fetch_booth_results.py",
+        "--election",
+        "2015nsw"
+      ],
+      "source_revision": {
+        "system": "git",
+        "revision": "f8448a45a65753b54a95e4754214ce5fc85129c4",
+        "dirty": true
+      },
+      "environment": {
+        "python_version": "3.8.10",
+        "python_implementation": "CPython",
+        "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+        "packages": {}
+      }
+    },
+    "20260903T070623Z-cb287740": {
+      "generated_at_utc": "2026-09-03T07:06:23Z",
+      "command": [
+        "python3",
+        "fetch_booth_results.py",
+        "--election",
+        "2020qld"
+      ],
+      "source_revision": {
+        "system": "git",
+        "revision": "f8448a45a65753b54a95e4754214ce5fc85129c4",
+        "dirty": true
+      },
+      "environment": {
+        "python_version": "3.8.10",
+        "python_implementation": "CPython",
+        "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+        "packages": {}
+      }
+    }
+  },
+  "records": {
+    "booth_result_archives:2015nsw": {
+      "status": "generated",
+      "category": "booth_result_archives",
+      "stage": "fetch_live_booth_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2015nsw"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260903T062633Z-da232ad7",
+      "random_seed": null,
+      "dependencies": {
+        "election_catalogue": {
+          "kind": "source_manifest",
+          "digest": "ab1bfc4be723789a61ca16ea03d7b8773563ba2cad53929ca6cc32aaf0528b36",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "booth_result_dispatcher_script": {
+          "kind": "source_manifest",
+          "digest": "49066794d3958ea6e8bea1eb52736385f2027cecc3ecf99ad2ba6d58b63a7646",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "booth_result_provenance_script": {
+          "kind": "source_manifest",
+          "digest": "849755bba18b58d53b8466d38dd4e3e17f67d8eef6fd5c6059b8313a027fd5b1",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "booth_result_nsw_script": {
+          "kind": "source_manifest",
+          "digest": "8bad64185a506cc0b3f0893df6bd3555acb76a91d45875d1c24e305ffe50944f",
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "manifest": "analysis/provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "analysis/Booth Results/2015nsw.json": {
+          "sha256": "1c88a6a3afb22ed521453b1cc8a83344c47234fd4c9d65b8c639a35462129f03",
+          "size_bytes": 1791489,
+          "mtime_ns": 1788416792463423100
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "booth_result_archives:2018vic": {
+      "status": "generated",
+      "category": "booth_result_archives",
+      "stage": "fetch_live_booth_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2018vic"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260903T061625Z-1dc7da98",
+      "random_seed": null,
+      "dependencies": {
+        "election_catalogue": {
+          "kind": "source_manifest",
+          "digest": "ab1bfc4be723789a61ca16ea03d7b8773563ba2cad53929ca6cc32aaf0528b36",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "booth_result_dispatcher_script": {
+          "kind": "source_manifest",
+          "digest": "49066794d3958ea6e8bea1eb52736385f2027cecc3ecf99ad2ba6d58b63a7646",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "booth_result_provenance_script": {
+          "kind": "source_manifest",
+          "digest": "849755bba18b58d53b8466d38dd4e3e17f67d8eef6fd5c6059b8313a027fd5b1",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "booth_result_vic_script": {
+          "kind": "source_manifest",
+          "digest": "a3335aa491fd1549e19b3393f599b137723c25231fb222a6a5a5bdaf9303426b",
+          "semantic_revision": 5,
+          "provenance_revision": 5,
+          "manifest": "analysis/provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "analysis/Booth Results/2018vic.json": {
+          "sha256": "1a1d5a0ee16c30b3ef26ca55d9433edca32dd6e44a3754771d893f2356cef414",
+          "size_bytes": 868376,
+          "mtime_ns": 1788416176521086000
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "booth_result_archives:2019nsw": {
+      "status": "generated",
+      "category": "booth_result_archives",
+      "stage": "fetch_live_booth_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2019nsw"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260903T062605Z-4eb1069c",
+      "random_seed": null,
+      "dependencies": {
+        "election_catalogue": {
+          "kind": "source_manifest",
+          "digest": "ab1bfc4be723789a61ca16ea03d7b8773563ba2cad53929ca6cc32aaf0528b36",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "booth_result_dispatcher_script": {
+          "kind": "source_manifest",
+          "digest": "49066794d3958ea6e8bea1eb52736385f2027cecc3ecf99ad2ba6d58b63a7646",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "booth_result_provenance_script": {
+          "kind": "source_manifest",
+          "digest": "849755bba18b58d53b8466d38dd4e3e17f67d8eef6fd5c6059b8313a027fd5b1",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "booth_result_nsw_script": {
+          "kind": "source_manifest",
+          "digest": "8bad64185a506cc0b3f0893df6bd3555acb76a91d45875d1c24e305ffe50944f",
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "manifest": "analysis/provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "analysis/Booth Results/2019nsw.json": {
+          "sha256": "1a04261754bb103b2df0b689faebf537ee814a072c9ba13016bca4cbbd4d9713",
+          "size_bytes": 1660255,
+          "mtime_ns": 1788416764864987700
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "booth_result_archives:2020qld": {
+      "status": "generated",
+      "category": "booth_result_archives",
+      "stage": "fetch_live_booth_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2020qld"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260903T070623Z-cb287740",
+      "random_seed": null,
+      "dependencies": {
+        "election_catalogue": {
+          "kind": "source_manifest",
+          "digest": "ab1bfc4be723789a61ca16ea03d7b8773563ba2cad53929ca6cc32aaf0528b36",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "booth_result_dispatcher_script": {
+          "kind": "source_manifest",
+          "digest": "49066794d3958ea6e8bea1eb52736385f2027cecc3ecf99ad2ba6d58b63a7646",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "booth_result_provenance_script": {
+          "kind": "source_manifest",
+          "digest": "849755bba18b58d53b8466d38dd4e3e17f67d8eef6fd5c6059b8313a027fd5b1",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "booth_result_qld_script": {
+          "kind": "source_manifest",
+          "digest": "c877daf99c89ed3adbca62280f4e5647e276c09ff70838d9e6a4902c0fdbb614",
+          "semantic_revision": 7,
+          "provenance_revision": 7,
+          "manifest": "analysis/provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "analysis/Booth Results/2020qld.json": {
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+          "size_bytes": 3,
+          "mtime_ns": 1788419182559125800
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "booth_result_archives:2022sa": {
+      "status": "generated",
+      "category": "booth_result_archives",
+      "stage": "fetch_live_booth_results",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2022sa"
+        ],
+        "parties": [],
+        "qualifiers": {}
+      },
+      "run": "20260903T060318Z-009e567b",
+      "random_seed": null,
+      "dependencies": {
+        "election_catalogue": {
+          "kind": "source_manifest",
+          "digest": "ab1bfc4be723789a61ca16ea03d7b8773563ba2cad53929ca6cc32aaf0528b36",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "booth_result_dispatcher_script": {
+          "kind": "source_manifest",
+          "digest": "49066794d3958ea6e8bea1eb52736385f2027cecc3ecf99ad2ba6d58b63a7646",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "booth_result_provenance_script": {
+          "kind": "source_manifest",
+          "digest": "849755bba18b58d53b8466d38dd4e3e17f67d8eef6fd5c6059b8313a027fd5b1",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "booth_result_sa_script": {
+          "kind": "source_manifest",
+          "digest": "e08868f04dcd3a57945ad5a40432dca85696d58e73f08e0ac61eecb7d1e28203",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "analysis/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "sa_booth_result_inputs": {
+          "kind": "source_manifest",
+          "digest": "5bebdbe5d0bbece161575bdd71a0c1d42e4c825a57d902f9c313710cf62882f6",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "downloads/provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "analysis/Booth Results/2022sa.json": {
+          "sha256": "7f252c67a4e56b13356f0048e815bb16adad8ec7bf3074e73a87ecf57163b590",
+          "size_bytes": 284754,
+          "mtime_ns": 1788415397581124100
+        }
+      },
+      "provenance_maintenance": []
+    }
+  }
+}

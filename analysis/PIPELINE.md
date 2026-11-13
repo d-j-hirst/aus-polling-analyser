@@ -415,6 +415,9 @@ manifest and only then replaces `Archived/`.
 Archive payloads contain full generated/cache roots such as `Outputs`,
 `Adjustments`, `Fundamentals`, `Seat Statistics`, `Nationals`, `elections` and
 `Booth Results`.
+Election-specific seat volatility tables, audit JSON and provenance are included
+for all configured elections. Preflight also checks the historical result
+caches used to generate them.
 For the mixed `Regional` and `Federal-State` directories they contain only
 generated files, never authored regional polls or booth mappings. Diagnostic
 calibration traces, incomplete staging files, local calibration checkpoints,
@@ -438,8 +441,8 @@ using only the Python standard library.
 
 Source manifests are intended to be committed to Git, with one manifest per
 authored folder. They record file hashes and manually assessed change events.
-Generated-data manifests will be kept outside Git and included with future
-generated-data archives.
+Generated-data manifests are versioned with the validated archive. The live
+copies in the working output directories are ignored.
 
 The filename is part of this boundary. Committed source manifests use the
 plain `provenance.json` name. Local generated-data bundles must end in
@@ -623,9 +626,9 @@ across potentially thousands of calibration records. Updating one work unit
 preserves unrelated records and removes shared runs only after no current
 record refers to them.
 
-Generated manifests are ignored by Git. They describe the generated archive
-present on a particular machine and will be included when that archive is
-rebuilt. Missing manifests remain supported as legacy data with unknown
+Generated manifests in working output directories are ignored by Git. Building
+the archive copies the applicable manifests into `Archived/` alongside their
+payloads. Missing manifests remain supported as legacy data with unknown
 provenance rather than being treated as proof that outputs are current.
 
 Generated work units can depend on selected records in another generated

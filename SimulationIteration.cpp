@@ -4514,12 +4514,13 @@ void SimulationIteration::countSeatPreferences(int seatIndex, double mergedIndep
 				rate = std::lerp(rate, liveIndependentRate, mergedIndependent / primary);
 			}
 			int const consistency = getAt(partyConsistencies, party, 1);
-			double const proximity = PreferenceConsistencyBase[std::clamp(consistency, 0, 2)];
+			double const proximity = PreferenceModel::proximityForConsistency(consistency);
 			sources.push_back({party, primary * 0.01, getAt(partyIdeologies, party, 2), proximity, rate});
 		}
 		auto count = [&](PreferenceModel::Sensitivity sensitivity) {
 			try {
-				return model.count(seatIndex, sources, laborTpp, nationalIncoming, *preferenceElection, sensitivity);
+				return model.count(seatIndex, sources, laborTpp, nationalIncoming, *preferenceElection,
+					sensitivity, run.isLiveAutomatic() && model.isActive());
 			}
 			catch (std::exception const& error) {
 				PreferenceModel::CountResult failed;
@@ -4564,6 +4565,20 @@ std::optional<SimulationIteration::TcpPair> SimulationIteration::integrateRankin
 	if (modelPair.first.second > modelPair.second.second) std::swap(modelPair.first, modelPair.second);
 	try {
 		if (!validSeatFinalPair(modelPair)) throw std::runtime_error("Invalid ranking TCP pair or shares.");
+		// Use one finite vote account when this pair has live preference
+		// evidence. The learner already combines its local and shared counts,
+		// so the older local-TCP blend must not update these same votes again.
+		if (run.isLiveAutomatic() && !comparison.model.finalSources.empty()) {
+			auto const& name = run.seatLookup.seat(seatIndex).name;
+			auto learned = liveElection->getLearnedTcpShare(name,result.candidates,comparison.model.finalSources);
+			if (learned) {
+				modelPair = {{result.candidates[0],100.0 * *learned},
+					{result.candidates[1],100.0 * (1 - *learned)}};
+				if (modelPair.first.second > modelPair.second.second) std::swap(modelPair.first, modelPair.second);
+				comparison.modelLivePairMatched = true;
+				return modelPair;
+			}
+		}
 		comparison.modelLivePairMatched = integrateLiveTcpPair(seatIndex, modelPair, livePrincipalProxy);
 		if (!validSeatFinalPair(modelPair)) throw std::runtime_error("Invalid ranking TCP after live integration.");
 		return modelPair;

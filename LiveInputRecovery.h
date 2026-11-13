@@ -120,6 +120,12 @@ struct PreferenceHistory {
     std::optional<PreferenceCohort> tcpBasis;
 };
 using PreferenceHistories = std::map<std::string,PreferenceHistory>;
+// The local recovery lookup above selects the batch belonging to the active
+// TCP. Cross-district learning also needs the last compatible measured batch
+// for each retired pair, stored separately under the original candidate IDs.
+using CandidatePair = std::pair<int,int>;
+using PairPreferenceHistory = std::map<std::string,std::map<CandidatePair,PreferenceCohort>>;
+PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& folder, Snapshot const& effective);
 // The source-file path remains an oracle for portable equivalence tests and a
 // fallback when a derived change index cannot be used. Forecasts use the index.
 enum class HistoryReadMode { Indexed, SourceFiles };

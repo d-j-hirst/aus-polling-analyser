@@ -16,6 +16,7 @@
 #include "SpecialPartyCodes.h"
 #include "LiveTurnout.h"
 #include "LivePreferenceCorrections.h"
+#include "LivePreferenceLearning.h"
 
 #include <cstdint>
 #include <limits>
@@ -162,6 +163,9 @@ public:
   // Prepared once from compatible accepted counts. Main scenarios share this
   // frozen measurement, never retaining source documents or disk history.
   std::optional<LivePartialCount::Evidence> preferenceEvidence;
+  // A compatible Labor/Coalition count from before a pairing change. It can
+  // constrain TPP while the currently published pair owns the TCP account.
+  std::optional<LiveInputRecovery::PreferenceCohort> retainedClassic;
   std::optional<LivePartialCount::TcpBasis> tcpBasis;
   bool hasTcpRevision() const {
     if (!tcpBasis || tcpBasis->tcp != node.tcpVotesCurrent || tcpBasis->fp == node.fpVotesCurrent ||
@@ -176,6 +180,8 @@ public:
     return hasTcpRevision() ? LivePartialCount::revisedLowerBounds(node.fpVotesCurrent,node.tcpVotesCurrent,*tcpBasis)
       : std::map<int,double>(node.tcpVotesCurrent.begin(),node.tcpVotesCurrent.end());
   }
+  LivePartialCount::Counts const& tppCount(int natPartyIndex) const;
+  std::map<int,double> tppLowerBounds(int natPartyIndex) const;
   // Scratch shares of genuinely new voters, with raw ballot identities. FP
   // and pair preparation consume the same composition; preparation samples
   // own separate copies. Main draws use the prepared seat-level responses.
@@ -302,7 +308,8 @@ public:
   using BoothSnapshot = LiveData::BoothSnapshot;
 
 	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run, TurnoutModelIO::Artifact turnoutInput,
-    LiveInputRecovery::PreferenceHistories preferenceHistory = {});
+    LiveInputRecovery::PreferenceHistories preferenceHistory = {},
+    LiveInputRecovery::PairPreferenceHistory pairPreferenceHistory = {});
 
   double getTppShareBaseline() const {
     return node.tppShareBaseline.value_or(0.0);
@@ -526,6 +533,8 @@ public:
 
   std::optional<LiveData::VoteCountAccount> getSeatVoteCountAccount(
     std::string const& seatName, LiveData::CountKind kind) const override;
+  std::optional<double> getLearnedTcpShare(std::string const& seatName, PreferenceModel::Pair pair,
+    std::span<PreferenceModel::FinalSource const> sources) const override;
   std::optional<LiveData::AggregateVoteTotals> getSeatAggregateVoteTotals(
     std::string const& seatName) const override;
   LiveData::FinalSeatResult const* getFinalSeatResult(std::string const& seatName) const override;
@@ -732,6 +741,10 @@ private:
   std::map<int,double> projectDeclarationTpp(int boothIndex);
   bool usesUnmatchedFpTpp(Booth const& booth) const;
   double projectUnmatchedBoothTpp(int boothIndex, double futureShare, double preferenceVariation) const;
+  void prepareRetainedClassicCounts(Results2::Election const& previousElection,
+    Results2::Election const& currentElection, LiveInputRecovery::PairPreferenceHistory const& history);
+  void preparePreferenceLearning(Results2::Election const& previousElection,
+    Results2::Election const& currentElection, LiveInputRecovery::PairPreferenceHistory const& history);
   int coalitionFinalist(Booth const& booth) const;
   double futurePreferenceOffset(Booth const& booth, int first, int second) const;
 
@@ -965,6 +978,15 @@ private:
 
   // Shared immutable preparation; each scenario owns only its projected votes.
   std::shared_ptr<LiveTurnout::Prepared const> turnout;
+  struct LearnedPair {
+    PreferenceModel::Shares referenceRates;
+    std::map<int,LivePreferenceLearning::Projection> categories;
+    LivePartialCount::Counts reportedFp;
+    double countedFirst = 0, countedSecond = 0, excessTcp = 0;
+  };
+  using LearnedDistrict = std::map<PreferenceModel::Pair,LearnedPair>;
+  std::shared_ptr<std::vector<LearnedDistrict> const> learnedPreferences;
+  std::shared_ptr<nlohmann::json const> preferenceLearningDiagnostic;
   std::optional<LiveData::CountProgress> countProgress;
   bool hasFinalResults = false; // Fast absent-result check in ordinary live iterations.
   // One immutable ordinary-based prior per declaration service. Scenarios

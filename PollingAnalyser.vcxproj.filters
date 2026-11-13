@@ -827,6 +827,9 @@
     <ClInclude Include="LivePreferenceCorrections.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
+    <ClInclude Include="LivePreferenceLearning.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
     <ClInclude Include="LivePreparation.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>

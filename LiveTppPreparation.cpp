@@ -295,7 +295,8 @@ void LiveV2::Election::prepareTppCategoryVotes(int seatIndex, TppCategoryAccount
         double pending = received->votes;
         double pendingFirst = received->inferredFirst;
         double first = pendingFirst;
-        double tcp = LiveEstimatedTpp::observedTppVotes(n.tcpVotesCurrent,natPartyIndex);
+        auto const& measured = booth.tppCount(natPartyIndex);
+        double tcp = LivePartialCount::total(measured);
         double continuing = received->votes;
         if (optionalPreferential && tcp <= 0) {
             // FP includes ballots that will exhaust, whereas this account's
@@ -319,7 +320,7 @@ void LiveV2::Election::prepareTppCategoryVotes(int seatIndex, TppCategoryAccount
                 // Subtract counts directly. Reversing a rounded fraction can
                 // turn exactly one pending ballot into slightly less than one.
                 pending = received->votes-tcp;
-                first += n.tcpVotesCurrent.at(0);
+                first += measured.at(0);
             }
         }
         else if (!optionalPreferential) {
@@ -780,10 +781,11 @@ void LiveV2::Election::prepareDirectTppVotes(int seatIndex, TppCategoryAccount& 
         if (!account.sources.contains(categoryCode(booth)) ||
             account.sources.at(categoryCode(booth)) != LiveTppComposition::BaselineSource::Unavailable) continue;
         auto const& n = booth.node;
-        double tcp = LiveEstimatedTpp::observedTppVotes(n.tcpVotesCurrent,natPartyIndex);
+        auto const& measured = booth.tppCount(natPartyIndex);
+        double tcp = LivePartialCount::total(measured);
         auto received = receivedBoothTpp(booth);
         if (!received) continue;
-        double measuredFirst = tcp > 0 ? n.tcpVotesCurrent.at(0) : 0;
+        double measuredFirst = tcp > 0 ? measured.at(0) : 0;
         if (auto revised = revisedBoothTcp(booth,0,coalitionFinalist(booth))) {
             tcp = revised->votes-revised->uncertainVotes();
             measuredFirst = revised->lower;

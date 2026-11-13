@@ -3,6 +3,9 @@
 ###############################################################################
 * text=auto
 
+# The generated-data manifest validates the exact bytes of its payload.
+/analysis/Archived/** -text
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #

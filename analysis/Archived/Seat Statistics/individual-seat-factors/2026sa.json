@@ -1,0 +1,1268 @@
+{
+  "election": "2026sa",
+  "generic_sd": 3.4975250364311523,
+  "fallback_sd": 4.424058115434332,
+  "kurtosis": 3.4979832882239705,
+  "floor": 2.0,
+  "half_life_elections": 4.0,
+  "minimum_history": 4,
+  "disruption_sd_multiplier": 2,
+  "generic_source": "sa",
+  "training_years": [
+    1997,
+    2002,
+    2006,
+    2010,
+    2014,
+    2018,
+    2022
+  ],
+  "seats": [
+    {
+      "name": "Adelaide",
+      "region": "none",
+      "elasticity": 1.082162301745618,
+      "sd": 3.7249854114228835,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Ashford",
+      "region": "none",
+      "elasticity": 1.1328182454600775,
+      "sd": 4.342246578437798,
+      "observations": 4,
+      "weight": 2.2221585463147653,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014
+      ]
+    },
+    {
+      "name": "Badcoe",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.391101911107247,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Black",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.849401631219982,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Bragg",
+      "region": "none",
+      "elasticity": 1.086109594313436,
+      "sd": 3.555773141637567,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Bright",
+      "region": "none",
+      "elasticity": 1.0977833279424534,
+      "sd": 4.726875659331383,
+      "observations": 5,
+      "weight": 2.5757119369080392,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014
+      ]
+    },
+    {
+      "name": "Chaffey",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 5.141880360131627,
+      "observations": 2,
+      "weight": 1.7071067811865475,
+      "years": [
+        2014,
+        2022
+      ]
+    },
+    {
+      "name": "Cheltenham",
+      "region": "none",
+      "elasticity": 1.043359420929148,
+      "sd": 3.682146967400851,
+      "observations": 6,
+      "weight": 4.06305496156848,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Coles",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.4354268740931495,
+      "observations": 1,
+      "weight": 0.3535533905932738,
+      "years": [
+        1997
+      ]
+    },
+    {
+      "name": "Colton",
+      "region": "none",
+      "elasticity": 1.0182444430225546,
+      "sd": 4.692652256492659,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Croydon",
+      "region": "none",
+      "elasticity": 1.0430957500589797,
+      "sd": 4.806014959682226,
+      "observations": 6,
+      "weight": 4.06305496156848,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Davenport",
+      "region": "none",
+      "elasticity": 0.9491902470604061,
+      "sd": 4.696706375709064,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Dunstan",
+      "region": "none",
+      "elasticity": 1.0036029550653789,
+      "sd": 4.055873966351636,
+      "observations": 3,
+      "weight": 2.548003196440262,
+      "years": [
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Elder",
+      "region": "none",
+      "elasticity": 1.0474302462860146,
+      "sd": 3.5288498552845264,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Elizabeth",
+      "region": "none",
+      "elasticity": 1.0228155456696744,
+      "sd": 4.328973869584889,
+      "observations": 3,
+      "weight": 1.774001598220131,
+      "years": [
+        1997,
+        2002,
+        2022
+      ]
+    },
+    {
+      "name": "Enfield",
+      "region": "none",
+      "elasticity": 1.1990928195835773,
+      "sd": 3.821666404357967,
+      "observations": 6,
+      "weight": 4.06305496156848,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Finniss",
+      "region": "none",
+      "elasticity": 0.9621118911942604,
+      "sd": 4.268821010561915,
+      "observations": 3,
+      "weight": 1.801710338687908,
+      "years": [
+        2006,
+        2010,
+        2014
+      ]
+    },
+    {
+      "name": "Fisher",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.4962096811414485,
+      "observations": 1,
+      "weight": 0.3535533905932738,
+      "years": [
+        1997
+      ]
+    },
+    {
+      "name": "Flinders",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.445613703653829,
+      "observations": 2,
+      "weight": 1.548003196440262,
+      "years": [
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Florey",
+      "region": "none",
+      "elasticity": 0.9832881396416149,
+      "sd": 4.623309227105957,
+      "observations": 6,
+      "weight": 3.5757119369080392,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2022
+      ]
+    },
+    {
+      "name": "Frome",
+      "region": "none",
+      "elasticity": 0.9255476248762441,
+      "sd": 6.1321494107685,
+      "observations": 4,
+      "weight": 2.274001598220131,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2022
+      ]
+    },
+    {
+      "name": "Gibson",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 5.508723659787582,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Giles",
+      "region": "none",
+      "elasticity": 0.8945426940846264,
+      "sd": 4.03976050394039,
+      "observations": 6,
+      "weight": 3.5757119369080392,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2022
+      ]
+    },
+    {
+      "name": "Goyder",
+      "region": "none",
+      "elasticity": 0.9532023285159048,
+      "sd": 4.266529479260711,
+      "observations": 5,
+      "weight": 2.5757119369080392,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014
+      ]
+    },
+    {
+      "name": "Hammond",
+      "region": "none",
+      "elasticity": 1.0405370121547657,
+      "sd": 5.1398984446565095,
+      "observations": 5,
+      "weight": 3.155263729281182,
+      "years": [
+        1997,
+        2006,
+        2010,
+        2014,
+        2022
+      ]
+    },
+    {
+      "name": "Hanson",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.470430153870719,
+      "observations": 1,
+      "weight": 0.3535533905932738,
+      "years": [
+        1997
+      ]
+    },
+    {
+      "name": "Hart",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.773902392326507,
+      "observations": 1,
+      "weight": 0.3535533905932738,
+      "years": [
+        1997
+      ]
+    },
+    {
+      "name": "Hartley",
+      "region": "none",
+      "elasticity": 0.9147074012808944,
+      "sd": 4.22793244355116,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Heysen",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.156112028074946,
+      "observations": 2,
+      "weight": 1.5946035575013604,
+      "years": [
+        2010,
+        2022
+      ]
+    },
+    {
+      "name": "Hurtle Vale",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.225144718685696,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Kaurna",
+      "region": "none",
+      "elasticity": 1.0958598547432052,
+      "sd": 4.597983675985583,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Kavel",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.328580376262992,
+      "observations": 2,
+      "weight": 1.301710338687908,
+      "years": [
+        2010,
+        2014
+      ]
+    },
+    {
+      "name": "King",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.105012083190328,
+      "observations": 2,
+      "weight": 1.8408964152537144,
+      "years": [
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Lee",
+      "region": "none",
+      "elasticity": 1.0719358583404528,
+      "sd": 3.5584089128864154,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Light",
+      "region": "none",
+      "elasticity": 0.8593925806526841,
+      "sd": 6.080448683518614,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Little Para",
+      "region": "none",
+      "elasticity": 1.0983003051792477,
+      "sd": 4.240812245623325,
+      "observations": 3,
+      "weight": 1.801710338687908,
+      "years": [
+        2006,
+        2010,
+        2014
+      ]
+    },
+    {
+      "name": "MacKillop",
+      "region": "none",
+      "elasticity": 0.6374105452979394,
+      "sd": 4.694684267998245,
+      "observations": 3,
+      "weight": 2.2071067811865475,
+      "years": [
+        2006,
+        2014,
+        2022
+      ]
+    },
+    {
+      "name": "Mawson",
+      "region": "none",
+      "elasticity": 0.8308061882393127,
+      "sd": 6.026150515252563,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Mitchell",
+      "region": "none",
+      "elasticity": 1.0541225839789594,
+      "sd": 4.515955410405659,
+      "observations": 3,
+      "weight": 1.4811083794066786,
+      "years": [
+        1997,
+        2002,
+        2014
+      ]
+    },
+    {
+      "name": "Morialta",
+      "region": "none",
+      "elasticity": 1.142244999273497,
+      "sd": 4.058915179544172,
+      "observations": 6,
+      "weight": 4.06305496156848,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Morphett",
+      "region": "none",
+      "elasticity": 0.966475983739421,
+      "sd": 3.507255799314601,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Napier",
+      "region": "none",
+      "elasticity": 1.1090231401801143,
+      "sd": 4.9599928454078155,
+      "observations": 3,
+      "weight": 1.801710338687908,
+      "years": [
+        2006,
+        2010,
+        2014
+      ]
+    },
+    {
+      "name": "Newland",
+      "region": "none",
+      "elasticity": 0.9840190368088412,
+      "sd": 3.723806129628998,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Norwood",
+      "region": "none",
+      "elasticity": 0.9183721351211874,
+      "sd": 4.4657082559474865,
+      "observations": 4,
+      "weight": 1.8686051557214916,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010
+      ]
+    },
+    {
+      "name": "Peake",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.49481390209191,
+      "observations": 1,
+      "weight": 0.3535533905932738,
+      "years": [
+        1997
+      ]
+    },
+    {
+      "name": "Playford",
+      "region": "none",
+      "elasticity": 1.0549822084110416,
+      "sd": 5.814880322471289,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Port Adelaide",
+      "region": "none",
+      "elasticity": 1.0737727511514947,
+      "sd": 4.3861561863739595,
+      "observations": 5,
+      "weight": 3.2221585463147653,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2022
+      ]
+    },
+    {
+      "name": "Price",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.752269097846146,
+      "observations": 1,
+      "weight": 0.3535533905932738,
+      "years": [
+        1997
+      ]
+    },
+    {
+      "name": "Ramsay",
+      "region": "none",
+      "elasticity": 1.0343421588594086,
+      "sd": 4.3754737345502255,
+      "observations": 6,
+      "weight": 3.5757119369080392,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2022
+      ]
+    },
+    {
+      "name": "Reynell",
+      "region": "none",
+      "elasticity": 1.0208946929870217,
+      "sd": 3.8820588391837827,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Ross Smith",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.5558092159197265,
+      "observations": 1,
+      "weight": 0.3535533905932738,
+      "years": [
+        1997
+      ]
+    },
+    {
+      "name": "Schubert",
+      "region": "none",
+      "elasticity": 1.001200975277004,
+      "sd": 4.120437487415795,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Spence",
+      "region": "none",
+      "elasticity": 1.0,
+      "sd": 4.9850950420936515,
+      "observations": 1,
+      "weight": 0.3535533905932738,
+      "years": [
+        1997
+      ]
+    },
+    {
+      "name": "Stuart",
+      "region": "none",
+      "elasticity": 0.868175550572374,
+      "sd": 6.804963926688008,
+      "observations": 6,
+      "weight": 3.4166083521617536,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018
+      ]
+    },
+    {
+      "name": "Taylor",
+      "region": "none",
+      "elasticity": 1.240147628030188,
+      "sd": 4.268702071069984,
+      "observations": 6,
+      "weight": 3.5757119369080392,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2022
+      ]
+    },
+    {
+      "name": "Torrens",
+      "region": "none",
+      "elasticity": 1.1637476211113476,
+      "sd": 4.050395678401624,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Unley",
+      "region": "none",
+      "elasticity": 1.0081128620170903,
+      "sd": 3.825925083673603,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Waite",
+      "region": "none",
+      "elasticity": 1.0634113330136152,
+      "sd": 4.126550243237255,
+      "observations": 5,
+      "weight": 3.6426067539416227,
+      "years": [
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "West Torrens",
+      "region": "none",
+      "elasticity": 1.0843277809008929,
+      "sd": 3.5436493106553124,
+      "observations": 6,
+      "weight": 4.06305496156848,
+      "years": [
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    },
+    {
+      "name": "Wright",
+      "region": "none",
+      "elasticity": 1.0584391150904169,
+      "sd": 3.641284974889934,
+      "observations": 7,
+      "weight": 4.416608352161754,
+      "years": [
+        1997,
+        2002,
+        2006,
+        2010,
+        2014,
+        2018,
+        2022
+      ]
+    }
+  ],
+  "excluded_comparisons": [
+    {
+      "year": 2022,
+      "jurisdiction": "sa",
+      "seat": "Finniss",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2022,
+      "jurisdiction": "sa",
+      "seat": "Flinders",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2022,
+      "jurisdiction": "sa",
+      "seat": "Kavel",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2022,
+      "jurisdiction": "sa",
+      "seat": "Mount Gambier",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2022,
+      "jurisdiction": "sa",
+      "seat": "Narungga",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2022,
+      "jurisdiction": "sa",
+      "seat": "Stuart",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "sa",
+      "seat": "Chaffey",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "sa",
+      "seat": "Elizabeth",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "sa",
+      "seat": "Finniss",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "sa",
+      "seat": "Florey",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "sa",
+      "seat": "Frome",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "sa",
+      "seat": "Giles",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "sa",
+      "seat": "Hammond",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "sa",
+      "seat": "Heysen",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "sa",
+      "seat": "Kavel",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "sa",
+      "seat": "MacKillop",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "sa",
+      "seat": "Mount Gambier",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "sa",
+      "seat": "Narungga",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "sa",
+      "seat": "Port Adelaide",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "sa",
+      "seat": "Ramsay",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2018,
+      "jurisdiction": "sa",
+      "seat": "Taylor",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2014,
+      "jurisdiction": "sa",
+      "seat": "Fisher",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2014,
+      "jurisdiction": "sa",
+      "seat": "Frome",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2014,
+      "jurisdiction": "sa",
+      "seat": "Heysen",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2014,
+      "jurisdiction": "sa",
+      "seat": "Mount Gambier",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "sa",
+      "seat": "Chaffey",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "sa",
+      "seat": "Fisher",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "sa",
+      "seat": "Flinders",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "sa",
+      "seat": "Frome",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "sa",
+      "seat": "MacKillop",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "sa",
+      "seat": "Mitchell",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2010,
+      "jurisdiction": "sa",
+      "seat": "Mount Gambier",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "sa",
+      "seat": "Chaffey",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "sa",
+      "seat": "Fisher",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "sa",
+      "seat": "Flinders",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "sa",
+      "seat": "Heysen",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "sa",
+      "seat": "Kavel",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "sa",
+      "seat": "Mitchell",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2006,
+      "jurisdiction": "sa",
+      "seat": "Mount Gambier",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "sa",
+      "seat": "Chaffey",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "sa",
+      "seat": "Davenport",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "sa",
+      "seat": "Finniss",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "sa",
+      "seat": "Fisher",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "sa",
+      "seat": "Flinders",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "sa",
+      "seat": "Hammond",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "sa",
+      "seat": "Heysen",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "sa",
+      "seat": "Kavel",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "sa",
+      "seat": "MacKillop",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "sa",
+      "seat": "Mount Gambier",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "sa",
+      "seat": "Napier",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "sa",
+      "seat": "Schubert",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 2002,
+      "jurisdiction": "sa",
+      "seat": "Waite",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1997,
+      "jurisdiction": "sa",
+      "seat": "Chaffey",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1997,
+      "jurisdiction": "sa",
+      "seat": "Davenport",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1997,
+      "jurisdiction": "sa",
+      "seat": "Finniss",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1997,
+      "jurisdiction": "sa",
+      "seat": "Flinders",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1997,
+      "jurisdiction": "sa",
+      "seat": "Gordon",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1997,
+      "jurisdiction": "sa",
+      "seat": "Heysen",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1997,
+      "jurisdiction": "sa",
+      "seat": "Kavel",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1997,
+      "jurisdiction": "sa",
+      "seat": "MacKillop",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1997,
+      "jurisdiction": "sa",
+      "seat": "Napier",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1997,
+      "jurisdiction": "sa",
+      "seat": "Schubert",
+      "reason": "No valid comparable TPP swing"
+    },
+    {
+      "year": 1997,
+      "jurisdiction": "sa",
+      "seat": "Waite",
+      "reason": "No valid comparable TPP swing"
+    }
+  ]
+}

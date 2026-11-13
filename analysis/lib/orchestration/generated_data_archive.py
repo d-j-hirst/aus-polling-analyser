@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
 from lib.provenance import generated_provenance
+from scripts.pipeline import seat_volatility
 import analysis_provenance
 
 
@@ -51,6 +52,7 @@ REQUIRED_FULL_ROOTS = (
     "elections",
 )
 PARTIAL_ROOTS = ("Regional", "Federal-State")
+SEAT_FACTOR_DIRECTORY = Path("Seat Statistics") / "individual-seat-factors"
 ALLOWED_ROOTS = set(FULL_ROOTS) | set(PARTIAL_ROOTS)
 EXCLUDED_OUTPUT_PREFIXES = (
     "Outputs/Calibration/Diagnostics/",
@@ -184,6 +186,16 @@ def _archive_eligible_path(relative_path):
     return False
 
 
+def _filter_generated_manifest(manifest, record_keys):
+    filtered = copy.deepcopy(manifest)
+    filtered["records"] = {
+        key: manifest["records"][key] for key in sorted(record_keys)
+    }
+    run_ids = {record["run"] for record in filtered["records"].values()}
+    filtered["runs"] = {run: manifest["runs"][run] for run in sorted(run_ids)}
+    return filtered
+
+
 def _required_archive_payload(analysis_directory, audit):
     """Select required output files and matching filtered manifests."""
 
@@ -226,16 +238,7 @@ def _required_archive_payload(analysis_directory, audit):
                 )
             )
 
-        filtered = copy.deepcopy(manifest)
-        filtered["records"] = {
-            record_key: manifest["records"][record_key]
-            for record_key in sorted(record_keys)
-        }
-        run_ids = {record["run"] for record in filtered["records"].values()}
-        filtered["runs"] = {
-            run_id: manifest["runs"][run_id]
-            for run_id in sorted(run_ids)
-        }
+        filtered = _filter_generated_manifest(manifest, record_keys)
         manifest_overrides[manifest_label] = filtered
         managed_files.add(manifest_label)
 
@@ -260,6 +263,51 @@ def _required_archive_payload(analysis_directory, audit):
                 managed_files.add(relative_output)
 
     return sorted(managed_files), manifest_overrides
+
+
+def _seat_factor_archive_payload(analysis_directory):
+    """Include all configured seat-factor records, even for inactive elections."""
+
+    # The regular archive graph can omit inactive elections. Seat factors are
+    # small and required to open any configured election after restoration, so
+    # include their complete set and the historical caches used to produce it.
+    manifest_relative = SEAT_FACTOR_DIRECTORY / "generated-provenance.json"
+    manifest_path = analysis_directory / manifest_relative
+    catalogue = analysis_directory / "Data/future-elections.csv"
+    if not catalogue.is_file() and not (analysis_directory / "seats").is_dir() and not manifest_path.exists():
+        return set(), {}
+    try:
+        elections = seat_volatility.configured_elections(analysis_directory)
+        manifest = generated_provenance.load_manifest(manifest_path)
+        records = manifest["records"]
+        record_keys = ["seat_volatility:" + election for election in elections]
+        issues = generated_provenance.check_manifest(manifest_path, record_keys)
+        if any(issues.values()):
+            first = next(issue for details in issues.values() for issue in details)
+            raise GeneratedDataArchiveError(first)
+
+        manifest_label = manifest_relative.as_posix()
+        paths = {manifest_label}
+        for election, key in zip(elections, record_keys):
+            expected = {
+                (SEAT_FACTOR_DIRECTORY / (election + suffix)).as_posix()
+                for suffix in (".csv", ".json")
+            }
+            record = records[key]
+            if set(record["outputs"]) != expected:
+                raise GeneratedDataArchiveError("missing or unexpected outputs for " + election)
+            paths.update(expected)
+            for name in record["dependencies"]["seat_volatility_history"]["files"]:
+                relative = PurePosixPath(name)
+                if relative.parts[0] == "elections" and relative.name.endswith("_results.pkl"):
+                    paths.add(name)
+        return paths, {manifest_label: _filter_generated_manifest(manifest, record_keys)}
+    except (OSError, KeyError, ValueError) as error:
+        raise GeneratedDataArchiveError(
+            "cannot include current seat factors in the archive; run "
+            "python -m scripts.pipeline.seat_volatility from analysis/: "
+            + str(error)
+        ) from error
 
 
 def _require_complete_roots(analysis_directory):
@@ -322,8 +370,12 @@ def preflight_build(analysis_directory, audit_runner=analysis_provenance.audit_r
     managed_files, manifest_overrides = _required_archive_payload(
         analysis_directory, audit
     )
+    seat_factor_files, seat_factor_manifests = _seat_factor_archive_payload(
+        analysis_directory
+    )
+    manifest_overrides.update(seat_factor_manifests)
     return {
-        "managed_files": managed_files,
+        "managed_files": sorted(set(managed_files) | seat_factor_files),
         "manifest_overrides": manifest_overrides,
         "work_units": len(required_ids) if required_graph else len(
             audit.get("work_units", [])

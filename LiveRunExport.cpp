@@ -1269,6 +1269,11 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 				}
 			}
 			boothJson["node"] = serializeNode(booth.node, parties);
+			if (booth.retainedClassic) {
+				boothJson["retained_tpp"] = {
+					{"observed_at",booth.retainedClassic->tcpTime},
+					{"counts",parties.values(booth.retainedClassic->tcp)}};
+			}
 			boothsJson.push_back(std::move(boothJson));
 		}
 	}
@@ -1281,6 +1286,7 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 	liveAnalysis["booths"] = std::move(boothsJson);
 	if (turnoutDiagnostic) liveAnalysis["turnout"] = *turnoutDiagnostic;
 	if (preferenceCorrectionDiagnostic) liveAnalysis["preference_rechecking"] = *preferenceCorrectionDiagnostic;
+	if (preferenceLearningDiagnostic) liveAnalysis["preference_learning"] = *preferenceLearningDiagnostic;
 
 	json tppBiases;
 	tppBiases["booth_type"] = categoryEvidenceArray(

@@ -1,0 +1,1064 @@
+{
+  "$schema": "../generated_provenance.schema.json",
+  "schema_version": 1,
+  "path_base": "..",
+  "description": "Bundled provenance for election-specific regional swing deviations.",
+  "updated_at_utc": "2026-09-03T06:20:48Z",
+  "runs": {
+    "20260725T051052Z-d68f4f7a": {
+      "generated_at_utc": "2026-07-25T05:10:52Z",
+      "command": [
+        "/mnt/c/Users/djhir/source/repos/Polling Analyser/analysis/env/bin/python",
+        "region_model.py",
+        "--election",
+        "2026-vic",
+        "--party",
+        "ON"
+      ],
+      "source_revision": {
+        "system": "git",
+        "revision": "8067ce9d593ceb45fe4c2a30adc3088d5853cc09",
+        "dirty": true
+      },
+      "environment": {
+        "python_version": "3.8.10",
+        "python_implementation": "CPython",
+        "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+        "packages": {
+          "numpy": "1.23.0",
+          "pandas": "1.4.3",
+          "pystan": "2.19.1.1"
+        }
+      }
+    },
+    "20260725T051108Z-05942ab2": {
+      "generated_at_utc": "2026-07-25T05:11:08Z",
+      "command": [
+        "/mnt/c/Users/djhir/source/repos/Polling Analyser/analysis/env/bin/python",
+        "region_model.py",
+        "--election",
+        "2026-vic"
+      ],
+      "source_revision": {
+        "system": "git",
+        "revision": "8067ce9d593ceb45fe4c2a30adc3088d5853cc09",
+        "dirty": true
+      },
+      "environment": {
+        "python_version": "3.8.10",
+        "python_implementation": "CPython",
+        "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+        "packages": {
+          "numpy": "1.23.0",
+          "pandas": "1.4.3",
+          "pystan": "2.19.1.1"
+        }
+      }
+    },
+    "20260725T051150Z-9257e1a3": {
+      "generated_at_utc": "2026-07-25T05:11:50Z",
+      "command": [
+        "/mnt/c/Users/djhir/source/repos/Polling Analyser/analysis/env/bin/python",
+        "region_model.py",
+        "--election",
+        "2027-nsw",
+        "--party",
+        "ON"
+      ],
+      "source_revision": {
+        "system": "git",
+        "revision": "8067ce9d593ceb45fe4c2a30adc3088d5853cc09",
+        "dirty": true
+      },
+      "environment": {
+        "python_version": "3.8.10",
+        "python_implementation": "CPython",
+        "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+        "packages": {
+          "numpy": "1.23.0",
+          "pandas": "1.4.3",
+          "pystan": "2.19.1.1"
+        }
+      }
+    },
+    "20260729T153049Z-bf5e00c0": {
+      "generated_at_utc": "2026-07-29T15:30:49Z",
+      "command": [
+        "/mnt/c/Users/djhir/source/repos/Polling Analyser/analysis/env/bin/python",
+        "region_model.py",
+        "--election",
+        "2027-nsw",
+        "--seed",
+        "1270314981"
+      ],
+      "source_revision": {
+        "system": "git",
+        "revision": "af588c019b5c5f21c6550b21a5f222f286f48a7e",
+        "dirty": true
+      },
+      "environment": {
+        "python_version": "3.8.10",
+        "python_implementation": "CPython",
+        "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+        "packages": {
+          "numpy": "1.23.0",
+          "pandas": "1.4.3",
+          "pystan": "2.19.1.1"
+        }
+      }
+    },
+    "20260729T221427Z-b639feb1": {
+      "generated_at_utc": "2026-07-29T22:14:27Z",
+      "command": [
+        "/mnt/c/Users/djhir/source/repos/Polling Analyser/analysis/env/bin/python",
+        "region_model.py",
+        "--election",
+        "2024-qld",
+        "--seed",
+        "1426441146"
+      ],
+      "source_revision": {
+        "system": "git",
+        "revision": "af588c019b5c5f21c6550b21a5f222f286f48a7e",
+        "dirty": true
+      },
+      "environment": {
+        "python_version": "3.8.10",
+        "python_implementation": "CPython",
+        "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+        "packages": {
+          "numpy": "1.23.0",
+          "pandas": "1.4.3",
+          "pystan": "2.19.1.1"
+        }
+      }
+    },
+    "20260816T115858Z-3f191916": {
+      "generated_at_utc": "2026-08-16T11:58:58Z",
+      "command": [
+        "/mnt/c/Users/djhir/source/repos/Polling Analyser/analysis/env/bin/python",
+        "region_model.py",
+        "--election",
+        "2028-fed",
+        "--party",
+        "",
+        "--seed",
+        "20914383"
+      ],
+      "source_revision": {
+        "system": "git",
+        "revision": "a244da459807a22284d569b0b7e95ce79dfc53ff",
+        "dirty": false
+      },
+      "environment": {
+        "python_version": "3.8.10",
+        "python_implementation": "CPython",
+        "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+        "packages": {
+          "numpy": "1.23.0",
+          "pandas": "1.4.3",
+          "pystan": "2.19.1.1"
+        }
+      }
+    },
+    "20260816T120750Z-6cbdf403": {
+      "generated_at_utc": "2026-08-16T12:07:50Z",
+      "command": [
+        "/mnt/c/Users/djhir/source/repos/Polling Analyser/analysis/env/bin/python",
+        "region_model.py",
+        "--election",
+        "2028-fed",
+        "--party",
+        "ON",
+        "--seed",
+        "1216664003"
+      ],
+      "source_revision": {
+        "system": "git",
+        "revision": "a244da459807a22284d569b0b7e95ce79dfc53ff",
+        "dirty": false
+      },
+      "environment": {
+        "python_version": "3.8.10",
+        "python_implementation": "CPython",
+        "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+        "packages": {
+          "numpy": "1.23.0",
+          "pandas": "1.4.3",
+          "pystan": "2.19.1.1"
+        }
+      }
+    },
+    "20260903T060616Z-0abff95e": {
+      "generated_at_utc": "2026-09-03T06:06:16Z",
+      "command": [
+        "/usr/bin/python3",
+        "region_model.py",
+        "--election",
+        "2025-fed",
+        "--seed",
+        "556683801"
+      ],
+      "source_revision": {
+        "system": "git",
+        "revision": "f8448a45a65753b54a95e4754214ce5fc85129c4",
+        "dirty": true
+      },
+      "environment": {
+        "python_version": "3.8.10",
+        "python_implementation": "CPython",
+        "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+        "packages": {
+          "numpy": "1.23.0",
+          "pandas": "1.4.3",
+          "pystan": "2.19.1.1"
+        }
+      }
+    }
+  },
+  "records": {
+    "regional_swing_deviations:2024qld:@TPP": {
+      "status": "generated",
+      "category": "regional_swing_deviations",
+      "stage": "generate_regional_swings",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2024qld"
+        ],
+        "parties": [
+          "@TPP"
+        ],
+        "qualifiers": {
+          "regional_party": "@TPP"
+        }
+      },
+      "run": "20260729T221427Z-b639feb1",
+      "random_seed": 939882293,
+      "dependencies": {
+        "election_catalogue": {
+          "kind": "source_manifest",
+          "digest": "964c361dc97366d19a9a1985fc22e9cc88c7d75bcaffb9b9875288fa8c8c1172",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "regional_poll_inputs": {
+          "kind": "source_manifest",
+          "digest": "82c874659fd219db5f699ac4e4e3568ba6c1a6442d008d369642b7863b205d61",
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "manifest": "Regional/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "region_model_script": {
+          "kind": "source_manifest",
+          "digest": "b9a751dc5a623b74366c341b13b7a73dc85a07ae7eb36014fa41686034ebe720",
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "region_model_provenance_script": {
+          "kind": "source_manifest",
+          "digest": "3322734397537881f5cd4ca65c2c276ab774bb1477346e4df8662025349e1e26",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "poll_transform_script": {
+          "kind": "source_manifest",
+          "digest": "7bd6a7800e774283f85ed6fba8d53ae2c25fb34fb094624235318b749df58642",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "stan_cache_script": {
+          "kind": "source_manifest",
+          "digest": "1fd8656b87e11aecf00c688babccaf863543cc9c21a3fc1025ae5f941cf1878d",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "regional_stan_models": {
+          "kind": "source_manifest",
+          "digest": "18913f87400fac3dfdb022b61d443103d15da3f605890098a3b32e1627a0b0b3",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Models/provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "Regional/2024qld-swing-deviations.csv": {
+          "sha256": "bbebffc621aa3be33202bcd543bb0b05454e2641f37062c1ba13ef3774e1b6e3",
+          "size_bytes": 192,
+          "mtime_ns": 1785363501967083700
+        }
+      },
+      "provenance_maintenance": [
+        {
+          "event_id": "20260801T132709Z-formatting-region-model-script-f957d731",
+          "source_category": "region_model_script",
+          "upgrade": "refresh-source-dependency-v1",
+          "applied_at_utc": "2026-08-02T12:34:04Z"
+        }
+      ]
+    },
+    "regional_swing_deviations:2025fed:@TPP": {
+      "status": "generated",
+      "category": "regional_swing_deviations",
+      "stage": "generate_regional_swings",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2025fed"
+        ],
+        "parties": [
+          "@TPP"
+        ],
+        "qualifiers": {
+          "regional_party": "@TPP"
+        }
+      },
+      "run": "20260903T060616Z-0abff95e",
+      "random_seed": 280866451,
+      "dependencies": {
+        "election_catalogue": {
+          "kind": "source_manifest",
+          "digest": "ab1bfc4be723789a61ca16ea03d7b8773563ba2cad53929ca6cc32aaf0528b36",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "regional_poll_inputs": {
+          "kind": "source_manifest",
+          "digest": "e61ae0b6eecf2c2bfb7e4acdac9aa7296822221f40d4e40eff7c535db868c050",
+          "semantic_revision": 4,
+          "provenance_revision": 4,
+          "manifest": "Regional/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "region_model_script": {
+          "kind": "source_manifest",
+          "digest": "b9a751dc5a623b74366c341b13b7a73dc85a07ae7eb36014fa41686034ebe720",
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "region_model_provenance_script": {
+          "kind": "source_manifest",
+          "digest": "b750e8e562177ba548aca19e5e3d7a0d9e3a29ae96a125ce1c0a3fc343108995",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "poll_transform_script": {
+          "kind": "source_manifest",
+          "digest": "3b3db8a425080bf1d813c6e861a8cd4b58611f2f961b8321e14f5e85e3fd5204",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "stan_cache_script": {
+          "kind": "source_manifest",
+          "digest": "c729fe281599960b43fb385ccfaa58fe58bd2dd86cd8eea457e47bde8d5d828a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "a338d8829c3b199da782e84bced48455faa909095df6833fcd0428ef8bf6bcdb",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "regional_stan_models": {
+          "kind": "source_manifest",
+          "digest": "18913f87400fac3dfdb022b61d443103d15da3f605890098a3b32e1627a0b0b3",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Models/provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "Regional/2025fed-swing-deviations.csv": {
+          "sha256": "0e23abab2a17007eb2270bfd308a0a2c10f1e5d1a4a31af7c5b8b20744e35459",
+          "size_bytes": 145,
+          "mtime_ns": 1788416448453113200
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "regional_swing_deviations:2026vic:@TPP": {
+      "status": "generated",
+      "category": "regional_swing_deviations",
+      "stage": "generate_regional_swings",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2026vic"
+        ],
+        "parties": [
+          "@TPP"
+        ],
+        "qualifiers": {
+          "regional_party": "@TPP"
+        }
+      },
+      "run": "20260725T051108Z-05942ab2",
+      "random_seed": 614701484,
+      "dependencies": {
+        "election_catalogue": {
+          "kind": "source_manifest",
+          "digest": "6646b9747403c7e216070d8c455f40aa5d5326cfab8e99819fe84c5f9a66d7c4",
+          "semantic_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "regional_poll_inputs": {
+          "kind": "source_manifest",
+          "digest": "43db79010d6fe32c6c136a7d60c463523b92e11c4cfad02481cf7b0a4487933f",
+          "semantic_revision": 1,
+          "manifest": "Regional/provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "region_model_script": {
+          "kind": "source_manifest",
+          "digest": "b9a751dc5a623b74366c341b13b7a73dc85a07ae7eb36014fa41686034ebe720",
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "region_model_provenance_script": {
+          "kind": "source_manifest",
+          "digest": "3322734397537881f5cd4ca65c2c276ab774bb1477346e4df8662025349e1e26",
+          "semantic_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "poll_transform_script": {
+          "kind": "source_manifest",
+          "digest": "5dc91445fd41902bb335284cccd64b43361ecd2779b8a391ff9cda300bd4c14c",
+          "semantic_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "stan_cache_script": {
+          "kind": "source_manifest",
+          "digest": "16f7142ce76aab5736609a5116ebaf77058e14694a51bf1e0092f563eed9e011",
+          "semantic_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "b304e7d709c291e4bec25004f93cf1509d40eddc648974f738949738beabc010",
+          "semantic_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "regional_stan_models": {
+          "kind": "source_manifest",
+          "digest": "18913f87400fac3dfdb022b61d443103d15da3f605890098a3b32e1627a0b0b3",
+          "semantic_revision": 1,
+          "manifest": "Models/provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        }
+      },
+      "outputs": {
+        "Regional/2026vic-swing-deviations.csv": {
+          "sha256": "ff024913b6b1577b4f9558d38fe2326672dd16a59895b4cb7b1ba89a92e44ee2",
+          "size_bytes": 117,
+          "mtime_ns": 1784956277470524800
+        }
+      },
+      "provenance_maintenance": [
+        {
+          "event_id": "20260801T132709Z-formatting-region-model-script-f957d731",
+          "source_category": "region_model_script",
+          "upgrade": "refresh-source-dependency-v1",
+          "applied_at_utc": "2026-08-02T12:34:05Z"
+        }
+      ]
+    },
+    "regional_swing_deviations:2026vic:ONP FP": {
+      "status": "generated",
+      "category": "regional_swing_deviations",
+      "stage": "generate_regional_swings",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2026vic"
+        ],
+        "parties": [
+          "ONP FP"
+        ],
+        "qualifiers": {
+          "regional_party": "ONP FP"
+        }
+      },
+      "run": "20260725T051052Z-d68f4f7a",
+      "random_seed": 378224251,
+      "dependencies": {
+        "election_catalogue": {
+          "kind": "source_manifest",
+          "digest": "6646b9747403c7e216070d8c455f40aa5d5326cfab8e99819fe84c5f9a66d7c4",
+          "semantic_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "regional_poll_inputs": {
+          "kind": "source_manifest",
+          "digest": "43db79010d6fe32c6c136a7d60c463523b92e11c4cfad02481cf7b0a4487933f",
+          "semantic_revision": 1,
+          "manifest": "Regional/provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "region_model_script": {
+          "kind": "source_manifest",
+          "digest": "b9a751dc5a623b74366c341b13b7a73dc85a07ae7eb36014fa41686034ebe720",
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "region_model_provenance_script": {
+          "kind": "source_manifest",
+          "digest": "3322734397537881f5cd4ca65c2c276ab774bb1477346e4df8662025349e1e26",
+          "semantic_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "poll_transform_script": {
+          "kind": "source_manifest",
+          "digest": "5dc91445fd41902bb335284cccd64b43361ecd2779b8a391ff9cda300bd4c14c",
+          "semantic_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "stan_cache_script": {
+          "kind": "source_manifest",
+          "digest": "16f7142ce76aab5736609a5116ebaf77058e14694a51bf1e0092f563eed9e011",
+          "semantic_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "b304e7d709c291e4bec25004f93cf1509d40eddc648974f738949738beabc010",
+          "semantic_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "regional_stan_models": {
+          "kind": "source_manifest",
+          "digest": "18913f87400fac3dfdb022b61d443103d15da3f605890098a3b32e1627a0b0b3",
+          "semantic_revision": 1,
+          "manifest": "Models/provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        }
+      },
+      "outputs": {
+        "Regional/2026vic-swing-deviations-on.csv": {
+          "sha256": "929765719d7ec6562d2c504b8a7c759d2446650fcbebf92ba86df0c95aebeb8a",
+          "size_bytes": 119,
+          "mtime_ns": 1784956261374835600
+        }
+      },
+      "provenance_maintenance": [
+        {
+          "event_id": "20260801T132709Z-formatting-region-model-script-f957d731",
+          "source_category": "region_model_script",
+          "upgrade": "refresh-source-dependency-v1",
+          "applied_at_utc": "2026-08-02T12:34:06Z"
+        }
+      ]
+    },
+    "regional_swing_deviations:2027nsw:@TPP": {
+      "status": "generated",
+      "category": "regional_swing_deviations",
+      "stage": "generate_regional_swings",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2027nsw"
+        ],
+        "parties": [
+          "@TPP"
+        ],
+        "qualifiers": {
+          "regional_party": "@TPP"
+        }
+      },
+      "run": "20260729T153049Z-bf5e00c0",
+      "random_seed": 1036778449,
+      "dependencies": {
+        "election_catalogue": {
+          "kind": "source_manifest",
+          "digest": "964c361dc97366d19a9a1985fc22e9cc88c7d75bcaffb9b9875288fa8c8c1172",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "regional_poll_inputs": {
+          "kind": "source_manifest",
+          "digest": "4c98ff8cfd2bb8d4341098a20ea88875ca041e269c5d47522fccff67cc00f7f5",
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "manifest": "Regional/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "region_model_script": {
+          "kind": "source_manifest",
+          "digest": "b9a751dc5a623b74366c341b13b7a73dc85a07ae7eb36014fa41686034ebe720",
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "region_model_provenance_script": {
+          "kind": "source_manifest",
+          "digest": "3322734397537881f5cd4ca65c2c276ab774bb1477346e4df8662025349e1e26",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "poll_transform_script": {
+          "kind": "source_manifest",
+          "digest": "7bd6a7800e774283f85ed6fba8d53ae2c25fb34fb094624235318b749df58642",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "stan_cache_script": {
+          "kind": "source_manifest",
+          "digest": "1fd8656b87e11aecf00c688babccaf863543cc9c21a3fc1025ae5f941cf1878d",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "4e60eb6a50fcdfbaabe35b1d7249402ab2e85f2f9ad47e226ddceaf04501721e",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "regional_stan_models": {
+          "kind": "source_manifest",
+          "digest": "18913f87400fac3dfdb022b61d443103d15da3f605890098a3b32e1627a0b0b3",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Models/provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "Regional/2027nsw-swing-deviations.csv": {
+          "sha256": "5d0eb5c3e6cd9b8871ade84a5a91eb3b858955fefb93dd4992bb75e755b9be63",
+          "size_bytes": 53,
+          "mtime_ns": 1785339086619455900
+        }
+      },
+      "provenance_maintenance": [
+        {
+          "event_id": "20260801T132709Z-formatting-region-model-script-f957d731",
+          "source_category": "region_model_script",
+          "upgrade": "refresh-source-dependency-v1",
+          "applied_at_utc": "2026-08-02T12:34:06Z"
+        }
+      ]
+    },
+    "regional_swing_deviations:2027nsw:ONP FP": {
+      "status": "generated",
+      "category": "regional_swing_deviations",
+      "stage": "generate_regional_swings",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2027nsw"
+        ],
+        "parties": [
+          "ONP FP"
+        ],
+        "qualifiers": {
+          "regional_party": "ONP FP"
+        }
+      },
+      "run": "20260725T051150Z-9257e1a3",
+      "random_seed": 1176782748,
+      "dependencies": {
+        "election_catalogue": {
+          "kind": "source_manifest",
+          "digest": "6646b9747403c7e216070d8c455f40aa5d5326cfab8e99819fe84c5f9a66d7c4",
+          "semantic_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "regional_poll_inputs": {
+          "kind": "source_manifest",
+          "digest": "43db79010d6fe32c6c136a7d60c463523b92e11c4cfad02481cf7b0a4487933f",
+          "semantic_revision": 1,
+          "manifest": "Regional/provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "region_model_script": {
+          "kind": "source_manifest",
+          "digest": "b9a751dc5a623b74366c341b13b7a73dc85a07ae7eb36014fa41686034ebe720",
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "region_model_provenance_script": {
+          "kind": "source_manifest",
+          "digest": "3322734397537881f5cd4ca65c2c276ab774bb1477346e4df8662025349e1e26",
+          "semantic_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "poll_transform_script": {
+          "kind": "source_manifest",
+          "digest": "5dc91445fd41902bb335284cccd64b43361ecd2779b8a391ff9cda300bd4c14c",
+          "semantic_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "stan_cache_script": {
+          "kind": "source_manifest",
+          "digest": "16f7142ce76aab5736609a5116ebaf77058e14694a51bf1e0092f563eed9e011",
+          "semantic_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "b304e7d709c291e4bec25004f93cf1509d40eddc648974f738949738beabc010",
+          "semantic_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        },
+        "regional_stan_models": {
+          "kind": "source_manifest",
+          "digest": "18913f87400fac3dfdb022b61d443103d15da3f605890098a3b32e1627a0b0b3",
+          "semantic_revision": 1,
+          "manifest": "Models/provenance.json",
+          "files": [],
+          "records": [],
+          "provenance_revision": 1
+        }
+      },
+      "outputs": {
+        "Regional/2027nsw-swing-deviations-on.csv": {
+          "sha256": "8ba6c803c645ea42dabcdcec052d8d5e69800c13d0f734db29453f4e389fdbd9",
+          "size_bytes": 53,
+          "mtime_ns": 1784956312182518100
+        }
+      },
+      "provenance_maintenance": [
+        {
+          "event_id": "20260801T132709Z-formatting-region-model-script-f957d731",
+          "source_category": "region_model_script",
+          "upgrade": "refresh-source-dependency-v1",
+          "applied_at_utc": "2026-08-02T12:34:06Z"
+        }
+      ]
+    },
+    "regional_swing_deviations:2028fed:@TPP": {
+      "status": "generated",
+      "category": "regional_swing_deviations",
+      "stage": "generate_regional_swings",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2028fed"
+        ],
+        "parties": [
+          "@TPP"
+        ],
+        "qualifiers": {
+          "regional_party": "@TPP"
+        }
+      },
+      "run": "20260816T115858Z-3f191916",
+      "random_seed": 73262891,
+      "dependencies": {
+        "election_catalogue": {
+          "kind": "source_manifest",
+          "digest": "964c361dc97366d19a9a1985fc22e9cc88c7d75bcaffb9b9875288fa8c8c1172",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "regional_poll_inputs": {
+          "kind": "source_manifest",
+          "digest": "e61ae0b6eecf2c2bfb7e4acdac9aa7296822221f40d4e40eff7c535db868c050",
+          "semantic_revision": 4,
+          "provenance_revision": 4,
+          "manifest": "Regional/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "region_model_script": {
+          "kind": "source_manifest",
+          "digest": "b9a751dc5a623b74366c341b13b7a73dc85a07ae7eb36014fa41686034ebe720",
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "region_model_provenance_script": {
+          "kind": "source_manifest",
+          "digest": "b750e8e562177ba548aca19e5e3d7a0d9e3a29ae96a125ce1c0a3fc343108995",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "poll_transform_script": {
+          "kind": "source_manifest",
+          "digest": "3b3db8a425080bf1d813c6e861a8cd4b58611f2f961b8321e14f5e85e3fd5204",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "stan_cache_script": {
+          "kind": "source_manifest",
+          "digest": "c729fe281599960b43fb385ccfaa58fe58bd2dd86cd8eea457e47bde8d5d828a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "a338d8829c3b199da782e84bced48455faa909095df6833fcd0428ef8bf6bcdb",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "regional_stan_models": {
+          "kind": "source_manifest",
+          "digest": "18913f87400fac3dfdb022b61d443103d15da3f605890098a3b32e1627a0b0b3",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Models/provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "Regional/2028fed-swing-deviations.csv": {
+          "sha256": "25d0c909d5053655125cde296cdc2b39554dd8bfe38198b40ce2737ca555e95d",
+          "size_bytes": 144,
+          "mtime_ns": 1786882033805185900
+        }
+      },
+      "provenance_maintenance": []
+    },
+    "regional_swing_deviations:2028fed:ONP FP": {
+      "status": "generated",
+      "category": "regional_swing_deviations",
+      "stage": "generate_regional_swings",
+      "scope": {
+        "all": false,
+        "elections": [
+          "2028fed"
+        ],
+        "parties": [
+          "ONP FP"
+        ],
+        "qualifiers": {
+          "regional_party": "ONP FP"
+        }
+      },
+      "run": "20260816T120750Z-6cbdf403",
+      "random_seed": 807991721,
+      "dependencies": {
+        "election_catalogue": {
+          "kind": "source_manifest",
+          "digest": "964c361dc97366d19a9a1985fc22e9cc88c7d75bcaffb9b9875288fa8c8c1172",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Data/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "regional_poll_inputs": {
+          "kind": "source_manifest",
+          "digest": "e61ae0b6eecf2c2bfb7e4acdac9aa7296822221f40d4e40eff7c535db868c050",
+          "semantic_revision": 4,
+          "provenance_revision": 4,
+          "manifest": "Regional/provenance.json",
+          "files": [],
+          "records": []
+        },
+        "region_model_script": {
+          "kind": "source_manifest",
+          "digest": "b9a751dc5a623b74366c341b13b7a73dc85a07ae7eb36014fa41686034ebe720",
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "region_model_provenance_script": {
+          "kind": "source_manifest",
+          "digest": "b750e8e562177ba548aca19e5e3d7a0d9e3a29ae96a125ce1c0a3fc343108995",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "poll_transform_script": {
+          "kind": "source_manifest",
+          "digest": "3b3db8a425080bf1d813c6e861a8cd4b58611f2f961b8321e14f5e85e3fd5204",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "stan_cache_script": {
+          "kind": "source_manifest",
+          "digest": "c729fe281599960b43fb385ccfaa58fe58bd2dd86cd8eea457e47bde8d5d828a",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "election_code_script": {
+          "kind": "source_manifest",
+          "digest": "a338d8829c3b199da782e84bced48455faa909095df6833fcd0428ef8bf6bcdb",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "provenance.json",
+          "files": [],
+          "records": []
+        },
+        "regional_stan_models": {
+          "kind": "source_manifest",
+          "digest": "18913f87400fac3dfdb022b61d443103d15da3f605890098a3b32e1627a0b0b3",
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "manifest": "Models/provenance.json",
+          "files": [],
+          "records": []
+        }
+      },
+      "outputs": {
+        "Regional/2028fed-swing-deviations-ON.csv": {
+          "sha256": "312d639e0f03c457b388ac931fb0d7d7e33ab44ce5eeddb2f76e15e93620f61a",
+          "size_bytes": 146,
+          "mtime_ns": 1786882377702421600
+        }
+      },
+      "provenance_maintenance": []
+    }
+  }
+}

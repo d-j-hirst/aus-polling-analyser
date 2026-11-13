@@ -329,8 +329,8 @@ void testPreparationInputs(std::filesystem::path const& root) {
     assert(modelRevision != modelCopy.preparedDataRevision());
 }
 
-void testPreferenceComparisonInputs(std::filesystem::path const& root) {
-    auto folder = root / "preference-comparison-inputs";
+void testPreferenceModelInputs(std::filesystem::path const& root) {
+    auto folder = root / "preference-model-inputs";
     std::filesystem::create_directory(folder);
     auto project = fictionalProject(folder, "2026vic");
     auto& sim = project->simulations().access(project->simulations().indexToId(0));
@@ -338,7 +338,7 @@ void testPreferenceComparisonInputs(std::filesystem::path const& root) {
     assert(seatText);
     auto capture = [&] { return SimulationInputs::capture(*project, sim, seatText, Date{}); };
     auto const absent = capture();
-    auto const& path = absent->path(SimulationInputs::File::PreferenceComparison);
+    auto const& path = absent->path(SimulationInputs::File::PreferenceModel);
     assert(!absent->open(path));
     std::filesystem::create_directories(std::filesystem::path(path).parent_path());
     { std::ofstream settings(path); settings << R"({"mode":"off"})"; }
@@ -636,7 +636,7 @@ int main() {
     auto project = fictionalProject(root);
     testSeatFileCache(root);
     testPreparationInputs(root);
-    testPreferenceComparisonInputs(root);
+    testPreferenceModelInputs(root);
     testMailboxAndShutdown(); testContext(*project); testPublication(*project);
     testRepeatedPublication(*project); testViewer(root);
     // This test deletes only the unique temporary directory it created.
