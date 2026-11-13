@@ -188,6 +188,9 @@
     <ClCompile Include="SimulationInputs.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
+    <ClCompile Include="PreferenceModel.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
     <ClCompile Include="SimulationPreparation.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
@@ -544,11 +547,17 @@
     <ClInclude Include="CoalitionPairing.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
+    <ClInclude Include="SeatFpPolls.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
     <ClInclude Include="SeatVolatility.h" />
     <ClInclude Include="RegionalSwingMath.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
     <ClInclude Include="MajorPartyFpMath.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="MinorPartyFpMath.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
     <ClInclude Include="WorkspacePaths.h">
@@ -672,6 +681,9 @@
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
     <ClInclude Include="SimulationInputs.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="PreferenceModel.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
     <ClInclude Include="SimulationPreparation.h">

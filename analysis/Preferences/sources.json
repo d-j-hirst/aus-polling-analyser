@@ -1,0 +1,1946 @@
+{
+  "schema_version": 1,
+  "purpose": "Source identities and explicit contexts for observed lower-house preference counts; no fitted forecast parameters.",
+  "general_elections": [
+    {
+      "year": 2004,
+      "event": "12246",
+      "primary_file": "aec-2004-fp-counts.csv",
+      "flow_file": "aec-2004-tcp-flow.csv"
+    },
+    {
+      "year": 2007,
+      "event": "13745",
+      "primary_file": "aec-2007-fp-counts.csv",
+      "flow_file": "aec-2007-tcp-flow.csv"
+    },
+    {
+      "year": 2010,
+      "event": "15508",
+      "primary_file": "aec-2010-fp-counts.csv",
+      "flow_file": "aec-2010-tcp-flow.csv"
+    },
+    {
+      "year": 2013,
+      "event": "17496",
+      "primary_file": "aec-2013-fp-counts.csv",
+      "flow_file": "aec-2013-tcp-flow.csv"
+    },
+    {
+      "year": 2016,
+      "event": "20499",
+      "primary_file": "aec-2016-fp-counts.csv",
+      "flow_file": "aec-2016-tcp-flow.csv"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "primary_file": "aec-2019-fp-counts.csv",
+      "flow_file": "aec-2019-tcp-flow.csv"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "primary_file": "aec-2022-fp-counts.csv",
+      "flow_file": "aec-2022-tcp-flow.csv"
+    },
+    {
+      "year": 2025,
+      "event": "31496",
+      "primary_file": "aec-2025-fp-counts.csv",
+      "flow_file": "aec-2025-tcp-flow.csv"
+    }
+  ],
+  "by_elections": [
+    {
+      "year": 2005,
+      "event": "12426",
+      "seat": "Werriwa",
+      "flow_file": "aec-werriwa-2005-HouseDivisionTcpFlow-12426-153.htm"
+    },
+    {
+      "year": 2008,
+      "event": "13813",
+      "seat": "Gippsland",
+      "flow_file": "aec-by-13813-booth-flows.zip"
+    },
+    {
+      "year": 2008,
+      "event": "13826",
+      "seat": "Mayo",
+      "flow_file": "aec-by-13826-booth-flows.zip"
+    },
+    {
+      "year": 2008,
+      "event": "13827",
+      "seat": "Lyne",
+      "flow_file": "aec-by-13827-booth-flows.zip"
+    },
+    {
+      "year": 2009,
+      "event": "14357",
+      "seat": "Bradfield",
+      "flow_file": "aec-by-14357-booth-flows.zip"
+    },
+    {
+      "year": 2009,
+      "event": "14358",
+      "seat": "Higgins",
+      "flow_file": "aec-by-14358-booth-flows.zip"
+    },
+    {
+      "year": 2014,
+      "event": "17552",
+      "seat": "Griffith",
+      "flow_file": "aec-by-17552-booth-flows.zip"
+    },
+    {
+      "year": 2015,
+      "event": "18126",
+      "seat": "Canning",
+      "flow_file": "aec-by-18126-booth-flows.zip"
+    },
+    {
+      "year": 2015,
+      "event": "19402",
+      "seat": "North Sydney",
+      "flow_file": "aec-by-19402-booth-flows.zip"
+    },
+    {
+      "year": 2017,
+      "event": "21364",
+      "seat": "New England",
+      "flow_file": "aec-by-21364-booth-flows.zip"
+    },
+    {
+      "year": 2017,
+      "event": "21379",
+      "seat": "Bennelong",
+      "flow_file": "aec-by-21379-booth-flows.zip"
+    },
+    {
+      "year": 2018,
+      "event": "21751",
+      "seat": "Batman",
+      "flow_file": "aec-by-21751-booth-flows.zip"
+    },
+    {
+      "year": 2018,
+      "event": "22692",
+      "seat": "Braddon",
+      "flow_file": "aec-by-22692-booth-flows.zip"
+    },
+    {
+      "year": 2018,
+      "event": "22693",
+      "seat": "Fremantle",
+      "flow_file": "aec-by-22693-booth-flows.zip"
+    },
+    {
+      "year": 2018,
+      "event": "22694",
+      "seat": "Longman",
+      "flow_file": "aec-by-22694-booth-flows.zip"
+    },
+    {
+      "year": 2018,
+      "event": "22695",
+      "seat": "Mayo",
+      "flow_file": "aec-by-22695-booth-flows.zip"
+    },
+    {
+      "year": 2018,
+      "event": "22696",
+      "seat": "Perth",
+      "flow_file": "aec-by-22696-booth-flows.zip"
+    },
+    {
+      "year": 2018,
+      "event": "22844",
+      "seat": "Wentworth",
+      "flow_file": "aec-by-22844-booth-flows.zip"
+    },
+    {
+      "year": 2020,
+      "event": "25820",
+      "seat": "Eden-Monaro",
+      "flow_file": "aec-by-25820-booth-flows.zip"
+    },
+    {
+      "year": 2020,
+      "event": "25881",
+      "seat": "Groom",
+      "flow_file": "aec-by-25881-booth-flows.zip"
+    },
+    {
+      "year": 2023,
+      "event": "28791",
+      "seat": "Aston",
+      "flow_file": "aec-by-28791-booth-flows.zip"
+    },
+    {
+      "year": 2023,
+      "event": "29422",
+      "seat": "Fadden",
+      "flow_file": "aec-by-29422-booth-flows.zip"
+    },
+    {
+      "year": 2024,
+      "event": "29778",
+      "seat": "Dunkley",
+      "flow_file": "aec-by-29778-booth-flows.zip"
+    },
+    {
+      "year": 2024,
+      "event": "29807",
+      "seat": "Cook",
+      "flow_file": "aec-by-29807-booth-flows.zip"
+    },
+    {
+      "year": 2026,
+      "event": "31633",
+      "seat": "Farrer",
+      "flow_file": "aec-by-31633-booth-flows.zip"
+    }
+  ],
+  "files": {
+    "aec-2004-fp-counts.csv": {
+      "url": "https://results.aec.gov.au/12246/results/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-12246.csv",
+      "resolved_url": "https://results.aec.gov.au/12246/results/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-12246.csv",
+      "sha256": "ff6d749c55dbd11af0fe1d121f9827e776dbb86223c023f67621c159844fcfa5",
+      "bytes": 112464,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2004-tcp-flow.csv": {
+      "url": "https://results.aec.gov.au/12246/results/Downloads/HouseTcpFlowByDivisionDownload-12246.csv",
+      "resolved_url": "https://results.aec.gov.au/12246/results/Downloads/HouseTcpFlowByDivisionDownload-12246.csv",
+      "sha256": "9b510bfdaabcdbb1680fe848e062734fc58208970b9814794bcf8cf0e8878ba1",
+      "bytes": 207261,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2007-fp-counts.csv": {
+      "url": "https://results.aec.gov.au/13745/Website/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-13745.csv",
+      "resolved_url": "https://results.aec.gov.au/13745/Website/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-13745.csv",
+      "sha256": "f847af33d139855c60e83c8041ab7f488bfcfb52ad322ff6b6a8a48a9bf3cb3f",
+      "bytes": 110389,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2007-tcp-flow.csv": {
+      "url": "https://results.aec.gov.au/13745/Website/Downloads/HouseTcpFlowByDivisionDownload-13745.csv",
+      "resolved_url": "https://results.aec.gov.au/13745/Website/Downloads/HouseTcpFlowByDivisionDownload-13745.csv",
+      "sha256": "eb293e3e4ae17db1715d318d244a33346ec6a2439c40c46010552d89e14828a0",
+      "bytes": 192239,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2010-fp-counts.csv": {
+      "url": "https://results.aec.gov.au/15508/Website/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-15508.csv",
+      "resolved_url": "https://results.aec.gov.au/15508/Website/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-15508.csv",
+      "sha256": "82c8c8b48d5d6fef7a6848176a892e33b24b985b2727c9064b70f434500c3ba0",
+      "bytes": 93764,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2010-tcp-flow.csv": {
+      "url": "https://results.aec.gov.au/15508/Website/Downloads/HouseTcpFlowByDivisionDownload-15508.csv",
+      "resolved_url": "https://results.aec.gov.au/15508/Website/Downloads/HouseTcpFlowByDivisionDownload-15508.csv",
+      "sha256": "2a69055cfb85103dd26ce06ba36ee7652c2f3ab7e7029d6e5f185c0efc9eb557",
+      "bytes": 152996,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2013-fp-counts.csv": {
+      "url": "https://results.aec.gov.au/17496/Website/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-17496.csv",
+      "resolved_url": "https://results.aec.gov.au/17496/Website/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-17496.csv",
+      "sha256": "345200e5a625171f8db82d2b2b48f6853b3d32518d13076cd1129b547cba0598",
+      "bytes": 128281,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2013-tcp-flow.csv": {
+      "url": "https://results.aec.gov.au/17496/Website/Downloads/HouseTcpFlowByDivisionDownload-17496.csv",
+      "resolved_url": "https://results.aec.gov.au/17496/Website/Downloads/HouseTcpFlowByDivisionDownload-17496.csv",
+      "sha256": "9427632b56d22008d7e7d36489f3b2bfbb422150ac744ae2e00ecb926a8880b2",
+      "bytes": 236846,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2016-fp-counts.csv": {
+      "url": "https://results.aec.gov.au/20499/Website/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-20499.csv",
+      "resolved_url": "https://results.aec.gov.au/20499/Website/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-20499.csv",
+      "sha256": "376f84e713fdf0836c1cc5a41b23919da2f2f8234b8c53c8ea33a18f7905c310",
+      "bytes": 109411,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2016-tcp-flow.csv": {
+      "url": "https://results.aec.gov.au/20499/Website/Downloads/HouseTcpFlowByDivisionDownload-20499.csv",
+      "resolved_url": "https://results.aec.gov.au/20499/Website/Downloads/HouseTcpFlowByDivisionDownload-20499.csv",
+      "sha256": "f943a01757ec70651221eb3d14f71e28166d041d3644a2b8d188d90d59691b65",
+      "bytes": 189856,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2019-fp-counts.csv": {
+      "url": "https://results.aec.gov.au/24310/Website/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-24310.csv",
+      "resolved_url": "https://results.aec.gov.au/24310/Website/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-24310.csv",
+      "sha256": "44493b87fdf5093f748d5c0c0da0c997f65c2f8897ed803ab4cc9259932b0590",
+      "bytes": 117828,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2019-tcp-flow.csv": {
+      "url": "https://results.aec.gov.au/24310/Website/Downloads/HouseTcpFlowByDivisionDownload-24310.csv",
+      "resolved_url": "https://results.aec.gov.au/24310/Website/Downloads/HouseTcpFlowByDivisionDownload-24310.csv",
+      "sha256": "50feddcd211de0821da3090f39fe5411783a15112f67ce4495785c7d3c0348c1",
+      "bytes": 208503,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2022-fp-counts.csv": {
+      "url": "https://results.aec.gov.au/27966/Website/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-27966.csv",
+      "resolved_url": "https://results.aec.gov.au/27966/Website/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-27966.csv",
+      "sha256": "92e28be82f1d87d94079d36c3c0f9843aa0344202c8b1368b2529e3647856221",
+      "bytes": 131203,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2022-tcp-flow.csv": {
+      "url": "https://results.aec.gov.au/27966/Website/Downloads/HouseTcpFlowByDivisionDownload-27966.csv",
+      "resolved_url": "https://results.aec.gov.au/27966/Website/Downloads/HouseTcpFlowByDivisionDownload-27966.csv",
+      "sha256": "8357df0da0be9061dce6f4e0a5146167b383bba69c38eb14b4cabd2c3fadfc79",
+      "bytes": 239395,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2025-fp-counts.csv": {
+      "url": "https://results.aec.gov.au/31496/Website/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-31496.csv",
+      "resolved_url": "https://results.aec.gov.au/31496/Website/Downloads/HouseFirstPrefsByCandidateByVoteTypeDownload-31496.csv",
+      "sha256": "b4ff38969ed49fc09c89a5c84a7d5b6a4046ad53b5f4e3492e0e4e73beba17a9",
+      "bytes": 120059,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2025-nonclassic-tpp-flow.csv": {
+      "url": "https://www.aec.gov.au/election/fe25/files/downloads/FE2025_HoRTppFlowByCandByDiv.csv",
+      "resolved_url": "https://www.aec.gov.au/election/fe25/files/downloads/FE2025_HoRTppFlowByCandByDiv.csv",
+      "sha256": "d6459be96e23a790e7d36a1600b7a3500d83d406d906324c3deefc91744d5a9a",
+      "bytes": 49016,
+      "content_type": "application/octet-stream"
+    },
+    "aec-2025-tcp-flow.csv": {
+      "url": "https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv",
+      "resolved_url": "https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv",
+      "sha256": "409c77e0ac7778a9c01e2698d877eb5857fee93ce18145c3def5366e15d0229f",
+      "bytes": 210873,
+      "content_type": "application/octet-stream"
+    },
+    "aec-by-13813-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/13813/Website/External/HouseTcpFlowByPPDownload-13813-VIC.zip",
+      "resolved_url": "https://results.aec.gov.au/13813/Website/External/HouseTcpFlowByPPDownload-13813-VIC.zip",
+      "sha256": "d06b8ca795517ec46a84851a2c74d8b5b044f12552df6b12cc7fcc26350e1668",
+      "bytes": 9471,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-13826-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/13826/Website/External/HouseTcpFlowByPPDownload-13826-SA.zip",
+      "resolved_url": "https://results.aec.gov.au/13826/Website/External/HouseTcpFlowByPPDownload-13826-SA.zip",
+      "sha256": "189b9f62cdb4508b62aa9b140618119830ec11c63c8097b948b98bb4e1d799d3",
+      "bytes": 16165,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-13827-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/13827/Website/External/HouseTcpFlowByPPDownload-13827-NSW.zip",
+      "resolved_url": "https://results.aec.gov.au/13827/Website/External/HouseTcpFlowByPPDownload-13827-NSW.zip",
+      "sha256": "24457b7ea14148b02cf07d14b0eaaf7ddf85d1b7e8e26ef59c0a2c4a46ac839e",
+      "bytes": 9977,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-14357-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/14357/Website/External/HouseTcpFlowByPPDownload-14357-NSW.zip",
+      "resolved_url": "https://results.aec.gov.au/14357/Website/External/HouseTcpFlowByPPDownload-14357-NSW.zip",
+      "sha256": "d05c875111b4b9f085b1d5abf85af2f5df92b6ff1fbfd2913874aed3a7835e84",
+      "bytes": 14813,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-14358-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/14358/Website/External/HouseTcpFlowByPPDownload-14358-VIC.zip",
+      "resolved_url": "https://results.aec.gov.au/14358/Website/External/HouseTcpFlowByPPDownload-14358-VIC.zip",
+      "sha256": "1fe961cf6dde21a8d352b87b472e7b64b950c5853c1fe53e7b48945e10cad0bf",
+      "bytes": 7112,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-17552-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/17552/Website/External/HouseTcpFlowByPPDownload-17552-QLD.zip",
+      "resolved_url": "https://results.aec.gov.au/17552/Website/External/HouseTcpFlowByPPDownload-17552-QLD.zip",
+      "sha256": "afde55103e78c7f38c2386cd261870c21cc4177a47747bba34a8a39d093e3cb3",
+      "bytes": 9901,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-18126-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/18126/Website/External/HouseTcpFlowByPPDownload-18126-WA.zip",
+      "resolved_url": "https://results.aec.gov.au/18126/Website/External/HouseTcpFlowByPPDownload-18126-WA.zip",
+      "sha256": "bb0ee017727a5fc84acdb4d58df941ec3d8dcafc9f2e89d67e41ef60cc30bb03",
+      "bytes": 12152,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-19402-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/19402/Website/External/HouseTcpFlowByPPDownload-19402-NSW.zip",
+      "resolved_url": "https://results.aec.gov.au/19402/Website/External/HouseTcpFlowByPPDownload-19402-NSW.zip",
+      "sha256": "099c602b9b22e44147596c3b0cea2dcd230b9e56bec1d4a5c49e5630ba4d1905",
+      "bytes": 11298,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-21364-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/21364/Website/External/HouseTcpFlowByPPDownload-21364-NSW.zip",
+      "resolved_url": "https://results.aec.gov.au/21364/Website/External/HouseTcpFlowByPPDownload-21364-NSW.zip",
+      "sha256": "6bd54f5d20363330cedf6f826f28f5a5b4ecaae0ecbbc962f562ca7096b2d638",
+      "bytes": 27886,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-21379-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/21379/Website/External/HouseTcpFlowByPPDownload-21379-NSW.zip",
+      "resolved_url": "https://results.aec.gov.au/21379/Website/External/HouseTcpFlowByPPDownload-21379-NSW.zip",
+      "sha256": "fdaca10f84ac20385de771721bf60342a49aa2e13fb9e4940d2343edb2087e5c",
+      "bytes": 10049,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-21751-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/21751/Website/External/HouseTcpFlowByPPDownload-21751-VIC.zip",
+      "resolved_url": "https://results.aec.gov.au/21751/Website/External/HouseTcpFlowByPPDownload-21751-VIC.zip",
+      "sha256": "710016bcfdf0f95813bbbee7a6838338e36c018260423684a62be82ff086860b",
+      "bytes": 9424,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-22692-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/22692/Website/External/HouseTcpFlowByPPDownload-22692-TAS.zip",
+      "resolved_url": "https://results.aec.gov.au/22692/Website/External/HouseTcpFlowByPPDownload-22692-TAS.zip",
+      "sha256": "cc0418d1f4d746c207a4ccf8b788961565972df75d3749a51d5243cbbe20b133",
+      "bytes": 11061,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-22693-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/22693/Website/External/HouseTcpFlowByPPDownload-22693-WA.zip",
+      "resolved_url": "https://results.aec.gov.au/22693/Website/External/HouseTcpFlowByPPDownload-22693-WA.zip",
+      "sha256": "a52f69195e9387d9499b3b7cb222ad8e4c0ed5d0c676c15d983346d2b6db294e",
+      "bytes": 6033,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-22694-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/22694/Website/External/HouseTcpFlowByPPDownload-22694-QLD.zip",
+      "resolved_url": "https://results.aec.gov.au/22694/Website/External/HouseTcpFlowByPPDownload-22694-QLD.zip",
+      "sha256": "919e6730cf9d9e2bbb42d2647600bfe2c034927ceb34206a57409abaaa708f50",
+      "bytes": 9581,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-22695-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/22695/Website/External/HouseTcpFlowByPPDownload-22695-SA.zip",
+      "resolved_url": "https://results.aec.gov.au/22695/Website/External/HouseTcpFlowByPPDownload-22695-SA.zip",
+      "sha256": "6f0960e02240f860626f46f26746b107f24a9a4aa4a975cb27bfed91a5138193",
+      "bytes": 10579,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-22696-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/22696/Website/External/HouseTcpFlowByPPDownload-22696-WA.zip",
+      "resolved_url": "https://results.aec.gov.au/22696/Website/External/HouseTcpFlowByPPDownload-22696-WA.zip",
+      "sha256": "666737fffaf3e9cc3b64e6eab07130699a65f32f888799c248db65802da89b9a",
+      "bytes": 12681,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-22844-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/22844/Website/External/HouseTcpFlowByPPDownload-22844-NSW.zip",
+      "resolved_url": "https://results.aec.gov.au/22844/Website/External/HouseTcpFlowByPPDownload-22844-NSW.zip",
+      "sha256": "5051951c2eb00fd1a066f597f68ce68b132946c9096d4c239ec95cc9fa10a053",
+      "bytes": 12295,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-25820-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/25820/Website/External/HouseTcpFlowByPPDownload-25820-NSW.zip",
+      "resolved_url": "https://results.aec.gov.au/25820/Website/External/HouseTcpFlowByPPDownload-25820-NSW.zip",
+      "sha256": "ec68adbaea0cfef754db9d4eec6f2b2a384cb1831359e1db092273229b830974",
+      "bytes": 20941,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-25881-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/25881/Website/External/HouseTcpFlowByPPDownload-25881-QLD.zip",
+      "resolved_url": "https://results.aec.gov.au/25881/Website/External/HouseTcpFlowByPPDownload-25881-QLD.zip",
+      "sha256": "12fb232d50e855aa0d153d36c986544b834e22cd574f3c8250f994712a72eea6",
+      "bytes": 4833,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-28791-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/28791/Website/External/HouseTcpFlowByPPDownload-28791-VIC.zip",
+      "resolved_url": "https://results.aec.gov.au/28791/Website/External/HouseTcpFlowByPPDownload-28791-VIC.zip",
+      "sha256": "14bc997dd64ba8b42523821bcf91d476f65c92fdecaad034ad2c5952fef584cd",
+      "bytes": 4407,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-29422-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/29422/Website/External/HouseTcpFlowByPPDownload-29422-QLD.zip",
+      "resolved_url": "https://results.aec.gov.au/29422/Website/External/HouseTcpFlowByPPDownload-29422-QLD.zip",
+      "sha256": "efeff8cfb9f2e280de6f20bb7a01a822e734d5957df2f16909d5d032b1a54d79",
+      "bytes": 12058,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-29778-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/29778/Website/External/HouseTcpFlowByPPDownload-29778-VIC.zip",
+      "resolved_url": "https://results.aec.gov.au/29778/Website/External/HouseTcpFlowByPPDownload-29778-VIC.zip",
+      "sha256": "bfc54e28eae8a6f18dff51f549a580dfaa4407a1dab7b5075bf6a495af873a9d",
+      "bytes": 7721,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-29807-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/29807/Website/External/HouseTcpFlowByPPDownload-29807-NSW.zip",
+      "resolved_url": "https://results.aec.gov.au/29807/Website/External/HouseTcpFlowByPPDownload-29807-NSW.zip",
+      "sha256": "f0e4645c040ba096893d9b48b4532a3da19184e8b30ed738c7ca839535793905",
+      "bytes": 6886,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-by-31633-booth-flows.zip": {
+      "url": "https://results.aec.gov.au/31633/Website/External/HouseTcpFlowByPPDownload-31633-NSW.zip",
+      "resolved_url": "https://results.aec.gov.au/31633/Website/External/HouseTcpFlowByPPDownload-31633-NSW.zip",
+      "sha256": "a6c4562aa0e8e9861482584d9a783385dfefda3c4a3c73327a820c86b85dd307",
+      "bytes": 18724,
+      "content_type": "application/x-zip-compressed"
+    },
+    "aec-werriwa-2005-HouseDivisionTcpFlow-12426-153.htm": {
+      "url": "https://results.aec.gov.au/12426/HouseDivisionTcpFlow-12426-153.htm",
+      "resolved_url": "https://results.aec.gov.au/12426/HouseDivisionTcpFlow-12426-153.htm",
+      "sha256": "5bdde2de8af852c0d82efd5238ae9b7c35c1e4d945e7a9feba1d38c894106b73",
+      "bytes": 12234,
+      "content_type": "text/html"
+    },
+    "aec-werriwa-2005-fp.html": {
+      "url": "https://results.aec.gov.au/12426/HouseDivisionFirstPrefs-12426-153.htm",
+      "resolved_url": "https://results.aec.gov.au/12426/HouseDivisionFirstPrefs-12426-153.htm",
+      "sha256": "0d8e4ba45a1ef76a04b6c3c1f8348ddf30980ebb60ce23295da31649dc1cb6ac",
+      "bytes": 14448,
+      "content_type": "text/html"
+    },
+    "ecsa-2026-elder-htv-group.pdf": {
+      "url": "https://ecsa.sa.gov.au/images/2026SE/How-To/How-Elder.pdf",
+      "resolved_url": "https://ecsa.sa.gov.au/images/2026SE/How-To/How-Elder.pdf",
+      "sha256": "9763752597188958d98f5dbb719dac713fc65bde857c975a125994d3fefc8930",
+      "bytes": 936312,
+      "content_type": "application/pdf"
+    },
+    "ecsa-2026-final.json": {
+      "url": "https://apim-ecsa-production.azure-api.net/results-display/HAChange/2026-03-21/0",
+      "resolved_url": "https://apim-ecsa-production.azure-api.net/results-display/HAChange/2026-03-21/0",
+      "sha256": "c61cc250af20c930965e0e4dd9fc09c15f808e9eae4fd65c63ad1836c02af854",
+      "bytes": 2340754,
+      "content_type": "application/json"
+    },
+    "ecsa-2026-king-htv-group.pdf": {
+      "url": "https://ecsa.sa.gov.au/images/2026SE/How-To/J018916%20PR1%20ELE%20COM%20How%20to%20Vote%20Card%20Posters%20PB%2085%209%20CANDIDATES.pdf",
+      "resolved_url": "https://ecsa.sa.gov.au/images/2026SE/How-To/J018916%20PR1%20ELE%20COM%20How%20to%20Vote%20Card%20Posters%20PB%2085%209%20CANDIDATES.pdf",
+      "sha256": "4a83d7daff50c9c6582e6d96795caa150e2dc4949afa2e06afcaacb02bc5d8fd",
+      "bytes": 5303965,
+      "content_type": "application/pdf"
+    },
+    "ecsa-2026-static.json": {
+      "url": "https://apim-ecsa-production.azure-api.net/results-display/HAStatic/2026-03-21",
+      "resolved_url": "https://apim-ecsa-production.azure-api.net/results-display/HAStatic/2026-03-21",
+      "sha256": "2df8266b813153b39a157a015ae9bfeb50a15c1b7a82137729e5c216cf11555d",
+      "bytes": 157058,
+      "content_type": "application/json"
+    },
+    "vec-2022-brunswick-distribution.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/brunswick-district-results/brunswick-results-distribution",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/brunswick-district-results/brunswick-results-distribution",
+      "sha256": "eb0ad6b701a1a0d553fe8e840d342cb52e40b9366e2be94ae70f046f77199308",
+      "bytes": 159428,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "vec-2022-brunswick-results.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/brunswick-district-results",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/brunswick-district-results",
+      "sha256": "849216834d50dd3dea5f5869cbcb6ebaf955701f7ffeb29de7bf6a58c4b76325",
+      "bytes": 152176,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "vec-2022-footscray-distribution.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/footscray-district-results/footscray-results-distribution",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/footscray-district-results/footscray-results-distribution",
+      "sha256": "eae2a0ff44d086300cdce4748d5e918da95949635b171d154b392fd13661cd3d",
+      "bytes": 154304,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "vec-2022-footscray-results.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/footscray-district-results",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/footscray-district-results",
+      "sha256": "36a7c7c716ceb40bce6b7bb058d3c6ba06ce77e3b41b84ff6647e0a58bb82681",
+      "bytes": 150327,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "vec-2022-melbourne-distribution.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/melbourne-district-results/melbourne-results-distribution",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/melbourne-district-results/melbourne-results-distribution",
+      "sha256": "0f57f59ad6505eaf09ff3129ba5a0c7f90a03e00f71af714ed56f1b1e89138a5",
+      "bytes": 161961,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "vec-2022-melbourne-liberal-htv.pdf": {
+      "url": "https://itsitecoreblobvecprd01.blob.core.windows.net/public-files/State/HTVC/4b75f111-b840-462b-bb4b-08d35d4d2092/liberal%20-%20combined%20-%20northern%20metro%20-%20melbourne%201.pdf",
+      "resolved_url": "https://itsitecoreblobvecprd01.blob.core.windows.net/public-files/State/HTVC/4b75f111-b840-462b-bb4b-08d35d4d2092/liberal%20-%20combined%20-%20northern%20metro%20-%20melbourne%201.pdf",
+      "sha256": "7d2fc7ab8f1b1b46556cc8e2f1b4d27602c11096675a228b1414ff3ba36ec8f7",
+      "bytes": 1034218,
+      "content_type": "application/octet-stream"
+    },
+    "vec-2022-melbourne-results.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/melbourne-district-results",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/melbourne-district-results",
+      "sha256": "799d5f2b04574881feebfa63d106db49ad18ce787d0c4d666d1b98a831dff203",
+      "bytes": 150975,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "vec-2022-northcote-distribution.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/northcote-district-results/northcote-results-distribution",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/northcote-district-results/northcote-results-distribution",
+      "sha256": "09d26a2d6bf501954bb0310311593ffdddd0366bd5424dd17f5b30a24c3aaf87",
+      "bytes": 171383,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "vec-2022-northcote-results.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/northcote-district-results",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/northcote-district-results",
+      "sha256": "a2e63e705b525dfc97ff9e703d6900db29e644097d950eb4e726274587139f8e",
+      "bytes": 151608,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "vec-2022-pascoe-vale-distribution.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/pascoe-vale-district-results/pascoe-vale-results-distribution",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/pascoe-vale-district-results/pascoe-vale-results-distribution",
+      "sha256": "8d1b6d26f14f5aa6505b6aac48477b2c3fc4a25167c5359973889dbe37293a1a",
+      "bytes": 157974,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "vec-2022-pascoe-vale-results.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/pascoe-vale-district-results",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/pascoe-vale-district-results",
+      "sha256": "0b018160bc4b4438f91e6a24a0180b6dead158fca58602063a80fdccb8031d50",
+      "bytes": 150702,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "vec-2022-prahran-distribution.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/prahran-district-results/prahran-results-distribution",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/prahran-district-results/prahran-results-distribution",
+      "sha256": "5b489e17aa4a741c800867a3df90877e7997e11566135c8b1534daf0dde8eb7e",
+      "bytes": 151047,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "vec-2022-prahran-results.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/prahran-district-results",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/prahran-district-results",
+      "sha256": "5cb680e3df4d765525637da307bc49c660238e0fa971d42d91492be0bcba52f5",
+      "bytes": 149846,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "vec-2022-preston-distribution.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/preston-district-results/preston-results-distribution",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/preston-district-results/preston-results-distribution",
+      "sha256": "07acad9618e9470036b890f9b02c9c6abbc59f89f935d091f7418827b8a1c337",
+      "bytes": 166459,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "vec-2022-preston-results.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/preston-district-results",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/preston-district-results",
+      "sha256": "3c8b98c5bebc95e7c408643c05857b5a5209ca92b7ae4b652803b147fc9fecb9",
+      "bytes": 151256,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "vec-2022-richmond-distribution.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/richmond-district-results/richmond-results-distribution",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/richmond-district-results/richmond-results-distribution",
+      "sha256": "836df27ef6315394372993005a019fc916e3cc6c736bb3b5ee642928e8ded7c4",
+      "bytes": 157857,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "vec-2022-richmond-results.html": {
+      "url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/richmond-district-results",
+      "resolved_url": "https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/richmond-district-results",
+      "sha256": "f624579efd2f88eb5af178e9bca24061ecd2d95b82624216207db05183ff27f5",
+      "bytes": 150600,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "legacy-2001-data_import_hcands.txt.gz": {
+      "url": "https://www.aec.gov.au/About_AEC/Publications/statistics/files/aec-2001-election-statistics.zip",
+      "sha256": "5dbaf8f41d79f2936d2ce1bf723527cea3d78e10d955a487bca871c1bc10bc6c",
+      "bytes": 25132,
+      "representation": "selected_members_of_official_zip",
+      "member": "data/import/hcands.txt",
+      "sha256_uncompressed": "42d3163474becd6fd474eabe6e4ce109ab83c54df531fbdc2a91f25af0e5eb22",
+      "verification": "uncompressed_member_hashes"
+    },
+    "aec-2001-original-booth-flows.zip": {
+      "url": "https://www.aec.gov.au/About_AEC/Publications/statistics/files/aec-2001-election-statistics.zip",
+      "sha256": "d5b68c13fe9179abc67f5b89e65130f4343723732d8486afcb3dd7c758761089",
+      "bytes": 909378,
+      "representation": "selected_members_of_official_zip",
+      "members": [
+        {
+          "member": "data/act/act_txt/v3_10CANB.txt",
+          "sha256_uncompressed": "9a7f7e13c1da3e358b936cd89a83954a8082a54aad8de8e25950e3d7411a9600",
+          "original_zip_offset": 186135,
+          "crc32": 766956633
+        },
+        {
+          "member": "data/act/act_txt/v3_10FRAS.txt",
+          "sha256_uncompressed": "b7dada6e758850ff216d84af3c460e672c6e04c8f72661a83d2f63db566e708d",
+          "original_zip_offset": 191138,
+          "crc32": 4240637530
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10BANK.txt",
+          "sha256_uncompressed": "b6f555ba1929e3065d9e3e068f3709d7ff71d7781a3d033c15abf3fe0a2eab33",
+          "original_zip_offset": 22170647,
+          "crc32": 2568443123
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10BART.txt",
+          "sha256_uncompressed": "7d51b59b9f1575760cea429b91e3d2bd04bf0e87f9317dad8e0092254ec1556b",
+          "original_zip_offset": 22176420,
+          "crc32": 3762251451
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10BENN.txt",
+          "sha256_uncompressed": "0e481ffabd20400c827e25e2b6d7cb2d3468cfe6e58e403ce0df11c1029a99c4",
+          "original_zip_offset": 22183549,
+          "crc32": 4178071445
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10BERO.txt",
+          "sha256_uncompressed": "4ff6dcfa50141853b392225df689ef8578b32bb2a52d230831e981873d6cb53c",
+          "original_zip_offset": 22189978,
+          "crc32": 4135233953
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10BLAX.txt",
+          "sha256_uncompressed": "a7fc053c088c0202318ee7efa3b3d52d863904fea1b85a8324cb283003b89584",
+          "original_zip_offset": 22196763,
+          "crc32": 83844538
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10BRFD.txt",
+          "sha256_uncompressed": "55646a59b9fe70227ffbbe0114a238a0bbaa3d88cfd7c0ed1aa85b7b7c157b3b",
+          "original_zip_offset": 22202260,
+          "crc32": 3404762556
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10CALA.txt",
+          "sha256_uncompressed": "dacdd74312645a644f9db99eb702a32e1e89177bab5bcba07c22d1d8a4cf07d7",
+          "original_zip_offset": 22207250,
+          "crc32": 1942092121
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10CHAR.txt",
+          "sha256_uncompressed": "ab179869ee1c1e51c046453315f615f0fcb221807630748058badd220a7900e6",
+          "original_zip_offset": 22215242,
+          "crc32": 1666181280
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10CHIF.txt",
+          "sha256_uncompressed": "08fb1e1119612674feda0226950170671ff6190da98c8393796866c8d68744e7",
+          "original_zip_offset": 22221685,
+          "crc32": 1861256950
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10COOK.txt",
+          "sha256_uncompressed": "83c45297705ef5e84b22899a6106854e9fe0e61799c5df9c930c2d9edfa2a4e7",
+          "original_zip_offset": 22227697,
+          "crc32": 4218027748
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10COWP.txt",
+          "sha256_uncompressed": "55ddfae3015d2620d65f1cb4f439c5abaa8cbb8be610db3d395dfbe10f4cc757",
+          "original_zip_offset": 22233877,
+          "crc32": 275742608
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10CUNN.txt",
+          "sha256_uncompressed": "b86e995a452bc4f296dba8192b6fd9b661cacfbfbf9f99ce4da2fa62ede9566c",
+          "original_zip_offset": 22243830,
+          "crc32": 1473443724
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10DOBE.txt",
+          "sha256_uncompressed": "3a38f4bd38c8905affc115bb416a1552368c664d67547a5b21b7727c956a5cfc",
+          "original_zip_offset": 22250673,
+          "crc32": 885614902
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10EMON.txt",
+          "sha256_uncompressed": "6bd9dcecc06fbdc491e53fec114e44ae893d9aaf6623c58d91bd688427f81a78",
+          "original_zip_offset": 22256191,
+          "crc32": 3694868034
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10FARR.txt",
+          "sha256_uncompressed": "6b60621703b4edf53deae8510e49c5328575254c816c3538936822848564a689",
+          "original_zip_offset": 22265181,
+          "crc32": 1395182919
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10FOWL.txt",
+          "sha256_uncompressed": "8bc66041aab7408a97872cd3733baf4edef704255d10fde7554fc1a2ca0652c9",
+          "original_zip_offset": 22276687,
+          "crc32": 3228457361
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10GILM.txt",
+          "sha256_uncompressed": "39d0b09986955c7fd5b60a760f2a1b14c34a632f8828937e753cbc1c2a9a8af1",
+          "original_zip_offset": 22282996,
+          "crc32": 377635757
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10GRAY.txt",
+          "sha256_uncompressed": "6583fc30d4eb6e7c112548c97e46a55672e671947e9f59a5b8dd283b180ef081",
+          "original_zip_offset": 22289996,
+          "crc32": 2070345730
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10GREE.txt",
+          "sha256_uncompressed": "cfcf46a5fa2f86ea2d5d081102af96d2323c35312404c625f7c40a71ada864ce",
+          "original_zip_offset": 22296213,
+          "crc32": 4240566814
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10GWYD.txt",
+          "sha256_uncompressed": "60cb95826abc0569a12c89542cf145d974700903711eeb3e15bbe980c9e2d602",
+          "original_zip_offset": 22302295,
+          "crc32": 2375783916
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10HUGH.txt",
+          "sha256_uncompressed": "4d895cfafc04ddeadc700dda357953ecdcf18f6f11c460af3b8d022b6ea45ef3",
+          "original_zip_offset": 22314158,
+          "crc32": 2350599366
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10HUME.txt",
+          "sha256_uncompressed": "6923c7e83cee88818482893b88b7943b674bae6e7800190a1888b7a3b1d39624",
+          "original_zip_offset": 22319129,
+          "crc32": 3545879271
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10HUNT.txt",
+          "sha256_uncompressed": "db5c6f4efc3a926af0d3988a7cc523c6b9925d6a6ec5b0f1e8d3cf21ac1850b0",
+          "original_zip_offset": 22325951,
+          "crc32": 2218479713
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10KSMI.txt",
+          "sha256_uncompressed": "f948c98b2d0dae53d0db29856da6070905a7f34e2866a230bb739af3a41801fc",
+          "original_zip_offset": 22333251,
+          "crc32": 3797133535
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10LIND.txt",
+          "sha256_uncompressed": "8283e77bb006af4311f3043b50f25dcd8cc7f9b56c9f24f7c5aa6178f8c4a5cb",
+          "original_zip_offset": 22338372,
+          "crc32": 4248349132
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10LOWE.txt",
+          "sha256_uncompressed": "d34aa4657e96077b3993eecbd32f50164e35f1e2fe4ee88acb1dbc5d5c2bc90a",
+          "original_zip_offset": 22345461,
+          "crc32": 2855657899
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10LYNE.txt",
+          "sha256_uncompressed": "b758555859c6e18cc78126b944d8db5e6f44db09574880a34d7b970433947880",
+          "original_zip_offset": 22350945,
+          "crc32": 2473199488
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10MACA.txt",
+          "sha256_uncompressed": "1f57d97679363da4cbb6312f2acff89662060aa5ec68bfbcf209a87f0a79a125",
+          "original_zip_offset": 22358756,
+          "crc32": 1152427867
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10MACK.txt",
+          "sha256_uncompressed": "cdaccfe11b3693cf3bbda62aefc204306a4a955da033aa2cc85773de9cd0b499",
+          "original_zip_offset": 22364594,
+          "crc32": 1374107311
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10MACQ.txt",
+          "sha256_uncompressed": "1ac51458b29e089973b09c3c964cbc2b320de3d2ec9c37a6be3e2413dab93be2",
+          "original_zip_offset": 22369814,
+          "crc32": 2676771648
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10MITC.txt",
+          "sha256_uncompressed": "fb882c7a5250693bfb24b0c7ff637d71ea83e263a289b913acd0203514dbc7e4",
+          "original_zip_offset": 22376741,
+          "crc32": 56667734
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10NENG.txt",
+          "sha256_uncompressed": "96a8b316be76d6f29a08abaca0b4cf9f4b2cde2721ffb1523667a9283422a8aa",
+          "original_zip_offset": 22382452,
+          "crc32": 2472350626
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10NEWC.txt",
+          "sha256_uncompressed": "90997c468df0a0a0e64bff476f585fca26cc53be40155d3b5973839174229c92",
+          "original_zip_offset": 22389646,
+          "crc32": 1165026265
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10NSYD.txt",
+          "sha256_uncompressed": "c520b981a313674c2bda169324bfbd9d5a47387bc25d433e2ed9caef21c5abf9",
+          "original_zip_offset": 22397828,
+          "crc32": 3169422587
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10PAGE.txt",
+          "sha256_uncompressed": "44733120dc5e217a0a2bcc149cf215b34287c0d2eb3eb0a3c9ce41023987e2af",
+          "original_zip_offset": 22402898,
+          "crc32": 1375108269
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10PARK.txt",
+          "sha256_uncompressed": "4ebb1c73ce5c5f0264a40d6dafba70a9e00f937a74c65c2cbc55a5a577e8fa7f",
+          "original_zip_offset": 22414186,
+          "crc32": 2838561102
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10PARR.txt",
+          "sha256_uncompressed": "523016ac936350d5786a609e6d37adc60f9e210d6618331e2cdc9cd8c85b008a",
+          "original_zip_offset": 22420877,
+          "crc32": 2733759910
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10PATE.txt",
+          "sha256_uncompressed": "8cea041a37ff1fabe6bd968c886873361e3f209ed884fd72eeea472678a14c17",
+          "original_zip_offset": 22426836,
+          "crc32": 35583537
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10PROS.txt",
+          "sha256_uncompressed": "a5e81d9a2d35718bff78e5b5c3c819382b4f80c327d1ddc640904b0632983a1e",
+          "original_zip_offset": 22435233,
+          "crc32": 2889873575
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10REID.txt",
+          "sha256_uncompressed": "db85879024657a9b72c03058476f0f92b24957b627a34deb5d355ce9e70be3a7",
+          "original_zip_offset": 22440551,
+          "crc32": 1334349090
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10RICH.txt",
+          "sha256_uncompressed": "9b74913c64db3eee6dff589712d815552ac2c57d745a0d4d2dbd8678d15cb306",
+          "original_zip_offset": 22445907,
+          "crc32": 3343592439
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10RIVE.txt",
+          "sha256_uncompressed": "678e2e453c372d72aadd0c2d6d71f77e85d563ad64abe36d6a723f7355d9a724",
+          "original_zip_offset": 22453816,
+          "crc32": 1977445637
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10ROBE.txt",
+          "sha256_uncompressed": "1629b9ea2f74bb88f8cf636b21574c18d035b64106965c09e3a2961b3938f224",
+          "original_zip_offset": 22462359,
+          "crc32": 973664498
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10SHOR.txt",
+          "sha256_uncompressed": "c8769473fce9a0d053f72077f28cd1ed87ac1da05363501789cc5f0379c7f7dc",
+          "original_zip_offset": 22470007,
+          "crc32": 1852317252
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10SYDN.txt",
+          "sha256_uncompressed": "52ffe9480016d49ce6e1267e2b4a8f2b6aedb880d1740a3d31738d0ab892d387",
+          "original_zip_offset": 22475714,
+          "crc32": 1808179248
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10THRO.txt",
+          "sha256_uncompressed": "583c66a9b2a62ca9f4e704942b21b938fb001b90effd0339b96daf26222516a1",
+          "original_zip_offset": 22480100,
+          "crc32": 3530185173
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10WARR.txt",
+          "sha256_uncompressed": "216e4d7cca451a172b52ebf0f27c55d9f19df5c3c96b1700b71ec0bc63733488",
+          "original_zip_offset": 22484944,
+          "crc32": 1644254789
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10WATS.txt",
+          "sha256_uncompressed": "89eaeca5a81f0731d3d60fd7825c4330423eea291d315ac07372a8ac5c696fc7",
+          "original_zip_offset": 22490063,
+          "crc32": 3702262993
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10WENT.txt",
+          "sha256_uncompressed": "bb6d9803e2e54ec4d361cc014a158e3fc63e22947718883b8cb5a20aed471800",
+          "original_zip_offset": 22495327,
+          "crc32": 3180889154
+        },
+        {
+          "member": "data/nsw/nsw_txt/v3_10WERR.txt",
+          "sha256_uncompressed": "70c90eb8eb4d79c0fe7e1f1293611b63de56ab5ad4f309870af05d3301209102",
+          "original_zip_offset": 22499810,
+          "crc32": 1315151777
+        },
+        {
+          "member": "data/nt/nt_txt/v3_10LING.txt",
+          "sha256_uncompressed": "9e4a63ab9f95421930494f20e7451de9353006962999c7d855bea132ab6a71cc",
+          "original_zip_offset": 33997967,
+          "crc32": 2860999350
+        },
+        {
+          "member": "data/nt/nt_txt/v3_10SOLO.txt",
+          "sha256_uncompressed": "20b7f4cba8296f58f35e6ca5c486d7d9b100e6114236561fffcdb38fbed28d21",
+          "original_zip_offset": 34001403,
+          "crc32": 3397348199
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10BLAI.txt",
+          "sha256_uncompressed": "3c081eb353e852a780255a92d6e5cd21eb36d6fd47bcca9f950df22f97558aa1",
+          "original_zip_offset": 36168119,
+          "crc32": 1169382794
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10BOWM.txt",
+          "sha256_uncompressed": "dbf629fe7e8e2e877a6f74c930f322a1cfd95ae9b6268765a39d97ab2f89b6b9",
+          "original_zip_offset": 36176135,
+          "crc32": 1679902246
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10BRIS.txt",
+          "sha256_uncompressed": "5c0247e61e8e45834d1e450d7bf1e3b688004adf2eb29ca115909910de9d1e57",
+          "original_zip_offset": 36180152,
+          "crc32": 2689276181
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10CAPR.txt",
+          "sha256_uncompressed": "17f787af7922a440ddefa1e0f6b56978247aef92874fc39dec128590889cbfed",
+          "original_zip_offset": 36186470,
+          "crc32": 30658422
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10DAWS.txt",
+          "sha256_uncompressed": "e52587ba7c330ca2326f0f3bbe4352fe084d55af520572d6dc1f79247c30ff1d",
+          "original_zip_offset": 36194337,
+          "crc32": 1889024281
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10DICK.txt",
+          "sha256_uncompressed": "be9fff3405ab8ead7e96155a3216afbe5f81dc6280bb21f65302dfbdd6ec8164",
+          "original_zip_offset": 36202173,
+          "crc32": 340384058
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10FADD.txt",
+          "sha256_uncompressed": "1cc8f8313d516d4b2f5e29c9a2f7ad0f05de5b644cd30097daa1c1c585a6c6e2",
+          "original_zip_offset": 36207655,
+          "crc32": 190479315
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10FAIR.txt",
+          "sha256_uncompressed": "332a16b9e7f07368b9f75c49b9618d09ae177fc339b8932024c15452b73b49ce",
+          "original_zip_offset": 36211649,
+          "crc32": 691373089
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10FISH.txt",
+          "sha256_uncompressed": "eb3614d14af9539830c72a43f8144ea03d8f0d77de124457a16191844c54df27",
+          "original_zip_offset": 36217656,
+          "crc32": 2434075828
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10FORD.txt",
+          "sha256_uncompressed": "0ee602f18dae72930058a8bea7b96126a7f1e1a849ec927753f2424c0a5e5036",
+          "original_zip_offset": 36222642,
+          "crc32": 1636704347
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10GRIF.txt",
+          "sha256_uncompressed": "3c7f8afa714d8e8ed218f72e343807b5506420eceff39569183a0d6fdd2ba4c9",
+          "original_zip_offset": 36227611,
+          "crc32": 3644824419
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10GROO.txt",
+          "sha256_uncompressed": "f0006f20294176fbf2f3c7c07d55c03eb6e97262e772dd0d627c4f8a4afe59db",
+          "original_zip_offset": 36232821,
+          "crc32": 3989892873
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10HERB.txt",
+          "sha256_uncompressed": "da7f264db974094e40d9e42fe458276ff2e1e51bc8bbf7c68bd14d5b9ac71dbf",
+          "original_zip_offset": 36239822,
+          "crc32": 1357748899
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10HINK.txt",
+          "sha256_uncompressed": "83c45192842f55af5e0eed19c1c1c0ad48bd3d615e84f3d06d0308b9795d1221",
+          "original_zip_offset": 36245369,
+          "crc32": 3631963773
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10KENN.txt",
+          "sha256_uncompressed": "dec7f8f410a98ea525aac60135af0e2ad3be54b78be15e78fea5e67bd6949504",
+          "original_zip_offset": 36251742,
+          "crc32": 3766128255
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10LEIC.txt",
+          "sha256_uncompressed": "8c50ecea503dbc9c6ea42c249ca407ed0b6f1026fc20497881aa3f6acbe9548b",
+          "original_zip_offset": 36262057,
+          "crc32": 4170754201
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10LILL.txt",
+          "sha256_uncompressed": "ce4304212498c558480fa95ac3441db28d4ab4cb583645052ab1532ad4465da9",
+          "original_zip_offset": 36267782,
+          "crc32": 3548000946
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10LONG.txt",
+          "sha256_uncompressed": "bd492dcb3aa2cc3294daac99375a4b9d354e17c0960f60ec1fe0bc0ad9603023",
+          "original_zip_offset": 36272248,
+          "crc32": 3269833159
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10MARA.txt",
+          "sha256_uncompressed": "c9e7994a9c19e7fa2f19dd3a7ac9f5cf1d4700b7d47fe92ac60a59dc7dae1d9c",
+          "original_zip_offset": 36277093,
+          "crc32": 1001210188
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10MCPH.txt",
+          "sha256_uncompressed": "da2dd7318cadfcef6a2723899bb1d598134f005e20a67bbcb67151140f481dba",
+          "original_zip_offset": 36286577,
+          "crc32": 3139000826
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10MONC.txt",
+          "sha256_uncompressed": "a23628c065ad7944b0f4fc1145018ec35be8538df77f8fc937eac3077faa4366",
+          "original_zip_offset": 36291462,
+          "crc32": 1971327726
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10MORE.txt",
+          "sha256_uncompressed": "b535067e51688790a5ef7aeed635eb820d20a659780ffdb2feba3c8ed8a9e8de",
+          "original_zip_offset": 36297417,
+          "crc32": 477587078
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10OXLE.txt",
+          "sha256_uncompressed": "7b334465ce6133ff9cb2bd81f78ae4de446a6c2643f30279c13238616842a411",
+          "original_zip_offset": 36302649,
+          "crc32": 452142631
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10PETR.txt",
+          "sha256_uncompressed": "8df3b3527ac214ef7e9fcdd58e5950174a4183a6613432814f2d2c71880d7790",
+          "original_zip_offset": 36307280,
+          "crc32": 1277054392
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10RANK.txt",
+          "sha256_uncompressed": "420af1f56117895d9f27226d3cd4dcf56831c170aaaed152e2e1c36fd06c818e",
+          "original_zip_offset": 36312125,
+          "crc32": 1258284061
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10RYAN.txt",
+          "sha256_uncompressed": "33adf61a32766eee168c92bd0d352b72878ed8c65f2b1f8d385f7950ce055e77",
+          "original_zip_offset": 36315265,
+          "crc32": 295449086
+        },
+        {
+          "member": "data/qld/qld_txt/v3_10WBAY.txt",
+          "sha256_uncompressed": "49a8958be37a35db389166ff7d31951b0d061333d4f418795d9e9dacc93775aa",
+          "original_zip_offset": 36320611,
+          "crc32": 883788292
+        },
+        {
+          "member": "data/sa/sa_txt/v3_10ADEL.txt",
+          "sha256_uncompressed": "7ead8324727e273658b04f4b2c86c4c04b499458e53570a3773c938246011cdf",
+          "original_zip_offset": 41012830,
+          "crc32": 3128292512
+        },
+        {
+          "member": "data/sa/sa_txt/v3_10BARK.txt",
+          "sha256_uncompressed": "d2373f031d6f94a1aeb79031c40f56360f626a832ef547fe6cf7f63b31b19906",
+          "original_zip_offset": 41017963,
+          "crc32": 97781653
+        },
+        {
+          "member": "data/sa/sa_txt/v3_10BONY.txt",
+          "sha256_uncompressed": "25059e2a0367793846e2f9dd9a24731a2646904b457a00dc01a6dbe44b989a55",
+          "original_zip_offset": 41027538,
+          "crc32": 2602493263
+        },
+        {
+          "member": "data/sa/sa_txt/v3_10BOOT.txt",
+          "sha256_uncompressed": "09a1317f2324f8a9f81af0897cb28aa3fcb45434db2032b00b3281235ef29603",
+          "original_zip_offset": 41032174,
+          "crc32": 2474786276
+        },
+        {
+          "member": "data/sa/sa_txt/v3_10GREY.txt",
+          "sha256_uncompressed": "8130734a6801b59dfce32cf4c5cf4eda9c7b277578008db0c12f26d372b21a17",
+          "original_zip_offset": 41037896,
+          "crc32": 4047591797
+        },
+        {
+          "member": "data/sa/sa_txt/v3_10HIND.txt",
+          "sha256_uncompressed": "539a0ff5f41f930eec26746a368ebee6859fcb7848573b8ab6e84873f1e5dad6",
+          "original_zip_offset": 41045324,
+          "crc32": 4286438315
+        },
+        {
+          "member": "data/sa/sa_txt/v3_10KING.txt",
+          "sha256_uncompressed": "2f6793722d8362e37450fef0cc52c7e730f42e4b7ea49812ef022f29916f6ceb",
+          "original_zip_offset": 41049710,
+          "crc32": 2625036063
+        },
+        {
+          "member": "data/sa/sa_txt/v3_10MAKI.txt",
+          "sha256_uncompressed": "daa0e6dee7feca88f34cbfb445088c9ff7fcce2786ecb99bb8b85f5d1ffac0c1",
+          "original_zip_offset": 41054142,
+          "crc32": 1273580849
+        },
+        {
+          "member": "data/sa/sa_txt/v3_10MAYO.txt",
+          "sha256_uncompressed": "7647a9a9c53922ba7eb0a8cdfdc7335bc7a572d518c1323c6c91fce5b71709a2",
+          "original_zip_offset": 41057877,
+          "crc32": 3632076578
+        },
+        {
+          "member": "data/sa/sa_txt/v3_10PADE.txt",
+          "sha256_uncompressed": "bb88f3bdafb04b2cb37eadd424840c4782b6518ef9d6fc2080b40db94ce06af5",
+          "original_zip_offset": 41064789,
+          "crc32": 2520605622
+        },
+        {
+          "member": "data/sa/sa_txt/v3_10STUR.txt",
+          "sha256_uncompressed": "7e57bd2a6bb32e5ee5546deaf8bb2cb43dad0f625670d3cf3d6d565707535e5d",
+          "original_zip_offset": 41069881,
+          "crc32": 1017315661
+        },
+        {
+          "member": "data/sa/sa_txt/v3_10WAKE.txt",
+          "sha256_uncompressed": "0b19a986ad00e69655f51fee4e3408d0064d79af2250820cde068e8fc03cfc4f",
+          "original_zip_offset": 41074977,
+          "crc32": 3322501081
+        },
+        {
+          "member": "data/tas/tas_txt/v3_10BASS.txt",
+          "sha256_uncompressed": "d517371a3442c8a2251a7da7521383b3b658d09c5c42fb7626493a5ffd66d869",
+          "original_zip_offset": 46566134,
+          "crc32": 197978248
+        },
+        {
+          "member": "data/tas/tas_txt/v3_10BRAD.txt",
+          "sha256_uncompressed": "3833f94cc27710f0b43df77346d74591fdabb9e8b22c952a308498fedc7ba608",
+          "original_zip_offset": 46572923,
+          "crc32": 1796442461
+        },
+        {
+          "member": "data/tas/tas_txt/v3_10DENI.txt",
+          "sha256_uncompressed": "6637a323794fb8c49840ac0fc233cf8d7619b26d03bd5d81fe3b6669464095e4",
+          "original_zip_offset": 46579108,
+          "crc32": 2443086327
+        },
+        {
+          "member": "data/tas/tas_txt/v3_10FRAN.txt",
+          "sha256_uncompressed": "4ab469a97818d71ad97b4b0ed64c75bf0471bbd9ff34d4f54693ba257dc5bbb6",
+          "original_zip_offset": 46583438,
+          "crc32": 2050492344
+        },
+        {
+          "member": "data/tas/tas_txt/v3_10LYON.txt",
+          "sha256_uncompressed": "508e7025ba86e0acd3c83a5029004dde8c2e9a401d5fbed707550b6a6549fa47",
+          "original_zip_offset": 46588276,
+          "crc32": 1489387376
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10ASTO.txt",
+          "sha256_uncompressed": "72777ffa7032f53771dff91ddaf4e0d828763927a4f1bef6876eeadaa5f941e4",
+          "original_zip_offset": 47714856,
+          "crc32": 329577045
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10BALL.txt",
+          "sha256_uncompressed": "e1abcbd7ecd084218b1c9dd76d07f0f07d7137556ae8b3db0fd5382ec077dd11",
+          "original_zip_offset": 47719153,
+          "crc32": 523998047
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10BATM.txt",
+          "sha256_uncompressed": "e3a48ca02c85c1f0476446f95e77dea84cbda8a8456c36c07ddc7ee63649de53",
+          "original_zip_offset": 47725379,
+          "crc32": 2937606560
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10BEND.txt",
+          "sha256_uncompressed": "eb996e084fe716b31e6e3cf76607e466198ff708407183a5d8558f5f8f10bb62",
+          "original_zip_offset": 47730175,
+          "crc32": 652397116
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10BRUC.txt",
+          "sha256_uncompressed": "4af086dfb049649fd578ea1f1191c0bd9da4c12e1e9d408e009fa9d0c67ede97",
+          "original_zip_offset": 47739445,
+          "crc32": 3167620515
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10BURK.txt",
+          "sha256_uncompressed": "164f7d3df1c905f07e50a8b1272bc19561363661f270535f6296e194b1f88c28",
+          "original_zip_offset": 47742758,
+          "crc32": 440692040
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10CALW.txt",
+          "sha256_uncompressed": "67275ea962b6f7b7fe8a9c996f5cde4b86e543e5378beec6c7aa35060876e04e",
+          "original_zip_offset": 47746420,
+          "crc32": 2052065090
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10CASE.txt",
+          "sha256_uncompressed": "ca2237fd3112648672645db87effd8070f00afc0d76ec6887252163aa2337084",
+          "original_zip_offset": 47751845,
+          "crc32": 2472352227
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10CHIS.txt",
+          "sha256_uncompressed": "3da777745af5fe517c78615997fec9d038f7f60dc6b6fe64ffd35b7f65c429d7",
+          "original_zip_offset": 47755362,
+          "crc32": 2269753348
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10CORA.txt",
+          "sha256_uncompressed": "ed81deacb6151f579f49e941397fb98945cb9585e31b4c6a038b72e616d9e04d",
+          "original_zip_offset": 47759346,
+          "crc32": 1892704757
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10CORI.txt",
+          "sha256_uncompressed": "0d9aa00563a1f5f6897c5472f5cbe4631ed038c954f0896b04179191b34e816d",
+          "original_zip_offset": 47766469,
+          "crc32": 1721455787
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10DEAK.txt",
+          "sha256_uncompressed": "1bdf2822af8e969a86e58905972c14bf130e5679b7a3ba57be512174431c05e1",
+          "original_zip_offset": 47771575,
+          "crc32": 4209334466
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10DUNK.txt",
+          "sha256_uncompressed": "aa44c21f41a0ec2a46f9bb8243fe0f669cf5490772cb0e6c68c7643cf61634df",
+          "original_zip_offset": 47775138,
+          "crc32": 1787696766
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10FLIN.txt",
+          "sha256_uncompressed": "30c7a422451cb69a1c924ee4c2608fb41d9ba43f20e6a56d6b694c6bfda63405",
+          "original_zip_offset": 47779494,
+          "crc32": 1853279272
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10GELL.txt",
+          "sha256_uncompressed": "a0e5d46a99d69f569b3a374bd07bb370e181244d7e1e412bff18a3dc4c8a635f",
+          "original_zip_offset": 47786115,
+          "crc32": 2204658366
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10GIPP.txt",
+          "sha256_uncompressed": "139dacf64d6293bcb6f5d6914ec40bf1a0d1607264e6365753b80c131cffdf72",
+          "original_zip_offset": 47790300,
+          "crc32": 4066960712
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10GOLD.txt",
+          "sha256_uncompressed": "2392cbbe547454efed651d65379b5353d8461916c81b8568e2fda50770b41187",
+          "original_zip_offset": 47803111,
+          "crc32": 1533669660
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10HIGG.txt",
+          "sha256_uncompressed": "f8de84586aefef6fcf7c1f240ae2762a074661ad684b0a5e28a6ba52e42f0b28",
+          "original_zip_offset": 47807432,
+          "crc32": 4241799342
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10HOLT.txt",
+          "sha256_uncompressed": "1c4974ef07061847af0313bc85b3ef81cee1a0f21f490ad2978277f0b6ec6eea",
+          "original_zip_offset": 47811088,
+          "crc32": 2088243204
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10HOTH.txt",
+          "sha256_uncompressed": "7d4cebdabbed589ddc2915502446e2d6b5c39eb4ff36beef3ddc8d886b12275b",
+          "original_zip_offset": 47814891,
+          "crc32": 1576181348
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10INDI.txt",
+          "sha256_uncompressed": "a2ba7f68b72b975e83e4029fc946527691d7b7b9d7beeb275b8f647b1cfd25f2",
+          "original_zip_offset": 47818655,
+          "crc32": 2608231852
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10ISAA.txt",
+          "sha256_uncompressed": "c66094c4506ddce0e21b21232493675f8bf0fee31bcab4562dd8ee0906b5b388",
+          "original_zip_offset": 47828877,
+          "crc32": 1713860
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10JAGA.txt",
+          "sha256_uncompressed": "01757b92612648244bb84b2ac2663a129a10c0f314159793f94db1f5de93ec9e",
+          "original_zip_offset": 47833681,
+          "crc32": 876798434
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10KOOY.txt",
+          "sha256_uncompressed": "593b0997e3ced702e0b4c5360020e9ad8e3161c2cde340efd9c91c1a6a51323f",
+          "original_zip_offset": 47838100,
+          "crc32": 1105035780
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10LALO.txt",
+          "sha256_uncompressed": "e31c19b95891cf797c6611437bf8c3bd95e35676b4ee5e7f04cf310612dbcfe0",
+          "original_zip_offset": 47841370,
+          "crc32": 3751826480
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10LTRO.txt",
+          "sha256_uncompressed": "dadba599de6038dd0bb544f5fd6cc6c68d1e6e2f331c5e41fb98741cf75194f5",
+          "original_zip_offset": 47844515,
+          "crc32": 2982114158
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10MALL.txt",
+          "sha256_uncompressed": "d9725bc53669bce65c495fd443190105179bacd1cb532e42a4c5143ca3ffa99c",
+          "original_zip_offset": 47850353,
+          "crc32": 2610677596
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10MARI.txt",
+          "sha256_uncompressed": "31cf1fad6c5bee2a367c7c33c452dff816b4145df3dd711c6b90478ad99fb10a",
+          "original_zip_offset": 47858732,
+          "crc32": 852598497
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10MCEW.txt",
+          "sha256_uncompressed": "138eb5935680016df02396b9eb1ff952555c92f2a869a892c9a576f10b0e876c",
+          "original_zip_offset": 47862138,
+          "crc32": 1487894690
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10MCMI.txt",
+          "sha256_uncompressed": "45edaa5013cce0284eec72ba0a87d8ac5c27e93367b767a75a5a607865741766",
+          "original_zip_offset": 47869482,
+          "crc32": 766260203
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10MELB.txt",
+          "sha256_uncompressed": "5fe72a56687154a0d20386e30b776a39dcf0693655c475c2bfbaccbda16f1330",
+          "original_zip_offset": 47876781,
+          "crc32": 2142729594
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10MENZ.txt",
+          "sha256_uncompressed": "10f69915328ce281a1a9046ef142361f3bc70112692dbaa2d7392fb51c9f75f3",
+          "original_zip_offset": 47881792,
+          "crc32": 2592325181
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10MPOR.txt",
+          "sha256_uncompressed": "4e0e432d71bf6c4b9f70e953604c71758bee81f980f653466698bfb4cdd29300",
+          "original_zip_offset": 47885475,
+          "crc32": 4072430157
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10MURR.txt",
+          "sha256_uncompressed": "2d6548190180d3a923364609b29becdd289298458c52d0858aacc3f0d20097bf",
+          "original_zip_offset": 47889046,
+          "crc32": 143625292
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10SCUL.txt",
+          "sha256_uncompressed": "0ec50a44e8404dcec0ca92c9f348ece24655770935c256a012ad1cfb1487d0c4",
+          "original_zip_offset": 47896990,
+          "crc32": 2367406766
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10WANN.txt",
+          "sha256_uncompressed": "0fcad9cde26fe579b66b712bd8ba698dccc2c1971bb7ba4860df2634f3f24dc0",
+          "original_zip_offset": 47900446,
+          "crc32": 2085522010
+        },
+        {
+          "member": "data/vic/vic_txt/v3_10WILL.txt",
+          "sha256_uncompressed": "1ef7b4774568e5196df0c1bddcad9bd3797b3512b0620c3dc2da801bf91b80ae",
+          "original_zip_offset": 47909316,
+          "crc32": 1360857076
+        },
+        {
+          "member": "data/wa/wa_txt/v3_10BRAN.txt",
+          "sha256_uncompressed": "ce392657532d1a8e2d79e9d9f028f33849afd9ee6ca2c40bac015ba6105993fe",
+          "original_zip_offset": 54439676,
+          "crc32": 1379173617
+        },
+        {
+          "member": "data/wa/wa_txt/v3_10CANN.txt",
+          "sha256_uncompressed": "a343abc848ee089a760b7e611f08ca79b4b5238ada6f11910162f94874114f8e",
+          "original_zip_offset": 54444765,
+          "crc32": 1270340785
+        },
+        {
+          "member": "data/wa/wa_txt/v3_10COWA.txt",
+          "sha256_uncompressed": "0f9027427596df338020f15fd8f7ad8f6604208c31d5c6b16e10bfc5fd915f66",
+          "original_zip_offset": 54450372,
+          "crc32": 889451161
+        },
+        {
+          "member": "data/wa/wa_txt/v3_10CURT.txt",
+          "sha256_uncompressed": "d8fc8aad0fdb45c148f13f960e97a6b9225c757a7a7a232052bc3c3ae48a2b4f",
+          "original_zip_offset": 54455025,
+          "crc32": 3917702709
+        },
+        {
+          "member": "data/wa/wa_txt/v3_10FORR.txt",
+          "sha256_uncompressed": "425a1f51d4703e0c7eeed301d10d80708d683a4e2ceb436ee61416f204ae6169",
+          "original_zip_offset": 54461130,
+          "crc32": 1361841534
+        },
+        {
+          "member": "data/wa/wa_txt/v3_10FREM.txt",
+          "sha256_uncompressed": "3a06220aa51ebfdfce151b33762d9233c5846d0b75f09c89a657cde67f7e9c14",
+          "original_zip_offset": 54469477,
+          "crc32": 3431477533
+        },
+        {
+          "member": "data/wa/wa_txt/v3_10HASL.txt",
+          "sha256_uncompressed": "ec4e1a924456d34cbc4af008485af80871101394a69af6133c0544d187957c3a",
+          "original_zip_offset": 54474698,
+          "crc32": 1861435077
+        },
+        {
+          "member": "data/wa/wa_txt/v3_10KALG.txt",
+          "sha256_uncompressed": "3b41d6c86e9b980cfe50bca523446339cd5808cf5968d71a4764857367793bda",
+          "original_zip_offset": 54480505,
+          "crc32": 661294025
+        },
+        {
+          "member": "data/wa/wa_txt/v3_10MOOR.txt",
+          "sha256_uncompressed": "751954a3e8d047dbc9f960f45898c5e5605c206b9e9dda577a5000c348283e7a",
+          "original_zip_offset": 54491452,
+          "crc32": 1342607272
+        },
+        {
+          "member": "data/wa/wa_txt/v3_10OCON.txt",
+          "sha256_uncompressed": "2355f896985b9abfa26b3f4280b76c9e6f7623b383851a23df0d295780531bf8",
+          "original_zip_offset": 54495299,
+          "crc32": 2495699332
+        },
+        {
+          "member": "data/wa/wa_txt/v3_10PEAR.txt",
+          "sha256_uncompressed": "fe29d5bf990d677bd78ca12e82de26314310a1d2a8ffbcb8f94d889b078987f5",
+          "original_zip_offset": 54510158,
+          "crc32": 2641050614
+        },
+        {
+          "member": "data/wa/wa_txt/v3_10PERT.txt",
+          "sha256_uncompressed": "7c0ff59a124b417e0bead795691331109f2fa7a99b906289eff669392d04863e",
+          "original_zip_offset": 54517812,
+          "crc32": 3367125260
+        },
+        {
+          "member": "data/wa/wa_txt/v3_10STIR.txt",
+          "sha256_uncompressed": "0369f37fecb504ebc82498ac4242a230a310df5cb9da3c49281c1915a77fd1d2",
+          "original_zip_offset": 54522862,
+          "crc32": 2240312929
+        },
+        {
+          "member": "data/wa/wa_txt/v3_10SWAN.txt",
+          "sha256_uncompressed": "8e132223516d5459401c8c29e1bc40c9ecdcd57e476bf331cffd7fe73244c7e8",
+          "original_zip_offset": 54528180,
+          "crc32": 1216829233
+        },
+        {
+          "member": "data/wa/wa_txt/v3_10TANG.txt",
+          "sha256_uncompressed": "601f0a8fe58e9b98692e80d64f9a718c52b938be2319708136fc70cc66710d54",
+          "original_zip_offset": 54533731,
+          "crc32": 29247127
+        }
+      ],
+      "verification": "uncompressed_member_hashes"
+    },
+    "abc-2025-liberal-htv.csv": {
+      "url": "https://www.abc.net.au/res/sites/news-projects/elections-federal2025-preferences/1.5.2/data/How%20to%20votes%20-%20Liberal.csv",
+      "source_page": "https://www.abc.net.au/news/2025-05-01/how-to-vote-cards-in-your-electorates/105217758",
+      "publisher": "ABC NEWS Verify",
+      "representation": "published_transcription_of_party_website_HTV_cards",
+      "sha256": "7b5681448d47ca51ceb22fa369253cf985c057f9f1f7889489a4530e965bba01",
+      "bytes": 71677
+    }
+  },
+  "supplemental_publications": {
+    "aec-2019-alternative-tpp-publication": {
+      "url": "https://www.antonygreen.com.au/docs/fed/FED2019-Alt2PP-PreferenceFlows.pdf",
+      "origin": "AEC-supplied counts republished by Antony Green",
+      "representation": "manually_retained_pdf_text_extraction",
+      "verification": "candidate identity, ballot position and original total matched to official FP CSV; counts sum to original FP",
+      "document_sha256": null,
+      "limitation": "Original PDF bytes were not retained; document hash is unavailable."
+    },
+    "aec-2022-alternative-tpp-publication": {
+      "url": "https://www.antonygreen.com.au/docs/fed/FED2022-Alt2PP-PreferenceFlows.pdf",
+      "origin": "AEC-supplied counts republished by Antony Green",
+      "representation": "manually_retained_pdf_text_extraction",
+      "verification": "candidate identity, ballot position and original total matched to official FP CSV; counts sum to original FP",
+      "document_sha256": null,
+      "limitation": "Original PDF bytes were not retained; document hash is unavailable."
+    }
+  },
+  "recommendations": [
+    {
+      "election": "2026sa",
+      "seat": "Elder",
+      "source_file": "ecsa-2026-elder-htv-group.pdf",
+      "page": 1,
+      "source_party": "GRN",
+      "order_among_targets": [
+        "ALP",
+        "LIB",
+        "ON"
+      ],
+      "verification": "manual_reading_of_registered_card"
+    },
+    {
+      "election": "2026sa",
+      "seat": "King",
+      "source_file": "ecsa-2026-king-htv-group.pdf",
+      "page": 10,
+      "source_party": "GRN",
+      "order_among_targets": [
+        "ALP",
+        "LIB",
+        "ON"
+      ],
+      "verification": "manual_reading_of_registered_card"
+    },
+    {
+      "election": "2026sa",
+      "seat": "Elder",
+      "source_file": "ecsa-2026-elder-htv-group.pdf",
+      "page": 1,
+      "source_party": "LIB",
+      "order_among_targets": [
+        "ON",
+        "ALP",
+        "GRN"
+      ],
+      "verification": "manual_reading_of_registered_card"
+    },
+    {
+      "election": "2026sa",
+      "seat": "King",
+      "source_file": "ecsa-2026-king-htv-group.pdf",
+      "page": 10,
+      "source_party": "LIB",
+      "order_among_targets": [
+        "ON",
+        "ALP",
+        "GRN"
+      ],
+      "verification": "manual_reading_of_registered_card"
+    },
+    {
+      "election": "2022vic",
+      "seat": "Melbourne",
+      "source_file": "vec-2022-melbourne-liberal-htv.pdf",
+      "page": 1,
+      "registration": 453,
+      "source_party": "LIB",
+      "order_among_targets": [
+        "GRN",
+        "ALP"
+      ],
+      "printed_numbers": {
+        "GRN": 7,
+        "ALP": 9
+      },
+      "verification": "manual_reading_of_registered_card"
+    },
+    {
+      "election": "2025fed",
+      "seat": "Canberra",
+      "source_party": "LIB",
+      "source_file": "abc-2025-liberal-htv.csv",
+      "page": null,
+      "order_among_targets": [
+        "ALP",
+        "GRN"
+      ],
+      "printed_numbers": {
+        "GRN": 6,
+        "ALP": 2
+      },
+      "verification": "ABC_VERIFY_published_transcription_of_party_HTV_cards"
+    },
+    {
+      "election": "2025fed",
+      "seat": "Cooper",
+      "source_party": "LIB",
+      "source_file": "abc-2025-liberal-htv.csv",
+      "page": null,
+      "order_among_targets": [
+        "ON",
+        "ALP",
+        "GRN"
+      ],
+      "printed_numbers": {
+        "ON": 2,
+        "ALP": 3,
+        "GRN": 5
+      },
+      "verification": "ABC_VERIFY_published_transcription_of_party_HTV_cards"
+    },
+    {
+      "election": "2025fed",
+      "seat": "Fraser",
+      "source_party": "LIB",
+      "source_file": "abc-2025-liberal-htv.csv",
+      "page": null,
+      "order_among_targets": [
+        "ON",
+        "ALP",
+        "GRN"
+      ],
+      "printed_numbers": {
+        "GRN": 5,
+        "ON": 3,
+        "ALP": 4
+      },
+      "verification": "ABC_VERIFY_published_transcription_of_party_HTV_cards"
+    },
+    {
+      "election": "2025fed",
+      "seat": "Grayndler",
+      "source_party": "LIB",
+      "source_file": "abc-2025-liberal-htv.csv",
+      "page": null,
+      "order_among_targets": [
+        "ON",
+        "ALP",
+        "GRN"
+      ],
+      "printed_numbers": {
+        "ON": 3,
+        "GRN": 6,
+        "ALP": 4
+      },
+      "verification": "ABC_VERIFY_published_transcription_of_party_HTV_cards"
+    },
+    {
+      "election": "2025fed",
+      "seat": "Griffith",
+      "source_party": "LIB",
+      "source_file": "abc-2025-liberal-htv.csv",
+      "page": null,
+      "order_among_targets": [
+        "ON",
+        "ALP",
+        "GRN"
+      ],
+      "printed_numbers": {
+        "GRN": 7,
+        "ON": 3,
+        "ALP": 4
+      },
+      "verification": "ABC_VERIFY_published_transcription_of_party_HTV_cards"
+    },
+    {
+      "election": "2025fed",
+      "seat": "Melbourne",
+      "source_party": "LIB",
+      "source_file": "abc-2025-liberal-htv.csv",
+      "page": null,
+      "order_among_targets": [
+        "ON",
+        "ALP",
+        "GRN"
+      ],
+      "printed_numbers": {
+        "ON": 4,
+        "ALP": 5,
+        "GRN": 7
+      },
+      "verification": "ABC_VERIFY_published_transcription_of_party_HTV_cards"
+    },
+    {
+      "election": "2025fed",
+      "seat": "Newcastle",
+      "source_party": "LIB",
+      "source_file": "abc-2025-liberal-htv.csv",
+      "page": null,
+      "order_among_targets": [
+        "ON",
+        "ALP",
+        "GRN"
+      ],
+      "printed_numbers": {
+        "GRN": 8,
+        "ALP": 4,
+        "ON": 3
+      },
+      "verification": "ABC_VERIFY_published_transcription_of_party_HTV_cards"
+    },
+    {
+      "election": "2025fed",
+      "seat": "Sydney",
+      "source_party": "LIB",
+      "source_file": "abc-2025-liberal-htv.csv",
+      "page": null,
+      "order_among_targets": [
+        "ON",
+        "ALP",
+        "GRN"
+      ],
+      "printed_numbers": {
+        "ALP": 3,
+        "ON": 2,
+        "GRN": 5
+      },
+      "verification": "ABC_VERIFY_published_transcription_of_party_HTV_cards"
+    },
+    {
+      "election": "2025fed",
+      "seat": "Wills",
+      "source_party": "LIB",
+      "source_file": "abc-2025-liberal-htv.csv",
+      "page": null,
+      "order_among_targets": [
+        "ON",
+        "ALP",
+        "GRN"
+      ],
+      "printed_numbers": {
+        "ALP": 6,
+        "GRN": 8,
+        "ON": 3
+      },
+      "verification": "ABC_VERIFY_published_transcription_of_party_HTV_cards"
+    }
+  ],
+  "candidate_contexts": [
+    {
+      "election": "2019fed",
+      "seat": "Mayo",
+      "candidate_name_tokens": [
+        "sharkie"
+      ],
+      "preference_class": "independent_like",
+      "basis": "existing_forecast_configuration",
+      "reference": "analysis/seats/2019fed.txt",
+      "note": "Explicit local modelling classification; official party identity is retained. Not applied to NXT in 2016."
+    },
+    {
+      "election": "2022fed",
+      "seat": "Mayo",
+      "candidate_name_tokens": [
+        "sharkie"
+      ],
+      "preference_class": "independent_like",
+      "basis": "existing_forecast_configuration",
+      "reference": "analysis/seats/2022fed.txt",
+      "note": "Explicit local modelling classification; official party identity is retained. Not applied to NXT in 2016."
+    },
+    {
+      "election": "2025fed",
+      "seat": "Mayo",
+      "candidate_name_tokens": [
+        "sharkie"
+      ],
+      "preference_class": "independent_like",
+      "basis": "existing_forecast_configuration",
+      "reference": "analysis/seats/2025fed.txt",
+      "note": "Explicit local modelling classification; official party identity is retained. Not applied to NXT in 2016."
+    }
+  ],
+  "coverage_limits": [
+    "HTV recommendations are unknown unless explicitly verified below; dates and observed flow rates do not supply recommendation labels.",
+    "Only the eight listed Victorian districts have full distributions in this catalogue; Brunswick stops with three candidates and supplies no final Liberal-to-ALP/Greens transfer.",
+    "The 2019 and 2022 alternative-TPP tables are AEC-origin counts on a secondary publication; original PDF hashes are unavailable. They are separately identifiable.",
+    "For the 24 ZIP-based by-elections, the complete FP roster is reconstructed from the original-source table, including recipient own-FP rows; this is not an independent FP cross-check.",
+    "All included counts use CPV. Nicklin 2001 OPV, older federal distributions and other unparsed archives are not silently treated as additional original-source observations.",
+    "Matching district names across elections identify repeated geographic contexts, not unchanged electoral boundaries or independent jurisdictions."
+  ],
+  "sa_distribution": {
+    "election": "2026sa",
+    "static_file": "ecsa-2026-static.json",
+    "distribution_file": "ecsa-2026-final.json"
+  },
+  "victorian_distributions": [
+    {
+      "election": "2022vic",
+      "seat": "Brunswick",
+      "primary_file": "vec-2022-brunswick-results.html",
+      "distribution_file": "vec-2022-brunswick-distribution.html"
+    },
+    {
+      "election": "2022vic",
+      "seat": "Footscray",
+      "primary_file": "vec-2022-footscray-results.html",
+      "distribution_file": "vec-2022-footscray-distribution.html"
+    },
+    {
+      "election": "2022vic",
+      "seat": "Melbourne",
+      "primary_file": "vec-2022-melbourne-results.html",
+      "distribution_file": "vec-2022-melbourne-distribution.html"
+    },
+    {
+      "election": "2022vic",
+      "seat": "Northcote",
+      "primary_file": "vec-2022-northcote-results.html",
+      "distribution_file": "vec-2022-northcote-distribution.html"
+    },
+    {
+      "election": "2022vic",
+      "seat": "Pascoe Vale",
+      "primary_file": "vec-2022-pascoe-vale-results.html",
+      "distribution_file": "vec-2022-pascoe-vale-distribution.html"
+    },
+    {
+      "election": "2022vic",
+      "seat": "Prahran",
+      "primary_file": "vec-2022-prahran-results.html",
+      "distribution_file": "vec-2022-prahran-distribution.html"
+    },
+    {
+      "election": "2022vic",
+      "seat": "Preston",
+      "primary_file": "vec-2022-preston-results.html",
+      "distribution_file": "vec-2022-preston-distribution.html"
+    },
+    {
+      "election": "2022vic",
+      "seat": "Richmond",
+      "primary_file": "vec-2022-richmond-results.html",
+      "distribution_file": "vec-2022-richmond-distribution.html"
+    }
+  ],
+  "legacy_2001": {
+    "year": 2001,
+    "event": "10822",
+    "primary_file": "legacy-2001-data_import_hcands.txt.gz",
+    "flow_file": "aec-2001-original-booth-flows.zip"
+  },
+  "quarantine_rules": [
+    {
+      "election": "2025fed",
+      "seat": "Bradfield",
+      "kind": "alternative_tpp",
+      "reason": "AEC identifies Bradfield notional TPP data as mathematically approximated; these supplemental source rows are not verified observed preferences.",
+      "reference_url": "https://results.aec.gov.au/31496/Website/HouseDivisionPage-31496-108.htm",
+      "annotation_reference_url": "https://results.aec.gov.au/31496/Website/HouseStateTppFlow-31496-NAT.htm",
+      "verification": "AEC published notes checked 2026-11-11"
+    }
+  ]
+}

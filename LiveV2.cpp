@@ -2870,23 +2870,28 @@ void Election::recordFpProjectionSensitivity(int boothIndex, double additions) {
 Election::OrdinaryFpHierarchy Election::collectOrdinaryFpEvidence() const {
   OrdinaryFpHierarchy hierarchy;
   hierarchy.seats.reserve(seats.size());
+  hierarchy.seatCurrentVotes.reserve(seats.size());
   hierarchy.regions.resize(largeRegions.size());
   for (auto const& seat : seats) {
-    std::vector<LiveNewVotes::FpEvidence> children;
-    children.reserve(seat.booths.size());
+    LiveNewVotes::BackgroundFpSources sources;
+    sources.movementSources.reserve(seat.booths.size());
     for (int index : seat.booths) {
       auto const& booth = readBooths().at(index);
       auto const& n = booth.node;
       // Keep all expected category sizes in the confidence denominator. Only
-      // ordinary polling locations train this starting primary-movement prior;
-      // each declaration service's current batch is blended in separately.
-      children.push_back({expectedVotesForAggregation(n),double(n.totalFpVotesCurrent()),
-        booth.voteType == Results2::VoteType::Ordinary ? n.fpConfidence : 0,
-        n.relevanceModifier,n.fpDeviations,{}, {}});
+      // booth-style FP accounts train this background. WA mixed early places
+      // also have an Ordinary feed label, but receive incremental FP: admitting
+      // them here would let their batch move its own background before that
+      // same batch is explicitly blended in. Use this rule for both movement
+      // and missing-history candidate counts, including in other jurisdictions.
+      sources.add({expectedVotesForAggregation(n),double(n.totalFpVotesCurrent()),
+        n.fpConfidence,n.relevanceModifier,n.fpDeviations,{}, {}},
+        n.fpVotesCurrent,booth.receivesFpBatches());
     }
-    auto evidence = LiveNewVotes::aggregate(children,expectedVotesForAggregation(seat.node));
+    auto evidence = LiveNewVotes::aggregate(sources.movementSources,expectedVotesForAggregation(seat.node));
     prepareIndependentPooling(evidence,seat);
     hierarchy.seats.push_back(std::move(evidence));
+    hierarchy.seatCurrentVotes.push_back(std::move(sources.currentVotes));
   }
   return hierarchy;
 }
@@ -2963,8 +2968,8 @@ void Election::projectDeclarationFp(int boothIndex) {
 LiveNewVotes::Shares Election::composeDeclarationFp(int boothIndex) const {
   auto const& booth = readBooths().at(boothIndex);
   auto const& seat = seats.at(booth.parentSeatId);
-  auto category = booth.incrementalFp || booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll
-    ? LiveNewVotes::Category::AggregatedEarly : LiveNewVotes::Category::General;
+  auto category = LiveNewVotes::compositionCategory(booth.incrementalFp,
+    booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll);
   double target = turnoutFpTarget(boothIndex);
   auto const& context = newVoteContexts->at(boothIndex);
   LiveNewVotes::Shares shifts,variation;
@@ -2986,8 +2991,8 @@ LiveNewVotes::Shares Election::composeDeclarationFp(int boothIndex) const {
 void Election::updateDeclarationFpProgress(int boothIndex) {
   auto& booth = preparationBooths().at(boothIndex);
   double target = turnoutFpTarget(boothIndex);
-  auto category = booth.incrementalFp || booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll
-    ? LiveNewVotes::Category::AggregatedEarly : LiveNewVotes::Category::General;
+  auto category = LiveNewVotes::compositionCategory(booth.incrementalFp,
+    booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll);
   booth.node.fpCompletion = booth.node.fpConfidence = double(std::clamp(booth.node.totalFpVotesCurrent()/target,0.0,1.0));
   // The pooled category bias enters on the context side, whose influence
   // declines as this service's own primary composition becomes informative.
@@ -3036,6 +3041,15 @@ std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int bo
   std::map<int, double> tempFpVotesProjected;
   double othersAccountedFor = 0.0;
   std::set<int> blindOthers;
+  // A declaration/WA-early background must use the same source pool even when
+  // this candidate lacks historical booth FP. The unrestricted district account
+  // remains the existing fallback for ordinary unreported-booth projections,
+  // which are not preparing a separate local-batch blend from this hierarchy.
+  auto const& currentSeatFp = hierarchy
+    ? hierarchy->seatCurrentVotes.at(booth.parentSeatId) : seat.node.fpVotesCurrent;
+  double const currentSeatTotal = LivePartialCount::total(currentSeatFp);
+  double const currentSeatConfidence = hierarchy
+    ? hierarchy->seats.at(booth.parentSeatId).confidence : seat.node.fpConfidence;
   for (auto const& partyId : booth.node.runningParties) {
     double deviation = 0.0;
     int indIndex = allowCurrentData ? seat.liveIndependentPartyIndex : seat.independentPartyIndex;
@@ -3093,17 +3107,18 @@ std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int bo
       }
     } else if (
       allowCurrentData &&
-      seats[booth.parentSeatId].node.totalFpVotesCurrent() &&
-      seats[booth.parentSeatId].node.fpVotesCurrent.contains(partyId)
+      currentSeatTotal > 0 &&
+      currentSeatFp.contains(partyId)
      ) {
-      // We don't have previous data, but we have seat share data from some other booths
+      // No previous candidate comparison, but eligible district booths provide
+      // a current share. For incremental backgrounds, the account above excludes
+      // all incremental services, so this cannot reuse the target's own batch.
       // If there is a baseline, use it and modify from there; otherwise, use a low initial expectation
       // Either way, use the seat share data to modify the initial expectation
       double baselineShare = transformVoteShare(baselineShareUntransformed.value_or(1.0));
-      double weight = obsWeight(seats[booth.parentSeatId].node.fpConfidence, VoteObsWeightStrength);
-      double currentPartyVotes = double(seats[booth.parentSeatId].node.fpVotesCurrent.at(partyId));
-      double currentTotalVotes = double(seats[booth.parentSeatId].node.totalFpVotesCurrent());
-      double seatShare = transformVoteShare(std::clamp(currentPartyVotes / currentTotalVotes * 100.0, 0.1, 99.9));
+      double weight = obsWeight(currentSeatConfidence, VoteObsWeightStrength);
+      double currentPartyVotes = double(currentSeatFp.at(partyId));
+      double seatShare = transformVoteShare(std::clamp(currentPartyVotes / currentSeatTotal * 100.0, 0.1, 99.9));
       double newShare = seatShare * weight + baselineShare * (1.0 - weight);
       double newVotes = detransformVoteShare(newShare + randomFactor) * currentVoteTarget * 0.01;
       tempFpVotesProjected[effectivePartyId] = newVotes;
@@ -3324,6 +3339,13 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
     std::array<double, NumMethods> methodConfidence = { 0.0, 0.0, 0.0, 0.0 };
     std::array<double, NumMethods> tcpFirst = { 0.0, 0.0, 0.0, 0.0 };
     std::array<double, NumMethods> tcpSecond = { 0.0, 0.0, 0.0, 0.0 };
+    // A large historical booth can help constrain preferences when its TCP
+    // has the same pairing. A different pair cannot narrow the
+    // spread of an estimate based on first preferences and the pooled current
+    // flow. Treat it like missing history for the flow estimates here. The
+    // separate shared-finalist swing method can still use it before FP arrives.
+    double const comparableHistoryVotes =
+      fullComparisonAvailable ? static_cast<double>(booth.node.totalVotesPrevious()) : 0.0;
     const double fpTotalCurrent = booth.node.totalFpVotesCurrent();
     auto const& projectedFp = createRandomVariation ? booth.node.tempFpVotesProjected : booth.node.fpVotesProjected;
     double const fpTotalProjected = std::accumulate(projectedFp.begin(),projectedFp.end(),0.0,
@@ -3353,9 +3375,15 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
         fpTotalProjected - projectedFp.at(convertPartyId(focusParty)) - projectedFp.at(convertPartyId(otherParty));
       double preferenceFlow = seat.tcpFocusPartyPrefFlow.value();
       if (createRandomVariation) {
-        // Use a conservative composition error for an unfinished booth.
-        // This varies its party shares; the turnout component owns its size.
-        double stdDev = 4.0 + 10.0 * std::min(std::exp(-static_cast<double>(booth.node.totalVotesPrevious()) * 0.002), 2.0) + 1.5 * std::clamp(1.0 / std::sqrt(seat.tcpFocusPartyConfidence.value()), 1.0, 20.0);
+        // Vary the fraction of the non-finalist preference pool flowing to
+        // the focus party, in percentage points before the bounded transform.
+        // The spread grows with weak seat-wide evidence and with a small or
+        // missing comparable booth count. Turnout supplies the booth size.
+        double const historicalUncertainty = 10.0 *
+          std::min(std::exp(-comparableHistoryVotes * 0.002), 2.0);
+        double const pooledFlowUncertainty =
+          1.5 * std::clamp(1.0 / std::sqrt(seat.tcpFocusPartyConfidence.value()), 1.0, 20.0);
+        double const stdDev = 4.0 + historicalUncertainty + pooledFlowUncertainty;
         double random = variabilityNormal(0.0, stdDev, boothIndex, RandomGenerator::combinePartyIds(firstPartyId, secondPartyId), uint32_t(VariabilityTag::PreferenceFlow));
         preferenceFlow = basicTransformedSwing(preferenceFlow, random);
       }
@@ -3542,9 +3570,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
       if (createRandomVariation) {
         // Use a conservative composition error for an unfinished booth.
         // This varies its party shares; the turnout component owns its size.
-        double stdDev = 32.0
-          + 10.0 * std::exp(
-            -static_cast<double>(booth.node.totalVotesPrevious()) * 0.0001);
+        double const stdDev = 32.0 + 10.0 * std::exp(-comparableHistoryVotes * 0.0001);
         double random = variabilityNormal(0.0, stdDev, boothIndex, RandomGenerator::combinePartyIds(firstPartyId, secondPartyId), uint32_t(VariabilityTag::PreferenceFlow));
         preferenceFlow = basicTransformedSwing(preferenceFlow, random);
       }

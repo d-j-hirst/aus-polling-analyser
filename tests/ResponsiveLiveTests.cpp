@@ -82,17 +82,18 @@ void testMailboxAndShutdown() {
     { std::lock_guard lock(shutdownSignal.mutex); assert(shutdownSignal.wakes == 0); }
 }
 
-std::unique_ptr<PollingProject> fictionalProject(std::filesystem::path const& root) {
+std::unique_ptr<PollingProject> fictionalProject(std::filesystem::path const& root,
+    std::string const& term = "2030fed") {
     std::ofstream(root / "config.cfg") << "iSimulationThreads=8\n";
     std::ofstream(root / "seats.txt") << "#Example\nsIncumbent=ALP\nsChallenger=LIB\nsRegion=Area\nfTppMargin=2\n";
     ForecastSpecification spec;
-    spec.id = "fictional"; spec.electionName = "Fictional election"; spec.electionCode = "2030fed";
+    spec.id = "fictional"; spec.electionName = "Fictional election"; spec.electionCode = term;
     spec.dataSources.seats = "seats.txt";
     spec.partySettings = {"labor", "liberal"};
     spec.parties = {{0,"labor","Labor","ALP"}, {1,"liberal","Liberal","LIB"}};
     spec.partyOfficialCodes = {{"labor","ALP"}, {"liberal","LIB"}};
     spec.regions = {{0,"area","Area",10000,"Area",50}};
-    spec.models = {{"model","Model","2030fed",{{"ALP",0,0},{"LIB",0,0}}}};
+    spec.models = {{"model","Model",term,{{"ALP",0,0},{"LIB",0,0}}}};
     spec.projections = {{"projection","Projection","model",10,*Date::parseIso("2030-01-01"),{}}};
     spec.simulations = {{"first","First","projection",10,ForecastSpecification::SimulationMode::LiveAutomatic},
                        {"second","Second","projection",10,ForecastSpecification::SimulationMode::LiveAutomatic}};
@@ -326,6 +327,43 @@ void testPreparationInputs(std::filesystem::path const& root) {
     auto modelRevision = modelCopy.preparedDataRevision();
     assert(!modelCopy.prepareForRun(WorkspacePaths(folder), [](std::string) {}));
     assert(modelRevision != modelCopy.preparedDataRevision());
+}
+
+void testPreferenceComparisonInputs(std::filesystem::path const& root) {
+    auto folder = root / "preference-comparison-inputs";
+    std::filesystem::create_directory(folder);
+    auto project = fictionalProject(folder, "2026vic");
+    auto& sim = project->simulations().access(project->simulations().indexToId(0));
+    auto const seatText = project->seats().importInfo();
+    assert(seatText);
+    auto capture = [&] { return SimulationInputs::capture(*project, sim, seatText, Date{}); };
+    auto const absent = capture();
+    auto const& path = absent->path(SimulationInputs::File::PreferenceComparison);
+    assert(!absent->open(path));
+    std::filesystem::create_directories(std::filesystem::path(path).parent_path());
+    { std::ofstream settings(path); settings << R"({"mode":"off"})"; }
+    auto const disabled = capture();
+    assert(!absent->reusableWith(*disabled));
+    assert(disabled->reusableWith(*capture()));
+
+    auto completed = sim.completedLiveState();
+    completed.preparationInputs = disabled;
+    completed.baseline = Simulation::Report{};
+    completed.oddsMeans[{0,1}] = 7;
+    sim.publishLiveState(completed);
+    { std::ofstream settings(path); settings << R"({"mode":"compare"})"; }
+    auto const enabled = capture();
+    assert(!disabled->reusableWith(*enabled));
+    sim.checkPreparationInputs(enabled);
+    assert(!sim.completedLiveState().baseline && sim.completedLiveState().oddsMeans.empty());
+    auto retained = disabled->open(path);
+    std::string text;
+    std::getline(retained, text);
+    assert(text == R"({"mode":"off"})");
+
+    std::filesystem::remove(path);
+    assert(absent->reusableWith(*capture()));
+    assert(!enabled->reusableWith(*capture()));
 }
 
 void testContext(PollingProject& source) {
@@ -598,6 +636,7 @@ int main() {
     auto project = fictionalProject(root);
     testSeatFileCache(root);
     testPreparationInputs(root);
+    testPreferenceComparisonInputs(root);
     testMailboxAndShutdown(); testContext(*project); testPublication(*project);
     testRepeatedPublication(*project); testViewer(root);
     // This test deletes only the unique temporary directory it created.

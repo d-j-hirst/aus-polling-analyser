@@ -122,6 +122,87 @@ namespace {
 				return factor > 0.25f && factor < 1.75f ? -1.0f : valid(factor);
 			}).status == MajorPartyFpMath::SearchStatus::Invalid);
 	}
+
+	void checkHistoricalCoalitionPreferences()
+	{
+		auto const close = [](double a, double b) { return std::abs(a - b) < 1e-12; };
+		// Euroa 2022 ended Labor/National. The Liberal exclusion sent 1,353
+		// ballots to Labor, at most 1,172 of which had come from other piles.
+		auto const euroa = MajorPartyFpMath::historicalMinorPreferenceRange({
+			42242, 12840, 13496, 9227, 16926, 181, 1353});
+		assert(euroa && close(euroa->lower, 2733.0 / 6679) && close(euroa->upper, 3905.0 / 6679));
+		assert(euroa->supportedDifference(0.50) == 0.0);
+		assert(close(euroa->supportedDifference(0.65), euroa->upper - 0.65));
+
+		// Bass reverses the roles. The 5,506 National primaries are the
+		// excluded partner's original votes in its Labor/Liberal count.
+		auto const bass = MajorPartyFpMath::historicalMinorPreferenceRange({
+			41404, 13478, 12482, 5506, 20803, 0, 2700});
+		assert(bass && close(bass->lower, 4625.0 / 9938) && close(bass->upper, 7325.0 / 9938));
+
+		// The separate Labor/National scrutiny in Mallee identifies exactly
+		// 2,152 original Liberal ballots reaching Labor.
+		auto const mallee = MajorPartyFpMath::historicalMinorPreferenceRange({
+			85834, 15020, 33270, 23363, 22610, 2152, 2152});
+		assert(mallee && close(mallee->lower, 5438.0 / 14181) && mallee->lower == mallee->upper);
+
+		// An unknown partner split can still establish an upper bound. A
+		// seat without an excluded partner yields a single measured rate.
+		auto const shepparton = MajorPartyFpMath::historicalMinorPreferenceRange({
+			41301, 3285, 13242, 8491, 10597, 0, 8491});
+		assert(shepparton && shepparton->lower == 0.0 && close(shepparton->upper, 7312.0 / 16283));
+		auto const nationalOnly = MajorPartyFpMath::historicalMinorPreferenceRange({
+			1000, 250, 600, 0, 320, 0, 0});
+		assert(nationalOnly && close(nationalOnly->lower, 70.0 / 150));
+		assert(nationalOnly->lower == nationalOnly->upper);
+		assert(!MajorPartyFpMath::historicalMinorPreferenceRange({1000, 250, 600, 50, 500, 0, 50}));
+		assert(!MajorPartyFpMath::historicalMinorPreferenceRange({1000, 250, 600, 50, 320, 45, 40}));
+	}
+
+	void checkClassicPrimaryAllocation()
+	{
+		constexpr double tolerance = 1e-12;
+		// Reconstruct the first incompatible now-cast examples in Euroa,
+		// Morwell and Mildura using the old split transfer in reverse. With
+		// the single National candidate, the new primary equation allocates
+		// the entire preference requirement to the minor pool. Check that a
+		// later adjustment is also limited by the fixed TPP.
+		struct Example {
+			double laborTpp;
+			double combinedMajor;
+			double minorPreferences;
+			double oldLaborPrimary;
+		};
+		for (auto const& example : std::array{
+			Example{29.523, 55.126, 1.493, 29.725},
+			Example{28.062, 52.533, 0.47467, 29.139},
+			Example{23.819, 70.971, 2.469, 24.598}}) {
+			double const labor = MajorPartyFpMath::classicLaborPrimary(
+				example.laborTpp, example.combinedMajor, example.minorPreferences, 0.0);
+			assert(std::abs(labor + example.minorPreferences - example.laborTpp) < tolerance);
+			assert(labor < example.oldLaborPrimary);
+			auto const corrected = MajorPartyFpMath::compatibleClassicLaborPrimary(
+				example.oldLaborPrimary, example.combinedMajor, example.laborTpp, 0.0, 0.1);
+			assert(corrected && *corrected == example.laborTpp);
+		}
+
+		// With both running, this quantity is paid from the Coalition primary
+		// once. Swapping Liberal and National leaves the smaller primary and
+		// the hypothetical Labor/Coalition TPP unchanged.
+		for (double nationalFraction : {0.0, 0.32, 0.5, 0.68, 1.0}) {
+			double const leakageFraction = MajorPartyFpMath::coalitionLeakageFraction(nationalFraction);
+			double const laborTpp = 29.0 + 10.0 + leakageFraction * 41.0;
+			double const primary = MajorPartyFpMath::classicLaborPrimary(laborTpp, 70.0, 10.0, leakageFraction);
+			assert(std::abs(primary - 29.0) < tolerance);
+			auto const same = MajorPartyFpMath::compatibleClassicLaborPrimary(primary, 70.0, laborTpp, leakageFraction, 0.1);
+			assert(same && *same == primary);
+			auto const upper = MajorPartyFpMath::compatibleClassicLaborPrimary(55.0, 70.0, laborTpp, leakageFraction, 0.1);
+			assert(upper && std::abs(*upper + (70.0 - *upper) * leakageFraction - laborTpp) < tolerance);
+			auto const lower = MajorPartyFpMath::compatibleClassicLaborPrimary(1.0, 70.0, laborTpp, leakageFraction, 0.1);
+			assert(lower && std::abs(*lower + (70.0 - *lower) * leakageFraction + 30.0 - laborTpp) < tolerance);
+		}
+		assert(!MajorPartyFpMath::compatibleClassicLaborPrimary(0.1, 90.0, 2.0, 0.077, 0.1));
+	}
 }
 
 int main()
@@ -129,4 +210,6 @@ int main()
 	checkReachableTargets();
 	checkProtectedLocalSupport();
 	checkInvalidCalculations();
+	checkHistoricalCoalitionPreferences();
+	checkClassicPrimaryAllocation();
 }

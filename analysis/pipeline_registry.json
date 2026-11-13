@@ -49,6 +49,27 @@
       ],
       "description": "Preference-flow and exhaust-rate estimates used by poll trends, trend adjustment and C++ simulation."
     },
+    "preference_evidence_inputs": {
+      "kind": "authored",
+      "scope": "global",
+      "core": false,
+      "paths": [
+        "Preferences/*.json",
+        "Preferences/*.json.gz"
+      ],
+      "description": "Observed preference counts and explicitly recorded source/candidate contexts; no fitted forecast parameters or existing forecast consumer."
+    },
+    "preference_evidence_tools": {
+      "kind": "code",
+      "scope": "global",
+      "core": false,
+      "paths": [
+        "lib/elections/preference_evidence.py",
+        "lib/elections/preference_source_counts.py",
+        "scripts/diagnostics/prepare_preference_evidence.py"
+      ],
+      "description": "Standalone cache-only extraction and validation of observed preference evidence."
+    },
     "prior_result_inputs": {
       "kind": "authored",
       "scope": "election-party",

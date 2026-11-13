@@ -6,6 +6,7 @@ ForecastSpecificationProjectAdapterTests
 ForecastSpecificationTests
 LiveDataTests
 LivePrecisionTests
+LiveFpBackgroundTests
 LiveVariabilityTests
 LivePreparedStorageTests
 LiveTppCompositionTests
@@ -19,7 +20,10 @@ LiveSnapshotSequenceTests
 LiveSnapshotDataTests
 MacroTargetResolverTests
 MajorPartyFpMathTests
+MinorPartyFpMathTests
 CoalitionPairingTests
+PreferenceModelTests
+SeatFpPollsTests
 RandomGeneratorTests
 RegionalSwingMathTests
 SeatVolatilityTests

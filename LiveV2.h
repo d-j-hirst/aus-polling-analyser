@@ -819,6 +819,10 @@ private:
   struct OrdinaryFpHierarchy {
     LiveNewVotes::FpEvidence election;
     std::vector<LiveNewVotes::FpEvidence> regions, seats;
+    // Raw candidate counts from the same booth-style sources as seats' movement
+    // evidence. Missing historical candidate comparisons use this filtered
+    // account, not the whole district tally containing incremental FP batches.
+    std::vector<LivePartialCount::Counts> seatCurrentVotes;
   };
   OrdinaryFpHierarchy collectOrdinaryFpEvidence() const;
   void aggregateOrdinaryFpEvidence(OrdinaryFpHierarchy& hierarchy) const;

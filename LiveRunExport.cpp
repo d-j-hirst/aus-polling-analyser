@@ -1237,8 +1237,8 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 			if (newVoteContexts && !booth.futureFpShares.empty()) {
 				// Keep the two primary compositions and their influence available
 				// for replay inspection without recording draws or extra identities.
-				auto category = booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll
-					? LiveNewVotes::Category::AggregatedEarly : LiveNewVotes::Category::General;
+				auto category = LiveNewVotes::compositionCategory(booth.incrementalFp,
+					booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll);
 				boothJson["new_vote_composition"] = {
 					{"observed_weight",number(LiveNewVotes::observedWeight(booth.node.totalFpVotesCurrent(),turnoutFpTarget(boothIndex),category))},
 					{"context_shares",parties.values(newVoteContexts->at(boothIndex))},

@@ -96,6 +96,49 @@ baseline and odds-calibration caches are held in memory, not saved in the
 project file: restarting the rebuilt application regenerates them normally.
 No project-file format or seat configuration change is required.
 
+## Classic TPP and primary votes in the 2026 Victorian forecast
+
+The forecast uses historical preferences to infer the major-party primaries
+that go with a simulated Labor TPP. When a National contested the previous
+election, preparation identifies the Coalition candidate in the counted
+Labor–Coalition pair. It uses the actual TCP when that pair reached the final
+count and the separate published TPP when available for another final pair.
+The counts must cover the same formal votes as the historical first preferences.
+The seat setting for the previous margin supplies the swing projection. The
+counted historical TPP supplies the preference comparison.
+
+In a classic count, the excluded Coalition partner can send some of its original
+first preferences to Labor. Remove this contribution before estimating how many
+minor and independent ballots flowed to Labor. For example, the last Liberal
+transfer in 2022 Euroa sent 1,353 ballots to Labor, and the Liberal pile included
+1,172 inherited ballots. Between 181 and 1,353 of the 9,227 original Liberal
+ballots therefore reached Labor. That range implies a 40.9–58.5% flow to Labor
+among the 6,679 minor and independent primaries. A forecast expectation within
+that range needs no historical correction. An expectation outside the range
+receives the smallest correction supported by the count. [Euroa distribution](https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/euroa-district-results/euroa-results-distribution)
+
+The [2022 source table](../analysis/Data/coalition-preference-history-2022vic.csv)
+records the district, formal votes, the three major-party primaries, the
+Coalition finalist's party code, Labor TPP votes and the lower and upper bounds
+on the excluded partner's original ballots reaching Labor. Bass, Euroa and
+Morwell use bounds from the last exclusion. Mildura and Shepparton use the
+separate published Labor–Nationals totals and allow the full range of the
+excluded Liberal primary, subject to the arithmetic of those totals. The
+optional table is captured with the other simulation inputs so a change also
+refreshes betting-odds calibration and the pre-count baseline. [Bass distribution](https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/bass-district-results/bass-results-distribution) · [Morwell distribution](https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/morwell-district-results/morwell-results-distribution) · [Mildura results](https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/mildura-district-results) · [Shepparton results](https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/shepparton-district-results)
+
+For current scenarios involving a historical National candidate or two current
+Coalition candidates, Labor's own primary, the minor and independent preferences
+to Labor and the excluded partner's contribution must add to Labor TPP. One
+current Coalition candidate gives zero partner contribution. With two, the
+primary solver and the preference comparison share an assumption of 15.4% of
+the smaller partner's primary, measured as a share of the formal vote. This
+keeps both hypothetical classic counts on the same simulated TPP. The primary
+solver includes that quantity once. During statewide FP reconciliation, the
+terminal adjustment keeps the split between Labor and the Coalition within the
+range that still permits the district TPP, where their combined primary allows
+it. Live votes are applied after this forecast calculation.
+
 ## Verification and limits
 
 Portable tests in `tests/CoalitionPairingTests.cpp` check the accounting with

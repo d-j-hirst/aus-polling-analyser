@@ -930,6 +930,54 @@ void checkReportedCountProgress() {
     assert(LiveInputAdapter::reportedCountProgress(source,effective).fpVotes == 1300);
 }
 
+void checkEcsaRetiredEmptyTcpPair() {
+    auto makeElection = [](std::string const& term) {
+        Results2::Election election(term);
+        election.candidates.emplace(11,Results2::Candidate{11,"Labor",1});
+        election.candidates.emplace(12,Results2::Candidate{12,"Liberal",2});
+        election.candidates.emplace(13,Results2::Candidate{13,"One Nation",3});
+        Results2::Seat seat; seat.id = 1; seat.name = "North";
+        seat.tcpVotesCandidate[11][Results2::VoteType::Ordinary] = 45;
+        seat.tcpVotesCandidate[13][Results2::VoteType::Ordinary] = 55;
+        for (auto const& name : {"School","Hall","Early Centre"}) {
+            int id = 7 + static_cast<int>(seat.booths.size());
+            Results2::Booth booth; booth.id = id; booth.parentSeat = 1; booth.name = name;
+            election.booths.emplace(id,booth);
+            seat.booths.push_back(id);
+        }
+        election.seats.emplace(1,seat);
+        return election;
+    };
+    Snapshot effective;
+    effective.districts.emplace("North",District{1000,false});
+    auto add = [&](std::string const& name, Counts tcp, Status status) {
+        Record record; record.district = "North"; record.name = name; record.role = "ordinary";
+        record.candidates = {11,12,13};
+        record.fp.votes = Counts{{11,30},{12,40},{13,30}};
+        record.tcp.votes = std::move(tcp); record.tcp.status = status;
+        effective.records.push_back(std::move(record));
+    };
+    add("School",{{11,45},{13,55}},Status::Current);
+    add("Hall",{{11,0},{12,0}},Status::Restored);
+    add("Early Centre",{{11,0},{13,0}},Status::Current);
+
+    auto election = makeElection("2026sa");
+    LiveInputAdapter::apply(election,effective);
+    auto const& currentPair = election.seats.at(1).tcpVotesCandidate;
+    assert(currentPair.size() == 2 && currentPair.contains(11) && currentPair.contains(13));
+    assert(election.seats.at(1).totalVotesFp() == 300);
+    assert(election.seats.at(1).totalVotesTcp({}) == 100);
+    assert(election.reportedCountProgress->tcpVotes == 100);
+    assert(election.booths.at(8).tcpVotesCandidate.empty());
+    assert(!election.liveCountStatus.at("North/ordinary/Hall").second.available);
+    assert(election.booths.at(9).tcpVotesCandidate.size() == 2);
+    assert(effective.records[1].tcp.votes->contains(12)); // Retained for recovery history.
+
+    auto other = makeElection("2026vic");
+    LiveInputAdapter::apply(other,effective);
+    assert(other.booths.at(8).tcpVotesCandidate.contains(12));
+}
+
 void checkParserAndAdapter() {
     Results2::Election election("fictional");
     election.sourceTime = "2026-03-30T08:00:00";
@@ -1415,6 +1463,7 @@ int main(int argc, char** argv) {
     checkQecPartialRechecks();
     checkSyntheticCategoryProvenance();
     checkReportedCountProgress();
+    checkEcsaRetiredEmptyTcpPair();
     checkParserAndAdapter();
 #endif
     std::filesystem::remove_all(folder);

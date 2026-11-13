@@ -1,0 +1,299 @@
+{
+  "mode": "active",
+  "schema_version": 1,
+  "model_version": "vic2026-preference-comparison-1",
+  "sample_uncertainty": true,
+  "unknown_liberal_labor_first_probability": 0.5,
+  "generic_concentrations": [
+    23.999999999999996,
+    9.666666666666666
+  ],
+  "profiles": {
+    "labor": {
+      "primary_points": [
+        {
+          "primary": 0.1,
+          "means": [
+            0.8203275332737616,
+            0.13608600184894723,
+            0.7267524888961155,
+            0.11579101562500016,
+            0.8958174568989306
+          ]
+        }
+      ],
+      "election_concentration": [
+        91.11891964171696,
+        19.679072134582995,
+        12.03565108498652,
+        23.676512705469584,
+        10.11111111111111
+      ],
+      "district_concentration": [
+        90.11891964171696,
+        7.950914581438218,
+        5.5184647696861155,
+        9.535742519958122,
+        4.687499999999999
+      ]
+    },
+    "liberal_labor_first": {
+      "primary_points": [
+        {
+          "primary": 0.1,
+          "means": [
+            0.7220215503849514,
+            0.6213147537582041,
+            0.2932712787832116,
+            0.7330566406250384,
+            0.3582140029245919
+          ]
+        }
+      ],
+      "election_concentration": [
+        54.751786434628464,
+        20.778189665570387,
+        10.11111111111111,
+        23.941482482536355,
+        23.97271990439875
+      ],
+      "district_concentration": [
+        53.751786434628464,
+        12.433944516406692,
+        4.687499999999999,
+        9.745766918355606,
+        9.713030094348284
+      ]
+    },
+    "liberal_greens_first": {
+      "primary_points": [
+        {
+          "primary": 0.1,
+          "means": [
+            0.30000000000000016,
+            0.459635796700825,
+            0.0001850603711153888,
+            0.7794851226535101,
+            0.8933037642857928
+          ]
+        }
+      ],
+      "election_concentration": [
+        31.812500000000007,
+        22.591915635673423,
+        10.11111111111111,
+        18.038402311717338,
+        23.99928387639403
+      ],
+      "district_concentration": [
+        19.360000000000003,
+        10.476938539187033,
+        4.687499999999999,
+        12.270826655657071,
+        9.667192479185658
+      ]
+    },
+    "greens": {
+      "primary_points": [
+        {
+          "primary": 0.05,
+          "means": [
+            0.8300170876922627,
+            0.07639089116134173,
+            0.7112151228735586,
+            0.1114843750000129,
+            0.7758616899674633
+          ]
+        },
+        {
+          "primary": 0.1,
+          "means": [
+            0.8684671520848514,
+            0.07639089116134175,
+            0.7112151228735585,
+            0.11148437500001282,
+            0.7758616899674634
+          ]
+        },
+        {
+          "primary": 0.15,
+          "means": [
+            0.8883781106287114,
+            0.07639089116134173,
+            0.7112151228735586,
+            0.11148437500001282,
+            0.7758616899674633
+          ]
+        },
+        {
+          "primary": 0.25,
+          "means": [
+            0.911419554442774,
+            0.07639089116134172,
+            0.7112151228735586,
+            0.11148437500001296,
+            0.7758616899674634
+          ]
+        }
+      ],
+      "election_concentration": [
+        125.92439759386556,
+        63.04657015564981,
+        12.99926058380352,
+        25.862630929474417,
+        23.999999999999993
+      ],
+      "district_concentration": [
+        69.83247364654937,
+        21.635152801608566,
+        5.831821803228869,
+        10.197732336916182,
+        9.666666666666664
+      ]
+    },
+    "one_nation": {
+      "primary_points": [
+        {
+          "primary": 0.1,
+          "means": [
+            0.26538421922223543,
+            0.1091502632067437,
+            0.7561954335838919,
+            0.2500315659688799,
+            0.7760781910818585
+          ]
+        }
+      ],
+      "election_concentration": [
+        29.461786782818738,
+        30.233491432572364,
+        42.06792757965747,
+        16.183901365877592,
+        115.71600298992001
+      ],
+      "district_concentration": [
+        51.37650983612221,
+        64.4055488188769,
+        3.000000000000001,
+        5.083160030925341,
+        405.43250805992653
+      ]
+    }
+  },
+  "districts": {
+    "Albert Park": {"liberal_advice": "labor_first"},
+    "Ashwood": {"liberal_advice": "labor_first"},
+    "Bass": {"liberal_advice": "labor_first"},
+    "Bayswater": {"liberal_advice": "labor_first"},
+    "Bellarine": {"liberal_advice": "labor_first"},
+    "Benambra": {"liberal_advice": "labor_first"},
+    "Bentleigh": {"liberal_advice": "labor_first"},
+    "Berwick": {"liberal_advice": "labor_first"},
+    "Box Hill": {"liberal_advice": "labor_first"},
+    "Brighton": {"liberal_advice": "labor_first"},
+    "Broadmeadows": {"liberal_advice": "labor_first"},
+    "Bulleen": {"liberal_advice": "labor_first"},
+    "Bundoora": {"liberal_advice": "labor_first"},
+    "Carrum": {"liberal_advice": "labor_first"},
+    "Caulfield": {"liberal_advice": "labor_first"},
+    "Clarinda": {"liberal_advice": "labor_first"},
+    "Cranbourne": {"liberal_advice": "labor_first"},
+    "Croydon": {"liberal_advice": "labor_first"},
+    "Dandenong": {"liberal_advice": "labor_first"},
+    "Eildon": {"liberal_advice": "labor_first"},
+    "Eltham": {"liberal_advice": "labor_first"},
+    "Essendon": {"liberal_advice": "labor_first"},
+    "Eureka": {"liberal_advice": "labor_first"},
+    "Evelyn": {"liberal_advice": "labor_first"},
+    "Frankston": {"liberal_advice": "labor_first"},
+    "Geelong": {"liberal_advice": "labor_first"},
+    "Glen Waverley": {"liberal_advice": "labor_first"},
+    "Hastings": {"liberal_advice": "labor_first"},
+    "Hawthorn": {"liberal_advice": "labor_first"},
+    "Ivanhoe": {"liberal_advice": "labor_first"},
+    "Kalkallo": {"liberal_advice": "labor_first"},
+    "Kew": {"liberal_advice": "labor_first"},
+    "Kororoit": {"liberal_advice": "labor_first"},
+    "Lara": {"liberal_advice": "labor_first"},
+    "Laverton": {"liberal_advice": "labor_first"},
+    "Macedon": {"liberal_advice": "labor_first"},
+    "Malvern": {"liberal_advice": "labor_first"},
+    "Melbourne": {"liberal_advice": "labor_first"},
+    "Melton": {"liberal_advice": "labor_first"},
+    "Mill Park": {"liberal_advice": "labor_first"},
+    "Monbulk": {"liberal_advice": "labor_first"},
+    "Mordialloc": {"liberal_advice": "labor_first"},
+    "Mornington": {"liberal_advice": "labor_first"},
+    "Mulgrave": {"liberal_advice": "labor_first"},
+    "Narracan": {"liberal_advice": "labor_first"},
+    "Narre Warren North": {"liberal_advice": "labor_first"},
+    "Narre Warren South": {"liberal_advice": "labor_first"},
+    "Nepean": {"liberal_advice": "labor_first"},
+    "Niddrie": {"liberal_advice": "labor_first"},
+    "Northcote": {"liberal_advice": "labor_first"},
+    "Oakleigh": {"liberal_advice": "labor_first"},
+    "Pakenham": {"liberal_advice": "labor_first"},
+    "Pascoe Vale": {"liberal_advice": "labor_first"},
+    "Point Cook": {"liberal_advice": "labor_first"},
+    "Polwarth": {"liberal_advice": "labor_first"},
+    "Prahran": {"liberal_advice": "labor_first"},
+    "Preston": {"liberal_advice": "labor_first", "liberal_one_nation_last_weight": 0.5},
+    "Richmond": {"liberal_advice": "labor_first"},
+    "Ringwood": {"liberal_advice": "labor_first"},
+    "Ripon": {"liberal_advice": "labor_first"},
+    "Rowville": {"liberal_advice": "labor_first"},
+    "Sandringham": {"liberal_advice": "labor_first"},
+    "South Barwon": {"liberal_advice": "labor_first"},
+    "St Albans": {"liberal_advice": "labor_first"},
+    "Sunbury": {"liberal_advice": "labor_first"},
+    "Sydenham": {"liberal_advice": "labor_first"},
+    "Tarneit": {"liberal_advice": "labor_first"},
+    "Thomastown": {"liberal_advice": "labor_first"},
+    "Warrandyte": {"liberal_advice": "labor_first"},
+    "Wendouree": {"liberal_advice": "labor_first"},
+    "Werribee": {"liberal_advice": "labor_first"},
+    "Yan Yean": {"liberal_advice": "labor_first"}
+  },
+  "sensitivity_tests": {
+    "Brunswick": {"without_classic_tpp_matching": true},
+    "Footscray": {"without_classic_tpp_matching": true},
+    "Melbourne": {"without_classic_tpp_matching": true},
+    "Morwell": {"without_classic_tpp_matching": true},
+    "Mulgrave": {"without_classic_tpp_matching": true},
+    "Narre Warren South": {"without_classic_tpp_matching": true},
+    "Northcote": {"without_classic_tpp_matching": true},
+    "Pakenham": {"without_classic_tpp_matching": true},
+    "Pascoe Vale": {"without_classic_tpp_matching": true},
+    "Prahran": {"without_classic_tpp_matching": true, "labor_to_greens_reduction": 0.10},
+    "Richmond": {"without_classic_tpp_matching": true}
+  },
+  "provenance": {
+    "evidence_sha256": "13e5d81e9dc7a1d702bd8744c9d0a9cf0cc49b2831693963f7ce4f007aa5068d",
+    "fitted_means_sha256": "30b3ee306200a9d771824f0484b88dce64159a15e91fe81ff9e38043d900a4d5",
+    "uncertainty_parameters_sha256": "0608d23e5ddd83b2889ac1e923e677a84aa528325d3014d8005b818a89aa6739",
+    "liberal_one_nation_over_labor_adjustment": {
+      "fitted_centre": 0.6643238510088114,
+      "adopted_centre": 0.70,
+      "method": "Swap adjacent Labor and One Nation ranks in the fitted orders, moving the same fraction from each eligible order. This raises One Nation over Labor while preserving Labor versus Greens and One Nation versus Greens.",
+      "evidence": "The median of eleven mixed Liberal piles in the 2026 South Australian count was 68.25% to One Nation. The 2026 Secret Harbour early polling centre sent 70.17% of continuing original Liberal ballots to One Nation. The adopted Victorian centre is a modelling choice.",
+      "sources": [
+        "https://result.ecsa.sa.gov.au/",
+        "https://www.elections.wa.gov.au/2026-secret-harbour-election-results"
+      ]
+    },
+    "liberal_card_evidence": {
+      "checked_date": "2026-11-12",
+      "cards_checked": 142,
+      "districts_checked": 72,
+      "source": "https://www.vec.vic.gov.au/voting/2026-state-election/how-to-vote-cards",
+      "preston": "Cards 611 and 664 put One Nation last. The 0.5 weight assumes that half of the Liberal ballots that would otherwise rank One Nation higher move it below both Labor and the Greens. The card establishes the direction and the weight is uncertain.",
+      "glen_waverley": "Cards 542 and 694 put One Nation fourth, Labor fifth and the Greens sixth.",
+      "glen_waverley_source": "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=478ac3c3-5093-462c-b7f8-b80a5a149fb8%2Fliberal_combined_nemr%20glen%20waverley_1.pdf&settingsItemId=%7B001D8F7A-28BA-45B7-897A-F0A24F37AEC3%7D"
+    },
+    "prahran_open_labor_ticket": {
+      "source": "https://vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=0171098b-6571-4f45-80f5-c241ac1d0d97%2Falp_combined_sm_caulfield_prahran_1.pdf&settingsItemId=%7BD753655F-845A-4BD0-B3DA-B772208E0B6B%7D",
+      "previous_ticket_source": "https://itsitecoreblobvecprd01.blob.core.windows.net/public-files/State/HTVC/e1cfbe1d-5236-4093-bf8a-74436bee8a0f/alp_combined_prahran_southern%20metropolitan%20region.pdf",
+      "basis": "Labor's lower-house card leaves preferences open in 2026. Its 2022 card put the Greens third and Liberal fifth. A relative reduction of 10% is a sensitivity assumption. At the fitted centre it takes the share of original Labor ballots preferring the Greens to the Liberals from 82.0% to 73.8%."
+    }
+  }
+}

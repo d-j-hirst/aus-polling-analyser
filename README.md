@@ -31,6 +31,9 @@ are in [live_scripts/README.md](live_scripts/README.md).
 The Results tab can also [save and run snapshot sequences](docs/live-snapshot-sequences.md),
 with retained results available in Live Booths.
 
+Local first-preference seat polls update named minor-party and eligible
+independent support as described in [the seat-poll documentation](docs/seat-fp-polls.md).
+
 Live/media-feed snapshots and close derivatives are operator-local inputs and
 are not distributed in this repository. Their calibration requires an
 authorised private archive. Installed live-count and preference-rechecking
@@ -219,6 +222,13 @@ The test runners compile the shared CLI source set once, then run unit,
 forecast-package, project-adapter, and CLI-boundary tests. They validate the
 committed forecast configurations without running full forecasts or requiring
 generated model outputs.
+
+Both platform runners must invoke every suite in `portable-test-sources.txt`.
+CI checks those explicit invocation lists before compiling, including suites
+that take repository paths or forecast files. Run the same registration audit
+with `python3 tests/check_portable_test_runners.py`. On native Windows, use
+`.\analysis\.venv-win\Scripts\python.exe -B tests\check_portable_test_runners.py`.
+This audit checks registration; the native test run still checks behaviour.
 
 GitHub Actions runs the same dependency check, CLI build, and portable tests on
 pinned Linux/GCC and Windows/MSVC environments for every push and pull request.

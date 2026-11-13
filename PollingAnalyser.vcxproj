@@ -409,6 +409,7 @@
     <ClCompile Include="SimulationCompletion.cpp" />
     <ClCompile Include="SimulationIteration.cpp" />
     <ClCompile Include="SimulationInputs.cpp" />
+    <ClCompile Include="PreferenceModel.cpp" />
     <ClCompile Include="SimulationPreparation.cpp" />
     <ClCompile Include="SimulationRun.cpp" />
     <ClCompile Include="SimulationsFrame.cpp" />
@@ -512,6 +513,7 @@
     <ClInclude Include="SimulationCompletion.h" />
     <ClInclude Include="SimulationIteration.h" />
     <ClInclude Include="SimulationInputs.h" />
+    <ClInclude Include="PreferenceModel.h" />
     <ClInclude Include="SimulationPreparation.h" />
     <ClInclude Include="SimulationRun.h" />
     <ClInclude Include="SimulationAudit.h" />
@@ -547,7 +549,9 @@
 	<ClInclude Include="IndependentCandidacy.h" />
 	<ClInclude Include="CoalitionCandidacy.h" />
 	<ClInclude Include="CoalitionPairing.h" />
+	<ClInclude Include="SeatFpPolls.h" />
 	<ClInclude Include="MajorPartyFpMath.h" />
+	<ClInclude Include="MinorPartyFpMath.h" />
 	<ClInclude Include="SeatVolatility.h" />
 	<ClInclude Include="LiveVariability.h" />
 	<ClInclude Include="LivePreparedStorage.h" />

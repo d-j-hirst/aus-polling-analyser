@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-10-30T09:36:22Z",
+  "updated_at_utc": "2026-11-10T14:31:43Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -5501,9 +5501,9 @@
           "recorded_mtime_utc": "2026-10-30T09:34:34.301396Z"
         },
         "pipeline_registry.json": {
-          "sha256": "bc481c906935bc22e5c43c198276e58ef54556e981af0c3a60dcaa6afea82d18",
-          "size_bytes": 47568,
-          "recorded_mtime_utc": "2026-10-17T09:18:22.420964Z"
+          "sha256": "448b3d3530f422bf9a20302462ce193cf1bd4e96665d713a72d67fe5cb83ee39",
+          "size_bytes": 48335,
+          "recorded_mtime_utc": "2026-11-10T13:29:20.869872Z"
         },
         "scripts/__init__.py": {
           "sha256": "d30f97119ad0e36b9f1fd52fcae6097b1b207747d0c17933368fd996ce1f7b8f",
@@ -7659,6 +7659,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261110T132921Z-other-pipeline-orchestration-tools-aa714dd7",
+          "recorded_at_utc": "2026-11-10T13:29:21Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Registered the two standalone preference-evidence categories with no generation stage or forecast-consumer dependency; numerical generation is unchanged.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },
@@ -9805,6 +9824,184 @@
           "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
           "files": [
             "lib/provenance/federal_regional_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ],
+      "provenance_revision": 1
+    },
+    "preference_evidence_inputs": {
+      "description": "Observed original-source preference counts, full exclusion sequences and explicitly recorded source/candidate contexts; not fitted forecast parameters.",
+      "file_patterns": [
+        "Preferences/*.json",
+        "Preferences/*.json.gz"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 2,
+      "files": {
+        "Preferences/aec-alternative-tpp-extracts.json": {
+          "sha256": "937becf7a685fa1f8bf44fcb730b1f2337896820ec5cded155f6705cd20f70a9",
+          "size_bytes": 104836,
+          "recorded_mtime_utc": "2026-11-10T13:05:14.821338Z"
+        },
+        "Preferences/evidence.json.gz": {
+          "sha256": "6e9dd5bf9a9ba59d82774f073208548cf4fa63d47759d2f9d1fd1e2b61463394",
+          "size_bytes": 742188,
+          "recorded_mtime_utc": "2026-11-10T14:01:37.743273Z"
+        },
+        "Preferences/sources.json": {
+          "sha256": "6a5718218269f0d07b2db8bf630a764823d37534bcc09dda5d5a6a1cc844e9ab",
+          "size_bytes": 83736,
+          "recorded_mtime_utc": "2026-11-10T14:01:35.418743Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20261110T132602Z-baseline-preference-evidence-inputs-c5e34a00",
+          "recorded_at_utc": "2026-11-10T13:26:02Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Established the compact preference-evidence catalogue, checked against cached source artifacts and retained extracts; current forecasts do not consume these files.",
+          "files": [
+            "Preferences/aec-alternative-tpp-extracts.json",
+            "Preferences/evidence.json.gz",
+            "Preferences/sources.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261110T133154Z-correction-preference-evidence-inputs-412f5ff0",
+          "recorded_at_utc": "2026-11-10T13:31:54Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Finalized standalone evidence validation and source identities; legacy repackaging is verified by original member contents, all observed counts are unchanged, and current forecasts have no consumer dependency.",
+          "files": [
+            "Preferences/evidence.json.gz",
+            "Preferences/sources.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261110T143143Z-coverage_extension-preference-evidence-inputs-17c5e40c",
+          "recorded_at_utc": "2026-11-10T14:31:43Z",
+          "change_type": "coverage_extension",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Added nine explicitly matched 2025 Liberal how-to-vote contexts from ABC Verify's original collection of party cards; original vote counts are unchanged. Current forecast calculations do not consume this catalogue.",
+          "files": [
+            "Preferences/evidence.json.gz",
+            "Preferences/sources.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ],
+      "provenance_revision": 2
+    },
+    "preference_evidence_tools": {
+      "description": "Cache-only extraction and population/provenance validation of observed preference evidence.",
+      "file_patterns": [
+        "lib/elections/preference_evidence.py",
+        "lib/elections/preference_source_counts.py",
+        "scripts/diagnostics/prepare_preference_evidence.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "lib/elections/preference_evidence.py": {
+          "sha256": "50487ac72465383288135b7c5b304de4169d62a67a85b40b0828c2ff08bb8321",
+          "size_bytes": 27550,
+          "recorded_mtime_utc": "2026-11-10T13:28:25.108491Z"
+        },
+        "lib/elections/preference_source_counts.py": {
+          "sha256": "abb86a699d10f26679b43483f038fe6d8428f915d3614e8de8cd09246b3a9402",
+          "size_bytes": 26197,
+          "recorded_mtime_utc": "2026-11-10T13:30:55.231634Z"
+        },
+        "scripts/diagnostics/prepare_preference_evidence.py": {
+          "sha256": "2903ecc2843e8b038d3bdbcbfde435b09401e3e17aee7944733de8d8a8f423fb",
+          "size_bytes": 4928,
+          "recorded_mtime_utc": "2026-11-10T13:28:25.333490Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20261110T132602Z-baseline-preference-evidence-tools-b6bc1c62",
+          "recorded_at_utc": "2026-11-10T13:26:02Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Added reproducible preference-evidence preparation and validation without fitting parameters or changing the forecast application.",
+          "files": [
+            "lib/elections/preference_evidence.py",
+            "lib/elections/preference_source_counts.py",
+            "scripts/diagnostics/prepare_preference_evidence.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261110T132921Z-correction-preference-evidence-tools-2eb2dfda",
+          "recorded_at_utc": "2026-11-10T13:29:21Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Completed source-exclusion checks for the standalone evidence catalogue; no forecast calculations consume this tool.",
+          "files": [
+            "lib/elections/preference_evidence.py",
+            "scripts/diagnostics/prepare_preference_evidence.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261110T133154Z-correction-preference-evidence-tools-09b1706a",
+          "recorded_at_utc": "2026-11-10T13:31:54Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Finalized standalone evidence validation and source identities; legacy repackaging is verified by original member contents, all observed counts are unchanged, and current forecasts have no consumer dependency.",
+          "files": [
+            "lib/elections/preference_source_counts.py"
           ],
           "scope": {
             "all": true,

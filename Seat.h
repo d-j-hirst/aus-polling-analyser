@@ -124,8 +124,14 @@ public:
 	// - For independents, backing of a significant funding/mobilisation group
 	// - Candidates with major profile outside politics (*2 for being extremely well-known)
 	// - Previously stood as IND or pseudo-IND for state/federal seat with >10% vote
-	// These are meant to be a rought indicator and will be largely overridden by betting odds
-	// and/or polls once available.
+	// Negative ratings indicate a weaker candidate than the ordinary party model.
+	// The inherited multiplier is 1 + 0.4*rating: it scales the initial local
+	// primary estimate for named parties/continuing candidates, the support
+	// spread for a new confirmed IND, and prominent-candidate supplements.
+	// Returning unsuccessful INDs do not receive that scale a second time.
+	// These are rough assessments, moderated by betting odds and/or seat polls
+	// once available. They do not change the party's overall polling target or
+	// establish candidacy. See docs/minor-party-viability.md for the separate paths.
 	std::map<std::string, float> minorViability;
 
 	// outer string = party abbr, inner float = fp, inner int = credibility as for national poll

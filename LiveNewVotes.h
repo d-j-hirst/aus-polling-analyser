@@ -30,6 +30,14 @@ inline constexpr double PostalCoalitionLogOddsShift = -2.0/25;
 inline constexpr double IndependentPoolingHalfWeightShare = .05;
 enum class Category { General, AggregatedEarly };
 
+// Physical WA early places can retain an Ordinary feed label while receiving
+// FP in batches; declaration early/pre-poll services use their own vote labels.
+// Both need the restrained early-batch blend. Keep calculation and exported
+// diagnostics on this same rule. Ordinary federal PPVCs set neither flag.
+inline Category compositionCategory(bool incrementalFp, bool earlyVoteCategory) {
+    return incrementalFp || earlyVoteCategory ? Category::AggregatedEarly : Category::General;
+}
+
 inline double smoothedShare(double votes, double total, std::size_t candidates) {
     // A genuine observed zero in a tiny count is weak evidence. Half a vote
     // keeps its log odds finite and fades with count size. Integer records and
@@ -190,6 +198,39 @@ inline FpEvidence aggregate(std::vector<FpEvidence> const& children, double expe
     for (auto& [candidate,votes] : result.poolingVotes) votes = weights[candidate];
     return result;
 }
+
+// Collect the evidence allowed to train the background for an incremental
+// service's uncounted voters. Completed booth-style FP accounts supply both
+// movement and current candidate counts. Accounts receiving FP in batches do
+// neither: their own observed composition is blended into the background later.
+// This also excludes completed WA mixed early places from this particular pool;
+// their actual votes still contribute fully to the forecast elsewhere.
+//
+// movementSources retain EVERY account's expected size, so excluding a source
+// cannot make the remaining sparse evidence appear to cover the whole district.
+// currentVotes instead contains only the eligible observed counts, with raw
+// candidate identities retained. These supply the fallback for a candidate
+// missing from historical comparisons, using the same source rule as movement.
+// Do not use the complete district tally for that fallback: it can contain the
+// very partial batch whose remaining voters are being estimated.
+struct BackgroundFpSources {
+    std::vector<FpEvidence> movementSources;
+    LivePartialCount::Counts currentVotes;
+
+    void add(FpEvidence evidence, LivePartialCount::Counts const& current,
+        bool receivesFpBatches) {
+        if (receivesFpBatches) {
+            evidence.confidence = 0;
+            // Candidate-specific pooling weights, if supplied, must not bypass
+            // the same exclusion. The ordinary collection usually has none.
+            for (auto& [candidate,votes] : evidence.poolingVotes) votes = 0;
+        } else {
+            for (auto const& [candidate,votes] : current) currentVotes[candidate] += votes;
+        }
+        movementSources.push_back(std::move(evidence));
+    }
+};
+
 inline void condition(FpEvidence& evidence, std::vector<FpEvidence const*> const& parents, double weight,
     std::map<int,double> const& candidateWeights = {}) {
     // Match the existing hierarchy: remove the accepted broad movement, then

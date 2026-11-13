@@ -63,7 +63,15 @@ call :run LiveDataTests
 if errorlevel 1 goto :failure
 call :run LivePrecisionTests
 if errorlevel 1 goto :failure
+call :run LiveFpBackgroundTests
+if errorlevel 1 goto :failure
+call :run LiveVariabilityTests
+if errorlevel 1 goto :failure
+call :run LivePreparedStorageTests
+if errorlevel 1 goto :failure
 call :run LiveTppCompositionTests
+if errorlevel 1 goto :failure
+call :run LivePartyConversionTests
 if errorlevel 1 goto :failure
 call :run LiveHistoricalPreferencesTests
 if errorlevel 1 goto :failure
@@ -85,11 +93,19 @@ call :run MacroTargetResolverTests
 if errorlevel 1 goto :failure
 call :run MajorPartyFpMathTests
 if errorlevel 1 goto :failure
+call :run MinorPartyFpMathTests
+if errorlevel 1 goto :failure
 call :run CoalitionPairingTests
+if errorlevel 1 goto :failure
+call :run PreferenceModelTests
+if errorlevel 1 goto :failure
+call :run SeatFpPollsTests
 if errorlevel 1 goto :failure
 call :run RandomGeneratorTests
 if errorlevel 1 goto :failure
 call :run RegionalSwingMathTests
+if errorlevel 1 goto :failure
+call :run SeatVolatilityTests "."
 if errorlevel 1 goto :failure
 call :run SharedInputLookupTests
 if errorlevel 1 goto :failure

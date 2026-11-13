@@ -128,6 +128,22 @@ std::shared_ptr<SimulationInputs const> SimulationInputs::capture(
 		{File::RegionMixParameters, "analysis/Regional/" + term + "-mix-parameters.csv"},
 		{File::RegionTppDeviations, "analysis/Regional/" + term + "-swing-deviations.csv"}
 	};
+	// The ranking count is enabled through an election's optional preference file.
+	// Record even a missing file. Changing the mode or the assumptions must
+	// invalidate both the betting-odds calibration and the pre-count baseline.
+	if (term == "2026vic" || term == "2026sa") {
+		files[File::PreferenceModel] = "analysis/Preferences/" + term + ".json";
+	}
+	if (term == "2026vic") {
+		// Historical scrutiny counts also affect the ordinary FP forecast and
+		// its supporting runs, independently of the preference model mode.
+		files[File::CoalitionPreferenceHistory] =
+			"analysis/Data/coalition-preference-history-" + previous + ".csv";
+		// The trial changes the district priors in every supporting run. Record
+		// absence too, so enabling or disabling it refreshes reusable results.
+		files[File::OneNationDistrictFp] =
+			"analysis/Federal-State/2026vic-one-nation-fp.json";
+	}
 	if (project.parties().indexByShortCode("ON") != PartyCollection::InvalidIndex) {
 		// Record both spellings. Appearance of the preferred one must invalidate
 		// results previously calculated using the fallback (or without either).

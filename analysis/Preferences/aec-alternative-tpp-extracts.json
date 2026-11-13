@@ -1,0 +1,4528 @@
+{
+  "schema_version": 1,
+  "purpose": "AEC original-source alternative-TPP counts transcribed from published PDF tables and matched to official FP candidate identities. These are ballot counts, not fitted preference estimates.",
+  "records": [
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "113",
+      "seat": "Cowper",
+      "source_candidate_id": "29558",
+      "original_fp_votes": 25847,
+      "destinations": [
+        {
+          "candidate_id": "32606",
+          "votes": 17862
+        },
+        {
+          "candidate_id": "32446",
+          "votes": 7985
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "113",
+      "seat": "Cowper",
+      "source_candidate_id": "33233",
+      "original_fp_votes": 6264,
+      "destinations": [
+        {
+          "candidate_id": "32606",
+          "votes": 4887
+        },
+        {
+          "candidate_id": "32446",
+          "votes": 1377
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "113",
+      "seat": "Cowper",
+      "source_candidate_id": "33277",
+      "original_fp_votes": 3188,
+      "destinations": [
+        {
+          "candidate_id": "32606",
+          "votes": 811
+        },
+        {
+          "candidate_id": "32446",
+          "votes": 2377
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "113",
+      "seat": "Cowper",
+      "source_candidate_id": "33503",
+      "original_fp_votes": 2383,
+      "destinations": [
+        {
+          "candidate_id": "32606",
+          "votes": 343
+        },
+        {
+          "candidate_id": "32446",
+          "votes": 2040
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "113",
+      "seat": "Cowper",
+      "source_candidate_id": "33314",
+      "original_fp_votes": 2176,
+      "destinations": [
+        {
+          "candidate_id": "32606",
+          "votes": 1096
+        },
+        {
+          "candidate_id": "32446",
+          "votes": 1080
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "113",
+      "seat": "Cowper",
+      "source_candidate_id": "32366",
+      "original_fp_votes": 1451,
+      "destinations": [
+        {
+          "candidate_id": "32606",
+          "votes": 676
+        },
+        {
+          "candidate_id": "32446",
+          "votes": 775
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "118",
+      "seat": "Farrer",
+      "source_candidate_id": "32845",
+      "original_fp_votes": 19926,
+      "destinations": [
+        {
+          "candidate_id": "32914",
+          "votes": 8666
+        },
+        {
+          "candidate_id": "33253",
+          "votes": 11260
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "118",
+      "seat": "Farrer",
+      "source_candidate_id": "32880",
+      "original_fp_votes": 4529,
+      "destinations": [
+        {
+          "candidate_id": "32914",
+          "votes": 3409
+        },
+        {
+          "candidate_id": "33253",
+          "votes": 1120
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "118",
+      "seat": "Farrer",
+      "source_candidate_id": "32901",
+      "original_fp_votes": 4147,
+      "destinations": [
+        {
+          "candidate_id": "32914",
+          "votes": 1288
+        },
+        {
+          "candidate_id": "33253",
+          "votes": 2859
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "118",
+      "seat": "Farrer",
+      "source_candidate_id": "32917",
+      "original_fp_votes": 1429,
+      "destinations": [
+        {
+          "candidate_id": "32914",
+          "votes": 659
+        },
+        {
+          "candidate_id": "33253",
+          "votes": 770
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "118",
+      "seat": "Farrer",
+      "source_candidate_id": "33480",
+      "original_fp_votes": 1327,
+      "destinations": [
+        {
+          "candidate_id": "32914",
+          "votes": 245
+        },
+        {
+          "candidate_id": "33253",
+          "votes": 1082
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "118",
+      "seat": "Farrer",
+      "source_candidate_id": "29044",
+      "original_fp_votes": 1255,
+      "destinations": [
+        {
+          "candidate_id": "32914",
+          "votes": 565
+        },
+        {
+          "candidate_id": "33253",
+          "votes": 690
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "118",
+      "seat": "Farrer",
+      "source_candidate_id": "32908",
+      "original_fp_votes": 1084,
+      "destinations": [
+        {
+          "candidate_id": "32914",
+          "votes": 273
+        },
+        {
+          "candidate_id": "33253",
+          "votes": 811
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "121",
+      "seat": "Grayndler",
+      "source_candidate_id": "32596",
+      "original_fp_votes": 21607,
+      "destinations": [
+        {
+          "candidate_id": "32691",
+          "votes": 19715
+        },
+        {
+          "candidate_id": "33114",
+          "votes": 1892
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "121",
+      "seat": "Grayndler",
+      "source_candidate_id": "32661",
+      "original_fp_votes": 2613,
+      "destinations": [
+        {
+          "candidate_id": "32691",
+          "votes": 1667
+        },
+        {
+          "candidate_id": "33114",
+          "votes": 946
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "121",
+      "seat": "Grayndler",
+      "source_candidate_id": "32799",
+      "original_fp_votes": 1155,
+      "destinations": [
+        {
+          "candidate_id": "32691",
+          "votes": 378
+        },
+        {
+          "candidate_id": "33114",
+          "votes": 777
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "121",
+      "seat": "Grayndler",
+      "source_candidate_id": "33499",
+      "original_fp_votes": 865,
+      "destinations": [
+        {
+          "candidate_id": "32691",
+          "votes": 251
+        },
+        {
+          "candidate_id": "33114",
+          "votes": 614
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "135",
+      "seat": "New England",
+      "source_candidate_id": "32444",
+      "original_fp_votes": 13804,
+      "destinations": [
+        {
+          "candidate_id": "32643",
+          "votes": 9588
+        },
+        {
+          "candidate_id": "32476",
+          "votes": 4216
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "135",
+      "seat": "New England",
+      "source_candidate_id": "32823",
+      "original_fp_votes": 4459,
+      "destinations": [
+        {
+          "candidate_id": "32643",
+          "votes": 1563
+        },
+        {
+          "candidate_id": "32476",
+          "votes": 2896
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "135",
+      "seat": "New England",
+      "source_candidate_id": "32567",
+      "original_fp_votes": 4311,
+      "destinations": [
+        {
+          "candidate_id": "32643",
+          "votes": 3319
+        },
+        {
+          "candidate_id": "32476",
+          "votes": 992
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "135",
+      "seat": "New England",
+      "source_candidate_id": "24752",
+      "original_fp_votes": 3702,
+      "destinations": [
+        {
+          "candidate_id": "32643",
+          "votes": 2019
+        },
+        {
+          "candidate_id": "32476",
+          "votes": 1683
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "135",
+      "seat": "New England",
+      "source_candidate_id": "33409",
+      "original_fp_votes": 3071,
+      "destinations": [
+        {
+          "candidate_id": "32643",
+          "votes": 1970
+        },
+        {
+          "candidate_id": "32476",
+          "votes": 1101
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "135",
+      "seat": "New England",
+      "source_candidate_id": "33489",
+      "original_fp_votes": 2215,
+      "destinations": [
+        {
+          "candidate_id": "32643",
+          "votes": 633
+        },
+        {
+          "candidate_id": "32476",
+          "votes": 1582
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "151",
+      "seat": "Warringah",
+      "source_candidate_id": "32467",
+      "original_fp_votes": 40034,
+      "destinations": [
+        {
+          "candidate_id": "32607",
+          "votes": 30871
+        },
+        {
+          "candidate_id": "33138",
+          "votes": 9163
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "151",
+      "seat": "Warringah",
+      "source_candidate_id": "32564",
+      "original_fp_votes": 5647,
+      "destinations": [
+        {
+          "candidate_id": "32607",
+          "votes": 4765
+        },
+        {
+          "candidate_id": "33138",
+          "votes": 882
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "151",
+      "seat": "Warringah",
+      "source_candidate_id": "33214",
+      "original_fp_votes": 1291,
+      "destinations": [
+        {
+          "candidate_id": "32607",
+          "votes": 884
+        },
+        {
+          "candidate_id": "33138",
+          "votes": 407
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "151",
+      "seat": "Warringah",
+      "source_candidate_id": "33581",
+      "original_fp_votes": 1111,
+      "destinations": [
+        {
+          "candidate_id": "32607",
+          "votes": 730
+        },
+        {
+          "candidate_id": "33138",
+          "votes": 381
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "151",
+      "seat": "Warringah",
+      "source_candidate_id": "32544",
+      "original_fp_votes": 678,
+      "destinations": [
+        {
+          "candidate_id": "32607",
+          "votes": 387
+        },
+        {
+          "candidate_id": "33138",
+          "votes": 291
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "151",
+      "seat": "Warringah",
+      "source_candidate_id": "32785",
+      "original_fp_votes": 625,
+      "destinations": [
+        {
+          "candidate_id": "32607",
+          "votes": 201
+        },
+        {
+          "candidate_id": "33138",
+          "votes": 424
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "151",
+      "seat": "Warringah",
+      "source_candidate_id": "33508",
+      "original_fp_votes": 461,
+      "destinations": [
+        {
+          "candidate_id": "32607",
+          "votes": 116
+        },
+        {
+          "candidate_id": "33138",
+          "votes": 345
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "151",
+      "seat": "Warringah",
+      "source_candidate_id": "33588",
+      "original_fp_votes": 250,
+      "destinations": [
+        {
+          "candidate_id": "32607",
+          "votes": 67
+        },
+        {
+          "candidate_id": "33138",
+          "votes": 183
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "152",
+      "seat": "Wentworth",
+      "source_candidate_id": "32085",
+      "original_fp_votes": 29109,
+      "destinations": [
+        {
+          "candidate_id": "32692",
+          "votes": 20085
+        },
+        {
+          "candidate_id": "33218",
+          "votes": 9024
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "152",
+      "seat": "Wentworth",
+      "source_candidate_id": "32677",
+      "original_fp_votes": 6759,
+      "destinations": [
+        {
+          "candidate_id": "32692",
+          "votes": 5536
+        },
+        {
+          "candidate_id": "33218",
+          "votes": 1223
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "152",
+      "seat": "Wentworth",
+      "source_candidate_id": "32794",
+      "original_fp_votes": 625,
+      "destinations": [
+        {
+          "candidate_id": "32692",
+          "votes": 165
+        },
+        {
+          "candidate_id": "33218",
+          "votes": 460
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "152",
+      "seat": "Wentworth",
+      "source_candidate_id": "32097",
+      "original_fp_votes": 516,
+      "destinations": [
+        {
+          "candidate_id": "32692",
+          "votes": 335
+        },
+        {
+          "candidate_id": "33218",
+          "votes": 181
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "152",
+      "seat": "Wentworth",
+      "source_candidate_id": "33501",
+      "original_fp_votes": 346,
+      "destinations": [
+        {
+          "candidate_id": "32692",
+          "votes": 93
+        },
+        {
+          "candidate_id": "33218",
+          "votes": 253
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "320",
+      "seat": "Cooper",
+      "source_candidate_id": "32693",
+      "original_fp_votes": 20605,
+      "destinations": [
+        {
+          "candidate_id": "32339",
+          "votes": 19309
+        },
+        {
+          "candidate_id": "33349",
+          "votes": 1296
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "320",
+      "seat": "Cooper",
+      "source_candidate_id": "32382",
+      "original_fp_votes": 4125,
+      "destinations": [
+        {
+          "candidate_id": "32339",
+          "votes": 3921
+        },
+        {
+          "candidate_id": "33349",
+          "votes": 204
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "320",
+      "seat": "Cooper",
+      "source_candidate_id": "32728",
+      "original_fp_votes": 2476,
+      "destinations": [
+        {
+          "candidate_id": "32339",
+          "votes": 1899
+        },
+        {
+          "candidate_id": "33349",
+          "votes": 577
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "320",
+      "seat": "Cooper",
+      "source_candidate_id": "33257",
+      "original_fp_votes": 2110,
+      "destinations": [
+        {
+          "candidate_id": "32339",
+          "votes": 1736
+        },
+        {
+          "candidate_id": "33349",
+          "votes": 374
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "320",
+      "seat": "Cooper",
+      "source_candidate_id": "32300",
+      "original_fp_votes": 1892,
+      "destinations": [
+        {
+          "candidate_id": "32339",
+          "votes": 788
+        },
+        {
+          "candidate_id": "33349",
+          "votes": 1104
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "320",
+      "seat": "Cooper",
+      "source_candidate_id": "32095",
+      "original_fp_votes": 1660,
+      "destinations": [
+        {
+          "candidate_id": "32339",
+          "votes": 1148
+        },
+        {
+          "candidate_id": "33349",
+          "votes": 512
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "218",
+      "seat": "Indi",
+      "source_candidate_id": "32086",
+      "original_fp_votes": 32664,
+      "destinations": [
+        {
+          "candidate_id": "32364",
+          "votes": 19019
+        },
+        {
+          "candidate_id": "33174",
+          "votes": 13645
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "218",
+      "seat": "Indi",
+      "source_candidate_id": "32589",
+      "original_fp_votes": 9538,
+      "destinations": [
+        {
+          "candidate_id": "32364",
+          "votes": 1077
+        },
+        {
+          "candidate_id": "33174",
+          "votes": 8461
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "218",
+      "seat": "Indi",
+      "source_candidate_id": "32630",
+      "original_fp_votes": 4255,
+      "destinations": [
+        {
+          "candidate_id": "32364",
+          "votes": 2928
+        },
+        {
+          "candidate_id": "33174",
+          "votes": 1327
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "218",
+      "seat": "Indi",
+      "source_candidate_id": "33221",
+      "original_fp_votes": 3980,
+      "destinations": [
+        {
+          "candidate_id": "32364",
+          "votes": 1205
+        },
+        {
+          "candidate_id": "33174",
+          "votes": 2775
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "218",
+      "seat": "Indi",
+      "source_candidate_id": "33238",
+      "original_fp_votes": 2891,
+      "destinations": [
+        {
+          "candidate_id": "32364",
+          "votes": 1193
+        },
+        {
+          "candidate_id": "33174",
+          "votes": 1698
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "221",
+      "seat": "Kooyong",
+      "source_candidate_id": "32575",
+      "original_fp_votes": 21035,
+      "destinations": [
+        {
+          "candidate_id": "32332",
+          "votes": 18159
+        },
+        {
+          "candidate_id": "33123",
+          "votes": 2876
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "221",
+      "seat": "Kooyong",
+      "source_candidate_id": "32077",
+      "original_fp_votes": 8890,
+      "destinations": [
+        {
+          "candidate_id": "32332",
+          "votes": 6346
+        },
+        {
+          "candidate_id": "33123",
+          "votes": 2544
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "221",
+      "seat": "Kooyong",
+      "source_candidate_id": "32355",
+      "original_fp_votes": 1185,
+      "destinations": [
+        {
+          "candidate_id": "32332",
+          "votes": 272
+        },
+        {
+          "candidate_id": "33123",
+          "votes": 913
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "221",
+      "seat": "Kooyong",
+      "source_candidate_id": "32671",
+      "original_fp_votes": 1117,
+      "destinations": [
+        {
+          "candidate_id": "32332",
+          "votes": 715
+        },
+        {
+          "candidate_id": "33123",
+          "votes": 402
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "221",
+      "seat": "Kooyong",
+      "source_candidate_id": "32157",
+      "original_fp_votes": 669,
+      "destinations": [
+        {
+          "candidate_id": "32332",
+          "votes": 448
+        },
+        {
+          "candidate_id": "33123",
+          "votes": 221
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "221",
+      "seat": "Kooyong",
+      "source_candidate_id": "24869",
+      "original_fp_votes": 539,
+      "destinations": [
+        {
+          "candidate_id": "32332",
+          "votes": 296
+        },
+        {
+          "candidate_id": "33123",
+          "votes": 243
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "228",
+      "seat": "Melbourne",
+      "source_candidate_id": "32423",
+      "original_fp_votes": 45876,
+      "destinations": [
+        {
+          "candidate_id": "32303",
+          "votes": 39004
+        },
+        {
+          "candidate_id": "33322",
+          "votes": 6872
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "228",
+      "seat": "Melbourne",
+      "source_candidate_id": "32833",
+      "original_fp_votes": 4756,
+      "destinations": [
+        {
+          "candidate_id": "32303",
+          "votes": 3018
+        },
+        {
+          "candidate_id": "33322",
+          "votes": 1738
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "228",
+      "seat": "Melbourne",
+      "source_candidate_id": "32721",
+      "original_fp_votes": 1849,
+      "destinations": [
+        {
+          "candidate_id": "32303",
+          "votes": 1225
+        },
+        {
+          "candidate_id": "33322",
+          "votes": 624
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "228",
+      "seat": "Melbourne",
+      "source_candidate_id": "33341",
+      "original_fp_votes": 1154,
+      "destinations": [
+        {
+          "candidate_id": "32303",
+          "votes": 444
+        },
+        {
+          "candidate_id": "33322",
+          "votes": 710
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "228",
+      "seat": "Melbourne",
+      "source_candidate_id": "32335",
+      "original_fp_votes": 1079,
+      "destinations": [
+        {
+          "candidate_id": "32303",
+          "votes": 348
+        },
+        {
+          "candidate_id": "33322",
+          "votes": 731
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "234",
+      "seat": "Wills",
+      "source_candidate_id": "32657",
+      "original_fp_votes": 25575,
+      "destinations": [
+        {
+          "candidate_id": "32350",
+          "votes": 23589
+        },
+        {
+          "candidate_id": "33251",
+          "votes": 1986
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "234",
+      "seat": "Wills",
+      "source_candidate_id": "32398",
+      "original_fp_votes": 4344,
+      "destinations": [
+        {
+          "candidate_id": "32350",
+          "votes": 3731
+        },
+        {
+          "candidate_id": "33251",
+          "votes": 613
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "234",
+      "seat": "Wills",
+      "source_candidate_id": "32688",
+      "original_fp_votes": 3596,
+      "destinations": [
+        {
+          "candidate_id": "32350",
+          "votes": 1949
+        },
+        {
+          "candidate_id": "33251",
+          "votes": 1647
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "234",
+      "seat": "Wills",
+      "source_candidate_id": "32329",
+      "original_fp_votes": 2979,
+      "destinations": [
+        {
+          "candidate_id": "32350",
+          "votes": 1264
+        },
+        {
+          "candidate_id": "33251",
+          "votes": 1715
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "167",
+      "seat": "Kennedy",
+      "source_candidate_id": "32587",
+      "original_fp_votes": 37665,
+      "destinations": [
+        {
+          "candidate_id": "32808",
+          "votes": 11688
+        },
+        {
+          "candidate_id": "33340",
+          "votes": 25977
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "167",
+      "seat": "Kennedy",
+      "source_candidate_id": "32892",
+      "original_fp_votes": 6124,
+      "destinations": [
+        {
+          "candidate_id": "32808",
+          "votes": 1365
+        },
+        {
+          "candidate_id": "33340",
+          "votes": 4759
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "167",
+      "seat": "Kennedy",
+      "source_candidate_id": "33298",
+      "original_fp_votes": 4751,
+      "destinations": [
+        {
+          "candidate_id": "32808",
+          "votes": 3514
+        },
+        {
+          "candidate_id": "33340",
+          "votes": 1237
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "167",
+      "seat": "Kennedy",
+      "source_candidate_id": "33241",
+      "original_fp_votes": 2532,
+      "destinations": [
+        {
+          "candidate_id": "32808",
+          "votes": 450
+        },
+        {
+          "candidate_id": "33340",
+          "votes": 2082
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "170",
+      "seat": "Maranoa",
+      "source_candidate_id": "32629",
+      "original_fp_votes": 13564,
+      "destinations": [
+        {
+          "candidate_id": "32836",
+          "votes": 3686
+        },
+        {
+          "candidate_id": "33189",
+          "votes": 9878
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "170",
+      "seat": "Maranoa",
+      "source_candidate_id": "32754",
+      "original_fp_votes": 4245,
+      "destinations": [
+        {
+          "candidate_id": "32836",
+          "votes": 1058
+        },
+        {
+          "candidate_id": "33189",
+          "votes": 3187
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "170",
+      "seat": "Maranoa",
+      "source_candidate_id": "32893",
+      "original_fp_votes": 3367,
+      "destinations": [
+        {
+          "candidate_id": "32836",
+          "votes": 1026
+        },
+        {
+          "candidate_id": "33189",
+          "votes": 2341
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "170",
+      "seat": "Maranoa",
+      "source_candidate_id": "33118",
+      "original_fp_votes": 3177,
+      "destinations": [
+        {
+          "candidate_id": "32836",
+          "votes": 2213
+        },
+        {
+          "candidate_id": "33189",
+          "votes": 964
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "170",
+      "seat": "Maranoa",
+      "source_candidate_id": "33442",
+      "original_fp_votes": 2030,
+      "destinations": [
+        {
+          "candidate_id": "32836",
+          "votes": 389
+        },
+        {
+          "candidate_id": "33189",
+          "votes": 1641
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "188",
+      "seat": "Mayo",
+      "source_candidate_id": "33085",
+      "original_fp_votes": 38525,
+      "destinations": [
+        {
+          "candidate_id": "33084",
+          "votes": 26870
+        },
+        {
+          "candidate_id": "33087",
+          "votes": 11655
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "188",
+      "seat": "Mayo",
+      "source_candidate_id": "33080",
+      "original_fp_votes": 10436,
+      "destinations": [
+        {
+          "candidate_id": "33084",
+          "votes": 8560
+        },
+        {
+          "candidate_id": "33087",
+          "votes": 1876
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "188",
+      "seat": "Mayo",
+      "source_candidate_id": "33089",
+      "original_fp_votes": 3597,
+      "destinations": [
+        {
+          "candidate_id": "33084",
+          "votes": 1202
+        },
+        {
+          "candidate_id": "33087",
+          "votes": 2395
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "188",
+      "seat": "Mayo",
+      "source_candidate_id": "33446",
+      "original_fp_votes": 2302,
+      "destinations": [
+        {
+          "candidate_id": "33084",
+          "votes": 1449
+        },
+        {
+          "candidate_id": "33087",
+          "votes": 853
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "319",
+      "seat": "Clark",
+      "source_candidate_id": "33553",
+      "original_fp_votes": 33761,
+      "destinations": [
+        {
+          "candidate_id": "32285",
+          "votes": 24231
+        },
+        {
+          "candidate_id": "32117",
+          "votes": 9530
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "319",
+      "seat": "Clark",
+      "source_candidate_id": "32469",
+      "original_fp_votes": 6458,
+      "destinations": [
+        {
+          "candidate_id": "32285",
+          "votes": 5895
+        },
+        {
+          "candidate_id": "32117",
+          "votes": 563
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2019,
+      "event": "24310",
+      "division_id": "319",
+      "seat": "Clark",
+      "source_candidate_id": "32628",
+      "original_fp_votes": 1882,
+      "destinations": [
+        {
+          "candidate_id": "32285",
+          "votes": 875
+        },
+        {
+          "candidate_id": "32117",
+          "votes": 1007
+        }
+      ],
+      "source_publication": "aec-2019-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "108",
+      "seat": "Bradfield",
+      "source_candidate_id": "36047",
+      "original_fp_votes": 20198,
+      "destinations": [
+        {
+          "candidate_id": "36826",
+          "votes": 14514
+        },
+        {
+          "candidate_id": "37016",
+          "votes": 5684
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "108",
+      "seat": "Bradfield",
+      "source_candidate_id": "36362",
+      "original_fp_votes": 8960,
+      "destinations": [
+        {
+          "candidate_id": "36826",
+          "votes": 7454
+        },
+        {
+          "candidate_id": "37016",
+          "votes": 1506
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "108",
+      "seat": "Bradfield",
+      "source_candidate_id": "36101",
+      "original_fp_votes": 3018,
+      "destinations": [
+        {
+          "candidate_id": "36826",
+          "votes": 2012
+        },
+        {
+          "candidate_id": "37016",
+          "votes": 1006
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "108",
+      "seat": "Bradfield",
+      "source_candidate_id": "36294",
+      "original_fp_votes": 2496,
+      "destinations": [
+        {
+          "candidate_id": "36826",
+          "votes": 690
+        },
+        {
+          "candidate_id": "37016",
+          "votes": 1806
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "108",
+      "seat": "Bradfield",
+      "source_candidate_id": "37563",
+      "original_fp_votes": 1568,
+      "destinations": [
+        {
+          "candidate_id": "36826",
+          "votes": 447
+        },
+        {
+          "candidate_id": "37016",
+          "votes": 1121
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "109",
+      "seat": "Calare",
+      "source_candidate_id": "35951",
+      "original_fp_votes": 21891,
+      "destinations": [
+        {
+          "candidate_id": "36799",
+          "votes": 13407
+        },
+        {
+          "candidate_id": "36348",
+          "votes": 8484
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "109",
+      "seat": "Calare",
+      "source_candidate_id": "37543",
+      "original_fp_votes": 9057,
+      "destinations": [
+        {
+          "candidate_id": "36799",
+          "votes": 2532
+        },
+        {
+          "candidate_id": "36348",
+          "votes": 6525
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "109",
+      "seat": "Calare",
+      "source_candidate_id": "36320",
+      "original_fp_votes": 4891,
+      "destinations": [
+        {
+          "candidate_id": "36799",
+          "votes": 3767
+        },
+        {
+          "candidate_id": "36348",
+          "votes": 1124
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "109",
+      "seat": "Calare",
+      "source_candidate_id": "36263",
+      "original_fp_votes": 4067,
+      "destinations": [
+        {
+          "candidate_id": "36799",
+          "votes": 1116
+        },
+        {
+          "candidate_id": "36348",
+          "votes": 2951
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "113",
+      "seat": "Cowper",
+      "source_candidate_id": "36245",
+      "original_fp_votes": 29206,
+      "destinations": [
+        {
+          "candidate_id": "36909",
+          "votes": 19952
+        },
+        {
+          "candidate_id": "36342",
+          "votes": 9254
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "113",
+      "seat": "Cowper",
+      "source_candidate_id": "37556",
+      "original_fp_votes": 9047,
+      "destinations": [
+        {
+          "candidate_id": "36909",
+          "votes": 2787
+        },
+        {
+          "candidate_id": "36342",
+          "votes": 6260
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "113",
+      "seat": "Cowper",
+      "source_candidate_id": "36322",
+      "original_fp_votes": 6518,
+      "destinations": [
+        {
+          "candidate_id": "36909",
+          "votes": 4937
+        },
+        {
+          "candidate_id": "36342",
+          "votes": 1581
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "113",
+      "seat": "Cowper",
+      "source_candidate_id": "36662",
+      "original_fp_votes": 4316,
+      "destinations": [
+        {
+          "candidate_id": "36909",
+          "votes": 1042
+        },
+        {
+          "candidate_id": "36342",
+          "votes": 3274
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "113",
+      "seat": "Cowper",
+      "source_candidate_id": "36259",
+      "original_fp_votes": 2674,
+      "destinations": [
+        {
+          "candidate_id": "36909",
+          "votes": 799
+        },
+        {
+          "candidate_id": "36342",
+          "votes": 1875
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "119",
+      "seat": "Fowler",
+      "source_candidate_id": "36240",
+      "original_fp_votes": 25346,
+      "destinations": [
+        {
+          "candidate_id": "36907",
+          "votes": 9164
+        },
+        {
+          "candidate_id": "37026",
+          "votes": 16182
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "119",
+      "seat": "Fowler",
+      "source_candidate_id": "36305",
+      "original_fp_votes": 5512,
+      "destinations": [
+        {
+          "candidate_id": "36907",
+          "votes": 2678
+        },
+        {
+          "candidate_id": "37026",
+          "votes": 2834
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "119",
+      "seat": "Fowler",
+      "source_candidate_id": "36679",
+      "original_fp_votes": 4191,
+      "destinations": [
+        {
+          "candidate_id": "36907",
+          "votes": 3268
+        },
+        {
+          "candidate_id": "37026",
+          "votes": 923
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "119",
+      "seat": "Fowler",
+      "source_candidate_id": "37566",
+      "original_fp_votes": 3047,
+      "destinations": [
+        {
+          "candidate_id": "36907",
+          "votes": 1049
+        },
+        {
+          "candidate_id": "37026",
+          "votes": 1998
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "119",
+      "seat": "Fowler",
+      "source_candidate_id": "36676",
+      "original_fp_votes": 2094,
+      "destinations": [
+        {
+          "candidate_id": "36907",
+          "votes": 732
+        },
+        {
+          "candidate_id": "37026",
+          "votes": 1362
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "121",
+      "seat": "Grayndler",
+      "source_candidate_id": "36317",
+      "original_fp_votes": 20846,
+      "destinations": [
+        {
+          "candidate_id": "36782",
+          "votes": 19422
+        },
+        {
+          "candidate_id": "37029",
+          "votes": 1424
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "121",
+      "seat": "Grayndler",
+      "source_candidate_id": "36278",
+      "original_fp_votes": 2101,
+      "destinations": [
+        {
+          "candidate_id": "36782",
+          "votes": 787
+        },
+        {
+          "candidate_id": "37029",
+          "votes": 1314
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "121",
+      "seat": "Grayndler",
+      "source_candidate_id": "37650",
+      "original_fp_votes": 1973,
+      "destinations": [
+        {
+          "candidate_id": "36782",
+          "votes": 1385
+        },
+        {
+          "candidate_id": "37029",
+          "votes": 588
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "121",
+      "seat": "Grayndler",
+      "source_candidate_id": "37534",
+      "original_fp_votes": 1449,
+      "destinations": [
+        {
+          "candidate_id": "36782",
+          "votes": 431
+        },
+        {
+          "candidate_id": "37029",
+          "votes": 1018
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "121",
+      "seat": "Grayndler",
+      "source_candidate_id": "36327",
+      "original_fp_votes": 1222,
+      "destinations": [
+        {
+          "candidate_id": "36782",
+          "votes": 975
+        },
+        {
+          "candidate_id": "37029",
+          "votes": 247
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "121",
+      "seat": "Grayndler",
+      "source_candidate_id": "36749",
+      "original_fp_votes": 1148,
+      "destinations": [
+        {
+          "candidate_id": "36782",
+          "votes": 848
+        },
+        {
+          "candidate_id": "37029",
+          "votes": 300
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "132",
+      "seat": "Mackellar",
+      "source_candidate_id": "37450",
+      "original_fp_votes": 37724,
+      "destinations": [
+        {
+          "candidate_id": "36821",
+          "votes": 25820
+        },
+        {
+          "candidate_id": "37164",
+          "votes": 11904
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "132",
+      "seat": "Mackellar",
+      "source_candidate_id": "36360",
+      "original_fp_votes": 6032,
+      "destinations": [
+        {
+          "candidate_id": "36821",
+          "votes": 4694
+        },
+        {
+          "candidate_id": "37164",
+          "votes": 1338
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "132",
+      "seat": "Mackellar",
+      "source_candidate_id": "36281",
+      "original_fp_votes": 2881,
+      "destinations": [
+        {
+          "candidate_id": "36821",
+          "votes": 923
+        },
+        {
+          "candidate_id": "37164",
+          "votes": 1958
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "132",
+      "seat": "Mackellar",
+      "source_candidate_id": "37552",
+      "original_fp_votes": 2624,
+      "destinations": [
+        {
+          "candidate_id": "36821",
+          "votes": 984
+        },
+        {
+          "candidate_id": "37164",
+          "votes": 1640
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "132",
+      "seat": "Mackellar",
+      "source_candidate_id": "36268",
+      "original_fp_votes": 575,
+      "destinations": [
+        {
+          "candidate_id": "36821",
+          "votes": 396
+        },
+        {
+          "candidate_id": "37164",
+          "votes": 179
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "137",
+      "seat": "North Sydney",
+      "source_candidate_id": "37452",
+      "original_fp_votes": 24477,
+      "destinations": [
+        {
+          "candidate_id": "36926",
+          "votes": 17072
+        },
+        {
+          "candidate_id": "37166",
+          "votes": 7405
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "137",
+      "seat": "North Sydney",
+      "source_candidate_id": "36367",
+      "original_fp_votes": 8308,
+      "destinations": [
+        {
+          "candidate_id": "36926",
+          "votes": 7042
+        },
+        {
+          "candidate_id": "37166",
+          "votes": 1266
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "137",
+      "seat": "North Sydney",
+      "source_candidate_id": "36286",
+      "original_fp_votes": 1730,
+      "destinations": [
+        {
+          "candidate_id": "36926",
+          "votes": 525
+        },
+        {
+          "candidate_id": "37166",
+          "votes": 1205
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "137",
+      "seat": "North Sydney",
+      "source_candidate_id": "37633",
+      "original_fp_votes": 1163,
+      "destinations": [
+        {
+          "candidate_id": "36926",
+          "votes": 560
+        },
+        {
+          "candidate_id": "37166",
+          "votes": 603
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "137",
+      "seat": "North Sydney",
+      "source_candidate_id": "37541",
+      "original_fp_votes": 1149,
+      "destinations": [
+        {
+          "candidate_id": "36926",
+          "votes": 340
+        },
+        {
+          "candidate_id": "37166",
+          "votes": 809
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "137",
+      "seat": "North Sydney",
+      "source_candidate_id": "36854",
+      "original_fp_votes": 1123,
+      "destinations": [
+        {
+          "candidate_id": "36926",
+          "votes": 225
+        },
+        {
+          "candidate_id": "37166",
+          "votes": 898
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "137",
+      "seat": "North Sydney",
+      "source_candidate_id": "36248",
+      "original_fp_votes": 886,
+      "destinations": [
+        {
+          "candidate_id": "36926",
+          "votes": 550
+        },
+        {
+          "candidate_id": "37166",
+          "votes": 336
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "137",
+      "seat": "North Sydney",
+      "source_candidate_id": "36405",
+      "original_fp_votes": 491,
+      "destinations": [
+        {
+          "candidate_id": "36926",
+          "votes": 188
+        },
+        {
+          "candidate_id": "37166",
+          "votes": 303
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "149",
+      "seat": "Sydney",
+      "source_candidate_id": "36308",
+      "original_fp_votes": 23732,
+      "destinations": [
+        {
+          "candidate_id": "36805",
+          "votes": 21892
+        },
+        {
+          "candidate_id": "37153",
+          "votes": 1840
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "149",
+      "seat": "Sydney",
+      "source_candidate_id": "36688",
+      "original_fp_votes": 2298,
+      "destinations": [
+        {
+          "candidate_id": "36805",
+          "votes": 908
+        },
+        {
+          "candidate_id": "37153",
+          "votes": 1390
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "149",
+      "seat": "Sydney",
+      "source_candidate_id": "37562",
+      "original_fp_votes": 1889,
+      "destinations": [
+        {
+          "candidate_id": "36805",
+          "votes": 684
+        },
+        {
+          "candidate_id": "37153",
+          "votes": 1205
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "149",
+      "seat": "Sydney",
+      "source_candidate_id": "37447",
+      "original_fp_votes": 1518,
+      "destinations": [
+        {
+          "candidate_id": "36805",
+          "votes": 1356
+        },
+        {
+          "candidate_id": "37153",
+          "votes": 162
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "149",
+      "seat": "Sydney",
+      "source_candidate_id": "36692",
+      "original_fp_votes": 1002,
+      "destinations": [
+        {
+          "candidate_id": "36805",
+          "votes": 683
+        },
+        {
+          "candidate_id": "37153",
+          "votes": 319
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "151",
+      "seat": "Warringah",
+      "source_candidate_id": "32467",
+      "original_fp_votes": 41832,
+      "destinations": [
+        {
+          "candidate_id": "36808",
+          "votes": 30000
+        },
+        {
+          "candidate_id": "37159",
+          "votes": 11832
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "151",
+      "seat": "Warringah",
+      "source_candidate_id": "36675",
+      "original_fp_votes": 6910,
+      "destinations": [
+        {
+          "candidate_id": "36808",
+          "votes": 5672
+        },
+        {
+          "candidate_id": "37159",
+          "votes": 1238
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "151",
+      "seat": "Warringah",
+      "source_candidate_id": "36271",
+      "original_fp_votes": 2202,
+      "destinations": [
+        {
+          "candidate_id": "36808",
+          "votes": 558
+        },
+        {
+          "candidate_id": "37159",
+          "votes": 1644
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "151",
+      "seat": "Warringah",
+      "source_candidate_id": "37516",
+      "original_fp_votes": 1980,
+      "destinations": [
+        {
+          "candidate_id": "36808",
+          "votes": 430
+        },
+        {
+          "candidate_id": "37159",
+          "votes": 1550
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "151",
+      "seat": "Warringah",
+      "source_candidate_id": "36396",
+      "original_fp_votes": 1475,
+      "destinations": [
+        {
+          "candidate_id": "36808",
+          "votes": 867
+        },
+        {
+          "candidate_id": "37159",
+          "votes": 608
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "152",
+      "seat": "Wentworth",
+      "source_candidate_id": "37451",
+      "original_fp_votes": 31810,
+      "destinations": [
+        {
+          "candidate_id": "37010",
+          "votes": 22082
+        },
+        {
+          "candidate_id": "37051",
+          "votes": 9728
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "152",
+      "seat": "Wentworth",
+      "source_candidate_id": "36685",
+      "original_fp_votes": 7410,
+      "destinations": [
+        {
+          "candidate_id": "37010",
+          "votes": 6307
+        },
+        {
+          "candidate_id": "37051",
+          "votes": 1103
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "152",
+      "seat": "Wentworth",
+      "source_candidate_id": "36266",
+      "original_fp_votes": 1813,
+      "destinations": [
+        {
+          "candidate_id": "37010",
+          "votes": 536
+        },
+        {
+          "candidate_id": "37051",
+          "votes": 1277
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "152",
+      "seat": "Wentworth",
+      "source_candidate_id": "36656",
+      "original_fp_votes": 1346,
+      "destinations": [
+        {
+          "candidate_id": "37010",
+          "votes": 299
+        },
+        {
+          "candidate_id": "37051",
+          "votes": 1047
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "152",
+      "seat": "Wentworth",
+      "source_candidate_id": "37527",
+      "original_fp_votes": 895,
+      "destinations": [
+        {
+          "candidate_id": "37010",
+          "votes": 318
+        },
+        {
+          "candidate_id": "37051",
+          "votes": 577
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "320",
+      "seat": "Cooper",
+      "source_candidate_id": "36527",
+      "original_fp_votes": 25648,
+      "destinations": [
+        {
+          "candidate_id": "36384",
+          "votes": 24135
+        },
+        {
+          "candidate_id": "36730",
+          "votes": 1513
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "320",
+      "seat": "Cooper",
+      "source_candidate_id": "35995",
+      "original_fp_votes": 4170,
+      "destinations": [
+        {
+          "candidate_id": "36384",
+          "votes": 1717
+        },
+        {
+          "candidate_id": "36730",
+          "votes": 2453
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "320",
+      "seat": "Cooper",
+      "source_candidate_id": "36659",
+      "original_fp_votes": 3250,
+      "destinations": [
+        {
+          "candidate_id": "36384",
+          "votes": 2858
+        },
+        {
+          "candidate_id": "36730",
+          "votes": 392
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "320",
+      "seat": "Cooper",
+      "source_candidate_id": "37778",
+      "original_fp_votes": 2807,
+      "destinations": [
+        {
+          "candidate_id": "36384",
+          "votes": 906
+        },
+        {
+          "candidate_id": "36730",
+          "votes": 1901
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "320",
+      "seat": "Cooper",
+      "source_candidate_id": "36690",
+      "original_fp_votes": 2207,
+      "destinations": [
+        {
+          "candidate_id": "36384",
+          "votes": 1162
+        },
+        {
+          "candidate_id": "36730",
+          "votes": 1045
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "320",
+      "seat": "Cooper",
+      "source_candidate_id": "36049",
+      "original_fp_votes": 1585,
+      "destinations": [
+        {
+          "candidate_id": "36384",
+          "votes": 1211
+        },
+        {
+          "candidate_id": "36730",
+          "votes": 374
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "214",
+      "seat": "Goldstein",
+      "source_candidate_id": "36074",
+      "original_fp_votes": 33815,
+      "destinations": [
+        {
+          "candidate_id": "36416",
+          "votes": 25845
+        },
+        {
+          "candidate_id": "36717",
+          "votes": 7970
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "214",
+      "seat": "Goldstein",
+      "source_candidate_id": "36687",
+      "original_fp_votes": 7683,
+      "destinations": [
+        {
+          "candidate_id": "36416",
+          "votes": 6226
+        },
+        {
+          "candidate_id": "36717",
+          "votes": 1457
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "214",
+      "seat": "Goldstein",
+      "source_candidate_id": "36932",
+      "original_fp_votes": 2072,
+      "destinations": [
+        {
+          "candidate_id": "36416",
+          "votes": 359
+        },
+        {
+          "candidate_id": "36717",
+          "votes": 1713
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "214",
+      "seat": "Goldstein",
+      "source_candidate_id": "36007",
+      "original_fp_votes": 1840,
+      "destinations": [
+        {
+          "candidate_id": "36416",
+          "votes": 356
+        },
+        {
+          "candidate_id": "36717",
+          "votes": 1484
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "214",
+      "seat": "Goldstein",
+      "source_candidate_id": "37667",
+      "original_fp_votes": 1239,
+      "destinations": [
+        {
+          "candidate_id": "36416",
+          "votes": 315
+        },
+        {
+          "candidate_id": "36717",
+          "votes": 924
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "214",
+      "seat": "Goldstein",
+      "source_candidate_id": "37279",
+      "original_fp_votes": 589,
+      "destinations": [
+        {
+          "candidate_id": "36416",
+          "votes": 213
+        },
+        {
+          "candidate_id": "36717",
+          "votes": 376
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "214",
+      "seat": "Goldstein",
+      "source_candidate_id": "37572",
+      "original_fp_votes": 443,
+      "destinations": [
+        {
+          "candidate_id": "36416",
+          "votes": 224
+        },
+        {
+          "candidate_id": "36717",
+          "votes": 219
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "218",
+      "seat": "Indi",
+      "source_candidate_id": "32086",
+      "original_fp_votes": 41319,
+      "destinations": [
+        {
+          "candidate_id": "36431",
+          "votes": 27852
+        },
+        {
+          "candidate_id": "36721",
+          "votes": 13467
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "218",
+      "seat": "Indi",
+      "source_candidate_id": "37678",
+      "original_fp_votes": 5366,
+      "destinations": [
+        {
+          "candidate_id": "36431",
+          "votes": 1837
+        },
+        {
+          "candidate_id": "36721",
+          "votes": 3529
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "218",
+      "seat": "Indi",
+      "source_candidate_id": "36055",
+      "original_fp_votes": 3854,
+      "destinations": [
+        {
+          "candidate_id": "36431",
+          "votes": 601
+        },
+        {
+          "candidate_id": "36721",
+          "votes": 3253
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "218",
+      "seat": "Indi",
+      "source_candidate_id": "36531",
+      "original_fp_votes": 3626,
+      "destinations": [
+        {
+          "candidate_id": "36431",
+          "votes": 3136
+        },
+        {
+          "candidate_id": "36721",
+          "votes": 490
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "218",
+      "seat": "Indi",
+      "source_candidate_id": "36025",
+      "original_fp_votes": 2558,
+      "destinations": [
+        {
+          "candidate_id": "36431",
+          "votes": 979
+        },
+        {
+          "candidate_id": "36721",
+          "votes": 1579
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "218",
+      "seat": "Indi",
+      "source_candidate_id": "36898",
+      "original_fp_votes": 2300,
+      "destinations": [
+        {
+          "candidate_id": "36431",
+          "votes": 430
+        },
+        {
+          "candidate_id": "36721",
+          "votes": 1870
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "218",
+      "seat": "Indi",
+      "source_candidate_id": "36698",
+      "original_fp_votes": 1749,
+      "destinations": [
+        {
+          "candidate_id": "36431",
+          "votes": 1273
+        },
+        {
+          "candidate_id": "36721",
+          "votes": 476
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "218",
+      "seat": "Indi",
+      "source_candidate_id": "37281",
+      "original_fp_votes": 1074,
+      "destinations": [
+        {
+          "candidate_id": "36431",
+          "votes": 610
+        },
+        {
+          "candidate_id": "36721",
+          "votes": 464
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "221",
+      "seat": "Kooyong",
+      "source_candidate_id": "36081",
+      "original_fp_votes": 41303,
+      "destinations": [
+        {
+          "candidate_id": "36442",
+          "votes": 33239
+        },
+        {
+          "candidate_id": "36729",
+          "votes": 8064
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "221",
+      "seat": "Kooyong",
+      "source_candidate_id": "36544",
+      "original_fp_votes": 6461,
+      "destinations": [
+        {
+          "candidate_id": "36442",
+          "votes": 5393
+        },
+        {
+          "candidate_id": "36729",
+          "votes": 1068
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "221",
+      "seat": "Kooyong",
+      "source_candidate_id": "36949",
+      "original_fp_votes": 1080,
+      "destinations": [
+        {
+          "candidate_id": "36442",
+          "votes": 257
+        },
+        {
+          "candidate_id": "36729",
+          "votes": 823
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "221",
+      "seat": "Kooyong",
+      "source_candidate_id": "36035",
+      "original_fp_votes": 1011,
+      "destinations": [
+        {
+          "candidate_id": "36442",
+          "votes": 236
+        },
+        {
+          "candidate_id": "36729",
+          "votes": 775
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "221",
+      "seat": "Kooyong",
+      "source_candidate_id": "37640",
+      "original_fp_votes": 741,
+      "destinations": [
+        {
+          "candidate_id": "36442",
+          "votes": 165
+        },
+        {
+          "candidate_id": "36729",
+          "votes": 576
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "221",
+      "seat": "Kooyong",
+      "source_candidate_id": "36695",
+      "original_fp_votes": 500,
+      "destinations": [
+        {
+          "candidate_id": "36442",
+          "votes": 319
+        },
+        {
+          "candidate_id": "36729",
+          "votes": 181
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "221",
+      "seat": "Kooyong",
+      "source_candidate_id": "37800",
+      "original_fp_votes": 265,
+      "destinations": [
+        {
+          "candidate_id": "36442",
+          "votes": 123
+        },
+        {
+          "candidate_id": "36729",
+          "votes": 142
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "221",
+      "seat": "Kooyong",
+      "source_candidate_id": "37284",
+      "original_fp_votes": 177,
+      "destinations": [
+        {
+          "candidate_id": "36442",
+          "votes": 79
+        },
+        {
+          "candidate_id": "36729",
+          "votes": 98
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "221",
+      "seat": "Kooyong",
+      "source_candidate_id": "37245",
+      "original_fp_votes": 152,
+      "destinations": [
+        {
+          "candidate_id": "36442",
+          "votes": 73
+        },
+        {
+          "candidate_id": "36729",
+          "votes": 79
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "228",
+      "seat": "Melbourne",
+      "source_candidate_id": "36551",
+      "original_fp_votes": 47883,
+      "destinations": [
+        {
+          "candidate_id": "36448",
+          "votes": 45012
+        },
+        {
+          "candidate_id": "36727",
+          "votes": 2871
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "228",
+      "seat": "Melbourne",
+      "source_candidate_id": "36661",
+      "original_fp_votes": 3156,
+      "destinations": [
+        {
+          "candidate_id": "36448",
+          "votes": 2982
+        },
+        {
+          "candidate_id": "36727",
+          "votes": 174
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "228",
+      "seat": "Melbourne",
+      "source_candidate_id": "36034",
+      "original_fp_votes": 1709,
+      "destinations": [
+        {
+          "candidate_id": "36448",
+          "votes": 715
+        },
+        {
+          "candidate_id": "36727",
+          "votes": 994
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "228",
+      "seat": "Melbourne",
+      "source_candidate_id": "36948",
+      "original_fp_votes": 1596,
+      "destinations": [
+        {
+          "candidate_id": "36448",
+          "votes": 474
+        },
+        {
+          "candidate_id": "36727",
+          "votes": 1122
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "228",
+      "seat": "Melbourne",
+      "source_candidate_id": "36680",
+      "original_fp_votes": 1316,
+      "destinations": [
+        {
+          "candidate_id": "36448",
+          "votes": 980
+        },
+        {
+          "candidate_id": "36727",
+          "votes": 336
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "228",
+      "seat": "Melbourne",
+      "source_candidate_id": "37817",
+      "original_fp_votes": 1094,
+      "destinations": [
+        {
+          "candidate_id": "36448",
+          "votes": 609
+        },
+        {
+          "candidate_id": "36727",
+          "votes": 485
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "228",
+      "seat": "Melbourne",
+      "source_candidate_id": "37775",
+      "original_fp_votes": 937,
+      "destinations": [
+        {
+          "candidate_id": "36448",
+          "votes": 264
+        },
+        {
+          "candidate_id": "36727",
+          "votes": 673
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "324",
+      "seat": "Nicholls",
+      "source_candidate_id": "37571",
+      "original_fp_votes": 24287,
+      "destinations": [
+        {
+          "candidate_id": "36451",
+          "votes": 12153
+        },
+        {
+          "candidate_id": "36061",
+          "votes": 12134
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "324",
+      "seat": "Nicholls",
+      "source_candidate_id": "36739",
+      "original_fp_votes": 17187,
+      "destinations": [
+        {
+          "candidate_id": "36451",
+          "votes": 1695
+        },
+        {
+          "candidate_id": "36061",
+          "votes": 15492
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "324",
+      "seat": "Nicholls",
+      "source_candidate_id": "37691",
+      "original_fp_votes": 6219,
+      "destinations": [
+        {
+          "candidate_id": "36451",
+          "votes": 1640
+        },
+        {
+          "candidate_id": "36061",
+          "votes": 4579
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "324",
+      "seat": "Nicholls",
+      "source_candidate_id": "36026",
+      "original_fp_votes": 3821,
+      "destinations": [
+        {
+          "candidate_id": "36451",
+          "votes": 972
+        },
+        {
+          "candidate_id": "36061",
+          "votes": 2849
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "324",
+      "seat": "Nicholls",
+      "source_candidate_id": "36951",
+      "original_fp_votes": 3366,
+      "destinations": [
+        {
+          "candidate_id": "36451",
+          "votes": 802
+        },
+        {
+          "candidate_id": "36061",
+          "votes": 2564
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "324",
+      "seat": "Nicholls",
+      "source_candidate_id": "36565",
+      "original_fp_votes": 3058,
+      "destinations": [
+        {
+          "candidate_id": "36451",
+          "votes": 2320
+        },
+        {
+          "candidate_id": "36061",
+          "votes": 738
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "324",
+      "seat": "Nicholls",
+      "source_candidate_id": "36051",
+      "original_fp_votes": 653,
+      "destinations": [
+        {
+          "candidate_id": "36451",
+          "votes": 420
+        },
+        {
+          "candidate_id": "36061",
+          "votes": 233
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "324",
+      "seat": "Nicholls",
+      "source_candidate_id": "35967",
+      "original_fp_votes": 377,
+      "destinations": [
+        {
+          "candidate_id": "36451",
+          "votes": 163
+        },
+        {
+          "candidate_id": "36061",
+          "votes": 214
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "324",
+      "seat": "Nicholls",
+      "source_candidate_id": "37764",
+      "original_fp_votes": 367,
+      "destinations": [
+        {
+          "candidate_id": "36451",
+          "votes": 138
+        },
+        {
+          "candidate_id": "36061",
+          "votes": 229
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "233",
+      "seat": "Wannon",
+      "source_candidate_id": "33601",
+      "original_fp_votes": 19504,
+      "destinations": [
+        {
+          "candidate_id": "36450",
+          "votes": 12909
+        },
+        {
+          "candidate_id": "36735",
+          "votes": 6595
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "233",
+      "seat": "Wannon",
+      "source_candidate_id": "36670",
+      "original_fp_votes": 6444,
+      "destinations": [
+        {
+          "candidate_id": "36450",
+          "votes": 5356
+        },
+        {
+          "candidate_id": "36735",
+          "votes": 1088
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "233",
+      "seat": "Wannon",
+      "source_candidate_id": "36030",
+      "original_fp_votes": 3308,
+      "destinations": [
+        {
+          "candidate_id": "36450",
+          "votes": 1003
+        },
+        {
+          "candidate_id": "36735",
+          "votes": 2305
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "233",
+      "seat": "Wannon",
+      "source_candidate_id": "37820",
+      "original_fp_votes": 3275,
+      "destinations": [
+        {
+          "candidate_id": "36450",
+          "votes": 1160
+        },
+        {
+          "candidate_id": "36735",
+          "votes": 2115
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "233",
+      "seat": "Wannon",
+      "source_candidate_id": "37812",
+      "original_fp_votes": 2346,
+      "destinations": [
+        {
+          "candidate_id": "36450",
+          "votes": 992
+        },
+        {
+          "candidate_id": "36735",
+          "votes": 1354
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "233",
+      "seat": "Wannon",
+      "source_candidate_id": "36931",
+      "original_fp_votes": 1973,
+      "destinations": [
+        {
+          "candidate_id": "36450",
+          "votes": 656
+        },
+        {
+          "candidate_id": "36735",
+          "votes": 1317
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "234",
+      "seat": "Wills",
+      "source_candidate_id": "36554",
+      "original_fp_votes": 25793,
+      "destinations": [
+        {
+          "candidate_id": "36452",
+          "votes": 24419
+        },
+        {
+          "candidate_id": "36738",
+          "votes": 1374
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "234",
+      "seat": "Wills",
+      "source_candidate_id": "36031",
+      "original_fp_votes": 3352,
+      "destinations": [
+        {
+          "candidate_id": "36452",
+          "votes": 1584
+        },
+        {
+          "candidate_id": "36738",
+          "votes": 1768
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "234",
+      "seat": "Wills",
+      "source_candidate_id": "36958",
+      "original_fp_votes": 3096,
+      "destinations": [
+        {
+          "candidate_id": "36452",
+          "votes": 2777
+        },
+        {
+          "candidate_id": "36738",
+          "votes": 319
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "234",
+      "seat": "Wills",
+      "source_candidate_id": "36664",
+      "original_fp_votes": 2714,
+      "destinations": [
+        {
+          "candidate_id": "36452",
+          "votes": 2496
+        },
+        {
+          "candidate_id": "36738",
+          "votes": 218
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "234",
+      "seat": "Wills",
+      "source_candidate_id": "37747",
+      "original_fp_votes": 2554,
+      "destinations": [
+        {
+          "candidate_id": "36452",
+          "votes": 841
+        },
+        {
+          "candidate_id": "36738",
+          "votes": 1713
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "234",
+      "seat": "Wills",
+      "source_candidate_id": "36686",
+      "original_fp_votes": 1680,
+      "destinations": [
+        {
+          "candidate_id": "36452",
+          "votes": 1216
+        },
+        {
+          "candidate_id": "36738",
+          "votes": 464
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "234",
+      "seat": "Wills",
+      "source_candidate_id": "37770",
+      "original_fp_votes": 789,
+      "destinations": [
+        {
+          "candidate_id": "36452",
+          "votes": 322
+        },
+        {
+          "candidate_id": "36738",
+          "votes": 467
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "156",
+      "seat": "Brisbane",
+      "source_candidate_id": "37338",
+      "original_fp_votes": 29641,
+      "destinations": [
+        {
+          "candidate_id": "37230",
+          "votes": 26206
+        },
+        {
+          "candidate_id": "37482",
+          "votes": 3435
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "156",
+      "seat": "Brisbane",
+      "source_candidate_id": "38213",
+      "original_fp_votes": 2429,
+      "destinations": [
+        {
+          "candidate_id": "37230",
+          "votes": 704
+        },
+        {
+          "candidate_id": "37482",
+          "votes": 1725
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "156",
+      "seat": "Brisbane",
+      "source_candidate_id": "37204",
+      "original_fp_votes": 2135,
+      "destinations": [
+        {
+          "candidate_id": "37230",
+          "votes": 1441
+        },
+        {
+          "candidate_id": "37482",
+          "votes": 694
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "156",
+      "seat": "Brisbane",
+      "source_candidate_id": "35972",
+      "original_fp_votes": 2102,
+      "destinations": [
+        {
+          "candidate_id": "37230",
+          "votes": 749
+        },
+        {
+          "candidate_id": "37482",
+          "votes": 1353
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "156",
+      "seat": "Brisbane",
+      "source_candidate_id": "37311",
+      "original_fp_votes": 1807,
+      "destinations": [
+        {
+          "candidate_id": "37230",
+          "votes": 431
+        },
+        {
+          "candidate_id": "37482",
+          "votes": 1376
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "163",
+      "seat": "Griffith",
+      "source_candidate_id": "37364",
+      "original_fp_votes": 36771,
+      "destinations": [
+        {
+          "candidate_id": "37262",
+          "votes": 32114
+        },
+        {
+          "candidate_id": "37465",
+          "votes": 4657
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "163",
+      "seat": "Griffith",
+      "source_candidate_id": "38217",
+      "original_fp_votes": 3504,
+      "destinations": [
+        {
+          "candidate_id": "37262",
+          "votes": 1111
+        },
+        {
+          "candidate_id": "37465",
+          "votes": 2393
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "163",
+      "seat": "Griffith",
+      "source_candidate_id": "35982",
+      "original_fp_votes": 2581,
+      "destinations": [
+        {
+          "candidate_id": "37262",
+          "votes": 929
+        },
+        {
+          "candidate_id": "37465",
+          "votes": 1652
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "164",
+      "seat": "Groom",
+      "source_candidate_id": "38219",
+      "original_fp_votes": 9181,
+      "destinations": [
+        {
+          "candidate_id": "37236",
+          "votes": 2178
+        },
+        {
+          "candidate_id": "37470",
+          "votes": 7003
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "164",
+      "seat": "Groom",
+      "source_candidate_id": "36178",
+      "original_fp_votes": 7932,
+      "destinations": [
+        {
+          "candidate_id": "37236",
+          "votes": 4345
+        },
+        {
+          "candidate_id": "37470",
+          "votes": 3587
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "164",
+      "seat": "Groom",
+      "source_candidate_id": "37615",
+      "original_fp_votes": 6858,
+      "destinations": [
+        {
+          "candidate_id": "37236",
+          "votes": 3547
+        },
+        {
+          "candidate_id": "37470",
+          "votes": 3311
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "164",
+      "seat": "Groom",
+      "source_candidate_id": "37367",
+      "original_fp_votes": 5616,
+      "destinations": [
+        {
+          "candidate_id": "37236",
+          "votes": 4212
+        },
+        {
+          "candidate_id": "37470",
+          "votes": 1404
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "164",
+      "seat": "Groom",
+      "source_candidate_id": "35984",
+      "original_fp_votes": 4922,
+      "destinations": [
+        {
+          "candidate_id": "37236",
+          "votes": 1680
+        },
+        {
+          "candidate_id": "37470",
+          "votes": 3242
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "164",
+      "seat": "Groom",
+      "source_candidate_id": "37777",
+      "original_fp_votes": 1539,
+      "destinations": [
+        {
+          "candidate_id": "37236",
+          "votes": 447
+        },
+        {
+          "candidate_id": "37470",
+          "votes": 1092
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "167",
+      "seat": "Kennedy",
+      "source_candidate_id": "37304",
+      "original_fp_votes": 39036,
+      "destinations": [
+        {
+          "candidate_id": "37249",
+          "votes": 14739
+        },
+        {
+          "candidate_id": "37474",
+          "votes": 24297
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "167",
+      "seat": "Kennedy",
+      "source_candidate_id": "37339",
+      "original_fp_votes": 6013,
+      "destinations": [
+        {
+          "candidate_id": "37249",
+          "votes": 4753
+        },
+        {
+          "candidate_id": "37474",
+          "votes": 1260
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "167",
+      "seat": "Kennedy",
+      "source_candidate_id": "35991",
+      "original_fp_votes": 4154,
+      "destinations": [
+        {
+          "candidate_id": "37249",
+          "votes": 1318
+        },
+        {
+          "candidate_id": "37474",
+          "votes": 2836
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "167",
+      "seat": "Kennedy",
+      "source_candidate_id": "36118",
+      "original_fp_votes": 2981,
+      "destinations": [
+        {
+          "candidate_id": "37249",
+          "votes": 1449
+        },
+        {
+          "candidate_id": "37474",
+          "votes": 1532
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "177",
+      "seat": "Ryan",
+      "source_candidate_id": "37370",
+      "original_fp_votes": 30003,
+      "destinations": [
+        {
+          "candidate_id": "37271",
+          "votes": 26448
+        },
+        {
+          "candidate_id": "37496",
+          "votes": 3555
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "177",
+      "seat": "Ryan",
+      "source_candidate_id": "37291",
+      "original_fp_votes": 2582,
+      "destinations": [
+        {
+          "candidate_id": "37271",
+          "votes": 665
+        },
+        {
+          "candidate_id": "37496",
+          "votes": 1917
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "177",
+      "seat": "Ryan",
+      "source_candidate_id": "38236",
+      "original_fp_votes": 2237,
+      "destinations": [
+        {
+          "candidate_id": "37271",
+          "votes": 724
+        },
+        {
+          "candidate_id": "37496",
+          "votes": 1513
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "177",
+      "seat": "Ryan",
+      "source_candidate_id": "36016",
+      "original_fp_votes": 2062,
+      "destinations": [
+        {
+          "candidate_id": "37271",
+          "votes": 746
+        },
+        {
+          "candidate_id": "37496",
+          "votes": 1316
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "177",
+      "seat": "Ryan",
+      "source_candidate_id": "37202",
+      "original_fp_votes": 1088,
+      "destinations": [
+        {
+          "candidate_id": "37271",
+          "votes": 721
+        },
+        {
+          "candidate_id": "37496",
+          "votes": 367
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "177",
+      "seat": "Ryan",
+      "source_candidate_id": "37580",
+      "original_fp_votes": 606,
+      "destinations": [
+        {
+          "candidate_id": "37271",
+          "votes": 458
+        },
+        {
+          "candidate_id": "37496",
+          "votes": 148
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "177",
+      "seat": "Ryan",
+      "source_candidate_id": "37767",
+      "original_fp_votes": 353,
+      "destinations": [
+        {
+          "candidate_id": "37271",
+          "votes": 154
+        },
+        {
+          "candidate_id": "37496",
+          "votes": 199
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "238",
+      "seat": "Curtin",
+      "source_candidate_id": "36589",
+      "original_fp_votes": 30942,
+      "destinations": [
+        {
+          "candidate_id": "37282",
+          "votes": 20988
+        },
+        {
+          "candidate_id": "36578",
+          "votes": 9954
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "238",
+      "seat": "Curtin",
+      "source_candidate_id": "36593",
+      "original_fp_votes": 10889,
+      "destinations": [
+        {
+          "candidate_id": "37282",
+          "votes": 9381
+        },
+        {
+          "candidate_id": "36578",
+          "votes": 1508
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "238",
+      "seat": "Curtin",
+      "source_candidate_id": "36485",
+      "original_fp_votes": 1828,
+      "destinations": [
+        {
+          "candidate_id": "37282",
+          "votes": 483
+        },
+        {
+          "candidate_id": "36578",
+          "votes": 1345
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "238",
+      "seat": "Curtin",
+      "source_candidate_id": "37395",
+      "original_fp_votes": 1310,
+      "destinations": [
+        {
+          "candidate_id": "37282",
+          "votes": 393
+        },
+        {
+          "candidate_id": "36578",
+          "votes": 917
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "238",
+      "seat": "Curtin",
+      "source_candidate_id": "37840",
+      "original_fp_votes": 1243,
+      "destinations": [
+        {
+          "candidate_id": "37282",
+          "votes": 509
+        },
+        {
+          "candidate_id": "36578",
+          "votes": 734
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "238",
+      "seat": "Curtin",
+      "source_candidate_id": "37255",
+      "original_fp_votes": 763,
+      "destinations": [
+        {
+          "candidate_id": "37282",
+          "votes": 228
+        },
+        {
+          "candidate_id": "36578",
+          "votes": 535
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "188",
+      "seat": "Mayo",
+      "source_candidate_id": "37710",
+      "original_fp_votes": 36500,
+      "destinations": [
+        {
+          "candidate_id": "36988",
+          "votes": 21987
+        },
+        {
+          "candidate_id": "37057",
+          "votes": 14513
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "188",
+      "seat": "Mayo",
+      "source_candidate_id": "36474",
+      "original_fp_votes": 13705,
+      "destinations": [
+        {
+          "candidate_id": "36988",
+          "votes": 11947
+        },
+        {
+          "candidate_id": "37057",
+          "votes": 1758
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "188",
+      "seat": "Mayo",
+      "source_candidate_id": "36875",
+      "original_fp_votes": 4775,
+      "destinations": [
+        {
+          "candidate_id": "36988",
+          "votes": 1549
+        },
+        {
+          "candidate_id": "37057",
+          "votes": 3226
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "188",
+      "seat": "Mayo",
+      "source_candidate_id": "36423",
+      "original_fp_votes": 4089,
+      "destinations": [
+        {
+          "candidate_id": "36988",
+          "votes": 1391
+        },
+        {
+          "candidate_id": "37057",
+          "votes": 2698
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "188",
+      "seat": "Mayo",
+      "source_candidate_id": "36606",
+      "original_fp_votes": 1929,
+      "destinations": [
+        {
+          "candidate_id": "36988",
+          "votes": 1281
+        },
+        {
+          "candidate_id": "37057",
+          "votes": 648
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "188",
+      "seat": "Mayo",
+      "source_candidate_id": "36913",
+      "original_fp_votes": 1424,
+      "destinations": [
+        {
+          "candidate_id": "36988",
+          "votes": 384
+        },
+        {
+          "candidate_id": "37057",
+          "votes": 1040
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "188",
+      "seat": "Mayo",
+      "source_candidate_id": "37708",
+      "original_fp_votes": 1330,
+      "destinations": [
+        {
+          "candidate_id": "36988",
+          "votes": 365
+        },
+        {
+          "candidate_id": "37057",
+          "votes": 965
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "319",
+      "seat": "Clark",
+      "source_candidate_id": "33553",
+      "original_fp_votes": 30005,
+      "destinations": [
+        {
+          "candidate_id": "37267",
+          "votes": 21687
+        },
+        {
+          "candidate_id": "37141",
+          "votes": 8318
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "319",
+      "seat": "Clark",
+      "source_candidate_id": "37298",
+      "original_fp_votes": 8861,
+      "destinations": [
+        {
+          "candidate_id": "37267",
+          "votes": 8088
+        },
+        {
+          "candidate_id": "37141",
+          "votes": 773
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "319",
+      "seat": "Clark",
+      "source_candidate_id": "37607",
+      "original_fp_votes": 1715,
+      "destinations": [
+        {
+          "candidate_id": "37267",
+          "votes": 926
+        },
+        {
+          "candidate_id": "37141",
+          "votes": 789
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "319",
+      "seat": "Clark",
+      "source_candidate_id": "36115",
+      "original_fp_votes": 941,
+      "destinations": [
+        {
+          "candidate_id": "37267",
+          "votes": 419
+        },
+        {
+          "candidate_id": "37141",
+          "votes": 522
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "319",
+      "seat": "Clark",
+      "source_candidate_id": "36817",
+      "original_fp_votes": 828,
+      "destinations": [
+        {
+          "candidate_id": "37267",
+          "votes": 575
+        },
+        {
+          "candidate_id": "37141",
+          "votes": 253
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "319",
+      "seat": "Clark",
+      "source_candidate_id": "36995",
+      "original_fp_votes": 739,
+      "destinations": [
+        {
+          "candidate_id": "37267",
+          "votes": 250
+        },
+        {
+          "candidate_id": "37141",
+          "votes": 489
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "101",
+      "seat": "Canberra",
+      "source_candidate_id": "36238",
+      "original_fp_votes": 1687,
+      "destinations": [
+        {
+          "candidate_id": "36228",
+          "votes": 487
+        },
+        {
+          "candidate_id": "37211",
+          "votes": 1200
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "101",
+      "seat": "Canberra",
+      "source_candidate_id": "37456",
+      "original_fp_votes": 1531,
+      "destinations": [
+        {
+          "candidate_id": "36228",
+          "votes": 383
+        },
+        {
+          "candidate_id": "37211",
+          "votes": 1148
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "101",
+      "seat": "Canberra",
+      "source_candidate_id": "32830",
+      "original_fp_votes": 4772,
+      "destinations": [
+        {
+          "candidate_id": "36228",
+          "votes": 3121
+        },
+        {
+          "candidate_id": "37211",
+          "votes": 1651
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    },
+    {
+      "year": 2022,
+      "event": "27966",
+      "division_id": "101",
+      "seat": "Canberra",
+      "source_candidate_id": "36241",
+      "original_fp_votes": 22795,
+      "destinations": [
+        {
+          "candidate_id": "36228",
+          "votes": 21472
+        },
+        {
+          "candidate_id": "37211",
+          "votes": 1323
+        }
+      ],
+      "source_publication": "aec-2022-alternative-tpp-publication"
+    }
+  ]
+}

@@ -7,9 +7,12 @@
 #include "LiveFpIntegration.h"
 #include "LiveResultsInput.h"
 #include "LiveInputRecovery.h"
+#include "MajorPartyFpMath.h"
 #include <optional>
 #include "Party.h"
+#include "PreferenceModel.h"
 #include "SimulationSeatLookup.h"
+#include "SeatFpPolls.h"
 
 #include <array>
 #include <cstdint>
@@ -54,6 +57,8 @@ public:
 		std::map<int, double> tcpVoteCount; // map from party index -> number
 		int turnoutCount = 0;
 		double prevOthers = 0.0f; // Special variable for calculating emergence of independents
+		bool useNamedCoalitionPreferenceHistory = false;
+		std::optional<MajorPartyFpMath::MinorPreferenceRange> minorPreferencesInCoalitionContest;
 	};
 
 	struct SeatStatistics {
@@ -261,6 +266,8 @@ private:
 		int iterationIndex,
 		std::string description);
 	void reportWarnings(FeedbackFunc feedback) const;
+	void logPreferenceCounts() const;
+	void logActivePreferenceCounts() const;
 
 	PollingProject& project;
 
@@ -286,6 +293,11 @@ private:
 	// Main preparation and every supporting calibration/baseline run read the
 	// same captured non-live files. They contain no project/window references.
 	std::shared_ptr<SimulationInputs const> preparationInputs;
+	// Each enabled run owns its prepared ranking model and count summaries.
+	// Workers sample privately and merge one observation per successful
+	// district result under the existing simulation recording mutex.
+	std::optional<PreferenceModel::Model> preferenceModel;
+	std::vector<PreferenceModel::Summary> preferenceCountSummaries;
 
 	mutable std::mutex warningMutex;
 	std::map<WarningCategory, Warning> warnings;
@@ -383,6 +395,7 @@ private:
 	std::vector<std::array<int, 2>> seatTcpTally;
 	std::vector<float> seatIndividualBoothGrowth;
 	std::vector<PastSeatResult> pastSeatResults;
+	bool useSeparateCoalitionPreferenceAccounting = false;
 	std::vector<SeatType> seatTypes;
 	std::vector<float> seatPopulistModifiers;
 	std::vector<float> seatCentristModifiers;
@@ -404,6 +417,10 @@ private:
 	NationalsParameters nationalsParameters;
 	std::map<int, float> regionSwingDeviations;
 	std::map<int, std::map<int, float>> regionFpSwingDeviations;
+	// Fixed changes to the centre of the local One Nation FP distribution,
+	// measured in 25 times log odds. Present only in the Victorian booth trial.
+	std::optional<int> oneNationDistrictFpParty;
+	std::vector<double> oneNationDistrictFpOffsets;
 
 	std::vector<int> indCount;
 	std::vector<int> othCount;
@@ -411,7 +428,10 @@ private:
 
 	std::vector<std::map<int, float>> seatBettingOdds;
 	std::vector<std::map<int, float>> seatMinorViability;
-	std::vector<std::map<int, std::vector<std::pair<float, int>>>> seatPolls;
+	// Fixed local FP-poll targets/weights, prepared once per seat and party.
+	// Iterations blend these with their own generated support; no draw or
+	// candidate-presence decision is stored in this shared input.
+	std::vector<SeatFpPolls::ByParty> seatFpPolls;
 	std::vector<float> seatTppPolls; // combined estimate of all polls
 	std::vector<float> seatTppMrpPolls; // combined estimate of all polls
 

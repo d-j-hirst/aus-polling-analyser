@@ -1,0 +1,361 @@
+{
+  "districts": {
+    "Albert Park": {
+      "formal_votes": 19748,
+      "one_nation_votes": 566
+    },
+    "Ashwood": {
+      "formal_votes": 19254,
+      "one_nation_votes": 373
+    },
+    "Bass": {
+      "formal_votes": 16283,
+      "one_nation_votes": 1683
+    },
+    "Bayswater": {
+      "formal_votes": 18883,
+      "one_nation_votes": 743
+    },
+    "Bellarine": {
+      "formal_votes": 14478,
+      "one_nation_votes": 486
+    },
+    "Benambra": {
+      "formal_votes": 15362,
+      "one_nation_votes": 1237
+    },
+    "Bendigo East": {
+      "formal_votes": 15988,
+      "one_nation_votes": 862
+    },
+    "Bendigo West": {
+      "formal_votes": 15227,
+      "one_nation_votes": 741
+    },
+    "Bentleigh": {
+      "formal_votes": 22864,
+      "one_nation_votes": 795
+    },
+    "Berwick": {
+      "formal_votes": 17343,
+      "one_nation_votes": 1003
+    },
+    "Box Hill": {
+      "formal_votes": 18022,
+      "one_nation_votes": 297
+    },
+    "Brighton": {
+      "formal_votes": 15872,
+      "one_nation_votes": 265
+    },
+    "Broadmeadows": {
+      "formal_votes": 15940,
+      "one_nation_votes": 764
+    },
+    "Brunswick": {
+      "formal_votes": 21401,
+      "one_nation_votes": 323
+    },
+    "Bulleen": {
+      "formal_votes": 13057,
+      "one_nation_votes": 262
+    },
+    "Bundoora": {
+      "formal_votes": 16028,
+      "one_nation_votes": 818
+    },
+    "Carrum": {
+      "formal_votes": 18193,
+      "one_nation_votes": 1282
+    },
+    "Caulfield": {
+      "formal_votes": 13208,
+      "one_nation_votes": 255
+    },
+    "Clarinda": {
+      "formal_votes": 15624,
+      "one_nation_votes": 833
+    },
+    "Cranbourne": {
+      "formal_votes": 15758,
+      "one_nation_votes": 1458
+    },
+    "Croydon": {
+      "formal_votes": 16499,
+      "one_nation_votes": 686
+    },
+    "Dandenong": {
+      "formal_votes": 13942,
+      "one_nation_votes": 900
+    },
+    "Eildon": {
+      "formal_votes": 19700,
+      "one_nation_votes": 1598
+    },
+    "Eltham": {
+      "formal_votes": 22643,
+      "one_nation_votes": 830
+    },
+    "Essendon": {
+      "formal_votes": 16092,
+      "one_nation_votes": 821
+    },
+    "Eureka": {
+      "formal_votes": 19145,
+      "one_nation_votes": 1826
+    },
+    "Euroa": {
+      "formal_votes": 16690,
+      "one_nation_votes": 1875
+    },
+    "Evelyn": {
+      "formal_votes": 16193,
+      "one_nation_votes": 835
+    },
+    "Footscray": {
+      "formal_votes": 15263,
+      "one_nation_votes": 439
+    },
+    "Frankston": {
+      "formal_votes": 16972,
+      "one_nation_votes": 1108
+    },
+    "Geelong": {
+      "formal_votes": 19674,
+      "one_nation_votes": 1805
+    },
+    "Gippsland East": {
+      "formal_votes": 16338,
+      "one_nation_votes": 2195
+    },
+    "Gippsland South": {
+      "formal_votes": 22589,
+      "one_nation_votes": 2414
+    },
+    "Glen Waverley": {
+      "formal_votes": 18958,
+      "one_nation_votes": 341
+    },
+    "Greenvale": {
+      "formal_votes": 17524,
+      "one_nation_votes": 537
+    },
+    "Hastings": {
+      "formal_votes": 17090,
+      "one_nation_votes": 1366
+    },
+    "Hawthorn": {
+      "formal_votes": 22074,
+      "one_nation_votes": 223
+    },
+    "Ivanhoe": {
+      "formal_votes": 17843,
+      "one_nation_votes": 508
+    },
+    "Kalkallo": {
+      "formal_votes": 19497,
+      "one_nation_votes": 850
+    },
+    "Kew": {
+      "formal_votes": 18627,
+      "one_nation_votes": 215
+    },
+    "Kororoit": {
+      "formal_votes": 15125,
+      "one_nation_votes": 676
+    },
+    "Lara": {
+      "formal_votes": 15184,
+      "one_nation_votes": 2039
+    },
+    "Laverton": {
+      "formal_votes": 12768,
+      "one_nation_votes": 584
+    },
+    "Lowan": {
+      "formal_votes": 17078,
+      "one_nation_votes": 1579
+    },
+    "Macedon": {
+      "formal_votes": 20089,
+      "one_nation_votes": 1255
+    },
+    "Malvern": {
+      "formal_votes": 16051,
+      "one_nation_votes": 237
+    },
+    "Melbourne": {
+      "formal_votes": 18391,
+      "one_nation_votes": 408
+    },
+    "Melton": {
+      "formal_votes": 14967,
+      "one_nation_votes": 1205
+    },
+    "Mildura": {
+      "formal_votes": 15129,
+      "one_nation_votes": 1746
+    },
+    "Mill Park": {
+      "formal_votes": 13894,
+      "one_nation_votes": 960
+    },
+    "Monbulk": {
+      "formal_votes": 21655,
+      "one_nation_votes": 1132
+    },
+    "Mordialloc": {
+      "formal_votes": 18983,
+      "one_nation_votes": 845
+    },
+    "Mornington": {
+      "formal_votes": 14518,
+      "one_nation_votes": 593
+    },
+    "Morwell": {
+      "formal_votes": 12966,
+      "one_nation_votes": 2225
+    },
+    "Mulgrave": {
+      "formal_votes": 13097,
+      "one_nation_votes": 646
+    },
+    "Murray Plains": {
+      "formal_votes": 15014,
+      "one_nation_votes": 1889
+    },
+    "Narracan": {
+      "formal_votes": 17096,
+      "one_nation_votes": 1788
+    },
+    "Narre Warren North": {
+      "formal_votes": 19556,
+      "one_nation_votes": 1743
+    },
+    "Narre Warren South": {
+      "formal_votes": 17629,
+      "one_nation_votes": 1286
+    },
+    "Nepean": {
+      "formal_votes": 11341,
+      "one_nation_votes": 570
+    },
+    "Niddrie": {
+      "formal_votes": 14757,
+      "one_nation_votes": 1238
+    },
+    "Northcote": {
+      "formal_votes": 19119,
+      "one_nation_votes": 540
+    },
+    "Oakleigh": {
+      "formal_votes": 18548,
+      "one_nation_votes": 803
+    },
+    "Ovens Valley": {
+      "formal_votes": 11888,
+      "one_nation_votes": 1018
+    },
+    "Pakenham": {
+      "formal_votes": 15759,
+      "one_nation_votes": 1210
+    },
+    "Pascoe Vale": {
+      "formal_votes": 19047,
+      "one_nation_votes": 757
+    },
+    "Point Cook": {
+      "formal_votes": 16251,
+      "one_nation_votes": 1133
+    },
+    "Polwarth": {
+      "formal_votes": 17526,
+      "one_nation_votes": 717
+    },
+    "Prahran": {
+      "formal_votes": 16959,
+      "one_nation_votes": 385
+    },
+    "Preston": {
+      "formal_votes": 20275,
+      "one_nation_votes": 1349
+    },
+    "Richmond": {
+      "formal_votes": 17897,
+      "one_nation_votes": 399
+    },
+    "Ringwood": {
+      "formal_votes": 22731,
+      "one_nation_votes": 501
+    },
+    "Ripon": {
+      "formal_votes": 19507,
+      "one_nation_votes": 2143
+    },
+    "Rowville": {
+      "formal_votes": 16402,
+      "one_nation_votes": 541
+    },
+    "Sandringham": {
+      "formal_votes": 19469,
+      "one_nation_votes": 457
+    },
+    "Shepparton": {
+      "formal_votes": 17417,
+      "one_nation_votes": 2154
+    },
+    "South Barwon": {
+      "formal_votes": 20469,
+      "one_nation_votes": 958
+    },
+    "South-West Coast": {
+      "formal_votes": 17135,
+      "one_nation_votes": 693
+    },
+    "St Albans": {
+      "formal_votes": 10245,
+      "one_nation_votes": 659
+    },
+    "Sunbury": {
+      "formal_votes": 14600,
+      "one_nation_votes": 1433
+    },
+    "Sydenham": {
+      "formal_votes": 17197,
+      "one_nation_votes": 1127
+    },
+    "Tarneit": {
+      "formal_votes": 16545,
+      "one_nation_votes": 939
+    },
+    "Thomastown": {
+      "formal_votes": 18187,
+      "one_nation_votes": 991
+    },
+    "Warrandyte": {
+      "formal_votes": 19467,
+      "one_nation_votes": 581
+    },
+    "Wendouree": {
+      "formal_votes": 15677,
+      "one_nation_votes": 1081
+    },
+    "Werribee": {
+      "formal_votes": 16065,
+      "one_nation_votes": 1220
+    },
+    "Williamstown": {
+      "formal_votes": 18971,
+      "one_nation_votes": 876
+    },
+    "Yan Yean": {
+      "formal_votes": 19716,
+      "one_nation_votes": 1106
+    }
+  },
+  "election": "2026vic",
+  "federal_event": "31496",
+  "source_mapping": "booths-2026vic.txt",
+  "source_results": "aec-mediafeed-Detailed-Light-31496-20250616104059.zip",
+  "transfer_weight": 0.5
+}

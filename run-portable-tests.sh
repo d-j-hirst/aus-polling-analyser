@@ -68,6 +68,8 @@ run_test()
 run_test DateTests
 run_test ForecastSpecificationTests
 run_test LiveDataTests
+run_test LivePrecisionTests
+run_test LiveFpBackgroundTests
 run_test LiveVariabilityTests
 run_test LivePreparedStorageTests
 run_test LiveTppCompositionTests
@@ -82,7 +84,10 @@ run_test LiveSnapshotDataTests
 run_test ResponsiveLiveTests
 run_test MacroTargetResolverTests
 run_test MajorPartyFpMathTests
+run_test MinorPartyFpMathTests
 run_test CoalitionPairingTests
+run_test PreferenceModelTests
+run_test SeatFpPollsTests
 run_test RandomGeneratorTests
 run_test RegionalSwingMathTests
 run_test SeatVolatilityTests "$ROOT_DIRECTORY"

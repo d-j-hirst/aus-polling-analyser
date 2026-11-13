@@ -517,6 +517,73 @@ polling weight. See [regional forecast uncertainty](../docs/regional-uncertainty
 for the mean rule, variance interpretation and standalone non-Stan regeneration
 command. Regional calibration can be regenerated without rerunning seat analysis.
 
+### Victorian One Nation district primary trial
+
+This trial estimates where One Nation may be stronger or weaker within each
+geographic type of district. It uses the existing Victorian booth map to sum
+One Nation and total formal first preferences at mapped election-day booths
+from the 2025 federal election. The district share uses those formal votes as
+its denominator. Early voting centres and special booths are excluded because
+their voters can come from a wider area.
+
+Preparation compares each district's federal log odds with the mean log odds
+of districts in the same inner metropolitan, outer metropolitan, provincial
+or rural group. The simulation adds half of this difference to the centre of
+the district's One Nation draw. This starting weight allows for differences
+between the federal and state elections. Local variation and seat polls are
+applied to the adjusted centre. Statewide reconciliation still uses the One
+Nation vote drawn from the projection for that iteration.
+
+From `analysis/`, generate the local trial input using the retained final AEC
+results and preloads.
+
+```powershell
+.\.venv-win\Scripts\python.exe -B -m scripts.elections.federal_booth_fp
+```
+
+The generated `Federal-State/2026vic-one-nation-fp.json` enables the trial at
+`transfer_weight` of `0.5`. Set it to `0` for a control run, or use
+`--transfer-weight 0` when regenerating the file. For a paired comparison, run
+the same simulation from the same build and projection at both weights. With
+the preference comparison in `compare` mode, each run reports final pair and
+winner frequencies for both preference methods. The optional input is captured
+with the other simulation files, so switching the weight refreshes any cached
+calibration or live baseline that uses it.
+
+### Ranking preference count for 2026 Victoria
+
+The [preference count settings](Preferences/README.md#2026-victoria-and-south-australia-preference-counts)
+describe the modes and how they affect the forecast and its calibration.
+The standard macro uses the selected mode for both the General Forecast and
+Nowcast. Its log reports each party's majority and minority probabilities as
+well as the most-seats and tied outcomes that make up the Display screen's
+**Hung** percentage.
+
+#### Paired sensitivity diagnostics
+
+The `sensitivity_tests` entries in `Preferences/2026vic.json` select districts
+for additional counts during the ordinary General Forecast and Nowcast in
+`compare` mode. Each test uses the same first preferences, accepted TPP,
+Coalition split and preference draws as the ranking count.
+
+`without_classic_tpp_matching` uses the original source rates from the
+first-preference calculation for exclusions and non-classic finals. If Labor and
+the Coalition reach the final pair, it reports the accepted TPP. This isolates
+the effect of the source-rate adjustment on which candidates survive and how
+other finals divide the vote. `labor_to_greens_reduction` applies a relative cut
+to the share of original Labor ballots ranking Greens above the Coalition.
+The test swaps adjacent rankings to preserve their head-to-head flows against
+One Nation. If too few ballots allow that swap, the cut stops at the feasible
+limit. Prahran tests a 10% reduction because Labor's card leaves preferences
+open.
+
+Look for **Pre-election preference sensitivity on the same draws** in
+`PALog.log`. It shows standard versus ranking results and each selected
+sensitivity test. Finalist counts use all successful paired draws. Win counts
+and mean TCP margins within a pair use the draws that reach that pair in each
+count. The same-pair columns show changes among draws with those finalists in
+both counts. These totals are calculated as the simulation runs.
+
 ### Statistical TPP in non-classic federal seats
 
 The simulation now reads election-specific local TPP scales from

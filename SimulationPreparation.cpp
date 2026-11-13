@@ -14,6 +14,7 @@
 #include "Simulation.h"
 #include "SimulationRun.h"
 #include "SpecialPartyCodes.h"
+#include "json.h"
 
 #include <cctype>
 #include <cmath>
@@ -387,6 +388,7 @@ void SimulationPreparation::prepareForIterations()
 	loadIndEmergence();
 	loadPopulistSeatStatistics();
 	loadPopulistSeatModifiers();
+	loadOneNationDistrictFp();
 	loadCentristSeatStatistics();
 	loadCentristSeatModifiers();
 	loadOthSeatStatistics();
@@ -410,10 +412,10 @@ void SimulationPreparation::prepareForIterations()
 	determinePreviousSwingDeviations();
 	accumulateRegionStaticInfo();
 
-	// Copy the seat-specific evidence already held in the project: betting odds,
-	// assessments of minor-party competitiveness, and polls. The iteration stage
-	// decides how these sources influence possible results alongside the broader
-	// model; loading them here does not treat them as certain election outcomes.
+	// Load the seat-specific evidence already held in the project: betting odds,
+	// assessments of minor-party competitiveness, and polls. Combine fixed FP
+	// poll targets/weights here; iterations apply them to their own generated
+	// shares alongside the broader model. None is a certain election outcome.
 	loadSeatBettingOdds();
 	loadSeatMinorViability();
 	loadSeatPolls();
@@ -461,6 +463,7 @@ void SimulationPreparation::prepareForIterations()
 	prepareProminentMinors();
 	prepareIndependentLikePreferences();
 	prepareRunningParties();
+	preparePreferenceModel();
 
 	// A live forecast incorporates votes reported so far. The automatic route
 	// obtains historical and current results, prepares turnout information, and
@@ -964,9 +967,14 @@ void SimulationPreparation::loadSeatBettingOdds()
 	}
 }
 
+// Prepare the local FP evidence used by the seat generators. The seat settings
+// supply reported percentages and credibility ratings, indexed by configured
+// party codes (including aliases). Only named non-major parties and the existing
+// IND treatment use this calculation: major-party primaries are allocated later
+// from TPP/preferences, and Nationals use the separate Coalition split.
 void SimulationPreparation::loadSeatPolls()
 {
-	run.seatPolls.assign(project.seats().count(), {});
+	run.seatFpPolls.assign(project.seats().count(), {});
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		auto const& seat = project.seats().viewByIndex(seatIndex);
 		for (auto const& [partyCode, polls] : seat.polls) {
@@ -981,7 +989,14 @@ void SimulationPreparation::loadSeatPolls()
 						partyCode + ".");
 				}
 			}
-			run.seatPolls[seatIndex][partyIndex] = polls;
+			if (partyIndex < Mp::Others || partyIndex == run.natPartyIndex) {
+				continue;
+			}
+			auto const treatment = partyIndex == run.indPartyIndex ?
+				SeatFpPolls::ReadingTreatment::Independent :
+				SeatFpPolls::ReadingTreatment::Reported;
+			run.seatFpPolls[seatIndex][partyIndex] =
+				SeatFpPolls::prepare(polls, treatment);
 		}
 	}
 }
@@ -1254,6 +1269,10 @@ void SimulationPreparation::determineSpecificPartyIndices()
 	if (run.natPartyIndex == PartyCollection::InvalidIndex) {
 		run.natPartyIndex = InvalidPartyIndex;
 	}
+	// The first use of the named-pair accounting is the Victorian forecast.
+	// It assumes every formal ballot continues to the final pair.
+	run.useSeparateCoalitionPreferenceAccounting =
+		run.getTermCode() == "2026vic" && run.natPartyIndex >= 0;
 }
 
 void SimulationPreparation::loadPreviousPreferenceFlows() {
@@ -1401,6 +1420,7 @@ void SimulationPreparation::loadPastSeatResults()
 	int currentSeat = -1;
 	bool indSeen = false;
 	std::string historicalSeat;
+	std::vector<std::string> historicalSeats(run.pastSeatResults.size());
 	std::map<std::string, SimulationRun::PastSeatResult> unmatchedResults;
 	std::string currentUnmatched;
 	std::string line;
@@ -1419,6 +1439,7 @@ void SimulationPreparation::loadPastSeatResults()
 			historicalSeat = values[1];
 			try {
 				currentSeat = project.seats().idToIndex(project.seats().accessByName(values[1], true).first);
+				historicalSeats[currentSeat] = historicalSeat;
 			}
 			catch (SeatDoesntExistException) {
 				// Seat might have been abolished, so no need to give an error, log it in case it's wrong
@@ -1506,10 +1527,12 @@ void SimulationPreparation::loadPastSeatResults()
 			try {
 				int otherSeatIndex = project.seats().idToIndex(project.seats().accessByName(seat.useFpResults).first);
 				run.pastSeatResults[thisSeatIndex] = run.pastSeatResults[otherSeatIndex];
+				historicalSeats[thisSeatIndex] = historicalSeats[otherSeatIndex];
 			}
 			catch (SeatDoesntExistException) {
 				if (unmatchedResults.contains(seat.useFpResults)) {
 					run.pastSeatResults[thisSeatIndex] = unmatchedResults.at(seat.useFpResults);
+					historicalSeats[thisSeatIndex] = seat.useFpResults;
 				}
 				else {
 					logger << "WARNING: Could not match FP results for seat " +
@@ -1653,6 +1676,103 @@ void SimulationPreparation::loadPastSeatResults()
 			results.turnoutCount += voteCount;
 		}
 		run.totalPreviousTurnout += results.turnoutCount;
+	}
+	if (run.useSeparateCoalitionPreferenceAccounting) {
+		prepareCoalitionPreferenceHistory(historicalSeats);
+	}
+}
+
+// Prepare the historical evidence used to estimate local minor-party flows.
+// The normal result file keeps the real final pair. The optional table adds
+// separately counted Labor/Coalition TPP and published limits on how many of
+// the excluded partner's original voters went to Labor. Match the source seat
+// and its FP counts so a renamed or substituted seat uses the same ballots in
+// both accounts. Only the resulting range is needed in simulation iterations.
+void SimulationPreparation::prepareCoalitionPreferenceHistory(std::vector<std::string> const& historicalSeats)
+{
+	struct PublishedCount {
+		int liberalPrimary;
+		int nationalPrimary;
+		int coalitionFinalist;
+		MajorPartyFpMath::HistoricalClassicVotes votes;
+	};
+	std::map<std::string, PublishedCount> published;
+	auto const& fileName = inputFile(SimulationInputs::File::CoalitionPreferenceHistory);
+	auto input = run.preparationInputs->open(fileName);
+	if (input) {
+		std::string line;
+		std::getline(input, line);
+		if (!line.empty() && line.back() == '\r') line.pop_back();
+		if (line != "seat,formal,labor_fp,liberal_fp,national_fp,coalition_finalist,labor_tpp,partner_to_labor_min,partner_to_labor_max") {
+			throw Exception("Unrecognised Coalition preference history header in " + fileName + ".");
+		}
+		while (std::getline(input, line)) {
+			if (!line.empty() && line.back() == '\r') line.pop_back();
+			if (line.empty()) continue;
+			auto const fields = splitString(line, ",");
+			requireColumns(fields, 9, fileName, "Coalition preference history row");
+			std::string const& seat = fields[0];
+			if (fields[5] != "LIB" && fields[5] != "NAT") {
+				throw Exception(fileName + " has an unknown Coalition finalist for " + seat + ".");
+			}
+			bool const nationalFinalist = fields[5] == "NAT";
+			int const liberalPrimary = parseInt(fields[3], fileName, "Liberal primary");
+			int const nationalPrimary = parseInt(fields[4], fileName, "National primary");
+			MajorPartyFpMath::HistoricalClassicVotes const votes{
+				parseInt(fields[1], fileName, "formal votes"),
+				parseInt(fields[2], fileName, "Labor primary"),
+				nationalFinalist ? nationalPrimary : liberalPrimary,
+				nationalFinalist ? liberalPrimary : nationalPrimary,
+				parseInt(fields[6], fileName, "Labor TPP votes"),
+				parseInt(fields[7], fileName, "minimum partner preferences to Labor"),
+				parseInt(fields[8], fileName, "maximum partner preferences to Labor")};
+			if (!MajorPartyFpMath::historicalMinorPreferenceRange(votes)) {
+				throw Exception(fileName + " has incompatible preference counts for " + seat + ".");
+			}
+			int const finalist = nationalFinalist ? run.natPartyIndex : int(Mp::Two);
+			if (!published.emplace(seat, PublishedCount{liberalPrimary, nationalPrimary, finalist, votes}).second) {
+				throw Exception(fileName + " repeats Coalition preference history for " + seat + ".");
+			}
+		}
+	}
+
+	for (std::size_t index = 0; index < run.pastSeatResults.size(); ++index) {
+		auto& results = run.pastSeatResults[index];
+		int const laborPrimary = getAt(results.fpVoteCount, Mp::One, 0);
+		int const liberalPrimary = getAt(results.fpVoteCount, Mp::Two, 0);
+		int const nationalPrimary = getAt(results.fpVoteCount, run.natPartyIndex, 0);
+		results.useNamedCoalitionPreferenceHistory = nationalPrimary > 0;
+		if (!results.useNamedCoalitionPreferenceHistory || laborPrimary <= 0) continue;
+
+		// Prefer a complete real Labor/Coalition TCP. With a different final
+		// pair, only a separately counted TPP supplies the historical split.
+		int const countedFinalist = results.tcpVoteCount.contains(run.natPartyIndex) ? run.natPartyIndex : int(Mp::Two);
+		bool const nationalFinalist = countedFinalist == run.natPartyIndex;
+		int const finalistPrimary = nationalFinalist ? nationalPrimary : liberalPrimary;
+		int const excludedPartnerPrimary = nationalFinalist ? liberalPrimary : nationalPrimary;
+		double const countedLabor = getAt(results.tcpVoteCount, Mp::One, 0.0);
+		double const countedCoalition = getAt(results.tcpVoteCount, countedFinalist, 0.0);
+		bool const completeClassicCount = results.tcpVoteCount.size() == 2 &&
+			finalistPrimary > 0 && countedLabor >= laborPrimary && countedCoalition >= finalistPrimary &&
+			countedLabor + countedCoalition == results.turnoutCount;
+		auto const extra = published.find(historicalSeats[index]);
+		if (extra != published.end()) {
+			auto const& record = extra->second;
+			bool const matchedPrimaries = record.votes.formal == results.turnoutCount &&
+				record.votes.laborPrimary == laborPrimary && record.liberalPrimary == liberalPrimary &&
+				record.nationalPrimary == nationalPrimary;
+			bool const agreesWithClassic = !completeClassicCount ||
+				(record.coalitionFinalist == countedFinalist && record.votes.laborTpp == countedLabor);
+			if (matchedPrimaries && agreesWithClassic) {
+				results.minorPreferencesInCoalitionContest = MajorPartyFpMath::historicalMinorPreferenceRange(record.votes);
+				continue;
+			}
+		}
+		if (completeClassicCount) {
+			results.minorPreferencesInCoalitionContest = MajorPartyFpMath::historicalMinorPreferenceRange({
+				results.turnoutCount, laborPrimary, finalistPrimary, excludedPartnerPrimary,
+				int(countedLabor), 0, excludedPartnerPrimary});
+		}
 	}
 }
 
@@ -1798,6 +1918,95 @@ void SimulationPreparation::loadPopulistSeatModifiers()
 		project, run.regionCode,
 		inputFile(SimulationInputs::File::PopulistModifiers),
 		run.seatPopulistModifiers);
+}
+
+// Prepare an optional change to the local One Nation primary vote for 2026vic.
+// The input contains 2025 federal One Nation and total formal vote counts for
+// election-day booths assigned to each state district. These counts tell us
+// where the party was relatively strong. The current projection supplies the
+// statewide level of support for each simulated election.
+void SimulationPreparation::loadOneNationDistrictFp()
+{
+	run.oneNationDistrictFpParty.reset();
+	run.oneNationDistrictFpOffsets.clear();
+	if (run.getTermCode() != "2026vic") return;
+
+	auto const& fileName = inputFile(SimulationInputs::File::OneNationDistrictFp);
+	auto input = run.preparationInputs->open(fileName);
+	if (!input) return;
+	try {
+		auto const evidence = nlohmann::json::parse(input);
+		double const transferWeight = evidence.at("transfer_weight").get<double>();
+		if (evidence.at("election") != run.getTermCode() ||
+			evidence.at("federal_event") != "31496" ||
+			!std::isfinite(transferWeight) || transferWeight < 0.0 || transferWeight > 1.0) {
+			throw Exception("Expected 2025 federal booth data for 2026vic and a transfer weight between zero and one.");
+		}
+		if (transferWeight == 0.0) return;
+
+		int const partyIndex = project.parties().indexByShortCode("ONP");
+		if (partyIndex == PartyCollection::InvalidIndex) {
+			throw Exception("The trial requires One Nation in the project party list.");
+		}
+		int const seatCount = project.seats().count();
+		auto const& districts = evidence.at("districts");
+		if (!districts.is_object() || districts.size() != static_cast<std::size_t>(seatCount)) {
+			throw Exception("Expected booth counts for every configured district.");
+		}
+
+		// Compare districts within the inner metro, outer metro, provincial and
+		// rural categories used by the existing district priors. Every district
+		// contributes equally to its category mean. Counts of formal votes weight
+		// the booths within a district when generating the input file.
+		struct CategoryTotal {
+			double logOddsSum = 0.0;
+			int districts = 0;
+		};
+		std::map<SimulationRun::SeatType, CategoryTotal> totals;
+		std::vector<double> federalLogOdds(seatCount);
+		for (int seatIndex = 0; seatIndex < seatCount; ++seatIndex) {
+			auto const& seatName = run.seatLookup.seat(seatIndex).name;
+			auto const& district = districts.at(seatName);
+			auto const& oneNation = district.at("one_nation_votes");
+			auto const& formal = district.at("formal_votes");
+			double const oneNationVotes = oneNation.get<double>();
+			double const formalVotes = formal.get<double>();
+			if (!oneNation.is_number_integer() || !formal.is_number_integer() ||
+				formalVotes <= 0.0 || oneNationVotes < 0.0 || oneNationVotes > formalVotes) {
+				throw Exception("Invalid federal booth counts for " + seatName + ".");
+			}
+			// Log odds measure One Nation votes relative to all other formal
+			// votes. Half a vote on an empty side keeps a genuine zero count
+			// usable. The scale of 25 matches the simulator's vote transform.
+			double const otherVotes = formalVotes - oneNationVotes;
+			double const logOdds = 25.0 * std::log(
+				std::max(oneNationVotes, 0.5) / std::max(otherVotes, 0.5));
+			federalLogOdds[seatIndex] = logOdds;
+			auto& total = totals[run.seatTypes[seatIndex]];
+			total.logOddsSum += logOdds;
+			++total.districts;
+		}
+
+		// Transfer a fraction of the difference from the category mean. This
+		// shifts the local centre in either direction while leaving the same
+		// variation around it on the transformed scale. The trial's half-weight
+		// allows for differences between elections despite a near one-to-one
+		// relationship observed across outer-metropolitan districts in 2026sa.
+		for (int seatIndex = 0; seatIndex < seatCount; ++seatIndex) {
+			auto const& total = totals.at(run.seatTypes[seatIndex]);
+			double const categoryMean = total.logOddsSum / total.districts;
+			federalLogOdds[seatIndex] = transferWeight * (federalLogOdds[seatIndex] - categoryMean);
+		}
+		run.oneNationDistrictFpOffsets = std::move(federalLogOdds);
+		run.oneNationDistrictFpParty = partyIndex;
+		if (!run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
+			logger << "One Nation federal booth trial uses " << transferWeight
+				<< " of local differences across " << seatCount << " districts.\n";
+		}
+	}
+	catch (std::exception const& error) {
+		throw Exception("Invalid One Nation district FP input in " + fileName + ": " + error.what());
+	}
 }
 
 void SimulationPreparation::loadCentristSeatStatistics()
@@ -2449,6 +2658,65 @@ void SimulationPreparation::prepareRunningParties()
 			}
 		}
 	}
+}
+
+void SimulationPreparation::preparePreferenceModel()
+{
+	run.preferenceModel.reset();
+	run.preferenceCountSummaries.clear();
+	auto const term = run.getTermCode();
+	if (term != "2026vic" && term != "2026sa") return;
+
+	// Resolve party and independent identities after roster preparation. The
+	// main forecast and supporting runs read the same captured settings. Active
+	// mode uses the same count to calibrate odds, generate the pre-count live
+	// baseline and report the forecast, so the supporting results describe the
+	// same model that will predict the seat winners.
+	auto const& fileName = inputFile(SimulationInputs::File::PreferenceModel);
+	auto input = run.preparationInputs->open(fileName);
+	if (!input) return;
+	// South Australia lists One Nation as ON. Its Liberal vote is a single
+	// party in the forecast, with any minor National candidacy in Others.
+	int oneNation = project.parties().indexByShortCode("ONP");
+	if (oneNation < 0) oneNation = project.parties().indexByShortCode("ON");
+	std::optional<int> national;
+	if (run.natPartyIndex >= 0) national = run.natPartyIndex;
+	PreferenceModel::Roles const roles{
+		Mp::One, Mp::Two, national, run.grnPartyIndex, oneNation,
+		run.indPartyIndex, EmergingIndIndex, OthersIndex};
+	std::vector<PreferenceModel::District> districts;
+	districts.reserve(project.seats().count());
+	auto const& independentCode = project.parties().viewByIndex(run.indPartyIndex).abbreviation;
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		auto const& seat = run.seatLookup.seat(seatIndex);
+		int const incumbent = project.parties().idToIndex(seat.incumbent);
+		std::string independentName;
+		for (auto const& [candidateName, code] : seat.candidateNames) {
+			if (code != independentCode) continue;
+			if (!independentName.empty()) {
+				// The simulated independent slot identifies a single candidate.
+				// An ambiguous list uses the generic independent context.
+				independentName.clear();
+				break;
+			}
+			independentName = candidateName;
+		}
+		districts.push_back({seat.name, std::move(independentName),
+			incumbent == Mp::Two || incumbent == run.natPartyIndex});
+	}
+	try {
+		run.preferenceModel = PreferenceModel::Model::load(input, roles, districts, run.ncPreferenceFlow);
+	}
+	catch (std::exception const& error) {
+		throw Exception("Invalid preference model in " + fileName + ": " + error.what());
+	}
+	// A comparison is only needed for the main report. Its supporting runs
+	// use the ordinary count so the two main counts can share that forecast.
+	if (run.preferenceModel && !run.preferenceModel->isActive() &&
+		(run.doingBettingOddsCalibrations || run.doingLiveBaselineSimulation)) {
+		run.preferenceModel.reset();
+	}
+	if (run.preferenceModel) run.preferenceCountSummaries.resize(districts.size());
 }
 
 void SimulationPreparation::calculateIndEmergenceModifier()

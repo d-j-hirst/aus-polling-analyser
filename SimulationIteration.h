@@ -68,8 +68,8 @@ private:
 		int partyIndex,
 		double& voteShare,
 		SimulationRun::SeatStatistics const& seatStatistics);
-	double applyIndependentSeatPolls(
-		int seatIndex, double transformedVoteShare) const;
+	double applySeatFpPolls(
+		int seatIndex, int partyIndex, double transformedVoteShare) const;
 	void determinePopulistFp(int seatIndex, int partyIndex, double& voteShare);
 	void determineSeatConfirmedInds(int seatIndex);
 	void determineSeatEmergingInds(int seatIndex);
@@ -78,10 +78,13 @@ private:
 	void prepareFpsForNormalisation(int seatIndex);
 	void determineSeatEmergingParties(int seatIndex);
 	void determineNationalsShare(int seatIndex);
+	bool usesSeparateCoalitionPreferenceAccounting(int seatIndex) const;
+	void constrainCoalitionPrimariesToTpp(int seatIndex);
 	struct MajorPartyFpAllocation {
 		double nonExhaustedVote = 0.0;
 		double directPartyOneFp = 0.0;
 		double directPartyTwoFp = 0.0;
+		double coalitionLeakageFraction = 0.0;
 	};
 	MajorPartyFpAllocation allocateMajorPartyFp(
 		int seatIndex,
@@ -109,6 +112,14 @@ private:
 		LiveData::FpIntegrationInformation const& information);
 	void restoreLiveFpGroups(int seatIndex, std::map<int,double> integrated, int independentGroup);
 	void determineSeatFinalResult(int seatIndex);
+	using TcpPair = std::pair<std::pair<int, double>, std::pair<int, double>>;
+	bool integrateLiveTcpPair(int seatIndex, TcpPair& pair, bool livePrincipalProxy) const;
+	void countSeatPreferences(int seatIndex, double mergedIndependent);
+	std::optional<TcpPair> integrateRankingFinalPair(int seatIndex, bool livePrincipalProxy);
+	void compareFinalPair(int seatIndex, TcpPair const& beforeLive, TcpPair const& afterLive, bool livePrincipalProxy);
+	bool validSeatFinalPair(TcpPair const& pair) const;
+	void recordSeatFinalPair(int seatIndex, TcpPair const& pair);
+	bool hasNationalsVotesToRestore(int seatIndex) const;
 	void assignNationalsVotes(int seatIndex);
 	void applyLiveManualOverrides(int seatIndex);
 	void recordSeatResult(int seatIndex);
@@ -169,6 +180,12 @@ private:
 	std::vector<ShareByPartyIndex> seatFpVoteShare;
 	std::vector<std::pair<std::pair<int, int>, double>> seatTcpVoteShare;
 	std::vector<double> nationalsShare; // Nationals' share of the LIB/NAT vote
+	// Preference rates from the accepted FP pass, plus private comparison
+	// observations for this attempt. Supporting runs need neither.
+	std::vector<std::vector<std::pair<int, double>>> preferenceSourceRates;
+	std::vector<PreferenceModel::Comparison> preferenceComparisons;
+	std::optional<PreferenceModel::Model::ElectionDraw> preferenceElection;
+	std::string preferenceDrawIssue;
 	double iterationOverallTpp = 0.0;
 	double iterationOverallSwing = 0.0;
 	double intraCoalitionSwing = 0.0;

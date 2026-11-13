@@ -37,6 +37,7 @@ SimulationCollectionReports.cpp
 SimulationCompletion.cpp
 SimulationIteration.cpp
 SimulationInputs.cpp
+PreferenceModel.cpp
 SimulationPreparation.cpp
 SimulationRun.cpp
 StanModel.cpp

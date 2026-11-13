@@ -28,7 +28,8 @@ public:
 		PopulistStatistics, PopulistModifiers, CentristStatistics, CentristModifiers,
 		IndividualSeats, NationalsParameters, NationalsSeats,
 		RegionBase, RegionPolls, RegionMix, RegionMixParameters,
-		RegionTppDeviations, RegionOnDeviations, RegionOnDeviationsLowercase
+		RegionTppDeviations, RegionOnDeviations, RegionOnDeviationsLowercase,
+		PreferenceModel, CoalitionPreferenceHistory, OneNationDistrictFp
 	};
 
 	// seatContents is the text already consumed by seat import, not another read.

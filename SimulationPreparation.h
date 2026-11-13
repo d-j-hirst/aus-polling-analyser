@@ -73,6 +73,7 @@ private:
 	void loadPreviousPreferenceFlows();
 	void loadNcPreferenceFlows();
 	void loadPastSeatResults();
+	void prepareCoalitionPreferenceHistory(std::vector<std::string> const& historicalSeats);
 	void loadSeatTypes();
 	void calculateRegionalProportion();
 	void loadGreensSeatStatistics();
@@ -82,6 +83,7 @@ private:
 	void loadIndEmergence();
 	void loadPopulistSeatStatistics();
 	void loadPopulistSeatModifiers();
+	void loadOneNationDistrictFp();
 	void loadCentristSeatStatistics();
 	void loadCentristSeatModifiers();
 	void loadPreviousElectionBaselineVotes();
@@ -100,6 +102,7 @@ private:
 	void prepareProminentMinors();
 	void prepareIndependentLikePreferences();
 	void prepareRunningParties();
+	void preparePreferenceModel();
 	void calculateIndEmergenceModifier();
 	std::string const& inputFile(SimulationInputs::File file) const;
 

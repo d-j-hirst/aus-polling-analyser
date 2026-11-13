@@ -32,6 +32,7 @@ CI_TEST_MODULES = (
     'test_election_data',
     'test_historical_tpp',
     'test_historical_preference_counts',
+    'test_preference_evidence',
     'test_seat_volatility',
     'test_election_store',
     'test_election_analysis',

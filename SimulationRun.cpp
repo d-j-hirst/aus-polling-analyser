@@ -16,15 +16,19 @@
 #include "SimulationPreparation.h"
 #include "SimulationInputs.h"
 #include "RetainedLiveState.h"
+#include "SpecialPartyCodes.h"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <exception>
+#include <iomanip>
 #include <mutex>
+#include <sstream>
 #include <stdexcept>
 #include <thread>
 #include <utility>
@@ -325,6 +329,7 @@ bool SimulationRun::run(
 	reportProgress("Calculating forecast iterations...");
 	if (!runIterations(*this, cycleIterations, 0, "simulation", feedback)) return false;
 	if (precisionAudit) precisionAudit->finish(cycleIterations);
+	logPreferenceCounts();
 
 	// Summarise only the main iterations into vote shares, seat counts and outcome
 	// probabilities. Automatic live completion also attempts local summary and
@@ -357,6 +362,239 @@ bool SimulationRun::run(
 	reportTransaction.commit();
 	outcomesTransaction.commit();
 	return true;
+}
+
+namespace {
+
+// Summarise one comparison from its per-pair tallies. Finalist frequencies
+// use all paired draws. Win rates and margins within a pair use the draws
+// where that count reached the pair. The shared draws let us measure margin
+// changes on the same finalists without mixing in changes to exclusions.
+void appendPreferencePairComparison(std::ostream& report, std::string const& district,
+	char const* description, PreferenceModel::PairComparisonSummary const& summary,
+	auto const& partyName)
+{
+	if (summary.compared == 0 && summary.failed == 0) return;
+	report << "  " << district << " | " << description
+		<< " | " << summary.compared << " paired draws, " << summary.failed << " test failures"
+		<< ", changed pair " << summary.changedPair << ", changed winner " << summary.changedWinner << "\n";
+	auto appendMargin = [&](PreferenceModel::PairComparisonSummary::Outcomes const& side) {
+		if (side.draws == 0) report << "n/a";
+		else report << 100.0 * (side.firstShareSum / static_cast<double>(side.draws) - 0.5);
+	};
+	std::map<int, std::array<std::uint64_t, 2>> winners;
+	for (auto const& [pair, totals] : summary.pairs) {
+		auto const& [reference, alternative] = totals.outcomes;
+		std::string const first = partyName(pair[0]);
+		report << "    " << first << "/" << partyName(pair[1]) << " | finalists "
+			<< reference.draws << " -> " << alternative.draws
+			<< " | " << first << " wins within pair " << reference.firstWins << "/" << reference.draws
+			<< " -> " << alternative.firstWins << "/" << alternative.draws << " | mean TCP margin ";
+		appendMargin(reference);
+		report << " -> ";
+		appendMargin(alternative);
+		report << " pp | same pair in " << totals.samePairDraws << " draws";
+		if (totals.samePairDraws > 0) {
+			double const n = static_cast<double>(totals.samePairDraws);
+			report << ", winner changed in " << totals.samePairWinnerChanges
+				<< ", mean margin change " << 100.0 * totals.samePairShareChange / n
+				<< " pp, mean absolute change " << 100.0 * totals.samePairAbsoluteChange / n << " pp";
+		}
+		report << "\n";
+		for (std::size_t side = 0; side < totals.outcomes.size(); ++side) {
+			auto const& outcomes = totals.outcomes[side];
+			winners[pair[0]][side] += outcomes.firstWins;
+			winners[pair[1]][side] += outcomes.draws - outcomes.firstWins;
+		}
+	}
+	for (auto const& [party, counts] : winners) {
+		report << "    " << partyName(party) << " wins across all paired draws "
+			<< counts[0] << " -> " << counts[1] << " of " << summary.compared << "\n";
+	}
+}
+
+}
+
+// An active count supplies the forecast's seat winners, including in
+// supporting runs. Summarise how often the existing count had to resolve a
+// seat instead, so an incompatible input stays visible without rejecting
+// the whole simulated election. These totals count districts across draws.
+void SimulationRun::logActivePreferenceCounts() const
+{
+	std::uint64_t ranked = 0, official = 0, infeasible = 0, invalid = 0, classicPairs = 0;
+	double maxClassicError = 0.0;
+	std::ostringstream fallbackDetails;
+	for (std::size_t seatIndex = 0; seatIndex < preferenceCountSummaries.size(); ++seatIndex) {
+		auto const& seat = preferenceCountSummaries[seatIndex];
+		ranked += seat.compared;
+		official += seat.official;
+		infeasible += seat.infeasible;
+		invalid += seat.invalid;
+		classicPairs += seat.classicPairs;
+		maxClassicError = std::max(maxClassicError, seat.maximumClassicError);
+		if (seat.firstIssue) {
+			auto const& example = *seat.firstIssue;
+			fallbackDetails << "  " << seatLookup.seat(static_cast<int>(seatIndex)).name
+				<< " | incompatible TPP " << seat.infeasible << ", other issue " << seat.invalid
+				<< ", first at iteration " << example.iteration << " | ";
+			if (example.result.status == PreferenceModel::Status::InfeasibleClassicTpp) {
+				fallbackDetails << "Labor TPP " << 100.0 * example.result.laborTpp
+					<< "%, attainable " << 100.0 * example.result.classic.lower
+					<< "% to " << 100.0 * example.result.classic.upper << "%";
+			}
+			else fallbackDetails << example.result.issue;
+			fallbackDetails << "\n";
+		}
+	}
+	std::string phase = sim.settings.name;
+	if (doingBettingOddsCalibrations) phase += " betting-odds calibration";
+	if (doingLiveBaselineSimulation) phase += " pre-count live baseline";
+	std::ostringstream report;
+	report << "Active ranking count for " << getTermCode() << " (" << preferenceModel->version()
+		<< "), " << phase << " | ranked " << ranked << ", official " << official
+		<< ", fallback to existing count " << infeasible + invalid
+		<< " (incompatible TPP " << infeasible << ", other issue " << invalid << ")"
+		<< ", classic pairs checked " << classicPairs << ", largest classic discrepancy "
+		<< std::scientific << std::setprecision(3) << 100.0 * maxClassicError << " pp\n"
+		<< fallbackDetails.str();
+	logger << report.str();
+}
+
+void SimulationRun::logPreferenceCounts() const
+{
+	if (!preferenceModel) return;
+	if (preferenceModel->isActive()) {
+		logActivePreferenceCounts();
+		return;
+	}
+	// One bounded report per completed run. Pair counts use only successful
+	// comparisons, giving both methods the same denominator. Record official
+	// results and compatibility failures separately, so an unusual seat's
+	// omitted comparisons remain visible.
+	std::ostringstream report;
+	report << "\nPreference comparison for " << getTermCode() << " (" << preferenceModel->version()
+		<< "), " << sim.settings.name;
+	if (snapshotInput && snapshotInput->timestamp) report << ", snapshot " << *snapshotInput->timestamp;
+	report << "\nOne observation is one district in one successful simulation iteration.\n"
+		<< "Pair and winner changes compare the two counts before manual overrides. "
+		<< "Same-pair TCP differences and source rate changes are in percentage points.\n";
+
+	auto partyName = [&](int party) -> std::string {
+		if (party == OthersIndex) return "OTH";
+		if (party == EmergingIndIndex) return "Emerging IND";
+		if (party == EmergingPartyIndex) return "Emerging party";
+		if (party >= 0 && party < project.parties().count()) return project.parties().viewByIndex(party).abbreviation;
+		return std::to_string(party);
+	};
+	auto difference = [](auto const& counts) {
+		return std::max(counts.first, counts.second) - std::min(counts.first, counts.second);
+	};
+	std::uint64_t compared = 0, official = 0, infeasible = 0, invalid = 0, classicPairs = 0;
+	double maxClassicError = 0.0;
+	for (std::size_t s = 0; s < preferenceCountSummaries.size(); ++s) {
+		auto const& seat = preferenceCountSummaries[s];
+		compared += seat.compared;
+		official += seat.official;
+		infeasible += seat.infeasible;
+		invalid += seat.invalid;
+		classicPairs += seat.classicPairs;
+		maxClassicError = std::max(maxClassicError, seat.maximumClassicError);
+		report << "  " << seatLookup.seat(static_cast<int>(s)).name
+			<< " | compared " << seat.compared << ", official " << seat.official
+			<< ", incompatible TPP " << seat.infeasible << ", other issue " << seat.invalid
+			<< ", changed pair " << seat.changedPair << ", changed winner " << seat.changedWinner
+			<< " (with matching live evidence " << seat.changedWinnerWithLiveEvidence << ")"
+			<< ", matching live TCP used " << seat.livePairMatches;
+		if (seat.samePair > 0) {
+			double const divisor = static_cast<double>(seat.samePair);
+			report << std::fixed << std::setprecision(3)
+				<< ", mean absolute same-pair TCP difference " << 100.0 * seat.samePairAbsoluteChange / divisor
+				<< " (with live evidence " << 100.0 * seat.samePairLiveAbsoluteChange / divisor << ")";
+		}
+		if (seat.classicPairs > 0) {
+			report << std::fixed << std::setprecision(3) << ", mean largest source shift "
+				<< 100.0 * seat.sumLargestRateChange / static_cast<double>(seat.compared);
+		}
+		report << "\n";
+		std::vector<std::pair<PreferenceModel::Pair, std::pair<std::uint64_t, std::uint64_t>>> changed;
+		for (auto const& pair : seat.pairs) {
+			if (difference(pair.second) > 0) changed.push_back(pair);
+		}
+		std::stable_sort(changed.begin(), changed.end(),
+			[&](auto const& a, auto const& b) { return difference(a.second) > difference(b.second); });
+		for (std::size_t i = 0; i < std::min<std::size_t>(changed.size(), 3); ++i) {
+			auto const& [pair, counts] = changed[i];
+			report << "    " << partyName(pair[0]) << "/" << partyName(pair[1])
+				<< " finalist frequency " << counts.first << " -> " << counts.second
+				<< " of " << seat.compared << "\n";
+		}
+		for (auto const& [party, counts] : seat.winners) {
+			if (difference(counts) > 0) {
+				report << "    " << partyName(party) << " winner frequency with live evidence "
+					<< counts.first << " -> " << counts.second << " of " << seat.compared << "\n";
+			}
+		}
+	}
+	report << "  Total compared " << compared << ", official " << official
+		<< ", incompatible TPP " << infeasible << ", other issue " << invalid
+		<< ", classic pairs checked " << classicPairs << ", largest classic discrepancy "
+		<< std::scientific << std::setprecision(3) << 100.0 * maxClassicError << " pp\n";
+
+	using Example = PreferenceModel::Summary::Example;
+	using SeatExample = std::pair<std::size_t, Example const*>;
+	std::vector<SeatExample> issues, adjustments;
+	for (std::size_t s = 0; s < preferenceCountSummaries.size(); ++s) {
+		auto const& seat = preferenceCountSummaries[s];
+		if (seat.firstIssue) issues.emplace_back(s, &*seat.firstIssue);
+		if (seat.largestAdjustment) adjustments.emplace_back(s, &*seat.largestAdjustment);
+	}
+	std::stable_sort(issues.begin(), issues.end(), [](auto const& a, auto const& b) {
+		return a.second->iteration < b.second->iteration;
+	});
+	std::stable_sort(adjustments.begin(), adjustments.end(), [](auto const& a, auto const& b) {
+		return a.second->result.classic.largestRateChange > b.second->result.classic.largestRateChange;
+	});
+	report << std::fixed << std::setprecision(3);
+	for (std::size_t i = 0; i < std::min<std::size_t>(issues.size(), 5); ++i) {
+		auto const& [seat, example] = issues[i];
+		auto const& result = example->result;
+		report << "  Issue in " << seatLookup.seat(static_cast<int>(seat)).name << " at iteration " << example->iteration << " | ";
+		if (result.status == PreferenceModel::Status::InfeasibleClassicTpp) {
+			report << "Labor TPP " << 100.0 * result.laborTpp << "%, attainable "
+				<< 100.0 * result.classic.lower << "% to " << 100.0 * result.classic.upper << "%";
+		}
+		else report << result.issue;
+		report << "\n";
+	}
+	for (std::size_t i = 0; i < std::min<std::size_t>(adjustments.size(), 5); ++i) {
+		auto const& [seat, example] = adjustments[i];
+		auto const& result = example->result;
+		report << "  Source adjustment in " << seatLookup.seat(static_cast<int>(seat)).name
+			<< " at iteration " << example->iteration << " | " << partyName(result.classic.changedSource)
+			<< " to Labor in the classic pair " << 100.0 * result.classic.previousRate << "% -> "
+			<< 100.0 * result.classic.adjustedRate << "%, Labor TPP " << 100.0 * result.laborTpp << "%\n";
+	}
+	bool wroteSensitivityHeader = false;
+	for (std::size_t s = 0; s < preferenceCountSummaries.size(); ++s) {
+		auto const& seat = preferenceCountSummaries[s];
+		if (seat.standardVsRanking.compared == 0) continue;
+		if (!wroteSensitivityHeader) {
+			report << "\nPre-election preference sensitivity on the same draws\n"
+				<< "TCP margins are percentage points above 50% for the first listed candidate. "
+				<< "Changes on the same pair use only draws where both counts reached it.\n"
+				<< "The count without classic TPP matching uses the original source rates for exclusions "
+				<< "and the accepted TPP when Labor and the Coalition are the finalists.\n";
+			wroteSensitivityHeader = true;
+		}
+		auto const& district = seatLookup.seat(static_cast<int>(s)).name;
+		appendPreferencePairComparison(report, district, "standard count -> ranking count",
+			seat.standardVsRanking, partyName);
+		appendPreferencePairComparison(report, district, "ranking count -> without classic TPP matching",
+			seat.withoutClassicTppMatching, partyName);
+		appendPreferencePairComparison(report, district, "ranking count -> reduced Labor to Greens flow",
+			seat.reducedLaborToGreens, partyName);
+	}
+	logger << report.str();
 }
 
 nlohmann::json SimulationRun::inputDiagnostic() const
@@ -703,6 +941,7 @@ bool SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 			"betting-odds calibration", feedback)) {
 			return false;
 		}
+		newRun.logPreferenceCounts();
 
 		SimulationCompletion completion(project, sim, newRun, cycleIterations);
 		completion.completeRun(feedback);
@@ -781,6 +1020,7 @@ bool SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
 		"live baseline simulation", feedback)) {
 		return false;
 	}
+	newRun.logPreferenceCounts();
 
 	SimulationCompletion completion(project, sim, newRun, cycleIterations);
 	completion.completeRun(feedback);

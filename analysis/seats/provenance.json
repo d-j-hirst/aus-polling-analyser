@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-11-09T09:27:04Z",
+  "updated_at_utc": "2026-11-12T09:59:59Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 49,
+      "semantic_revision": 53,
       "files": {
         "2013fed.txt": {
           "sha256": "d6d75e40d7ece21df752d6edb476d99a7210847b6c1ebbb9be905b6e832cb0cd",
@@ -75,9 +75,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "3115c7f28a5df768314f554e31861779ead2b7374cabc37ff5c59da05878577e",
-          "size_bytes": 27277,
-          "recorded_mtime_utc": "2026-11-09T09:23:17.422375Z"
+          "sha256": "a50877adef68fbe6e912fb4afe96a4a19f3cedd0eef43fb63ad56833f1ea5940",
+          "size_bytes": 27441,
+          "recorded_mtime_utc": "2026-11-12T09:58:39.578467Z"
         },
         "2027nsw.txt": {
           "sha256": "9066c05124dc34153f7b56e0d6c2a7238d5a40e3e1edb7965d74778378c4120a",
@@ -1181,9 +1181,101 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261110T004246Z-new_polling-forecast-seats-d8b93870",
+          "recorded_at_utc": "2026-11-10T00:42:46Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 50,
+          "provenance_revision": 50,
+          "summary": "Pakenham seat poll",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261110T030105Z-other-forecast-seats-0776d82c",
+          "recorded_at_utc": "2026-11-10T03:01:05Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 51,
+          "provenance_revision": 51,
+          "summary": "Set Pakenham One Nation candidate Warren Pickering to minor viability +1, reflecting the approved assessment of his Victorian leadership profile and competitive campaign evidence. Preserve the ONP 40% and GRN 13% seat poll entries at rating 1 and all other seat settings.",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          },
+          "source": {
+            "description": "User-approved candidate-profile assessment; official party profile confirms the Victorian leadership role.",
+            "uri": "https://vic.onenation.org.au/candidate/warren-pickering"
+          }
+        },
+        {
+          "id": "20261111T062758Z-other-forecast-seats-35015258",
+          "recorded_at_utc": "2026-11-11T06:27:58Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 52,
+          "provenance_revision": 52,
+          "summary": "Odds updates",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261112T095959Z-correction-forecast-seats-99a18f41",
+          "recorded_at_utc": "2026-11-12T09:59:59Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 53,
+          "provenance_revision": 53,
+          "summary": "Apply the existing disendorsement adjustment in Williamstown after the Liberal Party withdrew its endorsement of Paul Lindemann. His ballot affiliation remains Liberal. This revision also records pending edits to the same seat file, including the Preston One Nation viability setting and the Shepparton TPP margin correction.",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          },
+          "source": {
+            "description": "ABC News reporting on the Williamstown disendorsement and Lindemann\u2019s continued Liberal ballot listing.",
+            "uri": "https://www.abc.net.au/news/2026-11-12/paul-lindemann-williamstown-lib-candidate-racist-posts-dumped/107376622"
+          }
         }
       ],
-      "provenance_revision": 49
+      "provenance_revision": 53
     }
   }
 }
