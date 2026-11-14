@@ -109,6 +109,8 @@ std::vector<LiveData::FpIntegrationInformation> LiveV2::Election::fpIntegrationC
         for (auto const& [party,deviation] : largeRegions.at(seats[s].parentRegionIndex).finalSpecificFpDeviations)
             information[s].sharedDeviation[party] += deviation;
         information[s].evidenceGate = LiveFpEvidence::breadthGate(fpEvidence->at(s).evidence);
+        information[s].secondaryIndependent = seats[s].secondaryIndependent;
+        information[s].namedIndependentMatches = seats[s].namedIndependentMatches;
     }
     return information;
 }

@@ -930,7 +930,7 @@ void checkReportedCountProgress() {
     assert(LiveInputAdapter::reportedCountProgress(source,effective).fpVotes == 1300);
 }
 
-void checkEcsaRetiredTcpPair() {
+void checkEcsaRetiredTcpPair(std::filesystem::path const& folder) {
     auto makeElection = [](std::string const& term) {
         Results2::Election election(term);
         election.candidates.emplace(11,Results2::Candidate{11,"Labor",1});
@@ -949,12 +949,16 @@ void checkEcsaRetiredTcpPair() {
         return election;
     };
     Snapshot effective;
+    effective.election = "2026sa";
+    effective.sourceTime = "2026-03-30T10:00:00";
     effective.districts.emplace("North",District{1000,false});
     auto add = [&](std::string const& name, Counts tcp, Status status) {
         Record record; record.district = "North"; record.name = name; record.role = "ordinary";
+        record.key = record.identity = "North/ordinary/" + name;
         record.candidates = {11,12,13};
         record.fp.votes = Counts{{11,30},{12,40},{13,30}};
         record.tcp.votes = std::move(tcp); record.tcp.status = status;
+        record.fp.observedAt = record.tcp.observedAt = effective.sourceTime;
         effective.records.push_back(std::move(record));
     };
     add("School",{{11,45},{13,55}},Status::Current);
@@ -976,6 +980,76 @@ void checkEcsaRetiredTcpPair() {
     auto other = makeElection("2026vic");
     LiveInputAdapter::apply(other,effective);
     assert(other.booths.at(8).tcpVotesCandidate.contains(12));
+
+    auto before = effective;
+    before.sourceTime = "2026-03-30T08:00:00";
+    for (auto& record : before.records) {
+        record.fp.observedAt = record.tcp.observedAt = before.sourceTime;
+        record.tcp.votes = Counts{{11,50},{12,50}};
+        record.tcp.status = Status::Current;
+    }
+    commit(folder,before);
+    auto reset = effective;
+    reset.sourceTime = "2026-03-30T09:00:00";
+    for (auto& record : reset.records) {
+        record.fp.observedAt = record.tcp.observedAt = reset.sourceTime;
+        record.tcp.votes = Counts{{11,0},{13,0}};
+        record.tcp.status = Status::Current;
+    }
+    // The reset stays a zero in the accepted history and published progress.
+    // Only the forecast retrieves the last valid count. Hall can keep its
+    // matched TCP through a one-ballot FP recheck, but Early Centre has lost
+    // too many of the primaries that belonged to the old batch.
+    reset.records[1].fp.votes = Counts{{11,31},{12,39},{13,30}};
+    reset.records[2].fp.votes = Counts{{11,40},{12,30},{13,30}};
+    commit(folder,reset);
+    // A later capture can already exist when an earlier snapshot is replayed.
+    auto replacement = effective;
+    commit(folder,replacement);
+    auto gap = makeElection("2026sa");
+    gap.seats.at(1).tcpVotesCandidate[11][Results2::VoteType::Ordinary] = 0;
+    gap.seats.at(1).tcpVotesCandidate[13][Results2::VoteType::Ordinary] = 0;
+    auto handover = LiveInputAdapter::apply(gap,reset,folder);
+    assert(handover.size() == 2 && handover.at(reset.records[1].key).tcpBasis);
+    assert(gap.seats.at(1).totalVotesTcp({}) == 200);
+    assert(gap.seats.at(1).tcpVotesCandidate.size() == 2 && gap.seats.at(1).tcpVotesCandidate.contains(12));
+    assert(gap.booths.at(8).fpVotes.at(11) == 31);
+    assert(gap.booths.at(9).tcpVotesCandidate.empty());
+    assert(gap.reportedCountProgress->tcpVotes == 0);
+    assert(reset.records[0].tcp.votes->at(11) == 0);
+
+    // A same-pair zero reset can leave an absent booth's older TCP available
+    // through ordinary recovery. That count still belongs to the forecast
+    // only while the commission publishes a district-wide zero.
+    auto samePairReset = makeElection("2026sa");
+    auto& samePair = samePairReset.seats.at(1).tcpVotesCandidate;
+    samePair.clear();
+    samePair[11][Results2::VoteType::Ordinary] = 0;
+    samePair[12][Results2::VoteType::Ordinary] = 0;
+    assert(LiveInputAdapter::reportedCountProgress(samePairReset,replacement).tcpVotes == 0);
+    assert(LiveInputAdapter::apply(samePairReset,replacement,folder).size() == 3);
+    assert(samePairReset.seats.at(1).totalVotesTcp({}) == 300);
+
+    // Publication alone cannot trigger the switch. This ordinary-booth
+    // replacement batch is too small to reconcile with its reported FP.
+    auto incomplete = reset;
+    incomplete.sourceTime = "2026-03-30T09:30:00";
+    incomplete.records[0].tcp.votes = Counts{{11,22},{13,28}};
+    auto accepted = recover(incomplete,reset).snapshot;
+    assert(total(accepted.records[0].tcp.votes) == 0);
+    auto awaitingValid = makeElection("2026sa");
+    auto& published = awaitingValid.seats.at(1).tcpVotesCandidate;
+    published[11][Results2::VoteType::Ordinary] = 22;
+    published[13][Results2::VoteType::Ordinary] = 28;
+    assert(LiveInputAdapter::apply(awaitingValid,accepted,folder).size() == 2);
+    assert(awaitingValid.reportedCountProgress->tcpVotes == 0);
+
+    auto switched = makeElection("2026sa");
+    assert(LiveInputAdapter::apply(switched,replacement,folder).empty());
+    assert(switched.seats.at(1).totalVotesTcp({}) == 100);
+    assert(switched.seats.at(1).tcpVotesCandidate.size() == 2 && switched.seats.at(1).tcpVotesCandidate.contains(13));
+    assert(switched.booths.at(8).tcpVotesCandidate.empty());
+    assert(switched.reportedCountProgress->tcpVotes == 100);
 }
 
 void checkParserAndAdapter() {
@@ -1461,8 +1535,23 @@ void checkPreferenceHistoryAcrossPairChange(std::filesystem::path const& folder)
     assert(afterSwitch.size() == 2);
     assert(afterSwitch.at({11,12}).tcp.at(11) == 123);
     assert(afterSwitch.at({11,13}).tcp.at(11) == 154); // Future cache entry is excluded.
+    auto filtered = loadPairPreferenceHistory(folder,newPair,[](Record const& record) {
+        return !record.tcp.votes->contains(12);
+    });
+    assert(filtered.at(key).at({11,12}).tcp.at(11) == 123);
+    assert(loadPairPreferenceHistory(folder,oldPair,[](Record const& record) {
+        return !record.tcp.votes->contains(12);
+    }).empty());
     auto revised = snapshot("2026-03-30T12:00:00",{{11,109},{12,86},{13,27}},{{11,155},{13,67}});
     assert(loadPairPreferenceHistory(folder,revised).at(key).at({11,12}).tcpTime == oldPair.sourceTime);
+    auto withdrawn = revised;
+    withdrawn.records.front().tcp = oldPair.records.front().tcp;
+    withdrawn.records.front().tcp.status = Status::Restored;
+    assert(loadPairPreferenceHistory(folder,withdrawn).at(key).at({11,12}).tcpTime == oldPair.sourceTime);
+    withdrawn.records.front().tcp.votes = Counts{{11,0},{12,0}};
+    withdrawn.records.front().tcp.status = Status::Current;
+    withdrawn.records.front().tcp.observedAt = withdrawn.sourceTime;
+    assert(loadPairPreferenceHistory(folder,withdrawn).at(key).at({11,12}).tcpTime == oldPair.sourceTime);
     auto fallback = snapshot("2026-03-30T12:00:00",{{11,106},{12,86},{13,27}},{{11,152},{13,67}});
     assert(loadPairPreferenceHistory(folder,fallback).at(key).at({11,12}).tcpTime == first.sourceTime);
     auto incompatible = snapshot("2026-03-30T12:00:00",{{11,96},{12,86},{13,27}},{{11,142},{13,67}});
@@ -1478,6 +1567,37 @@ void checkPreferenceHistoryAcrossPairChange(std::filesystem::path const& folder)
     assert(!loadPairPreferenceHistory(folder,restored).at(key).contains({11,13}));
     revised.optionalPreferential = true;
     assert(loadPairPreferenceHistory(folder,revised).empty());
+}
+
+void checkTcpHandoverHistory(std::filesystem::path const& folder) {
+    auto source = [&](std::string const& time, Counts fp, Counts tcp) {
+        auto snap = example(time);
+        snap.records.resize(1);
+        auto& record = snap.records.front();
+        record.candidates = {11,12,13};
+        record.fp.votes = std::move(fp);
+        record.tcp.votes = std::move(tcp);
+        return recover(snap,{}).snapshot;
+    };
+    auto const first = source("2026-03-30T08:00:00",{{11,100},{12,80},{13,20}},{{11,112},{12,88}});
+    auto const corrected = source("2026-03-30T09:00:00",{{11,100},{12,90},{13,25}},{{11,108},{12,107}});
+    auto const reset = source("2026-03-30T10:00:00",{{11,100},{12,80},{13,20}},{{11,0},{13,0}});
+    auto const newCount = source("2026-03-30T11:00:00",{{11,100},{12,80},{13,20}},{{11,145},{13,55}});
+    auto const key = first.records.front().key;
+    commit(folder,first);
+    commit(folder,corrected);
+    commit(folder,reset);
+    commit(folder,newCount);
+    // Replay cutoff excludes the correction at the same time and all future
+    // captures. Once observed, the correction supersedes the earlier count,
+    // even if the latest FP makes the correction unsuitable for the forecast.
+    auto earlierReset = reset;
+    earlierReset.sourceTime = corrected.sourceTime;
+    assert(loadTcpHandoverCounts(folder,earlierReset,{"North"}).at(key).tcp.votes == first.records[0].tcp.votes);
+    assert(loadTcpHandoverCounts(folder,reset,{"North"}).empty());
+    auto subsequentReset = reset;
+    subsequentReset.sourceTime = "2026-03-30T12:00:00";
+    assert(loadTcpHandoverCounts(folder,subsequentReset,{"North"}).at(key).tcp.votes == newCount.records[0].tcp.votes);
 }
 
 int main(int argc, char** argv) {
@@ -1497,6 +1617,7 @@ int main(int argc, char** argv) {
     checkReconciliationHistory(folder/"reconciliation");
     checkPreferenceHistory(folder/"preferences");
     checkPreferenceHistoryAcrossPairChange(folder/"pair-preferences");
+    checkTcpHandoverHistory(folder/"tcp-handover");
     checkTcpRevisionBasis(folder/"tcp-revision");
     checkRetainedRecheckStatus(folder/"retained-recheck-status");
     checkRecheckedPrimaryRecovery(folder/"rechecked-primaries");
@@ -1505,7 +1626,7 @@ int main(int argc, char** argv) {
     checkQecPartialRechecks();
     checkSyntheticCategoryProvenance();
     checkReportedCountProgress();
-    checkEcsaRetiredTcpPair();
+    checkEcsaRetiredTcpPair(folder/"ecsa-handover");
     checkParserAndAdapter();
 #endif
     std::filesystem::remove_all(folder);

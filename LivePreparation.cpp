@@ -770,14 +770,51 @@ TurnoutModelIO::Artifact LivePreparation::prepareCurrentInput()
 	auto const recoveryStarted = std::chrono::steady_clock::now();
 	auto const historyBefore = LiveInputHistory::statistics();
 	logger << "Recovering current counts and updating accepted-count history...\n";
-	auto recovered = LiveInputAdapter::prepare(currentElection, artifact,
+	auto recovered = LiveInputAdapter::recoverSource(currentElection, artifact,
 		project.paths().root(), LiveResultsInput::pathFromUtf8(xmlFilename));
 	auto const preferencesStarted = std::chrono::steady_clock::now();
 	auto folder = LiveInputRecovery::directory(project.paths().root(), run.getTermCode());
+	auto handover = LiveInputAdapter::apply(currentElection,recovered.snapshot,folder);
 	preferenceHistory = LiveInputRecovery::loadPreferenceHistory(folder,recovered.snapshot);
 	LiveInputRecovery::retainPreferenceHistory(recovered.snapshot,preferenceHistory);
-	if (run.preferenceModel && run.preferenceModel->isActive())
+	if (run.preferenceModel && run.preferenceModel->isActive() && !run.preferenceModel->isLiveTrial()) {
 		pairPreferenceHistory = LiveInputRecovery::loadPairPreferenceHistory(folder,recovered.snapshot);
+	}
+	else if (!artifact.optionalPreferential) {
+		// A classic count can inform TPP even when the ranking-based preference
+		// model is disabled. For this path look up earlier pairs only where the
+		// effective count is missing, empty, or for a different pair. SA can
+		// also hide a restored classic count when its district pairing changes.
+		int const nationals = project.parties().separateNationalsIndex();
+		pairPreferenceHistory = LiveInputRecovery::loadPairPreferenceHistory(folder,recovered.snapshot,
+			[&](LiveInputRecovery::Record const& record) {
+				if (!record.tcp.votes || record.tcp.votes->size() != 2 ||
+					LivePartialCount::total(*record.tcp.votes) == 0) return true;
+				auto status = currentElection.liveCountStatus.find(record.key);
+				if (status != currentElection.liveCountStatus.end() && !status->second.second.available) return true;
+				bool labor = false, coalition = false;
+				for (auto const& [candidateId, count] : *record.tcp.votes) {
+					(void)count;
+					auto candidate = currentElection.candidates.find(candidateId);
+					if (candidate == currentElection.candidates.end()) return true;
+					auto party = currentElection.parties.find(candidate->second.party);
+					if (party == currentElection.parties.end()) return true;
+					int const index = project.parties().indexByShortCode(party->second.shortCode);
+					labor = labor || index == 0;
+					coalition = coalition || index == 1 || (index >= 2 && index == nationals);
+				}
+				return !(labor && coalition);
+			});
+	}
+	// Use the earlier FP batch for any TCP carried into the forecast during
+	// SA's handover. Leave the recovered snapshot and pair history tied to
+	// their own observation clocks so the fallback cannot perpetuate itself.
+	for (auto const& [key,record] : handover) {
+		auto& history = preferenceHistory[key];
+		history = {};
+		if (record.tcpBasis) history.tcpBasis = history.matchingCurrentTcp = record.tcpBasis;
+		else history.matchingCurrentTcp = record.matchedPreferences;
+	}
 	// Separate history work from count-model preparation so a one-off index build
 	// is visible in the log instead of appearing as unexplained forecast slowness.
 	auto const historyAfter = LiveInputHistory::statistics();

@@ -1511,8 +1511,8 @@ bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1.00
 sBettingOdds=IND,8.5
-sCandidateNames=Tom Venning,LNP;Brandon Turton,ON;Anita Kuss,IND;Karin Bolton,ALP;Kathryn Hardwick-Franco,GRN'
-sRunningParties=LNP,ALP,GRN,ON,IND,OTH**
+sCandidateNames=Tom Venning,LNP;Brandon Turton,ON;Anita Kuss,IND;Karin Bolton,ALP;Kathryn Hardwick-Franco,GRN;Peter Borda,NAT
+sRunningParties=LNP,NAT,ALP,GRN,ON,IND,OTH**
 #Hindmarsh
 sIncumbent=ALP
 sChallenger=LNP

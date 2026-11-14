@@ -184,6 +184,24 @@
     "Elder": {
       "liberal_advice": "labor_first"
     },
+    "Finniss": {
+      "historical_transfers": [
+        {
+          "election": "2022sa",
+          "source": "https://en.wikipedia.org/wiki/Electoral_results_for_the_district_of_Finniss#2022",
+          "donor": "GRN",
+          "independent_name": "Lou Nicholson",
+          "original_votes": 1647,
+          "inherited_votes": 156,
+          "weight": 0.5,
+          "transfers": {
+            "ALP": 537,
+            "LIB": 164,
+            "IND": 1102
+          }
+        }
+      ]
+    },
     "King": {
       "liberal_advice": "labor_first"
     },

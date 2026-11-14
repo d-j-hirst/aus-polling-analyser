@@ -98,8 +98,9 @@ LivePartyConversion::MatchedAccount LiveV2::Election::matchedConversionAccount(i
     double broadOffset = heldOutPreferenceOffset(seatIndex);
     for (int index : seats.at(seatIndex).booths) {
         auto const& booth = readBooths()[index];
-        // Require the existing valid current FP/TPP match, not an earlier
-        // partial cohort or a non-classic TCP. OPV is excluded by the caller.
+        // Use one matched Labor–Coalition account per location. It can be
+        // the active pair or a retained earlier count with its own FP batch.
+        // A newly reported non-classic TCP describes a separate comparison.
         if (tppBoothMatchedPreferenceUnit(index) <= 0) continue;
         auto previous = historicalPreferenceTransfer(booth);
         if (!previous) continue;
@@ -107,7 +108,7 @@ LivePartyConversion::MatchedAccount LiveV2::Election::matchedConversionAccount(i
             LivePartialCount::historicalFlowReliability(previous->share());
         int coalition = coalitionFinalist(booth);
         double offset = preferenceRateOffset(booth,false).value_or(0)/25+broadOffset;
-        account.add(booth.hasTcpRevision() ? booth.tcpBasis->fp : booth.node.fpVotesCurrent,booth.node.tcpVotesCurrent,
+        account.add(booth.tppPreferencePrimaries(),booth.tppCount(natPartyIndex),
             classicPreferenceFlows(booth,coalition),offset,coalition,
             run.grnPartyIndex,IndependentPartyIdOffset,quality);
     }
@@ -311,7 +312,7 @@ void LiveV2::Election::prepareTppCategoryVotes(int seatIndex, TppCategoryAccount
             pending = continuing;
         }
         if (tcp > 0) {
-            if (auto revised = revisedBoothTcp(booth,0,coalitionFinalist(booth))) {
+            if (auto revised = revisedBoothTpp(booth)) {
                 pending = revised->uncertainVotes();
                 first = revised->first;
                 votes.revisionVariance += std::pow(pending/2,2);
@@ -458,13 +459,13 @@ LiveV2::Election::tppCategoryEvidence(int seatIndex, double referenceShift,
 double LiveV2::Election::tppBoothMatchedPreferenceUnit(int index) const {
     auto const& booth = readBooths()[index];
     auto const& n = booth.node;
-    // Reuse the eligibility of the existing correction: comparable current
-    // FP/TCP, usable historical flows and nonzero reliability. An old stored
-    // partial-count cohort alone cannot establish a current FP/TCP match.
+    // Apply the same comparison checks to active and retained TPP. Always
+    // test the measured TCP against its original primary mix. Estimated
+    // transfers after an FP recheck never add to this evidence weight.
     if (!n.preferenceFlowDeviation || n.preferenceFlowConfidence <= 0) return 0;
-    int coalition = n.tcpVotesCurrent.contains(natPartyIndex) ? natPartyIndex : 1;
-    auto const& matchedFp = booth.hasTcpRevision() ? booth.tcpBasis->fp : n.fpVotesCurrent;
-    auto current = LivePartialCount::measureTransfer(matchedFp, n.tcpVotesCurrent, 0, coalition);
+    auto const& tcp = booth.tppCount(natPartyIndex);
+    int coalition = tcp.contains(natPartyIndex) ? natPartyIndex : 1;
+    auto current = LivePartialCount::measureTransfer(booth.tppPreferencePrimaries(), tcp, 0, coalition);
     auto historical = historicalPreferenceTransfer(booth);
     if (!current || !historical) return 0;
     double reliability = n.relevanceModifier * LivePartialCount::historicalFlowReliability(historical->share());
@@ -526,7 +527,7 @@ void LiveV2::Election::appendTppBoothEvidence(int index, double referenceShift,
     // Retain the existing comparison-weight convention, but no additional
     // blanket variance multiplier. Explicit conversion uncertainty now owns
     // the precision difference; reporting order also covers measured TCP.
-    quality *= 1 - .5 * received->inferredFraction;
+    quality *= 1 - (1-LiveTppIntegration::InferredPreferenceComparisonWeight)*received->inferredFraction;
     // Existing unreported-booth TPP scale, now used as reporting-location
     // uncertainty before any progress gate. Heterogeneous observed swings
     // can increase this allowance; votes in one booth do not create breadth.
@@ -786,7 +787,7 @@ void LiveV2::Election::prepareDirectTppVotes(int seatIndex, TppCategoryAccount& 
         auto received = receivedBoothTpp(booth);
         if (!received) continue;
         double measuredFirst = tcp > 0 ? measured.at(0) : 0;
-        if (auto revised = revisedBoothTcp(booth,0,coalitionFinalist(booth))) {
+        if (auto revised = revisedBoothTpp(booth)) {
             tcp = revised->votes-revised->uncertainVotes();
             measuredFirst = revised->lower;
         }

@@ -40,6 +40,13 @@ void testProjectedVoteShareEndpoints()
 int main()
 {
     testProjectedVoteShareEndpoints();
+    // A 1,000-vote district has 50 counted Others, including 30 for the
+    // second independent. The projection gives them 20 of 50 outstanding
+    // Others. A draw that assigns 8% to the group gives them 3% fixed and
+    // 40% of the remaining 3% in that draw only after subtracting all 5% fixed.
+    assert(std::abs(LiveFpIntegration::splitCountedCandidate(8,1000,50,100,30,50) - 4.2) < 1e-10);
+    assert(LiveFpIntegration::splitCountedCandidate(5,1000,50,50,30,30) == 3);
+    assert(LiveFpIntegration::splitCountedCandidate(8,1000,50,100,0,50) == 0);
     static_assert(std::is_same_v<decltype(LiveTurnoutMath::PartyAccount{}.projected)::mapped_type, double>);
     static_assert(std::is_same_v<decltype(getAt(std::map<int,double>{},0,0.f)), double>);
     std::map<int,double> precise{{0,50.000000000001}};

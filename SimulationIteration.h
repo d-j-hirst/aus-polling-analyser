@@ -113,10 +113,15 @@ private:
 	void restoreLiveFpGroups(int seatIndex, std::map<int,double> integrated, int independentGroup);
 	void determineSeatFinalResult(int seatIndex);
 	using TcpPair = std::pair<std::pair<int, double>, std::pair<int, double>>;
-	bool integrateLiveTcpPair(int seatIndex, TcpPair& pair, bool livePrincipalProxy) const;
-	void countSeatPreferences(int seatIndex, double mergedIndependent);
-	std::optional<TcpPair> integrateRankingFinalPair(int seatIndex, bool livePrincipalProxy);
-	void compareFinalPair(int seatIndex, TcpPair const& beforeLive, TcpPair const& afterLive, bool livePrincipalProxy);
+	bool integrateLiveTcpPair(int seatIndex, TcpPair& pair, bool livePrincipalProxy,
+		std::optional<int> secondaryIndependent = {}) const;
+	bool splitRankingIndependent(std::string const& seatName, int secondary, std::map<int,double>& shares) const;
+	void countSeatPreferences(int seatIndex, double mergedIndependent, std::optional<int>& secondaryIndependent,
+		bool namedIndependentMatches);
+	std::optional<TcpPair> integrateRankingFinalPair(int seatIndex, bool livePrincipalProxy,
+		std::optional<int> secondaryIndependent);
+	void compareFinalPair(int seatIndex, TcpPair const& beforeLive, TcpPair const& afterLive,
+		bool livePrincipalProxy, std::optional<int> secondaryIndependent);
 	bool validSeatFinalPair(TcpPair const& pair) const;
 	void recordSeatFinalPair(int seatIndex, TcpPair const& pair);
 	bool hasNationalsVotesToRestore(int seatIndex) const;

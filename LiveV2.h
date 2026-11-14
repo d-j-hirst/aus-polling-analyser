@@ -165,7 +165,17 @@ public:
   std::optional<LivePartialCount::Evidence> preferenceEvidence;
   // A compatible Labor/Coalition count from before a pairing change. It can
   // constrain TPP while the currently published pair owns the TCP account.
-  std::optional<LiveInputRecovery::PreferenceCohort> retainedClassic;
+  struct RetainedClassicCount {
+    LivePartialCount::TcpBasis basis;
+    std::string observedAt;
+    // Calculated once using neutral rates. The endpoints are independent of
+    // those rates and supply the guaranteed count used by turnout.
+    std::optional<LivePartialCount::RevisedTcp> fpRevisionBounds;
+    // The transfer rate observed in this pair's own FP/TCP account, used
+    // to estimate preferences in later batches for the same pair.
+    std::optional<LivePartialCount::Evidence> preferenceEvidence;
+  };
+  std::optional<RetainedClassicCount> retainedClassic;
   std::optional<LivePartialCount::TcpBasis> tcpBasis;
   bool hasTcpRevision() const {
     if (!tcpBasis || tcpBasis->tcp != node.tcpVotesCurrent || tcpBasis->fp == node.fpVotesCurrent ||
@@ -181,6 +191,13 @@ public:
       : std::map<int,double>(node.tcpVotesCurrent.begin(),node.tcpVotesCurrent.end());
   }
   LivePartialCount::Counts const& tppCount(int natPartyIndex) const;
+  LivePartialCount::Counts const& tppPreferencePrimaries() const;
+  std::optional<LivePartialCount::Evidence> const& tppPreferenceEvidence() const {
+    return retainedClassic ? retainedClassic->preferenceEvidence : preferenceEvidence;
+  }
+  bool hasTppRevision() const {
+    return retainedClassic ? retainedClassic->fpRevisionBounds.has_value() : hasTcpRevision();
+  }
   std::map<int,double> tppLowerBounds(int natPartyIndex) const;
   // Scratch shares of genuinely new voters, with raw ballot identities. FP
   // and pair preparation consume the same composition; preparation samples
@@ -234,6 +251,10 @@ public:
   // Highest-polling live Independent, which can differ from the candidate
   // matched to the prominent Independent in the baseline projection.
   int liveIndependentPartyIndex = InvalidPartyIndex;
+  // Largest other independent with counted FP, kept in commission-candidate
+  // units until the ranking count has selected the finalists.
+  std::optional<int> secondaryIndependent;
+  bool namedIndependentMatches = true;
 
   std::map<int, double> finalSpecificFpDeviations; // deviations taking into account change in voter categories
   std::optional<double> finalSpecificTppDeviation; // deviations taking into account change in voter categories
@@ -538,6 +559,7 @@ public:
   std::optional<LiveData::AggregateVoteTotals> getSeatAggregateVoteTotals(
     std::string const& seatName) const override;
   LiveData::FinalSeatResult const* getFinalSeatResult(std::string const& seatName) const override;
+  PreferenceModel::PreparedCountObservation const* getPreferenceCountObservation(int district) const override;
 
   // Expose some internals for diagnostics/analysis
   std::optional<LiveData::CountProgress> getCountProgress() const override { return countProgress; }
@@ -737,6 +759,8 @@ private:
     LiveInputRecovery::PreferenceHistories const& history);
   std::optional<LivePartialCount::RevisedTcp> revisedBoothTcp(Booth const& booth,
     int first, int second, double variation = 0) const;
+  std::optional<LivePartialCount::RevisedTcp> revisedBoothTpp(Booth const& booth,
+    double variation = 0) const;
   std::optional<LiveTppIntegration::ReceivedTpp> receivedBoothTpp(Booth const& booth) const;
   std::map<int,double> projectDeclarationTpp(int boothIndex);
   bool usesUnmatchedFpTpp(Booth const& booth) const;
@@ -745,6 +769,8 @@ private:
     Results2::Election const& currentElection, LiveInputRecovery::PairPreferenceHistory const& history);
   void preparePreferenceLearning(Results2::Election const& previousElection,
     Results2::Election const& currentElection, LiveInputRecovery::PairPreferenceHistory const& history);
+  void preparePreferenceCountObservations(Results2::Election const& previousElection,
+    Results2::Election const& currentElection);
   int coalitionFinalist(Booth const& booth) const;
   double futurePreferenceOffset(Booth const& booth, int first, int second) const;
 
@@ -987,6 +1013,8 @@ private:
   using LearnedDistrict = std::map<PreferenceModel::Pair,LearnedPair>;
   std::shared_ptr<std::vector<LearnedDistrict> const> learnedPreferences;
   std::shared_ptr<nlohmann::json const> preferenceLearningDiagnostic;
+  std::shared_ptr<std::map<int, PreferenceModel::PreparedCountObservation> const> preferenceCountObservations;
+  std::shared_ptr<nlohmann::json const> preferenceCountDiagnostic;
   std::optional<LiveData::CountProgress> countProgress;
   bool hasFinalResults = false; // Fast absent-result check in ordinary live iterations.
   // One immutable ordinary-based prior per declaration service. Scenarios
@@ -1004,7 +1032,7 @@ private:
   };
   struct PreferenceCorrectionPreparation {
     std::vector<PreferenceCorrectionSeat> seats;
-    std::vector<std::map<int, double>> countedTpp, countedTcp;
+    std::vector<std::map<int, double>> countedTcp;
   };
   // Raw counts and prepared distributions are immutable and shared. Revised
   // FP/TCP/TPP accounts belong to one scenario. The final finite-account handoff

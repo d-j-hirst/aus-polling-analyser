@@ -27,6 +27,22 @@ inline double value(std::map<int,double> const& values, int id) {
     return it == values.end() ? 0 : it->second;
 }
 
+// Subdivide an already integrated group for the ranking count. Give the
+// named candidate their counted FP, then their projected share of the
+// group's outstanding votes. The group's size is the original simulation
+// draw in percent of district FP. Neither the district's other candidates
+// nor its estimated turnout needs to be recalculated for this subdivision.
+inline double splitCountedCandidate(double groupShare, double totalProjected,
+	double groupCounted, double groupProjected, double candidateCounted, double candidateProjected) {
+	if (groupShare <= 0 || totalProjected <= 0 || candidateCounted <= 0) return 0;
+	double const groupRemaining = std::max(0.0, groupProjected - groupCounted);
+	double const candidateRemaining = std::max(0.0, candidateProjected - candidateCounted);
+	double const futureFraction = groupRemaining > 0 ? std::min(1.0, candidateRemaining / groupRemaining) : 0.0;
+	double const fixedShare = (candidateCounted / totalProjected) * 100.0;
+	double const uncountedShare = std::max(0.0, groupShare - (groupCounted / totalProjected) * 100.0);
+	return std::min(groupShare, fixedShare + uncountedShare * futureFraction);
+}
+
 // Missing candidates in an iteration are genuine zeros. Keep their implicit
 // observations too; otherwise a rarely emerging candidate would incorrectly
 // acquire the variance of only the iterations in which it was present.

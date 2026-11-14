@@ -11,6 +11,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -19,6 +20,52 @@ namespace PreferenceModel {
 using Shares = std::map<int, double>;
 using Pair = std::array<int, 2>;
 using ConfiguredFlows = std::map<int, std::map<std::pair<int, int>, float>>;
+
+// When the Greens or another third candidate is removed from the three-way
+// count, these fractions describe how its primary and inherited ballots
+// rank Labor over the Coalition. Only the expected flows are supplied here.
+struct ThreeCandidateTppPrior {
+	double primaryToLabor, inheritedToLabor;
+};
+
+// A current-election administrative count. Fractions describe only the
+// redistributed ballots. The optional first preferences identify the pool
+// which was actually sorted, for example Greens and one independent.
+struct CountObservation {
+	std::string district, availableAt, sample, source;
+	int ballots;
+	std::map<std::string, double> flows;
+	std::map<std::string, int> firstPreferences;
+	double additionalSd;
+	std::map<std::string, int> candidateTotals; // Complete 3CP tallies on the sampled ballots.
+	std::map<std::string, int> candidateFirstPreferences;
+	std::optional<ThreeCandidateTppPrior> tppPrior;
+};
+
+// Read all revisions and choose one per district as of a particular feed.
+// The cutoff is an ISO timestamp in the source's clock or with an explicit
+// offset. Input observations always specify their UTC offset explicitly.
+std::map<std::string, CountObservation> loadCountObservations(std::istream& input,
+	std::string_view cutoff, std::string_view jurisdiction);
+
+// Preparation resolves the observation's candidate names to the same IDs
+// that the count uses. Simulation draws borrow this immutable evidence.
+struct PreparedCountObservation {
+	Shares flows, firstPreferences;
+	double variance;
+	Shares candidateTotals{}; // Empty for observations covering only selected donors.
+	Shares candidateFirstPreferences{};
+	double ballots = 0.0, outsideFlowSd = 0.0;
+	std::optional<ThreeCandidateTppPrior> tppPrior{};
+};
+
+// The district's simulated formal turnout makes the published sample and
+// drawn FP shares comparable. Counted classic TPP takes precedence over an
+// estimate based on the sample, including when the count is still partial.
+struct ThreeCandidateCountContext {
+	double finalFormalVotes;
+	bool hasCountedTpp;
+};
 
 // Higher consistency makes the generic rankings more responsive to distance
 // on the configured political scale. Use the same weights for a forecast
@@ -70,6 +117,12 @@ struct Source {
 	int ideology;
 	double proximityBase;
 	double classicRate; // fraction of the original source ranking Labor above Coalition
+	// Identifies an additional independent by their live ballot ID. The two
+	// regular independent slots already carry this affiliation through Roles.
+	bool additionalIndependent = false;
+	// Confirms that a regular independent slot represents a distinct person
+	// on the current ballot, including a principal using the emerging slot.
+	bool confirmedIndependent = false;
 };
 
 struct PairResult {
@@ -106,6 +159,11 @@ struct CountResult {
 	double laborTpp = 0.0;
 	std::string issue;
 	std::vector<FinalSource> finalSources;
+	bool conditionedOnLiveSample = false;
+	// Mean transfers can be checked against the observed split in the live log.
+	// An empty map identifies draws using the ordinary ranking count.
+	Shares jointThreeCandidateFlows;
+	bool jointThreeCandidateIncompatible = false;
 };
 
 // Each sensitivity count changes one assumption for the same district draw.
@@ -130,7 +188,8 @@ public:
 	// resolved project IDs and roster, with errors reported during preparation.
 	// configuredFlows are the project's legacy pair means in percentage units.
 	static std::optional<Model> load(std::istream& input, Roles roles,
-		std::span<District const> districts, ConfiguredFlows const& configuredFlows);
+		std::span<District const> districts, ConfiguredFlows const& configuredFlows,
+		std::map<std::string, int> const& partyCodes = {});
 
 	struct ElectionDraw {
 		std::uint64_t seed = 0;
@@ -142,13 +201,21 @@ public:
 	ElectionDraw drawElection(std::uint64_t seed) const;
 	CountResult count(int district, std::span<Source const> sources,
 		double laborTpp, double nationalIncoming, ElectionDraw const& election,
-		Sensitivity sensitivity = Sensitivity::None, bool reportFinalSources = false) const;
+		Sensitivity sensitivity = Sensitivity::None, bool reportFinalSources = false,
+		bool namedIndependentMatches = true, PreparedCountObservation const* observation = nullptr,
+		std::optional<ThreeCandidateCountContext> countContext = {}) const;
 	// Expected original-source rates from the same ranking profiles, using
 	// the supplied district primaries and pre-count classic flow assumptions.
-	Shares referencePairRates(int district, std::span<Source const> sources, Pair pair) const;
+	// Each source's fractions are returned in the order of the supplied survivors.
+	std::map<int, std::vector<double>> referenceTransferRates(int district, std::span<Source const> sources,
+		std::span<int const> survivors, bool namedIndependentMatches = true) const;
+	Shares referencePairRates(int district, std::span<Source const> sources, Pair pair,
+		bool namedIndependentMatches = true) const;
 	bool learnsPair(Pair pair) const;
 	SensitivityTests const& sensitivityTests(int district) const;
 	bool isActive() const { return active; }
+	bool isLiveTrial() const { return liveTrial; }
+	bool coversDistrict(int district) const { return !liveTrial || contexts.at(static_cast<std::size_t>(district)).liveTrial; }
 	std::string const& version() const { return modelVersion; }
 	Roles const& partyRoles() const { return roles; }
 
@@ -166,13 +233,23 @@ private:
 		Nodes electionConcentration{};
 		Nodes districtConcentration{};
 	};
+	struct HistoricalTransfer {
+		// Counts of ballots transferred at one exclusion. Some ballots may
+		// have started with candidates excluded in earlier rounds.
+		std::vector<std::pair<int, int>> destinations;
+		int originalVotes, inheritedVotes;
+		double weight;
+		bool usesNamedIndependent;
+	};
 	struct Context {
 		Advice advice = Advice::Unknown;
 		double liberalOneNationLastWeight = 0.0;
 		bool highIndependentFlow = false;
 		bool namedIndependent = false;
 		bool rightIndependent = false;
+		bool liveTrial = false;
 		SensitivityTests sensitivity;
+		std::map<int, HistoricalTransfer> historicalTransfers;
 	};
 
 	struct SourceProfile {
@@ -183,22 +260,39 @@ private:
 	};
 	std::vector<SourceProfile> buildSourceProfiles(int district, std::span<Source const> ballot,
 		Shares const& primaries, double leakageVotes, bool dual, bool classicAvailable,
-		Shares const& classicRates, ElectionDraw const& election, Sensitivity sensitivity) const;
+		Shares const& classicRates, ElectionDraw const& election, Sensitivity sensitivity,
+		bool namedIndependentMatches, std::optional<std::uint64_t> localSeed = {},
+		std::optional<int> onlySource = {}) const;
+	std::vector<SourceProfile> conditionOnCountObservation(std::vector<SourceProfile> profiles,
+		PreparedCountObservation const& observation, int district, std::span<Source const> ballot,
+		Shares const& primaries, double leakageVotes, bool dual, bool classicAvailable,
+		Shares const& classicRates, double nationalIncoming, ElectionDraw const& election,
+		Sensitivity sensitivity, bool namedIndependentMatches, bool& usedSample) const;
+	std::optional<CountResult> countWithThreeCandidateTotals(PreparedCountObservation const& observation,
+		ThreeCandidateCountContext context, int district, std::span<Source const> ballot,
+		Shares const& primaries, std::vector<int> candidates, double laborTpp,
+		bool dual, double leakageVotes, double nationalIncoming, ElectionDraw const& election,
+		bool namedIndependentMatches) const;
+	void applyHistoricalTransfer(std::vector<Ranking>& rankings, Shares const& weights, int district,
+		int source, int independent, Shares const& primaries, ElectionDraw const& election,
+		bool namedIndependentMatches, std::uint64_t localSeed) const;
+	bool isIndependent(Source const& source) const;
 
 	Nodes drawNodes(ProfileIndex profile, double primary, std::optional<double> classicRate,
-		int district, ElectionDraw const& election) const;
+		int district, ElectionDraw const& election, std::uint64_t localSeed) const;
 	std::vector<Ranking> coreRankings(Source const& source, int coalition,
 		std::optional<double> classicRate, int district, ElectionDraw const& election,
-		double laborToGreensReduction) const;
+		double laborToGreensReduction, std::uint64_t localSeed) const;
 	double sampleFallback(double mean, int district, int source, int branch,
-		ElectionDraw const& election, std::optional<double> districtConcentration = {}) const;
+		ElectionDraw const& election, std::uint64_t localSeed, std::optional<double> districtConcentration = {}) const;
 	double recipientWeight(Source const& source, Source const& recipient,
-		int district, ElectionDraw const& election) const;
+		int district, ElectionDraw const& election, std::uint64_t localSeed) const;
 
 	Roles roles{};
 	std::string modelVersion;
 	std::uint64_t versionKey = 0;
 	bool active = false;
+	bool liveTrial = false;
 	bool sampleUncertainty = true;
 	double unknownLiberalLaborFirst = 0.5;
 	double genericElectionConcentration = 24.0;
@@ -246,6 +340,10 @@ struct Summary {
 		CountResult result;
 	};
 	std::uint64_t official = 0, compared = 0, infeasible = 0, invalid = 0;
+	std::uint64_t conditionedOnLiveSample = 0;
+	std::uint64_t jointThreeCandidateDraws = 0;
+	std::uint64_t jointThreeCandidateIncompatible = 0;
+	Shares jointThreeCandidateFlowSums;
 	std::uint64_t changedPair = 0, changedWinner = 0, changedWinnerWithLiveEvidence = 0;
 	std::uint64_t livePairMatches = 0, classicPairs = 0, samePair = 0;
 	double samePairAbsoluteChange = 0.0, samePairLiveAbsoluteChange = 0.0;

@@ -8,6 +8,7 @@
 
 #include "CountProgress.h"
 #include "LiveSimulationMath.h"
+#include "LiveFpIntegration.h"
 #include "IndependentCandidacy.h"
 #include "CoalitionCandidacy.h"
 #include "CoalitionPairing.h"
@@ -580,6 +581,7 @@ int SimulationIteration::runIteration()
 	std::lock_guard<std::mutex> lock(recordMutex);
 	recordIterationResults();
 	for (std::size_t seat = 0; seat < preferenceComparisons.size(); ++seat) {
+		if (!run.preferenceModel->coversDistrict(static_cast<int>(seat))) continue;
 		auto& summary = recordedRun.preferenceCountSummaries[seat];
 		auto const& preferenceCount = preferenceComparisons[seat];
 		if (run.preferenceModel->isActive()) summary.recordCount(preferenceCount.model, iterationIndex);
@@ -2296,7 +2298,8 @@ SimulationIteration::allocateMajorPartyFp(
 	double currentExhaustDenominator = 0.0;
 	std::map<int, double> preferenceVariation; // in minor -> major preferences, after transformation
 	std::map<int, double> exhaustVariation;
-	auto* comparisonRates = run.preferenceModel ? &preferenceSourceRates[seatIndex] : nullptr;
+	auto* comparisonRates = run.preferenceModel && run.preferenceModel->coversDistrict(seatIndex)
+		? &preferenceSourceRates[seatIndex] : nullptr;
 	if (comparisonRates) comparisonRates->clear();
 
 	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
@@ -3875,7 +3878,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	if (run.isLiveAutomatic()) {
 		auto final = liveElection->getFinalSeatResult(seat.name);
 		if (final) {
-			if (run.preferenceModel) {
+			if (run.preferenceModel && run.preferenceModel->coversDistrict(seatIndex)) {
 				preferenceComparisons[seatIndex].model.status = PreferenceModel::Status::FinalOfficial;
 			}
 			// Final TCP fixes both the pairing and winner. Re-running exclusions could
@@ -3945,11 +3948,23 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			mergedIndependent = emergingBefore - getAt(seatFpVoteShare[seatIndex], EmergingIndIndex, 0.0);
 		}
 	}
-	if (run.preferenceModel) {
-		countSeatPreferences(seatIndex, mergedIndependent);
+	std::optional<int> secondaryIndependent;
+	if (run.preferenceModel && run.preferenceModel->coversDistrict(seatIndex)) {
+		auto const* information = liveElection && run.isLiveAutomatic()
+			? liveElection->getSeatFpIntegrationInformation(seat.name) : nullptr;
+		if (information) secondaryIndependent = information->secondaryIndependent;
+		countSeatPreferences(seatIndex, mergedIndependent, secondaryIndependent,
+			!information || information->namedIndependentMatches);
 		if (run.preferenceModel->isActive()) {
-			auto rankingPair = integrateRankingFinalPair(seatIndex, livePrincipalProxy);
+			auto rankingPair = integrateRankingFinalPair(seatIndex, livePrincipalProxy, secondaryIndependent);
 			if (rankingPair) {
+				auto const& count = preferenceComparisons[seatIndex].model;
+				if (!count.jointThreeCandidateFlows.empty()
+					&& count.laborTpp != (partyOneNewTppMargin[seatIndex] + 50.0) * 0.01) {
+					// The same three-way ballot account supplied this pair and
+					// the classic TPP. Record it for the seat and election totals.
+					partyOneNewTppMargin[seatIndex] = 100.0 * count.laborTpp - 50.0;
+				}
 				// The ranking account splits the Coalition on a private copy.
 				// Restore the same Liberal and National primaries for the report.
 				if (hasNationalsVotesToRestore(seatIndex)) assignNationalsVotes(seatIndex);
@@ -4354,7 +4369,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	}
 	integrateLiveTcpPair(seatIndex, topTwo, livePrincipalProxy);
 	if (!validSeatFinalPair(topTwo)) throw InvalidIteration();
-	if (beforeLive) compareFinalPair(seatIndex, *beforeLive, topTwo, livePrincipalProxy);
+	if (beforeLive) compareFinalPair(seatIndex, *beforeLive, topTwo, livePrincipalProxy, secondaryIndependent);
 	recordSeatFinalPair(seatIndex, topTwo);
 }
 
@@ -4385,7 +4400,8 @@ void SimulationIteration::recordSeatFinalPair(int seatIndex, TcpPair const& pair
 	if (run.isLive()) applyLiveManualOverrides(seatIndex);
 }
 
-bool SimulationIteration::integrateLiveTcpPair(int seatIndex, TcpPair& topTwo, bool livePrincipalProxy) const
+bool SimulationIteration::integrateLiveTcpPair(int seatIndex, TcpPair& topTwo, bool livePrincipalProxy,
+	std::optional<int> secondaryIndependent) const
 {
 	// Labor versus either Coalition candidate already uses the prepared TPP
 	// estimate above. Every other final pair uses the matching live TCP estimate
@@ -4402,10 +4418,14 @@ bool SimulationIteration::integrateLiveTcpPair(int seatIndex, TcpPair& topTwo, b
 	if (run.isLiveAutomatic() && !classicTppPair) {
 		auto const& seatName = run.seatLookup.seat(seatIndex).name;
 		auto tcpInfo = liveElection->getSeatTcpInformation(seatName);
-		// The principal independent's proxy carries the same live identity.
-		if (livePrincipalProxy && tcpInfo.shares.contains(run.indPartyIndex)) {
-			tcpInfo.shares[EmergingIndIndex] = tcpInfo.shares.at(run.indPartyIndex);
-			tcpInfo.shares.erase(run.indPartyIndex);
+		// Match the emerging report slot to the candidate who used it in
+		// this count. With two observed independents the principal uses the
+		// regular IND slot and the second uses the emerging slot.
+		std::optional<int> emergingCandidate = secondaryIndependent;
+		if (!emergingCandidate && livePrincipalProxy) emergingCandidate = run.indPartyIndex;
+		if (emergingCandidate && tcpInfo.shares.contains(*emergingCandidate)) {
+			tcpInfo.shares[EmergingIndIndex] = tcpInfo.shares.at(*emergingCandidate);
+			tcpInfo.shares.erase(*emergingCandidate);
 		}
 		if (tcpInfo.shares.contains(topTwo.first.first) && tcpInfo.shares.contains(topTwo.second.first)) {
 			double liveShare = tcpInfo.shares.at(topTwo.first.first);
@@ -4440,7 +4460,7 @@ bool SimulationIteration::integrateLiveTcpPair(int seatIndex, TcpPair& topTwo, b
 		auto account = liveElection->getSeatVoteCountAccount(seatName, LiveData::CountKind::Tcp);
 		if (account) {
 			auto partition = LiveTurnoutMath::partitionAccount(*account, [&](int party) {
-				return livePrincipalProxy && party == run.indPartyIndex ? EmergingIndIndex : party;
+				return party == emergingCandidate ? EmergingIndIndex : party;
 			});
 			// The measured account constrains this published pair only. Do not
 			// fabricate counted preference totals for a different finalist pair.
@@ -4461,13 +4481,69 @@ bool SimulationIteration::integrateLiveTcpPair(int seatIndex, TcpPair& topTwo, b
 	return evidenceApplied;
 }
 
+// The live FP update works with grouped vote shares. On the private ranking
+// ballot, restore the second independent from that group using their own
+// counted votes and projected share of outstanding Others votes. Keep the
+// same total FP in the group and leave the public FP account unchanged.
+bool SimulationIteration::splitRankingIndependent(std::string const& seatName, int secondary,
+	std::map<int,double>& shares) const
+{
+	auto account = liveElection->getSeatVoteCountAccount(seatName, LiveData::CountKind::Fp);
+	if (!account) return false;
+	double const counted = getAt(*account->counted, secondary, 0.0);
+	if (counted <= 0) return false;
+	int const partyCount = project.parties().count();
+	auto isGrouped = [&](int party) { return party < 0 || party >= partyCount; };
+	double totalProjected = 0, groupProjected = 0, groupCounted = 0;
+	for (auto const& [party, votes] : *account->projected) {
+		totalProjected += votes;
+		if (isGrouped(party)) groupProjected += votes;
+	}
+	for (auto const& [party, votes] : *account->counted) {
+		if (isGrouped(party)) groupCounted += votes;
+	}
+
+	// With a principal independent, the pre-election emerging slot and Others
+	// both belong to the live pool. Once there is a distinct second candidate,
+	// use their votes and give any residual anonymous independent share to
+	// Others, so the same campaign cannot have two places in the count.
+	bool const namedPrincipal = getAt(shares, run.indPartyIndex, 0.0) > LiveSimulationMath::EvidenceEpsilon;
+	double others = getAt(shares, OthersIndex, 0.0);
+	if (namedPrincipal) others += getAt(shares, EmergingIndIndex, 0.0);
+	double const emergingParty = getAt(shares, EmergingPartyIndex, 0.0);
+	double const groupShare = others + emergingParty;
+	double const split = LiveFpIntegration::splitCountedCandidate(groupShare, totalProjected,
+		groupCounted, groupProjected, counted, getAt(*account->projected, secondary, counted));
+	if (split <= 0) return false;
+	double const retained = 1.0 - split / groupShare;
+	shares[OthersIndex] = others * retained;
+	if (shares.contains(EmergingPartyIndex)) shares[EmergingPartyIndex] = emergingParty * retained;
+	if (namedPrincipal) shares.erase(EmergingIndIndex);
+	shares[secondary] = split;
+	return true;
+}
+
 // Count the district's projected ballot under the ranking model. In compare
 // mode, selected pre-election districts also get alternative counts of the
 // same ballot to measure the effect of changing one preference assumption.
-void SimulationIteration::countSeatPreferences(int seatIndex, double mergedIndependent)
+void SimulationIteration::countSeatPreferences(int seatIndex, double mergedIndependent,
+	std::optional<int>& secondaryIndependent, bool namedIndependentMatches)
 {
 	auto& comparison = preferenceComparisons[seatIndex];
 	auto const& model = *run.preferenceModel;
+	auto const* observation = run.isLiveAutomatic()
+		? liveElection->getPreferenceCountObservation(seatIndex) : nullptr;
+	std::optional<PreferenceModel::ThreeCandidateCountContext> countContext;
+	if (observation && !observation->candidateTotals.empty() && model.isActive()) {
+		auto const& name = run.seatLookup.seat(seatIndex).name;
+		auto totals = liveElection->getSeatAggregateVoteTotals(name);
+		auto tpp = liveElection->getSeatVoteCountAccount(name, LiveData::CountKind::Tpp);
+		// The TPP account contains only accepted measured votes in its counted
+		// half. TPP inferred from FP cannot overrule a three-way observation.
+		bool const hasCountedTpp = tpp && std::any_of(tpp->counted->begin(), tpp->counted->end(),
+			[](auto const& row) { return row.second > 0.0; });
+		if (totals) countContext = PreferenceModel::ThreeCandidateCountContext{totals->fp, hasCountedTpp};
+	}
 	double const laborTpp = (partyOneNewTppMargin[seatIndex] + 50.0) * 0.01;
 	comparison.model.laborTpp = laborTpp;
 	if (!preferenceElection) {
@@ -4480,6 +4556,9 @@ void SimulationIteration::countSeatPreferences(int seatIndex, double mergedIndep
 		// the Coalition vote using the split already drawn for this seat.
 		// A single Liberal account needs no split.
 		auto shares = seatFpVoteShare[seatIndex];
+		double const originalOthers = getAt(shares, OthersIndex, 0.0);
+		if (secondaryIndependent && !splitRankingIndependent(run.seatLookup.seat(seatIndex).name,
+			*secondaryIndependent, shares)) secondaryIndependent.reset();
 		auto const& roles = model.partyRoles();
 		double nationalIncoming = 0.5;
 		if (roles.national) {
@@ -4503,24 +4582,31 @@ void SimulationIteration::countSeatPreferences(int seatIndex, double mergedIndep
 		};
 		double const othersRate = savedRate(OthersIndex).value_or(getAt(overallPreferenceFlow, OthersIndex, 50.0) * 0.01);
 		auto const liveIndependentRate = savedRate(EmergingIndIndex).value_or(othersRate);
+		double const groupedOthersRate = mergedIndependent > 0.0 && originalOthers > 0.0
+			? std::lerp(othersRate, liveIndependentRate, mergedIndependent / originalOthers) : othersRate;
+		int const principal = getAt(shares, run.indPartyIndex, 0.0) > LiveSimulationMath::EvidenceEpsilon
+			? run.indPartyIndex : EmergingIndIndex;
+		bool const twoConfiguredIndependents = run.indCount[seatIndex] >= 2;
 		std::vector<PreferenceModel::Source> sources;
 		sources.reserve(shares.size() + 3);
 		// Zero-primary core roles can still define a fitted ranking, even
 		// when the actual ballot only contains a subset of those recipients.
 		for (int const party : {roles.labor, roles.greens, roles.oneNation}) shares.try_emplace(party, 0.0);
 		for (auto const& [party, primary] : shares) {
+			bool const secondary = party == secondaryIndependent;
 			double rate = savedRate(party).value_or(party == run.indPartyIndex ? liveIndependentRate : othersRate);
-			if (party == OthersIndex && mergedIndependent > 0.0 && primary > 0.0) {
-				rate = std::lerp(rate, liveIndependentRate, mergedIndependent / primary);
-			}
-			int const consistency = getAt(partyConsistencies, party, 1);
+			if (party == OthersIndex || secondary) rate = groupedOthersRate;
+			bool const confirmedIndependent = (secondaryIndependent && party == principal) ||
+				(twoConfiguredIndependents && (party == run.indPartyIndex || party == EmergingIndIndex));
+			int const consistency = secondary ? 0 : getAt(partyConsistencies, party, 1);
 			double const proximity = PreferenceModel::proximityForConsistency(consistency);
-			sources.push_back({party, primary * 0.01, getAt(partyIdeologies, party, 2), proximity, rate});
+			sources.push_back({party, primary * 0.01, getAt(partyIdeologies, party, 2), proximity, rate,
+				secondary, confirmedIndependent});
 		}
 		auto count = [&](PreferenceModel::Sensitivity sensitivity) {
 			try {
 				return model.count(seatIndex, sources, laborTpp, nationalIncoming, *preferenceElection,
-					sensitivity, run.isLiveAutomatic() && model.isActive());
+					sensitivity, run.isLiveAutomatic() && model.isActive(), namedIndependentMatches, observation, countContext);
 			}
 			catch (std::exception const& error) {
 				PreferenceModel::CountResult failed;
@@ -4530,6 +4616,20 @@ void SimulationIteration::countSeatPreferences(int seatIndex, double mergedIndep
 			}
 		};
 		comparison.model = count(PreferenceModel::Sensitivity::None);
+		if (secondaryIndependent && comparison.model.status == PreferenceModel::Status::Compared) {
+			// The private ballot can distinguish the second independent by ID.
+			// If that candidate survives, use the existing Emerging Independent
+			// report slot, with the same live-count identity as on the ballot.
+			auto& final = comparison.model.final;
+			for (int& party : final.candidates) {
+				if (party == secondaryIndependent) party = EmergingIndIndex;
+				else if (party == EmergingIndIndex) party = run.indPartyIndex;
+			}
+			if (final.candidates[0] > final.candidates[1]) {
+				std::swap(final.candidates[0], final.candidates[1]);
+				final.firstShare = 1.0 - final.firstShare;
+			}
+		}
 		if (model.isActive() || run.isLive() ||
 			comparison.model.status != PreferenceModel::Status::Compared) return;
 
@@ -4554,7 +4654,7 @@ void SimulationIteration::countSeatPreferences(int seatIndex, double mergedIndep
 // the live TCP information for these finalists. Return an empty result and
 // keep the reason for the run log if the ranking cannot supply a usable pair.
 std::optional<SimulationIteration::TcpPair> SimulationIteration::integrateRankingFinalPair(
-	int seatIndex, bool livePrincipalProxy)
+	int seatIndex, bool livePrincipalProxy, std::optional<int> secondaryIndependent)
 {
 	auto& comparison = preferenceComparisons[seatIndex];
 	if (comparison.model.status != PreferenceModel::Status::Compared) return std::nullopt;
@@ -4579,7 +4679,7 @@ std::optional<SimulationIteration::TcpPair> SimulationIteration::integrateRankin
 				return modelPair;
 			}
 		}
-		comparison.modelLivePairMatched = integrateLiveTcpPair(seatIndex, modelPair, livePrincipalProxy);
+		comparison.modelLivePairMatched = integrateLiveTcpPair(seatIndex, modelPair, livePrincipalProxy, secondaryIndependent);
 		if (!validSeatFinalPair(modelPair)) throw std::runtime_error("Invalid ranking TCP after live integration.");
 		return modelPair;
 	}
@@ -4595,7 +4695,7 @@ std::optional<SimulationIteration::TcpPair> SimulationIteration::integrateRankin
 }
 
 void SimulationIteration::compareFinalPair(int seatIndex, TcpPair const& beforeLive,
-	TcpPair const& afterLive, bool livePrincipalProxy)
+	TcpPair const& afterLive, bool livePrincipalProxy, std::optional<int> secondaryIndependent)
 {
 	// Store both counts before and after the common live evidence step.
 	auto toResult = [](TcpPair const& pair) -> PreferenceModel::PairResult {
@@ -4605,7 +4705,7 @@ void SimulationIteration::compareFinalPair(int seatIndex, TcpPair const& beforeL
 	auto& comparison = preferenceComparisons[seatIndex];
 	comparison.legacy = toResult(beforeLive);
 	comparison.legacyWithLiveEvidence = toResult(afterLive);
-	auto rankingPair = integrateRankingFinalPair(seatIndex, livePrincipalProxy);
+	auto rankingPair = integrateRankingFinalPair(seatIndex, livePrincipalProxy, secondaryIndependent);
 	if (rankingPair) comparison.modelWithLiveEvidence = toResult(*rankingPair);
 }
 

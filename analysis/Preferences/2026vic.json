@@ -286,7 +286,11 @@
       "cards_checked": 142,
       "districts_checked": 72,
       "source": "https://www.vec.vic.gov.au/voting/2026-state-election/how-to-vote-cards",
-      "preston": "Cards 611 and 664 put One Nation last. The 0.5 weight assumes that half of the Liberal ballots that would otherwise rank One Nation higher move it below both Labor and the Greens. The card establishes the direction and the weight is uncertain.",
+      "preston": "The VEC registered Liberal cards 611 and 664 on 12 November 2026. Both Legislative Assembly panels rank Nathan Lambert (Labor) fifth, Loki Sangarya (Greens) eighth and Franco Guardiani (One Nation) eleventh and last. The existing 0.5 weight assumes that half of the Liberal ballots that would otherwise rank One Nation higher move it below both Labor and the Greens. The cards establish the direction of the recommendation. The weight is a modelling assumption.",
+      "preston_sources": [
+        "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=1d6a3f0a-5dee-461f-a135-c23f9da491ca%2Fliberal_combined_nmr+preston_2.pdf&settingsItemId=%7BD753655F-845A-4BD0-B3DA-B772208E0B6B%7D",
+        "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=019a1686-89fb-4714-8607-5a7f1948fd1d%2Fliberal_combined_nmr+preston_1.pdf&settingsItemId=%7BD753655F-845A-4BD0-B3DA-B772208E0B6B%7D"
+      ],
       "glen_waverley": "Cards 542 and 694 put One Nation fourth, Labor fifth and the Greens sixth.",
       "glen_waverley_source": "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=478ac3c3-5093-462c-b7f8-b80a5a149fb8%2Fliberal_combined_nemr%20glen%20waverley_1.pdf&settingsItemId=%7B001D8F7A-28BA-45B7-897A-F0A24F37AEC3%7D"
     },

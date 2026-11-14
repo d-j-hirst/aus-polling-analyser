@@ -141,6 +141,35 @@ void checkMappedBoothCounts(bool separateNationals)
     assert(estimated.node.tppSwing);
 }
 
+void checkIndependentRetainedTppAccount()
+{
+    // The new Labor–One Nation scrutiny covers the same booth. Its own FP
+    // revision is distinct from the earlier Labor–Liberal TPP measurement.
+    Results2::Booth current{};
+    current.fpVotes = {{0,400},{1,351},{7,249}};
+    current.tcpVotesCandidate = {{0,600},{7,400}};
+    LiveV2::Booth booth(current,std::nullopt,[](int candidate, bool) { return candidate; },0,-1,true);
+    booth.tcpBasis = LivePartialCount::TcpBasis{
+        {{0,401},{1,350},{7,249}},booth.node.tcpVotesCurrent,{}};
+    booth.preferenceEvidence = LivePartialCount::measure(booth.tcpBasis->fp,booth.tcpBasis->tcp,
+        {{0,1},{1,.6},{7,0}},0,7,true);
+    LivePartialCount::TcpBasis classic{{{0,400},{1,350},{7,250}},{{0,550},{1,440}},{}};
+    auto bounds = LivePartialCount::reviseRetainedTcp(booth.node.fpVotesCurrent,
+        classic,{{0,1},{1,0},{7,.6}},0,0,1);
+    assert(bounds);
+    auto evidence = LivePartialCount::measure(classic.fp,classic.tcp,{{0,1},{1,0},{7,.6}},0,1,true);
+    booth.retainedClassic = LiveV2::Booth::RetainedClassicCount{classic,"earlier",bounds,evidence};
+    assert(booth.hasTcpRevision() && booth.hasTppRevision());
+    assert(booth.tppPreferencePrimaries() == classic.fp);
+    assert(booth.tppCount(-1) == classic.tcp);
+    assert(booth.preferenceEvidence && booth.preferenceEvidence->second == 7);
+    assert(booth.tppPreferenceEvidence() && booth.tppPreferenceEvidence()->second == 1);
+    auto const tpp = booth.tppLowerBounds(-1);
+    auto const tcp = booth.tcpLowerBounds();
+    assert(tpp.at(0) == 549 && tpp.at(1) == 440 && !tpp.contains(7));
+    assert(tcp.at(0) == 599 && tcp.at(7) == 400 && !tcp.contains(1));
+}
+
 }
 
 int main()
@@ -149,5 +178,6 @@ int main()
     checkTinyPrimaryProportions();
     checkMappedBoothCounts(false);
     checkMappedBoothCounts(true);
+    checkIndependentRetainedTppAccount();
     std::cout << "Live reader and booth mapping checks passed.\n";
 }

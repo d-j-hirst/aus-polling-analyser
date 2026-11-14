@@ -107,8 +107,10 @@ Record identifyUnit(Results2::Election const& election, TurnoutModel::Prior cons
     return record;
 }
 
+// Recovery supplies the FP record. The chosen TCP can be that same record's
+// count or an earlier observation for the district's forecast pairing.
 void applyRecord(Results2::Election& election, Results2::Seat& seat, Record const& record,
-    std::optional<std::set<int>> const& publishedEcsaPair) {
+    Count const* modellingTcp) {
     auto type = record.role == "declaration" ? declarationType(record.name) : VoteType::Ordinary;
     Results2::Booth* booth = nullptr;
     if (record.role != "declaration") for (int id : seat.booths)
@@ -123,21 +125,57 @@ void applyRecord(Results2::Election& election, Results2::Seat& seat, Record cons
         seat.fpVotes[candidate][type] += count;
         if (booth) booth->fpVotes[candidate] = count;
     }
-    // ECSA publishes the indicative pair at district level. Recovery may
-    // restore earlier booth counts during a switch or withdrawal. Keep these
-    // as separate historical measurements, even when their totals are positive.
-    bool const retiredPair = publishedEcsaPair && record.tcp.votes &&
-        (publishedEcsaPair->size() != 2 ||
-            std::any_of(record.tcp.votes->begin(), record.tcp.votes->end(),
-                [&](auto const& row) { return !publishedEcsaPair->contains(row.first); }));
-    if (record.tcp.votes && !retiredPair) for (auto const& [candidate,count] : *record.tcp.votes) {
+    if (modellingTcp && modellingTcp->votes) for (auto const& [candidate,count] : *modellingTcp->votes) {
         int party = election.candidates.at(candidate).party;
         seat.tcpVotesCandidate[candidate][type] += count;
         seat.tcpVotes[party][type] += count;
         if (booth) { booth->tcpVotesCandidate[candidate] = count; booth->tcpVotes[party] += count; }
     }
-    auto const tcpStatus = retiredPair ? CountMetadata{} : record.tcp.metadata();
+    auto const tcpStatus = modellingTcp ? modellingTcp->metadata() : CountMetadata{};
     election.liveCountStatus[seat.name + "/" + record.role + "/" + record.name] = {record.fp.metadata(),tcpStatus};
+}
+
+bool matchesPair(Counts const& counts, std::set<int> const& pair) {
+    return counts.size() == 2 && pair.size() == 2 &&
+        std::all_of(counts.begin(),counts.end(),[&](auto const& row) { return pair.contains(row.first); });
+}
+
+bool isEcsa(Results2::Election const& election) {
+    return election.termCode.size() == 6 && election.termCode.ends_with("sa");
+}
+
+std::set<int> publishedPair(Results2::Seat const& seat, bool requirePositive = false) {
+    std::set<int> pair;
+    bool hasVotes = false;
+    for (auto const& [candidate,counts] : seat.tcpVotesCandidate) {
+        pair.insert(candidate);
+        hasVotes = hasVotes || std::any_of(counts.begin(),counts.end(),
+            [](auto const& row) { return row.second > 0; });
+    }
+    if (requirePositive && !hasVotes) return {};
+    return pair;
+}
+
+std::map<std::string,Record> ecsaHandoverCounts(Results2::Election const& source,
+    Snapshot const& effective, std::filesystem::path const& historyFolder) {
+    if (historyFolder.empty()) return {};
+    // Decide once for the whole district. A zero placeholder or a source
+    // count rejected by recovery does not begin a new TCP count in the
+    // forecast. A single accepted positive account for the published pair
+    // ends the handover for every booth, including booths still awaiting TCP.
+    std::map<std::string,std::set<int>> published;
+    for (auto const& [id,seat] : source.seats)
+        if (!seat.finalResult) published.emplace(seat.name,publishedPair(seat,true));
+    std::set<std::string> hasFp, hasPublishedTcp;
+    for (auto const& record : effective.records) {
+        auto pair = published.find(record.district);
+        if (pair == published.end() || record.closed) continue;
+        if (total(record.fp.votes) > 0) hasFp.insert(record.district);
+        if (record.tcp.votes && total(record.tcp.votes) > 0 && matchesPair(*record.tcp.votes,pair->second))
+            hasPublishedTcp.insert(record.district);
+    }
+    for (auto const& district : hasPublishedTcp) hasFp.erase(district);
+    return loadTcpHandoverCounts(historyFolder,effective,hasFp);
 }
 
 void validateElectionIdentity(Results2::Election const& election, TurnoutModelIO::Artifact const& artifact) {
@@ -217,23 +255,23 @@ LiveData::CountProgress reportedCountProgress(Results2::Election const& source, 
     // independents or different candidates from the same party.
     std::map<std::string,std::set<int>> publishedPairs;
     std::set<std::string> finalDistricts;
+    bool const ecsa = isEcsa(source);
     for (auto const& [id,seat] : source.seats) {
         if (seat.finalResult) finalDistricts.insert(seat.name);
-        for (auto const& [candidate,counts] : seat.tcpVotesCandidate)
-            publishedPairs[seat.name].insert(candidate);
+        // SA's explicit zero reset can retain the same names. Recovered
+        // positive counts for those names are modelling evidence only.
+        publishedPairs.emplace(seat.name,publishedPair(seat,ecsa));
     }
     LiveData::CountProgress result;
     for (auto const& record : effective.records) {
         if (finalDistricts.contains(record.district)) continue;
         if (record.fp.votes) result.fpVotes += total(*record.fp.votes);
-        if (!record.tcp.votes || record.tcp.votes->size() != 2) continue;
+        if (!record.tcp.votes) continue;
         auto pair = publishedPairs.find(record.district);
         // A missing or ambiguous source pairing is not evidence that the old
         // count remains current. Wait for an identifiable published pair.
-        if (pair == publishedPairs.end() || pair->second.size() != 2) continue;
-        bool samePair = std::all_of(record.tcp.votes->begin(),record.tcp.votes->end(),
-            [&](auto const& row) { return pair->second.contains(row.first); });
-        if (samePair) result.tcpVotes += total(*record.tcp.votes);
+        if (pair != publishedPairs.end() && matchesPair(*record.tcp.votes,pair->second))
+            result.tcpVotes += total(*record.tcp.votes);
     }
     for (auto const& [id,seat] : source.seats) if (seat.finalResult) {
         for (auto const& [c,v] : seat.finalResult->fp) result.fpVotes += v;
@@ -242,36 +280,51 @@ LiveData::CountProgress reportedCountProgress(Results2::Election const& source, 
     return result;
 }
 
-void apply(Results2::Election& election, Snapshot const& effective) {
+std::map<std::string,Record> apply(Results2::Election& election, Snapshot const& effective,
+    std::filesystem::path const& historyFolder) {
     election.reportedCountProgress = reportedCountProgress(election,effective);
-    // All seat summaries are rebuilt from the same effective records as the
-    // booths. Progressive summary totals never override restored constituents;
-    // explicitly final district accounts remain separate and authoritative.
+    // Rebuild district and booth summaries together. During an SA handover,
+    // the forecast TCP comes from history and the reported progress above
+    // still describes the published pair. Final district summaries retain
+    // their own authority.
     election.sourceTime = effective.sourceTime;
-    bool const ecsa = election.termCode.size() == 6 && election.termCode.ends_with("sa");
+    bool const ecsa = isEcsa(election);
+    std::map<std::string,Record> handover;
+    if (ecsa) handover = ecsaHandoverCounts(election,effective,historyFolder);
+    std::set<std::string> handoverDistricts;
+    for (auto const& [key,record] : handover) handoverDistricts.insert(record.district);
     for (auto& [id,seat] : election.seats) {
         auto district = effective.districts.find(seat.name);
         if (district == effective.districts.end()) continue;
         // Read the published candidate IDs before rebuilding the district from
         // booth and declaration records, which can still include the old pair.
-        std::optional<std::set<int>> publishedEcsaPair;
-        if (ecsa) {
-            publishedEcsaPair.emplace();
-            for (auto const& [candidate,counts] : seat.tcpVotesCandidate)
-                publishedEcsaPair->insert(candidate);
-        }
+        auto const pair = ecsa ? publishedPair(seat) : std::set<int>{};
+        auto const countedPair = ecsa ? publishedPair(seat,true) : std::set<int>{};
         seat.fpVotes.clear(); seat.tcpVotes.clear(); seat.tcpVotesCandidate.clear(); seat.tppVotes.clear();
         seat.fpFinalised = district->second.finalised;
         for (auto const& record : effective.records) {
-            if (record.district == seat.name) applyRecord(election,seat,record,publishedEcsaPair);
+            if (record.district != seat.name) continue;
+            Count const* tcp = &record.tcp;
+            if (handoverDistricts.contains(seat.name)) {
+                auto earlier = handover.find(record.key);
+                tcp = earlier != handover.end() ? &earlier->second.tcp : nullptr;
+            }
+            else if (ecsa && record.tcp.votes &&
+                !matchesPair(*record.tcp.votes,total(record.tcp.votes) > 0 ? countedPair : pair)) {
+                // A booth restored under the previous pair must stay out of
+                // the district account once the replacement has begun.
+                tcp = nullptr;
+            }
+            applyRecord(election,seat,record,tcp);
         }
         // Booth recovery remains inspectable, but a separately validated final
         // district summary has its own authority and closes this district.
         if (seat.finalResult) seat.fpFinalised = true;
     }
+    return handover;
 }
 
-Result prepare(Results2::Election& election, TurnoutModelIO::Artifact const& artifact,
+Result recoverSource(Results2::Election const& election, TurnoutModelIO::Artifact const& artifact,
     std::filesystem::path const& root, std::filesystem::path const& source) {
     auto identified = identify(election,artifact,fingerprint(source));
     auto folder = directory(root,election.termCode);
@@ -280,7 +333,6 @@ Result prepare(Results2::Election& election, TurnoutModelIO::Artifact const& art
         return loadEarlierCounts(folder,effective,old,account);
     });
     recordUnreadableSummaries(election,result);
-    apply(election,result.snapshot);
     return result;
 }
 }

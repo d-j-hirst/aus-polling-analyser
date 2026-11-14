@@ -56,6 +56,39 @@ Published integer count fields remain unchanged. Accepted-count caches add an
 optional `tcp_basis` field; older caches still load without inventing transfer
 details. No project-file format change is required.
 
+## Classic counts after a pairing change
+
+An earlier Labor–Coalition count can still measure TPP when the commission
+switches to a different indicative TCP pair. The forecast uses the original
+FP and classic TCP together for preference calibration and retains one classic
+account per reporting location for the joint TPP estimate. The published pair
+continues to supply the current TCP and its count progress.
+
+After a small FP recheck, the earlier classic count can still anchor the
+received-vote estimate. The accepted history permits downward primary changes
+totalling up to two ballots or 0.5% of the original FP, whichever is larger.
+The model applies the same candidate revision calculation as above. If the
+original FP was ahead of TCP, the original gap also contributes to the feasible
+range of transfers. Only the lower bound for each side counts as measured.
+An earlier count with more TCP than FP is excluded from this revised estimate.
+The archive records the original counts and any resulting bounds under
+`retained_tpp`. This pathway requires compulsory preferences.
+
+South Australia can publish a zero TCP reset before the replacement pair
+has any usable counts. During this gap, the forecast can use compatible
+earlier booth counts for the last pair that reported. The earlier observations
+keep their original clocks. The first positive replacement count accepted
+by input recovery switches the whole district to the new pair. Reported TCP
+progress continues to follow the published pair throughout the handover.
+
+Booth-type and declaration-vote biases compare each category with election-day
+polling places in the same district. Their weights use the Labor–Coalition
+account even when a different TCP is published. Measured TPP ballots carry
+full weight and preferences inferred from received FP carry half weight.
+The displayed comparison vote counts are effective weights and can include
+fractional votes. Under optional preferences, a measured TPP uses its
+continuing ballots because the gap to FP can include exhausted ballots.
+
 ## Category baseline provenance
 
 A category supplies swing evidence only when there is a usable comparison for

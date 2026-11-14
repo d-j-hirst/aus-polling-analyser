@@ -175,6 +175,11 @@ struct FpIntegrationInformation {
 	// the conditional prior indirectly through recalculated regional summaries.
 	std::map<int,double> sharedDeviation;
 	double evidenceGate = 0;
+	// Live account ID of the largest other independent with received FP.
+	std::optional<int> secondaryIndependent;
+	// The leading independent must be the same person as in any named
+	// historical preference input for that input to apply.
+	bool namedIndependentMatches = true;
 };
 
 // Diagnostic values used by the live summary export. They remain DTOs rather
@@ -294,6 +299,8 @@ public:
 	// without live preference learning use the ordinary TCP integration.
 	virtual std::optional<double> getLearnedTcpShare(std::string const&, std::array<int,2>,
 		std::span<PreferenceModel::FinalSource const>) const { return {}; }
+	// Current-election three- or four-candidate sample selected for this snapshot.
+	virtual PreferenceModel::PreparedCountObservation const* getPreferenceCountObservation(int) const { return nullptr; }
 	// Providers without turnout integration return no account. Leave these
 	// intentionally unused parameters unnamed in the default implementation.
 	virtual std::optional<VoteCountAccount> getSeatVoteCountAccount(

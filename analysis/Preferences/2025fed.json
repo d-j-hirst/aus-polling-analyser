@@ -1,0 +1,224 @@
+{
+  "mode": "compare",
+  "model_version": "fed2025-aec-3cp-preference-trial-1",
+  "schema_version": 1,
+  "sample_uncertainty": true,
+  "unknown_liberal_labor_first_probability": 0.5,
+  "generic_concentrations": [
+    23.999999999999996,
+    9.666666666666666
+  ],
+  "profiles": {
+    "labor": {
+      "primary_points": [
+        {
+          "primary": 0.1,
+          "means": [
+            0.8203275332737616,
+            0.13608600184894723,
+            0.7267524888961155,
+            0.11579101562500016,
+            0.8958174568989306
+          ]
+        }
+      ],
+      "election_concentration": [
+        91.11891964171696,
+        19.679072134582995,
+        12.03565108498652,
+        23.676512705469584,
+        10.11111111111111
+      ],
+      "district_concentration": [
+        90.11891964171696,
+        7.950914581438218,
+        5.5184647696861155,
+        9.535742519958122,
+        4.687499999999999
+      ]
+    },
+    "liberal_labor_first": {
+      "primary_points": [
+        {
+          "primary": 0.1,
+          "means": [
+            0.7220215503849514,
+            0.6213147537582041,
+            0.2932712787832116,
+            0.7330566406250384,
+            0.3582140029245919
+          ]
+        }
+      ],
+      "election_concentration": [
+        54.751786434628464,
+        20.778189665570387,
+        10.11111111111111,
+        23.941482482536355,
+        23.97271990439875
+      ],
+      "district_concentration": [
+        53.751786434628464,
+        12.433944516406692,
+        4.687499999999999,
+        9.745766918355606,
+        9.713030094348284
+      ]
+    },
+    "liberal_greens_first": {
+      "primary_points": [
+        {
+          "primary": 0.1,
+          "means": [
+            0.30000000000000016,
+            0.459635796700825,
+            0.0001850603711153888,
+            0.7794851226535101,
+            0.8933037642857928
+          ]
+        }
+      ],
+      "election_concentration": [
+        31.812500000000007,
+        22.591915635673423,
+        10.11111111111111,
+        18.038402311717338,
+        23.99928387639403
+      ],
+      "district_concentration": [
+        19.360000000000003,
+        10.476938539187033,
+        4.687499999999999,
+        12.270826655657071,
+        9.667192479185658
+      ]
+    },
+    "greens": {
+      "primary_points": [
+        {
+          "primary": 0.05,
+          "means": [
+            0.8300170876922627,
+            0.07639089116134173,
+            0.7112151228735586,
+            0.1114843750000129,
+            0.7758616899674633
+          ]
+        },
+        {
+          "primary": 0.1,
+          "means": [
+            0.8684671520848514,
+            0.07639089116134175,
+            0.7112151228735585,
+            0.11148437500001282,
+            0.7758616899674634
+          ]
+        },
+        {
+          "primary": 0.15,
+          "means": [
+            0.8883781106287114,
+            0.07639089116134173,
+            0.7112151228735586,
+            0.11148437500001282,
+            0.7758616899674633
+          ]
+        },
+        {
+          "primary": 0.25,
+          "means": [
+            0.911419554442774,
+            0.07639089116134172,
+            0.7112151228735586,
+            0.11148437500001296,
+            0.7758616899674634
+          ]
+        }
+      ],
+      "election_concentration": [
+        125.92439759386556,
+        63.04657015564981,
+        12.99926058380352,
+        25.862630929474417,
+        23.999999999999993
+      ],
+      "district_concentration": [
+        69.83247364654937,
+        21.635152801608566,
+        5.831821803228869,
+        10.197732336916182,
+        9.666666666666664
+      ]
+    },
+    "one_nation": {
+      "primary_points": [
+        {
+          "primary": 0.1,
+          "means": [
+            0.26538421922223543,
+            0.1091502632067437,
+            0.7561954335838919,
+            0.2500315659688799,
+            0.7760781910818585
+          ]
+        }
+      ],
+      "election_concentration": [
+        29.461786782818738,
+        30.233491432572364,
+        42.06792757965747,
+        16.183901365877592,
+        115.71600298992001
+      ],
+      "district_concentration": [
+        51.37650983612221,
+        64.4055488188769,
+        3.000000000000001,
+        5.083160030925341,
+        405.43250805992653
+      ]
+    }
+  },
+  "districts": {
+    "Blaxland": {
+      "live_trial": true
+    },
+    "Fisher": {
+      "live_trial": true
+    },
+    "Flinders": {
+      "live_trial": true
+    },
+    "Forrest": {
+      "live_trial": true
+    },
+    "Grey": {
+      "live_trial": true
+    },
+    "Hunter": {
+      "live_trial": true
+    },
+    "Maranoa": {
+      "live_trial": true
+    },
+    "Mayo": {
+      "live_trial": true
+    },
+    "Monash": {
+      "live_trial": true
+    },
+    "Richmond": {
+      "live_trial": true
+    },
+    "Ryan": {
+      "live_trial": true
+    },
+    "Watson": {
+      "live_trial": true
+    }
+  },
+  "provenance": {
+    "profile_basis": "Uses the 2026 South Australian replay ranking profiles and spreads, including evidence published after the 2025 federal election. Compare mode measures how the two counts differ across all districts on the same simulated primary votes and TPP. The district flags select the original 12 seats when using live_trial mode to test manual preference samples."
+  }
+}

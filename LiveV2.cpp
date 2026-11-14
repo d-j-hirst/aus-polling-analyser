@@ -7,12 +7,14 @@
 #include "LiveTurnoutMath.h"
 #include "LivePartyMapping.h"
 #include "LiveTppSensitivity.h"
+#include "LiveResultsInput.h"
 
 #include <algorithm>
 #include <cctype>
 #include <chrono>
 #include <cmath>
 #include <exception>
+#include <fstream>
 #include <iomanip>
 #include <mutex>
 #include <numeric>
@@ -590,29 +592,35 @@ std::optional<double> Election::rawPendingFirstVotes(Booth const& booth) const {
   // This deliberately excludes the forecast's not-yet-received FP voters.
   if (optionalPreferential) return pending*tcp.at(0)/tcpVotes;
   int const coalition = tcp.contains(natPartyIndex) ? natPartyIndex : 1;
-  if (booth.retainedClassic && &tcp == &booth.retainedClassic->tcp) {
-    auto flows = classicPreferenceFlows(booth,coalition);
-    auto evidence = LivePartialCount::measure(booth.retainedClassic->fp,tcp,flows,0,coalition,true);
-    return LivePartialCount::pendingFirst(n.fpVotesCurrent,tcp,flows,preferencePriorOffset(booth),
-      evidence,0,coalition);
-  }
   return LivePartialCount::pendingFirst(n.fpVotesCurrent,tcp,
     classicPreferenceFlows(booth,coalition),preferencePriorOffset(booth),
-    booth.preferenceEvidence,0,coalition);
+    booth.tppPreferenceEvidence(),0,coalition);
 }
 
 LivePartialCount::Counts const& Booth::tppCount(int natPartyIndex) const {
   if (node.tcpVotesCurrent.size() == 2 && isTppSet(node.tcpVotesCurrent,natPartyIndex) &&
       node.totalTcpVotesCurrent() > 0)
     return node.tcpVotesCurrent;
-  if (retainedClassic) return retainedClassic->tcp;
+  if (retainedClassic) return retainedClassic->basis.tcp;
   static LivePartialCount::Counts const unavailable;
   return unavailable;
+}
+
+// Match the classic count to the primary votes that accompanied it. The
+// active non-classic TCP may have its own independent FP revision account.
+LivePartialCount::Counts const& Booth::tppPreferencePrimaries() const {
+  if (retainedClassic) return retainedClassic->basis.fp;
+  return hasTcpRevision() ? tcpBasis->fp : node.fpVotesCurrent;
 }
 
 std::map<int,double> Booth::tppLowerBounds(int natPartyIndex) const {
   auto const& tcp = tppCount(natPartyIndex);
   if (&tcp == &node.tcpVotesCurrent) return tcpLowerBounds();
+  if (retainedClassic && retainedClassic->fpRevisionBounds) {
+    int const coalition = tcp.contains(natPartyIndex) ? natPartyIndex : 1;
+    auto const& bounds = *retainedClassic->fpRevisionBounds;
+    return {{0,bounds.lower},{coalition,bounds.votes-bounds.upper}};
+  }
   return {tcp.begin(),tcp.end()};
 }
 
@@ -620,7 +628,8 @@ void Election::prepareRetainedClassicCounts(Results2::Election const& previousEl
   Results2::Election const& currentElection, LiveInputRecovery::PairPreferenceHistory const& history) {
   // A valid earlier Labor/Coalition count is still a count of those same
   // ballots. Attach it to TPP independently of the current indicative TCP.
-  // The history lookup has already required its primaries to fit in today's FP.
+  // The history lookup allows a small number of primary removals. For those
+  // rechecks use a bounded TPP estimate of the original count plus the changes.
   if (history.empty()) return;
   auto mapCounts = [&](LivePartialCount::Counts const& original) {
     LivePartialCount::Counts mapped;
@@ -637,22 +646,49 @@ void Election::prepareRetainedClassicCounts(Results2::Election const& previousEl
     if (found == history.end()) continue;
     for (auto const& [pair,cohort] : found->second) {
       auto tcp = mapCounts(cohort.tcp);
-      if (!isTppSet(tcp,natPartyIndex) || (booth.retainedClassic &&
-          booth.retainedClassic->tcpTime >= cohort.tcpTime)) continue;
+      if (tcp.size() != 2 || !isTppSet(tcp,natPartyIndex) || (booth.retainedClassic &&
+          booth.retainedClassic->observedAt >= cohort.tcpTime)) continue;
       auto fp = mapCounts(cohort.fp);
-      // A small recheck can leave a retired rate useful for learning. To
-      // fix actual votes in TPP, require every original primary to fit.
-      if (std::any_of(fp.begin(),fp.end(),[&](auto const& row) {
+      bool const fpRevised = std::any_of(fp.begin(),fp.end(),[&](auto const& row) {
         return row.second > LivePartialCount::value(booth.node.fpVotesCurrent,row.first);
-      })) continue;
-      booth.retainedClassic = LiveInputRecovery::PreferenceCohort{
-        std::move(fp),std::move(tcp),cohort.fpTime,cohort.tcpTime,{},cohort.recheckedReconciledPair};
+      });
+      LivePartialCount::TcpBasis basis{std::move(fp),std::move(tcp),{},cohort.recheckedReconciledPair};
+      for (auto const& [candidate,counts] : cohort.transfers) {
+        auto& target = basis.transfers[mapPartyId(candidate,false,previousElection,currentElection)];
+        for (auto const& [finalist,votes] : mapCounts(counts)) target[finalist] += votes;
+      }
+      Booth::RetainedClassicCount retained{std::move(basis),cohort.tcpTime,{},{}};
+      if (fpRevised) {
+        // A TCP excess over the original FP cannot be assigned to a known
+        // cohort. Keep that case out of the revised count path.
+        int const coalition = retained.basis.tcp.contains(natPartyIndex) ? natPartyIndex : 1;
+        LivePartialCount::Flows neutral;
+        for (auto const& [party,votes] : booth.node.fpVotesCurrent)
+          neutral[party] = party == 0 ? 1.0 : party == coalition ? 0.0 : .5;
+        retained.fpRevisionBounds = LivePartialCount::reviseRetainedTcp(booth.node.fpVotesCurrent,
+          retained.basis,neutral,0,0,coalition);
+        if (!retained.fpRevisionBounds) continue;
+      }
+      booth.retainedClassic = std::move(retained);
     }
     if (booth.retainedClassic) {
-      auto const& tcp = booth.retainedClassic->tcp;
+      auto& retained = *booth.retainedClassic;
+      auto const& tcp = retained.basis.tcp;
+      auto const& fp = retained.basis.fp;
+      int const coalition = tcp.contains(natPartyIndex) ? natPartyIndex : 1;
+      auto const flows = classicPreferenceFlows(booth,coalition);
+      // Train from the original measurements. A later allocation estimated
+      // from these flows supplies no additional evidence about those flows.
+      retained.preferenceEvidence = LivePartialCount::measure(fp,tcp,flows,0,coalition,true);
+      if (retained.preferenceEvidence && booth.notionalPreferenceOffset) {
+        auto exact = LiveHistoricalPreferences::fitOffset(fp,tcp,flows,0,coalition);
+        if (exact) retained.preferenceEvidence->offset = *exact;
+      }
       double const votes = LivePartialCount::total(tcp);
+      auto const& bounds = retained.fpRevisionBounds;
+      double const measured = bounds ? bounds->votes-bounds->uncertainVotes() : votes;
       booth.node.tppShare = 25*std::log((tcp.at(0)+.25)/(votes-tcp.at(0)+.25));
-      booth.node.tppCompletion = std::min(1.,votes/booth.node.totalFpVotesCurrent());
+      booth.node.tppCompletion = std::min(1.,measured/booth.node.totalFpVotesCurrent());
       booth.node.tppConfidence = booth.node.tppCompletion;
     }
   }
@@ -701,11 +737,26 @@ std::optional<LivePartialCount::RevisedTcp> Election::revisedBoothTcp(Booth cons
     basis,flows,offset,first,second,variation);
 }
 
+// Apply the same primary-revision accounting to the Labor–Coalition count
+// used for TPP. A retained count and the active TCP can cover the same ballots
+// under different pairings, with separate bounds on each allocation.
+std::optional<LivePartialCount::RevisedTcp> Election::revisedBoothTpp(Booth const& booth,
+  double variation) const {
+  if (!booth.hasTppRevision() || booth.tppCount(natPartyIndex).empty()) return {};
+  int const coalition = coalitionFinalist(booth);
+  if (!booth.retainedClassic) return revisedBoothTcp(booth,0,coalition,variation);
+  auto const& basis = booth.retainedClassic->basis;
+  auto flows = classicPreferenceFlows(booth,coalition);
+  double const offset = LivePartialCount::evidenceOffset(preferencePriorOffset(booth),
+    booth.tppPreferenceEvidence(),0,coalition);
+  return LivePartialCount::reviseRetainedTcp(booth.node.fpVotesCurrent,basis,flows,offset,0,coalition,variation);
+}
+
 std::optional<LiveTppIntegration::ReceivedTpp> Election::receivedBoothTpp(Booth const& booth) const {
   auto const& n = booth.node;
   auto const& measured = booth.tppCount(natPartyIndex);
   double tcp = LivePartialCount::total(measured);
-  if (tcp > 0) if (auto revised = revisedBoothTcp(booth,0,coalitionFinalist(booth))) {
+  if (auto revised = revisedBoothTpp(booth)) {
     double first = revised->first, total = revised->votes;
     double uncertain = revised->uncertainVotes();
     // The whole booth has not become inferred. Only the feasible revised
@@ -734,7 +785,7 @@ double Election::getSeatRawTppSwing(std::string const& seatName) const {
     // The raw booth shares are established from received TCP or FP before
     // turnout recomposition and forecast blending. Using projected vote totals
     // here would reintroduce the prior-heavy seat estimate into the raw column.
-    if (auto revised = revisedBoothTcp(booth,0,coalitionFinalist(booth))) {
+    if (auto revised = revisedBoothTpp(booth)) {
       swing.add({},n.tcpVotesPrevious,natPartyIndex,revised->votes,
         100*revised->first/revised->votes,percent(n.tppSharePrevious));
       continue;
@@ -926,9 +977,9 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   auto notionalHistory = readNotionalPreferenceHistory(previousElection,currentElection);
   createNodesFromElectionData(previousElection, currentElection, partyFlowHistory, notionalHistory);
   prepareTcpBases(previousElection,currentElection,preferenceHistory);
-  prepareRetainedClassicCounts(previousElection,currentElection,pairPreferenceHistory);
   preparePartyConversionPriors(partyFlowHistory, previousElection, currentElection);
   prepareNotionalPreferenceOffsets(partyFlowHistory);
+  prepareRetainedClassicCounts(previousElection,currentElection,pairPreferenceHistory);
   calculateTppEstimates(true); // This is done now so that we can observe deviations from preference flows
   aggregate(); // preliminary, for calculating preference flow and seat fp totals
   calculatePreferenceFlowDeviations();
@@ -948,6 +999,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   reportLimitedHistoricalPreferenceEvidence(currentElection.sourceTime);
   prepareNewVoteContexts();
   prepareFinalResults(previousElection,currentElection);
+  preparePreferenceCountObservations(previousElection,currentElection);
   recomposeVoteCounts();
   prepareFpEvidence();
   refreshFpEvidenceProjections();
@@ -964,14 +1016,161 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   logPreparedSummary();
 }
 
+// Read the manual observations once after the feed and its candidate identities
+// are known. Keep one revision per district at the snapshot's time. Scenario
+// copies share the resolved ballot IDs and grow no additional collection state.
+void Election::preparePreferenceCountObservations(Results2::Election const& previousElection,
+  Results2::Election const& currentElection) {
+  if (!run.preferenceModel) return;
+  auto const path = project.paths().root() / "forecasts" / run.getTermCode() /
+    "live-inputs" / "preference-counts.json";
+  try {
+    if (!std::filesystem::exists(path)) return;
+    std::ifstream input(path);
+    if (!input) throw std::runtime_error("Could not open the file.");
+    std::string cutoff = Timestamp::now().formatIsoUtc() + "Z";
+    std::string clock = run.regionCode;
+    auto const& settings = sim.getSettings();
+    if (auto const& selected = run.getSnapshotInput(); selected && selected->timestamp) {
+      // The stored feed clock may describe when the commission last changed
+      // its data, earlier than the capture itself. Outside WA the capture
+      // filenames here use eastern Australian time. The WA archive is
+      // explicitly normalised to the feed's own local clock.
+      std::string code = *selected->timestamp;
+      if (code.size() == 12) code.insert(0, "20");
+      if (code.size() != 14) throw std::runtime_error("Invalid replay capture timestamp.");
+      cutoff = code.substr(0, 4) + "-" + code.substr(4, 2) + "-" + code.substr(6, 2) +
+        "T" + code.substr(8, 2) + ":" + code.substr(10, 2) + ":" + code.substr(12, 2);
+      if (clock != "wa") clock = "fed";
+    }
+    else if (settings.currentRealUrl.starts_with("local:") ||
+        (run.regionCode == "fed" && settings.currentRealUrl.empty())) {
+      // A fixed input can be an old capture. Use the feed clock and leave
+      // out the manual evidence if the file supplies no usable cutoff.
+      cutoff = currentElection.sourceTime;
+      if (cutoff.empty()) return;
+    }
+    auto const observations = PreferenceModel::loadCountObservations(input, cutoff, clock);
+    if (observations.empty()) return;
+    std::map<int, PreferenceModel::PreparedCountObservation> prepared;
+    auto diagnostics = nlohmann::json::array();
+    auto const& model = *run.preferenceModel;
+    auto const& roles = model.partyRoles();
+    for (auto const& [districtName, observation] : observations) {
+      int const seatIndex = findSeatIndex(districtName);
+      if (seatIndex == int(seats.size())) throw std::runtime_error("Unknown district " + districtName + ".");
+      int const district = project.seats().indexByName(districtName);
+      if (district < 0 || !model.coversDistrict(district))
+        throw std::runtime_error("Ranking model is disabled for " + districtName + ".");
+      auto const& seat = seats.at(seatIndex);
+      auto const sourceSeat = std::find_if(currentElection.seats.begin(), currentElection.seats.end(),
+        [&](auto const& item) { return item.second.name == districtName; });
+      if (sourceSeat == currentElection.seats.end()) throw std::runtime_error("No live ballot for " + districtName + ".");
+      auto resolve = [&](std::string const& label, bool donor) {
+        bool const independent = label.starts_with("IND:");
+        if (donor && label == "OTH") return roles.others;
+        int party = independent ? roles.independent
+          : project.parties().idToIndex(project.parties().idByAbbreviation(label));
+        if (!independent && party < 0) party = project.parties().indexByShortCode(label);
+        if (!independent && (party < 0 || party == roles.independent))
+          throw std::runtime_error("Use a recognised party code or IND:Full Name in " + districtName + ": " + label);
+        std::optional<int> resolved;
+        for (auto const& [id, counts] : sourceSeat->second.fpVotes) {
+          (void)counts;
+          auto const found = currentElection.candidates.find(id);
+          if (found == currentElection.candidates.end()) continue;
+          int const mapped = mapPartyId(id, false, previousElection, currentElection);
+          if (independent) {
+            if (mapped < IndependentPartyIdOffset ||
+                candidateNameMatchScore(found->second.name, label.substr(4)) < 1000) continue;
+          }
+          else if (party < 0 || mapped != party) continue;
+          if (resolved) throw std::runtime_error("Ambiguous candidate " + label + " in " + districtName + ".");
+          resolved = mapped == seat.liveIndependentPartyIndex ? roles.independent : mapped;
+        }
+        if (!resolved)
+          throw std::runtime_error("Unknown candidate " + label + " on the " + districtName + " ballot.");
+        if (*resolved >= project.parties().count() && seat.secondaryIndependent != *resolved)
+          throw std::runtime_error("The ranking ballot cannot distinguish " + label + " in " + districtName + ".");
+        return *resolved;
+      };
+
+      PreferenceModel::PreparedCountObservation count{};
+      double largestSamplingVariance = 0.0;
+      for (auto const& [candidate, fraction] : observation.flows) {
+        if (!count.flows.emplace(resolve(candidate, false), fraction).second)
+          throw std::runtime_error("Repeated recipient in " + districtName + ".");
+        largestSamplingVariance = std::max(largestSamplingVariance,
+          fraction * (1.0 - fraction) / observation.ballots);
+      }
+      for (auto const& [candidate, votes] : observation.firstPreferences) {
+        int const id = resolve(candidate, true);
+        if (count.flows.contains(id) || !count.firstPreferences.emplace(id, votes).second)
+          throw std::runtime_error("A sampled donor is repeated or is also a recipient in " + districtName + ".");
+      }
+      // With full three-way totals we can account for these ballots before
+      // estimating transfers on the rest. Optional preferential voting can
+      // have exhausted ballots outside these totals and needs a separate
+      // count account. Continue using its sample as evidence about flows.
+      if (!optionalPreferential) {
+        for (auto const& [candidate, votes] : observation.candidateTotals) {
+          int const id = resolve(candidate, false);
+          if (!count.candidateTotals.emplace(id, votes).second)
+            throw std::runtime_error("Repeated sampled candidate total in " + districtName + ".");
+          count.candidateFirstPreferences.emplace(id, observation.candidateFirstPreferences.at(candidate));
+        }
+      }
+      count.ballots = observation.ballots;
+      // The reviewed prototype used at least ten points of uncertainty for
+      // transfers outside the sample. Those ballots may be disproportionately
+      // drawn from declaration votes even when the sample is nearly complete.
+      count.outsideFlowSd = std::max(0.10, observation.additionalSd);
+      count.tppPrior = observation.tppPrior;
+      // Use the noisiest recipient's binomial variance for the joint split.
+      // Between-booth differences and missing vote sources belong in the
+      // separate, operator-supplied allowance in preference percentage points.
+      count.variance = largestSamplingVariance + observation.additionalSd * observation.additionalSd;
+      if (!seat.finalResult) prepared.emplace(district, std::move(count));
+      diagnostics.push_back({{"district", districtName}, {"available_at", observation.availableAt},
+        {"sample", observation.sample}, {"source", observation.source},
+        {"sampled_preference_ballots", observation.ballots}, {"flow_percent", nlohmann::json::object()},
+        {"sampled_first_preferences", observation.firstPreferences}, {"additional_sd_pp", 100 * observation.additionalSd},
+        {"eligible_for_ranking", !seat.finalResult.has_value()}});
+      if (!observation.candidateTotals.empty()) {
+        diagnostics.back()["sampled_candidate_totals"] = observation.candidateTotals;
+        diagnostics.back()["sampled_finalist_first_preferences"] = observation.candidateFirstPreferences;
+        diagnostics.back()["joint_three_candidate_enabled"] = !optionalPreferential && !seat.finalResult.has_value();
+      }
+      for (auto const& [candidate, fraction] : observation.flows)
+        diagnostics.back()["flow_percent"][candidate] = 100 * fraction;
+      logger << "Manual preference count for " << districtName << " as of " << observation.availableAt
+        << " (" << observation.ballots << " redistributed ballots)"
+        << (seat.finalResult ? " superseded by the final result\n" : "\n");
+    }
+    preferenceCountObservations = std::make_shared<decltype(prepared) const>(std::move(prepared));
+    preferenceCountDiagnostic = std::make_shared<nlohmann::json const>(std::move(diagnostics));
+  }
+  catch (std::exception const& error) {
+    throw std::runtime_error("Invalid preference-count input " + LiveResultsInput::pathToUtf8(path) + ": " + error.what());
+  }
+}
+
+PreferenceModel::PreparedCountObservation const* Election::getPreferenceCountObservation(int district) const {
+  if (!preferenceCountObservations) return nullptr;
+  auto const found = preferenceCountObservations->find(district);
+  return found == preferenceCountObservations->end() ? nullptr : &found->second;
+}
+
 void Election::preparePreferenceLearning(Results2::Election const& previousElection,
   Results2::Election const& currentElection, LiveInputRecovery::PairPreferenceHistory const& history) {
-  if (history.empty() || !run.preferenceModel || !run.preferenceModel->isActive()) return;
+  if (history.empty() || !run.preferenceModel || !run.preferenceModel->isActive() ||
+      run.preferenceModel->isLiveTrial()) return;
   auto const& model = *run.preferenceModel;
   using namespace LivePreferenceLearning;
   auto const& roles = model.partyRoles();
   auto modelParty = [&](int party, Seat const& seat) {
     if (party == seat.liveIndependentPartyIndex || party == run.indPartyIndex) return roles.independent;
+    if (party == seat.secondaryIndependent) return party;
     if (party >= 0 && party < project.parties().count()) return party;
     return roles.others;
   };
@@ -994,8 +1193,11 @@ void Election::preparePreferenceLearning(Results2::Election const& previousElect
         ideology = info.ideology;
         consistency = info.consistency;
       }
+      bool const secondary = party == seat.secondaryIndependent;
+      if (secondary) consistency = 0;
+      bool const principal = party == roles.independent && seat.secondaryIndependent.has_value();
       sources.push_back({party,votes/total,ideology,
-        PreferenceModel::proximityForConsistency(consistency),std::clamp(rate,0.0,1.0)});
+        PreferenceModel::proximityForConsistency(consistency),std::clamp(rate,0.0,1.0),secondary,principal});
     }
     return sources;
   };
@@ -1049,7 +1251,7 @@ void Election::preparePreferenceLearning(Results2::Election const& previousElect
     auto sources = sourcesFor(districtFp,seat,total);
     for (auto const& pair : pairs) {
       if (!districtFp.contains(pair[0]) || !districtFp.contains(pair[1])) continue;
-      prepared[s][pair].referenceRates = model.referencePairRates(district,sources,pair);
+      prepared[s][pair].referenceRates = model.referencePairRates(district, sources, pair, seat.namedIndependentMatches);
     }
   }
 
@@ -1066,7 +1268,8 @@ void Election::preparePreferenceLearning(Results2::Election const& previousElect
     if (needsBoothRates) {
       auto boothSources = sourcesFor(std::map<int,double>(measurement.fp.begin(),measurement.fp.end()),
         seat,LivePartialCount::total(measurement.fp));
-      auto boothRates = model.referencePairRates(project.seats().indexByName(seat.name),boothSources,measurement.pair);
+      auto boothRates = model.referencePairRates(project.seats().indexByName(seat.name),
+        boothSources, measurement.pair, seat.namedIndependentMatches);
       rates.insert(boothRates.begin(),boothRates.end());
     }
     for (auto const& [party,votes] : measurement.fp)
@@ -1230,6 +1433,7 @@ std::optional<double> Election::getLearnedTcpShare(std::string const& seatName, 
     if (party == pair[1]) return 0.0;
     if (party == run.indPartyIndex && !rates.contains(party) && rates.contains(EmergingIndIndex))
       party = EmergingIndIndex;
+    if (party == seats.at(s).secondaryIndependent && !rates.contains(party)) party = OthersIndex;
     auto prior = account.referenceRates.find(party);
     auto draw = rates.find(party);
     double const sampled = draw != rates.end() ? draw->second :
@@ -1772,10 +1976,7 @@ std::optional<double> Election::preferenceRateOffset(Booth const& booth, bool cu
   // An unchanged TCP can describe an older primary batch. Only that batch may
   // train preference flows; the corrected estimate is never fresh evidence.
   auto const& tcp = current ? booth.tppCount(natPartyIndex) : booth.node.tcpVotesPrevious;
-  bool const retained = current && booth.retainedClassic && &tcp == &booth.retainedClassic->tcp;
-  auto const& fp = current ? (retained ? booth.retainedClassic->fp :
-    booth.hasTcpRevision() ? booth.tcpBasis->fp : booth.node.fpVotesCurrent)
-    : booth.node.fpVotesPrevious;
+  auto const& fp = current ? booth.tppPreferencePrimaries() : booth.node.fpVotesPrevious;
   if (!isTppSet(tcp,natPartyIndex)) {
     if (!current && booth.notionalPreferenceOffset) return *booth.notionalPreferenceOffset*25;
     return {};
@@ -1827,8 +2028,8 @@ void Election::calculatePreferenceFlowEvidence(Booth& booth) {
 
 double Election::limitedHistoricalPreferenceImpact(Booth const& booth,
   LivePartialCount::PreferenceTransfer const& historical, double reliability) const {
-  auto const& fp = booth.node.fpVotesCurrent;
-  auto const& tcp = booth.node.tcpVotesCurrent;
+  auto const& fp = booth.tppPreferencePrimaries();
+  auto const& tcp = booth.tppCount(natPartyIndex);
   if (!isTppSet(tcp,natPartyIndex)) return 0;
   int coalition = tcp.contains(natPartyIndex) ? natPartyIndex : 1;
   auto current = LivePartialCount::measureTransfer(fp,tcp,0,coalition);
@@ -1940,7 +2141,7 @@ int Election::coalitionFinalist(Booth const& booth) const {
 }
 
 double Election::futurePreferenceOffset(Booth const& booth, int first, int second) const {
-  return LivePartialCount::evidenceOffset(preferencePriorOffset(booth,false),booth.preferenceEvidence,first,second);
+  return LivePartialCount::evidenceOffset(preferencePriorOffset(booth,false),booth.tppPreferenceEvidence(),first,second);
 }
 
 std::map<int,double> Election::projectDeclarationTpp(int boothIndex) {
@@ -1954,7 +2155,7 @@ std::map<int,double> Election::projectDeclarationTpp(int boothIndex) {
   // In a non-classic contest this is a hypothetical Labor/Coalition account;
   // its observed non-classic TCP cannot supply counted TPP or TPP lower bounds.
   double pairTarget = countedPair ? LiveTurnoutMath::pairTarget(turnoutFpTarget(boothIndex),n,
-    booth.hasTcpRevision() && &tcp == &booth.node.tcpVotesCurrent ? n : nt) : turnoutFpTarget(boothIndex);
+    booth.hasTppRevision() ? n : nt) : turnoutFpTarget(boothIndex);
   double offset = futurePreferenceOffset(booth,0,coalition);
   double variation = 0;
   if (createRandomVariation) {
@@ -1966,12 +2167,9 @@ std::map<int,double> Election::projectDeclarationTpp(int boothIndex) {
   // Applying an independent postal TPP shift here would count it a second time.
   double futureShare = LiveNewVotes::firstShare(booth.futureFpShares,flows,offset+variation);
   double estimatedKnown = LivePartialCount::expectedFirst(fp,flows,offset+variation);
-  auto retainedEvidence = booth.retainedClassic && &tcp == &booth.retainedClassic->tcp ?
-    LivePartialCount::measure(booth.retainedClassic->fp,tcp,flows,0,coalition,true) : std::nullopt;
-  auto const& evidence = booth.retainedClassic ? retainedEvidence : booth.preferenceEvidence;
   double known = countedPair ? tcp.at(0)+LivePartialCount::pendingFirst(fp,tcp,flows,
-    preferencePriorOffset(booth),evidence,0,coalition,variation) : estimatedKnown;
-  auto revised = countedPair ? revisedBoothTcp(booth,0,coalition,
+    preferencePriorOffset(booth),booth.tppPreferenceEvidence(),0,coalition,variation) : estimatedKnown;
+  auto revised = countedPair ? revisedBoothTpp(booth,
     createRandomVariation ? variabilityNormal(0,1,boothIndex,0,uint32_t(VariabilityTag::RevisedTcpTransfers)) : 0) : std::nullopt;
   if (revised) known = revised->first;
   double newVotes = std::max(0.0,pairTarget-(countedPair && !revised ? std::max(n,nt) : n));
@@ -2078,7 +2276,7 @@ std::map<int,double> Election::projectCountedTpp(int boothIndex, double contextS
   double countedFpVotes = booth.node.totalFpVotesCurrent();
   double countedTcpVotes = LivePartialCount::total(tcp);
   double expectedPairVotes = LiveTurnoutMath::pairTarget(turnoutFpTarget(boothIndex),countedFpVotes,
-    booth.hasTcpRevision() && &tcp == &booth.node.tcpVotesCurrent ? countedFpVotes : countedTcpVotes);
+    booth.hasTppRevision() ? countedFpVotes : countedTcpVotes);
   double pendingPreferences = std::max(0.0,countedFpVotes-countedTcpVotes);
   double newFpVotes = std::max(0.0,expectedPairVotes-std::max(countedFpVotes,countedTcpVotes));
   double countedFirst = tcp.at(0);
@@ -2089,11 +2287,9 @@ std::map<int,double> Election::projectCountedTpp(int boothIndex, double contextS
   // surrounding composition; the retained OPV path uses its continuing-vote
   // share. Postal arrival bias affects new voters, not already reported FP.
   auto flows = classicPreferenceFlows(booth,coalition);
-  auto retainedEvidence = booth.retainedClassic && &tcp == &booth.retainedClassic->tcp ?
-    LivePartialCount::measure(booth.retainedClassic->fp,tcp,flows,0,coalition,true) : std::nullopt;
-  auto const& evidence = booth.retainedClassic ? retainedEvidence : booth.preferenceEvidence;
   double pendingFirst = optionalPreferential ? pendingPreferences*countedFirst/countedTcpVotes :
-    LivePartialCount::pendingFirst(fp,tcp,flows,preferencePriorOffset(booth),evidence,0,coalition,deviation);
+    LivePartialCount::pendingFirst(fp,tcp,flows,preferencePriorOffset(booth),
+      booth.tppPreferenceEvidence(),0,coalition,deviation);
   // Complete ordinary booths normally have no new FP voters. The retained OPV
   // path uses its continuing-vote share; compulsory declaration services use
   // projectDeclarationTpp and the shared future-primary mixture instead.
@@ -2101,7 +2297,7 @@ std::map<int,double> Election::projectCountedTpp(int boothIndex, double contextS
   double arrivalBias = optionalPreferential && booth.voteType == Results2::VoteType::Postal ? 2.0/25 : 0;
   futureShare = LivePartialCount::inverseLogOdds(LivePartialCount::logOdds(futureShare)+deviation+arrivalBias);
   double first = countedFirst+pendingFirst+newFpVotes*futureShare;
-  if (auto revised = revisedBoothTcp(booth,0,coalition,
+  if (auto revised = revisedBoothTpp(booth,
       createRandomVariation ? variabilityNormal(0,1,boothIndex,0,uint32_t(VariabilityTag::RevisedTcpTransfers)) : 0)) {
     first = revised->first+std::max(0.0,expectedPairVotes-revised->votes)*futureShare;
     countedTcpVotes = revised->votes-revised->uncertainVotes();
@@ -2176,7 +2372,7 @@ void Election::calculateTppEstimates(bool withTpp) {
     // share when its TCP is absent. Incomplete or differing FP/TCP accounts can
     // prevent preference-rate estimation without invalidating the TPP swing.
     booth.calculateTppSwing(natPartyIndex);
-    if (auto revised = revisedBoothTcp(booth,0,coalitionFinalist(booth))) {
+    if (auto revised = revisedBoothTpp(booth)) {
       // Keep published TCP in the raw count fields. Its comparison share now
       // describes the revised received FP account, with only changed transfers
       // estimated. Recompute the swing after the usual counted-share shortcut.
@@ -2184,10 +2380,13 @@ void Election::calculateTppEstimates(bool withTpp) {
       if (booth.node.tppSharePrevious)
         booth.node.tppSwing = *booth.node.tppShare-*booth.node.tppSharePrevious;
     }
-    if (withTpp && booth.node.tppSwing && booth.voteType == Results2::VoteType::Ordinary) {
+    if (withTpp && booth.node.tppSwing && booth.voteType == Results2::VoteType::Ordinary &&
+        !booth.retainedClassic) {
       // Ordinary TCP is a completed booth count. If its earlier TPP comparison
       // was supplied above from historical FP, it now has the same count
       // coverage as a booth whose historical TCP was available at creation.
+      // Retained counts keep their measured fraction, since later FP batches
+      // and rechecks may have changed the set of ballots they cover.
       booth.node.tppConfidence = 1.0;
     }
   }
@@ -2324,6 +2523,19 @@ void Election::includeSeatBaselineResults(
       }
     }
     seat.liveIndependentPartyIndex = bestIndependentId;
+    // An exact match after normalising the name identifies the returning
+    // candidate. A different leading independent must use their own prior.
+    seat.namedIndependentMatches = bestIndependentId == InvalidPartyIndex ||
+      (bestIndependentScore >= 1000 && bestIndependentId == seat.independentPartyIndex);
+    seat.secondaryIndependent.reset();
+    // Retain the leading additional independent once they have reported, so
+    // their preferences can be modelled using their own group of ballots.
+    double secondaryVotes = 0;
+    for (auto const& [party, votes] : seat.node.fpVotesCurrent) {
+      if (party < IndependentPartyIdOffset || party == bestIndependentId || votes <= secondaryVotes) continue;
+      seat.secondaryIndependent = party;
+      secondaryVotes = votes;
+    }
 
     for (auto const& [partyId, swing] : seat.node.fpSharesBaseline) {
       if (seat.node.totalVotesPrevious() > 0) {
@@ -2607,6 +2819,33 @@ void Election::measureFpBoothTypeBiases() {
 }
 
 void Election::measureTppBoothTypeBiases() {
+  // Estimate how the Labor–Coalition swing in early or declaration votes
+  // differs from election-day booths in the same district. Each observed
+  // TPP ballot supplies one vote of comparison weight. Preferences inferred
+  // from FP (including the unresolved part of a revised count) supply half,
+  // matching the quality discount in the joint TPP comparison. The current
+  // non-classic TCP neither supplies TPP votes nor sets their weight.
+  auto evidenceWeight = [&](Booth const& booth) {
+    auto const& n = booth.node;
+    if (!n.tppDeviation) return 0.0;
+    double const measured = LivePartialCount::total(booth.tppCount(natPartyIndex));
+    double const fp = n.totalFpVotesCurrent();
+    double guaranteed = measured;
+    if (booth.hasTppRevision()) {
+      auto const bounds = booth.tppLowerBounds(natPartyIndex);
+      guaranteed = std::accumulate(bounds.begin(),bounds.end(),0.0,
+        [](double sum, auto const& side) { return sum+side.second; });
+    }
+    // In optional preferential voting, the gap behind a reported TCP can be
+    // exhaustion. Only use continuing votes once that count exists.
+    double const received = optionalPreferential && measured > 0 ? measured : std::max(fp,guaranteed);
+    double const inferred = std::max(0.0,received-guaranteed);
+    return (guaranteed+LiveTppIntegration::InferredPreferenceComparisonWeight*inferred)*n.relevanceModifier;
+  };
+  std::vector<double> weights;
+  weights.reserve(readBooths().size());
+  for (auto const& booth : readBooths()) weights.push_back(evidenceWeight(booth));
+
   { // biases for polling places (including PPVC)
     std::map<Results2::Booth::Type, double> tppBiasWeightedSums;
     std::map<Results2::Booth::Type, double> tppWeightSums;
@@ -2620,8 +2859,8 @@ void Election::measureTppBoothTypeBiases() {
         if (booth.boothType == Results2::Booth::Type::Other || booth.boothType == Results2::Booth::Type::Invalid) {
           continue;
         }
-        if (booth.node.totalTcpVotesCurrent() == 0
-          || !booth.node.tppDeviation.has_value()) {
+        double const weight = weights.at(boothIndex);
+        if (weight <= 0) {
           // This makes these vote types exist in the sums
           // so that the baseline bias is still included
           // If we don't, there's a sudden snap back when the first booth of that type reports
@@ -2632,9 +2871,6 @@ void Election::measureTppBoothTypeBiases() {
           continue;
         }
 
-        
-        double const weight = booth.node.totalTcpVotesCurrent()
-          * booth.node.relevanceModifier;
         seatTppDeviationWeightedSums[booth.boothType] +=
           booth.node.tppDeviation.value() * weight;
         seatTppWeightSums[booth.boothType] += weight;
@@ -2701,23 +2937,20 @@ void Election::measureTppBoothTypeBiases() {
         if (booth.voteType == Results2::VoteType::Invalid) {
           continue;
         }
-        if (booth.node.totalTcpVotesCurrent() == 0
-          || !booth.node.tppDeviation.has_value()) {
+        double const weight = weights.at(boothIndex);
+        if (weight <= 0) {
           // As with booth types, make sure that these vote types exist in the sums, even if just zero
           seatTppDeviationWeightedSums[booth.voteType] += 0.0;
           seatTppWeightSums[booth.voteType] += 0.0;
           continue;
         }
-        
-        double const weight = booth.node.totalTcpVotesCurrent()
-          * booth.node.relevanceModifier;
         seatTppDeviationWeightedSums[booth.voteType] +=
           booth.node.tppDeviation.value() * weight;
         seatTppWeightSums[booth.voteType] += weight;
       }
 
       if (!seatTppDeviationWeightedSums.contains(Results2::VoteType::Ordinary)) continue;
-      // zero weight sum can occur if a seat's count is being realigned and therefore no TCP results
+      // Without an election-day comparison, there is no within-seat difference.
       if (!seatTppWeightSums.contains(Results2::VoteType::Ordinary) || seatTppWeightSums.at(Results2::VoteType::Ordinary) == 0) continue;
       double normalDeviation = seatTppDeviationWeightedSums.at(Results2::VoteType::Ordinary) / seatTppWeightSums.at(Results2::VoteType::Ordinary);
       for (auto const& [voteType, deviationWeightedSum] : seatTppDeviationWeightedSums) {
@@ -4608,7 +4841,7 @@ LiveEstimatedTpp::Unit Election::estimatedTppUnit(int boothIndex) const {
   auto const& booth = readBooths().at(boothIndex);
   auto const& n = booth.node;
   double measured = LivePartialCount::total(booth.tppCount(natPartyIndex));
-  if (auto revised = revisedBoothTcp(booth,0,coalitionFinalist(booth)))
+  if (auto revised = revisedBoothTpp(booth))
     measured = revised->votes-revised->uncertainVotes();
   return {turnoutFpTarget(boothIndex), double(n.totalFpVotesCurrent()),
     measured,
@@ -4647,8 +4880,8 @@ void LiveV2::Election::calculateTppEstimateBias()
       totalProjectedTppVotes += votes;
     }
 
-    if (booth.hasTcpRevision() || booth.node.tppCompletion < 0.9
-      || !isTppSet(booth.node.tcpVotesCurrent, natPartyIndex)) {
+    auto const& measured = booth.tppCount(natPartyIndex);
+    if (booth.hasTppRevision() || booth.node.tppCompletion < 0.9 || measured.empty()) {
       continue;
     }
     if (!booth.tppVotesEstimated.contains(0)
@@ -4659,7 +4892,7 @@ void LiveV2::Election::calculateTppEstimateBias()
     }
 
     double boothRecordedVotes = 0.0;
-    for (auto const& [partyId, votes] : booth.node.tcpVotesCurrent) {
+    for (auto const& [partyId, votes] : measured) {
       int const mappedPartyId = partyId == natPartyIndex ? 1 : partyId;
       recordedVotes[mappedPartyId] += votes;
       if (mappedPartyId == 0 || mappedPartyId == 1) {

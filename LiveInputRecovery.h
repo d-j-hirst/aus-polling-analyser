@@ -125,7 +125,16 @@ using PreferenceHistories = std::map<std::string,PreferenceHistory>;
 // for each retired pair, stored separately under the original candidate IDs.
 using CandidatePair = std::pair<int,int>;
 using PairPreferenceHistory = std::map<std::string,std::map<CandidatePair,PreferenceCohort>>;
-PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& folder, Snapshot const& effective);
+// An optional filter limits which reporting locations are read. The classic
+// TPP path needs only locations without an active Labor–Coalition count.
+using PairHistoryRecordFilter = std::function<bool(Record const&)>;
+PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& folder,
+    Snapshot const& effective, PairHistoryRecordFilter const& include = {});
+// Forecast-only TCP fallback for districts between published pairs. Each
+// record carries the old TCP and, where known, the FP account it counted.
+// These records are never committed as accepted observations of a new feed.
+std::map<std::string,Record> loadTcpHandoverCounts(std::filesystem::path const& folder,
+    Snapshot const& effective, std::set<std::string> const& districts);
 // The source-file path remains an oracle for portable equivalence tests and a
 // fallback when a derived change index cannot be used. Forecasts use the index.
 enum class HistoryReadMode { Indexed, SourceFiles };

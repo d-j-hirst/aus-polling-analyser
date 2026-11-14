@@ -44,6 +44,11 @@ struct ReceivedTpp {
     double inferredFirst = 0;
 };
 
+// For a swing comparison, inferred preferences supply half the weight of
+// a measured Labor–Coalition ballot. Apply this by the inferred fraction
+// so that a partial or revised TCP retains full weight on its counted part.
+inline constexpr double InferredPreferenceComparisonWeight = .5;
+
 inline double samplingVariance(double total, double first) {
     // Delta-method variance of 25*log odds. At 50:50 this is about 2500/n;
     // near an endpoint the uncertainty is larger. A possible observed zero

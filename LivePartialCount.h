@@ -178,18 +178,22 @@ struct RevisedTcp {
     double uncertainVotes() const { return upper-lower; }
 };
 
-inline std::optional<RevisedTcp> reviseTcp(Counts const& fp, Counts const& tcp,
-    TcpBasis const& basis, Flows const& flows, double offset, int first, int second,
-    double variation = 0) {
-    if (!validBasis(basis) || tcp != basis.tcp || !tcp.contains(first) || !tcp.contains(second)
-        || fp.size() != basis.fp.size() || fp == basis.fp) return {};
+// Reconcile the old preference allocation with the latest primary counts.
+// The starting interval is the number of non-finalist ballots reaching the
+// first finalist in the old FP account. Finalist primaries are known exactly.
+inline std::optional<RevisedTcp> reviseTransfers(Counts const& fp, TcpBasis const& basis,
+    Flows const& flows, double offset, int first, int second, double gain,
+    double lower, double upper, double variation) {
+    if (fp.size() != basis.fp.size() || fp == basis.fp) return {};
     for (auto const& [candidate,votes] : fp)
         if (votes < 0 || !basis.fp.contains(candidate) || !flows.contains(candidate)) return {};
     // Swapping finalist order describes the same sampled allocation.
     if (first > second) variation = -variation;
     double pool = total(fp)-value(fp,first)-value(fp,second);
-    double gain = value(tcp,first)-value(basis.fp,first);
-    double lower = gain, upper = gain;
+    if (variation != 0 && upper > lower) {
+        double const fraction = (gain-lower)/(upper-lower);
+        gain = lower+(upper-lower)*inverseLogOdds(logOdds(fraction)+2*variation);
+    }
     for (auto const& [candidate,votes] : fp) {
         if (candidate == first || candidate == second) continue;
         double delta = votes-value(basis.fp,candidate);
@@ -219,6 +223,36 @@ inline std::optional<RevisedTcp> reviseTcp(Counts const& fp, Counts const& tcp,
     lower = primary+std::clamp(lower,0.0,pool);
     upper = primary+std::clamp(upper,0.0,pool);
     return RevisedTcp{total(fp),std::clamp(primary+gain,lower,upper),lower,upper};
+}
+
+inline std::optional<RevisedTcp> reviseTcp(Counts const& fp, Counts const& tcp,
+    TcpBasis const& basis, Flows const& flows, double offset, int first, int second,
+    double variation = 0) {
+    if (!validBasis(basis) || tcp != basis.tcp || !tcp.contains(first) || !tcp.contains(second)) return {};
+    double const gain = value(tcp,first)-value(basis.fp,first);
+    return reviseTransfers(fp,basis,flows,offset,first,second,gain,gain,gain,variation);
+}
+
+// After realignment a small FP recheck may disturb the old Labor–Coalition
+// count. Keep its observed allocation for unaffected ballots. If TCP covered
+// fewer ballots than the old FP, allow every missing ballot to go to either
+// finalist, subject to their known primaries. Start at the reported TCP share
+// within those bounds, then account for candidate additions and removals.
+// The caller has verified the old FP/TCP match and the size of the recheck.
+inline std::optional<RevisedTcp> reviseRetainedTcp(Counts const& fp, TcpBasis const& basis,
+    Flows const& flows, double offset, int first, int second, double variation = 0) {
+    double const originalFp = total(basis.fp), originalTcp = total(basis.tcp);
+    double const gap = originalFp-originalTcp;
+    if (gap == 0) return reviseTcp(fp,basis.tcp,basis,flows,offset,first,second,variation);
+    if (gap < 0 || !measureTransfer(basis.fp,basis.tcp,first,second)) return {};
+    double const primary = value(basis.fp,first);
+    double const pool = originalFp-primary-value(basis.fp,second);
+    double const counted = value(basis.tcp,first);
+    double const lower = std::max(0.0,counted-primary);
+    double const upper = std::min(pool,counted+gap-primary);
+    if (lower > upper) return {};
+    double const gain = std::clamp(counted*originalFp/originalTcp-primary,lower,upper);
+    return reviseTransfers(fp,basis,flows,offset,first,second,gain,lower,upper,variation);
 }
 
 inline std::map<int,double> revisedLowerBounds(Counts const& fp, Counts const& tcp, TcpBasis const& basis) {

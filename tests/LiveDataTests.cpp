@@ -1115,10 +1115,39 @@ void testRevisedTcpAccount() {
     assert(reverse && std::abs(reverse->first+revised->first-4750) < 1e-9);
 }
 
+void testRetainedTppThroughFpRecheck() {
+    using namespace LivePartialCount;
+    // Earlier FP covered 1,000 voters and its classic scrutiny covered 990.
+    // A recheck moves one non-finalist primary to the Coalition. The gap
+    // and changed transfer stay uncertain, including in the turnout bounds.
+    TcpBasis basis{{{0,400},{1,350},{2,250}},{{0,550},{1,440}},{}};
+    Counts fp{{0,400},{1,351},{2,249}};
+    Flows flows{{0,1},{1,0},{2,.6}};
+    auto estimate = reviseRetainedTcp(fp,basis,flows,0,0,1);
+    assert(estimate && estimate->votes == 1000);
+    assert(estimate->lower == 549 && estimate->upper == 560);
+    assert(std::abs(estimate->first-(550.0*1000/990-.6)) < 1e-9);
+    assert(estimate->uncertainVotes() == 11);
+    for (double draw : {-100.0,0.0,100.0}) {
+        auto varied = reviseRetainedTcp(fp,basis,flows,0,0,1,draw);
+        auto reverse = reviseRetainedTcp(fp,basis,{{0,0},{1,1},{2,.4}},0,1,0,draw);
+        assert(varied && reverse && varied->first >= 549 && varied->first <= 560);
+        assert(std::abs(varied->first+reverse->first-1000) < 1e-9);
+    }
+    auto excess = basis;
+    excess.tcp.at(1) = 451;
+    assert(!reviseRetainedTcp(fp,excess,flows,0,0,1));
+
+    basis.tcp.at(1) = 450;
+    auto reconciled = reviseRetainedTcp(fp,basis,flows,0,0,1);
+    assert(reconciled && reconciled->lower == 549 && reconciled->upper == 550);
+}
+
 int main()
 {
     testElectionScopedPartyMapping();
     testRevisedTcpAccount();
+    testRetainedTppThroughFpRecheck();
     testRevisedDeclarationTcpUncertainty();
     testJointTppIntegration();
     testTppCategorySensitivity();

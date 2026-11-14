@@ -199,6 +199,17 @@ bool containedFpCohort(Counts const& older, Counts const& current) {
     return true;
 }
 
+bool minorFpRecheck(Counts const& older, Counts const& current) {
+    // Count displaced ballots by candidate. A similar total alone can conceal
+    // a much larger correction to the underlying primary vote.
+    constexpr double RecheckFraction = .005;
+    constexpr double RecheckMinimum = 2;
+    double displaced = 0;
+    for (auto const& [candidate,votes] : older)
+        displaced += std::max(0.0,votes-LivePartialCount::value(current,candidate));
+    return displaced <= std::max(RecheckMinimum,RecheckFraction*LivePartialCount::total(older));
+}
+
 bool compatiblePreferenceCohort(PreferenceCohort const& cohort, Record const& current) {
     // Usually the old cohort is a subset of current FP/TCP. If TCP becomes
     // unavailable, its earlier compatible pair can still inform preferences,
@@ -645,7 +656,8 @@ void retainPreferenceHistory(Snapshot& effective, PreferenceHistories const& his
     }
 }
 
-PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& folder, Snapshot const& effective) {
+PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& folder,
+    Snapshot const& effective, PairHistoryRecordFilter const& include) {
     PairPreferenceHistory result;
     // A smaller TCP total can represent exhaustion in OPV. This learning
     // path requires an FP batch and TCP count from the same set of ballots.
@@ -654,6 +666,7 @@ PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& fol
     LiveInputHistory::Selection selection;
     for (auto const& record : effective.records) {
         if (record.closed || !record.fp.votes || total(record.fp.votes) <= 0) continue;
+        if (include && !include(record)) continue;
         current.emplace(record.key,&record);
         selection[record.district].insert(record.key);
     }
@@ -685,17 +698,13 @@ PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& fol
             if (!comparablePreferenceAccount(cohort.fp,cohort.tcp)) return;
             CandidatePair pair{cohort.tcp.begin()->first,cohort.tcp.rbegin()->first};
             if (!containedFpCohort(cohort.fp,*now.fp.votes)) {
-                // A retired scrutiny remains useful as a transfer-rate
-                // measurement after a minor FP recheck. Limit the number of
-                // ballots that no longer fit by candidate. Do not apply this
-                // allowance to the active count or use it to fix counted TPP.
-                if (now.tcp.votes && samePreferencePair(cohort.tcp,*now.tcp.votes)) return;
-                constexpr double RecheckFraction = .005;
-                constexpr double RecheckMinimum = 2;
-                double displaced = 0;
-                for (auto const& [candidate,votes] : cohort.fp)
-                    displaced += std::max(0.0,votes-LivePartialCount::value(*now.fp.votes,candidate));
-                if (displaced > std::max(RecheckMinimum,RecheckFraction*double(total(cohort.fp)))) return;
+                // Limit how many ballots can differ from the retired count.
+                // A fresh positive count for the same pair follows the normal
+                // matching rules. A zero reset or restored count can also
+                // occur during withdrawal, so neither rules out the older pair.
+                if (now.tcp.fresh() && total(now.tcp.votes) > 0 &&
+                    samePreferencePair(cohort.tcp,*now.tcp.votes)) return;
+                if (!minorFpRecheck(cohort.fp,*now.fp.votes)) return;
             }
             auto superseded = supersededBefore.find(record.key);
             if (superseded != supersededBefore.end()) {
@@ -737,6 +746,100 @@ PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& fol
         });
     for (auto const& [key,record] : current) consider(*record,*record);
     std::erase_if(result,[](auto const& item) { return item.second.empty(); });
+    return result;
+}
+
+std::map<std::string,Record> loadTcpHandoverCounts(std::filesystem::path const& folder,
+    Snapshot const& effective, std::set<std::string> const& districts) {
+    // The SA district feed can reset its TCP before a replacement has any
+    // usable votes. Find the last pair that actually reported a valid positive
+    // count, using only accepted changes strictly before this capture. Earlier
+    // fallback copies and zero placeholders cannot establish a pair.
+    RecordIndex current;
+    LiveInputHistory::Selection selection;
+    for (auto const& record : effective.records) {
+        if (record.closed || !districts.contains(record.district)) continue;
+        current.emplace(record.key,&record);
+        selection[record.district].insert(record.key);
+    }
+    if (current.empty()) return {};
+
+    struct DistrictPair {
+        std::string observedAt;
+        std::set<CandidatePair> pairs;
+    };
+    std::map<std::string,DistrictPair> lastPair;
+    std::map<std::string,std::map<CandidatePair,Record>> lastCounts;
+    LiveInputHistory::visitAcceptedPreferenceChanges(folder,fileCode(effective.sourceTime),selection,
+        [](json const& value) { decode(value); },
+        [&](json const& value) {
+            auto snapshot = decode(value);
+            if (snapshot.election != effective.election || snapshot.sourceTime >= effective.sourceTime ||
+                snapshot.optionalPreferential != effective.optionalPreferential) return;
+            auto& old = snapshot.records.front();
+            auto const& now = *current.at(old.key);
+            if (!sameRecord(now,old) || !old.tcp.fresh() || old.tcp.votes->size() != 2 ||
+                total(old.tcp.votes) <= 0 || old.tcp.observedAt.empty()) return;
+            CandidatePair const pair{old.tcp.votes->begin()->first,old.tcp.votes->rbegin()->first};
+            auto& district = lastPair[old.district];
+            if (old.tcp.observedAt > district.observedAt) {
+                district.observedAt = old.tcp.observedAt;
+                district.pairs.clear();
+            }
+            if (old.tcp.observedAt == district.observedAt) district.pairs.insert(pair);
+
+            // Keep the latest positive account even if a later check finds it
+            // incompatible with today's FP. That check must not resurrect a
+            // superseded older version of the same booth's count.
+            auto& counts = lastCounts[old.key];
+            auto found = counts.find(pair);
+            if (found == counts.end() || old.tcp.observedAt >= found->second.tcp.observedAt)
+                counts.insert_or_assign(pair,std::move(old));
+        });
+
+    std::map<std::string,Record> result;
+    std::map<std::string,std::int64_t> districtTotals;
+    for (auto const& [key,now] : current) {
+        auto selected = lastPair.find(now->district);
+        if (selected == lastPair.end() || selected->second.pairs.size() != 1 ||
+            !now->fp.votes || total(now->fp.votes) <= 0) continue;
+        auto booth = lastCounts.find(key);
+        if (booth == lastCounts.end()) continue;
+        auto found = booth->second.find(*selected->second.pairs.begin());
+        if (found == booth->second.end()) continue;
+        auto const& old = found->second;
+        if (!old.fp.votes || !tcpFits(old,old.tcp,effective.optionalPreferential)) continue;
+        auto prior = *now;
+        prior.tcp = old.tcp;
+        prior.tcp.status = Status::Restored;
+        prior.tcpBasis.reset();
+        prior.matchedPreferences.reset();
+        // A proven matched batch can account for a small FP correction using
+        // the existing revision bounds. Otherwise require the old primary
+        // cohort to fit inside the current one, and validate the TCP normally.
+        if (hasCurrentTcpBasis(old)) prior.tcpBasis = old.tcpBasis;
+        else if (LivePartialCount::validBasis({*old.fp.votes,*old.tcp.votes,{}}))
+            prior.tcpBasis = PreferenceCohort{*old.fp.votes,*old.tcp.votes,old.fp.observedAt,
+                old.tcp.observedAt,{},explicitlyRecheckedPair(old.fp.metadata(),old.tcp.metadata())};
+        auto const& basisFp = prior.tcpBasis ? prior.tcpBasis->fp : *old.fp.votes;
+        if (!containedFpCohort(basisFp,*now->fp.votes) &&
+            (!hasCurrentTcpBasis(prior) || !minorFpRecheck(basisFp,*now->fp.votes))) continue;
+        if (!tcpFits(prior,prior.tcp,effective.optionalPreferential)) continue;
+        // An asynchronous pair may pass the count checks without an exact
+        // FP/TCP match. If its earlier FP mix is close enough to measure a
+        // transfer rate, carry that comparison along with the raw count.
+        if (!prior.tcpBasis && comparablePreferenceAccount(*old.fp.votes,*old.tcp.votes))
+            prior.matchedPreferences = PreferenceCohort{*old.fp.votes,*old.tcp.votes,old.fp.observedAt,
+                old.tcp.observedAt,{},explicitlyRecheckedPair(old.fp.metadata(),old.tcp.metadata())};
+        districtTotals[now->district] += total(prior.tcp.votes);
+        result.emplace(key,std::move(prior));
+    }
+    // Joining booth observations from the same pair still has to respect
+    // the district's hard enrolment bound, as ordinary count recovery does.
+    std::erase_if(result,[&](auto const& item) {
+        auto const& name = item.second.district;
+        return districtTotals.at(name) >= effective.districts.at(name).enrolment;
+    });
     return result;
 }
 

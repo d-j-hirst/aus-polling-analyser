@@ -2664,8 +2664,6 @@ void SimulationPreparation::preparePreferenceModel()
 {
 	run.preferenceModel.reset();
 	run.preferenceCountSummaries.clear();
-	auto const term = run.getTermCode();
-	if (term != "2026vic" && term != "2026sa") return;
 
 	// Resolve party and independent identities after roster preparation. The
 	// main forecast and supporting runs read the same captured settings. Active
@@ -2704,17 +2702,23 @@ void SimulationPreparation::preparePreferenceModel()
 		districts.push_back({seat.name, std::move(independentName),
 			incumbent == Mp::Two || incumbent == run.natPartyIndex});
 	}
+	std::map<std::string, int> partyCodes;
+	for (int party = 0; party < project.parties().count(); ++party) {
+		partyCodes.emplace(project.parties().viewByIndex(party).abbreviation, party);
+	}
 	try {
-		run.preferenceModel = PreferenceModel::Model::load(input, roles, districts, run.ncPreferenceFlow);
+		run.preferenceModel = PreferenceModel::Model::load(input, roles, districts, run.ncPreferenceFlow, partyCodes);
 	}
 	catch (std::exception const& error) {
 		throw Exception("Invalid preference model in " + fileName + ": " + error.what());
 	}
 	// A comparison is only needed for the main report. Its supporting runs
 	// use the ordinary count so the two main counts can share that forecast.
-	if (run.preferenceModel && !run.preferenceModel->isActive() &&
-		(run.doingBettingOddsCalibrations || run.doingLiveBaselineSimulation)) {
-		run.preferenceModel.reset();
+	if (run.preferenceModel) {
+		bool const supportingRun = run.doingBettingOddsCalibrations || run.doingLiveBaselineSimulation;
+		bool const disableComparison = supportingRun && !run.preferenceModel->isActive();
+		bool const disableLiveTrial = run.preferenceModel->isLiveTrial() && !run.isLiveAutomatic();
+		if (disableComparison || disableLiveTrial) run.preferenceModel.reset();
 	}
 	if (run.preferenceModel) run.preferenceCountSummaries.resize(districts.size());
 }

@@ -28,7 +28,6 @@ void LiveV2::Election::preparePreferenceCorrections(LiveInputRecovery::RecordSta
     using json = nlohmann::json;
     auto prepared = std::make_shared<PreferenceCorrectionPreparation>();
     prepared->seats.resize(seats.size());
-    prepared->countedTpp.resize(seats.size());
     prepared->countedTcp.resize(seats.size());
     json diagnostic = {{"version", "live-preference-rechecking-4"},
         {"size_response_votes", LivePreferenceCorrections::SizeResponseScale},
@@ -47,20 +46,16 @@ void LiveV2::Election::preparePreferenceCorrections(LiveInputRecovery::RecordSta
     for (std::size_t s = 0; s < seats.size(); ++s) {
         auto const& seat = seats[s];
         if (seat.finalResult) {
-            prepared->countedTpp[s] = seat.finalResult->tpp;
             prepared->countedTcp[s] = seat.finalResult->tcp;
             exclude("final_district_result");
             continue;
         }
         auto mapParty = [&](int party) { return party == seat.liveIndependentPartyIndex ? run.indPartyIndex : party; };
-        // Use the forecast's counted constraints, including revised FP/TCP
-        // guarantees. Reconstructing them from raw TCP would resurrect obsolete
-        // candidate floors whenever ANY booth participates in this regression.
+        // Keep the active TCP's counted constraints, including candidates
+        // with zero votes and the guaranteed counts after a primary revision.
+        // The separate Labor–Coalition account comes from turnout preparation.
         for (int b : seat.booths) {
-            auto bounds = readBooths()[b].tcpLowerBounds();
-            bool classic = bounds.size() == 2 && bounds.contains(0) && (bounds.contains(1) || bounds.contains(natPartyIndex));
-            for (auto const& [p,v] : bounds) {
-                if (classic) prepared->countedTpp[s][p == natPartyIndex ? 1 : p] += v;
+            for (auto const& [p,v] : readBooths()[b].tcpLowerBounds()) {
                 prepared->countedTcp[s][mapParty(p)] += v;
             }
         }
@@ -156,8 +151,12 @@ void LiveV2::Election::preparePreferenceCorrections(LiveInputRecovery::RecordSta
 
 void LiveV2::Election::applyPreferenceCorrections(int iterationIndex) {
     if (!preferenceCorrections) return;
+    // The turnout account holds accepted Labor–Coalition votes, including
+    // those retained after a booth switches to a different TCP. Start each
+    // draw from those same counts so a recheck of the active pair cannot
+    // erase them. The joint 3CP count uses this account to give measured
+    // TPP priority over an estimate based on preferences.
     auto adjusted = std::make_shared<LiveTurnout::ScenarioCounts>(turnout->scenarioCounts());
-    adjusted->tpp = preferenceCorrections->countedTpp;
     adjusted->tcp = preferenceCorrections->countedTcp;
     auto const iterationSeed = RandomGenerator::mixKey(variabilityBaseSeed ^ 0x5265636865636b31ULL,
         std::uint64_t(iterationIndex));
@@ -168,6 +167,12 @@ void LiveV2::Election::applyPreferenceCorrections(int iterationIndex) {
         auto& n = seats[s].node;
         auto& counted = state.classic ? adjusted->tpp[s] : adjusted->tcp[s];
         auto& projected = state.classic ? n.tppVotesProjected : n.tcpVotesProjected;
+        if (state.classic) {
+            // The turnout TPP account omits zero entries. A recheck may
+            // still transfer votes to a finalist whose count was zero.
+            counted.try_emplace(state.partyA, 0.0);
+            counted.try_emplace(state.partyB, 0.0);
+        }
         LivePreferenceCorrections::transfer(counted, projected, state.partyA, state.partyB, revision);
         // Non-classic TCP corrections do not establish an observed classic TPP.
         // Refresh the published pair's shares, but retain the separately inferred

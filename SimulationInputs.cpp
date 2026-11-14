@@ -131,9 +131,7 @@ std::shared_ptr<SimulationInputs const> SimulationInputs::capture(
 	// The ranking count is enabled through an election's optional preference file.
 	// Record even a missing file. Changing the mode or the assumptions must
 	// invalidate both the betting-odds calibration and the pre-count baseline.
-	if (term == "2026vic" || term == "2026sa") {
-		files[File::PreferenceModel] = "analysis/Preferences/" + term + ".json";
-	}
+	files[File::PreferenceModel] = "analysis/Preferences/" + term + ".json";
 	if (term == "2026vic") {
 		// Historical scrutiny counts also affect the ordinary FP forecast and
 		// its supporting runs, independently of the preference model mode.

@@ -283,9 +283,133 @@ head-to-head rates allow a range for the share ranking the independent ahead
 of both. The ranking model uses the midpoint of that range for each draw,
 preserving the feasible head-to-head rates and the Liberal–One Nation order.
 
+Districts can also include `historical_transfers` for a recorded exclusion
+from an earlier election. Each entry gives the `election`, `source` URL,
+`donor` party code, the donor's `original_votes`, the `inherited_votes`
+it received at earlier exclusions, and the `transfers` to each of the two
+to four surviving candidates by party code. Include a zero for any surviving
+candidate who received no votes. The transfers must sum to the original
+and inherited votes. A row involving `IND` also needs the configured
+`independent_name` to identify the returning person. Use one exclusion
+per donor and district.
+
+The count shows each ballot's highest choice among those survivors. The
+model varies how many of the inherited ballots went to each recipient, then
+uses the estimated original ballots to adjust the current rankings. The
+`weight` from zero to one controls the blend toward the old split before
+preserving the drawn Labor–Coalition split and the chance that an unobserved
+candidate in the fitted rankings beats all the recorded recipients. Those
+constraints can reduce the adjustment. The model uses the record when the
+donor and every recorded recipient are in the projected ballot.
+
+In Finniss the 2022 Greens pile transferred 1,102 votes to Lou Nicholson,
+537 to Labor and 164 to Liberal, including 156 ballots inherited from earlier
+exclusions. The replay uses a weight of 0.5 to give that local result some
+influence while allowing preferences to change between elections. One Nation
+had already been excluded in that round, so its position is still estimated
+from the fitted rankings. See the [2022 Finniss distribution](https://en.wikipedia.org/wiki/Electoral_results_for_the_district_of_Finniss#2022)
+and the [ECSA distribution archive](https://www.ecsa.sa.gov.au/elections/past-state-election-results?catid=12:elections&id=636:2022-state-election-results-and-statistics-downloads&view=article).
+
 For checks at fixed preference
 means, set `sample_uncertainty` to `false` and set
 `unknown_liberal_labor_first_probability` to 0 or 1 to use one advice direction.
 Both modes use the original simulated first preferences and TPP.
+
+## Manual live preference counts
+
+A three- or four-candidate preference count shows which of those candidates
+was ranked highest on the ballots examined. It can help estimate who survives
+the next exclusion. Record these current-election observations in
+`forecasts/<election>/live-inputs/preference-counts.json`. The file is optional
+and read during automatic live preparation. It is used in districts with an
+enabled ranking model. The `live_trial` mode enables the ranking model only
+for automatic live counts in districts with `"live_trial": true` in the
+ranking settings. This lets a diagnostic replay compare forecasts with and
+without the sample against the same underlying ranking model.
+
+```json
+{
+  "schema_version": 1,
+  "observations": [
+    {
+      "district": "Finniss",
+      "available_at": "2026-03-30T12:10:00+11:00",
+      "sample": "Victor Harbor Early Voting Centre, Greens and Bron Lewis",
+      "sampled_preference_ballots": 1053,
+      "sampled_first_preferences": {"GRN": 560, "IND:Bron Lewis": 493},
+      "flow_percent": {"IND:Lou Nicholson": 58, "ALP": 22, "LNP": 13, "ON": 7},
+      "additional_sd_pp": 7,
+      "source": "https://antonygreen.com.au/sa2026-finniss-will-a-candidate-win-from-fourth-place/"
+    }
+  ]
+}
+```
+
+- Append updated observations and retain the earlier rows. The current run
+  uses the latest row for each district available by its capture time, or
+  by the run time when using the current live feed. A fixed test feed uses
+  its own source timestamp. Supply an ISO date and time with a UTC offset.
+  The date is when the figures became available to the forecast operator.
+  Two rows for the same district at the same instant are ambiguous and are
+  rejected.
+- `flow_percent` describes the split of only the redistributed ballots.
+  To convert published candidate totals into this split, subtract each
+  recipient's own first preferences for the same booths or vote types.
+  Use project party codes or `IND:Full Name` for independents. An optional
+  `sampled_first_preferences` itemises the donor pool and must add up to
+  `sampled_preference_ballots`. `OTH` is available for donors grouped by the
+  model. The live ranking ballot distinguishes the leading two independent
+  candidates. Without itemised counts the model uses the drawn district donor mix.
+- Set `additional_sd_pp` to the uncertainty in each recipient's share of
+  the preference pool, in percentage points, due to differences between the
+  sample and the rest of the seat. The model adds allowance for finite sample
+  size. In Finniss the 7 points and the exact cutoff are replay assumptions.
+  The feed gives about 1,053 sampled first preferences from the two named
+  donors, and the published split is rounded.
+
+For observations like the Finniss example, the sample favours local ranking
+draws that reproduce its split while keeping the scenario's first preferences,
+Labor–Coalition TPP and shared election preference effects. The same rankings
+then supply every exclusion.
+
+A compulsory-preferential 3CP with Labor, one Coalition candidate and a
+third candidate can also supply `sampled_candidate_totals`. This itemises the
+three candidates' published tallies on the same ballots used for
+`sampled_first_preferences`. Supply the three recipients' first preferences
+on those ballots in `sampled_finalist_first_preferences`. Subtracting each
+recipient's first preferences from its tally gives the exact transfer counts
+and takes precedence over the rounded `flow_percent`. For example, the 11 May
+Ryan sample uses tallies of `{"ALP": 28369, "GRN": 28949, "LNP": 37906}` and
+finalist first preferences of `{"ALP": 26818, "GRN": 27371, "LNP": 33548}`.
+
+The simulation then fixes the published allocations for the sampled ballots
+and models only transfers on the other ballots. When both Coalition parties
+stood and just one appears in the published three, the ordinary ranking
+model still handles any earlier exclusions. The sampled transfers already
+include any ballots from the excluded Coalition candidate.
+In this calculation,
+`additional_sd_pp` describes the spread of the flow on the ballots outside the
+sample, with a provisional minimum of ten points. If earlier exclusions in a
+draw leave a different group of three, or if the sample cannot fit within the
+drawn district FP totals, that draw uses the ordinary ranking count.
+
+If no Labor–Coalition TPP votes are available, the model uses this same
+three-way allocation to estimate TPP. Ballots with a major already rank that
+major above its opponent. The third candidate's own voters and the ballots
+they inherited can split differently between the majors. An optional
+`tpp_prior` supplies the two expected Labor shares as percentages, for example
+`{"third_primary_to_labor_percent": 89.80435, "third_inherited_to_labor_percent": 50}`.
+These are assumptions about the unobserved preferences. Without those
+settings, the model uses the simulated source rate for the third candidate's
+own voters and a neutral split for inherited ballots. When measured TPP
+exists, the count-based TPP estimate takes priority and the sample can still
+inform the pairing.
+
+Official final results take precedence. The live analysis export records the
+chosen row under `preference_count_observations`, and the active ranking log
+reports how many draws used the joint account and their average transfer split.
+`sample_uncertainty: false` uses fixed preference rates and still honours
+published candidate totals when they are usable.
+
 Source estimates with limited precedent include modelling assumptions and
 carry broad uncertainty when estimating exclusions and final margins.

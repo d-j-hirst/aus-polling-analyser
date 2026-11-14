@@ -404,6 +404,41 @@ void checkNamedIndependentPlacement()
 	assert(highResult.classic.maximumError < Tolerance && lowResult.classic.maximumError < Tolerance);
 }
 
+void checkSecondaryIndependentTransfers()
+{
+	constexpr int Secondary = 214003;
+	auto ranking = model(false);
+	std::array const ballot{
+		Source{Labor, .19, 1, 1.8, 1.0}, Source{Liberal, .27, 3, 1.4, 0.0},
+		Source{Independent, .18, 2, 1.2, .52, false, true}, Source{OneNation, .22, 4, 1.2, .33},
+		Source{Greens, .07, 0, 1.8, .81}, Source{Secondary, .04, 2, 1.2, .48, true},
+		Source{Others, .03, 2, 1.2, .48}};
+	auto neutral = ballot;
+	neutral[5].additionalIndependent = false;
+	auto before = ranking.referencePairRates(0, neutral, {Independent, Liberal});
+	auto after = ranking.referencePairRates(0, ballot, {Independent, Liberal});
+	assert(after.at(Secondary) > before.at(Secondary));
+	assert(close(after.at(Others), before.at(Others)));
+	auto classic = ranking.referencePairRates(0, ballot, {Labor, Liberal});
+	assert(close(classic.at(Secondary), ballot[5].classicRate));
+	auto configured = ballot;
+	configured[5].id = EmergingIndependent;
+	configured[5].additionalIndependent = false;
+	configured[5].confirmedIndependent = true;
+	auto configuredRates = ranking.referencePairRates(0, configured, {Independent, Liberal});
+	assert(close(configuredRates.at(EmergingIndependent), after.at(Secondary)));
+	auto result = ranking.count(0, ballot, .432, .5, ranking.drawElection(5));
+	assert(result.status == Status::Compared && result.classic.maximumError < Tolerance);
+
+	auto settings = syntheticConfiguration();
+	settings["sample_uncertainty"] = false;
+	settings["districts"]["Ordinary"]["independent"] = {{"name", "Test Candidate"}, {"position", "right"}};
+	auto right = load(settings);
+	assert(right);
+	auto rightRates = right->referencePairRates(0, ballot, {Independent, Liberal});
+	assert(close(rightRates.at(Secondary), before.at(Secondary)));
+}
+
 void checkLaborPreferencesToRightIndependent()
 {
 	auto settings = syntheticConfiguration();
@@ -486,7 +521,8 @@ void checkSouthAustralianBallot()
 	constexpr int saOneNation = 7, saIndependent = 6;
 	constexpr Roles saRoles{Labor, Liberal, std::nullopt, Greens, saOneNation, saIndependent, EmergingIndependent, Others};
 	std::vector<District> const saDistricts{{"Elder", {}, false}, {"King", {}, false}, {"Chaffey", {}, true},
-		{"MacKillop", "Nick McBride", true}, {"Narungga", "Fraser Ellis", true}};
+		{"MacKillop", "Nick McBride", true}, {"Narungga", "Fraser Ellis", true},
+		{"Finniss", "Lou Nicholson", true}};
 	auto prepared = Model::load(input, saRoles, saDistricts, {});
 	assert(prepared && prepared->isActive() && !prepared->partyRoles().national);
 	auto const draw = prepared->drawElection(52);
@@ -505,6 +541,339 @@ void checkSouthAustralianBallot()
 	checkPair(0, .44, .41, .09, .035, .025, .52, {Labor, Liberal});
 	checkPair(1, .43, .09, .40, .05, .03, .55, {Labor, saOneNation});
 	checkPair(2, .10, .43, .41, .04, .02, .20, {Liberal, saOneNation});
+}
+
+void checkHistoricalFinnissTransfers()
+{
+	std::ifstream input("analysis/Preferences/2026sa.json");
+	assert(input);
+	auto const sa = nlohmann::json::parse(input);
+	auto settings = syntheticConfiguration();
+	settings["districts"]["Ordinary"] = sa.at("districts").at("Finniss");
+	auto& transfers = settings["districts"]["Ordinary"]["historical_transfers"];
+	transfers[0]["independent_name"] = "Test Candidate";
+	auto const ranking = load(settings);
+	assert(ranking);
+	auto const generic = load(syntheticConfiguration());
+	assert(generic);
+	std::array const ballot{
+		Source{Labor, .202, 2, 1.4, 1.0}, Source{Liberal, .302, 3, 1.4, 0.0},
+		Source{OneNation, .203, 4, 1.2, .25}, Source{Greens, .055, 1, 1.8, .82},
+		Source{Independent, .196, 2, 1.4, .55}, Source{Others, .042, 2, 1.4, .5}};
+	std::array const four{Labor, Liberal, Independent, OneNation};
+	auto const before = generic->referenceTransferRates(0, ballot, four).at(Greens);
+	auto const after = ranking->referenceTransferRates(0, ballot, four).at(Greens);
+	assert(close(std::accumulate(after.begin(), after.end(), 0.0), 1.0));
+	assert(after[2] > before[2] && after[0] < before[0]);
+	assert(close(after[3], before[3]) && after[3] > 0.0 && after[3] < 0.15);
+	auto const mismatch = ranking->referenceTransferRates(0, ballot, four, false).at(Greens);
+	assert(mismatch == before);
+	std::array const withoutLiberal{
+		Source{Labor, .504, 2, 1.4, 1.0}, ballot[2], ballot[3], ballot[4], ballot[5]};
+	std::array const three{Labor, Independent, OneNation};
+	assert(ranking->referenceTransferRates(0, withoutLiberal, three) ==
+		generic->referenceTransferRates(0, withoutLiberal, three));
+	std::array const classic{Labor, Liberal};
+	assert(close(ranking->referencePairRates(0, ballot, classic).at(Greens), .82));
+	for (std::uint64_t seed = 0; seed < 80; ++seed) {
+		auto const result = ranking->count(0, ballot, .433, .5, ranking->drawElection(seed));
+		assert(result.status == Status::Compared);
+		assert(result.classic.maximumError < Tolerance);
+	}
+	// A party without a fitted ranking can also be a named recipient.
+	// It normally competes by proximity and retains the classic split
+	// after its positions are made explicit for the old transfer.
+	constexpr int Minor = 8;
+	std::array const withMinor{ballot[0], ballot[1], ballot[2], ballot[3], ballot[4],
+		Source{Minor, .042, 2, 1.4, .5}};
+	auto withMinorHistory = settings;
+	auto& row = withMinorHistory["districts"]["Ordinary"]["historical_transfers"][0];
+	row["transfers"] = {{"ALP", 537}, {"LIB", 164}, {"MIN", 1102}};
+	std::istringstream minorInput(withMinorHistory.dump());
+	auto const minorRanking = Model::load(minorInput, roles, districts, flows, {{"MIN", Minor}});
+	assert(minorRanking);
+	std::array const withMinorFinalists{Labor, Liberal, Minor};
+	auto const minorRates = minorRanking->referenceTransferRates(0, withMinor, withMinorFinalists).at(Greens);
+	auto const baseMinorRates = generic->referenceTransferRates(0, withMinor, withMinorFinalists).at(Greens);
+	assert(minorRates[2] > baseMinorRates[2]);
+	assert(close(minorRanking->referencePairRates(0, withMinor, classic).at(Greens), .82));
+	transfers[0]["inherited_votes"] = 0;
+	bool rejected = false;
+	try { load(settings); }
+	catch (std::invalid_argument const&) { rejected = true; }
+	assert(rejected);
+}
+
+void checkLivePreferenceCountRevisions()
+{
+	auto settings = nlohmann::json::parse(R"({
+		"schema_version":1,
+		"observations":[
+		  {"district":"Finniss","available_at":"2026-03-30T12:00:00+10:30",
+		   "sample":"Second batch","sampled_preference_ballots":1200,
+		   "flow_percent":{"IND:Lou Nicholson":57,"ALP":23,"LNP":13,"ON":7},
+		   "additional_sd_pp":7,"source":"test"},
+		  {"district":"Finniss","available_at":"2026-03-30T11:30:00+10:30",
+		   "sample":"First batch","sampled_preference_ballots":1053,
+		   "sampled_first_preferences":{"GRN":560,"IND:Bron Lewis":493},
+		   "flow_percent":{"IND:Lou Nicholson":58,"ALP":22,"LNP":13,"ON":7},
+		   "additional_sd_pp":7,"source":"test"},
+		  {"district":"Forrest","available_at":"2026-03-29T23:00:00Z",
+		   "sample":"Eight booths","sampled_preference_ballots":4297,
+		   "flow_percent":{"ALP":31.6,"LNP":25.7,"IND:Sue Chapman":42.6},
+		   "additional_sd_pp":10,"source":"test"}
+		]
+	})");
+	auto select = [&](char const* time, char const* jurisdiction) {
+		std::istringstream input(settings.dump());
+		return loadCountObservations(input, time, jurisdiction);
+	};
+	assert(select("2026-03-30T08:00:00", "fed").empty());
+	assert(!select("2026-03-30T11:59:59", "fed").contains("Finniss"));
+	auto const first = select("2026-03-30T12:00:00", "fed");
+	assert(first.at("Finniss").ballots == 1053 && first.at("Finniss").firstPreferences.size() == 2);
+	assert(first.at("Finniss").candidateTotals.empty());
+	assert(first.at("Forrest").ballots == 4297);
+	assert(close(first.at("Forrest").flows.at("ALP"), 31.6 / 99.9));
+	assert(select("2026-03-30T12:00:00", "sa").at("Finniss").ballots == 1200);
+	assert(select("2026-03-30T01:30:00Z", "fed").at("Finniss").ballots == 1200);
+	auto& threeWay = settings["observations"][2];
+	threeWay["sampled_first_preferences"] = {{"OTH",4297}};
+	threeWay["sampled_candidate_totals"] = {{"ALP",4800},{"LNP",6700},{"IND:Sue Chapman",6100}};
+	threeWay["sampled_finalist_first_preferences"] = {{"ALP",3441},{"LNP",5595},{"IND:Sue Chapman",4267}};
+	threeWay["tpp_prior"] = {{"third_primary_to_labor_percent",60},{"third_inherited_to_labor_percent",45}};
+	auto const counted = select("2026-03-30T12:00:00", "fed").at("Forrest");
+	assert(counted.candidateTotals.at("ALP") == 4800 && counted.tppPrior->inheritedToLabor == .45);
+	threeWay["sampled_candidate_totals"]["ALP"] = 1000;
+	bool exceedsTally = false;
+	try { select("2026-03-30T12:00:00", "fed"); }
+	catch (std::invalid_argument const&) { exceedsTally = true; }
+	assert(exceedsTally);
+	threeWay.erase("sampled_candidate_totals");
+	threeWay.erase("sampled_finalist_first_preferences");
+	threeWay.erase("tpp_prior");
+	settings["observations"][0]["available_at"] = "2026-03-30T12:00:00+11:00";
+	bool rejected = false;
+	try { select("2026-03-31T12:00:00", "sa"); }
+	catch (std::invalid_argument const&) { rejected = true; }
+	assert(rejected);
+}
+
+void checkLivePreferenceCountConditioning()
+{
+	auto settings = configuration();
+	settings["mode"] = "live_trial";
+	settings["districts"] = {{"Ordinary", {{"live_trial",true}}}};
+	settings.erase("sensitivity_tests");
+	auto const ranking = load(settings);
+	assert(ranking && ranking->isLiveTrial() && ranking->isActive());
+	assert(ranking->coversDistrict(0) && !ranking->coversDistrict(1));
+	constexpr int Lewis = 114003, Missing = 999;
+	std::array const ballot{
+		Source{Labor, .187, 1, 1.8, 1}, Source{Liberal, .272, 3, 1.4, 0},
+		Source{Greens, .062, 0, 1.8, .8115}, Source{Independent, .181, 2, 1.2, .4766, false, true},
+		Source{OneNation, .227, 4, 1.2, .3615}, Source{Others, .030, 2, 1.4, .4766},
+		Source{Lewis, .041, 2, 1.2, .4766, true, false}};
+	PreparedCountObservation const four{
+		{{Labor,.22},{Liberal,.13},{Independent,.58},{OneNation,.07}}, {{Greens,560},{Lewis,493}}, .0051};
+	PreparedCountObservation const three{
+		{{Labor,.316},{Liberal,.257},{Independent,.427}}, {}, .0101};
+	auto missingDonor = four;
+	missingDonor.firstPreferences = {{Greens,560},{Missing,493}};
+	int before = 0, after = 0, changedThree = 0;
+	for (std::uint64_t seed = 0; seed < 600; ++seed) {
+		auto const election = ranking->drawElection(seed);
+		auto count = [&](PreparedCountObservation const* sample) {
+			return ranking->count(0, ballot, .43, .5, election, Sensitivity::None, false, true, sample);
+		};
+		auto const base = count(nullptr);
+		auto const conditioned = count(&four);
+		auto const partial = count(&three);
+		auto const absent = count(&missingDonor);
+		for (auto const* result : {&base,&conditioned,&partial,&absent}) {
+			assert(result->status == Status::Compared);
+			assert(result->classic.maximumError < Tolerance);
+		}
+		assert(base.final.candidates == absent.final.candidates && base.final.firstShare == absent.final.firstShare);
+		assert(conditioned.conditionedOnLiveSample && partial.conditionedOnLiveSample);
+		assert(!base.conditionedOnLiveSample && !absent.conditionedOnLiveSample);
+		before += base.final.candidates == Pair{Liberal, Independent};
+		after += conditioned.final.candidates == Pair{Liberal, Independent};
+		changedThree += partial.final.candidates != base.final.candidates;
+	}
+	assert(after > before && changedThree > 0);
+}
+
+void checkFederalComparisonAndLiveTrialConfiguration()
+{
+	std::ifstream input("analysis/Preferences/2025fed.json");
+	assert(input);
+	auto settings = nlohmann::json::parse(input);
+	std::array const fedDistricts{District{"Forrest", "Sue Chapman", true},
+		District{"Ryan", {}, false}, District{"Menzies", {}, false}, District{"Blaxland"}, District{"Fisher"},
+		District{"Flinders"}, District{"Grey"}, District{"Hunter"}, District{"Maranoa"}, District{"Mayo"},
+		District{"Monash"}, District{"Richmond"}, District{"Watson"}};
+	std::istringstream comparisonInput(settings.dump());
+	auto const comparison = Model::load(comparisonInput, roles, fedDistricts, flows);
+	assert(comparison && !comparison->isActive() && !comparison->isLiveTrial());
+	for (int district = 0; district < static_cast<int>(fedDistricts.size()); ++district) {
+		assert(comparison->coversDistrict(district));
+	}
+
+	settings["mode"] = "live_trial";
+	std::istringstream trialInput(settings.dump());
+	auto const ranking = Model::load(trialInput, roles, fedDistricts, flows);
+	assert(ranking && ranking->isLiveTrial() && ranking->coversDistrict(0) &&
+		ranking->coversDistrict(1) && !ranking->coversDistrict(2));
+	std::array const ballot{
+		Source{Labor, .226, 1, 1.8, 1}, Source{Liberal, .311, 3, 1.4, 0},
+		Source{Independent, .181, 2, 1.4, .7}, Source{Greens, .079, 0, 1.8, .85},
+		Source{National, .048, 3, 1.8, .15}, Source{OneNation, .087, 4, 1.2, .19},
+		Source{Others, .068, 2, 1.4, .48}};
+	PreparedCountObservation const sample{
+		{{Labor,31.6/99.9},{Liberal,25.7/99.9},{Independent,42.6/99.9}},
+		{{Greens,1342},{OneNation,1258},{National,818},{Others,879}}, .0101};
+	int changes = 0;
+	for (std::uint64_t seed = 0; seed < 120; ++seed) {
+		auto const election = ranking->drawElection(seed);
+		auto const base = ranking->count(0, ballot, .48, .5, election);
+		auto const revised = ranking->count(0, ballot, .48, .5, election, Sensitivity::None, false, true, &sample);
+		assert(base.status == Status::Compared && revised.status == Status::Compared);
+		assert(revised.classic.pairsChecked == 2 && revised.classic.maximumError < Tolerance);
+		changes += base.final.firstShare != revised.final.firstShare || base.final.candidates != revised.final.candidates;
+	}
+	assert(changes > 0);
+}
+
+void checkJointThreeCandidateCount()
+{
+	auto settings = syntheticConfiguration();
+	settings["sample_uncertainty"] = false;
+	auto const model = load(settings);
+	std::array const ballot{Source{Labor,.300,1,1.8,1}, Source{Liberal,.320,3,1.4,0},
+		Source{Greens,.306,0,1.8,.85}, Source{Others,.074,2,1.2,.50}};
+	// Every ballot has been counted to three candidates. The Greens take 15
+	// more transfers than Labor and survive. Only their Labor-LNP ordering
+	// remains uncertain for the TPP, supplied here as fixed rates for the test.
+	PreparedCountObservation sample{{{Labor,150./740},{Greens,165./740},{Liberal,425./740}},
+		{{Others,740}}, .01, {{Labor,3150},{Greens,3225},{Liberal,3625}},
+		{{Labor,3000},{Greens,3060},{Liberal,3200}}, 740, .10,
+		ThreeCandidateTppPrior{.90,.50}};
+	auto count = [&](PreparedCountObservation const& observation, ThreeCandidateCountContext context) {
+		return model->count(0, ballot, .57, .5, model->drawElection(1), Sensitivity::None, false, true,
+			&observation, context);
+	};
+	auto const joint = count(sample, {10000, false});
+	assert(joint.status == Status::Compared && joint.conditionedOnLiveSample);
+	assert((joint.final.candidates == Pair{Liberal, Greens}));
+	assert(close(joint.laborTpp, .315 + .306 * .90 + .0165 * .50));
+	assert(close(joint.jointThreeCandidateFlows.at(Liberal), 425./740));
+	auto const countedTpp = count(sample, {10000, true});
+	assert(countedTpp.laborTpp == .57 && countedTpp.final.candidates == joint.final.candidates);
+	assert(countedTpp.jointThreeCandidateFlows == joint.jointThreeCandidateFlows);
+	// With 1,000 ballots outside the sample, the expected split stays near
+	// the observed one, and the same Greens pile determines the TPP.
+	auto const partial = count(sample, {11000, false});
+	assert(std::abs(partial.jointThreeCandidateFlows.at(Liberal) - 425./740) < .0001);
+	auto fallback = count(sample, {9900, false});
+	assert(fallback.status == Status::Compared && fallback.jointThreeCandidateFlows.empty());
+	assert(!fallback.conditionedOnLiveSample && fallback.laborTpp == .57);
+	// If Greens are third, the revised TPP is also the reported classic TCP.
+	sample.candidateTotals = {{Labor,3250},{Greens,3210},{Liberal,3540}};
+	sample.flows = {{Labor,250./740},{Greens,150./740},{Liberal,340./740}};
+	auto const classic = count(sample, {10000, false});
+	assert((classic.final.candidates == Pair{Labor,Liberal}));
+	assert(close(classic.final.firstShare, classic.laborTpp));
+	auto const countedClassic = count(sample, {10000, true});
+	assert(close(countedClassic.final.firstShare, .57));
+}
+
+void checkJointThreeCandidateExtraFinalist()
+{
+	constexpr int CentreAlliance = 5;
+	auto settings = syntheticConfiguration();
+	settings["sample_uncertainty"] = false;
+	settings["unknown_liberal_labor_first_probability"] = 1.0;
+	auto const model = load(settings);
+	std::array const ballot{Source{Labor,.24,1,1.8,1}, Source{Liberal,.28,3,1.4,0},
+		Source{CentreAlliance,.31,2,1.4,.56}, Source{Others,.17,2,1.2,.50}};
+	auto check = [&](int excluded, int remaining, int laborTransfers, int liberalTransfers) {
+		// The full sample settles the exclusion. Check the final margin using
+		// the ordinary preference rates for the eliminated major's voters.
+		int const centreTransfers = 1700 - laborTransfers - liberalTransfers;
+		PreparedCountObservation const sample{
+			{{Labor,laborTransfers/1700.},{Liberal,liberalTransfers/1700.},{CentreAlliance,centreTransfers/1700.}},
+			{{Others,1700}}, .01, {{Labor,2400+laborTransfers},{Liberal,2800+liberalTransfers},
+				{CentreAlliance,3100+centreTransfers}},
+			{{Labor,2400},{Liberal,2800},{CentreAlliance,3100}}, 1700, .10};
+		auto const result = model->count(0, ballot, .55, .5, model->drawElection(1),
+			Sensitivity::None, false, true, &sample, ThreeCandidateCountContext{10000, false});
+		Pair const pair{remaining,CentreAlliance};
+		auto const ordinaryRates = model->referencePairRates(0, ballot, pair);
+		double const expectedShare = (sample.candidateTotals.at(remaining)
+			+ sample.candidateTotals.at(excluded) * ordinaryRates.at(excluded)) / 10000;
+		assert(result.status == Status::Compared && result.conditionedOnLiveSample);
+		assert(result.final.candidates == pair);
+		assert(close(result.final.firstShare, expectedShare));
+	};
+	check(Labor,Liberal,300,500);
+	check(Liberal,Labor,1000,100);
+}
+
+void checkJointThreeCandidateCoalitionCount()
+{
+	auto settings = syntheticConfiguration();
+	settings["sample_uncertainty"] = false;
+	auto const model = load(settings);
+	std::array const ballot{Source{Labor,.26,1,1.8,1}, Source{Liberal,.31,3,1.4,0},
+		Source{Greens,.28,0,1.8,.85}, Source{National,.08,3,1.8,.154},
+		Source{Others,.07,2,1.2,.50}};
+	// National ballots are already included in the measured transfers.
+	// A complete sample leaves no further votes to distribute at this stage.
+	PreparedCountObservation const complete{{{Labor,400./1500},{Liberal,480./1500},{Greens,620./1500}},
+		{{National,800},{Others,700}}, .01, {{Labor,3000},{Liberal,3580},{Greens,3420}},
+		{{Labor,2600},{Liberal,3100},{Greens,2800}}, 1500, .10, ThreeCandidateTppPrior{.90,.50}};
+	auto count = [&](auto const& sources, PreparedCountObservation const& observation, bool countedTpp) {
+		return model->count(0, sources, .52, .95, model->drawElection(1), Sensitivity::None, false, true,
+			&observation, ThreeCandidateCountContext{10000, countedTpp});
+	};
+	auto const joint = count(ballot, complete, false);
+	assert(joint.status == Status::Compared && joint.conditionedOnLiveSample);
+	assert((joint.final.candidates == Pair{Liberal, Greens}));
+	assert(close(joint.classic.lower, .300) && close(joint.classic.upper, 1.0 - .358));
+	assert(close(joint.laborTpp, .300 + .28 * .90 + .062 * .50));
+	assert(close(joint.jointThreeCandidateFlows.at(Liberal), 480./1500));
+	auto const measured = count(ballot, complete, true);
+	assert(measured.laborTpp == .52 && measured.final.candidates == joint.final.candidates);
+	assert(measured.jointThreeCandidateFlows == joint.jointThreeCandidateFlows);
+
+	// The measured Coalition candidate can also be the National. The
+	// smaller Liberal primary belongs to the sampled transfer pool here.
+	auto nationalSurvives = ballot;
+	nationalSurvives[1].primary = .08;
+	nationalSurvives[3].primary = .31;
+	PreparedCountObservation const nationalSample{
+		{{Labor,400./1500},{National,480./1500},{Greens,620./1500}}, {{Liberal,800},{Others,700}}, .01,
+		{{Labor,3000},{National,3580},{Greens,3420}}, {{Labor,2600},{National,3100},{Greens,2800}}, 1500, .10};
+	auto const nationalFinal = count(nationalSurvives, nationalSample, true);
+	assert(nationalFinal.status == Status::Compared && nationalFinal.conditionedOnLiveSample);
+	assert((nationalFinal.final.candidates == Pair{Greens, National}));
+	assert(close(nationalFinal.jointThreeCandidateFlows.at(National), 480./1500));
+
+	// The same sample can only inform the last three if Liberal survives
+	// the earlier rounds. A smaller sample can fit either FP scenario.
+	PreparedCountObservation const partial{{{Labor,420./1080},{Liberal,450./1080},{Greens,210./1080}},
+		{{National,500},{Others,580}}, .01, {{Labor,820},{Liberal,550},{Greens,630}},
+		{{Labor,400},{Liberal,100},{Greens,420}}, 1080, .10};
+	assert(count(ballot, partial, true).conditionedOnLiveSample);
+	auto strongerNationals = ballot;
+	strongerNationals[1].primary = .02;
+	strongerNationals[3].primary = .37;
+	auto const fallback = count(strongerNationals, partial, true);
+	assert(fallback.status == Status::Compared && fallback.jointThreeCandidateIncompatible);
+	assert(!fallback.conditionedOnLiveSample && fallback.laborTpp == .52);
+	assert(std::find(fallback.final.candidates.begin(), fallback.final.candidates.end(), Liberal)
+		== fallback.final.candidates.end());
 }
 
 void checkComparisonSummary()
@@ -655,9 +1024,17 @@ int main()
 	checkBothCoalitionPartners();
 	checkSampledProfilesAndOrderIndependence();
 	checkNamedIndependentPlacement();
+	checkSecondaryIndependentTransfers();
 	checkLaborPreferencesToRightIndependent();
 	checkLaborPreferenceOverlapAtExclusion();
 	checkSouthAustralianBallot();
+	checkHistoricalFinnissTransfers();
+	checkLivePreferenceCountRevisions();
+	checkLivePreferenceCountConditioning();
+	checkFederalComparisonAndLiveTrialConfiguration();
+	checkJointThreeCandidateCount();
+	checkJointThreeCandidateExtraFinalist();
+	checkJointThreeCandidateCoalitionCount();
 	checkComparisonSummary();
 	checkLivePreferenceLearning();
 	checkLivePreferenceGeography();

@@ -432,6 +432,27 @@ void SimulationRun::logActivePreferenceCounts() const
 		invalid += seat.invalid;
 		classicPairs += seat.classicPairs;
 		maxClassicError = std::max(maxClassicError, seat.maximumClassicError);
+		if (seat.conditionedOnLiveSample) {
+			fallbackDetails << "  " << seatLookup.seat(static_cast<int>(seatIndex)).name
+				<< " | manual preference count used in " << seat.conditionedOnLiveSample
+				<< " of " << seat.compared << " ranked draws\n";
+		}
+		if (seat.jointThreeCandidateDraws) {
+			fallbackDetails << "  " << seatLookup.seat(static_cast<int>(seatIndex)).name
+				<< " | joint 3CP account in " << seat.jointThreeCandidateDraws
+				<< " draws. Mean share of all redistributed ballots";
+			for (auto const& [id, sum] : seat.jointThreeCandidateFlowSums) {
+				auto const name = id >= 0 && id < project.parties().count()
+					? project.parties().viewByIndex(id).abbreviation : std::to_string(id);
+				fallbackDetails << " " << name << " " << 100.0 * sum / double(seat.jointThreeCandidateDraws) << "%";
+			}
+			fallbackDetails << "\n";
+		}
+		if (seat.jointThreeCandidateIncompatible) {
+			fallbackDetails << "  " << seatLookup.seat(static_cast<int>(seatIndex)).name
+				<< " | joint 3CP not used in " << seat.jointThreeCandidateIncompatible
+				<< " draws with incompatible FP counts or earlier exclusions\n";
+		}
 		if (seat.firstIssue) {
 			auto const& example = *seat.firstIssue;
 			fallbackDetails << "  " << seatLookup.seat(static_cast<int>(seatIndex)).name
