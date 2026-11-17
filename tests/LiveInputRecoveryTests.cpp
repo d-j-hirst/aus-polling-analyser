@@ -1556,6 +1556,15 @@ void checkPreferenceHistoryAcrossPairChange(std::filesystem::path const& folder)
     assert(loadPairPreferenceHistory(folder,fallback).at(key).at({11,12}).tcpTime == first.sourceTime);
     auto incompatible = snapshot("2026-03-30T12:00:00",{{11,96},{12,86},{13,27}},{{11,142},{13,67}});
     assert(!loadPairPreferenceHistory(folder,incompatible).at(key).contains({11,12}));
+    RetiredPairFlowEvidence retired{[](Record const&, CandidatePair pair) {
+        return pair == CandidatePair{11,12};
+    },{}};
+    auto const parallel = loadPairPreferenceHistory(folder,incompatible,{},&retired).at(key);
+    assert(!parallel.contains({11,12}));
+    assert(retired.cohorts.at(key).at({11,12}).tcpTime == oldPair.sourceTime);
+    auto const parallelFallback = loadPairPreferenceHistory(folder,fallback,{},&retired).at(key);
+    assert(parallelFallback.at({11,12}).tcpTime == first.sourceTime);
+    assert(retired.cohorts.at(key).at({11,12}).tcpTime == oldPair.sourceTime);
     auto reduced = snapshot("2026-03-30T12:00:00",{{11,112},{12,86},{13,27}},{{11,153},{13,65}});
     assert(!loadPairPreferenceHistory(folder,reduced).at(key).contains({11,13}));
     commit(folder,reduced);
@@ -1565,6 +1574,9 @@ void checkPreferenceHistoryAcrossPairChange(std::filesystem::path const& folder)
     restored.records.front().matchedPreferences = LiveInputRecovery::PreferenceCohort{
         *later.records.front().fp.votes,*later.records.front().tcp.votes,later.sourceTime,later.sourceTime,{},false};
     assert(!loadPairPreferenceHistory(folder,restored).at(key).contains({11,13}));
+    retired.include = [](Record const&, CandidatePair) { return true; };
+    assert(!loadPairPreferenceHistory(folder,restored,{},&retired).at(key).contains({11,13}));
+    assert(retired.cohorts.empty() || !retired.cohorts.at(key).contains({11,13}));
     revised.optionalPreferential = true;
     assert(loadPairPreferenceHistory(folder,revised).empty());
 }

@@ -18,6 +18,93 @@ int categoryCode(LiveV2::Booth const& booth) {
 }
 
 constexpr std::uint32_t CategoryDrawTag = 70, ObservationDrawTag = 71;
+constexpr std::uint32_t CoalitionTcpDrawTag = 73;
+
+using LivePartialCount::Counts;
+using LivePartialCount::TcpBasis;
+using LivePartialCount::value;
+
+LiveCoalitionTcp::SourceGroup coalitionSource(int party, int national) {
+    using enum LiveCoalitionTcp::SourceGroup;
+    if (party == 0) return Labor;
+    if (party == 1) return Liberal;
+    if (party == national) return National;
+    return Other;
+}
+
+// The party priors are defined on the live ballot, including aliases and
+// historical local adjustments. Use their probabilities for minor donors
+// and the same prior leakage for either excluded Coalition partner.
+std::vector<LiveCoalitionTcp::Source> coalitionSources(auto const& votes,
+    LivePartialCount::Flows const& flows, int national, double generic) {
+    using enum LiveCoalitionTcp::SourceGroup;
+    std::vector<LiveCoalitionTcp::Source> result;
+    for (auto const& [party,count] : votes) {
+        if (count <= 0) continue;
+        auto const group = coalitionSource(party,national);
+        double rate = .5; // Labor primaries never enter a transfer calculation.
+        if (group == Other) {
+            auto found = flows.find(party);
+            rate = found == flows.end() ? generic : found->second;
+        } else if (group != Labor) rate = LiveCoalitionTcp::LeakageMean;
+        // Equal priors (most commonly several small parties) can share a
+        // source because the draw moves their rates by the same amount.
+        double const odds = LivePartialCount::logOdds(rate);
+        auto same = std::find_if(result.begin(),result.end(),[&](auto const& source) {
+            return source.group == group && source.logOdds == odds;
+        });
+        if (same != result.end()) same->votes += count;
+        else result.push_back({group,double(count),odds});
+    }
+    return result;
+}
+
+bool countedCoalitionPair(Counts const& tcp, int opponent) {
+    return tcp.size() == 2 && tcp.contains(0) && tcp.contains(opponent) && LivePartialCount::total(tcp) > 0;
+}
+
+double displacedPrimaries(Counts const& original, Counts const& current) {
+    double displaced = 0;
+    for (auto const& [party,votes] : original)
+        displaced += std::max(0.,votes-value(current,party));
+    return displaced;
+}
+
+// Prepare the directly counted allocation and the original primary voters
+// still awaiting preferences, separately for each hypothetical matchup.
+LiveCoalitionTcp::PairAccount coalitionPairAccount(Counts const& fp, Counts const& tcp,
+    TcpBasis const* original, LivePartialCount::Flows flows, int opponent, int national,
+    double generic, bool active) {
+    LiveCoalitionTcp::PairAccount result;
+    Counts const* basis = original ? &original->fp : nullptr;
+    double const displaced = basis ? displacedPrimaries(*basis,fp) : 0;
+    if (!countedCoalitionPair(tcp,opponent) || (!active && displaced > 2)) {
+        result.pending = coalitionSources(fp,flows,national,generic);
+        return result;
+    }
+    Counts revisedFp;
+    result.counted = LivePartialCount::total(tcp);
+    result.labor = tcp.at(0);
+    if (displaced > 0) {
+        // An active count may have a known original batch underneath a
+        // recheck. For a retired pair only modest removals can preserve its
+        // direct-ballot status. Larger revisions can still train preferences.
+        revisedFp = *basis;
+        for (auto& [party,votes] : revisedFp) {
+            votes = int(std::min(double(votes),value(fp,party)));
+            flows.try_emplace(party,generic);
+        }
+        result.revision = LivePartialCount::reviseTcp(revisedFp,tcp,*original,flows,0,0,opponent);
+        if (result.revision) {
+            result.counted = result.revision->votes;
+            result.labor = result.revision->first;
+            basis = &revisedFp;
+        } else basis = nullptr;
+    }
+    result.pending = coalitionSources(
+        LiveCoalitionTcp::remainingPrimaries(fp,tcp,basis,opponent),flows,national,generic);
+    return result;
+}
 
 struct PreferencePool {
     // Same confidence-weighted aggregation as the live preference hierarchy,
@@ -98,7 +185,7 @@ LivePartyConversion::MatchedAccount LiveV2::Election::matchedConversionAccount(i
     double broadOffset = heldOutPreferenceOffset(seatIndex);
     for (int index : seats.at(seatIndex).booths) {
         auto const& booth = readBooths()[index];
-        // Use one matched Labor–Coalition account per location. It can be
+        // Use one matched Laborâ€“Coalition account per location. It can be
         // the active pair or a retained earlier count with its own FP batch.
         // A newly reported non-classic TCP describes a separate comparison.
         if (tppBoothMatchedPreferenceUnit(index) <= 0) continue;
@@ -614,6 +701,144 @@ std::vector<LiveTppIntegration::Observation> LiveV2::Election::tppJointObservati
     }
     tppReceivedObservations = std::make_shared<std::vector<LiveTppIntegration::Observation> const>(std::move(received));
     return observations;
+}
+
+// Each location contributes one current FP account and, where available, a
+// measured TCP cohort for each Coalition matchup. Fit flows once on those
+// observed cohorts. The resulting read-only district models are shared by
+// all scenarios and are used only after the simulation has chosen finalists.
+void LiveV2::Election::prepareCoalitionTcpForecasts(Results2::Election const& previousElection,
+    Results2::Election const& currentElection, LiveInputRecovery::PairPreferenceHistory const& history,
+    LiveInputRecovery::PairPreferenceHistory const& revisedFlows) {
+    std::map<int,CoalitionTcpDistrict> prepared;
+    std::array<int,2> const opponents{1,natPartyIndex};
+    double const generic = preferenceFlowMap.at(PartyCollection::InvalidIndex)*.01;
+    auto mapCounts = [&](Counts const& counts) {
+        Counts mapped;
+        for (auto const& [party,votes] : counts)
+            mapped[mapPartyId(party,false,previousElection,currentElection)] += votes;
+        return mapped;
+    };
+    struct ArchivedCohort {
+        TcpBasis basis;
+        std::pair<std::string_view,std::string_view> clock;
+    };
+    auto readHistory = [&](LiveInputRecovery::PairPreferenceHistory const& source, std::string const& key) {
+        std::array<std::optional<ArchivedCohort>,2> result;
+        auto found = source.find(key);
+        if (found == source.end()) return result;
+        for (auto const& [candidates,cohort] : found->second) {
+            auto tcp = mapCounts(cohort.tcp);
+            for (std::size_t p = 0; p < opponents.size(); ++p) {
+                if (!countedCoalitionPair(tcp,opponents[p])) continue;
+                TcpBasis basis{mapCounts(cohort.fp),std::move(tcp),{},cohort.recheckedReconciledPair};
+                for (auto const& [candidate,counts] : cohort.transfers) {
+                    auto& target = basis.transfers[mapPartyId(candidate,false,previousElection,currentElection)];
+                    for (auto const& [party,votes] : mapCounts(counts)) target[party] += votes;
+                }
+                auto const clock = std::pair<std::string_view,std::string_view>{cohort.tcpTime,cohort.fpTime};
+                if (!result[p] || result[p]->clock < clock)
+                    result[p] = ArchivedCohort{std::move(basis),clock};
+                break;
+            }
+        }
+        return result;
+    };
+    for (int s = 0; s < int(seats.size()); ++s) {
+        auto const& seat = seats[s];
+        if (!seat.splitCoalitionCandidates || seat.finalResult || seat.node.totalFpVotesCurrent() <= 0) continue;
+        std::vector<LiveCoalitionTcp::Booth> booths;
+        std::vector<LiveCoalitionTcp::Observation> observations;
+        std::array<double,4> countedPrimaries{};
+        for (int index : seat.booths) {
+            auto const& booth = readBooths()[index];
+            auto const& n = booth.node;
+            if (n.totalFpVotesProjected() <= 0 && n.totalTcpVotesCurrent() <= 0) continue;
+            for (auto const& [party,votes] : n.fpVotesCurrent)
+                countedPrimaries.at(std::size_t(coalitionSource(party,natPartyIndex))) += votes;
+            LiveCoalitionTcp::Booth account{categoryCode(booth),{},{}};
+            auto const flows = classicPreferenceFlows(booth,1);
+            std::map<int,double> future;
+            for (auto const& [party,votes] : n.fpVotesProjected)
+                future.emplace(party,std::max(0.,votes-value(n.fpVotesCurrent,party)));
+            double futureVotes = 0;
+            for (auto const& [party,votes] : future) futureVotes += votes;
+            // Projection IDs can group an independent's received primaries.
+            // Keep the total outstanding FP fixed when that changes the mix.
+            if (futureVotes > 0) {
+                double scale = std::max(0.,n.totalFpVotesProjected()-n.totalFpVotesCurrent())/futureVotes;
+                for (auto& [party,votes] : future) votes *= scale;
+            }
+            account.future = coalitionSources(future,flows,natPartyIndex,generic);
+            auto role = booth.voteType != Results2::VoteType::Ordinary ? "declaration" :
+                booth.boothType == Results2::Booth::Type::Ppvc ? "ppvc" : "ordinary";
+            auto const key = seat.name+"/"+role+"/"+booth.name;
+            auto const retained = readHistory(history,key);
+            auto const revised = readHistory(revisedFlows,key);
+            for (std::size_t p = 0; p < opponents.size(); ++p) {
+                int const opponent = opponents[p];
+                auto const pairFlows = p == 0 ? flows : classicPreferenceFlows(booth,opponent);
+                bool const active = countedCoalitionPair(n.tcpVotesCurrent,opponent);
+                Counts const empty;
+                auto const& tcp = active ? n.tcpVotesCurrent : (retained[p] ? retained[p]->basis.tcp : empty);
+                std::optional<TcpBasis> current;
+                if (active) {
+                    if (booth.tcpBasis && booth.tcpBasis->tcp == tcp) current = *booth.tcpBasis;
+                    else if (retained[p] && retained[p]->basis.tcp == tcp) current = retained[p]->basis;
+                    else current = TcpBasis{n.fpVotesCurrent,tcp,{},false};
+                    if (!LivePartialCount::validBasis(*current)) current.reset();
+                }
+                TcpBasis const* original = current ? &*current : nullptr;
+                if (!active && retained[p] && LivePartialCount::validBasis(retained[p]->basis))
+                    original = &retained[p]->basis;
+                account.pairs[p] = coalitionPairAccount(n.fpVotesCurrent,tcp,original,pairFlows,
+                    opponent,natPartyIndex,generic,active);
+
+                // A small newer TCP without identified primaries can still
+                // occupy the count account. Learn only from the latest batch
+                // whose original primaries are known to describe those votes.
+                TcpBasis const* evidence = current ? &*current : nullptr;
+                if (!evidence && revised[p] && (!retained[p] || revised[p]->clock > retained[p]->clock))
+                    evidence = &revised[p]->basis;
+                if (!evidence && retained[p]) evidence = &retained[p]->basis;
+                if (!evidence || !LivePartialCount::validBasis(*evidence)) continue;
+                if (active && !current && std::any_of(evidence->tcp.begin(),evidence->tcp.end(),
+                    [&](auto const& entry) { return entry.second > value(tcp,entry.first); })) continue;
+                auto donors = evidence->fp;
+                donors.erase(0);
+                donors.erase(opponent);
+                double const pool = LivePartialCount::total(donors);
+                if (pool <= 0) continue;
+                double const reachedLabor = value(evidence->tcp,0)-value(evidence->fp,0);
+                double const overlap = 1-displacedPrimaries(evidence->fp,n.fpVotesCurrent)/
+                    LivePartialCount::total(evidence->fp);
+                observations.push_back({booths.size(),p,coalitionSources(donors,pairFlows,natPartyIndex,generic),
+                    pool,reachedLabor,overlap*overlap});
+            }
+            booths.push_back(std::move(account));
+        }
+        auto fit = LiveCoalitionTcp::prepare(std::move(booths),observations);
+        fit.countedPrimaries = countedPrimaries;
+        fit.genericOtherLogOdds = LivePartialCount::logOdds(generic);
+        prepared.emplace(tppProjectSeatIndices.at(s),CoalitionTcpDistrict{s,std::move(fit)});
+    }
+    coalitionTcpDistricts = std::make_shared<decltype(prepared) const>(std::move(prepared));
+}
+
+std::optional<LiveData::CoalitionTcpShare> LiveV2::Election::getSeatCoalitionTcpShare(
+    int district, int opponent, std::array<double,3> primaryShares) const {
+    if (!coalitionTcpDistricts || (opponent != 1 && opponent != natPartyIndex)) return {};
+    auto found = coalitionTcpDistricts->find(district);
+    if (found == coalitionTcpDistricts->end()) return {};
+    int const s = found->second.liveIndex;
+    // Use this scenario's turnout and primary shares for the future pool.
+    // Both preference counts use the same keyed flow draws for this district.
+    auto estimate = found->second.accounts.draw(opponent == natPartyIndex ? 1 : 0,
+        seats[s].node.totalFpVotesProjected(),primaryShares,
+        [&](std::size_t term) { return variabilityNormal(0,1,s,int(term),CoalitionTcpDrawTag); });
+    if (estimate.total <= 0) return {};
+    double const labor = std::clamp(100*estimate.labor/estimate.total,0.,100.);
+    return LiveData::CoalitionTcpShare{labor,estimate.counted > 0};
 }
 
 LiveTppComposition::ObservationBlock LiveV2::Election::tppSeatObservations(int s, double electionExpected,

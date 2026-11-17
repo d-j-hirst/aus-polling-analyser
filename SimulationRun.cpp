@@ -537,6 +537,12 @@ void SimulationRun::logPreferenceCounts() const
 				<< 100.0 * seat.sumLargestRateChange / static_cast<double>(seat.compared);
 		}
 		report << "\n";
+		if (seat.jointThreeCandidateDraws || seat.jointThreeCandidateIncompatible) {
+			// Sample eligibility does not guarantee that its candidate totals
+			// fit an individual draw. Show successful uses and fallbacks.
+			report << "    joint 3CP account in " << seat.jointThreeCandidateDraws
+				<< " draws, incompatible in " << seat.jointThreeCandidateIncompatible << "\n";
+		}
 		std::vector<std::pair<PreferenceModel::Pair, std::pair<std::uint64_t, std::uint64_t>>> changed;
 		for (auto const& pair : seat.pairs) {
 			if (difference(pair.second) > 0) changed.push_back(pair);

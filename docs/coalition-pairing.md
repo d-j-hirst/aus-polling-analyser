@@ -80,21 +80,50 @@ division used during exclusions.
 
 ## Interaction with live and pre-election forecasts
 
-Labor versus a Coalition candidate continues to use the prepared TPP estimate.
-Other pairs use the existing non-classic calculation. A Liberal/National pair
-uses matching live TCP integration, because Labor-versus-Coalition TPP cannot
-describe that contest.
+Labor versus a Coalition candidate normally uses the prepared TPP estimate.
+In a live compulsory-preference district contested by both Liberal and
+National, the forecast keeps a separate Labor TCP for each partner. Each
+simulation uses the account for the finalist that survives its preference
+count. Other pairs use the existing non-classic calculation. A Liberal/National
+pair uses matching live TCP integration.
 
 A preliminary TCP pair is evidence conditional on those candidates surviving;
 it does not force the simulated pair. An authoritative final district result
 still bypasses exclusions and fixes the FP account, TCP pair, shares and winner.
 
-Pre-election pairing and the Liberal/National winner identity can change,
-including where preferences overturn their primary-vote ranking. Calibration
-that depends on simulated winners also runs through this calculation. The live
-baseline and odds-calibration caches are held in memory, not saved in the
-project file: restarting the rebuilt application regenerates them normally.
-No project-file format or seat configuration change is required.
+The candidate-pairing check can affect pre-election pairing and the identity of
+the Coalition winner, including where preferences overturn the primary-vote
+ranking. Calibration that depends on simulated winners also runs through this
+calculation. The live baseline and odds-calibration caches are held in memory.
+Restarting the rebuilt application regenerates them normally.
+
+### Parallel live TCP estimates
+
+The two estimates share the same projected formal turnout and first preferences
+from each simulation. If 600 votes at a booth already have a Labor–Liberal
+count, keep their published allocations for that matchup. For Labor–National,
+those ballots instead supply their known first preferences. Labor and National
+retain their own primaries, and Liberal and the other candidates transfer
+according to the estimated flows for that matchup. The same process works in
+reverse when a National TCP is observed.
+
+A matching FP and TCP batch also tells us how many excluded voters chose Labor.
+Together the measured batches update a shared estimate of minor-party flows,
+with room for those flows to differ by matchup, vote type and booth. The two
+Coalition leakage rates start at 20% to Labor and may vary independently, with
+some positive correlation. A change in the excluded partner therefore changes
+both the number of ballots that can leak and the uncertainty about those
+transfers. A partially counted batch whose FP mix is unknown still contributes
+its own measured TCP. Only identified FP cohorts are used to learn flows.
+
+The history supplies earlier counts for the same booth and pairing after an
+indicative count is reset. A later primary revision can make an earlier batch
+unsuitable as a fixed count. Its observed flow can still carry weight according
+to how much of its original primary mix remains. An indicative pair with no
+votes supplies no new evidence. The shared district and statewide TPP uses
+actual classic counts where available. Unmeasured booths infer the Coalition
+opponent from their own FP. The estimates work with the existing seat
+configuration and project files.
 
 ## Classic TPP and primary votes in the 2026 Victorian forecast
 

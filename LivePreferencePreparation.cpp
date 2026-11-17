@@ -59,13 +59,14 @@ void LiveV2::Election::preparePreferenceCorrections(LiveInputRecovery::RecordSta
                 prepared->countedTcp[s][mapParty(p)] += v;
             }
         }
-        if (seat.node.tcpVotesCurrent.size() != 2) continue;
+        bool const parallel = seat.splitCoalitionCandidates;
+        if (!parallel && seat.node.tcpVotesCurrent.size() != 2) continue;
         auto& state = prepared->seats[s];
-        int const rawA = seat.node.tcpVotesCurrent.contains(0) ? 0
+        int const rawA = parallel || seat.node.tcpVotesCurrent.contains(0) ? 0
             : (seat.node.tcpVotesCurrent.begin()->first == 1 ? std::next(seat.node.tcpVotesCurrent.begin())->first
                 : seat.node.tcpVotesCurrent.begin()->first);
-        int const rawB = seat.node.tcpVotesCurrent.begin()->first == rawA
-            ? std::next(seat.node.tcpVotesCurrent.begin())->first : seat.node.tcpVotesCurrent.begin()->first;
+        int const rawB = parallel ? 1 : (seat.node.tcpVotesCurrent.begin()->first == rawA
+            ? std::next(seat.node.tcpVotesCurrent.begin())->first : seat.node.tcpVotesCurrent.begin()->first);
         state.classic = rawA == 0 && (rawB == 1 || rawB == natPartyIndex);
         state.partyA = state.classic ? 0 : mapParty(rawA);
         state.partyB = state.classic ? 1 : mapParty(rawB);
@@ -81,27 +82,35 @@ void LiveV2::Election::preparePreferenceCorrections(LiveInputRecovery::RecordSta
                 || (booth.boothType != Results2::Booth::Type::Normal && booth.boothType != Results2::Booth::Type::Ppvc)) {
                 exclude("different_reporting_service"); continue;
             }
-            if (n.tcpVotesCurrent.size() != 2 || !n.tcpVotesCurrent.contains(rawA) || !n.tcpVotesCurrent.contains(rawB)) {
+            // For split seats the common TPP uses each booth's accepted
+            // classic count, including one retained through an empty reset.
+            // Its correction model must see the same votes before and after
+            // that reset as well. The live TCP itself still follows its pair.
+            auto const& tcpInput = parallel ? booth.tppCount(natPartyIndex) : n.tcpVotesCurrent;
+            int const opponent = parallel && tcpInput.contains(natPartyIndex) ? natPartyIndex : rawB;
+            if (tcpInput.size() != 2 || !tcpInput.contains(rawA) || !tcpInput.contains(opponent)) {
                 exclude("missing_or_different_pair"); continue;
             }
             // Ordinary complete pairs use their current primaries. A temporary
             // revision uses the original matched primaries for every predictor,
             // including the minor-party mix. Its separately estimated changed
             // votes are not another observed flow or another outlier allowance.
-            auto measured = LivePreferenceCorrections::matchedCounts(n.fpVotesCurrent,n.tcpVotesCurrent,
-                booth.hasTcpRevision() ? &*booth.tcpBasis : nullptr,hasRecheckedPair(countStatuses,seat.name,booth));
+            auto const* retained = parallel && booth.retainedClassic ? &booth.retainedClassic->basis : nullptr;
+            auto const* original = retained ? retained : booth.hasTcpRevision() ? &*booth.tcpBasis : nullptr;
+            bool const rechecked = retained ? retained->recheckedReconciledPair : hasRecheckedPair(countStatuses,seat.name,booth);
+            auto measured = LivePreferenceCorrections::matchedCounts(n.fpVotesCurrent,tcpInput,original,rechecked);
             if (!measured) { exclude("no_matching_preference_account"); continue; }
             auto const& fp = measured->fp;
             auto const& tcp = measured->tcp;
-            double const fpA = fp.at(rawA), fpB = fp.at(rawB);
+            double const fpA = fp.at(rawA), fpB = fp.at(opponent);
             double const formal = LivePartialCount::total(fp), pool = formal - fpA - fpB;
             if (!(pool > 0)) { exclude("no_other_candidate_preferences"); continue; }
             double const gain = tcp.at(rawA) - fpA;
             if (gain < 0 || gain > pool) { exclude("tcp_contradicts_candidate_fp"); continue; }
             observations.push_back({std::size_t(b), formal, fpA, fpB, 0, gain, booth.boothType == Results2::Booth::Type::Ppvc});
             observations.back().recheckedReconciledPair = measured->recheckedReconciledPair;
-            observations.back().revisionLimits = measured->limits(rawA,rawB,n.fpVotesCurrent);
-            for (auto const& [p, v] : fp) if (p != rawA && p != rawB) otherTotals[p] += v;
+            observations.back().revisionLimits = measured->limits(rawA,opponent,n.fpVotesCurrent);
+            for (auto const& [p, v] : fp) if (p != rawA && p != opponent) otherTotals[p] += v;
             matchedAccounts.emplace(std::size_t(b),*measured);
         }
         if (observations.empty()) continue;

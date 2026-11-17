@@ -321,7 +321,8 @@ void LivePreparation::prepareLiveAutomatic()
 			<< " as an independent for this live forecast\n";
 	auto turnoutInput = prepareCurrentInput();
 	run.liveElection = std::make_unique<LiveV2::Election>(previousElection, currentElection, project, sim, run,
-		std::move(turnoutInput), std::move(preferenceHistory), std::move(pairPreferenceHistory));
+		std::move(turnoutInput), std::move(preferenceHistory), std::move(pairPreferenceHistory),
+		std::move(revisedCoalitionFlowHistory));
 	recordCountedOutcomes();
 }
 
@@ -777,34 +778,63 @@ TurnoutModelIO::Artifact LivePreparation::prepareCurrentInput()
 	auto handover = LiveInputAdapter::apply(currentElection,recovered.snapshot,folder);
 	preferenceHistory = LiveInputRecovery::loadPreferenceHistory(folder,recovered.snapshot);
 	LiveInputRecovery::retainPreferenceHistory(recovered.snapshot,preferenceHistory);
-	if (run.preferenceModel && run.preferenceModel->isActive() && !run.preferenceModel->isLiveTrial()) {
-		pairPreferenceHistory = LiveInputRecovery::loadPairPreferenceHistory(folder,recovered.snapshot);
-	}
-	else if (!artifact.optionalPreferential) {
-		// A classic count can inform TPP even when the ranking-based preference
-		// model is disabled. For this path look up earlier pairs only where the
-		// effective count is missing, empty, or for a different pair. SA can
-		// also hide a restored classic count when its district pairing changes.
+	if (!artifact.optionalPreferential) {
+		bool const learnAllPairs = run.preferenceModel && run.preferenceModel->isActive()
+			&& !run.preferenceModel->isLiveTrial();
 		int const nationals = project.parties().separateNationalsIndex();
+		auto partyIndex = [&](int id) {
+			auto candidate = currentElection.candidates.find(id);
+			if (candidate == currentElection.candidates.end()) return -1;
+			auto party = currentElection.parties.find(candidate->second.party);
+			if (party == currentElection.parties.end()) return -1;
+			return project.parties().indexByShortCode(party->second.shortCode);
+		};
+		std::set<std::string> splitCoalitionSeats;
+		if (nationals > 1) {
+			for (auto const& [id,seat] : currentElection.seats) {
+				bool liberal = false, national = false;
+				auto add = [&](int candidate) {
+					int const party = partyIndex(candidate);
+					liberal |= party == 1;
+					national |= party == nationals;
+				};
+				auto const roster = currentElection.liveCandidateRosters.find(id);
+				if (roster != currentElection.liveCandidateRosters.end())
+					for (int candidate : roster->second) add(candidate);
+				for (auto const& entry : seat.fpVotes) add(entry.first);
+				if (liberal && national) splitCoalitionSeats.insert(seat.name);
+			}
+		}
+		// Classic votes can inform TPP under either preference model. Most
+		// districts only need a historical lookup when the effective count
+		// is missing or non-classic. Split Coalition districts also need the
+		// older matchup after a replacement starts reporting at the same booth.
+		LiveInputRecovery::RetiredPairFlowEvidence retiredFlows{
+			[&](LiveInputRecovery::Record const& record, LiveInputRecovery::CandidatePair pair) {
+				// After a larger FP revision the original matched transfers
+				// can still inform the parallel estimates, with less weight.
+				if (!splitCoalitionSeats.contains(record.district)) return false;
+				int const a = partyIndex(pair.first), b = partyIndex(pair.second);
+				return (a == 0 && (b == 1 || b == nationals)) ||
+					(b == 0 && (a == 1 || a == nationals));
+			},{}};
 		pairPreferenceHistory = LiveInputRecovery::loadPairPreferenceHistory(folder,recovered.snapshot,
 			[&](LiveInputRecovery::Record const& record) {
+				if (learnAllPairs || splitCoalitionSeats.contains(record.district)) return true;
 				if (!record.tcp.votes || record.tcp.votes->size() != 2 ||
 					LivePartialCount::total(*record.tcp.votes) == 0) return true;
 				auto status = currentElection.liveCountStatus.find(record.key);
 				if (status != currentElection.liveCountStatus.end() && !status->second.second.available) return true;
 				bool labor = false, coalition = false;
-				for (auto const& [candidateId, count] : *record.tcp.votes) {
-					(void)count;
-					auto candidate = currentElection.candidates.find(candidateId);
-					if (candidate == currentElection.candidates.end()) return true;
-					auto party = currentElection.parties.find(candidate->second.party);
-					if (party == currentElection.parties.end()) return true;
-					int const index = project.parties().indexByShortCode(party->second.shortCode);
+				for (auto const& entry : *record.tcp.votes) {
+					int const index = partyIndex(entry.first);
+					if (index < 0) return true;
 					labor = labor || index == 0;
 					coalition = coalition || index == 1 || (index >= 2 && index == nationals);
 				}
 				return !(labor && coalition);
-			});
+			}, splitCoalitionSeats.empty() ? nullptr : &retiredFlows);
+		revisedCoalitionFlowHistory = std::move(retiredFlows.cohorts);
 	}
 	// Use the earlier FP batch for any TCP carried into the forecast during
 	// SA's handover. Leave the recovered snapshot and pair history tied to

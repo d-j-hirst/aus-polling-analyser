@@ -439,6 +439,36 @@ void checkSecondaryIndependentTransfers()
 	assert(close(rightRates.at(Secondary), before.at(Secondary)));
 }
 
+void checkGreensPreferencesToMultipleIndependents()
+{
+	constexpr int DistrictWithoutNamedIndependent = 1;
+	constexpr int Secondary = 214003, Minor = 8;
+	auto ranking = model(false);
+	std::array ballot{
+		Source{Labor, .30, 1, 1.8, 1.0}, Source{Liberal, .25, 3, 1.4, 0.0},
+		Source{Greens, .10, 0, 1.8, .85}, Source{Independent, .12, 2, 1.4, .50, false, true},
+		Source{Secondary, .11, 2, 1.2, .50, true}, Source{Minor, .07, 1, 1.2, .65},
+		Source{Others, .05, 2, 1.2, .50}};
+	std::array const survivors{Labor, Liberal, Independent, Secondary, Minor};
+	auto rates = ranking.referenceTransferRates(DistrictWithoutNamedIndependent, ballot, survivors).at(Greens);
+	assert(close(rates[2], rates[3]));
+	assert(rates[4] > rates[2]);
+
+	// Two configured independent slots use the same rule as a second live candidate.
+	ballot[4].id = EmergingIndependent;
+	ballot[4].additionalIndependent = false;
+	ballot[4].confirmedIndependent = true;
+	std::array const configuredSurvivors{Labor, Liberal, Independent, EmergingIndependent, Minor};
+	auto configuredRates = ranking.referenceTransferRates(DistrictWithoutNamedIndependent, ballot, configuredSurvivors).at(Greens);
+	assert(configuredRates == rates);
+
+	// An unused slot leaves the configured sole-independent comparison in place.
+	ballot.back().primary += ballot[4].primary;
+	ballot[4].primary = 0.0;
+	auto singleRates = ranking.referencePairRates(DistrictWithoutNamedIndependent, ballot, {Independent, Liberal});
+	assert(close(singleRates.at(Greens), .85));
+}
+
 void checkLaborPreferencesToRightIndependent()
 {
 	auto settings = syntheticConfiguration();
@@ -704,7 +734,7 @@ void checkLivePreferenceCountConditioning()
 	assert(after > before && changedThree > 0);
 }
 
-void checkFederalComparisonAndLiveTrialConfiguration()
+void checkFederalPreferenceModes()
 {
 	std::ifstream input("analysis/Preferences/2025fed.json");
 	assert(input);
@@ -713,10 +743,16 @@ void checkFederalComparisonAndLiveTrialConfiguration()
 		District{"Ryan", {}, false}, District{"Menzies", {}, false}, District{"Blaxland"}, District{"Fisher"},
 		District{"Flinders"}, District{"Grey"}, District{"Hunter"}, District{"Maranoa"}, District{"Mayo"},
 		District{"Monash"}, District{"Richmond"}, District{"Watson"}};
+	std::istringstream activeInput(settings.dump());
+	auto const active = Model::load(activeInput, roles, fedDistricts, flows);
+	assert(active && active->isActive() && !active->isLiveTrial());
+
+	settings["mode"] = "compare";
 	std::istringstream comparisonInput(settings.dump());
 	auto const comparison = Model::load(comparisonInput, roles, fedDistricts, flows);
 	assert(comparison && !comparison->isActive() && !comparison->isLiveTrial());
 	for (int district = 0; district < static_cast<int>(fedDistricts.size()); ++district) {
+		assert(active->coversDistrict(district));
 		assert(comparison->coversDistrict(district));
 	}
 
@@ -743,6 +779,277 @@ void checkFederalComparisonAndLiveTrialConfiguration()
 		changes += base.final.firstShare != revised.final.firstShare || base.final.candidates != revised.final.candidates;
 	}
 	assert(changes > 0);
+}
+
+void checkFederalPreferenceSettings()
+{
+	constexpr int CentreAlliance = 5;
+	constexpr int KatterParty = 9;
+	std::ifstream input("analysis/Preferences/2028fed.json");
+	assert(input);
+	auto settings = nlohmann::json::parse(input);
+	auto federalFlows = flows;
+	federalFlows[Labor][{CentreAlliance, Liberal}] = 80.0f;
+	auto const loadFederal = [&](bool mayoMarked = true, bool withBlend = false) {
+		auto configuration = settings;
+		if (!withBlend) configuration.erase("pair_history_blend");
+		std::istringstream configurationInput(configuration.dump());
+		std::vector<int> independentLikeParties;
+		if (mayoMarked) independentLikeParties.push_back(CentreAlliance);
+		std::vector<District> federalDistricts{
+			{"Wills"}, {"Bendigo"},
+			{"Mayo", {}, false, independentLikeParties, District::NamedIncumbent{CentreAlliance, "Rebekha Sharkie"}},
+			{"Fowler", "Dai Le", false, {}, District::NamedIncumbent{Independent, "Dai Le"}}};
+		auto const& configuredDistricts = settings.at("districts");
+		for (auto district = configuredDistricts.begin(); district != configuredDistricts.end(); ++district) {
+			auto const& districtName = district.key();
+			if (districtName == "Wills" || districtName == "Mayo" || districtName == "Fowler") continue;
+			if (district->contains("incumbent_pair_history")) {
+				std::string const name = district->at("incumbent_pair_history").at("name");
+				int const party = districtName == "Kennedy" ? KatterParty : districtName == "Ryan" ? Greens : Independent;
+				federalDistricts.push_back({districtName, party == Independent ? name : "", false, {},
+					District::NamedIncumbent{party, name}});
+			}
+			else federalDistricts.push_back({districtName});
+		}
+		return Model::load(configurationInput, roles, federalDistricts, federalFlows,
+			{{"CA", CentreAlliance}, {"KAP", KatterParty}});
+	};
+	auto const ranking = loadFederal();
+	assert(ranking && !ranking->isActive() && !ranking->isLiveTrial());
+	assert(ranking->coversDistrict(0) && ranking->coversDistrict(1));
+
+	// Check the advice-sensitive Labor–Greens split and the separately
+	// maintained preferences in the other two-candidate contests.
+	std::array const ballot{
+		Source{Labor, .27, 1, 1.8, 1}, Source{Liberal, .21, 3, 1.4, 0},
+		Source{National, .10, 3, 1.8, .15}, Source{Greens, .16, 0, 1.8, .85},
+		Source{OneNation, .20, 4, 1.2, .27}, Source{Others, .06, 2, 1.4, .50}};
+	constexpr double laborCentre = .8 * .7220215503849514 + .2 * .30;
+	auto const laborGreens = ranking->referencePairRates(0, ballot, {Labor, Greens});
+	assert(close(laborGreens.at(Liberal), laborCentre) && close(laborGreens.at(National), laborCentre));
+	auto const laborOneNation = ranking->referencePairRates(0, ballot, {Labor, OneNation});
+	assert(close(laborOneNation.at(Liberal), .30) && close(laborOneNation.at(National), .44));
+	auto const liberalGreens = ranking->referencePairRates(0, ballot, {Liberal, Greens});
+	assert(close(liberalGreens.at(Labor), 1.0 - .8203275332737616));
+
+	// The previous Wills result for Others supplies its central
+	// split against Labor. It gives no new information on the classic split.
+	auto const willsOthers = ranking->referencePairRates(0, ballot, {Greens, Labor});
+	auto const genericOthers = ranking->referencePairRates(1, ballot, {Greens, Labor});
+	assert(close(willsOthers.at(Others), 10005.0 / 13915.0));
+	assert(close(genericOthers.at(Others), .50));
+	auto const willsClassic = ranking->referencePairRates(0, ballot, {Labor, Liberal});
+	assert(close(willsClassic.at(Others), .50));
+	auto const wills = ranking->count(0, ballot, .51, .5, ranking->drawElection(31));
+	assert(wills.status == Status::Compared && wills.classic.maximumError < Tolerance);
+
+	// A Liberal ballot can rank Le ahead of One Nation even if it also
+	// ranks One Nation ahead of Labor. Keep the existing pair constraints.
+	std::array const fowlerBallot{
+		Source{Labor, .2662, 1, 1.8, 1}, Source{Liberal, .1283, 3, 1.4, 0},
+		Source{Greens, .0670, 0, 1.8, .8693}, Source{Independent, .25, 2, 1.4, .5824},
+		Source{OneNation, .2396, 4, 1.2, .4177}, Source{Others, .0489, 2, 1.2, .6075}};
+	std::array const fowlerFinalThree{Independent, Labor, OneNation};
+	auto const fowlerTransfers = ranking->referenceTransferRates(3, fowlerBallot, fowlerFinalThree);
+	auto const fowlerLabor = ranking->referencePairRates(3, fowlerBallot, {Independent, Labor});
+	auto const fowlerOneNation = ranking->referencePairRates(3, fowlerBallot, {Labor, OneNation});
+	assert(close(fowlerLabor.at(Liberal), 8082.0 / 11404.0));
+	assert(close(fowlerLabor.at(Greens), 2556.0 / 6288.0));
+	assert(close(fowlerLabor.at(OneNation), 2882.0 / 3835.0));
+	assert(close(fowlerOneNation.at(Liberal), .30));
+	assert(fowlerTransfers.at(Liberal).front() > fowlerOneNation.at(Liberal));
+	auto fowlerDraw = ranking->drawElection(1);
+	fowlerDraw.central = true;
+	for (bool laborFirst : {true, false}) {
+		fowlerDraw.liberalLaborFirst = laborFirst;
+		auto const fowler = ranking->count(3, fowlerBallot, .59, .5, fowlerDraw);
+		assert(fowler.status == Status::Compared && fowler.classic.maximumError < Tolerance);
+		assert((fowler.final.candidates == Pair{Labor, Independent}));
+	}
+
+	// Published final-pair flows can follow an independent, a Green or
+	// a minor-party incumbent. The same candidate must be present, even
+	// when a replacement could otherwise use the same party slot.
+	auto districtIndex = [&](std::string_view name) {
+		int index = 4;
+		for (auto const& [seatName, district] : settings.at("districts").items()) {
+			if (seatName == "Wills" || seatName == "Mayo" || seatName == "Fowler") continue;
+			if (seatName == name) return index;
+			++index;
+		}
+		throw std::invalid_argument("Missing district in preference test.");
+	};
+	std::array const incumbentBallot{
+		Source{Labor, .18, 1, 1.8, 1}, Source{Liberal, .03, 3, 1.4, 0}, Source{National, .31, 3, 1.4, 0},
+		Source{Independent, .30, 2, 1.4, .65}, Source{Greens, .06, 0, 1.8, .85},
+		Source{OneNation, .10, 4, 1.2, .25}, Source{Others, .02, 2, 1.4, .5}};
+	int const calare = districtIndex("Calare");
+	auto const gee = ranking->referencePairRates(calare, incumbentBallot, {Independent, National});
+	auto const geeLiberal = ranking->referencePairRates(calare, incumbentBallot, {Independent, Liberal});
+	assert(close(gee.at(Labor), 9121.0 / 11086.0));
+	assert(close(gee.at(Greens), 3109.0 / 3753.0));
+	assert(close(gee.at(OneNation), 3601.0 / 8200.0));
+	assert(!close(gee.at(OneNation), geeLiberal.at(OneNation)));
+	auto nationalOnly = incumbentBallot;
+	nationalOnly[2].primary += nationalOnly[1].primary;
+	nationalOnly[1].primary = 0;
+	assert(close(ranking->referencePairRates(calare, nationalOnly, {Independent, National}).at(OneNation),
+		gee.at(OneNation)));
+	for (int seed = 0; seed < 20; ++seed) {
+		auto const calareCount = ranking->count(calare, incumbentBallot, .46, .73, ranking->drawElection(seed));
+		assert(calareCount.status == Status::Compared && calareCount.classic.pairsChecked == 2 &&
+			calareCount.classic.maximumError < Tolerance);
+	}
+
+	auto namedPartyBallot = nationalOnly;
+	namedPartyBallot[1].primary = nationalOnly[2].primary;
+	namedPartyBallot[2].primary = 0;
+	namedPartyBallot[3].id = KatterParty;
+	int const kennedy = districtIndex("Kennedy");
+	auto const katter = ranking->referencePairRates(kennedy, namedPartyBallot, {KatterParty, Liberal}, false);
+	assert(close(katter.at(Labor), 11971.0 / 15917.0));
+	assert(close(katter.at(Greens), 3425.0 / 5761.0));
+	assert(close(katter.at(OneNation), 5542.0 / 7541.0));
+	namedPartyBallot[3].primary = 0;
+	namedPartyBallot[4].primary += incumbentBallot[3].primary;
+	int const ryan = districtIndex("Ryan");
+	auto const watsonBrown = ranking->referencePairRates(ryan, namedPartyBallot, {Greens, Liberal}, false);
+	assert(close(watsonBrown.at(Labor), 22590.0 / 29217.0));
+	assert(close(watsonBrown.at(OneNation), 415.0 / 2327.0));
+	assert(close(ranking->referencePairRates(ryan, namedPartyBallot, {Labor, Liberal}).at(OneNation), .25));
+	namedPartyBallot[4].matchesConfiguredIncumbent = false;
+	auto const replacement = ranking->referencePairRates(ryan, namedPartyBallot, {Greens, Liberal});
+	assert(!close(replacement.at(Labor), watsonBrown.at(Labor)));
+
+	int const clark = districtIndex("Clark");
+	auto const wilkie = ranking->referencePairRates(clark, incumbentBallot, {Independent, Labor});
+	assert(close(wilkie.at(Greens), 6417.0 / 8908.0));
+	assert(close(wilkie.at(Liberal), 6197.0 / 9239.0));
+	assert(close(wilkie.at(OneNation), 1906.0 / 2834.0));
+	int const bradfield = districtIndex("Bradfield");
+	assert(!ranking->incumbentForPairHistory(0));
+	assert(ranking->incumbentForPairHistory(bradfield)->name == "Nicolette Boele");
+	auto bradfieldBallot = incumbentBallot;
+	bradfieldBallot[1].primary += bradfieldBallot[2].primary;
+	bradfieldBallot[2].primary = 0;
+	assert(close(ranking->referencePairRates(bradfield, bradfieldBallot, {Independent, Liberal}).at(Labor),
+		15626.0 / 22768.0));
+	auto& clarkHistory = settings["districts"]["Clark"]["incumbent_pair_history"];
+	auto const originalClarkHistory = clarkHistory;
+	clarkHistory["flows"][0]["donor"] = "IND";
+	try {
+		loadFederal();
+		assert(false);
+	}
+	catch (std::invalid_argument const&) {}
+	clarkHistory = originalClarkHistory;
+
+	// An exact primary match uses the historical centre. At three times
+	// the old odds, the general and historical ballots have equal weight.
+	// Both groups keep their original Labor–Coalition comparison.
+	auto const weighted = loadFederal(true, true);
+	int const mackellar = districtIndex("Mackellar");
+	auto mackellarBallot = nationalOnly;
+	mackellarBallot[1].primary = nationalOnly[2].primary;
+	mackellarBallot[2].primary = 0.;
+	auto const halfWeightOdds = settings["pair_history_blend"]["half_weight_odds_ratio"];
+	double const oldOn = 2825.0 / 111847.0;
+	auto ratesAt = [&](double p, Model const& model) {
+		mackellarBallot[1].primary += mackellarBallot[5].primary - p;
+		mackellarBallot[5].primary = p;
+		return model.referencePairRates(mackellar, mackellarBallot, {Independent, Liberal}).at(OneNation);
+	};
+	double const observedOn = 754.0 / 2825.0;
+	assert(close(ratesAt(oldOn, *weighted), observedOn));
+	double const tripleOddsShare = 3.0 * oldOn / (1.0 + 2.0 * oldOn);
+	settings["pair_history_blend"]["half_weight_odds_ratio"] = 1.0001;
+	auto const nearZeroWeight = loadFederal(true, true);
+	double const fallbackOn = ratesAt(tripleOddsShare, *nearZeroWeight);
+	assert(!close(fallbackOn, observedOn));
+	assert(close(ratesAt(tripleOddsShare, *weighted), std::midpoint(fallbackOn, observedOn)));
+	settings["pair_history_blend"]["half_weight_odds_ratio"] = halfWeightOdds;
+	assert(close(weighted->referencePairRates(mackellar, mackellarBallot, {Independent, OneNation}).at(Labor), .80));
+	for (int seed = 0; seed < 20; ++seed) {
+		auto const draw = weighted->drawElection(seed);
+		auto const mack = weighted->count(mackellar, mackellarBallot, .46, .5, draw);
+		auto const dual = weighted->count(calare, incumbentBallot, .46, .73, draw);
+		assert(mack.status == Status::Compared && mack.classic.maximumError < Tolerance);
+		assert(dual.status == Status::Compared && dual.classic.pairsChecked == 2 &&
+			dual.classic.maximumError < Tolerance);
+	}
+
+	// A district Liberal card changes only Liberal ballots.
+	settings["districts"]["Wills"]["liberal_advice"] = "greens_first";
+	auto const localAdvice = loadFederal()->referencePairRates(0, ballot, {Labor, Greens});
+	assert(close(localAdvice.at(Liberal), .30) && close(localAdvice.at(National), laborCentre));
+
+	settings.erase("national_follows_election_liberal_advice");
+	auto const separateAdvice = loadFederal()->referencePairRates(0, ballot, {Labor, Greens});
+	assert(close(separateAdvice.at(National), .75));
+
+	// Mayo still counts Centre Alliance as its own party. Its recorded
+	// comparison rates apply to the specified opponents, and Greens ballots
+	// still rank Labor against Liberal as they would without Centre Alliance.
+	std::array const mayoBallot{
+		Source{Labor, .22, 1, 1.8, 1}, Source{Liberal, .26, 3, 1.4, 0},
+		Source{Greens, .14, 0, 1.8, .9}, Source{OneNation, .10, 4, 1.2, .25},
+		Source{CentreAlliance, .26, 2, 1.4, .6}, Source{Others, .02, 2, 1.4, .5}};
+	auto const mayoLiberal = ranking->referencePairRates(2, mayoBallot, {CentreAlliance, Liberal});
+	auto const mayoLabor = ranking->referencePairRates(2, mayoBallot, {CentreAlliance, Labor});
+	auto const mayoClassic = ranking->referencePairRates(2, mayoBallot, {Labor, Liberal});
+	assert(close(mayoLiberal.at(Labor), .80));
+	assert(close(mayoLiberal.at(Greens), .8164));
+	assert(close(mayoLabor.at(Greens), .4572));
+	assert(close(mayoLabor.at(Liberal), 25692.0 / 29551.0));
+	assert(close(mayoLabor.at(OneNation), 5458.0 / 7493.0));
+	assert(close(mayoClassic.at(Greens), ranking->referencePairRates(1, mayoBallot, {Labor, Liberal}).at(Greens)));
+	auto const mayo = ranking->count(2, mayoBallot, .537, .5, ranking->drawElection(0));
+	assert(mayo.status == Status::Compared && mayo.classic.maximumError < Tolerance);
+
+	try {
+		loadFederal(false);
+		assert(false);
+	}
+	catch (std::invalid_argument const&) {}
+
+	// A different live independent cannot inherit the returning person's
+	// preference evidence. The usual party-level Liberal prior still applies.
+	auto const fowlerReplacement = ranking->referencePairRates(3, fowlerBallot, {Independent, Labor}, false);
+	assert(close(fowlerReplacement.at(Liberal), .80));
+	assert(!close(fowlerReplacement.at(OneNation), fowlerLabor.at(OneNation)));
+	settings["districts"]["Fowler"]["independent_pair_history"]["name"] = "Different candidate";
+	try {
+		loadFederal();
+		assert(false);
+	}
+	catch (std::invalid_argument const&) {}
+
+	// Remove the local observations to test the underlying distance rule.
+	// Against Labor, the independent is closer to One Nation voters. Move
+	// the independent to Labor's position to check the equal-distance case.
+	// Against Liberal, the same voters are closer to Liberal in both cases.
+	settings["districts"]["Fowler"].erase("independent_pair_history");
+	auto const withBoost = loadFederal();
+	settings.erase("independent_proximity_odds_multiplier");
+	auto const withoutBoost = loadFederal();
+	auto genericBallot = fowlerBallot;
+	for (int independentIdeology : {2, 1}) {
+		genericBallot[3].ideology = independentIdeology;
+		double const factor = independentIdeology == 2 ? 2.5 : std::sqrt(2.5);
+		auto const before = withoutBoost->referencePairRates(3, genericBallot, {Independent, Labor});
+		auto const after = withBoost->referencePairRates(3, genericBallot, {Independent, Labor});
+		double const base = before.at(OneNation);
+		assert(close(after.at(OneNation), base * factor / std::lerp(1.0, factor, base)));
+		assert(close(after.at(Liberal), before.at(Liberal)));
+		assert(close(after.at(Others), before.at(Others)));
+		auto const beforeLiberal = withoutBoost->referencePairRates(3, genericBallot, {Independent, Liberal});
+		auto const afterLiberal = withBoost->referencePairRates(3, genericBallot, {Independent, Liberal});
+		assert(close(afterLiberal.at(OneNation), beforeLiberal.at(OneNation)));
+		auto const beforeClassic = withoutBoost->referencePairRates(3, genericBallot, {Labor, Liberal});
+		auto const afterClassic = withBoost->referencePairRates(3, genericBallot, {Labor, Liberal});
+		assert(close(afterClassic.at(OneNation), beforeClassic.at(OneNation)));
+	}
 }
 
 void checkJointThreeCandidateCount()
@@ -1025,13 +1332,15 @@ int main()
 	checkSampledProfilesAndOrderIndependence();
 	checkNamedIndependentPlacement();
 	checkSecondaryIndependentTransfers();
+	checkGreensPreferencesToMultipleIndependents();
 	checkLaborPreferencesToRightIndependent();
 	checkLaborPreferenceOverlapAtExclusion();
 	checkSouthAustralianBallot();
 	checkHistoricalFinnissTransfers();
 	checkLivePreferenceCountRevisions();
 	checkLivePreferenceCountConditioning();
-	checkFederalComparisonAndLiveTrialConfiguration();
+	checkFederalPreferenceModes();
+	checkFederalPreferenceSettings();
 	checkJointThreeCandidateCount();
 	checkJointThreeCandidateExtraFinalist();
 	checkJointThreeCandidateCoalitionCount();

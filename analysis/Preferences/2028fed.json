@@ -1,0 +1,404 @@
+{
+  "mode": "active",
+  "schema_version": 1,
+  "model_version": "fed2028-preference-comparison-1",
+  "sample_uncertainty": true,
+  "unknown_liberal_labor_first_probability": 0.8,
+  "national_follows_election_liberal_advice": true,
+  "independent_proximity_odds_multiplier": 2.5,
+  "pair_history_blend": {
+    "half_weight_odds_ratio": 3,
+    "matched_district_sd_multiplier": 0.7
+  },
+  "generic_concentrations": [
+    23.999999999999996,
+    9.666666666666666
+  ],
+  "profiles": {
+    "labor": {
+      "primary_points": [
+        {
+          "primary": 0.1,
+          "means": [
+            0.8203275332737616,
+            0.13608600184894723,
+            0.7267524888961155,
+            0.11579101562500016,
+            0.8958174568989306
+          ]
+        }
+      ],
+      "election_concentration": [
+        91.11891964171696,
+        19.679072134582995,
+        12.03565108498652,
+        23.676512705469584,
+        10.11111111111111
+      ],
+      "district_concentration": [
+        90.11891964171696,
+        7.950914581438218,
+        5.5184647696861155,
+        9.535742519958122,
+        4.687499999999999
+      ]
+    },
+    "liberal_labor_first": {
+      "primary_points": [
+        {
+          "primary": 0.1,
+          "means": [
+            0.7220215503849514,
+            0.6213147537582041,
+            0.2932712787832116,
+            0.7330566406250384,
+            0.3582140029245919
+          ]
+        }
+      ],
+      "election_concentration": [
+        54.751786434628464,
+        20.778189665570387,
+        10.11111111111111,
+        23.941482482536355,
+        23.97271990439875
+      ],
+      "district_concentration": [
+        53.751786434628464,
+        12.433944516406692,
+        4.687499999999999,
+        9.745766918355606,
+        9.713030094348284
+      ]
+    },
+    "liberal_greens_first": {
+      "primary_points": [
+        {
+          "primary": 0.1,
+          "means": [
+            0.30000000000000016,
+            0.459635796700825,
+            0.0001850603711153888,
+            0.7794851226535101,
+            0.8933037642857928
+          ]
+        }
+      ],
+      "election_concentration": [
+        31.812500000000007,
+        22.591915635673423,
+        10.11111111111111,
+        18.038402311717338,
+        23.99928387639403
+      ],
+      "district_concentration": [
+        19.360000000000003,
+        10.476938539187033,
+        4.687499999999999,
+        12.270826655657071,
+        9.667192479185658
+      ]
+    },
+    "greens": {
+      "primary_points": [
+        {
+          "primary": 0.05,
+          "means": [
+            0.8300170876922627,
+            0.07639089116134173,
+            0.7112151228735586,
+            0.1114843750000129,
+            0.7758616899674633
+          ]
+        },
+        {
+          "primary": 0.1,
+          "means": [
+            0.8684671520848514,
+            0.07639089116134175,
+            0.7112151228735585,
+            0.11148437500001282,
+            0.7758616899674634
+          ]
+        },
+        {
+          "primary": 0.15,
+          "means": [
+            0.8883781106287114,
+            0.07639089116134173,
+            0.7112151228735586,
+            0.11148437500001282,
+            0.7758616899674633
+          ]
+        },
+        {
+          "primary": 0.25,
+          "means": [
+            0.911419554442774,
+            0.07639089116134172,
+            0.7112151228735586,
+            0.11148437500001296,
+            0.7758616899674634
+          ]
+        }
+      ],
+      "election_concentration": [
+        125.92439759386556,
+        63.04657015564981,
+        12.99926058380352,
+        25.862630929474417,
+        23.999999999999993
+      ],
+      "district_concentration": [
+        69.83247364654937,
+        21.635152801608566,
+        5.831821803228869,
+        10.197732336916182,
+        9.666666666666664
+      ]
+    },
+    "one_nation": {
+      "primary_points": [
+        {
+          "primary": 0.1,
+          "means": [
+            0.26538421922223543,
+            0.1091502632067437,
+            0.7561954335838919,
+            0.2500315659688799,
+            0.7760781910818585
+          ]
+        }
+      ],
+      "election_concentration": [
+        29.461786782818738,
+        30.233491432572364,
+        42.06792757965747,
+        16.183901365877592,
+        115.71600298992001
+      ],
+      "district_concentration": [
+        51.37650983612221,
+        64.4055488188769,
+        3.000000000000001,
+        5.083160030925341,
+        405.43250805992653
+      ]
+    }
+  },
+  "districts": {
+    "Bradfield": {
+      "incumbent_pair_history": {
+        "name": "Nicolette Boele",
+        "election": "2025fed",
+        "formal_votes": 112202,
+        "source": "https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv",
+        "flows": [
+          {"donor": "ALP", "opponent": "LIB", "incumbent_votes": 15626, "opponent_votes": 7142},
+          {"donor": "GRN", "opponent": "LIB", "incumbent_votes": 6314, "opponent_votes": 1237},
+          {"donor": "ON", "opponent": "LIB", "incumbent_votes": 372, "opponent_votes": 1353, "election_concentration": 12}
+        ]
+      }
+    },
+    "Calare": {
+      "independent": {"name": "Andrew Gee", "position": "centre"},
+      "incumbent_pair_history": {
+        "name": "Andrew Gee",
+        "election": "2025fed",
+        "formal_votes": 106267,
+        "source": "https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv",
+        "flows": [
+          {"donor": "ALP", "opponent": "NAT", "incumbent_votes": 9121, "opponent_votes": 1965},
+          {"donor": "GRN", "opponent": "NAT", "incumbent_votes": 3109, "opponent_votes": 644},
+          {"donor": "ON", "opponent": "NAT", "incumbent_votes": 3601, "opponent_votes": 4599}
+        ]
+      }
+    },
+    "Canberra": {
+      "others_labor_greens": {"election": "2025fed", "labor_votes": 7280, "greens_votes": 5387}
+    },
+    "Clark": {
+      "independent": {"name": "Andrew Wilkie", "position": "left"},
+      "incumbent_pair_history": {
+        "name": "Andrew Wilkie",
+        "election": "2025fed",
+        "formal_votes": 67531,
+        "source": "https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv",
+        "flows": [
+          {"donor": "GRN", "opponent": "ALP", "incumbent_votes": 6417, "opponent_votes": 2491},
+          {"donor": "LIB", "opponent": "ALP", "incumbent_votes": 6197, "opponent_votes": 3042},
+          {"donor": "ON", "opponent": "ALP", "incumbent_votes": 1906, "opponent_votes": 928}
+        ]
+      }
+    },
+    "Cooper": {
+      "others_labor_greens": {"election": "2025fed", "labor_votes": 3104, "greens_votes": 10244}
+    },
+    "Curtin": {
+      "incumbent_pair_history": {
+        "name": "Kate Chaney",
+        "election": "2025fed",
+        "formal_votes": 105348,
+        "source": "https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv",
+        "flows": [
+          {"donor": "ALP", "opponent": "LIB", "incumbent_votes": 12261, "opponent_votes": 3365},
+          {"donor": "GRN", "opponent": "LIB", "incumbent_votes": 7444, "opponent_votes": 791},
+          {"donor": "ON", "opponent": "LIB", "incumbent_votes": 866, "opponent_votes": 1865, "election_concentration": 12}
+        ]
+      }
+    },
+    "Fowler": {
+      "independent_pair_history": {
+        "name": "Dai Le",
+        "election": "2025fed",
+        "formal_votes": 92938,
+        "source": "https://results.aec.gov.au/31496/Website/HouseDivisionPage-31496-119.htm",
+        "flows": [
+          {"donor": "LIB", "opponent": "ALP", "independent_votes": 8082, "opponent_votes": 3322},
+          {"donor": "GRN", "opponent": "ALP", "independent_votes": 2556, "opponent_votes": 3732},
+          {"donor": "ON", "opponent": "ALP", "independent_votes": 2882, "opponent_votes": 953}
+        ]
+      }
+    },
+    "Fraser": {
+      "others_labor_greens": {"election": "2025fed", "labor_votes": 3321, "greens_votes": 7929}
+    },
+    "Grayndler": {
+      "others_labor_greens": {"election": "2025fed", "labor_votes": 2171, "greens_votes": 2124}
+    },
+    "Griffith": {
+      "others_labor_greens": {"election": "2025fed", "labor_votes": 3633, "greens_votes": 1614}
+    },
+    "Indi": {
+      "incumbent_pair_history": {
+        "name": "Helen Haines",
+        "election": "2025fed",
+        "formal_votes": 105761,
+        "source": "https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv",
+        "flows": [
+          {"donor": "ALP", "opponent": "LIB", "incumbent_votes": 7227, "opponent_votes": 1597},
+          {"donor": "GRN", "opponent": "LIB", "incumbent_votes": 3451, "opponent_votes": 388},
+          {"donor": "ON", "opponent": "LIB", "incumbent_votes": 2691, "opponent_votes": 4920, "election_concentration": 12}
+        ]
+      }
+    },
+    "Kennedy": {
+      "incumbent_pair_history": {
+        "name": "Bob Katter",
+        "election": "2025fed",
+        "formal_votes": 97162,
+        "source": "https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv",
+        "flows": [
+          {"donor": "ALP", "opponent": "LIB", "incumbent_votes": 11971, "opponent_votes": 3946},
+          {"donor": "GRN", "opponent": "LIB", "incumbent_votes": 3425, "opponent_votes": 2336},
+          {"donor": "ON", "opponent": "LIB", "incumbent_votes": 5542, "opponent_votes": 1999}
+        ]
+      }
+    },
+    "Kooyong": {
+      "incumbent_pair_history": {
+        "name": "Monique Ryan",
+        "election": "2025fed",
+        "formal_votes": 114868,
+        "source": "https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv",
+        "flows": [
+          {"donor": "ALP", "opponent": "LIB", "incumbent_votes": 10404, "opponent_votes": 3267},
+          {"donor": "GRN", "opponent": "LIB", "incumbent_votes": 7949, "opponent_votes": 951},
+          {"donor": "ON", "opponent": "LIB", "incumbent_votes": 276, "opponent_votes": 925, "election_concentration": 12}
+        ]
+      }
+    },
+    "Mackellar": {
+      "incumbent_pair_history": {
+        "name": "Sophie Scamps",
+        "election": "2025fed",
+        "formal_votes": 111847,
+        "source": "https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv",
+        "flows": [
+          {"donor": "ALP", "opponent": "LIB", "incumbent_votes": 10615, "opponent_votes": 2884},
+          {"donor": "GRN", "opponent": "LIB", "incumbent_votes": 5959, "opponent_votes": 899},
+          {"donor": "ON", "opponent": "LIB", "incumbent_votes": 754, "opponent_votes": 2071, "election_concentration": 12}
+        ]
+      }
+    },
+    "Mayo": {
+      "independent_like": {
+        "party": "CA",
+        "greens_over_labor": 0.4572,
+        "greens_over_liberal": 0.8164
+      },
+      "independent_pair_history": {
+        "name": "Rebekha Sharkie",
+        "election": "2025fed",
+        "formal_votes": 125182,
+        "source": "https://results.aec.gov.au/31496/Website/HouseDivisionPage-31496-188.htm",
+        "flows": [
+          {"donor": "LIB", "opponent": "ALP", "independent_votes": 25692, "opponent_votes": 3859},
+          {"donor": "ON", "opponent": "ALP", "independent_votes": 5458, "opponent_votes": 2035}
+        ]
+      }
+    },
+    "Melbourne": {
+      "others_labor_greens": {"election": "2025fed", "labor_votes": 3924, "greens_votes": 2821}
+    },
+    "Newcastle": {
+      "others_labor_greens": {"election": "2025fed", "labor_votes": 4145, "greens_votes": 4579}
+    },
+    "Ryan": {
+      "incumbent_pair_history": {
+        "name": "Elizabeth Watson-Brown",
+        "election": "2025fed",
+        "formal_votes": 103462,
+        "source": "https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv",
+        "flows": [
+          {"donor": "ALP", "opponent": "LIB", "incumbent_votes": 22590, "opponent_votes": 6627},
+          {"donor": "ON", "opponent": "LIB", "incumbent_votes": 415, "opponent_votes": 1912, "election_concentration": 12}
+        ]
+      }
+    },
+    "Sydney": {
+      "others_labor_greens": {"election": "2025fed", "labor_votes": 650, "greens_votes": 1726}
+    },
+    "Warringah": {
+      "incumbent_pair_history": {
+        "name": "Zali Steggall",
+        "election": "2025fed",
+        "formal_votes": 114895,
+        "source": "https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv",
+        "flows": [
+          {"donor": "ALP", "opponent": "LIB", "incumbent_votes": 13665, "opponent_votes": 3073},
+          {"donor": "GRN", "opponent": "LIB", "incumbent_votes": 9059, "opponent_votes": 992},
+          {"donor": "ON", "opponent": "LIB", "incumbent_votes": 529, "opponent_votes": 1449, "election_concentration": 12}
+        ]
+      }
+    },
+    "Wentworth": {
+      "incumbent_pair_history": {
+        "name": "Allegra Spender",
+        "election": "2025fed",
+        "formal_votes": 110431,
+        "source": "https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv",
+        "flows": [
+          {"donor": "ALP", "opponent": "LIB", "incumbent_votes": 12409, "opponent_votes": 2370},
+          {"donor": "GRN", "opponent": "LIB", "incumbent_votes": 10396, "opponent_votes": 845},
+          {"donor": "ON", "opponent": "LIB", "incumbent_votes": 630, "opponent_votes": 1995, "election_concentration": 12}
+        ]
+      }
+    },
+    "Wills": {
+      "others_labor_greens": {"election": "2025fed", "labor_votes": 3910, "greens_votes": 10005}
+    }
+  },
+  "provenance": {
+    "profile_basis": "Uses the ranking centres and uncertainty from 2025fed.json for the initial prospective federal comparison, including the 70% centre for Liberal ballots ranking One Nation ahead of Labor and the 82% centre for Labor ballots ranking Greens ahead of Liberal.",
+    "coalition_advice_assumption": "For Labor versus Greens, each election draw gives an 80% chance of Coalition advice putting Labor first. The draw applies to the Nationals and to Liberal ballots where no district advice is specified. Nationals use the corresponding Liberal head-to-head centres as a proxy with their own uncertainty.",
+    "others_labor_greens": "Sum of original-source preferences in 2025 federal Labor–Greens final counts, excluding Coalition and One Nation ballots because the model handles those sources separately. Source: https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv",
+    "independent_proximity_assumption": "Where preference evidence is unavailable, 2.5 times the odds for a closer independent is a trial assumption, with half the change in log odds at equal distance. It puts the illustrative One Nation to independent flow against Labor near 70% and the Liberal flow near 80%.",
+    "incumbent_pair_history": "Use the 2025 AEC original-source final counts for named repeat incumbents. Record only separately modelled donor parties. For One Nation flows against Liberal in repeat contests, use an election concentration of 12 instead of the generic 24 as a provisional allowance for larger shared shifts. Across seven Liberal–independent contests these flows fell by a median of 17.8 percentage points from 2022 to 2025.",
+    "pair_history_blend": "Discount a past count when the donor's primary-vote odds differ substantially. Threefold odds set half weight as a trial assumption. At full weight retain the general model's election-wide movement and use 70% of its district departure before the bounded remapping. The formal vote denominators are from the same 2025 AEC final counts as the donor totals.",
+    "mayo_greens_flows": {
+      "greens_over_labor": "2025 AEC original-source TCP: https://results.aec.gov.au/31496/Website/HouseDivisionPage-31496-188.htm",
+      "greens_over_liberal": "2022 AEC original-source TCP: https://results.aec.gov.au/27966/Website/HouseDivisionPage-27966-188.htm"
+    }
+  }
+}

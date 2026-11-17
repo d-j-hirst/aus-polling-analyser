@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-11-13T02:22:20Z",
+  "updated_at_utc": "2026-11-17T00:40:32Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -9880,17 +9880,27 @@
         "Preferences/*.json.gz"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 4,
+      "semantic_revision": 11,
       "files": {
+        "Preferences/2025fed.json": {
+          "sha256": "797a5c974787cb2546f36dd2a9ace073167513b67109e6f880de5cf479d3f171",
+          "size_bytes": 5334,
+          "recorded_mtime_utc": "2026-11-15T03:49:07.630204Z"
+        },
         "Preferences/2026sa.json": {
-          "sha256": "4790e9b2b5a311eddb00a2742690c20c4d92732c373a4661d6ab5265e0da6412",
-          "size_bytes": 5941,
-          "recorded_mtime_utc": "2026-11-12T13:54:45.620250Z"
+          "sha256": "bafe7739828572d5112407468977da134afda38469cac341f7c07e091afa1253",
+          "size_bytes": 6436,
+          "recorded_mtime_utc": "2026-11-13T22:22:38.435841Z"
         },
         "Preferences/2026vic.json": {
-          "sha256": "c53561206ed42e144d73a10bdc5e0ee99469fce42b4e9160064166e95ede89af",
-          "size_bytes": 11486,
-          "recorded_mtime_utc": "2026-11-12T10:53:01.841463Z"
+          "sha256": "5dce415a1c88bb66f8111f7f279eab70d07ce0d78db3ae3075c4698b403e26bb",
+          "size_bytes": 12165,
+          "recorded_mtime_utc": "2026-11-13T09:55:40.626019Z"
+        },
+        "Preferences/2028fed.json": {
+          "sha256": "a76f1f8eda58249ffddc21133e5462f2264b5f00ec17b82a6028a4c4ed0419ed",
+          "size_bytes": 15959,
+          "recorded_mtime_utc": "2026-11-17T00:40:29.726761Z"
         },
         "Preferences/aec-alternative-tpp-extracts.json": {
           "sha256": "937becf7a685fa1f8bf44fcb730b1f2337896820ec5cded155f6705cd20f70a9",
@@ -10010,9 +10020,177 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261116T085140Z-methodology-preference-evidence-inputs-739c19f2",
+          "recorded_at_utc": "2026-11-16T08:51:40Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 5,
+          "provenance_revision": 5,
+          "summary": "Register the active ranking-based preference count for the 2025 federal replay, with the fitted profiles and district settings used to test AEC preference samples.",
+          "files": [
+            "Preferences/2025fed.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2025fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261116T085252Z-methodology-preference-evidence-inputs-ebcba729",
+          "recorded_at_utc": "2026-11-16T08:52:52Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 6,
+          "provenance_revision": 6,
+          "summary": "Add the 2028 federal ranking comparison, with an 80% chance of Coalition advice favouring Labor over the Greens, district Others splits from the 2025 Labor-Greens finals and locally observed Greens flows for Rebekha Sharkie in Mayo.",
+          "files": [
+            "Preferences/2028fed.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261116T085252Z-methodology-preference-evidence-inputs-0c7dac69",
+          "recorded_at_utc": "2026-11-16T08:52:52Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 7,
+          "provenance_revision": 7,
+          "summary": "Use the 2022 Finniss Greens exclusion to inform transfers to returning independent Lou Nicholson, Labor and Liberal, with half weight and explicit allowance for inherited ballots.",
+          "files": [
+            "Preferences/2026sa.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026sa"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261116T085253Z-source_refresh-preference-evidence-inputs-1bf6a6fa",
+          "recorded_at_utc": "2026-11-16T08:52:53Z",
+          "change_type": "source_refresh",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 7,
+          "provenance_revision": 7,
+          "summary": "Document the order and add the official links for VEC-registered Preston Liberal how-to-vote cards 611 and 664. The model settings and forecast calculations are unchanged.",
+          "files": [
+            "Preferences/2026vic.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261116T100113Z-methodology-preference-evidence-inputs-d7b7a1a7",
+          "recorded_at_utc": "2026-11-16T10:01:13Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 8,
+          "provenance_revision": 8,
+          "summary": "Trial a distance-based preference odds boost for named independent incumbents in the 2028 federal ranking comparison. Use the AEC 2025 original-source Liberal, Greens and One Nation splits in Fowler and Liberal and One Nation splits in Mayo as local preference centres against Labor.",
+          "files": [
+            "Preferences/2028fed.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261116T122817Z-methodology-preference-evidence-inputs-be6d7515",
+          "recorded_at_utc": "2026-11-16T12:28:17Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 9,
+          "provenance_revision": 9,
+          "summary": "Add 32 AEC 2025 original-source preference flows for named incumbents in 11 districts. Match each observation to the donor and actual Coalition or Labor opponent. Classify Wilkie as left, retain a centre classification for Gee, and allow more shared uncertainty for One Nation preferences against Liberal in repeat contests.",
+          "files": [
+            "Preferences/2028fed.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261116T230906Z-methodology-preference-evidence-inputs-17c0de7a",
+          "recorded_at_utc": "2026-11-16T23:09:06Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 10,
+          "provenance_revision": 10,
+          "summary": "Trial donor-specific weights based on changes in primary-vote odds. Add 2025 AEC formal vote totals for the historical observations. Preserve election-wide preference movement and reduce district variation for well-matched donors in the 2028 ranked comparison.",
+          "files": [
+            "Preferences/2028fed.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261117T004032Z-methodology-preference-evidence-inputs-d728c50a",
+          "recorded_at_utc": "2026-11-17T00:40:32Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 11,
+          "provenance_revision": 11,
+          "summary": "Activate ranked preferences for 2028fed Standard and Now-cast forecasts and supporting calibration after comparison review; retain the tested profiles, historical-flow blending and uncertainty settings.",
+          "files": [
+            "Preferences/2028fed.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 4
+      "provenance_revision": 11
     },
     "preference_evidence_tools": {
       "description": "Cache-only extraction and population/provenance validation of observed preference evidence.",

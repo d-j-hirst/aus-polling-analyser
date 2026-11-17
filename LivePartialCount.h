@@ -103,6 +103,20 @@ struct PreferenceTransfer {
     double share() const { return received/votes; }
 };
 
+// Weight a nearly matching FP/TCP account when learning preferences for other
+// booths in a compulsory preferential count. A small discrepancy can be a
+// recheck or a timing difference, while a larger one can hide an entirely
+// different mix of ballots. Full weight at a match fades to zero at the
+// existing 2% comparability limit, or earlier if the discrepancy is as big
+// as the whole pool of votes available for preferences. This is an initial
+// modelling assumption. The weight leaves the reported vote totals intact.
+inline double tcpPreferenceMatchWeight(double fp, double tcp, double preferencePool) {
+    if (fp <= 0 || tcp <= 0 || preferencePool <= 0) return 0;
+    double const limit = std::min(fp * ComparableTotalFraction, preferencePool);
+    double const remaining = 1 - std::min(std::abs(fp-tcp)/limit, 1.0);
+    return remaining*remaining*(3-2*remaining);
+}
+
 inline std::optional<PreferenceTransfer> measureTransfer(Counts const& fp, Counts const& tcp,
     int first, int second) {
     double ft = total(fp), tt = total(tcp);

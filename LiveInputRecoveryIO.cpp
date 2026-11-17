@@ -657,8 +657,10 @@ void retainPreferenceHistory(Snapshot& effective, PreferenceHistories const& his
 }
 
 PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& folder,
-    Snapshot const& effective, PairHistoryRecordFilter const& include) {
+    Snapshot const& effective, PairHistoryRecordFilter const& include,
+    RetiredPairFlowEvidence* retiredFlows) {
     PairPreferenceHistory result;
+    if (retiredFlows) retiredFlows->cohorts.clear();
     // A smaller TCP total can represent exhaustion in OPV. This learning
     // path requires an FP batch and TCP count from the same set of ballots.
     if (effective.optionalPreferential) return result;
@@ -677,26 +679,31 @@ PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& fol
         // One cumulative account per candidate pair. A compatible superseding
         // count replaces it. When a correction removes or reallocates earlier
         // primaries, an old batch can be used only if its FP still fits.
-        if (record.tcp.fresh() && total(record.tcp.votes) > 0 &&
-            record.tcp.votes->size() == 2 && result.contains(record.key)) {
+        if (record.tcp.fresh() && total(record.tcp.votes) > 0 && record.tcp.votes->size() == 2) {
             // A corrected count for this same pair can supersede the old
             // measurement before its matching FP is available. A withdrawal
             // or a replacement pair leaves the earlier measurement available.
             auto const& tcp = *record.tcp.votes;
-            auto& pairs = result.at(record.key);
             CandidatePair pair{tcp.begin()->first,tcp.rbegin()->first};
-            auto old = pairs.find(pair);
-            if (old != pairs.end() && record.tcp.observedAt >= old->second.tcpTime &&
-                std::any_of(tcp.begin(),tcp.end(),[&](auto const& row) {
-                    return row.second < old->second.tcp.at(row.first);
-                })) {
-                supersededBefore[record.key][pair] = record.tcp.observedAt;
-                pairs.erase(old);
-            }
+            auto removeSuperseded = [&](PairPreferenceHistory& destination) {
+                auto found = destination.find(record.key);
+                if (found == destination.end()) return;
+                auto old = found->second.find(pair);
+                if (old != found->second.end() && record.tcp.observedAt >= old->second.tcpTime &&
+                    std::any_of(tcp.begin(),tcp.end(),[&](auto const& row) {
+                        return row.second < old->second.tcp.at(row.first);
+                    })) {
+                    supersededBefore[record.key][pair] = record.tcp.observedAt;
+                    found->second.erase(old);
+                }
+            };
+            removeSuperseded(result);
+            if (retiredFlows) removeSuperseded(retiredFlows->cohorts);
         }
         auto add = [&](PreferenceCohort const& cohort) {
             if (!comparablePreferenceAccount(cohort.fp,cohort.tcp)) return;
             CandidatePair pair{cohort.tcp.begin()->first,cohort.tcp.rbegin()->first};
+            bool flowOnly = false;
             if (!containedFpCohort(cohort.fp,*now.fp.votes)) {
                 // Limit how many ballots can differ from the retired count.
                 // A fresh positive count for the same pair follows the normal
@@ -704,7 +711,10 @@ PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& fol
                 // occur during withdrawal, so neither rules out the older pair.
                 if (now.tcp.fresh() && total(now.tcp.votes) > 0 &&
                     samePreferencePair(cohort.tcp,*now.tcp.votes)) return;
-                if (!minorFpRecheck(cohort.fp,*now.fp.votes)) return;
+                if (!minorFpRecheck(cohort.fp,*now.fp.votes)) {
+                    if (!retiredFlows || !retiredFlows->include || !retiredFlows->include(now,pair)) return;
+                    flowOnly = true;
+                }
             }
             auto superseded = supersededBefore.find(record.key);
             if (superseded != supersededBefore.end()) {
@@ -716,7 +726,10 @@ PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& fol
                 std::any_of(record.tcp.votes->begin(),record.tcp.votes->end(),[&](auto const& row) {
                     return row.second < cohort.tcp.at(row.first);
                 })) return;
-            auto& pairs = result[record.key];
+            // Keep an older compatible count available even if a later
+            // measurement is usable only as evidence about preference flows.
+            auto& destination = flowOnly ? retiredFlows->cohorts : result;
+            auto& pairs = destination[record.key];
             auto old = pairs.find(pair);
             if (old == pairs.end() || std::tie(cohort.tcpTime,cohort.fpTime) >=
                 std::tie(old->second.tcpTime,old->second.fpTime))
@@ -746,6 +759,7 @@ PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& fol
         });
     for (auto const& [key,record] : current) consider(*record,*record);
     std::erase_if(result,[](auto const& item) { return item.second.empty(); });
+    if (retiredFlows) std::erase_if(retiredFlows->cohorts,[](auto const& item) { return item.second.empty(); });
     return result;
 }
 

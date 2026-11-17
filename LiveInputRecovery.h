@@ -125,11 +125,18 @@ using PreferenceHistories = std::map<std::string,PreferenceHistory>;
 // for each retired pair, stored separately under the original candidate IDs.
 using CandidatePair = std::pair<int,int>;
 using PairPreferenceHistory = std::map<std::string,std::map<CandidatePair,PreferenceCohort>>;
-// An optional filter limits which reporting locations are read. The classic
-// TPP path needs only locations without an active Labor–Coalition count.
+// The first filter limits which locations are read. The second can retain a
+// retired pair's measured flows after a larger FP recheck, without restoring
+// that count as a ballot allocation.
 using PairHistoryRecordFilter = std::function<bool(Record const&)>;
+using RetiredPairFlowFilter = std::function<bool(Record const&,CandidatePair)>;
+struct RetiredPairFlowEvidence {
+    RetiredPairFlowFilter include;
+    PairPreferenceHistory cohorts;
+};
 PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& folder,
-    Snapshot const& effective, PairHistoryRecordFilter const& include = {});
+    Snapshot const& effective, PairHistoryRecordFilter const& include = {},
+    RetiredPairFlowEvidence* retiredFlows = nullptr);
 // Forecast-only TCP fallback for districts between published pairs. Each
 // record carries the old TCP and, where known, the FP account it counted.
 // These records are never committed as accepted observations of a new feed.

@@ -43,6 +43,25 @@ inline double splitCountedCandidate(double groupShare, double totalProjected,
 	return std::min(groupShare, fixedShare + uncountedShare * futureFraction);
 }
 
+// Recover a candidate from a group that has already been updated against the
+// pre-count forecast. All candidates in the group use the same projected
+// and counted totals, so each outstanding vote is scaled by the same factor.
+// The account contains one simulation's votes. The group share and result
+// are percentages of the whole district, including its counted votes.
+template<class IsPooled>
+double splitCountedCandidate(LiveData::VoteCountAccount const& account, double groupShare,
+    int candidate, IsPooled isPooled) {
+    double totalProjected = 0, groupProjected = 0, groupCounted = 0;
+    for (auto const& [id, votes] : *account.projected) {
+        totalProjected += votes;
+        if (isPooled(id)) groupProjected += votes;
+    }
+    for (auto const& [id, votes] : *account.counted)
+        if (isPooled(id)) groupCounted += votes;
+    return splitCountedCandidate(groupShare, totalProjected, groupCounted, groupProjected,
+        value(*account.counted, candidate), value(*account.projected, candidate));
+}
+
 // Missing candidates in an iteration are genuine zeros. Keep their implicit
 // observations too; otherwise a rarely emerging candidate would incorrectly
 // acquire the variance of only the iterations in which it was present.

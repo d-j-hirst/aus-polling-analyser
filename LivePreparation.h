@@ -60,4 +60,5 @@ private:
 	Results2::Election currentElection;
 	LiveInputRecovery::PreferenceHistories preferenceHistory;
 	LiveInputRecovery::PairPreferenceHistory pairPreferenceHistory;
+	LiveInputRecovery::PairPreferenceHistory revisedCoalitionFlowHistory;
 };

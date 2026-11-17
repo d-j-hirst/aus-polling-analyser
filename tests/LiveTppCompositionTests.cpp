@@ -1,5 +1,6 @@
 // Portable tests of live TPP accounting, uncertainty and information sharing.
 #include "../LiveTppComposition.h"
+#include "../LiveCoalitionTcp.h"
 
 #include <cassert>
 #include <cstdlib>
@@ -1469,7 +1470,65 @@ void testUnifiedCategoryPartialAndUnreportedCounts() {
     checkClose(continuing.meanShare(0),56.25);
 }
 
+void testParallelCoalitionTcpAccounts() {
+    using namespace LiveCoalitionTcp;
+    using enum SourceGroup;
+    auto odds = LivePartialCount::logOdds;
+    auto centre = [](std::size_t) { return 0.; };
+    std::array<double,3> shares{40,20,30};
+    std::vector<Source> fp{{Labor,40,0},{Liberal,20,odds(.2)},
+        {National,30,odds(.2)},{Other,10,odds(.7)}};
+    Booth measured{0,{},{}};
+    measured.pairs[0] = {100,62,{},{}};
+    measured.pairs[1].pending = fp;
+    LiveCoalitionTcp::Observation old{0,0,{{National,30,odds(.2)},{Other,10,odds(.7)}},40,22,1};
+    auto prior = LiveCoalitionTcp::prepare({measured},{});
+    auto trained = LiveCoalitionTcp::prepare({measured},{old});
+    auto liberal = trained.draw(0,100,shares,centre);
+    checkClose(liberal.labor,62);
+    checkClose(liberal.counted,100);
+    auto national = trained.draw(1,100,shares,centre);
+    checkClose(national.counted,0);
+    assert(national.labor > prior.draw(1,100,shares,centre).labor);
+    assert(national.labor < liberal.labor);
+
+    // An empty replacement contributes neither a count nor a fitted
+    // observation. The old Liberal tally can be supplied by history.
+    Counts primaries{{0,40},{1,20},{10,30},{7,10}};
+    checkClose(referenceOpponent({{0,0},{1,0}},primaries,10),10);
+    checkClose(referenceOpponent({{0,0},{10,0}},primaries,10),10);
+    checkClose(referenceOpponent({{0,62},{1,38}},primaries,10),1);
+    measured.pairs[1] = {100,54,{},{}};
+    LiveCoalitionTcp::Observation replacement{0,1,{{Liberal,20,odds(.2)},{Other,10,odds(.7)}},30,14,1};
+    auto both = LiveCoalitionTcp::prepare({measured},{old,replacement});
+    auto extreme = [](std::size_t) { return 20.; };
+    checkClose(both.draw(0,100,shares,extreme).labor,62);
+    checkClose(both.draw(1,100,shares,extreme).labor,54);
+
+    // A partial count holds its own 60 TCP ballots. Reserve a feasible
+    // subset of the FP mix even if the matched FP batch is unavailable.
+    auto pending = remainingPrimaries(primaries,{{0,30},{10,30}},nullptr,10);
+    checkClose(pending.at(0),20);
+    checkClose(pending.at(1),20./3);
+    checkClose(pending.at(10),10);
+    checkClose(pending.at(7),10./3);
+    Counts earlier{{0,25},{1,15},{10,15},{7,5}};
+    auto exact = remainingPrimaries(primaries,{{0,30},{10,30}},&earlier,10);
+    checkClose(exact.at(0),15);
+    checkClose(exact.at(1),5);
+    checkClose(exact.at(10),15);
+    checkClose(exact.at(7),5);
+
+    // Both estimates receive the same future primary pools and apply each
+    // excluded partner's leakage to its own votes.
+    Booth newVoters{0,fp,{}};
+    auto future = LiveCoalitionTcp::prepare({newVoters},{});
+    checkClose(future.draw(0,100,shares,centre).labor,53);
+    checkClose(future.draw(1,100,shares,centre).labor,51);
+}
+
 int main() {
+    testParallelCoalitionTcpAccounts();
     testUnifiedCategoryReceivedAccount();
     testUnifiedCategoryPreservesMeasuredInformation();
     testUnifiedCategoryPartialAndUnreportedCounts();

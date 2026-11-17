@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-11-12T09:59:59Z",
+  "updated_at_utc": "2026-11-17T00:28:53Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 53,
+      "semantic_revision": 56,
       "files": {
         "2013fed.txt": {
           "sha256": "d6d75e40d7ece21df752d6edb476d99a7210847b6c1ebbb9be905b6e832cb0cd",
@@ -60,9 +60,9 @@
           "recorded_mtime_utc": "2026-10-22T03:31:54.525072Z"
         },
         "2025fed.txt": {
-          "sha256": "f31f7e4e52409028a7cd2689273a0747aa4ae7dbb558e17cc20ed14996b7d0e1",
-          "size_bytes": 77602,
-          "recorded_mtime_utc": "2026-11-02T23:11:42.466230Z"
+          "sha256": "4d72f272599ca758426097654ad83cddc532dd2190654f251850f670ce871bb3",
+          "size_bytes": 77621,
+          "recorded_mtime_utc": "2026-11-14T08:48:31.979103Z"
         },
         "2025wa.txt": {
           "sha256": "d91a5e3b8e51a1faffe25175f01038ca0fa08f22f052b7532b0a41ab03af801a",
@@ -75,9 +75,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "a50877adef68fbe6e912fb4afe96a4a19f3cedd0eef43fb63ad56833f1ea5940",
-          "size_bytes": 27441,
-          "recorded_mtime_utc": "2026-11-12T09:58:39.578467Z"
+          "sha256": "3aa2265e4a36413cb90c41d0fdb2d56d154d7c41152e55c8bd5e5b57db747cae",
+          "size_bytes": 27439,
+          "recorded_mtime_utc": "2026-11-16T21:50:57.663401Z"
         },
         "2027nsw.txt": {
           "sha256": "9066c05124dc34153f7b56e0d6c2a7238d5a40e3e1edb7965d74778378c4120a",
@@ -1273,9 +1273,72 @@
             "description": "ABC News reporting on the Williamstown disendorsement and Lindemann\u2019s continued Liberal ballot listing.",
             "uri": "https://www.abc.net.au/news/2026-11-12/paul-lindemann-williamstown-lib-candidate-racist-posts-dumped/107376622"
           }
+        },
+        {
+          "id": "20261116T085253Z-correction-forecast-seats-99364e24",
+          "recorded_at_utc": "2026-11-16T08:52:53Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 54,
+          "provenance_revision": 54,
+          "summary": "Add Nationals candidate Peter Borda to the Grey ballot and running parties for Coalition preference accounting. Remove the stray apostrophe after the name of Greens candidate Kathryn Hardwick-Franco.",
+          "files": [
+            "2025fed.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2025fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261116T085253Z-source_refresh-forecast-seats-1ffed3af",
+          "recorded_at_utc": "2026-11-16T08:52:53Z",
+          "change_type": "source_refresh",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 55,
+          "provenance_revision": 55,
+          "summary": "Refresh district betting odds for Greens and independent candidates in the 2026 Victorian forecast.",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261117T002853Z-other-forecast-seats-c29ba822",
+          "recorded_at_utc": "2026-11-17T00:28:53Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 56,
+          "provenance_revision": 56,
+          "summary": "Seat odds update",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 53
+      "provenance_revision": 56
     }
   }
 }

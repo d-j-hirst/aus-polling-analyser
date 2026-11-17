@@ -46,7 +46,6 @@ constexpr double PreferenceFlowObsWeightStrength = 200.0;
 // genuine unanimous pool can be weak information without being a data error.
 // This vote-scale threshold controls notices only, not the reliability fade.
 constexpr double HistoricalPreferenceWarningVotes = 10;
-constexpr double CoalitionLeakagePercent = 20.0;
 constexpr double PreviousTotalVotesGuess = 500.0;
 constexpr double HospitalBoothVotesGuess = 50.0;
 constexpr double DifferentSeatRelevanceModifier = 0.1;
@@ -963,7 +962,8 @@ std::vector<LiveV2::Election::BoothSnapshot> LiveV2::Election::getBoothSnapshots
 
 LiveV2::Election::Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run, TurnoutModelIO::Artifact turnoutInput,
   LiveInputRecovery::PreferenceHistories preferenceHistory,
-  LiveInputRecovery::PairPreferenceHistory pairPreferenceHistory)
+  LiveInputRecovery::PairPreferenceHistory pairPreferenceHistory,
+  LiveInputRecovery::PairPreferenceHistory revisedCoalitionFlowHistory)
 	: optionalPreferential(turnoutInput.optionalPreferential), project(project), sim(sim), run(run)
 {
   configureInactiveTurnoutContests(turnoutInput);
@@ -985,7 +985,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   calculatePreferenceFlowDeviations();
   prepareUnreportedPreferenceCohorts(previousElection, currentElection, preferenceHistory);
   calculateTppEstimates(false); // Calculate again, this time using the observed deviations from preference flows
-  includeBaselineResults(currentElection);
+  includeBaselineResults(previousElection, currentElection);
   extrapolateBaselineSwings();
   calculateDeviationsFromBaseline();
   aggregate();
@@ -1012,6 +1012,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   prepareTurnoutComposition();
   prepareFpIntegration();
   prepareTppIntegration();
+  prepareCoalitionTcpForecasts(previousElection,currentElection,pairPreferenceHistory,revisedCoalitionFlowHistory);
   freezePreparedBooths();
   logPreparedSummary();
 }
@@ -1197,7 +1198,7 @@ void Election::preparePreferenceLearning(Results2::Election const& previousElect
       if (secondary) consistency = 0;
       bool const principal = party == roles.independent && seat.secondaryIndependent.has_value();
       sources.push_back({party,votes/total,ideology,
-        PreferenceModel::proximityForConsistency(consistency),std::clamp(rate,0.0,1.0),secondary,principal});
+        PreferenceModel::proximityForConsistency(consistency),std::clamp(rate,0.0,1.0),secondary,principal,seat.namedIncumbentMatches});
     }
     return sources;
   };
@@ -1600,6 +1601,19 @@ void Election::createNodesFromElectionData(
         "Seat '" + seat.name + "' refers to a region that is not present.");
     }
     seats.push_back(Seat(seat, parentRegionIndex));
+    if (!optionalPreferential && natPartyIndex > 1) {
+      // Use the FP roster, which arrives with the candidate list and is
+      // independent of the commission's indicative preference count.
+      std::set<int> roster;
+      auto published = currentElection.liveCandidateRosters.find(id);
+      auto add = [&](int candidate) {
+        roster.insert(mapPartyId(candidate,false,previousElection,currentElection));
+      };
+      if (published != currentElection.liveCandidateRosters.end())
+        for (int candidate : published->second) add(candidate);
+      for (auto const& entry : seat.fpVotes) add(entry.first);
+      seats.back().splitCoalitionCandidates = roster.contains(1) && roster.contains(natPartyIndex);
+    }
     largeRegions.at(parentRegionIndex).seats.push_back(seatIndex);
     for (auto const& boothId : seat.booths) {
       if (!currentElection.booths.contains(boothId)) {
@@ -1959,7 +1973,7 @@ LivePartialCount::Flows Election::classicPreferenceFlows(Booth const& booth,
     double rate = 0;
     if (party == 0) rate = 1;
     else if (party == coalitionParty) rate = 0;
-    else if (party == 1 || party == natPartyIndex) rate = CoalitionLeakagePercent*.01;
+    else if (party == 1 || party == natPartyIndex) rate = LiveCoalitionTcp::LeakageMean;
     else if (previous && booth.previousPartyPreferenceFlows.contains(party))
       rate = booth.previousPartyPreferenceFlows.at(party);
     else if (!previous && seats.at(booth.parentSeatId).partyPreferenceFlows.contains(party))
@@ -2128,8 +2142,14 @@ double Election::preferencePriorOffset(Booth const& booth, bool includeLocal) co
 
 int Election::coalitionFinalist(Booth const& booth) const {
   auto const& tcp = booth.tppCount(natPartyIndex);
-  if (isTppSet(tcp,natPartyIndex)) return tcp.contains(natPartyIndex) ? natPartyIndex : 1;
   auto const& seat = seats.at(booth.parentSeatId);
+  // The shared TPP calculation already uses measured classic votes wherever
+  // they exist. At unmeasured booths in a split seat, infer the opponent from
+  // primaries. An announcement or a report from another booth cannot switch
+  // the conversion for all those votes.
+  if (seat.splitCoalitionCandidates)
+    return LiveCoalitionTcp::referenceOpponent(tcp,booth.node.fpVotesCurrent,natPartyIndex);
+  if (isTppSet(tcp,natPartyIndex)) return tcp.contains(natPartyIndex) ? natPartyIndex : 1;
   if (isTppSet(seat.node.tcpVotesCurrent,natPartyIndex))
     return seat.node.tcpVotesCurrent.contains(natPartyIndex) ? natPartyIndex : 1;
   // Before any confirmed classic pair, retain the ordinary ballot-based
@@ -2441,17 +2461,17 @@ void Election::determineBoothPreferenceFlowDeviations() {
 }
 
 void Election::includeBaselineResults(
-  Results2::Election const& currentElection) {
+  Results2::Election const& previousElection, Results2::Election const& currentElection) {
   if (!sim.getLiveBaselineReport()) {
     return;
   }
-  includeSeatBaselineResults(currentElection);
+  includeSeatBaselineResults(previousElection, currentElection);
   includeLargeRegionBaselineResults();
   includeElectionBaselineResults();
 }
 
 void Election::includeSeatBaselineResults(
-  Results2::Election const& currentElection) {
+  Results2::Election const& previousElection, Results2::Election const& currentElection) {
   auto const& baseline = sim.getLiveBaselineReport().value();
   for (int i = 0; i < int(baseline.seatName.size()); ++i) {
     auto const& name = baseline.seatName.at(i);
@@ -2511,22 +2531,50 @@ void Election::includeSeatBaselineResults(
 
     seat.independentPartyIndex = bestIndependentId;
 
-    // Independents can't be matched by party ID, so we need to find the best-performing independent
-    // to match to the independent party index
-    double bestIndependentShare = 0.0;
+    // The regular independent slot carries the pre-election candidate's
+    // forecast. Keep it with an exact name match even when another person
+    // leads the count. Without a matched name, the slot follows the largest
+    // received independent count and has no candidate-specific prior.
+    bool const hasMatchedIndependent = bestIndependentScore >= 1000;
     bestIndependentId = seat.independentPartyIndex;
-    for (auto const& [prevPartyId, share] : seat.node.fpVotesCurrent) {
-      if (prevPartyId < IndependentPartyIdOffset) continue;
-      if (share > bestIndependentShare) {
-        bestIndependentShare = share;
-        bestIndependentId = prevPartyId;
+    if (!hasMatchedIndependent) {
+      double bestIndependentVotes = 0.0;
+      for (auto const& [candidate, votes] : seat.node.fpVotesCurrent) {
+        if (candidate < IndependentPartyIdOffset || votes <= bestIndependentVotes) continue;
+        bestIndependentVotes = votes;
+        bestIndependentId = candidate;
       }
     }
     seat.liveIndependentPartyIndex = bestIndependentId;
-    // An exact match after normalising the name identifies the returning
-    // candidate. A different leading independent must use their own prior.
-    seat.namedIndependentMatches = bestIndependentId == InvalidPartyIndex ||
-      (bestIndependentScore >= 1000 && bestIndependentId == seat.independentPartyIndex);
+    // Candidate-specific historical transfers use the same identity as FP.
+    seat.namedIndependentMatches = bestIndependentId == InvalidPartyIndex || hasMatchedIndependent;
+    // The live ballot can replace the named forecast candidate even when
+    // their party is unchanged. Check the feed's candidate roster before
+    // applying historical flows for an individual. Pre-count inputs with
+    // no roster evidence continue to use the forecast's candidate list.
+    int const district = project.seats().indexByName(name);
+    if (run.preferenceModel && district >= 0 && currentSeatIt != currentElection.seats.end()) {
+      auto const* incumbent = run.preferenceModel->incumbentForPairHistory(district);
+      auto const roster = currentElection.liveCandidateRosters.find(currentSeatIt->first);
+      if (incumbent) {
+        auto const matchesIncumbent = [&](int id) {
+          auto const candidate = currentElection.candidates.find(id);
+          if (candidate == currentElection.candidates.end() ||
+              candidateNameMatchScore(candidate->second.name, incumbent->name) < 1000) return false;
+          int const party = mapPartyId(id, false, previousElection, currentElection);
+          if (incumbent->party != run.indPartyIndex) return party == incumbent->party;
+          return party >= IndependentPartyIdOffset &&
+            (seat.liveIndependentPartyIndex == InvalidPartyIndex || party == seat.liveIndependentPartyIndex);
+        };
+        if (roster != currentElection.liveCandidateRosters.end() && !roster->second.empty()) {
+          seat.namedIncumbentMatches = std::ranges::any_of(roster->second, matchesIncumbent);
+        }
+        else if (!currentSeatIt->second.fpVotes.empty()) {
+          seat.namedIncumbentMatches = std::ranges::any_of(currentSeatIt->second.fpVotes,
+            [&](auto const& row) { return matchesIncumbent(row.first); });
+        }
+      }
+    }
     seat.secondaryIndependent.reset();
     // Retain the leading additional independent once they have reported, so
     // their preferences can be modelled using their own group of ballots.
@@ -3039,10 +3087,9 @@ void Election::prepareIndependentPooling(LiveNewVotes::FpEvidence& evidence, Sea
   // Only the separate principal-campaign baseline establishes source size.
   // Mapping a hypothetical emerging candidate into the local principal slot
   // later does not establish that this is a continuing/comparable campaign.
-  // Usually the baseline and current principal identify the same candidate.
-  // If a different independent overtakes that candidate locally, its local
-  // votes remain usable but the older campaign's baseline is not its source
-  // size for movement shared with other districts.
+  // A matched candidate keeps their own baseline even if another independent
+  // overtakes them. A different campaign can supply local votes without
+  // borrowing the historical campaign's evidence for movement in other seats.
   double share = seat.independentPartyIndex != InvalidPartyIndex
     && seat.liveIndependentPartyIndex == seat.independentPartyIndex
     ? seat.independentPoolingBaselineShare : 0;
@@ -3299,6 +3346,10 @@ void Election::calculateNationalsProportions() {
   }
 }
 
+// Estimate the district's non-classic preference split. Booths with both FP
+// and TCP measure how the votes of excluded candidates divide. The resulting
+// split and coverage help project booths still awaiting preferences. Classic
+// Labor–Coalition comparisons use the separate TPP calculation.
 void Election::calculateTcpPreferenceFlows() {
   for (auto& seat : seats) {
     if (seat.node.tcpVotesCurrent.size() != 2) continue;
@@ -3308,42 +3359,45 @@ void Election::calculateTcpPreferenceFlows() {
     double totalPrefs = 0.0;
     double totalPartyOnePrefs = 0.0;
     double focusPartyConfidence = 0.0;
-    for (auto& boothIndex : seat.booths) {
+    for (int boothIndex : seat.booths) {
       auto const& booth = readBooths().at(boothIndex);
+      // An accepted earlier FP batch is a better match if a subsequent
+      // recheck changed first preferences beneath an unchanged TCP.
       auto const& fp = booth.hasTcpRevision() ? booth.tcpBasis->fp : booth.node.fpVotesCurrent;
-      double totalFpVotes = double(LivePartialCount::total(fp));
-      double totalTcpVotes = double(booth.node.totalTcpVotesCurrent());
+      double const totalFpVotes = LivePartialCount::total(fp);
+      double const totalTcpVotes = booth.node.totalTcpVotesCurrent();
       if (!fp.contains(partyOneIndex) || !fp.contains(partyTwoIndex)) continue;
       if (!booth.node.tcpVotesCurrent.contains(partyOneIndex) || !booth.node.tcpVotesCurrent.contains(partyTwoIndex)) continue;
       if (totalTcpVotes == 0 || totalFpVotes == 0) continue;
 
+      double const boothPrefs = totalFpVotes - fp.at(partyOneIndex) - fp.at(partyTwoIndex);
+      if (!std::isfinite(boothPrefs) || boothPrefs <= 2.0) continue;
+      // Put the TCP share on the FP denominator to estimate the number of
+      // transfers. Exact matches retain the existing endpoint smoothing.
+      double const fpTcpRatio = totalFpVotes / totalTcpVotes;
+      double const boothPartyOnePrefs = booth.node.tcpVotesCurrent.at(partyOneIndex) * fpTcpRatio - fp.at(partyOneIndex);
+      double weight = 1.0;
+      double coverageVotes = totalTcpVotes;
       if (run.regionCode == "sa") {
-        // SA TCP votes are commonly different to FP votes due to savings provisions, so handle them differently
-        // Small total differences are expected from savings provisions and
-        // asynchronous publication. Larger differences are too ambiguous to
-        // treat as measured preference-flow evidence.
-        double const relativeTotalDifference =
-          std::abs(totalTcpVotes - totalFpVotes) / totalFpVotes;
-        if (relativeTotalDifference > MaxPreferenceVoteTotalDifference) continue;
-        double fpTcpRatio = totalFpVotes / totalTcpVotes;
-        double scaledTcpPartyOne = double(booth.node.tcpVotesCurrent.at(partyOneIndex)) * fpTcpRatio;
-        double boothPrefs = totalFpVotes - fp.at(partyOneIndex) - fp.at(partyTwoIndex);
-        if (!std::isfinite(boothPrefs) || boothPrefs <= 2.0) continue;
-        double boothPartyOnePrefs = std::clamp(scaledTcpPartyOne - double(fp.at(partyOneIndex)), 1.0, boothPrefs - 1.0);
-        totalPartyOnePrefs += boothPartyOnePrefs;
-        totalPrefs += boothPrefs;
-        focusPartyConfidence += totalTcpVotes;
+        // SA savings provisions can create systematic discrepancies. Keep
+        // the existing allowance for these counts.
+        if (std::abs(totalTcpVotes - totalFpVotes) / totalFpVotes > MaxPreferenceVoteTotalDifference) continue;
+      } else if (optionalPreferential) {
+        // Missing TCP votes can be exhausted ballots. A count with exhaustion
+        // needs its own preference account to estimate the split.
+        if (totalTcpVotes != totalFpVotes) continue;
+      } else {
+        // A near match that implies impossible transfers cannot tell us how
+        // the excluded candidates' votes split. Only shared coverage counts.
+        if (totalFpVotes != totalTcpVotes && (boothPartyOnePrefs < 0.0 || boothPartyOnePrefs > boothPrefs)) continue;
+        weight = LivePartialCount::tcpPreferenceMatchWeight(totalFpVotes, totalTcpVotes, boothPrefs);
+        if (weight == 0.0) continue;
+        coverageVotes = std::min(totalFpVotes, totalTcpVotes);
       }
-      else if (totalFpVotes == totalTcpVotes) {
-        double boothPrefs = totalFpVotes - double(fp.at(partyOneIndex)) - double(fp.at(partyTwoIndex));
-        double boothPartyOnePrefs = double(booth.node.tcpVotesCurrent.at(partyOneIndex)) - double(fp.at(partyOneIndex));
-        if (!std::isfinite(boothPrefs) || boothPrefs <= 2.0) continue;
-        boothPartyOnePrefs = std::clamp(
-          boothPartyOnePrefs, 1.0, boothPrefs - 1.0);
-        totalPartyOnePrefs += boothPartyOnePrefs;
-        totalPrefs += boothPrefs;
-        focusPartyConfidence += totalTcpVotes;
-      }
+
+      totalPartyOnePrefs += weight * std::clamp(boothPartyOnePrefs, 1.0, boothPrefs - 1.0);
+      totalPrefs += weight * boothPrefs;
+      focusPartyConfidence += weight * coverageVotes;
     }
     double const confidenceDenominator = static_cast<double>(
       std::max(seat.node.totalVotesPrevious(), seat.node.totalFpVotesCurrent()));
@@ -4477,22 +4531,16 @@ void Election::recomposeSeatFpVotes(int seatIndex) {
     }
   }
 
-  // Map the strongest candidate-specific independent to the simulation's
-  // generic independent. This avoids a sharp discontinuity when that candidate
-  // first reports; other independents remain separate and contribute through
-  // the seat's generic Others projection.
-  if (!seats[seatIndex].node.fpVotesProjected.contains(run.indPartyIndex)) {
-    int bestIndependentId = InvalidPartyIndex;
-    for (auto const& [partyId, votes] : seats[seatIndex].node.fpVotesProjected) {
-      if (partyId >= IndependentPartyIdOffset) {
-        if (bestIndependentId == InvalidPartyIndex || votes > seats[seatIndex].node.fpVotesProjected.at(bestIndependentId)) {
-          bestIndependentId = partyId;
-        }
-      }
-    }
-    if (bestIndependentId != InvalidPartyIndex) {
-      seats[seatIndex].node.fpVotesProjected[run.indPartyIndex] = seats[seatIndex].node.fpVotesProjected.at(bestIndependentId);
-      seats[seatIndex].node.fpVotesProjected.erase(bestIndependentId);
+  // The turnout account has already assigned the counted ballots in the
+  // regular IND slot to this person. Where a booth projection still uses
+  // their candidate ID, map those projected votes to the same slot.
+  auto& projected = seats[seatIndex].node.fpVotesProjected;
+  int const independentId = seats[seatIndex].liveIndependentPartyIndex;
+  if (independentId != InvalidPartyIndex && !projected.contains(run.indPartyIndex)) {
+    auto independent = projected.find(independentId);
+    if (independent != projected.end()) {
+      projected.emplace(run.indPartyIndex, independent->second);
+      projected.erase(independent);
     }
   }
 }
@@ -4979,7 +5027,7 @@ void Election::calculateLivePreferenceFlowDeviations() {
       }
       else if (partyId == natPartyIndex || partyId == 1) {
         // Other coalition party's votes, assume some leakage to Labor
-        alpPrimaryPlusCoalitionLeakage += share * CoalitionLeakagePercent * 0.01;
+        alpPrimaryPlusCoalitionLeakage += share * LiveCoalitionTcp::LeakageMean;
       }
       else if (preferenceFlowMap.contains(partyId)) {
         expectedPartyOnePrefs += share * preferenceFlowMap.at(partyId) * 0.01;

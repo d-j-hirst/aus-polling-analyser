@@ -4,6 +4,7 @@
 #include "LiveFpEvidence.h"
 #include "LiveEstimatedTpp.h"
 #include "LiveTppComposition.h"
+#include "LiveCoalitionTcp.h"
 #include "LivePartyConversion.h"
 #include "LiveHistoricalPreferences.h"
 #include "LivePartyMapping.h"
@@ -248,13 +249,14 @@ public:
   // (ecCandidateId + 100000). Booth vote maps keep this raw ID; deviations
   // and projected votes remap it onto run.indPartyIndex.
   int independentPartyIndex = InvalidPartyIndex;
-  // Highest-polling live Independent, which can differ from the candidate
-  // matched to the prominent Independent in the baseline projection.
+  // Candidate whose live votes use the regular IND slot. An exact match to
+  // the named forecast takes priority, otherwise use the largest count.
   int liveIndependentPartyIndex = InvalidPartyIndex;
   // Largest other independent with counted FP, kept in commission-candidate
   // units until the ranking count has selected the finalists.
   std::optional<int> secondaryIndependent;
   bool namedIndependentMatches = true;
+  bool namedIncumbentMatches = true;
 
   std::map<int, double> finalSpecificFpDeviations; // deviations taking into account change in voter categories
   std::optional<double> finalSpecificTppDeviation; // deviations taking into account change in voter categories
@@ -276,6 +278,9 @@ public:
   std::optional<double> tcpFocusPartyPrefFlow; // batched among all parties not in the top 2
   std::optional<double> tcpFocusPartyConfidence;
   std::optional<double> nationalsProportion;
+  // From the FP ballot roster. Zero indications in the TCP feed cannot
+  // start or end a split Coalition contest.
+  bool splitCoalitionCandidates = false;
 
   // Index into Election::largeRegions, not the persistent project region ID.
   const int parentRegionIndex;
@@ -330,7 +335,8 @@ public:
 
 	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run, TurnoutModelIO::Artifact turnoutInput,
     LiveInputRecovery::PreferenceHistories preferenceHistory = {},
-    LiveInputRecovery::PairPreferenceHistory pairPreferenceHistory = {});
+    LiveInputRecovery::PairPreferenceHistory pairPreferenceHistory = {},
+    LiveInputRecovery::PairPreferenceHistory revisedCoalitionFlowHistory = {});
 
   double getTppShareBaseline() const {
     return node.tppShareBaseline.value_or(0.0);
@@ -592,6 +598,8 @@ public:
     int iterationIndex) const override;
 
   std::optional<std::vector<double>> integrateTpp(std::vector<double> const& prior) const override;
+  std::optional<LiveData::CoalitionTcpShare> getSeatCoalitionTcpShare(int district,
+    int opponent, std::array<double,3> primaryShares) const override;
 
 private:
   // Resolve identity only. The caller must read projections, confidence and
@@ -614,6 +622,13 @@ private:
   void prepareTppReportingOrder();
   LiveTppIntegration::Moments tppJointPrior();
   LiveTppIntegration::Matrix tppReferenceMixtures() const;
+  struct CoalitionTcpDistrict {
+    int liveIndex;
+    LiveCoalitionTcp::Prepared accounts;
+  };
+  void prepareCoalitionTcpForecasts(Results2::Election const& previousElection,
+    Results2::Election const& currentElection, LiveInputRecovery::PairPreferenceHistory const& history,
+    LiveInputRecovery::PairPreferenceHistory const& revisedFlows);
   std::vector<LiveTppIntegration::Observation> tppJointObservations();
   double tppExpectedVotes() const;
   std::map<int, double> tppMatchedPreferenceUnits() const;
@@ -653,6 +668,7 @@ private:
   nlohmann::json tppIntegrationDiagnostic() const;
   nlohmann::json tppConversionDiagnostic() const;
   std::shared_ptr<LiveTppIntegration::Update const> tppIntegration;
+  std::shared_ptr<std::map<int,CoalitionTcpDistrict> const> coalitionTcpDistricts;
   std::vector<int> tppProjectSeatIndices;
   std::vector<int> tppCategoryCodes;
   std::vector<int> tppSyntheticCategoryCodes;
@@ -781,9 +797,9 @@ private:
   void determineSeatPreferenceFlowDeviations();
   void determineBoothPreferenceFlowDeviations();
 
-  void includeBaselineResults(Results2::Election const& currentElection);
+  void includeBaselineResults(Results2::Election const& previousElection, Results2::Election const& currentElection);
 
-  void includeSeatBaselineResults(Results2::Election const& currentElection);
+  void includeSeatBaselineResults(Results2::Election const& previousElection, Results2::Election const& currentElection);
   void includeLargeRegionBaselineResults();
   void includeElectionBaselineResults();
 

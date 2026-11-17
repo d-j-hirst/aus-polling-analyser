@@ -917,6 +917,9 @@
     <ClInclude Include="LiveTppComposition.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
+    <ClInclude Include="LiveCoalitionTcp.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
     <ClInclude Include="LiveTppCompositionParameters.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>

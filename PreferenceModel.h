@@ -104,9 +104,15 @@ struct Roles {
 };
 
 struct District {
+	struct NamedIncumbent {
+		int party;
+		std::string name;
+	};
 	std::string name;
 	std::string independentName;
 	bool coalitionHeld = false;
+	std::vector<int> independentLikeParties{};
+	std::optional<NamedIncumbent> incumbent{};
 };
 
 struct Source {
@@ -123,6 +129,7 @@ struct Source {
 	// Confirms that a regular independent slot represents a distinct person
 	// on the current ballot, including a principal using the emerging slot.
 	bool confirmedIndependent = false;
+	bool matchesConfiguredIncumbent = true; // Current ballot still contains the named incumbent.
 };
 
 struct PairResult {
@@ -196,6 +203,7 @@ public:
 		std::array<std::array<double, 5>, ProfileCount> commonNodes{};
 		bool liberalLaborFirst = false;
 		bool central = false;
+		bool sharedOnly = false;
 	};
 
 	ElectionDraw drawElection(std::uint64_t seed) const;
@@ -211,6 +219,7 @@ public:
 		std::span<int const> survivors, bool namedIndependentMatches = true) const;
 	Shares referencePairRates(int district, std::span<Source const> sources, Pair pair,
 		bool namedIndependentMatches = true) const;
+	District::NamedIncumbent const* incumbentForPairHistory(int district) const;
 	bool learnsPair(Pair pair) const;
 	SensitivityTests const& sensitivityTests(int district) const;
 	bool isActive() const { return active; }
@@ -242,27 +251,48 @@ private:
 		bool usesNamedIndependent;
 	};
 	struct Context {
+		struct ObservedPairFlow {
+			double incumbentShare;
+			std::optional<double> electionConcentration;
+			std::optional<double> donorPrimaryLogOdds;
+		};
+		struct IndependentLike {
+			int party;
+			double greensOverLabor;
+			std::optional<double> laborOverLiberal, greensOverLiberal;
+		};
 		Advice advice = Advice::Unknown;
 		double liberalOneNationLastWeight = 0.0;
 		bool highIndependentFlow = false;
 		bool namedIndependent = false;
+		bool leftIndependent = false;
 		bool rightIndependent = false;
 		bool liveTrial = false;
+		std::optional<IndependentLike> independentLike;
+		std::optional<District::NamedIncumbent> incumbent;
+		bool incumbentUsesIndependentPreferences = false;
+		std::map<std::pair<int, int>, ObservedPairFlow> incumbentPairHistory;
+		std::optional<double> othersGreensOverLabor;
 		SensitivityTests sensitivity;
 		std::map<int, HistoricalTransfer> historicalTransfers;
 	};
 
-	struct SourceProfile {
-		int id;
-		double primary;
+	struct BallotRankings {
 		RankingProfile ranking;
 		bool coalitionSlot;
 	};
+	struct SourceProfile {
+		int id;
+		double primary;
+		BallotRankings general;
+		std::optional<BallotRankings> historical{};
+		double historicalWeight = 0.0;
+	};
 	std::vector<SourceProfile> buildSourceProfiles(int district, std::span<Source const> ballot,
-		Shares const& primaries, double leakageVotes, bool dual, bool classicAvailable,
+		Shares const& primaries, double leakageVotes, double nationalIncoming, bool dual, bool classicAvailable,
 		Shares const& classicRates, ElectionDraw const& election, Sensitivity sensitivity,
 		bool namedIndependentMatches, std::optional<std::uint64_t> localSeed = {},
-		std::optional<int> onlySource = {}) const;
+		std::optional<int> onlySource = {}, bool usePairHistory = true) const;
 	std::vector<SourceProfile> conditionOnCountObservation(std::vector<SourceProfile> profiles,
 		PreparedCountObservation const& observation, int district, std::span<Source const> ballot,
 		Shares const& primaries, double leakageVotes, bool dual, bool classicAvailable,
@@ -276,6 +306,10 @@ private:
 	void applyHistoricalTransfer(std::vector<Ranking>& rankings, Shares const& weights, int district,
 		int source, int independent, Shares const& primaries, ElectionDraw const& election,
 		bool namedIndependentMatches, std::uint64_t localSeed) const;
+	void applyIncumbentPairPreferences(std::vector<Ranking>& rankings, Shares const& weights, int district,
+		Source const& donor, Source const& incumbent, std::array<Source const*, 3> const& majorOpponents,
+		bool explicitCoalitionPartners, bool independentIncumbent, ElectionDraw const& election,
+		std::uint64_t localSeed, bool usePairHistory, std::optional<double> anchoredRate) const;
 	bool isIndependent(Source const& source) const;
 
 	Nodes drawNodes(ProfileIndex profile, double primary, std::optional<double> classicRate,
@@ -284,7 +318,8 @@ private:
 		std::optional<double> classicRate, int district, ElectionDraw const& election,
 		double laborToGreensReduction, std::uint64_t localSeed) const;
 	double sampleFallback(double mean, int district, int source, int branch,
-		ElectionDraw const& election, std::uint64_t localSeed, std::optional<double> districtConcentration = {}) const;
+		ElectionDraw const& election, std::uint64_t localSeed, std::optional<double> districtConcentration = {},
+		std::optional<double> electionConcentration = {}) const;
 	double recipientWeight(Source const& source, Source const& recipient,
 		int district, ElectionDraw const& election, std::uint64_t localSeed) const;
 
@@ -295,6 +330,13 @@ private:
 	bool liveTrial = false;
 	bool sampleUncertainty = true;
 	double unknownLiberalLaborFirst = 0.5;
+	bool nationalFollowsElectionLiberalAdvice = false;
+	double independentProximityOddsMultiplier = 1.0;
+	struct PairHistoryBlend {
+		double halfWeightLogOddsChange;
+		double matchedDistrictSpread;
+	};
+	std::optional<PairHistoryBlend> pairHistoryBlend;
 	double genericElectionConcentration = 24.0;
 	double genericDistrictConcentration = 9.666666666666666;
 	std::array<Prior, ProfileCount> priors;

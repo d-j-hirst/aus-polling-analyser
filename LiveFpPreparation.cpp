@@ -111,6 +111,10 @@ std::vector<LiveData::FpIntegrationInformation> LiveV2::Election::fpIntegrationC
         information[s].evidenceGate = LiveFpEvidence::breadthGate(fpEvidence->at(s).evidence);
         information[s].secondaryIndependent = seats[s].secondaryIndependent;
         information[s].namedIndependentMatches = seats[s].namedIndependentMatches;
+        information[s].namedIncumbentMatches = seats[s].namedIncumbentMatches;
+        information[s].poolIndependents = run.isLiveAutomatic() && run.preferenceModel &&
+            run.preferenceModel->coversDistrict(static_cast<int>(s)) && seats[s].secondaryIndependent &&
+            !seats[s].namedIndependentMatches;
     }
     return information;
 }

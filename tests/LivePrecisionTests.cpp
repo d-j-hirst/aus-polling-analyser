@@ -47,6 +47,25 @@ int main()
     assert(std::abs(LiveFpIntegration::splitCountedCandidate(8,1000,50,100,30,50) - 4.2) < 1e-10);
     assert(LiveFpIntegration::splitCountedCandidate(5,1000,50,50,30,30) == 3);
     assert(LiveFpIntegration::splitCountedCandidate(8,1000,50,100,0,50) == 0);
+
+    // Both independents draw from one outstanding pool, regardless of
+    // which raw candidate occupies the regular IND slot.
+    constexpr int Independent = 6, OtherIndependent = 140002, OtherCandidate = 20;
+    std::map<int,double> counted{{0,100},{Independent,30},{OtherIndependent,20},{OtherCandidate,50}};
+    std::map<int,double> projected{{0,700},{Independent,110},{OtherIndependent,80},{OtherCandidate,110}};
+    LiveData::VoteCountAccount pooledVotes{&counted,&projected};
+    auto inPool = [](int id) { return id != 0; };
+    double const poolShare = 25;
+    auto pooledShareFor = [&](int id) { return LiveFpIntegration::splitCountedCandidate(pooledVotes,poolShare,id,inPool); };
+    double const first = pooledShareFor(Independent), second = pooledShareFor(OtherIndependent);
+    assert(std::abs(first-9) < 1e-10 && std::abs(second-6.5) < 1e-10);
+    assert(std::abs(first+second+pooledShareFor(OtherCandidate)-poolShare) < 1e-10);
+    std::swap(counted.at(Independent),counted.at(OtherIndependent));
+    std::swap(projected.at(Independent),projected.at(OtherIndependent));
+    assert(pooledShareFor(Independent) == second && pooledShareFor(OtherIndependent) == first);
+    counted = projected;
+    assert(LiveFpIntegration::splitCountedCandidate(pooledVotes,30,Independent,inPool) == 8);
+    assert(LiveFpIntegration::splitCountedCandidate(pooledVotes,30,OtherIndependent,inPool) == 11);
     static_assert(std::is_same_v<decltype(LiveTurnoutMath::PartyAccount{}.projected)::mapped_type, double>);
     static_assert(std::is_same_v<decltype(getAt(std::map<int,double>{},0,0.f)), double>);
     std::map<int,double> precise{{0,50.000000000001}};

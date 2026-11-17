@@ -177,9 +177,14 @@ struct FpIntegrationInformation {
 	double evidenceGate = 0;
 	// Live account ID of the largest other independent with received FP.
 	std::optional<int> secondaryIndependent;
-	// The leading independent must be the same person as in any named
-	// historical preference input for that input to apply.
+	// With two observed independents and no matched candidate-specific prior,
+	// update their combined pool with Others before allocating individual votes.
+	bool poolIndependents = false;
+	// The regular independent slot must identify the named candidate for
+	// candidate-specific historical preference evidence to apply.
 	bool namedIndependentMatches = true;
+	// A confirmed change of candidate disables the incumbent's direct flows.
+	bool namedIncumbentMatches = true;
 };
 
 // Diagnostic values used by the live summary export. They remain DTOs rather
@@ -259,6 +264,11 @@ struct BoothSnapshot {
 	bool sameSeat = false;
 };
 
+struct CoalitionTcpShare {
+	double labor = 0; // Percentage of the full district TCP.
+	bool hasMatchingTcp = false;
+};
+
 // Common set of requests the simulator and result views can make of the live
 // analysis object described above. Its prepared form owns the count evidence;
 // generateScenario creates a separate possible outcome for one iteration,
@@ -277,6 +287,11 @@ public:
 	// the simulator to use its separate seat-by-seat integration instead.
 	virtual std::optional<std::vector<double>> integrateTpp(
 		std::vector<double> const&) const { return {}; }
+	// An optional pair-specific Labor share for a project district and its
+	// simulated Coalition finalist. The three primary shares, in percent, are
+	// Labor, Liberal and National in this same simulation draw.
+	virtual std::optional<CoalitionTcpShare> getSeatCoalitionTcpShare(
+		int, int, std::array<double,3>) const { return {}; }
 
 	virtual std::unique_ptr<Provider> generateScenario(
 		int iterationIndex) const = 0;

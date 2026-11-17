@@ -203,13 +203,13 @@ Nicklin's OPV count are not silently counted as additional original-source data.
 This catalogue reports source coverage and known gaps; it makes no claim that
 the number of ballots establishes how narrowly another election should behave.
 
-## 2026 Victoria and South Australia preference counts
+## Ranking preference settings
 
 The ranking model uses each group's original ballot preferences to decide
 district exclusions and the final two-candidate vote. It starts with the
 simulated first preferences and Labor-versus-Coalition two-party-preferred
-vote (TPP). The election's `mode` setting in [2026vic.json](2026vic.json)
-or [2026sa.json](2026sa.json) controls how the model is used.
+vote (TPP). The `mode` in the election's settings file controls how the model
+is used.
 
 - `"active"` supplies the seat winners for the forecast, betting-odds
   calibration and the pre-count live baseline. Calibration can then adjust
@@ -226,6 +226,20 @@ or [2026sa.json](2026sa.json) controls how the model is used.
 
 The simulation captures the file with its other inputs, so a change refreshes
 any retained calibration and live baseline when the next run starts.
+
+The [2028 federal forecast](2028fed.json) uses active ranking preferences for
+Standard and Now-cast forecasts, including any betting-odds calibration.
+Its profiles and uncertainty start from those used for the
+[2025 federal replay](2025fed.json). The assumed
+chance that Coalition advice ranks Labor ahead of the Greens is 80% per
+simulated election. This is a probability about party advice. The share of
+voters favouring Labor still varies according to the selected preference
+profile and its uncertainty. The optional
+`national_follows_election_liberal_advice` setting makes the Nationals use
+that same direction, with the corresponding Liberal head-to-head centre as
+a proxy and the existing Nationals uncertainty. District-specific Liberal
+advice applies to Liberal ballots. Nationals preferences between Labor and
+One Nation still use the project rate for those recipients.
 
 The 2026 South Australian replay uses the same fitted profiles and uncertainty
 as Victoria, with the two verified South Australian Liberal cards in Elder and
@@ -282,6 +296,122 @@ rate. When Liberal and One Nation are both still in the count, the two
 head-to-head rates allow a range for the share ranking the independent ahead
 of both. The ranking model uses the midpoint of that range for each draw,
 preserving the feasible head-to-head rates and the Liberal–One Nation order.
+
+A configured Coalition donor's independent–Labor split sets the share of
+ballots ranking the independent ahead of Labor. Within each side of Labor,
+the usual preference weights place the independent among the other candidates.
+This allows Liberal ballots to rank an independent ahead of One Nation even
+when they rank One Nation ahead of Labor. The order among Labor, the Greens
+and One Nation still comes from the fitted Coalition profiles.
+
+A district can include an `others_labor_greens` record with the previous
+`election` and the observed `labor_votes` and `greens_votes` from original
+first preferences grouped into Others. Leave out Coalition and One Nation
+ballots, which have their own profiles. The record centres the share of Others
+ranking Greens ahead of Labor, while the usual preference uncertainty allows
+that share to change between elections. Each set of rankings retains the draw's
+Labor–Coalition split. The forecast uses the current projected size of Others,
+with the previous split as evidence about how that pool might vote. Seats
+without such a count use the generic profile.
+[AEC 2025 original-source preference flows by division](https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv)
+
+A district can include an `independent_like` object with a `party` code
+marked `sIndependentLikePreferences` in its seat settings. This keeps the party's
+identity and first preferences. The ranked count uses its own configured
+Labor preference rate against Liberal, where supplied, and the same uncertain
+80% centre as for independents against One Nation. Greens transfers use the
+legacy independent-like midpoint of 70% against Labor. Against Liberal they
+use the configured party rate, or the general independent rate if available.
+The optional `greens_over_labor` and `greens_over_liberal` fractions replace
+these starting rates with local evidence, with the same broad uncertainty.
+In Mayo, this carries over the 80% Labor preference estimate for Rebekha
+Sharkie against Liberal. The AEC counted 80.95% in 2022.
+Mayo's Greens centres come from the observed 45.72% to Sharkie against Labor
+in 2025 and 81.64% against Liberal in 2022.
+[AEC 2025 results for Mayo](https://results.aec.gov.au/31496/Website/HouseDivisionPage-31496-188.htm)
+[AEC 2022 results for Mayo](https://results.aec.gov.au/27966/Website/HouseDivisionPage-27966-188.htm)
+
+The optional `independent_proximity_odds_multiplier` applies to named
+independent incumbents and party-labelled incumbents marked
+`sIndependentLikePreferences`. The ordinary profile supplies the starting
+share ranking the independent above a major opponent. For voters from a
+known donor party, multiply those odds by the specified factor if the
+independent is politically closer to them. Use the square root of the factor
+when the distances are equal. The estimate stays at its original level when
+the opponent is closer. The default factor is one. The 2028 federal
+comparison trials 2.5, which moves an even share to about 71% and a 61% share
+to about 80%. These are starting assumptions for the unmeasured preferences
+of established independents. Existing specific comparisons, anonymous Others
+and candidates flagged as right independents keep their ordinary treatment.
+The adjusted head-to-head rates belong to one ballot distribution, so a
+candidate who ranks above Labor can still rank below the Coalition.
+
+A district's `incumbent_pair_history` identifies the incumbent by `name`
+and records the `election` and `source`. Each entry in `flows` specifies
+the original donor party, the major `opponent` (`ALP`, `LIB` or `NAT`),
+and the number of ballots counted to the incumbent and opponent in
+`incumbent_votes` and `opponent_votes`. The Queensland LNP occupies the
+`LIB` slot in the federal forecast. Use party-code rows for identifiable
+donor parties. A generic independent code cannot identify a donor by name.
+The older `independent_pair_history` spelling and its `independent_votes`
+field are also accepted.
+
+A recorded share sets the centre for that donor against the specified
+opponent, with uncertainty about changes between elections and between
+districts. An optional `election_concentration` gives the strength of
+the shared election prior. Lower values allow larger election-wide shifts.
+In the 2028 comparison, the One Nation flows against Liberal from repeat
+contests use 12 instead of the default 24. This is a provisional allowance
+for the sizeable common shift observed from 2022 to 2025. For example, at
+a centre of 27%, the shared standard deviation rises from about 9 to 12
+percentage points, before district variation.
+
+The optional `pair_history_blend` lets a historical flow carry less
+weight when the donor party has a very different primary vote share.
+Each history then needs `formal_votes` from the same count as its donor
+ballot totals. The model compares the old primary-vote odds to the odds
+in each forecast draw. At the same odds the historical weight is one.
+At the `half_weight_odds_ratio` it is one half, in either direction.
+The weight falls smoothly at larger differences. For example, with
+the trial ratio of three, a rise from about 2.5% to 18.5% gives the old
+flow about 7% weight. This is an assumption about how representative
+the old voters are and is separate from the number of ballots counted.
+
+The blend uses the same preference changes in both estimates. For the
+historical part, retain the general model's election-wide movement and
+multiply its district-specific departure by
+`matched_district_sd_multiplier` before moving it to the observed
+centre. A bounded log-odds adjustment allows for the reduced room to
+move near 0% and 100%. It preserves the scale approximately in
+percentage points, with less room for uncertainty close to either end.
+The 2028 trial uses 0.7, so a half-weight observation retains about
+85% of the district variation before the bounded adjustment. Election
+variation can remain sizeable even for an accurately counted prior
+contest. This option uses the general model's uncertainty instead of
+a separate historical draw using `election_concentration`.
+
+The two sets of ballot rankings keep their weights through each
+exclusion. This lets the same evidence affect who makes the final pair
+and the final split. When Labor's rankings already specify a comparison
+against One Nation, keep it as far as it can fit alongside the observed
+Coalition comparison.
+
+The estimate follows the named incumbent. Where the live feed supplies a
+candidate roster, the model checks that it still identifies that person.
+The rankings retain the order between Labor and each Coalition candidate.
+When both Coalition partners run, an observed comparison against one can
+place the incumbent differently against each partner. If the drawn targets
+cannot both hold, the observed comparison takes priority over the estimate
+for the other opponent.
+
+The 2028 federal comparison uses 2025 direct counts for Fowler and Mayo
+against Labor, plus Clark against Labor, Calare against the Nationals,
+Kennedy and Ryan against the Queensland LNP, and seven independent
+incumbents against the Liberals. Clark treats Andrew Wilkie as left on
+the ranking model's political scale, at Labor's position. The observed
+Clark flow still sets the Greens comparison with Labor.
+[AEC original-source preference flows in 2025](https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv)
+[AEC original-source preference flows in 2022](https://results.aec.gov.au/27966/Website/Downloads/HouseTcpFlowByDivisionDownload-27966.csv)
 
 Districts can also include `historical_transfers` for a recorded exclusion
 from an earlier election. Each entry gives the `election`, `source` URL,

@@ -2699,8 +2699,29 @@ void SimulationPreparation::preparePreferenceModel()
 			}
 			independentName = candidateName;
 		}
+		// A recorded preference split follows the incumbent shown on the
+		// forecast ballot. A party code alone could identify a different
+		// candidate, and an ambiguous independent slot uses the general priors.
+		auto const& independentLike = run.seatIndependentLikePreferences[seatIndex];
+		std::optional<PreferenceModel::District::NamedIncumbent> namedIncumbent;
+		if (incumbent == run.indPartyIndex && !independentName.empty()) {
+			namedIncumbent = PreferenceModel::District::NamedIncumbent{incumbent, independentName};
+		}
+		else if (incumbent >= 0 && incumbent != Mp::One && incumbent != Mp::Two &&
+			incumbent != run.natPartyIndex && incumbent != run.indPartyIndex) {
+			auto const& code = project.parties().viewByIndex(incumbent).abbreviation;
+			for (auto const& [candidateName, candidateCode] : seat.candidateNames) {
+				if (candidateCode != code) continue;
+				if (namedIncumbent) {
+					namedIncumbent.reset();
+					break;
+				}
+				namedIncumbent = PreferenceModel::District::NamedIncumbent{incumbent, candidateName};
+			}
+		}
 		districts.push_back({seat.name, std::move(independentName),
-			incumbent == Mp::Two || incumbent == run.natPartyIndex});
+			incumbent == Mp::Two || incumbent == run.natPartyIndex,
+			independentLike, std::move(namedIncumbent)});
 	}
 	std::map<std::string, int> partyCodes;
 	for (int party = 0; party < project.parties().count(); ++party) {

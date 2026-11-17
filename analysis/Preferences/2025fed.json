@@ -1,5 +1,5 @@
 {
-  "mode": "compare",
+  "mode": "active",
   "model_version": "fed2025-aec-3cp-preference-trial-1",
   "schema_version": 1,
   "sample_uncertainty": true,
@@ -219,6 +219,6 @@
     }
   },
   "provenance": {
-    "profile_basis": "Uses the 2026 South Australian replay ranking profiles and spreads, including evidence published after the 2025 federal election. Compare mode measures how the two counts differ across all districts on the same simulated primary votes and TPP. The district flags select the original 12 seats when using live_trial mode to test manual preference samples."
+    "profile_basis": "Uses the 2026 South Australian replay ranking profiles and spreads, including evidence published after the 2025 federal election. Active mode uses the ranking count across all districts. Compare mode compares the counts on the same simulated primary votes and TPP. The district flags select the original 12 seats when using live_trial mode to test manual preference samples."
   }
 }

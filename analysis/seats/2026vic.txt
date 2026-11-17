@@ -5,7 +5,7 @@ sRegion=Inner Melbourne
 fTppMargin=11.2
 fPreviousTppSwing=-1.9
 fTransposedFederalSwing=0.0
-sBettingOdds=GRN,4.00
+sBettingOdds=GRN,4.50
 sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH
 sCandidateNames=Nina Taylor,ALP;Andrew Cook,LNP;Sonya Semmens,GRN;Tammy Lindrum,ONP
 #Ashwood
@@ -146,7 +146,7 @@ fTppMargin=34.1
 fPreviousTppSwing=0.5
 fTransposedFederalSwing=2.3
 bRetirement=1
-sBettingOdds=GRN,1.065
+sBettingOdds=GRN,1.07
 sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH*
 sCandidateNames=Gabe Steger,ALP;Adam Pulford,GRN;Adam Helman,ONP;John Margelis,LNP
 #Bulleen
@@ -498,7 +498,7 @@ sRegion=Inner Melbourne
 fTppMargin=25
 fPreviousTppSwing=0.6
 fTransposedFederalSwing=0.3
-sBettingOdds=GRN,1.135
+sBettingOdds=GRN,1.115
 sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH**
 sCandidateNames=Ellen Sandell,GRN;Davydd Griffiths,ALP;Rafael Camillo,LNP;Phillip Courtis,ONP
 #Melton
@@ -661,7 +661,7 @@ sRegion=Inner Melbourne
 fTppMargin=31.7
 fPreviousTppSwing=-1.5
 fTransposedFederalSwing=1.3
-sBettingOdds=GRN,1.315
+sBettingOdds=GRN,1.33
 sRunningParties=LNP,ALP,GRN,ONP,IND,OTH****
 sCandidateNames=Kat Theophanous,ALP;Lynda Awad,LNP;Campbell Gome,GRN;Christopher Bradbury,ONP
 #Oakleigh
@@ -683,7 +683,7 @@ fTransposedFederalSwing=-3.1
 sCoalitionCandidates=NAT
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
-sBettingOdds=IND,42.50
+sBettingOdds=IND,32.00
 sRunningParties=NAT,ALP,GRN,ONP,IND,OTH***
 sCandidateNames=Tim McCurdy,NAT;Ben Gilbert,GRN;James Rouel,ONP;Steve Manning,IND;Jennifer Smith,ALP
 #Pakenham
@@ -760,7 +760,7 @@ sRegion=Inner Melbourne
 fTppMargin=24.1
 fPreviousTppSwing=-7.1
 fTransposedFederalSwing=-0.4
-sBettingOdds=GRN,1.21
+sBettingOdds=GRN,1.20
 sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH**
 sCandidateNames=Gabrielle de Vietri,GRN;Sarah McKenzie,ALP;Harrison Rindfleish,ONP;Charles Aponso,LNP
 #Ringwood
@@ -773,7 +773,7 @@ fTransposedFederalSwing=1.4
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,0
-sBettingOdds=IND,18.00
+sBettingOdds=IND,26.00
 sRunningParties=LNP,ALP,GRN,ONP,IND,OTH***
 sCandidateNames=Rachel Halse,ALP;Nick McGowan,LNP;Amy Mills,GRN;Prue Cutts,IND;John O'Connor,ONP
 #Ripon
@@ -821,7 +821,7 @@ sCoalitionCandidates=NAT;LNP,0.25
 fNationalsCoalitionShare=0.52
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
-sBettingOdds=IND,16.50
+sBettingOdds=IND,17.00
 sRunningParties=NAT,ALP,GRN,ONP,IND*,OTH**
 sCandidateNames=Cayla Fin,ALP;Shane Sali,NAT;Grace Verney,GRN;Phillip Bryant,ONP;Lou Costa,IND
 #South Barwon
@@ -834,7 +834,7 @@ fTransposedFederalSwing=-0.4
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,0
-sBettingOdds=IND,17.00
+sBettingOdds=IND,18.00
 sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Rebecca Thistleton,ALP;Libby Pettit,LNP;Izzy Scherrer,GRN;Josh Geard,ONP;Ron Nelson,IND
 #South-West Coast
@@ -921,7 +921,7 @@ fByElectionSwing=-10.1
 fTransposedFederalSwing=-2.4
 bConfirmedProminentIndependent=1
 sMinorViability=IND,1
-sBettingOdds=IND,21.00
+sBettingOdds=IND,40.00
 sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH***
 sCandidateNames=John Lister,ALP;Reece Clark,LNP;Tushar Kumar,GRN;Paul Pateras,ONP;Paul Hopper,IND
 #Williamstown
@@ -934,7 +934,7 @@ fTransposedFederalSwing=2.2
 bDisendorsement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,0
-sBettingOdds=IND,10.25
+sBettingOdds=IND,10.00
 sRunningParties=LNP,ALP,GRN,ONP,IND,OTH***
 sCandidateNames=Melissa Horne,ALP;Paul Lindemann,LNP;Ben Hocking,GRN;Catherine Loughnan,ONP;Tony Briffa,IND
 #Yan Yean

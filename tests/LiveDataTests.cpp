@@ -549,6 +549,24 @@ void testSharedFinalistTcpCoverage() {
     assert(!empty.available() && empty.confidence() == 0.0);
 }
 
+void testTcpPreferenceMatchWeight() {
+    using LivePartialCount::tcpPreferenceMatchWeight;
+    // The Fremantle pre-poll batch can train preferences even though it
+    // reported one extra TCP vote. Either direction gets equal weight.
+    assert(tcpPreferenceMatchWeight(10756,10756,3643)==1);
+    double const oneVoteGap = tcpPreferenceMatchWeight(10756,10757,3643);
+    assert(oneVoteGap > .999 && oneVoteGap < 1);
+    assert(oneVoteGap == tcpPreferenceMatchWeight(10756,10755,3643));
+    assert(std::abs(tcpPreferenceMatchWeight(10000,9900,2500)-.5)<1e-12);
+    assert(tcpPreferenceMatchWeight(10000,9800,2500)==0);
+    // A modest discrepancy in the overall total can swamp a small pool of
+    // transfers. A seriously incomplete batch (such as early postals) also
+    // supplies no preference-flow estimate.
+    assert(tcpPreferenceMatchWeight(10000,9975,25)==0);
+    assert(tcpPreferenceMatchWeight(7837,3918,3065)==0);
+    assert(tcpPreferenceMatchWeight(10000,10000,0)==0);
+}
+
 void testHistoricalPreferenceReliability() {
     using namespace LivePartialCount;
     // Ordinary and legitimately strong low-90s flows keep their full weight.
@@ -1156,6 +1174,7 @@ int main()
 	testSharedFinalistTcpCoverage();
     testHistoricalIndependentEligibility();
     testEmergingIndependentPreferenceAndReportingGroups();
+    testTcpPreferenceMatchWeight();
 	testHistoricalPreferenceReliability();
     testKnownCoalitionBallot();
     testIndependentPooling();

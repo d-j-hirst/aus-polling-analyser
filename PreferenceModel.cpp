@@ -239,10 +239,10 @@ Rankings insertBeside(Rankings const& ranks, int candidate, int opponent, double
 	return result;
 }
 
-// Place the independent in the existing ballot orders using the fractions
-// that prefer them to each opponent. The original Liberal–One Nation order
-// stays fixed. The second target may need to move if the three comparisons
-// cannot describe the same ballots.
+// Place the independent or independent-like candidate in the existing
+// ballot orders using the fractions that prefer them to each opponent.
+// The two opponents retain their relative order. The second target may
+// need to move if the three comparisons cannot describe the same ballots.
 Rankings insertAgainstTwo(Rankings const& ranks, int candidate, int first, int second,
 	double aheadOfFirst, double aheadOfSecond)
 {
@@ -351,14 +351,25 @@ Rankings weightedCore(std::array<int, 3> recipients, Shares const& weights)
 	return result;
 }
 
-// If the old exclusion includes a candidate normally handled by proximity,
-// spell out that candidate's possible positions. Use the same arrival rates
-// as RankingProfile::allocate, so spelling them out preserves the original
-// preference assumptions. Do this only for recipients named in the old count.
-Rankings expandHistoricalRecipient(Rankings const& rankings, int recipient, Shares const& weights)
+struct RecipientComparison {
+	int opponent;
+	double ahead;
+};
+
+// Spell out all possible positions for a recipient while keeping the order
+// of the other candidates. The weights describe relative appeal for the
+// source's voters, using the same placement probabilities as the ordinary
+// allocator. A known head-to-head fraction can set the total on each side
+// of one opponent. Within each side the weights still decide where the
+// recipient fits. For example, a Liberal ballot that ranks One Nation above
+// Labor can put an independent ahead of either when the independent beats
+// Labor, and both choices leave the One Nation–Labor order intact.
+Rankings expandRecipient(Rankings const& rankings, int recipient, Shares const& weights,
+	std::optional<RecipientComparison> comparison = {})
 {
 	Rankings expanded;
 	expanded.reserve(rankings.size() * (rankings.front().order.size() + 1));
+	std::vector<double> placements(rankings.front().order.size() + 1);
 	double const recipientRate = weights.at(recipient);
 	for (auto const& ranking : rankings) {
 		if (ranking.fraction == 0.0) continue;
@@ -367,11 +378,24 @@ Rankings expandHistoricalRecipient(Rankings const& rankings, int recipient, Shar
 		double survival = 1.0;
 		for (std::size_t i = 0; i < ranking.order.size(); ++i) {
 			double const before = recipientRate / (remainingRate + recipientRate);
-			addPlacement(expanded, ranking, recipient, i, survival * before);
+			placements[i] = survival * before;
 			survival *= 1.0 - before;
 			remainingRate -= weights.at(ranking.order[i]);
 		}
-		addPlacement(expanded, ranking, recipient, ranking.order.size(), survival);
+		placements.back() = survival;
+		if (comparison) {
+			auto const split = position(ranking, comparison->opponent) + 1;
+			auto reweight = [](std::span<double> side, double target) {
+				double const total = std::accumulate(side.begin(), side.end(), 0.0);
+				for (double& value : side) value = target * (value / total);
+			};
+			auto shares = std::span(placements);
+			reweight(shares.first(split), comparison->ahead);
+			reweight(shares.subspan(split), 1.0 - comparison->ahead);
+		}
+		for (std::size_t i = 0; i < placements.size(); ++i) {
+			addPlacement(expanded, ranking, recipient, i, placements[i]);
+		}
 	}
 	return expanded;
 }
@@ -477,26 +501,36 @@ std::vector<double> allocateBallots(std::span<int const> survivors,
 			totals[static_cast<std::size_t>(own - survivors.begin())] += profile.primary;
 			continue;
 		}
-		if (profile.coalitionSlot && nat != survivors.end()) {
-			auto const shares = profile.ranking.allocate(coalitionSurvivors);
-			for (std::size_t i = 0; i < coalitionSurvivors.size(); ++i) {
-				int const id = coalitionSurvivors[i];
-				double const amount = shares[i] * profile.primary;
-				if (id == roles.liberal) {
-					double const natAmount = bothPartners ? amount * nationalIncoming : amount;
-					totals[static_cast<std::size_t>(nat - survivors.begin())] += natAmount;
-					if (bothPartners) totals[static_cast<std::size_t>(lib - survivors.begin())] += amount - natAmount;
-				}
-				else {
-					auto const recipient = std::find(survivors.begin(), survivors.end(), id);
-					totals[static_cast<std::size_t>(recipient - survivors.begin())] += amount;
+		// Both sets of rankings belong to the same original first-preference
+		// source. Keep their weights through every exclusion so ballots
+		// inherited from that source retain their ordering.
+		auto allocate = [&](auto const& ballots, double primary) {
+			if (ballots.coalitionSlot && nat != survivors.end()) {
+				auto const shares = ballots.ranking.allocate(coalitionSurvivors);
+				for (std::size_t i = 0; i < coalitionSurvivors.size(); ++i) {
+					int const id = coalitionSurvivors[i];
+					double const amount = shares[i] * primary;
+					if (id == roles.liberal) {
+						double const natAmount = bothPartners ? amount * nationalIncoming : amount;
+						totals[static_cast<std::size_t>(nat - survivors.begin())] += natAmount;
+						if (bothPartners) totals[static_cast<std::size_t>(lib - survivors.begin())] += amount - natAmount;
+					}
+					else {
+						auto const recipient = std::find(survivors.begin(), survivors.end(), id);
+						totals[static_cast<std::size_t>(recipient - survivors.begin())] += amount;
+					}
 				}
 			}
+			else {
+				auto const shares = ballots.ranking.allocate(survivors);
+				for (std::size_t i = 0; i < totals.size(); ++i) totals[i] += shares[i] * primary;
+			}
+		};
+		if (profile.historical) {
+			allocate(profile.general, (1.0 - profile.historicalWeight) * profile.primary);
+			allocate(*profile.historical, profile.historicalWeight * profile.primary);
 		}
-		else {
-			auto const shares = profile.ranking.allocate(survivors);
-			for (std::size_t i = 0; i < totals.size(); ++i) totals[i] += shares[i] * profile.primary;
-		}
+		else allocate(profile.general, profile.primary);
 	}
 	return totals;
 }
@@ -714,9 +748,23 @@ std::optional<Model> Model::load(std::istream& input, Roles roles,
 	}
 	model.sampleUncertainty = document.value("sample_uncertainty", true);
 	model.unknownLiberalLaborFirst = document.at("unknown_liberal_labor_first_probability").get<double>();
+	model.nationalFollowsElectionLiberalAdvice = document.value("national_follows_election_liberal_advice", false);
+	model.independentProximityOddsMultiplier = document.value("independent_proximity_odds_multiplier", 1.0);
+	if (!std::isfinite(model.independentProximityOddsMultiplier) || model.independentProximityOddsMultiplier < 1.0) {
+		throw std::invalid_argument("The independent proximity odds multiplier must be finite and at least one.");
+	}
 	auto positive = [](double value) { return std::isfinite(value) && value > 0.0; };
 	auto const generic = document.at("generic_concentrations").get<std::array<double, 2>>();
 	model.genericElectionConcentration = generic[0];
+	if (document.contains("pair_history_blend")) {
+		auto const& settings = document.at("pair_history_blend");
+		double const halfOddsRatio = settings.at("half_weight_odds_ratio").get<double>();
+		double const districtSpread = settings.at("matched_district_sd_multiplier").get<double>();
+		if (!std::isfinite(halfOddsRatio) || halfOddsRatio <= 1.0 || !fraction(districtSpread)) {
+			throw std::invalid_argument("Invalid primary-share weighting or district spread for incumbent pair history.");
+		}
+		model.pairHistoryBlend = PairHistoryBlend{std::log(halfOddsRatio), districtSpread};
+	}
 	model.genericDistrictConcentration = generic[1];
 	if (!fraction(model.unknownLiberalLaborFirst) || !positive(generic[0]) || !positive(generic[1])) {
 		throw std::invalid_argument("Invalid generic uncertainty or unknown Liberal advice probability.");
@@ -838,6 +886,12 @@ std::optional<Model> Model::load(std::istream& input, Roles roles,
 		Context context;
 		context.highIndependentFlow = district.coalitionHeld;
 		context.namedIndependent = !district.independentName.empty();
+		context.incumbent = district.incumbent;
+		if (context.incumbent) {
+			int const party = context.incumbent->party;
+			context.incumbentUsesIndependentPreferences = party == roles.independent ||
+				std::ranges::find(district.independentLikeParties, party) != district.independentLikeParties.end();
+		}
 		auto const found = overrides.find(district.name);
 		if (found != overrides.end()) {
 			context.liveTrial = found->value("live_trial", false);
@@ -857,6 +911,20 @@ std::optional<Model> Model::load(std::istream& input, Roles roles,
 				throw std::invalid_argument("Invalid Liberal One Nation last weight in " + district.name + ".");
 			}
 
+			if (found->contains("others_labor_greens")) {
+				// Use original ballots from sources modelled together as
+				// Others. These two counts give the local preference split,
+				// with uncertainty about how well the old mix will carry over.
+				auto const& votes = found->at("others_labor_greens");
+				int const labor = historicalVoteCount(votes.at("labor_votes"));
+				int const greens = historicalVoteCount(votes.at("greens_votes"));
+				double const total = double(labor) + greens;
+				if (total <= 0.0 || votes.at("election").get<std::string>().empty()) {
+					throw std::invalid_argument("Others preference history needs an election and positive total votes in " + district.name + ".");
+				}
+				context.othersGreensOverLabor = greens / total;
+			}
+
 			if (found->contains("independent")) {
 				auto const& independent = found->at("independent");
 				if (!context.namedIndependent ||
@@ -864,12 +932,90 @@ std::optional<Model> Model::load(std::istream& input, Roles roles,
 					throw std::invalid_argument("Independent preference setting does not match the named candidate in " + district.name + ".");
 				}
 				auto const positionName = independent.at("position").get<std::string>();
-				if (positionName == "left") context.highIndependentFlow = true;
+				if (positionName == "left") context.leftIndependent = true;
 				else if (positionName == "right") {
 					context.highIndependentFlow = false;
 					context.rightIndependent = true;
 				}
 				else if (positionName != "centre") throw std::invalid_argument("Invalid independent position in " + district.name + ".");
+			}
+			if (found->contains("independent_like")) {
+				// A party-labelled candidate can have a personal following.
+				// Require the seat file to identify that party explicitly.
+				// The party keeps its own vote share and identity in the count.
+				auto const& settings = found->at("independent_like");
+				auto const code = settings.at("party").get<std::string>();
+				auto const party = partyCodes.find(code);
+				if (party == partyCodes.end() ||
+					std::ranges::find(district.independentLikeParties, party->second) == district.independentLikeParties.end() ||
+					party->second == roles.greens || party->second == roles.oneNation ||
+					party->second == roles.independent) {
+					throw std::invalid_argument("Expected a separate minor-party code from sIndependentLikePreferences in " + district.name + ".");
+				}
+				double const greensOverLabor = settings.value("greens_over_labor", 0.70);
+				auto greensOverLiberal = configured(roles.greens, party->second, roles.liberal);
+				if (!greensOverLiberal) greensOverLiberal = configured(roles.greens, roles.independent, roles.liberal);
+				if (settings.contains("greens_over_liberal")) greensOverLiberal = settings.at("greens_over_liberal").get<double>();
+				if (!fraction(greensOverLabor) || (greensOverLiberal && !fraction(*greensOverLiberal))) {
+					throw std::invalid_argument("Invalid independent-like Greens preference rate in " + district.name + ".");
+				}
+				context.independentLike = Context::IndependentLike{party->second, greensOverLabor,
+					configured(roles.labor, party->second, roles.liberal), greensOverLiberal};
+			}
+			bool const legacyPairHistory = found->contains("independent_pair_history");
+			if (legacyPairHistory || found->contains("incumbent_pair_history")) {
+				// An AEC final-pair table identifies where each donor's original
+				// ballots ended up. Record that fraction for the same incumbent,
+				// donor and opponent. An independent donor would also require
+				// their own verified name, which these party-code rows cannot give.
+				if (legacyPairHistory && found->contains("incumbent_pair_history")) {
+					throw std::invalid_argument("Specify one incumbent pair history in " + district.name + ".");
+				}
+				auto const& history = found->at(legacyPairHistory ? "independent_pair_history" : "incumbent_pair_history");
+				if (!district.incumbent || history.at("name").get<std::string>() != district.incumbent->name ||
+					history.at("election").get<std::string>().empty() || history.at("source").get<std::string>().empty()) {
+					throw std::invalid_argument("Pair history needs a matching named incumbent, election and source in " + district.name + ".");
+				}
+				auto const& flows = history.at("flows");
+				if (!flows.is_array() || flows.empty()) {
+					throw std::invalid_argument("Incumbent pair history needs a list of recorded flows in " + district.name + ".");
+				}
+				// The numerator for the old primary share is the original
+				// ballots of this donor in the final-pair table. The
+				// denominator is all formal votes in that historical district.
+				int const formalVotes = model.pairHistoryBlend ? historicalVoteCount(history.at("formal_votes")) : 0;
+				std::set<int> donors;
+				for (auto const& flow : flows) {
+					int const donor = historyParty(flow.at("donor").get<std::string>());
+					int const opponent = historyParty(flow.at("opponent").get<std::string>());
+					int const incumbentVotes = historicalVoteCount(flow.at(legacyPairHistory ? "independent_votes" : "incumbent_votes"));
+					int const opponentVotes = historicalVoteCount(flow.at("opponent_votes"));
+					double const total = double(incumbentVotes) + opponentVotes;
+					bool const majorOpponent = opponent == roles.labor || opponent == roles.liberal || opponent == roles.national;
+					if (!majorOpponent || donor == opponent || donor == district.incumbent->party ||
+						donor == roles.independent || donor == roles.emergingIndependent ||
+						opponent == district.incumbent->party || total <= 0.0) {
+						throw std::invalid_argument("Invalid incumbent pair flow in " + district.name + ".");
+					}
+					std::optional<double> concentration;
+					if (flow.contains("election_concentration")) {
+						concentration = flow.at("election_concentration").get<double>();
+						if (!std::isfinite(*concentration) || *concentration <= 0.0) {
+							throw std::invalid_argument("Invalid incumbent preference uncertainty in " + district.name + ".");
+						}
+					}
+					std::optional<double> primaryLogOdds;
+					if (model.pairHistoryBlend) {
+						if (total >= formalVotes || !donors.insert(donor).second) {
+							throw std::invalid_argument("Blended pair history needs the formal vote total and one row per donor in " + district.name + ".");
+						}
+						primaryLogOdds = std::log(total / (formalVotes - total));
+					}
+					Context::ObservedPairFlow const observation{incumbentVotes / total, concentration, primaryLogOdds};
+					if (!context.incumbentPairHistory.emplace(std::pair{donor, opponent}, observation).second) {
+						throw std::invalid_argument("Repeated incumbent pair flow in " + district.name + ".");
+					}
+				}
 			}
 			if (found->contains("historical_transfers")) {
 				try {
@@ -995,17 +1141,20 @@ Model::Nodes Model::drawNodes(ProfileIndex profile, double primary,
 			double const movement = (desiredMean - referenceMean) / (1.0 - referenceMean);
 			common = std::lerp(common, 1.0, movement);
 		}
-		means[node] = drawBeta(common, prior.districtConcentration[node],
+		means[node] = election.sharedOnly ? common : drawBeta(common, prior.districtConcentration[node],
 			key(localSeed, district, profile, 100 + static_cast<int>(node)));
 	}
 	return means;
 }
 
 double Model::sampleFallback(double mean, int district, int source, int branch,
-	ElectionDraw const& election, std::uint64_t localSeed, std::optional<double> districtConcentration) const
+	ElectionDraw const& election, std::uint64_t localSeed, std::optional<double> districtConcentration,
+	std::optional<double> electionConcentration) const
 {
 	if (!sampleUncertainty || election.central) return mean;
-	double const common = drawBeta(mean, genericElectionConcentration, key(election.seed, -1, source, branch));
+	double const common = drawBeta(mean, electionConcentration.value_or(genericElectionConcentration),
+		key(election.seed, -1, source, branch));
+	if (election.sharedOnly) return common;
 	return drawBeta(common, districtConcentration.value_or(genericDistrictConcentration),
 		key(localSeed, district, source, branch));
 }
@@ -1024,7 +1173,8 @@ double Model::recipientWeight(Source const& source, Source const& recipient,
 		auto const sharedSourceRecipient = RandomGenerator::mixKey(election.seed, ids);
 		auto const localSourceRecipient = RandomGenerator::mixKey(localSeed, ids);
 		double const common = RandomGenerator::normal_from_key(key(sharedSourceRecipient, -1, 0, 300), 0.0f, 0.2828427f);
-		double const local = RandomGenerator::normal_from_key(key(localSourceRecipient, district, 0, 300), 0.0f, 0.4242641f);
+		double const local = election.sharedOnly ? 0.0 :
+			RandomGenerator::normal_from_key(key(localSourceRecipient, district, 0, 300), 0.0f, 0.4242641f);
 		weight *= std::exp(common + local);
 	}
 	return weight;
@@ -1061,7 +1211,18 @@ std::vector<Ranking> Model::coreRankings(Source const& source, int coalition,
 			drawNodes(variant, source.primary, {}, district, election, localSeed), moveOneNationToLast);
 	}
 	if (source.id == roles.national) {
-		double const greens = sampleFallback(nationalGreensOverLabor.value_or(0.5), district, source.id, 201, election, localSeed);
+		double greensCentre = nationalGreensOverLabor.value_or(0.5);
+		if (nationalFollowsElectionLiberalAdvice) {
+			// The federal forecast can draw one election-wide Coalition advice
+			// direction for Labor versus Greens. Use the corresponding Liberal
+			// head-to-head centre for Nationals voters while retaining the
+			// broader Nationals uncertainty. Local Liberal cards apply only to
+			// Liberal ballots. For Nationals voters, One Nation versus Labor
+			// still uses its separately configured preference rate.
+			ProfileIndex const advice = election.liberalLaborFirst ? LiberalLaborFirst : LiberalGreensFirst;
+			greensCentre = 1.0 - priors[advice].referenceMeans.front();
+		}
+		double const greens = sampleFallback(greensCentre, district, source.id, 201, election, localSeed);
 		double const oneNation = sampleFallback(nationalOneNationOverLabor.value_or(0.5), district, source.id, 202, election, localSeed);
 		auto odds = [](double rate) {
 			rate = std::clamp(rate, Roundoff, 1.0 - Roundoff);
@@ -1112,7 +1273,7 @@ void Model::applyHistoricalTransfer(Rankings& rankings, Shares const& weights, i
 	}
 	for (auto const& recipient : historicalVotes) {
 		if (position(rankings.front(), recipient.first) == rankings.front().order.size()) {
-			rankings = expandHistoricalRecipient(rankings, recipient.first, weights);
+			rankings = expandRecipient(rankings, recipient.first, weights);
 		}
 	}
 
@@ -1193,27 +1354,240 @@ void Model::applyHistoricalTransfer(Rankings& rankings, Shares const& weights, i
 	}
 }
 
+// Use the observed final split of this donor's ballots to place the returning
+// candidate in the ordering used throughout the count. Keep the other
+// candidates in their original order, including Labor against Coalition.
+// Where there is no observation, the proximity rule still applies to
+// independent incumbents. Party incumbents only use the observed comparisons.
+void Model::applyIncumbentPairPreferences(Rankings& rankings, Shares const& weights,
+	int district, Source const& donor, Source const& incumbent,
+	std::array<Source const*, 3> const& majorOpponents, bool explicitCoalitionPartners,
+	bool independentIncumbent, ElectionDraw const& election, std::uint64_t localSeed,
+	bool usePairHistory, std::optional<double> anchoredRate) const
+{
+	auto const& context = contexts.at(static_cast<std::size_t>(district));
+	bool const alreadyRanked = position(rankings.front(), incumbent.id) != rankings.front().order.size();
+	bool const coalitionDonor = donor.id == roles.liberal || donor.id == roles.national;
+	struct Target {
+		int opponentSlot;
+		Context::ObservedPairFlow const* observed;
+		double multiplier = 1.0;
+		int randomBranch = 0;
+		double ahead = 0.0;
+	};
+	std::array<Target, 2> targets{};
+	std::size_t targetCount = 0;
+	bool hasAdjustment = false;
+	for (std::size_t i = explicitCoalitionPartners ? 1 : 0; i < majorOpponents.size(); ++i) {
+		auto const* opponent = majorOpponents[i];
+		if (!opponent || donor.id == opponent->id || incumbent.id == opponent->id) continue;
+		auto const found = context.incumbentPairHistory.find({donor.id, opponent->id});
+		auto const* observed = usePairHistory && found != context.incumbentPairHistory.end() ? &found->second : nullptr;
+		if (i > 0 && coalitionDonor && !observed) continue;
+		if (!explicitCoalitionPartners && i == 2 && majorOpponents[1] && !coalitionDonor) continue;
+		// Without a Liberal on the ballot, outside donors still use the
+		// Coalition slot for a National. Always look up the evidence using
+		// the actual opponent before translating to the internal slot.
+		int const opponentSlot = i == 2 && !explicitCoalitionPartners && !coalitionDonor ? roles.liberal : opponent->id;
+		double multiplier = 1.0;
+		if (!observed && independentIncumbent && !alreadyRanked && !context.rightIndependent) {
+			int const incumbentDistance = std::abs(donor.ideology - incumbent.ideology);
+			int const opponentDistance = std::abs(donor.ideology - opponent->ideology);
+			if (incumbentDistance < opponentDistance) multiplier = independentProximityOddsMultiplier;
+			else if (incumbentDistance == opponentDistance) multiplier = std::sqrt(independentProximityOddsMultiplier);
+		}
+		int const branch = i == 0 ? 213 : i == 1 ? 214 : 215;
+		targets[targetCount++] = {opponentSlot, observed, multiplier, branch};
+		hasAdjustment = hasAdjustment || observed || multiplier > 1.0;
+	}
+	if (!hasAdjustment) return;
+
+	// Labor voters may already have a separate comparison with One Nation.
+	// Keep that sampled comparison when adding evidence against the
+	// Coalition. The observed comparison takes priority if the two cannot
+	// fit the same rankings. The older unweighted independent setting keeps
+	// its original placement rule.
+	if ((!independentIncumbent || anchoredRate) && alreadyRanked && targetCount == 1 &&
+		donor.id == roles.labor && incumbent.id != roles.oneNation && weights.contains(roles.oneNation)) {
+		targets[targetCount++] = {roles.oneNation, nullptr};
+	}
+
+	std::optional<RankingProfile> baseline;
+	for (auto& target : std::span(targets).first(targetCount)) {
+		if (target.observed) {
+			if (anchoredRate) target.ahead = *anchoredRate;
+			else target.ahead = sampleFallback(target.observed->incumbentShare, district, donor.id,
+				target.randomBranch, election, localSeed, {}, target.observed->electionConcentration);
+		}
+		else {
+			if (!baseline) baseline.emplace(rankings, weights);
+			std::array const pair{incumbent.id, target.opponentSlot};
+			double const prior = baseline->allocate(pair).front();
+			target.ahead = target.multiplier * prior / std::lerp(1.0, target.multiplier, prior);
+		}
+	}
+
+	// Removing the old placements recovers the distribution of orders for
+	// all the other parties. Insert the incumbent back using the new targets.
+	if (alreadyRanked) {
+		std::map<std::vector<int>, double> otherOrders;
+		for (auto& ranking : rankings) {
+			std::erase(ranking.order, incumbent.id);
+			otherOrders[std::move(ranking.order)] += ranking.fraction;
+		}
+		rankings.clear();
+		for (auto const& [order, fraction] : otherOrders) rankings.push_back({order, fraction});
+	}
+	if (targetCount == 1) {
+		auto const& target = targets.front();
+		rankings = expandRecipient(rankings, incumbent.id, weights, RecipientComparison{target.opponentSlot, target.ahead});
+		return;
+	}
+	if (!targets[0].observed && targets[1].observed) std::swap(targets[0], targets[1]);
+	auto const& [first, second] = targets;
+	rankings = insertAgainstTwo(rankings, incumbent.id, first.opponentSlot, second.opponentSlot, first.ahead, second.ahead);
+}
+
+// Move the general forecast's preference movement to the observed centre.
+// A share such as 0.95 has little room to rise. Shift on the log-odds
+// scale to allow a natural tail without piling ballots at 0% or 100%.
+// When the new centre is closer to 50%, the cap keeps a small movement
+// from becoming larger on the percentage-point scale.
+double anchoredHistoricalRate(double observed, double central, double shared, double sampled,
+	double districtSpread)
+{
+	auto interior = [](double rate) { return std::clamp(rate, Roundoff, 1.0 - Roundoff); };
+	auto logOdds = [](double rate) { return std::log(rate / (1.0 - rate)); };
+	double const reference = interior(central);
+	double const centre = interior(observed);
+	double const movement = std::lerp(shared, sampled, districtSpread);
+	if (movement == central) return observed;
+	double const scale = std::min(1.0, reference * (1.0 - reference) / (centre * (1.0 - centre)));
+	double const adjustedLogOdds = logOdds(centre) + scale * (logOdds(interior(movement)) - logOdds(reference));
+	return 1.0 / (1.0 + std::exp(-adjustedLogOdds));
+}
+
 // Build the rankings once for the original first-preference groups. Live
 // preparation queries these same profiles at their central assumptions, while
 // the count uses a sampled set of profiles for every exclusion in a district.
 // When only one source needs to transfer, build just its profile. The full
 // ballot still supplies the possible recipients and their political positions.
 std::vector<Model::SourceProfile> Model::buildSourceProfiles(int district,
-	std::span<Source const> ballot, Shares const& primaries, double leakageVotes,
+	std::span<Source const> ballot, Shares const& primaries, double leakageVotes, double nationalIncoming,
 	bool dual, bool classicAvailable, Shares const& classicRates, ElectionDraw const& election,
 	Sensitivity sensitivity, bool namedIndependentMatches, std::optional<std::uint64_t> alternativeSeed,
-	std::optional<int> onlySource) const
+	std::optional<int> onlySource, bool usePairHistory) const
 {
 	auto const localSeed = alternativeSeed.value_or(election.seed);
 	int const independent = share(primaries, roles.independent) > 0.0 ? roles.independent : roles.emergingIndependent;
+	bool const hasAdditionalIndependent = std::any_of(ballot.begin(), ballot.end(), [&](Source const& candidate) {
+		return candidate.primary > 0.0 && candidate.id != independent && isIndependent(candidate);
+	});
 	auto const& context = contexts.at(static_cast<std::size_t>(district));
+	auto findOnBallot = [&](int party) -> Source const* {
+		auto const found = std::ranges::find(ballot, party, &Source::id);
+		return found != ballot.end() && found->primary > 0.0 ? &*found : nullptr;
+	};
+	Source const* incumbent = nullptr;
+	bool const independentIncumbent = context.incumbentUsesIndependentPreferences;
+	if (context.incumbent && (context.leftIndependent || !context.incumbentPairHistory.empty() ||
+		(independentIncumbent && independentProximityOddsMultiplier > 1.0))) {
+		int const party = context.incumbent->party;
+		auto const* candidate = findOnBallot(party);
+		if (candidate && candidate->matchesConfiguredIncumbent && (party != roles.independent || namedIndependentMatches)) {
+			incumbent = candidate;
+		}
+	}
+
+	// A left independent uses Labor's position for the ranking weights in
+	// this district only. The higher Greens prior also applies, while a
+	// replacement candidate uses the ordinary independent settings.
+	std::optional<Source> leftIncumbent;
+	bool const useLeftPosition = context.leftIndependent && namedIndependentMatches &&
+		(!context.incumbent || (incumbent && incumbent->id == independent));
+	if (useLeftPosition && incumbent && incumbent->id == roles.independent) {
+		auto const labor = std::ranges::find(ballot, roles.labor, &Source::id);
+		if (labor != ballot.end()) {
+			leftIncumbent = *incumbent;
+			leftIncumbent->ideology = labor->ideology;
+			incumbent = &*leftIncumbent;
+		}
+	}
+	bool const highIndependentFlow = context.highIndependentFlow || useLeftPosition;
+	std::array<Source const*, 3> majorOpponents{};
+	if (incumbent) {
+		majorOpponents = {findOnBallot(roles.labor), findOnBallot(roles.liberal),
+			roles.national ? findOnBallot(*roles.national) : nullptr};
+	}
 	double const laborToGreensReduction = sensitivity == Sensitivity::ReducedLaborToGreens ?
 		context.sensitivity.laborToGreensReduction : 0.0;
 	std::vector<SourceProfile> profiles;
 	profiles.reserve(onlySource ? 1 : ballot.size());
-	for (auto const& source : ballot) {
+	for (auto const& rawSource : ballot) {
+		auto const& source = leftIncumbent && rawSource.id == leftIncumbent->id ? *leftIncumbent : rawSource;
 		if (source.primary == 0.0 || (onlySource && source.id != *onlySource)) continue;
 		bool const outsideCoalition = source.id != roles.liberal && source.id != roles.national;
+
+		// This part of the original source follows the observed ranking when
+		// the returning candidate and opponent are both on the ballot. The
+		// historical weight falls as the donor party's primary odds move away
+		// from the old election, in either direction. Compute this from each
+		// draw's primary share so that a much larger group of voters can have
+		// a different preference pattern.
+		double historicalWeight = 0.0;
+		std::optional<double> anchoredRate;
+		std::optional<SourceProfile> general;
+		if (usePairHistory && pairHistoryBlend && incumbent && source.id != incumbent->id) {
+			for (auto const* opponent : majorOpponents) {
+				if (!opponent || opponent->id == source.id || opponent->id == incumbent->id) continue;
+				auto const observation = context.incumbentPairHistory.find({source.id, opponent->id});
+				if (observation == context.incumbentPairHistory.end()) continue;
+				double const primaryLogOdds = std::log(source.primary / std::max(Roundoff, 1.0 - source.primary));
+				double const change = (primaryLogOdds - *observation->second.donorPrimaryLogOdds) /
+					pairHistoryBlend->halfWeightLogOddsChange;
+				historicalWeight = std::exp2(-change * change);
+				if (historicalWeight == 0.0) break;
+				// Evaluate the same general ranking without the historical
+				// row. The shared draw leaves out local variation, while
+				// the central draw supplies the starting preference rate.
+				// These are for this ballot and this donor, including its
+				// current primary strength and classic TPP assumptions.
+				auto generalProfile = [&](ElectionDraw const& draw) {
+					auto result = buildSourceProfiles(district, ballot, primaries, leakageVotes,
+						nationalIncoming, dual, classicAvailable, classicRates, draw, sensitivity,
+						namedIndependentMatches, localSeed, source.id, false);
+					return std::move(result.front());
+				};
+				general = generalProfile(election);
+				anchoredRate = observation->second.incumbentShare;
+				if (sampleUncertainty && !election.central) {
+					auto sharedDraw = election;
+					sharedDraw.sharedOnly = true;
+					auto centralDraw = election;
+					centralDraw.central = true;
+					std::array const pair{incumbent->id, opponent->id};
+					auto rate = [&](SourceProfile const& profile) {
+						return allocateBallots(pair, std::span(&profile, 1), roles, nationalIncoming).front() / profile.primary;
+					};
+					double centralRate = 0.0;
+					// Unknown Liberal advice belongs to the election-wide
+					// variation. Average its two directions for the centre.
+					if (source.id == roles.liberal || (source.id == roles.national && nationalFollowsElectionLiberalAdvice)) {
+						for (bool laborFirst : {false, true}) {
+							double const fraction = laborFirst ? unknownLiberalLaborFirst : 1.0 - unknownLiberalLaborFirst;
+							if (fraction == 0.0) continue;
+							centralDraw.liberalLaborFirst = laborFirst;
+							centralRate += fraction * rate(generalProfile(centralDraw));
+						}
+					}
+					else centralRate = rate(generalProfile(centralDraw));
+					anchoredRate = anchoredHistoricalRate(*anchoredRate, centralRate,
+						rate(generalProfile(sharedDraw)), rate(*general), pairHistoryBlend->matchedDistrictSpread);
+				}
+				break;
+			}
+		}
+		bool const applyPairHistory = usePairHistory && (!pairHistoryBlend || anchoredRate.has_value());
 		std::optional<double> classicRate;
 		auto const fittedRate = classicRates.find(source.id);
 		if (fittedRate != classicRates.end()) classicRate = fittedRate->second;
@@ -1227,14 +1601,19 @@ std::vector<Model::SourceProfile> Model::buildSourceProfiles(int district,
 		auto rankings = coreRankings(source, roles.liberal, classicRate, district, election,
 			laborToGreensReduction, localSeed);
 
-		// Insert a relevant independent inside the supported orders. The
-		// additional choices have broad priors. Removing that independent
-		// from a comparison always recovers the original core ranking.
+		// For a sole independent, the configured Greens comparison places
+		// them relative to the major parties in the existing ballot orders.
+		// With a second distinct independent, use the same ideology-based
+		// weighting for both across all exclusions. Otherwise the leading
+		// independent can receive fewer preferences solely because their
+		// primary vote put them in the principal independent slot.
 		auto const independentMean = independentOverMajor.find(source.id);
+		bool const useIndependentMean = independentMean != independentOverMajor.end() &&
+			(source.id != roles.greens || !hasAdditionalIndependent);
 		bool const rightLaborFlow = source.id == roles.labor &&
 			independent == roles.independent && context.rightIndependent;
-		if (share(primaries, independent) > 0.0 &&
-			(independentMean != independentOverMajor.end() || rightLaborFlow)) {
+		std::optional<double> coalitionIndependentOverLabor;
+		if (share(primaries, independent) > 0.0 && (useIndependentMean || rightLaborFlow)) {
 			// Other independents use the configured Labor–independent
 			// comparison. For a named right independent the Labor share ranking
 			// them ahead of Liberal starts at 60%, with extra local uncertainty
@@ -1248,15 +1627,15 @@ std::vector<Model::SourceProfile> Model::buildSourceProfiles(int district,
 				rankings = insertAgainstTwo(rankings, independent, roles.liberal, roles.oneNation, ahead, overOneNation);
 			}
 			else if (source.id == roles.greens && context.namedIndependent) {
-				double const mean = context.highIndependentFlow ? 0.50 : 0.25;
+				double const mean = highIndependentFlow ? 0.50 : 0.25;
 				double first = mean;
 				if (sampleUncertainty && !election.central) {
 					double const sharedVariance = 0.06 * 0.06;
-					double const districtSd = context.highIndependentFlow ? 0.10 : 0.14;
+					double const districtSd = highIndependentFlow ? 0.10 : 0.14;
 					double const maximum = mean * (1.0 - mean);
 					double const common = drawBeta(mean, maximum / sharedVariance - 1.0,
 						key(election.seed, -1, source.id, 205));
-					first = drawBeta(common, (maximum - sharedVariance) / (districtSd * districtSd) - 1.0,
+					first = election.sharedOnly ? common : drawBeta(common, (maximum - sharedVariance) / (districtSd * districtSd) - 1.0,
 						key(localSeed, district, source.id, 205));
 				}
 				double laborBeforeCoalition = 0.0;
@@ -1266,16 +1645,40 @@ std::vector<Model::SourceProfile> Model::buildSourceProfiles(int district,
 				rankings = insertGreensIndependent(rankings, independent, roles.labor, roles.liberal,
 					laborBeforeCoalition, first, ahead);
 			}
+			else if (!outsideCoalition) {
+				coalitionIndependentOverLabor = ahead;
+			}
 			else {
-				int const opponent = outsideCoalition ? roles.liberal : roles.labor;
-				rankings = insertBeside(rankings, independent, opponent, ahead);
+				rankings = insertBeside(rankings, independent, roles.liberal, ahead);
 			}
 		}
 
-		if (dual && !outsideCoalition) {
-			int const partner = source.id == roles.liberal ? *roles.national : roles.liberal;
-			rankings = insertOwnCoalitionPartner(rankings, partner, roles.labor, leakageVotes / source.primary);
+		// For an explicitly designated party-labelled candidate, use their
+		// own Labor preference estimate against Liberal. For Greens voters,
+		// use the local evidence when supplied. The legacy independent-like
+		// split gives a default midpoint of 70% against Labor.
+		// Place the candidate in the drawn rankings so both estimates can
+		// influence earlier exclusions as well as the final count. The core
+		// candidates retain their relative order on every ballot.
+		if (context.independentLike && share(primaries, context.independentLike->party) > 0.0) {
+			auto const& candidate = *context.independentLike;
+			if (source.id == roles.labor && candidate.laborOverLiberal) {
+				double const ahead = sampleFallback(*candidate.laborOverLiberal, district, source.id, 208, election, localSeed);
+				double const overOneNation = sampleFallback(0.80, district, source.id, 209, election, localSeed);
+				rankings = insertAgainstTwo(rankings, candidate.party, roles.liberal, roles.oneNation, ahead, overOneNation);
+			}
+			else if (source.id == roles.greens) {
+				double const overLabor = sampleFallback(candidate.greensOverLabor, district, source.id, 210, election, localSeed);
+				if (candidate.greensOverLiberal) {
+					double const overLiberal = sampleFallback(*candidate.greensOverLiberal, district, source.id, 211, election, localSeed);
+					rankings = insertAgainstTwo(rankings, candidate.party, roles.labor, roles.liberal, overLabor, overLiberal);
+				}
+				else {
+					rankings = insertBeside(rankings, candidate.party, roles.labor, overLabor);
+				}
+			}
 		}
+
 		// A distinct independent's voters can favour another independent with
 		// a similar campaign. Historical secondary-independent exclusions in
 		// Wannon (2022), Mackellar and Groom (2025) gave the stronger independent
@@ -1285,10 +1688,28 @@ std::vector<Model::SourceProfile> Model::buildSourceProfiles(int district,
 		// Extra recipients compete with the existing ranking orders, so the
 		// original Labor–Coalition split still holds when only those two remain.
 		constexpr double SimilarIndependentWeight = 2.0;
+		// Outside ballots usually keep the two Coalition partners together.
+		// A measured comparison against one partner needs distinct positions
+		// when both stand. Split the shared slot using the same incoming
+		// Coalition split as the rest of this draw, then place the incumbent
+		// relative to each. Both partners keep their order against Labor.
+		bool const explicitCoalitionPartners = applyPairHistory && incumbent && dual && outsideCoalition && (
+			context.incumbentPairHistory.contains({source.id, roles.liberal}) ||
+			context.incumbentPairHistory.contains({source.id, *roles.national}));
+		if (explicitCoalitionPartners) {
+			Rankings expanded;
+			for (auto const& order : rankings) {
+				std::size_t const coalition = position(order, roles.liberal);
+				addPlacement(expanded, order, *roles.national, coalition, nationalIncoming);
+				addPlacement(expanded, order, *roles.national, coalition + 1, 1.0 - nationalIncoming);
+			}
+			rankings = std::move(expanded);
+		}
 		Shares weights;
-		for (auto const& recipient : ballot) {
+		for (auto const& rawRecipient : ballot) {
+			auto const& recipient = leftIncumbent && rawRecipient.id == leftIncumbent->id ? *leftIncumbent : rawRecipient;
 			if (recipient.id == source.id || recipient.id == roles.others ||
-				(outsideCoalition && recipient.id == roles.national)) continue;
+				(outsideCoalition && !explicitCoalitionPartners && recipient.id == roles.national)) continue;
 			double weight = recipientWeight(source, recipient, district, election, localSeed);
 			bool const rightIndependentInTransfer = context.rightIndependent &&
 				(source.id == independent || recipient.id == independent);
@@ -1304,13 +1725,68 @@ std::vector<Model::SourceProfile> Model::buildSourceProfiles(int district,
 		for (int const id : rankings.front().order) {
 			weights.try_emplace(id, 1.0);
 		}
+		// A Coalition source can prefer an independent for reasons that
+		// differ from its view of Labor. The configured independent–Labor
+		// split gives only one comparison. Let the normal preference weights
+		// place the independent among the other parties on either side of it.
+		if (coalitionIndependentOverLabor) {
+			rankings = expandRecipient(rankings, independent, weights,
+				RecipientComparison{roles.labor, *coalitionIndependentOverLabor});
+		}
+		// Coalition ballots usually place their own partner after other
+		// preferences have been modelled. A direct comparison with that
+		// partner needs their position first, including the share leaking
+		// to Labor. Keep the usual placement order for other comparisons.
+		std::optional<int> partner;
+		if (dual && !outsideCoalition) {
+			partner = source.id == roles.liberal ? *roles.national : roles.liberal;
+		}
+		bool const observesPartner = applyPairHistory && partner && incumbent &&
+			context.incumbentPairHistory.contains({source.id, *partner});
+		if (observesPartner) {
+			rankings = insertOwnCoalitionPartner(rankings, *partner, roles.labor, leakageVotes / source.primary);
+		}
+		if (incumbent && incumbent->id != source.id && source.id != roles.others) {
+			// Others is a changing mix of candidates, so the party-specific
+			// observations and the political distance rule do not apply to it.
+			applyIncumbentPairPreferences(rankings, weights, district, source, *incumbent,
+				majorOpponents, explicitCoalitionPartners, independentIncumbent, election, localSeed, applyPairHistory, anchoredRate);
+		}
+		if (partner && !observesPartner) {
+			rankings = insertOwnCoalitionPartner(rankings, *partner, roles.labor, leakageVotes / source.primary);
+		}
+		// Others normally uses generic preference weights. A local result
+		// can centre its Greens–Labor comparison while leaving the classic
+		// Labor–Coalition split fixed. The generic spread represents changes
+		// between elections even when the past count itself is precise.
+		if (source.id == roles.others && context.othersGreensOverLabor &&
+			share(primaries, roles.labor) > 0.0 && share(primaries, roles.greens) > 0.0) {
+			double const ahead = sampleFallback(*context.othersGreensOverLabor, district,
+				source.id, 212, election, localSeed);
+			rankings = expandRecipient(rankings, roles.greens, weights, RecipientComparison{roles.labor, ahead});
+		}
 		if (!context.historicalTransfers.empty()) {
 			applyHistoricalTransfer(rankings, weights, district, source.id, independent, primaries,
 				election, namedIndependentMatches, localSeed);
 		}
-		profiles.push_back({source.id, source.primary, RankingProfile(std::move(rankings), std::move(weights)), outsideCoalition});
+		bool const usesCoalitionSlot = outsideCoalition && !explicitCoalitionPartners;
+		BallotRankings prepared{RankingProfile(std::move(rankings), std::move(weights)), usesCoalitionSlot};
+		if (general && historicalWeight < 1.0) {
+			general->historical = std::move(prepared);
+			general->historicalWeight = historicalWeight;
+			profiles.push_back(std::move(*general));
+		}
+		else profiles.push_back({source.id, source.primary, std::move(prepared)});
 	}
 	return profiles;
+}
+
+// Expose the identity only where the live ballot must verify a historical
+// match. Ordinary districts do not need a second candidate-name check.
+District::NamedIncumbent const* Model::incumbentForPairHistory(int district) const
+{
+	auto const& context = contexts.at(static_cast<std::size_t>(district));
+	return context.incumbentPairHistory.empty() ? nullptr : &context.incumbent.value();
 }
 
 bool Model::learnsPair(Pair pair) const
@@ -1345,7 +1821,7 @@ std::map<int, std::vector<double>> Model::referenceTransferRates(int district, s
 		ElectionDraw central;
 		central.central = true;
 		central.liberalLaborFirst = laborFirst;
-		auto profiles = buildSourceProfiles(district, sources, primaries, leakage, dual, true, {},
+		auto profiles = buildSourceProfiles(district, sources, primaries, leakage, 0.5, dual, true, {},
 			central, Sensitivity::None, namedIndependentMatches);
 		for (auto const& profile : profiles) {
 			auto votes = allocateBallots(survivors, std::span(&profile, 1), roles, 0.5);
@@ -1452,7 +1928,7 @@ std::vector<Model::SourceProfile> Model::conditionOnCountObservation(std::vector
 	double best = score(profiles, 0);
 	for (int proposal = 1; proposal < Proposals; ++proposal) {
 		auto const localSeed = RandomGenerator::mixKey(stream, static_cast<std::uint64_t>(proposal + Proposals));
-		auto alternative = buildSourceProfiles(district, ballot, primaries, leakageVotes, dual, classicAvailable,
+		auto alternative = buildSourceProfiles(district, ballot, primaries, leakageVotes, nationalIncoming, dual, classicAvailable,
 			classicRates, election, sensitivity, namedIndependentMatches, localSeed);
 		double const candidate = score(alternative, proposal);
 		if (candidate <= best) continue;
@@ -1521,7 +1997,7 @@ CountResult Model::count(int district, std::span<Source const> sources,
 	}
 
 	// The same source profiles supply every exclusion and the final pair.
-	auto profiles = buildSourceProfiles(district, ballot, primaries, leakageVotes,
+	auto profiles = buildSourceProfiles(district, ballot, primaries, leakageVotes, nationalIncoming,
 		dual, classicAvailable, classicRates, election, sensitivity, namedIndependentMatches);
 	if (observation) {
 		profiles = conditionOnCountObservation(std::move(profiles), *observation, district, ballot,
@@ -1639,7 +2115,7 @@ std::optional<CountResult> Model::countWithThreeCandidateTotals(PreparedCountObs
 		Shares originalRates;
 		ClassicCheck originalCheck;
 		if (!matchClassicTpp(ballot, roles, fp[0], leakageVotes, laborTpp, originalRates, originalCheck)) return {};
-		auto profiles = buildSourceProfiles(district, ballot, primaries, leakageVotes, dual, true, originalRates,
+		auto profiles = buildSourceProfiles(district, ballot, primaries, leakageVotes, nationalIncoming, dual, true, originalRates,
 			election, Sensitivity::None, namedIndependentMatches);
 		while (candidates.size() > 3) {
 			auto const totals = allocateBallots(candidates, profiles, roles, nationalIncoming);
@@ -1737,7 +2213,7 @@ std::optional<CountResult> Model::countWithThreeCandidateTotals(PreparedCountObs
 	int const otherMajor = recipients[1 - excluded];
 	std::array const finalists{third, otherMajor};
 	int const eliminated = recipients[excluded];
-	auto const profiles = buildSourceProfiles(district, ballot, primaries, leakageVotes, dual, true, {},
+	auto const profiles = buildSourceProfiles(district, ballot, primaries, leakageVotes, nationalIncoming, dual, true, {},
 		election, Sensitivity::None, namedIndependentMatches, {}, eliminated);
 	double const primaryToThird = allocateBallots(finalists, profiles, roles, nationalIncoming)[0] / fp[excluded];
 	double const boundedRate = std::clamp(primaryToThird, 0.0, 1.0);

@@ -105,7 +105,7 @@ private:
 	void incorporateLegacyLiveTpp();
 	void recordLiveTppBaseline();
 	void incorporateLiveSeatFp(int seatIndex);
-	void prepareLiveFpCandidates(int seatIndex, LiveTurnoutMath::PartyAccount const& account);
+	void prepareLiveFpCandidates(int seatIndex, LiveTurnoutMath::PartyAccount const& account, bool poolIndependents);
 	void conditionLiveFpPrior(int seatIndex);
 	void recombineLiveCoalition(int seatIndex);
 	void integrateLiveFpAccount(int seatIndex, LiveData::VoteCountAccount const& account,
@@ -114,10 +114,11 @@ private:
 	void determineSeatFinalResult(int seatIndex);
 	using TcpPair = std::pair<std::pair<int, double>, std::pair<int, double>>;
 	bool integrateLiveTcpPair(int seatIndex, TcpPair& pair, bool livePrincipalProxy,
-		std::optional<int> secondaryIndependent = {}) const;
-	bool splitRankingIndependent(std::string const& seatName, int secondary, std::map<int,double>& shares) const;
+		std::optional<int> secondaryIndependent = {}, bool observedThreeCandidateCount = false) const;
+	bool splitRankingIndependent(std::string const& seatName, int secondary, std::map<int,double>& shares,
+		bool poolIndependents) const;
 	void countSeatPreferences(int seatIndex, double mergedIndependent, std::optional<int>& secondaryIndependent,
-		bool namedIndependentMatches);
+		LiveData::FpIntegrationInformation const* information);
 	std::optional<TcpPair> integrateRankingFinalPair(int seatIndex, bool livePrincipalProxy,
 		std::optional<int> secondaryIndependent);
 	void compareFinalPair(int seatIndex, TcpPair const& beforeLive, TcpPair const& afterLive,

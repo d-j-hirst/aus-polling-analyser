@@ -463,6 +463,7 @@
     <ClInclude Include="LiveTppIntegration.h" />
     <ClInclude Include="LiveTppDiagnostics.h" />
     <ClInclude Include="LiveTppComposition.h" />
+    <ClInclude Include="LiveCoalitionTcp.h" />
     <ClInclude Include="LivePartyConversion.h" />
     <ClInclude Include="LiveHistoricalPreferences.h" />
     <ClInclude Include="LiveTppCompositionParameters.h" />
