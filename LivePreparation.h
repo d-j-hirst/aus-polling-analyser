@@ -26,8 +26,12 @@ public:
 
 	LivePreparation(PollingProject& project, Simulation& sim, SimulationRun& run);
 	static void validateAutomaticSetup(PollingProject const& project, Simulation const& sim,
-        std::optional<LiveResultsInput::CurrentFile> const& snapshot = {});
+        std::optional<LiveResultsInput::CurrentFile> const& snapshot = {}, bool waitingForDelivery = false);
 	void prepareLiveAutomatic();
+	// Parse a complete capture for the history queue without preparing uncertainty
+	// or running a forecast. Commission identities are retained in the result.
+	static LiveInputRecovery::Snapshot readSnapshot(PollingProject& project, Simulation& sim,
+		LiveResultsInput::CurrentFile const& snapshot);
 
 private:
 
@@ -41,6 +45,7 @@ private:
 	void acquireSnapshot(LiveResultsInput::CurrentFile const& snapshot);
 	void downloadLatestResults();
 	void parseCurrentResults();
+	void applyConfiguredCandidateIdentities();
 	TurnoutModelIO::Artifact prepareCurrentInput();
 	void recordCountedOutcomes();
 

@@ -1,6 +1,7 @@
 #include "LivePreparation.h"
 #include "LiveInputAdapter.h"
 #include "LiveInputHistory.h"
+#include "LiveHistoryScope.h"
 #include "LiveIndependentMapping.h"
 #include "Log.h"
 
@@ -90,10 +91,7 @@ std::string compactLocalTimestamp()
 
 std::string cachedUrlFilename(std::string url, std::string const& suffix = ".xml")
 {
-	std::replace(url.begin(), url.end(), '/', '$');
-	std::replace(url.begin(), url.end(), '.', '$');
-	std::replace(url.begin(), url.end(), ':', '$');
-	return "downloads/" + url + suffix;
+	return LiveResultsInput::pathToUtf8(LiveResultsInput::cachedSupportFile(std::move(url), suffix));
 }
 
 std::string latestFilenameFromListing(std::string const& listing)
@@ -180,7 +178,7 @@ LivePreparation::LivePreparation(PollingProject& project, Simulation& sim, Simul
 }
 
 void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simulation const& sim,
-    std::optional<LiveResultsInput::CurrentFile> const& snapshot)
+    std::optional<LiveResultsInput::CurrentFile> const& snapshot, bool waitingForDelivery)
 {
 	auto const& settings = sim.getSettings();
 	auto const& projection = project.projections().view(settings.baseProjection);
@@ -193,6 +191,8 @@ void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simu
 	}
 
 	std::string const regionCode = termCode.substr(4);
+	if (waitingForDelivery && regionCode == "nsw")
+		throw Exception("Folder watching for NSW needs a validated snapshot identity reader before it can be enabled.");
 	std::string const previousTermCode = settings.prevTermCodes.front();
 	std::vector<std::string> missingFiles;
 	// The count prior is a normal live-election input. Report a missing one in
@@ -231,7 +231,17 @@ void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simu
 			requireLiveInputFile(files->results, missingFiles);
 			requireLiveInputFile(files->pollingPlaces, missingFiles);
 		}
-		if (!snapshot && settings.currentRealUrl.empty() && settings.currentTestUrl.empty()) {
+		else if (waitingForDelivery) {
+			requireLiveInputFile(LiveResultsInput::cachedSupportFile(settings.preloadUrl),missingFiles);
+			requireLiveInputFile(LiveResultsInput::cachedSupportFile(settings.preloadUrl,"@polling_places.xml"),missingFiles);
+		}
+		if (waitingForDelivery) {
+			auto previous = settings.previousResultsUrl.starts_with("local:")
+				? LiveResultsInput::pathFromUtf8(settings.previousResultsUrl.substr(6))
+				: LiveResultsInput::cachedSupportFile(settings.previousResultsUrl);
+			requireLiveInputFile(previous,missingFiles);
+		}
+		if (!waitingForDelivery && !snapshot && settings.currentRealUrl.empty() && settings.currentTestUrl.empty()) {
 			throw Exception("No current-results URL has been configured.");
 		}
 	}
@@ -243,7 +253,7 @@ void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simu
 	if (regionCode == "fed" && settings.currentRealUrl.empty()) {
 		activeCurrentSource = &settings.currentTestUrl;
 	}
-	if (!snapshot && activeCurrentSource->starts_with("local:")) {
+	if (!waitingForDelivery && !snapshot && activeCurrentSource->starts_with("local:")) {
 		requireLiveInputFile(
 			"downloads/" + activeCurrentSource->substr(6), missingFiles);
 	}
@@ -260,7 +270,7 @@ void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simu
 		throw Exception(message);
 	}
 
-	if (!snapshot && regionCode != "fed" && settings.currentRealUrl.empty()) {
+	if (!waitingForDelivery && !snapshot && regionCode != "fed" && settings.currentRealUrl.empty()) {
 		auto const inputDirectory = currentResultsDirectory(settings);
 		std::error_code directoryError;
 		if (!std::filesystem::is_directory(inputDirectory, directoryError)) {
@@ -305,6 +315,16 @@ void LivePreparation::prepareLiveAutomatic()
 		acquireCurrentResults();
 	}
 	parseCurrentResults();
+	applyConfiguredCandidateIdentities();
+	auto turnoutInput = prepareCurrentInput();
+	run.liveElection = std::make_unique<LiveV2::Election>(previousElection, currentElection, project, sim, run,
+		std::move(turnoutInput), std::move(preferenceHistory), std::move(pairPreferenceHistory),
+		std::move(revisedCoalitionFlowHistory));
+	recordCountedOutcomes();
+}
+
+void LivePreparation::applyConfiguredCandidateIdentities()
+{
 	// Candidate-name configuration can deliberately represent one registered-
 	// party campaign as IND without grouping its party's other candidates with
 	// it. Resolve that identity after source parsing and before recovery rebuilds
@@ -319,11 +339,37 @@ void LivePreparation::prepareLiveAutomatic()
 	for (int candidateId : LiveIndependentMapping::apply(currentElection, namedIndependents))
 		logger << "Treating configured candidate " << currentElection.candidates.at(candidateId).name
 			<< " as an independent for this live forecast\n";
-	auto turnoutInput = prepareCurrentInput();
-	run.liveElection = std::make_unique<LiveV2::Election>(previousElection, currentElection, project, sim, run,
-		std::move(turnoutInput), std::move(preferenceHistory), std::move(pairPreferenceHistory),
-		std::move(revisedCoalitionFlowHistory));
-	recordCountedOutcomes();
+}
+
+LiveInputRecovery::Snapshot LivePreparation::readSnapshot(PollingProject& project, Simulation& sim,
+    LiveResultsInput::CurrentFile const& snapshot)
+{
+    // Parsing may set the report's date label. Keep this work private: a bad or
+    // skipped feed must not relabel the last successfully calculated forecast.
+    auto privateSimulation = sim.copyForLiveRun();
+    SimulationRun ingestion(project, privateSimulation, false, false, snapshot);
+    auto term = project.projections().view(sim.getSettings().baseProjection).getBaseModel(project.models()).getTermCode();
+    ingestion.yearCode = term.substr(0,4);
+    ingestion.regionCode = term.substr(4);
+    LivePreparation preparation(project, privateSimulation, ingestion);
+    TurnoutModelIO::Artifact prior;
+    try {
+        preparation.downloadPreload();
+        preparation.parsePreload();
+        preparation.downloadPollingPlaces();
+        preparation.parsePollingPlaces();
+        prior = TurnoutModelIO::loadForElection(project.paths().root(), term);
+    } catch (std::exception const& error) {
+        throw LiveResultsInput::ProcessingError(std::string("Cannot prepare live supporting inputs: ")+error.what());
+    }
+    preparation.acquireSnapshot(snapshot);
+    preparation.parseCurrentResults();
+    // Both ingestion and normal forecasting must identify a configured
+    // quasi-independent identically, or that candidate's retained counts would
+    // be discarded as belonging to a different contest on the next forecast.
+    preparation.applyConfiguredCandidateIdentities();
+    return LiveInputAdapter::identify(preparation.currentElection, prior,
+        LiveInputRecovery::fingerprint(preparation.xmlFilename));
 }
 
 void LivePreparation::recordCountedOutcomes()
@@ -545,13 +591,14 @@ void LivePreparation::acquireSnapshot(LiveResultsInput::CurrentFile const& snaps
 	// Replay selects exactly one local capture. Archive members are streamed to
 	// a private working XML, never extracted by their paths or through C:\a.
 	auto working = project.paths().resolve("downloads/snapshot-input-" + run.getTermCode() + ".xml");
+	if (!LiveHistoryScope::active.empty()) working = LiveHistoryScope::active/"working-input.xml";
 	std::filesystem::create_directories(working.parent_path());
 	auto extension = snapshot.path.extension().string();
 	std::transform(extension.begin(), extension.end(), extension.begin(),
 		[](unsigned char c) { return char(std::tolower(c)); });
 	if (extension == ".zip") {
 		wxFileInputStream input(wxString::FromUTF8(LiveResultsInput::pathToUtf8(snapshot.path)));
-		if (!input.IsOk()) throw Exception("Could not open snapshot archive.");
+		if (!input.IsOk()) throw LiveResultsInput::ProcessingError("Could not open the retained snapshot archive.");
 		wxZipInputStream zip(input);
 		bool found = false;
 		while (auto entry = std::unique_ptr<wxZipEntry>(zip.GetNextEntry())) {
@@ -559,9 +606,11 @@ void LivePreparation::acquireSnapshot(LiveResultsInput::CurrentFile const& snaps
 			if (!LiveResultsInput::isSnapshotResultsXml(name, run.regionCode)) continue;
 			if (found) throw Exception("The snapshot archive contains more than one detailed results XML.");
 			wxFileOutputStream output(wxString::FromUTF8(LiveResultsInput::pathToUtf8(working)));
-			if (!output.IsOk()) throw Exception("Could not write the snapshot working XML.");
+			if (!output.IsOk()) throw LiveResultsInput::ProcessingError("Could not write the snapshot working XML.");
 			zip.Read(output);
-			if (zip.GetLastError() != wxSTREAM_EOF || !output.IsOk() || !output.Close())
+			if (!output.IsOk() || !output.Close())
+				throw LiveResultsInput::ProcessingError("Could not finish writing the snapshot working XML.");
+			if (zip.GetLastError() != wxSTREAM_EOF)
 				throw Exception("Could not read the snapshot results XML completely.");
 			found = true;
 		}
@@ -578,8 +627,8 @@ void LivePreparation::acquireSnapshot(LiveResultsInput::CurrentFile const& snaps
 		if (!currentElection.matchesSnapshotElection(xml, format))
 			throw Exception("The snapshot election identifier does not match the configured preload.");
 	}
-	if (!snapshot.timestamp) throw Exception("The selected snapshot has no timestamp code.");
-	sim.latestReport.dateCode = snapshot.timestamp->size() == 12 ? "20" + *snapshot.timestamp : *snapshot.timestamp;
+	if (snapshot.timestamp)
+		sim.latestReport.dateCode = snapshot.timestamp->size() == 12 ? "20" + *snapshot.timestamp : *snapshot.timestamp;
 	if (run.regionCode == "wa") waObservationTime = LiveResultsInput::waObservationTime(snapshot);
 }
 

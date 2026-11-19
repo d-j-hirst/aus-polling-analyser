@@ -5,6 +5,9 @@ import json
 import os
 import requests
 
+# Folder watching adds reporting and immutable queue publication. The existing
+# one-off commands and their destination selection remain available below.
+
 def handle_response(response):
     decoded = response.content.decode()
     try:
@@ -38,7 +41,11 @@ parser.add_argument('--test', action='store_true',
 parser.add_argument('--remote', action='store_true',
                     help='Upload to remote server only')
 parser.add_argument('--all', action='store_true',
-                    help='Upload to both local and remote server')
+                    help='Upload to local, test and production servers')
+parser.add_argument('--watch', metavar='RUN_ID', help='Watch a saved live/replay run by ID or explicit directory')
+parser.add_argument('--commentary-config', help='Override the run’s saved commentary settings with this JSON file')
+parser.add_argument('--once', action='store_true', help='Process currently ready packages, then exit')
+parser.add_argument('--prepare-only', action='store_true', help='Prepare packages without uploading (commentary only with an explicit override)')
 parser.add_argument('--timeseries', action='store',
                     help='Update timeseries instead of uploading forecast. '
                          'Include argument e.g. 2022fed')
@@ -72,6 +79,20 @@ if not (upload_local or upload_test or upload_remote):
 env = environ.Env()
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 environ.Env.read_env(os.path.join(BASE_DIR, 'uploads/.env'))
+if args.watch:
+    from live_pipeline.run_settings import load_run
+    from live_pipeline.watch import run
+    try:
+        folder, _ = load_run(BASE_DIR, args.watch, allow_path=True)
+    except (OSError, ValueError) as error:
+        parser.error(str(error))
+    destinations = []
+    if not args.prepare_only:
+        destinations = [name for name, active in (
+            ('local', upload_local), ('test', upload_test), ('remote', upload_remote)
+        ) if active]
+    run(folder, destinations, args.commentary_config, args.once, args.prepare_only)
+    raise SystemExit(0)
 AUTO_EMAIL = env('AUTO_EMAIL')
 AUTO_PASSWORD = env('AUTO_PASSWORD')
 

@@ -79,7 +79,9 @@
 // Version 67: save the project-level live snapshot sequence
 // Version 68: retain raw result swings separately from live estimates and TCP progress
 // Version 69: save separate accepted FP/TCP coverage with expected formal turnout
-constexpr int VersionNum = 69;
+// Version 70: optional folder-watching configuration; operational state stays local.
+// Version 71: save the statewide preference-flow intervals with each live report.
+constexpr int VersionNum = 71;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -105,6 +107,7 @@ void ProjectFiler::save(std::string filename)
 	saveElections(saveOutput);
 	// Append replay settings so older project layouts keep their existing fields.
 	LiveSnapshotSequence::saveSettings(saveOutput, project.liveSnapshotSequence);
+	saveOutput << project.liveAutomationSettings.dump();
 }
 
 void ProjectFiler::open(std::string filename)
@@ -128,6 +131,11 @@ void ProjectFiler::open(std::string filename)
 	loadOutcomes(saveInput, versionNum);
 	loadElections(saveInput, versionNum);
 	project.liveSnapshotSequence = LiveSnapshotSequence::loadSettings(saveInput, versionNum);
+	if (versionNum >= 70) {
+		std::string settings;
+		saveInput >> settings;
+		project.liveAutomationSettings = nlohmann::json::parse(settings);
+	}
 
 	auto forecastImport =
 		ForecastSpecificationImporter::importForProject(project);
@@ -653,6 +661,7 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 		saveOutput << report.countProgress->tcpVotes;
 		saveOutput << report.countProgress->expectedFormalVotes;
 	}
+	saveOutput << report.statewidePreferenceFlows;
 	saveOutput << report.partyOneProbabilityBounds;
 	saveOutput << report.partyTwoProbabilityBounds;
 	saveOutput << report.coalitionProbabilityBounds;
@@ -762,6 +771,7 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 			saveInput >> report.countProgress->expectedFormalVotes;
 		}
 	}
+	if (versionNum >= 71) saveInput >> report.statewidePreferenceFlows;
 	saveInput >> report.partyOneProbabilityBounds;
 	saveInput >> report.partyTwoProbabilityBounds;
 	if (versionNum >= 61) {

@@ -21,6 +21,12 @@ using Shares = std::map<int, double>;
 using Pair = std::array<int, 2>;
 using ConfiguredFlows = std::map<int, std::map<std::pair<int, int>, float>>;
 
+// Prepare the Nationals starting percentage for a Labor–One Nation final
+// when only the Liberal percentage is known. Both preference counts use
+// this table. A negative party index means that party has no separate entry.
+void applyLiberalProxyForNationals(ConfiguredFlows& flows, int liberal, int national,
+	int labor, int oneNation);
+
 // When the Greens or another third candidate is removed from the three-way
 // count, these fractions describe how its primary and inherited ballots
 // rank Labor over the Coalition. Only the expected flows are supplied here.
@@ -113,6 +119,10 @@ struct District {
 	bool coalitionHeld = false;
 	std::vector<int> independentLikeParties{};
 	std::optional<NamedIncumbent> incumbent{};
+	// Preparation groups the existing provincial/rural seat types together.
+	// Missing geography is allowed unless an enabled preference adjustment
+	// needs it; it must not silently count an unknown district as metropolitan.
+	std::optional<bool> regional{};
 };
 
 struct Source {
@@ -140,7 +150,8 @@ struct PairResult {
 };
 
 // Original FP share and fraction of those ballots reaching the first
-// finalist. Only automatic live counts request these after exclusions.
+// finalist. Automatic live counts request these for preference learning;
+// pre-election comparisons also request them to explain TCP differences.
 struct FinalSource {
 	int id;
 	double primary, firstRate;
@@ -204,6 +215,7 @@ public:
 		bool liberalLaborFirst = false;
 		bool central = false;
 		bool sharedOnly = false;
+		bool averageHistoricalComposition = false; // A statewide report integrates out a local historical pile's unknown origin.
 	};
 
 	ElectionDraw drawElection(std::uint64_t seed) const;
@@ -219,6 +231,11 @@ public:
 		std::span<int const> survivors, bool namedIndependentMatches = true) const;
 	Shares referencePairRates(int district, std::span<Source const> sources, Pair pair,
 		bool namedIndependentMatches = true) const;
+	// A statewide report asks about specified finalists in every eligible district,
+	// including districts where they rarely meet. Use the same ballot rankings
+	// for every requested pair, with only the election-wide preference draw varying.
+	std::map<Pair, Shares> sharedPairRates(int district, std::span<Source const> sources,
+		std::span<Pair const> pairs, ElectionDraw election, bool namedIndependentMatches) const;
 	District::NamedIncumbent const* incumbentForPairHistory(int district) const;
 	bool learnsPair(Pair pair) const;
 	SensitivityTests const& sensitivityTests(int district) const;
@@ -262,6 +279,7 @@ private:
 			std::optional<double> laborOverLiberal, greensOverLiberal;
 		};
 		Advice advice = Advice::Unknown;
+		bool regional = false;
 		double liberalOneNationLastWeight = 0.0;
 		bool highIndependentFlow = false;
 		bool namedIndependent = false;
@@ -311,6 +329,7 @@ private:
 		bool explicitCoalitionPartners, bool independentIncumbent, ElectionDraw const& election,
 		std::uint64_t localSeed, bool usePairHistory, std::optional<double> anchoredRate) const;
 	bool isIndependent(Source const& source) const;
+	void prepareLiberalGeography(double regionalGap, std::span<District const> districts);
 
 	Nodes drawNodes(ProfileIndex profile, double primary, std::optional<double> classicRate,
 		int district, ElectionDraw const& election, std::uint64_t localSeed) const;
@@ -340,6 +359,10 @@ private:
 	double genericElectionConcentration = 24.0;
 	double genericDistrictConcentration = 9.666666666666666;
 	std::array<Prior, ProfileCount> priors;
+	// Optional centres for metropolitan (0) and regional (1) Liberal ballots.
+	// Prepared once; the common random draws and uncertainty settings remain
+	// those of the original profiles. Other sources leave these vectors empty.
+	std::array<std::array<std::vector<Strength>, ProfileCount>, 2> liberalGeographicStrengths;
 	std::vector<Context> contexts;
 	std::map<int, double> independentOverMajor;
 	std::optional<double> nationalGreensOverLabor, nationalOneNationOverLabor;
@@ -356,6 +379,12 @@ struct Comparison {
 	bool modelLivePairMatched = false;
 	std::optional<CountResult> withoutClassicTppMatching;
 	std::optional<CountResult> reducedLaborToGreens;
+	// These transfers belong to the actual final allocation in the existing
+	// count, before live evidence or manual overrides. They are optional because
+	// the classic TPP shortcut does not allocate each source separately.
+	bool reportSources = false;
+	std::vector<FinalSource> legacySources;
+	std::optional<Pair> combinedCoalitionSources;
 };
 
 // Tally the two counts in each finalist pair. The two sides can reach the
@@ -365,15 +394,42 @@ struct PairComparisonSummary {
 	struct Outcomes {
 		std::uint64_t draws = 0, firstWins = 0;
 		double firstShareSum = 0.0;
+		double firstShareSquaredSum = 0.0;
 	};
 	struct PairTotals {
 		std::array<Outcomes, 2> outcomes;
 		std::uint64_t samePairDraws = 0, samePairWinnerChanges = 0;
+		std::array<std::uint64_t, 2> samePairFirstWins{};
 		double samePairShareChange = 0.0, samePairAbsoluteChange = 0.0;
 	};
 	std::uint64_t compared = 0, failed = 0, changedPair = 0, changedWinner = 0;
 	std::map<Pair, PairTotals> pairs;
+	// Old winner -> new winner, separated into unchanged and changed finalist
+	// pairs. This distinguishes a reversed final contest from an exclusion change.
+	std::map<std::pair<int, int>, std::array<std::uint64_t, 2>> winnerTransitions;
 	void record(PairResult const& reference, PairResult const& alternative);
+};
+
+// On draws with the same finalists, compare the actual destination of each
+// original source's ballots. Combine Liberal and National sources because
+// the existing count carries their FP as one pile. Require matching FP
+// accounts and reconstruction of both TCP totals before attributing changes.
+// No extra count or random draw is performed for these diagnostics.
+struct SourceComparisonSummary {
+	struct SourceTotals {
+		std::uint64_t draws = 0; // Only draws with a positive FP for this source.
+		double primarySum = 0.0;
+		std::array<double, 2> rateSum{}, rateSquaredSum{}, firstVotesSum{};
+		std::int64_t firstWinChangeOnlyThisSource = 0;
+	};
+	struct PairTotals {
+		std::uint64_t draws = 0, unavailable = 0;
+		std::uint64_t referenceFirstWins = 0, alternativeFirstWins = 0;
+		double tcpChangeSum = 0.0, maximumAccountError = 0.0;
+		std::map<int, SourceTotals> sources;
+	};
+	std::map<Pair, PairTotals> pairs;
+	void record(Comparison const& comparison);
 };
 
 struct Summary {
@@ -394,6 +450,7 @@ struct Summary {
 	std::map<int, std::pair<std::uint64_t, std::uint64_t>> winners;
 	std::optional<Example> firstIssue, largestAdjustment;
 	PairComparisonSummary standardVsRanking, withoutClassicTppMatching, reducedLaborToGreens;
+	SourceComparisonSummary sourceTransfers;
 	// Active counts need the same accounting and failure totals without a
 	// second count of the district. The return value marks a usable ranking.
 	bool recordCount(CountResult const& model, int iteration);

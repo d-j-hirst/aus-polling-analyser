@@ -454,6 +454,10 @@ json serializeReport(
 	result["others_seat_win_frequency"] = report.othersSeatWinFrequency;
 	result["total_2cp_percent_counted"] = number(report.getTcpPercentCounted());
 	result["total_fp_percent_counted"] = report.countProgress ? number(report.countProgress->fpPercent()) : json(nullptr);
+	for (auto const& [row,percentiles] : report.statewidePreferenceFlows) {
+		result["statewide_preference_flows"].push_back({{"source_party",row[0]},{"destination_party",row[1]},
+			{"other_finalist",row[2]},{"percentiles",percentiles}});
+	}
 	if (report.countProgress) {
 		auto const& progress = *report.countProgress;
 		result["count_progress"] = {{"fp_votes",progress.fpVotes}, {"tcp_votes",progress.tcpVotes},
@@ -1431,6 +1435,23 @@ std::optional<std::filesystem::path> LiveRunExport::exportCompletedAutomaticLive
 		document["input_issues"]["completed"] = true;
 		document["input_issues"]["failure"] = "";
 		analysis["input_recovery"] = run.inputRecoveryDetails();
+		// Manual 3CP/4CP observations can change exclusion order without any
+		// additional feed votes. Record their actual use separately from booth
+		// counting and cross-seat preference learning, so update reports can name
+		// the evidence rather than incorrectly attributing the movement to a batch.
+		analysis["manual_preference_evidence"] = json::array();
+		auto const& preferenceSummaries = run.getPreferenceCountSummaries();
+		for (std::size_t seat = 0; seat < preferenceSummaries.size(); ++seat) {
+			auto const& counts = preferenceSummaries[seat];
+			if (!counts.conditionedOnLiveSample) continue;
+			std::map<int,double> means;
+			if (counts.jointThreeCandidateDraws)
+				for (auto const& [party,total] : counts.jointThreeCandidateFlowSums)
+					means[party] = 100.0*total/double(counts.jointThreeCandidateDraws);
+			analysis["manual_preference_evidence"].push_back({{"seat",report.seatName.at(seat)},
+				{"ranked_draws",counts.compared},{"sample_conditioned_draws",counts.conditionedOnLiveSample},
+				{"joint_account_draws",counts.jointThreeCandidateDraws},{"redistributed_share_percent",parties.values(means)}});
+		}
 		document["live_analysis_summary"] = liveAnalysisSummaryFrom(analysis);
 
 		std::string analysisSerialised;

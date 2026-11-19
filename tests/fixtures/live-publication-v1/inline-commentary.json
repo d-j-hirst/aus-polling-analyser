@@ -1,0 +1,32 @@
+{
+  "status": "complete",
+  "format": "inline-figures-v1",
+  "text": {
+    "summary": "Labor's outlook improved in {seat:Light}.",
+    "developments": [
+      {
+        "seats": ["Light"],
+        "text": "In {seat:Light}, {candidate:Light:0}'s winning chance rose to **55.0% (+5.0 pp)**. The supplied evidence does not establish the cause."
+      }
+    ],
+    "insufficient_evidence": true
+  },
+  "entities": {
+    "{seat:Light}": {
+      "kind": "seat",
+      "seat": "Light",
+      "label": "Light",
+      "holder_party": "LIB",
+      "holder_margin": 3.5
+    },
+    "{candidate:Light:0}": {
+      "kind": "candidate",
+      "seat": "Light",
+      "party_id": "0",
+      "party": "ALP",
+      "label": "Fictional Labor candidate"
+    }
+  },
+  "model": "mock",
+  "prompt_version": "live-changes-4"
+}

@@ -177,6 +177,7 @@ public:
 		FpReconciliation,
 		FrequentTerminalFpReconciliation,
 		DiagnosticTest,
+		StatewidePreferenceReport,
 		// Internal retry evidence; reported in the phase log rather than the
 		// successful forecast's operator-warning list.
 		DiscardedIteration
@@ -225,6 +226,11 @@ public:
 	std::optional<std::filesystem::path> completedSnapshotPath() const { return snapshotExport; }
 	void recordSnapshotExport(std::optional<std::filesystem::path> path) { snapshotExport = std::move(path); }
 	nlohmann::json inputRecoveryDetails() const { return inputIssues.details(); }
+
+	// Completed-run exports use these per-seat summaries to explain how manual
+	// preference samples affected the forecast. Read only after iteration workers
+	// have finished: they accumulate these totals while the simulation is running.
+	std::vector<PreferenceModel::Summary> const& getPreferenceCountSummaries() const { return preferenceCountSummaries; }
 
 private:
 	// Only the main run opens this opt-in trace. Supporting baseline/calibration
@@ -298,6 +304,7 @@ private:
 	// district result under the existing simulation recording mutex.
 	std::optional<PreferenceModel::Model> preferenceModel;
 	std::vector<PreferenceModel::Summary> preferenceCountSummaries;
+	std::map<std::array<int,3>,std::vector<double>> statewidePreferenceSamples;
 
 	mutable std::mutex warningMutex;
 	std::map<WarningCategory, Warning> warnings;

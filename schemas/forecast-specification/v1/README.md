@@ -138,6 +138,11 @@ contests are identified.
 The reverse ordering is derived as `100 - preference_to_first` and is not stored
 as another row.
 
+For a Labor–One Nation final, a project with a separate Nationals party can
+omit the Nationals row to use its configured Liberal percentage for the same
+pair. An explicit Nationals row takes precedence. If both rows are absent,
+each preference count uses its usual default.
+
 ## `regions.csv`
 
 ```csv
@@ -244,10 +249,29 @@ and its core settings override the corresponding `.pol2` values.
 
 Portable objects are matched to legacy collections by exported order because
 the current `.pol2` format does not persist portable IDs. Collection counts
-must therefore match. Generated model, projection, and simulation state is
-retained when source settings are unchanged and invalidated when an imported
-change makes it stale. Reports and all data outside the version 1 scope remain
+must match except for the known 2026 SA transition described below. Generated
+model, projection, and simulation state is retained when source settings are
+unchanged and invalidated when an imported change makes it stale. Reports and
+all data outside the version 1 scope remain
 in the `.pol2` file.
+
+The 2026 SA package groups SA Best, the Democrats and Family First under
+Others. Opening an older SA project with the original eight-party list imports
+the five-party list into the **Parties** tab. Historical poll columns for those
+three parties are added to the reported Others share. The original poll CSV
+and previously generated reports retain their detailed figures. Saving the
+project writes the updated party list to its `.pol2` file.
+
+The **Parties** tab controls which parties the live forecast can show separately.
+Each district's `sRunningParties` controls who receives a separate pre-election
+estimate there. When districts have supplied lists, an automatic live forecast
+writes a warning to `PALog.log` for any project party missing from all of them.
+If a count identifies a project minor party whose district forecast had grouped
+it under Others, the model starts it with an equal share of that district's
+available Others vote. For example, `OTH***` allows for four candidates. With
+8% available, each starts with 2% before local counts are taken into account.
+When the list gives no number, the model allows for at least three candidates,
+or more if the feed identifies more.
 
 ## Versioning
 

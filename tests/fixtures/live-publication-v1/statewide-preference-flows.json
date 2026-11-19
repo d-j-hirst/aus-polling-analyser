@@ -1,0 +1,16 @@
+{
+  "termCode": "2026sa",
+  "reportMode": "LF",
+  "partyAbbr": [[0, "ALP"], [1, "LIB"], [2, "ON"]],
+  "seatNames": [],
+  "seatPartyWinFrequencies": [],
+  "voteTotalThresholds": [0.1, 0.5, 1, 2.5, 5, 10, 25, 50, 75, 90, 95, 97.5, 99, 99.5, 99.9],
+  "statewidePreferenceFlows": [
+    {
+      "sourceParty": 0,
+      "destinationParty": 1,
+      "otherFinalist": 2,
+      "percentiles": [35, 38, 40, 43, 46, 49, 54, 60, 65, 70, 73, 76, 79, 81, 85]
+    }
+  ]
+}

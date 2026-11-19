@@ -174,6 +174,9 @@ public:
 		// raw counts with their denominator makes both progress values auditable
 		// and publishes them atomically with the completed numerical report.
 		std::optional<LiveData::CountProgress> countProgress;
+		// Percentiles of the live statewide source-to-finalist estimates, in
+		// CurrentlyUsedProbabilityBands order. All three party IDs belong to this report.
+		std::map<std::array<int,3>,std::vector<float>> statewidePreferenceFlows;
 
 		// Ordered lower-to-upper: 99%, 95%, 80%, then 50% bounds.
 		std::array<int, NumProbabilityBoundIndices> partyOneProbabilityBounds{};

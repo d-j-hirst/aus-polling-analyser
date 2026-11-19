@@ -20,6 +20,26 @@
 #include <string_view>
 
 namespace PreferenceModel {
+
+void applyLiberalProxyForNationals(ConfiguredFlows& flows, int liberal, int national,
+	int labor, int oneNation)
+{
+	if (national < 0 || oneNation < 0) return;
+	auto const liberalFlows = flows.find(liberal);
+	if (liberalFlows == flows.end()) return;
+
+	// A project can supply direct evidence from Nationals voters, such as
+	// the Hunter count from 2025. For earlier elections the configured
+	// Liberal split is a proxy. Copy only this pair, in both orders, so the
+	// answer is the same whichever finalist the count asks about first.
+	for (auto const& pair : {std::pair{oneNation, labor}, std::pair{labor, oneNation}}) {
+		auto const liberalRate = liberalFlows->second.find(pair);
+		if (liberalRate != liberalFlows->second.end()) {
+			flows[national].try_emplace(pair, liberalRate->second);
+		}
+	}
+}
+
 double proximityForConsistency(int consistency) {
 	static constexpr std::array weights{1.2,1.4,1.8};
 	return weights[std::clamp(consistency,0,2)];
@@ -215,6 +235,48 @@ std::size_t position(Ranking const& ranking, int id)
 {
 	return static_cast<std::size_t>(
 		std::find(ranking.order.begin(), ranking.order.end(), id) - ranking.order.begin());
+}
+
+// Prepare a different Liberal-to-One-Nation centre against Labor without
+// changing either candidate's head-to-head centre against the Greens. The
+// input describes Liberal ballots ranked among Labor, Greens and One Nation;
+// the signed change is a fraction of those ballots, not of the seat vote.
+// Swap only adjacent Labor/One Nation positions, leaving the Greens above
+// both or below both. For example, ALP > ON > GRN becomes ON > ALP > GRN.
+// This keeps a single coherent set of orders for all later exclusions.
+Nodes liberalGeographicMeans(Nodes const& means, double change)
+{
+	if (change == 0.0) return means;
+	// threeWayOrders returns ALP/GRN/ON, ALP/ON/GRN, GRN/ALP/ON,
+	// GRN/ON/ALP, ON/ALP/GRN and ON/GRN/ALP, in that order.
+	auto orders = threeWayOrders(0, 1, 2, means);
+	int const firstFrom = change > 0.0 ? 1 : 4;
+	int const secondFrom = change > 0.0 ? 2 : 3;
+	int const firstTo = change > 0.0 ? 4 : 1;
+	int const secondTo = change > 0.0 ? 3 : 2;
+	double const available = orders[firstFrom].fraction + orders[secondFrom].fraction;
+	if (std::abs(change) > available + Roundoff) {
+		// Reject incompatible input rather than quietly changing another pair's
+		// expectation or reducing the requested regional contrast.
+		throw std::invalid_argument("Liberal regional preference gap cannot preserve the configured Greens comparisons.");
+	}
+	double const fractionToMove = available > 0.0 ? std::min(1.0, std::abs(change) / available) : 0.0;
+	for (auto const [from, to] : {std::pair{firstFrom, firstTo}, std::pair{secondFrom, secondTo}}) {
+		double const moved = orders[from].fraction * fractionToMove;
+		orders[from].fraction -= moved;
+		orders[to].fraction += moved;
+	}
+	// Convert the revised orders back to the five conditional shares used
+	// by the usual election/district sampling. An empty branch has no votes;
+	// retain its old conditional share rather than dividing by zero.
+	Nodes adjusted = means;
+	if (means[0] > 0.0) adjusted[1] = orders[4].fraction / means[0];
+	double const laborFirst = orders[0].fraction + orders[1].fraction;
+	if (laborFirst > 0.0) adjusted[2] = orders[0].fraction / laborFirst;
+	if (means[0] < 1.0) adjusted[3] = orders[5].fraction / (1.0 - means[0]);
+	double const greensFirst = orders[2].fraction + orders[3].fraction;
+	if (greensFirst > 0.0) adjusted[4] = orders[2].fraction / greensFirst;
+	return adjusted;
 }
 
 // Divide an existing ranking group by where another candidate fits. Removing
@@ -837,6 +899,7 @@ std::optional<Model> Model::load(std::istream& input, Roles roles,
 	}
 	open.strengths.push_back({0.1, openMeans});
 	open.referenceMeans = openMeans;
+	model.prepareLiberalGeography(document.value("liberal_one_nation_regional_gap", 0.0), districts);
 
 	auto configured = [&](int source, int first, int second) -> std::optional<double> {
 		auto const row = configuredFlows.find(source);
@@ -884,6 +947,7 @@ std::optional<Model> Model::load(std::istream& input, Roles roles,
 	};
 	for (auto const& district : districts) {
 		Context context;
+		context.regional = district.regional.value_or(false);
 		context.highIndependentFlow = district.coalitionHeld;
 		context.namedIndependent = !district.independentName.empty();
 		context.incumbent = district.incumbent;
@@ -1089,6 +1153,44 @@ SensitivityTests const& Model::sensitivityTests(int district) const
 	return contexts.at(static_cast<std::size_t>(district)).sensitivity;
 }
 
+// The optional gap describes the regional-minus-metropolitan difference in
+// Liberal preferences to ON against Labor. Centre it across equally weighted
+// seats in this project, not across ballots: regional centres rise by
+// gap * (1 - regional seat fraction), metropolitan centres fall by
+// gap * regional seat fraction. A 10-point gap with 63/150 regional seats
+// therefore moves a 70% centre to 65.8% metropolitan and 75.8% regional.
+//
+// The gap is an election-specific assumption, supported in direction by the
+// DemosAU 2026 comparisons documented in analysis/Preferences/README.md.
+// Those surveys combine Coalition voters and do not precisely estimate a
+// Liberal-only gap. Keep the existing broad shared/district uncertainty.
+// Preparation does this once for each advice profile and FP strength point;
+// no simulated votes, sampled advice or live evidence are cached here.
+void Model::prepareLiberalGeography(double regionalGap, std::span<District const> districts)
+{
+	if (!fraction(regionalGap)) {
+		throw std::invalid_argument("Liberal regional preference gap must be a fraction between zero and one.");
+	}
+	if (regionalGap == 0.0) return;
+	if (districts.empty() || std::any_of(districts.begin(), districts.end(),
+		[](District const& district) { return !district.regional.has_value(); })) {
+		throw std::invalid_argument("Liberal regional preferences require a seat type for every district.");
+	}
+	auto const regionalCount = std::count_if(districts.begin(), districts.end(),
+		[](District const& district) { return *district.regional; });
+	double const regionalFraction = double(regionalCount) / double(districts.size());
+	for (int group = 0; group < 2; ++group) {
+		double const change = regionalGap * (double(group) - regionalFraction);
+		for (ProfileIndex const profile : {LiberalLaborFirst, LiberalGreensFirst, LiberalOpen}) {
+			auto& strengths = liberalGeographicStrengths[group][profile];
+			strengths = priors[profile].strengths;
+			for (auto& strength : strengths) {
+				strength.means = liberalGeographicMeans(strength.means, change);
+			}
+		}
+	}
+}
+
 Model::ElectionDraw Model::drawElection(std::uint64_t seed) const
 {
 	ElectionDraw draw;
@@ -1111,11 +1213,13 @@ Model::Nodes Model::drawNodes(ProfileIndex profile, double primary,
 	std::optional<double> classicRate, int district, ElectionDraw const& election, std::uint64_t localSeed) const
 {
 	auto const& prior = priors[profile];
-	auto const upper = std::upper_bound(prior.strengths.begin(), prior.strengths.end(), primary,
+	auto const& geographic = liberalGeographicStrengths[contexts.at(district).regional ? 1 : 0][profile];
+	auto const& strengths = geographic.empty() ? prior.strengths : geographic;
+	auto const upper = std::upper_bound(strengths.begin(), strengths.end(), primary,
 		[](double value, Strength const& strength) { return value < strength.primary; });
 	Nodes means;
-	if (upper == prior.strengths.begin()) means = upper->means;
-	else if (upper == prior.strengths.end()) means = prior.strengths.back().means;
+	if (upper == strengths.begin()) means = upper->means;
+	else if (upper == strengths.end()) means = strengths.back().means;
 	else {
 		auto const lower = std::prev(upper);
 		double const t = (primary - lower->primary) / (upper->primary - lower->primary);
@@ -1132,10 +1236,13 @@ Model::Nodes Model::drawNodes(ProfileIndex profile, double primary,
 		double const referenceMean = prior.referenceMeans[node];
 		double const desiredMean = means[node];
 		double common = election.commonNodes[profile][node];
-		// Reuse the common draw when the mean changes with FP. At a different
-		// strength, scale toward the relevant endpoint to give the desired
+		// Reuse the common draw when the mean changes with FP or geography.
+		// Scale toward the relevant endpoint to give the desired
 		// mean and keep the same ordering of shared draws. This is exact
 		// at the reference point and an interpolation assumption elsewhere.
+		// Geography retains both levels of uncertainty and the same random
+		// streams; it does not add a second preference draw. Unconfigured
+		// elections use the original means and calculations unchanged.
 		if (desiredMean < referenceMean) common *= desiredMean / referenceMean;
 		else if (desiredMean > referenceMean) {
 			double const movement = (desiredMean - referenceMean) / (1.0 - referenceMean);
@@ -1286,7 +1393,7 @@ void Model::applyHistoricalTransfer(Rankings& rankings, Shares const& weights, i
 	// the central estimate, and a destination cannot lose more than it got.
 	Shares historicalRates;
 	double const pool = double(observation.originalVotes) + observation.inheritedVotes;
-	if (sampleUncertainty && !election.central && observation.inheritedVotes > 0) {
+	if (sampleUncertainty && !election.central && !election.averageHistoricalComposition && observation.inheritedVotes > 0) {
 		std::vector<std::pair<int, double>> destinations(historicalVotes.begin(), historicalVotes.end());
 		DrawEngine engine(key(localSeed, district, source, 208));
 		std::shuffle(destinations.begin(), destinations.end(), engine);
@@ -1844,6 +1951,34 @@ Shares Model::referencePairRates(int district, std::span<Source const> sources, 
 	return rates;
 }
 
+std::map<Pair, Shares> Model::sharedPairRates(int district, std::span<Source const> sources,
+	std::span<Pair const> pairs, ElectionDraw election, bool namedIndependentMatches) const
+{
+	// The input FP mix determines the strength of each original party and which
+	// candidates are available. A statewide estimate retains each district's
+	// known ticket and geography. Its range describes a common election-wide
+	// tendency, so district-specific random departures take their central values.
+	election.sharedOnly = true;
+	election.averageHistoricalComposition = true;
+	if (pairs.empty()) return {};
+	Shares primaries;
+	for (auto const& source : sources) primaries.emplace(source.id,source.primary);
+	double const liberal = share(primaries,roles.liberal);
+	double const national = roles.national ? share(primaries,*roles.national) : 0.0;
+	double const leakage = MajorPartyFpMath::ClassicPartnerLeakageRate * std::min(liberal,national);
+	auto profiles = buildSourceProfiles(district,sources,primaries,leakage,0.5,liberal > 0 && national > 0,
+		true,{},election,Sensitivity::None,namedIndependentMatches);
+	std::map<Pair,Shares> rates;
+	for (auto const& pair : pairs) {
+		auto& split = rates[pair];
+		for (auto const& profile : profiles) {
+			auto const votes = allocateBallots(pair,std::span(&profile,1),roles,0.5);
+			split.emplace(profile.id,std::clamp(votes.front()/profile.primary,0.0,1.0));
+		}
+	}
+	return rates;
+}
+
 // Keep the scenario's first preferences, classic TPP and election-wide
 // preference effects fixed. Draw a small set of alternative DISTRICT
 // rankings and choose one according to how closely it explains the observed
@@ -2044,7 +2179,10 @@ CountResult Model::count(int district, std::span<Source const> sources,
 			result.final.firstShare = laborFirst ? laborTpp : 1.0 - laborTpp;
 		}
 	}
-	if (reportFinalSources && learnsPair(result.final.candidates)) {
+	// Live learning remains restricted to supported pairings. A comparison
+	// run can inspect any final pair; reading these already-drawn profiles
+	// does not change exclusions, random draws or the final vote shares.
+	if (reportFinalSources && (learnsPair(result.final.candidates) || !active)) {
 		result.finalSources.reserve(profiles.size());
 		for (auto const& profile : profiles) {
 			auto votes = allocateBallots(candidates,std::span(&profile,1),roles,nationalIncoming);
@@ -2237,19 +2375,110 @@ void PairComparisonSummary::record(PairResult const& reference, PairResult const
 		++outcome.draws;
 		if (result.winner() == result.candidates[0]) ++outcome.firstWins;
 		outcome.firstShareSum += result.firstShare;
+		outcome.firstShareSquaredSum += result.firstShare * result.firstShare;
 	};
 	addOutcome(reference, 0);
 	addOutcome(alternative, 1);
+	std::size_t const pairingChanged = reference.candidates != alternative.candidates ? 1 : 0;
+	++winnerTransitions[{reference.winner(), alternative.winner()}][pairingChanged];
 	if (reference.candidates != alternative.candidates) {
 		++changedPair;
 	}
 	else {
 		auto& pair = pairs.at(reference.candidates);
 		++pair.samePairDraws;
+		if (reference.winner() == reference.candidates[0]) ++pair.samePairFirstWins[0];
+		if (alternative.winner() == alternative.candidates[0]) ++pair.samePairFirstWins[1];
 		if (winnerChanged) ++pair.samePairWinnerChanges;
 		double const change = alternative.firstShare - reference.firstShare;
 		pair.samePairShareChange += change;
 		pair.samePairAbsoluteChange += std::abs(change);
+	}
+}
+
+void SourceComparisonSummary::record(Comparison const& comparison)
+{
+	if (!comparison.reportSources || comparison.legacy.candidates != comparison.model.final.candidates) return;
+	auto& pair = pairs[comparison.legacy.candidates];
+	if (comparison.legacySources.empty() || comparison.model.finalSources.empty()) {
+		++pair.unavailable;
+		return;
+	}
+	using Account = std::map<int, std::array<double, 2>>; // original FP, votes to first finalist
+	auto groupSources = [&](std::vector<FinalSource> const& sources) {
+		Account account;
+		for (auto const& source : sources) {
+			int id = source.id;
+			if (comparison.combinedCoalitionSources && id == comparison.combinedCoalitionSources->at(1)) {
+				id = comparison.combinedCoalitionSources->at(0);
+			}
+			auto& votes = account[id];
+			votes[0] += source.primary;
+			votes[1] += source.primary * source.firstRate;
+		}
+		return account;
+	};
+	auto const legacy = groupSources(comparison.legacySources);
+	auto const ranking = groupSources(comparison.model.finalSources);
+	// Ordinary matched CPV accounts sum to one and reproduce their TCP. Do
+	// not invent source attribution for shortcuts, a different candidate
+	// grouping, or exhausted votes. The pairing/winner comparison still counts
+	// those draws; only this explanation is marked unavailable.
+	auto accountError = [](Account const& account, double finalShare) {
+		double primary = 0.0, first = 0.0;
+		for (auto const& [id, votes] : account) {
+			(void)id;
+			if (!std::isfinite(votes[0]) || !std::isfinite(votes[1]) ||
+				votes[0] < 0.0 || votes[1] < 0.0 || votes[1] > votes[0]) return 1.0;
+			primary += votes[0];
+			first += votes[1];
+		}
+		return std::max(std::abs(primary - 1.0), std::abs(first - finalShare));
+	};
+	double error = std::max(accountError(legacy, comparison.legacy.firstShare),
+		accountError(ranking, comparison.model.final.firstShare));
+	auto checkPrimaries = [&](Account const& first, Account const& second) {
+		for (auto const& [id, votes] : first) {
+			auto const match = second.find(id);
+			double const other = match == second.end() ? 0.0 : match->second[0];
+			error = std::max(error, std::abs(votes[0] - other));
+		}
+	};
+	checkPrimaries(legacy, ranking);
+	checkPrimaries(ranking, legacy);
+	if (error > 1e-7) {
+		++pair.unavailable;
+		return;
+	}
+	++pair.draws;
+	bool const referenceWins = comparison.legacy.winner() == comparison.legacy.candidates[0];
+	if (referenceWins) ++pair.referenceFirstWins;
+	if (comparison.model.final.winner() == comparison.model.final.candidates[0]) ++pair.alternativeFirstWins;
+	pair.maximumAccountError = std::max(pair.maximumAccountError, error);
+	pair.tcpChangeSum += comparison.model.final.firstShare - comparison.legacy.firstShare;
+	for (auto const& [id, votes] : legacy) {
+		if (votes[0] <= 0.0) continue;
+		auto const found = ranking.find(id);
+		if (found == ranking.end() || found->second[0] <= 0.0) continue;
+		auto& source = pair.sources[id];
+		++source.draws;
+		source.primarySum += votes[0];
+		std::array const firstVotes{votes[1], found->second[1]};
+		std::array const primaryVotes{votes[0], found->second[0]};
+		// A diagnostic-only replacement answers whether this source's changed
+		// transfers would reverse this same final contest, holding all other
+		// sources at their old allocations. These effects are not additive:
+		// two sources can each suffice to change the winner, or only do so together.
+		PairResult const onlyThisSource{comparison.legacy.candidates,
+			comparison.legacy.firstShare + firstVotes[1] - firstVotes[0], {}};
+		bool const sourceWins = onlyThisSource.winner() == onlyThisSource.candidates[0];
+		source.firstWinChangeOnlyThisSource += static_cast<int>(sourceWins) - static_cast<int>(referenceWins);
+		for (std::size_t side = 0; side < 2; ++side) {
+			double const rate = firstVotes[side] / primaryVotes[side];
+			source.rateSum[side] += rate;
+			source.rateSquaredSum[side] += rate * rate;
+			source.firstVotesSum[side] += firstVotes[side];
+		}
 	}
 }
 
@@ -2306,9 +2535,8 @@ void Summary::record(Comparison const& comparison, int iteration)
 	++winners[modelWinner].second;
 	if (comparison.modelLivePairMatched) ++livePairMatches;
 
-	if (comparison.withoutClassicTppMatching || comparison.reducedLaborToGreens) {
-		standardVsRanking.record(comparison.legacy, model.final);
-	}
+	standardVsRanking.record(comparison.legacy, model.final);
+	sourceTransfers.record(comparison);
 	auto recordTest = [&](std::optional<CountResult> const& alternative, PairComparisonSummary& summary) {
 		if (!alternative) return;
 		if (alternative->status == Status::Compared) summary.record(model.final, alternative->final);

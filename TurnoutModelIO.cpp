@@ -1,4 +1,5 @@
 #include "TurnoutModelIO.h"
+#include "LiveHistoryScope.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -14,6 +15,7 @@ std::filesystem::path priorPath(std::filesystem::path const& root, std::string c
     return root/"forecasts"/election/"live-inputs"/"turnout-prior.json";
 }
 std::filesystem::path historyDirectory(std::filesystem::path const& root, std::string const& election) {
+    if (!LiveHistoryScope::active.empty()) return LiveHistoryScope::active/"turnout";
     return root/"forecasts"/election/"live-snapshots"/"turnout";
 }
 Artifact loadForElection(std::filesystem::path const& root, std::string const& election) {

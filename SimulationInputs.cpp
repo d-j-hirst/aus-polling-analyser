@@ -3,6 +3,7 @@
 // the next run boundary, then supplies those same file contents to preparation.
 
 #include "SimulationInputs.h"
+#include "LiveAutomation.h"
 
 #include "PollingProject.h"
 #include "Simulation.h"
@@ -56,6 +57,7 @@ std::string calculationSettings(
 		{"dates", projected.possibleDates}, {"end", projected.endDate.formatIso()}
 	};
 	result["model"] = {
+		{"updated", model.getLastUpdatedDate().formatIsoUtc()},
 		{"term", model.getTermCode()}, {"parties", model.getPartyCodes()},
 		{"preferenceDeviation", model.getPreferenceDeviation()},
 		{"preferenceSamples", model.getPreferenceSamples()},
@@ -171,6 +173,17 @@ bool SimulationInputs::reusableWith(SimulationInputs const& other) const
 std::string const& SimulationInputs::path(File file) const
 {
 	return paths.at(file);
+}
+
+std::string SimulationInputs::contentIdentity() const
+{
+    // Stable across process restarts, unlike the in-memory revision markers
+    // used for cache reuse. Missing optional inputs remain distinct from empty.
+    nlohmann::json files = nlohmann::json::object();
+    for (auto const& [pathName, text] : contents)
+        files[pathName] = text ? nlohmann::json(*text) : nlohmann::json(nullptr);
+    return LiveAutomation::digest(nlohmann::json{{"settings",settings},
+        {"seats",seatContents.value_or("")},{"files",files}}.dump());
 }
 
 std::istringstream SimulationInputs::open(std::string const& path) const

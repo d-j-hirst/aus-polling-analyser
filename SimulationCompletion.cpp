@@ -7,6 +7,7 @@
 
 #include "LiveData.h"
 #include "LiveRunExport.h"
+#include "LiveStatewidePreferences.h"
 #include "PollingProject.h"
 #include "Simulation.h"
 #include "SimulationRun.h"
@@ -203,6 +204,11 @@ void SimulationCompletion::completeRun(
 	// no new public count; a failed main calculation retains the previous report.
 	if (run.isLiveAutomatic() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
 		sim.latestReport.countProgress = run.liveElection->getCountProgress();
+		// A failure on a particular kind of draw could bias the published
+		// distribution. Omit the optional table as a whole in that case.
+		if (!run.warnings.contains(SimulationRun::WarningCategory::StatewidePreferenceReport))
+			sim.latestReport.statewidePreferenceFlows = LiveStatewidePreferences::percentiles(
+				run.statewidePreferenceSamples,Simulation::Report::CurrentlyUsedProbabilityBands);
 		if (sim.latestReport.countProgress)
 			sim.latestReport.total2cpPercentCounted = float(sim.latestReport.countProgress->tcpPercent());
 	}

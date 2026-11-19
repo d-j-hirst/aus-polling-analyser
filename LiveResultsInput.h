@@ -2,16 +2,40 @@
 
 #include <filesystem>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace LiveResultsInput {
 
+// A malformed delivery can be rejected while later deliveries continue. A
+// failure to read supporting configuration or write working files instead
+// requires operator attention: retrying the next election count cannot fix it.
+class ProcessingError : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
+
+std::filesystem::path cachedSupportFile(std::string source, std::string const& suffix = ".xml");
+
 struct CurrentFile {
 	std::filesystem::path path;
 	std::optional<std::string> timestamp;
+	// The watcher keeps the commission's observation time alongside the compact
+	// code used to name reports. A manually selected archive has only its capture code.
+	std::optional<std::string> sourceObservationTime = std::nullopt;
 };
+
+struct PreferenceCountCutoff {
+	std::string time;
+	std::string clockRegion;
+};
+
+// Identify the instant up to which a separate, dated preference count was
+// available. An empty result leaves the caller to use its fixed-file or live clock.
+std::optional<PreferenceCountCutoff> snapshotPreferenceCutoff(
+	std::optional<CurrentFile> const& selected, std::string const& electionRegion);
 
 struct PreloadFiles {
 	std::filesystem::path results;

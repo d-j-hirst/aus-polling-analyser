@@ -1,4 +1,5 @@
 #include "LiveV2.h"
+#include "PollingProject.h"
 #include "SimulationRun.h"
 #include "Simulation.h"
 #include "LiveFpIntegration.h"
@@ -115,6 +116,31 @@ std::vector<LiveData::FpIntegrationInformation> LiveV2::Election::fpIntegrationC
         information[s].poolIndependents = run.isLiveAutomatic() && run.preferenceModel &&
             run.preferenceModel->coversDistrict(static_cast<int>(s)) && seats[s].secondaryIndependent &&
             !seats[s].namedIndependentMatches;
+        // A seat can include a minor party in its anonymous forecast even
+        // though the project's party list recognises its code in the feed.
+        // Count ballot identities, including explicit zero returns. The
+        // reported vote share is the evidence used later to update this prior.
+        auto& inputs = information[s];
+        int otherBallotMembers = 0;
+        for (auto const& [id, votes] : seats[s].node.fpVotesCurrent) {
+            if (id == seats[s].liveIndependentPartyIndex) continue;
+            if (id < 0 || id >= project.parties().count()) {
+                ++otherBallotMembers;
+            } else if (id >= PartyCollection::NumMajorParties && id != run.natPartyIndex &&
+                id != run.indPartyIndex &&
+                LiveFpIntegration::value(inputs.baseline.shareMean, id) == 0) {
+                inputs.partiesFromOthers.push_back(id);
+                ++otherBallotMembers;
+            }
+        }
+        // OTH*** lists four unnamed party candidates. Some feeds initially
+        // omit ballot members, so retain at least the configured number. If
+        // no multiplicity is known, assume at least three share the pool.
+        if (!inputs.partiesFromOthers.empty()) {
+            int const projectSeat = project.seats().indexByName(seats[s].name);
+            int const listedOthers = run.othCount.at(projectSeat);
+            inputs.othersPoolSize = std::max(otherBallotMembers, listedOthers > 0 ? listedOthers : 3);
+        }
     }
     return information;
 }

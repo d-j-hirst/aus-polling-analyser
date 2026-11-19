@@ -68,6 +68,8 @@ public:
 	bool isLiveProgressWindow(wxWindow const* window) const { return window == liveProgress; }
 	bool startLiveRun(std::vector<LiveSimulationJob::Input> inputs);
 	void stopLiveRun();
+	void configureLiveWatch();
+	bool startLiveWatch(bool acknowledgeChange = true);
 	bool deferCloseForLiveRun();
 
 	class Refresher {
@@ -83,6 +85,8 @@ public:
 		void refreshLiveBooths() const;
 		bool startLiveRun(std::vector<LiveSimulationJob::Input> inputs) const { return projectFrame.startLiveRun(std::move(inputs)); }
 		bool isLiveRunning() const { return projectFrame.isLiveRunning(); }
+		void configureLiveWatch() const { projectFrame.configureLiveWatch(); }
+		void startLiveWatch() const { projectFrame.startLiveWatch(); }
 		// Gives a reference to the underlying notebook so that this
 		// can be used to construct children of the ProjectFrame
 		wxNotebook* notebook() const { return &projectFrame; }
@@ -119,6 +123,7 @@ public:
 private:
 	void onLiveCompletion(wxThreadEvent& event);
 	void onLiveProgress(wxTimerEvent& event);
+	void launchCommentaryTrial();
 	void updateLiveStatus(wxString const& message);
 	void dispatchLiveSnapshot();
 	void finishLiveJob(std::string message);
@@ -135,6 +140,11 @@ private:
 	std::size_t liveIndex = 0;
 	std::uint64_t liveGeneration = 0;
 	bool liveStopRequested = false, closeAfterLive = false;
+	bool liveWatching = false, liveWatchPending = false, liveWatchAcknowledge = false;
+	std::string liveWatchFinishState = "paused";
+	std::int64_t liveWatchPollAt = 0;
+	std::int64_t liveWatchStatusAt = 0;
+	std::string liveWatchSummary;
 	std::string lastPublishedCode;
 	std::optional<std::string> liveFinishMessage;
 	wxTimer liveProgressTimer;

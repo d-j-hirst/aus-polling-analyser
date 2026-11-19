@@ -1,0 +1,8 @@
+{
+  "run_id": "2026sa-example",
+  "forecast_id": "f00000002",
+  "sha256": "cb2514f139557b7130c0e67e2ee9af6341f0cd91f2655e272282806bfd3b3dc2",
+  "published_at": "2026-11-17T01:02:03+00:00",
+  "latest_forecast_id": "f00000002",
+  "latest_source_time": "2026-03-21T08:01:00+00:00"
+}

@@ -89,6 +89,8 @@ call :run LiveSnapshotDataTests
 if errorlevel 1 goto :failure
 call :run ResponsiveLiveTests
 if errorlevel 1 goto :failure
+call :run LiveAutomationTests
+if errorlevel 1 goto :failure
 call :run MacroTargetResolverTests
 if errorlevel 1 goto :failure
 call :run MajorPartyFpMathTests
@@ -111,7 +113,9 @@ call :run SharedInputLookupTests
 if errorlevel 1 goto :failure
 call :run TerminalMacroFeedbackTests
 if errorlevel 1 goto :failure
-call :run LiveInputRecoveryTests "%~dp0"
+rem A quoted path ending in a backslash escapes its closing quote in C++ argv.
+rem The script already changed to the repository directory above.
+call :run LiveInputRecoveryTests "."
 if errorlevel 1 goto :failure
 call :run LiveInputHistoryTests
 if errorlevel 1 goto :failure
@@ -123,13 +127,13 @@ call :run CoreReportSummaryTests
 if errorlevel 1 goto :failure
 echo Running ForecastSpecificationTests against committed forecasts
 "%TEST_DIRECTORY%\ForecastSpecificationTests.exe" "." !FORECASTS!
-if errorlevel 1 goto :failure
+if not "%ERRORLEVEL%"=="0" goto :failure
 echo Running ForecastSpecificationProjectAdapterTests
 "%TEST_DIRECTORY%\ForecastSpecificationProjectAdapterTests.exe" "." !FORECASTS!
-if errorlevel 1 goto :failure
+if not "%ERRORLEVEL%"=="0" goto :failure
 echo Running CliDependencyBoundaryTests
 "%TEST_DIRECTORY%\CliDependencyBoundaryTests.exe" "." !FORECASTS!
-if errorlevel 1 goto :failure
+if not "%ERRORLEVEL%"=="0" goto :failure
 
 echo All portable tests passed.
 popd
@@ -138,7 +142,9 @@ exit /b 0
 :run
 echo Running %~1
 "%TEST_DIRECTORY%\%~1.exe" %2 %3 %4 %5 %6 %7 %8 %9
-if errorlevel 1 exit /b 1
+rem Windows assertion/exception exit codes may be negative signed integers.
+rem ERRORLEVEL 1 misses those failures, so compare directly with zero.
+if not "%ERRORLEVEL%"=="0" exit /b 1
 exit /b 0
 
 :failure

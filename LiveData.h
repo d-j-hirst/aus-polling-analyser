@@ -13,6 +13,8 @@
 #include <span>
 #include <vector>
 
+namespace LiveStatewidePreferences { struct Election; }
+
 // Portable boundary between the core simulation and a live-results analysis
 // implementation. These types deliberately have no dependency on electoral-
 // commission parsers, wxWidgets, or third-party libraries.
@@ -170,6 +172,10 @@ struct FpDistributionMoments {
 };
 struct FpIntegrationInformation {
 	FpDistributionMoments baseline, count;
+	// Registered parties on this ballot whose pre-election vote was carried
+	// in Others. Each receives the same fraction of a draw's available Others.
+	std::vector<int> partiesFromOthers;
+	int othersPoolSize = 0;
 	// Accepted election + region movement, in the analyser's log odds times 25.
 	// Freeze the prepared mean: local random count errors must not also enter
 	// the conditional prior indirectly through recalculated regional summaries.
@@ -280,6 +286,9 @@ public:
 	virtual ~Provider() = default;
 	// Unavailable for providers without an automatic accepted count account.
 	virtual std::optional<CountProgress> getCountProgress() const { return {}; }
+	// Frozen ballot populations and count evidence for the public flow table.
+	// Older providers and elections without the relevant ranked count omit it.
+	virtual LiveStatewidePreferences::Election const* statewidePreferenceInputs() const { return nullptr; }
 
 	// Input/output are transformed TPP draws in project seat order. The automatic
 	// live analysis combines these with count evidence jointly across seats. An

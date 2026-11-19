@@ -245,6 +245,14 @@ void SimulationsFrame::removeSimulation() {
 void SimulationsFrame::runSimulation() {
 	int simulationIndex = simulationData->GetSelectedRow();
 	Simulation::Id simulationId = project->simulations().indexToId(simulationIndex);
+	// A prepared commentary trial needs two successive forecasts. Delegate its
+	// Live Simulation button to the same resumable watcher used by Results.
+	if (project->simulations().view(simulationId).isLiveAutomatic() &&
+		project->automationSettings().is_object() &&
+		project->automationSettings().value("commentary_trial", nlohmann::json::object()).value("enabled", false)) {
+		refresher.startLiveWatch();
+		return;
+	}
 	project->simulations().run(simulationId, [](std::string s) {wxMessageBox(s); });
 	refreshDataTable();
 	simulationData->Refresh();

@@ -1,3 +1,8 @@
+#include "LiveAutomation.h"
+#include <wx/dirdlg.h>
+#include <wx/choicdlg.h>
+#include <wx/filedlg.h>
+#include <wx/textdlg.h>
 #include "ProjectFrame.h"
 
 #include "PartiesFrame.h"
@@ -19,7 +24,9 @@
 #include "ForecastSpecificationExport.h"
 
 #include <exception>
+#include <algorithm>
 #include <filesystem>
+#include <sstream>
 
 #include <wx/sizer.h>
 #include <wx/textctrl.h>
@@ -121,6 +128,16 @@ ProjectFrame::ProjectFrame(ParentFrame* parent, std::string pathName)
 
 	setupPages();
 	Show();
+    CallAfter([this] {
+        auto const& settings = project->automationSettings();
+        if (!settings.is_object()) return;
+        try {
+            LiveAutomation::Session session(project->paths().root(),settings);
+            if (session.status().value("state", "paused") == "armed") startLiveWatch(false);
+        } catch (std::exception const& error) {
+            wxMessageBox(wxString::FromUTF8(error.what()), "Live automation needs attention", wxOK | wxICON_ERROR, this);
+        }
+    });
 }
 
 // Constructor for the ProjectFrame creating a new file.
@@ -452,9 +469,17 @@ ProjectFrame::~ProjectFrame() {
 
 bool ProjectFrame::startLiveRun(std::vector<LiveSimulationJob::Input> inputs) {
 	if (isLiveRunning() || inputs.empty()) return false;
+	// The prepared commentary replay uses the normal Run action to start its
+	// feeder and watcher. Ordinary projects and explicit snapshot sequences keep
+	// their existing behaviour; this is an opt-in local benchmark setting.
+	if (!liveWatching && inputs.size() == 1 && !inputs.front() &&
+		project->automationSettings().is_object() &&
+		project->automationSettings().value("commentary_trial", nlohmann::json::object()).value("enabled", false)) {
+		return startLiveWatch();
+	}
 	std::vector<Simulation::Id> ids;
 	for (auto const& [id, simulation] : project->simulations())
-		if (simulation.isLive()) ids.push_back(id);
+		if (liveWatching ? simulation.isLiveAutomatic() : simulation.isLive()) ids.push_back(id);
 	if (ids.empty()) return false;
 	try {
 		initialiseLiveJob(std::move(inputs),std::move(ids));
@@ -484,7 +509,9 @@ void ProjectFrame::initialiseLiveJob(std::vector<LiveSimulationJob::Input> input
 	std::vector<std::shared_ptr<SimulationRun>> retired;
 	for (auto id : ids) retired.push_back(project->simulations().access(id).detachRetainedLiveRun());
 	liveJob->retire(std::move(retired));
-	liveInputs = std::move(inputs); liveIndex = 0; liveStopRequested = false;
+	if (liveWatching) liveJob->configureAutomation(project->automationSettings(),liveWatchAcknowledge);
+    liveWatchPending = false; liveWatchFinishState = "paused";
+    liveInputs = std::move(inputs); liveIndex = 0; liveStopRequested = false;
 	++liveGeneration; lastPublishedCode.clear();
 }
 
@@ -501,6 +528,15 @@ void ProjectFrame::createLiveProgress() {
 	layout->Add(liveStatus, 1, wxEXPAND | wxALL, 10);
 	layout->Add(liveGauge, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
 	layout->Add(liveStop, 0, wxALIGN_RIGHT | wxALL, 10);
+    if (liveWatching) {
+        liveStop->SetLabel("Pause after current forecast");
+        auto* disarm = new wxButton(liveProgress,wxID_ANY,"Stop / disarm");
+        layout->Add(disarm,0,wxALIGN_RIGHT | wxALL,10);
+        disarm->Bind(wxEVT_BUTTON,[this](wxCommandEvent&) {
+            if (!liveJob) return;
+            liveWatchFinishState = "disarmed"; stopLiveRun();
+        });
+    }
 	liveProgress->SetSizer(layout); liveProgress->CentreOnParent();
 	liveStop->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
 		if (isLiveRunning()) stopLiveRun();
@@ -516,7 +552,13 @@ void ProjectFrame::createLiveProgress() {
 void ProjectFrame::dispatchLiveSnapshot() {
 	if (!liveJob) return;
 	if (liveStopRequested) { finishLiveJob("Stopped after " + std::to_string(liveIndex) + " completed snapshots."); return; }
-	if (!liveJob->submit(liveGeneration, liveInputs.at(liveIndex)))
+	if (liveWatching) {
+        if (liveWatchPending) return;
+        liveWatchPending = liveJob->submit(liveGeneration, LiveSimulationJob::Input{});
+        liveWatchPollAt = Timestamp::now().unixMilliseconds()+2000;
+        return;
+    }
+    if (!liveJob->submit(liveGeneration, liveInputs.at(liveIndex)))
 		finishLiveJob("Could not dispatch the next live snapshot.");
 }
 
@@ -528,10 +570,58 @@ void ProjectFrame::stopLiveRun() {
 
 bool ProjectFrame::deferCloseForLiveRun() {
 	if (!liveJob) return false;
-	closeAfterLive = true; stopLiveRun(); return true;
+	closeAfterLive = true; if (liveWatching) liveWatchFinishState = "armed"; stopLiveRun(); return true;
 }
 
 void ProjectFrame::onLiveProgress(wxTimerEvent&) {
+    if (liveWatching && liveJob && !liveFinishMessage) {
+        if (!liveWatchPending && (liveStopRequested || Timestamp::now().unixMilliseconds() >= liveWatchPollAt))
+            dispatchLiveSnapshot();
+        if (Timestamp::now().unixMilliseconds() >= liveWatchStatusAt) {
+            liveWatchStatusAt = Timestamp::now().unixMilliseconds()+2000;
+            auto directory = project->paths().root()/"live_runs"/project->automationSettings().at("run_id").get<std::string>();
+            try {
+                auto status = std::filesystem::exists(directory/"status.json") ? LiveAutomation::readJson(directory/"status.json") : nlohmann::json::object();
+                auto arrival = std::filesystem::exists(directory/"arrival-status.json") ? LiveAutomation::readJson(directory/"arrival-status.json") : nlohmann::json::object();
+                auto reporting = std::filesystem::exists(directory/"reporting-status.json") ? LiveAutomation::readJson(directory/"reporting-status.json") : nlohmann::json::object();
+                liveWatchSummary = "Received: "+arrival.value("latest_received",std::string("none"))+"\nAccepted: "+status.value("latest_accepted",std::string("none"))+
+                    "\nForecasted: "+status.value("latest_forecast",std::string("none"));
+                auto counts = status.value("counts",nlohmann::json::object());
+                int notYetAccepted = std::max(0,arrival.value("collected",0)-status.value("known_arrivals",0)) + counts.value("discovered",0);
+                liveWatchSummary += "\nAwaiting acceptance: "+std::to_string(notYetAccepted)+
+                    "; accepted since last attempt: "+std::to_string(status.value("awaiting_forecast",0))+
+                    "; rejected: "+std::to_string(counts.value("rejected",0));
+                for (auto const* key : {"error","last_forecast_error","last_rejection"})
+                    if (!status.value(key,std::string()).empty()) liveWatchSummary += "\n"+status[key].get<std::string>();
+                liveWatchSummary += "\nReporting: "+(reporting.empty() ? std::string("upload/reporting watcher has not started") :
+                    reporting.value("error",std::string("active; requests pending: ")+std::to_string(reporting.value("pending_commentary_requests",0))));
+                if (std::filesystem::exists(directory/"trial-status.json")) {
+                    auto trial = LiveAutomation::readJson(directory/"trial-status.json");
+                    liveWatchSummary += "\nCommentary trial: "+trial.value("message", std::string("starting"));
+                    std::string stage = trial.value("stage", std::string());
+                    if (!liveWatchPending && (stage == "complete" || stage == "error")) {
+                        finishLiveJob(liveWatchSummary);
+                        return;
+                    }
+                }
+                if (std::filesystem::is_directory(directory/"receipts"))
+                    for (auto const& entry : std::filesystem::directory_iterator(directory/"receipts")) {
+                        if (entry.path().extension() != ".json") continue;
+                        auto receipt = LiveAutomation::readJson(entry.path());
+                        std::string published = "none";
+                        if (receipt.contains("latest_source_time") && receipt["latest_source_time"].is_string())
+                            published = receipt["latest_source_time"].get<std::string>();
+                        else if (receipt.contains("latest_forecast_id") && receipt["latest_forecast_id"].is_string())
+                            published = receipt["latest_forecast_id"].get<std::string>();
+                        liveWatchSummary += "\nPublished ("+entry.path().stem().string()+"): "+published;
+                        if (receipt.contains("forecasts")) for (auto const& [id,record] : receipt["forecasts"].items())
+                            if (!record.value("accepted",false)) { liveWatchSummary += " - "+record.value("error",std::string("pending")); break; }
+                    }
+            } catch (std::exception const& error) { liveWatchSummary = std::string("Could not read watcher status: ")+error.what(); }
+        }
+        if (liveJob) updateLiveStatus(wxString::FromUTF8(liveWatchSummary+"\n\n"+liveJob->progress()));
+        return;
+    }
 	// A timer event already queued before Stop() can arrive during worker
 	// cleanup, after the final input index has advanced beyond the sequence.
 	if (!liveJob || !liveStatus || liveFinishMessage || liveIndex >= liveInputs.size()) return;
@@ -563,13 +653,17 @@ void ProjectFrame::onLiveCompletion(wxThreadEvent&) {
 		catch (...) { finishLiveJob("Unknown live-worker failure."); }
 		return;
 	}
+	liveWatchPending = false;
 	auto& update = *completed->result;
 	if (update.finished) {
 		finishLiveJob(liveFinishMessage.value_or("Live run finished."));
 		return;
 	}
 	publishLiveUpdate(update);
-	advanceLiveSequence(update);
+	if (liveWatching) {
+        if (!update.succeeded) finishLiveJob(update.failure);
+        else if (liveStopRequested) finishLiveJob("Folder watching paused.");
+    } else advanceLiveSequence(update);
 }
 
 void ProjectFrame::publishLiveUpdate(LiveSimulationUpdate& update) {
@@ -604,8 +698,9 @@ void ProjectFrame::finishLiveJob(std::string message) {
 	if (liveJob && !liveFinishMessage) {
 		liveFinishMessage = message;
 		updateLiveStatus("Finishing live run...");
-		if (liveJob->finish(liveGeneration)) return;
+		if (liveJob->finish(liveGeneration,liveWatchFinishState)) return;
 	}
+	liveWatching = false; liveWatchPending = false;
 	liveJob.reset(); // Worker is between tasks; joining never waits for a calculation here.
 	liveFinishMessage.reset();
 	updateLiveActivityPolicy();
@@ -625,4 +720,254 @@ void ProjectFrame::updateLiveActivityPolicy() {
 	for (std::size_t i = 0; i < GetPageCount(); ++i)
 		if (auto* page = dynamic_cast<GenericChildFrame*>(GetPage(i))) page->refreshActivityPolicy();
 	parent->refreshLiveActivityPolicy();
+}
+
+
+namespace {
+// The reporting worker reads these settings from the run when it starts.
+// Copy the preset so edits to the source JSON do not affect an existing run.
+bool selectLiveCommentary(wxWindow* parent, std::filesystem::path const& root, nlohmann::json& config) {
+    auto const current = config.value("commentary", nlohmann::json::object());
+    bool const hasPreset = current.value("enabled", false);
+    wxArrayString choices;
+    choices.Add("Off");
+    if (hasPreset) {
+        auto label = "Keep saved preset (" + current.at("model").get<std::string>() +
+            ", US$" + current.at("spending_limit_usd").dump() + " per run)";
+        choices.Add(wxString::FromUTF8(label));
+    }
+    auto const trialPath = root/"uploads"/"sa-local-replay-commentary.json";
+    bool const showTrial = config.at("election") == "2026sa" && std::filesystem::is_regular_file(trialPath);
+    int const trialIndex = static_cast<int>(choices.size());
+    if (showTrial) choices.Add("SA trial (Terra Standard/low, US$1 per run)");
+    int const fileIndex = static_cast<int>(choices.size());
+    choices.Add("Choose a commentary preset JSON file...");
+    wxSingleChoiceDialog dialog(parent, "Choose commentary for this run. Restart the upload manager after changing this setting.",
+        "Forecast commentary", choices);
+    dialog.SetSelection(hasPreset ? 1 : 0);
+    if (dialog.ShowModal() != wxID_OK) return false;
+    auto const selected = dialog.GetSelection();
+    if (selected == 0) {
+        config["commentary"] = {{"enabled",false}};
+        return true;
+    }
+    if (hasPreset && selected == 1) return true;
+
+    auto path = trialPath;
+    if (selected == fileIndex) {
+        wxFileDialog file(parent, "Choose a commentary preset", root.string(), "", "JSON files (*.json)|*.json",
+            wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        if (file.ShowModal() != wxID_OK) return false;
+        path = LiveResultsInput::pathFromUtf8(file.GetPath().ToStdString(wxConvUTF8));
+    } else if (!showTrial || selected != trialIndex) {
+        return false;
+    }
+    auto const preset = LiveAutomation::readJson(path);
+    if (!preset.is_object() || !preset.value("enabled", false) ||
+        preset.value("model", "").empty() || preset.value("spending_limit_usd", 0.0) <= 0 ||
+        preset.value("input_usd_per_million", 0.0) <= 0 || preset.value("output_usd_per_million", 0.0) <= 0)
+        throw std::runtime_error("Choose an enabled commentary preset with a model, positive prices and a run spending limit.");
+
+    // The run manifest holds operational choices. Credentials are supplied by
+    // the reporting worker's environment, so only supported settings are copied.
+    nlohmann::json settings = nlohmann::json::object();
+    for (auto key : {"enabled","model","service_tier","reasoning_effort","prompt_version",
+        "minimum_count_change","spending_limit_usd","input_usd_per_million","cached_input_usd_per_million",
+        "output_usd_per_million","concurrency","attempts","max_output_tokens","request_timeout_seconds",
+        "cache_comparison"}) {
+        if (preset.contains(key)) settings[key] = preset.at(key);
+    }
+    auto label = settings.at("model").get<std::string>() + " with a US$" +
+        settings.at("spending_limit_usd").dump() + " spending limit for this run.";
+    if (wxMessageBox(wxString::FromUTF8(label), "Enable forecast commentary",
+        wxOK | wxCANCEL | wxICON_INFORMATION, parent) != wxOK) return false;
+    config["commentary"] = std::move(settings);
+    return true;
+}
+}
+
+void ProjectFrame::configureLiveWatch() {
+    if (isLiveRunning()) return;
+    try {
+        std::string election;
+        for (auto const& [id,sim] : project->simulations()) {
+            if (!sim.isLiveAutomatic()) continue;
+            if (!election.empty()) throw std::runtime_error("Configure one automatic live simulation for folder watching.");
+            election = project->projections().view(sim.getSettings().baseProjection).getBaseModel(project->models()).getTermCode();
+        }
+        if (election.empty()) throw std::runtime_error("Configure an automatic live simulation first.");
+        wxArrayString choices; choices.Add("New replay run"); choices.Add("New official live run"); choices.Add("Edit selected run");
+        wxSingleChoiceDialog kind(this,"Choose the run to configure. A new run has separate history and a separate URL.","Live automation",choices);
+        if (kind.ShowModal() != wxID_OK) return;
+        auto const& root = project->paths().root();
+        auto config = project->automationSettings();
+        bool newRun = kind.GetSelection() < 2;
+        if (newRun) {
+            std::string const runKind = kind.GetSelection() == 1 ? "live" : "replay";
+            auto proposedId = LiveAutomation::suggestRunId(root, election, runKind);
+            for (;;) {
+                wxTextEntryDialog name(this,"Choose the ID for the uploader, feed inbox and replay URL.",
+                    "Run ID",wxString::FromUTF8(proposedId));
+                if (name.ShowModal() != wxID_OK) return;
+                auto id = name.GetValue().ToStdString(wxConvUTF8);
+                LiveAutomation::validateRunId(id);
+                auto folder = root/"live_runs"/id;
+                if (!std::filesystem::exists(folder)) {
+                    config = {{"version",1},{"election",election},{"run_id",id},{"kind",runKind},
+                        {"visibility","private"},{"night_end_hour",6},
+                        {"commentary_timeout_seconds",election.ends_with("fed") ? 30 : 90},
+                        {"source_directory","live_runs/"+id+"/inbox"}};
+                    break;
+                }
+                auto manifest = folder/"run.json";
+                if (std::filesystem::is_regular_file(manifest)) {
+                    auto existing = LiveAutomation::readJson(manifest);
+                    if (existing.value("election","") == election && existing.value("kind","") == runKind &&
+                        existing.value("run_id","") == id) {
+                        int answer = wxMessageBox("This ID is already in use. Open the saved run?",
+                            "Run ID in use",wxYES_NO | wxCANCEL | wxICON_QUESTION,this);
+                        if (answer == wxCANCEL) return;
+                        if (answer == wxYES) {
+                            config = std::move(existing);
+                            newRun = false;
+                            break;
+                        }
+                    } else {
+                        wxMessageBox("This ID belongs to a different election or run type. Choose another ID.",
+                            "Run ID in use",wxOK | wxICON_INFORMATION,this);
+                    }
+                } else {
+                    wxMessageBox("A folder already exists for this ID. Choose another ID.",
+                        "Run ID in use",wxOK | wxICON_INFORMATION,this);
+                }
+            }
+        }
+        if (!config.is_object()) throw std::runtime_error("Create a new run first.");
+        if (config.at("election") != election) throw std::runtime_error("The selected run belongs to another election. Create a new run.");
+        auto id = config.at("run_id").get<std::string>();
+        if (!newRun) {
+            // A project opened from an older saved copy can point to a run
+            // whose inbox or commentary was edited since that copy was made.
+            auto manifest = root/"live_runs"/id/"run.json";
+            if (std::filesystem::is_regular_file(manifest)) config = LiveAutomation::readJson(manifest);
+            if (config.at("election") != election || config.at("run_id") != id)
+                throw std::runtime_error("The saved run does not match this project.");
+        }
+        wxArrayString inboxOptions;
+        inboxOptions.Add(wxString::FromUTF8(config.at("source_directory").get<std::string>()));
+        inboxOptions.Add("Choose another folder...");
+        wxSingleChoiceDialog inbox(this,"Folder receiving complete election feed files","Feed inbox",inboxOptions);
+        inbox.SetSelection(0);
+        if (inbox.ShowModal() != wxID_OK) return;
+        if (inbox.GetSelection() == 1) {
+            auto source = LiveResultsInput::resolveDirectory(config.at("source_directory").get<std::string>());
+            wxDirDialog directory(this,"Folder receiving complete election feed files",
+                wxString::FromUTF8(LiveResultsInput::pathToUtf8(project->paths().resolve(source))),
+                wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+            if (directory.ShowModal() != wxID_OK) return;
+            config["source_directory"] = LiveResultsInput::portableDirectory(directory.GetPath().ToStdString(wxConvUTF8));
+        }
+        if (newRun) {
+            wxTextEntryDialog date(this,"Election date (YYYY-MM-DD)","Comparison windows");
+            if (date.ShowModal() != wxID_OK) return;
+            config["election_date"] = date.GetValue().ToStdString();
+            wxTextEntryDialog label(this,"Display name (optional)","Live automation",wxString::FromUTF8(id));
+            if (label.ShowModal() != wxID_OK) return;
+            config["display_name"] = label.GetValue().empty() ? id : label.GetValue().ToStdString(wxConvUTF8);
+            wxArrayString visibilityOptions;
+            visibilityOptions.Add("Private replay / operator preview");
+            visibilityOptions.Add("Publicly viewable");
+            wxSingleChoiceDialog visibility(this,"Visibility requested from servers that support this run type",
+                "Publication visibility",visibilityOptions);
+            visibility.SetSelection(0);
+            if (visibility.ShowModal() != wxID_OK) return;
+            config["visibility"] = visibility.GetSelection() == 1 ? "public" : "private";
+            auto region = election.substr(4);
+            config["timezone"] = region == "sa" ? "Australia/Adelaide" : region == "wa" ? "Australia/Perth" :
+                region == "qld" ? "Australia/Brisbane" : region == "nt" ? "Australia/Darwin" :
+                region == "tas" ? "Australia/Hobart" : "Australia/Sydney";
+        }
+        wxTextEntryDialog timing(this,"Morning cutoff hour and commentary deadline in seconds (for example 6 90)","Reporting timing",
+            wxString::FromUTF8(std::to_string(config.value("night_end_hour",6))+" "+std::to_string(config.value("commentary_timeout_seconds",election.ends_with("fed") ? 30 : 90))));
+        if (timing.ShowModal() != wxID_OK) return;
+        int cutoffHour = 0, deadlineSeconds = 0; std::string extra;
+        std::istringstream timingValues(timing.GetValue().ToStdString());
+        if (!(timingValues >> cutoffHour >> deadlineSeconds) || timingValues >> extra || cutoffHour < 0 || cutoffHour > 23 || deadlineSeconds < 0 || deadlineSeconds > 600)
+            throw std::runtime_error("Use a cutoff hour from 0 to 23 and deadline from 0 to 600 seconds.");
+        config["night_end_hour"] = cutoffHour; config["commentary_timeout_seconds"] = deadlineSeconds;
+        if (!selectLiveCommentary(this, root, config)) return;
+        LiveAutomation::Session session(root, config);
+        session.saveConfiguration(newRun);
+        config.erase("input_revision");
+        project->setAutomationSettings(config);
+        // Save the association in the project. The manifest already lets the
+        // separate publisher attach, even before the forecast watcher starts.
+        if (!save()) return;
+        wxMessageBox(wxString::FromUTF8("Run " + id + " is ready. Start Watch / Resume to calculate forecasts."),
+            "Live automation",wxOK | wxICON_INFORMATION,this);
+    } catch (std::exception const& error) {
+        wxMessageBox(wxString::FromUTF8(error.what()),"Cannot configure watching",wxOK | wxICON_ERROR,this);
+    }
+}
+
+bool ProjectFrame::startLiveWatch(bool acknowledgeChange) {
+    if (isLiveRunning()) return false;
+    if (!project->automationSettings().is_object()) {
+        wxMessageBox("Use Configure watching first.","Live automation",wxOK | wxICON_INFORMATION,this); return false;
+    }
+    try {
+        LiveAutomation::validateSettings(project->automationSettings());
+        // The calculation worker writes normal diagnostic snapshots in this
+        // run's folder. Give the editable project the same location so Live
+        // Booths can find them too; previously only the worker's private copy
+        // knew where to look. This changes output selection, not model inputs.
+        auto const folder = project->automationSettings().at("run_id").get<std::string>();
+        for (auto& [simulationId, simulation] : project->simulations()) {
+            if (!simulation.isLiveAutomatic()) continue;
+            auto settings = simulation.getSettings();
+            settings.liveOutputFolder = folder;
+            simulation.replaceSettings(std::move(settings));
+        }
+    } catch (std::exception const& error) {
+        wxMessageBox(wxString::FromUTF8(error.what()),"Cannot start watching",wxOK | wxICON_ERROR,this);
+        return false;
+    }
+    liveWatching = true; liveWatchAcknowledge = acknowledgeChange;
+    if (!startLiveRun({LiveSimulationJob::Input{}})) { liveWatching = false; return false; }
+    try {
+        launchCommentaryTrial();
+    } catch (std::exception const& error) {
+        finishLiveJob(error.what());
+        return false;
+    }
+    return true;
+}
+
+void ProjectFrame::launchCommentaryTrial() {
+    // Forecasting stays inside the existing C++ worker. A fixed Python helper
+    // delivers the next selected feed only after the previous forecast succeeds,
+    // prepares numerical comparisons, then runs the configured local benchmark.
+    // No command text comes from the project, and no upload process is started.
+    auto const& settings = project->automationSettings();
+    if (!settings.value("commentary_trial", nlohmann::json::object()).value("enabled", false)) return;
+    auto root = project->paths().root();
+#ifdef _WIN32
+    auto python = root/"analysis"/".venv-win"/"Scripts"/"python.exe";
+#else
+    auto python = root/"analysis"/"env"/"bin"/"python";
+#endif
+    auto script = root/"live_scripts"/"run_commentary_trial.py";
+    auto directory = root/"live_runs"/settings.at("run_id").get<std::string>();
+    if (!std::filesystem::is_regular_file(python) || !std::filesystem::is_regular_file(script)) {
+        throw std::runtime_error("The commentary trial needs the analysis Python environment and live_scripts/run_commentary_trial.py.");
+    }
+    std::vector<std::wstring> arguments = {python.wstring(), L"-B", script.wstring(), L"--run", directory.wstring()};
+    std::vector<wchar_t const*> argv;
+    for (auto const& argument : arguments) argv.push_back(argument.c_str());
+    argv.push_back(nullptr);
+    wxExecuteEnv environment;
+    environment.cwd = wxString(root.wstring());
+    if (wxExecute(argv.data(), wxEXEC_ASYNC | wxEXEC_HIDE_CONSOLE, nullptr, &environment) == 0) {
+        throw std::runtime_error("Could not launch the commentary trial helper. No benchmark requests were started.");
+    }
 }

@@ -40,6 +40,44 @@ void testProjectedVoteShareEndpoints()
 int main()
 {
     testProjectedVoteShareEndpoints();
+    // The live ballot identifies two parties that pre-election draws included
+    // in a four-candidate Others pool. A separate independent prior still
+    // belongs to that candidate, including while both use a pooled account.
+    std::map<int,double> district{{0,90},{-1,10}};
+    LiveFpIntegration::assignMissingPartyPriors(district,-1,{3,4},4,2);
+    assert((district == std::map<int,double>{{0,90},{3,2},{4,2},{-1,6}}));
+    std::map<int,double> reversed{{0,90},{-1,10}};
+    LiveFpIntegration::assignMissingPartyPriors(reversed,-1,{4,3},4,2);
+    assert(reversed == district);
+    std::map<int,double> named{{3,5},{-1,6}};
+    LiveFpIntegration::assignMissingPartyPriors(named,-1,{3,4},3,0);
+    assert(named.at(3) == 5 && named.at(4) == 2 && named.at(-1) == 4);
+    std::map<int,double> emptyPool{{0,100}};
+    LiveFpIntegration::assignMissingPartyPriors(emptyPool,-1,{3},3,0);
+    assert(emptyPool.size() == 1);
+    // A Flinders-style first return gives the separately recognised party
+    // zero ballots, while the booth model still expects some votes elsewhere.
+    // Its seat estimate should sit between the prior and the booth estimate.
+    LiveFpIntegration::MomentAccumulator baselineDraws, countDraws;
+    baselineDraws.add({{0,94},{-1,6}});
+    baselineDraws.add({{0,90},{-1,10}});
+    countDraws.add({{0,92},{-1,7},{3,1}});
+    countDraws.add({{0,92},{-1,7.8},{3,.2}});
+    LiveData::FpIntegrationInformation firstBooths;
+    firstBooths.baseline = baselineDraws.finish();
+    firstBooths.count = countDraws.finish();
+    firstBooths.evidenceGate = .2;
+    LiveTurnoutMath::PartyAccount firstCount{
+        {{0,90},{-1,10},{3,0}}, {{0,9200},{-1,750},{3,50}}};
+    std::map<int,double> prior{{0,92},{-1,8}};
+    LiveFpIntegration::assignMissingPartyPriors(prior,-1,{3},4,0);
+    auto unchangedId = [](int id) { return id; };
+    auto estimate = LiveFpIntegration::integrate(firstCount,prior,firstBooths,unchangedId,unchangedId);
+    assert(estimate.at(3) > .5 && estimate.at(3) < 2);
+    assert(std::abs(estimate.at(0) + estimate.at(-1) + estimate.at(3) - 100) < 1e-10);
+    firstCount.counted = firstCount.projected;
+    estimate = LiveFpIntegration::integrate(firstCount,prior,firstBooths,unchangedId,unchangedId);
+    assert(estimate.at(3) == .5);
     // A 1,000-vote district has 50 counted Others, including 30 for the
     // second independent. The projection gives them 20 of 50 outstanding
     // Others. A draw that assigns 8% to the group gives them 3% fixed and

@@ -105,7 +105,8 @@ private:
 	void incorporateLegacyLiveTpp();
 	void recordLiveTppBaseline();
 	void incorporateLiveSeatFp(int seatIndex);
-	void prepareLiveFpCandidates(int seatIndex, LiveTurnoutMath::PartyAccount const& account, bool poolIndependents);
+	void prepareLiveFpCandidates(int seatIndex, LiveTurnoutMath::PartyAccount const& account,
+		LiveData::FpIntegrationInformation const& integration);
 	void conditionLiveFpPrior(int seatIndex);
 	void recombineLiveCoalition(int seatIndex);
 	void integrateLiveFpAccount(int seatIndex, LiveData::VoteCountAccount const& account,

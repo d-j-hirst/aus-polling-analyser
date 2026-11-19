@@ -380,7 +380,12 @@ void appendPreferencePairComparison(std::ostream& report, std::string const& dis
 		<< ", changed pair " << summary.changedPair << ", changed winner " << summary.changedWinner << "\n";
 	auto appendMargin = [&](PreferenceModel::PairComparisonSummary::Outcomes const& side) {
 		if (side.draws == 0) report << "n/a";
-		else report << 100.0 * (side.firstShareSum / static_cast<double>(side.draws) - 0.5);
+		else {
+			double const n = static_cast<double>(side.draws);
+			double const mean = side.firstShareSum / n;
+			double const variance = std::max(0.0, side.firstShareSquaredSum / n - mean * mean);
+			report << 100.0 * (mean - 0.5) << " (SD " << 100.0 * std::sqrt(variance) << ")";
+		}
 	};
 	std::map<int, std::array<std::uint64_t, 2>> winners;
 	for (auto const& [pair, totals] : summary.pairs) {
@@ -397,6 +402,7 @@ void appendPreferencePairComparison(std::ostream& report, std::string const& dis
 		if (totals.samePairDraws > 0) {
 			double const n = static_cast<double>(totals.samePairDraws);
 			report << ", winner changed in " << totals.samePairWinnerChanges
+				<< ", " << first << " wins " << totals.samePairFirstWins[0] << " -> " << totals.samePairFirstWins[1]
 				<< ", mean margin change " << 100.0 * totals.samePairShareChange / n
 				<< " pp, mean absolute change " << 100.0 * totals.samePairAbsoluteChange / n << " pp";
 		}
@@ -410,6 +416,49 @@ void appendPreferencePairComparison(std::ostream& report, std::string const& dis
 	for (auto const& [party, counts] : winners) {
 		report << "    " << partyName(party) << " wins across all paired draws "
 			<< counts[0] << " -> " << counts[1] << " of " << summary.compared << "\n";
+	}
+	for (auto const& [transition, counts] : summary.winnerTransitions) {
+		if (transition.first == transition.second) continue;
+		report << "    winner changed " << partyName(transition.first) << " -> " << partyName(transition.second)
+			<< " | same finalists " << counts[0] << ", different finalists " << counts[1] << "\n";
+	}
+}
+
+// These are arithmetic contributions to a TCP-share change, conditional on
+// both counts reaching the same pair with the same FP. They do not allocate
+// changes in win probability to individual sources: winners depend on the
+// combined transfers and on which candidates survive earlier exclusions.
+void appendPreferenceSourceComparison(std::ostream& report, std::string const& district,
+	PreferenceModel::SourceComparisonSummary const& summary, auto const& sourceName, auto const& partyName)
+{
+	for (auto const& [pair, totals] : summary.pairs) {
+		report << "  " << district << " | source account for " << partyName(pair[0]) << "/" << partyName(pair[1])
+			<< " | matched draws " << totals.draws << ", unavailable " << totals.unavailable
+			<< ", " << partyName(pair[0]) << " wins " << totals.referenceFirstWins << " -> " << totals.alternativeFirstWins << "\n";
+		if (totals.draws == 0) continue;
+		double const draws = static_cast<double>(totals.draws);
+		double contributionSum = 0.0;
+		for (auto const& [source, values] : totals.sources) {
+			double const present = static_cast<double>(values.draws);
+			double const contribution = (values.firstVotesSum[1] - values.firstVotesSum[0]) / draws;
+			contributionSum += contribution;
+			report << "    " << sourceName(source) << " | present " << values.draws << "/" << totals.draws
+				<< ", mean FP " << 100.0 * values.primarySum / draws << "% | to " << partyName(pair[0]) << " ";
+			for (std::size_t side = 0; side < 2; ++side) {
+				double const mean = values.rateSum[side] / present;
+				double const variance = std::max(0.0, values.rateSquaredSum[side] / present - mean * mean);
+				if (side) report << " -> ";
+				report << 100.0 * mean << "% (SD " << 100.0 * std::sqrt(variance) << " pp)";
+			}
+			report << " | TCP contribution " << 100.0 * contribution << " pp"
+				<< " | wins if only this source changes "
+				<< static_cast<std::int64_t>(totals.referenceFirstWins) + values.firstWinChangeOnlyThisSource
+				<< "/" << totals.draws << "\n";
+		}
+		report << "    contribution sum " << 100.0 * contributionSum
+			<< " pp, observed mean TCP change " << 100.0 * totals.tcpChangeSum / draws << " pp"
+			<< ", largest per-draw account error " << std::scientific << 100.0 * totals.maximumAccountError
+			<< std::fixed << " pp\n";
 	}
 }
 
@@ -495,6 +544,8 @@ void SimulationRun::logPreferenceCounts() const
 	std::ostringstream report;
 	report << "\nPreference comparison for " << getTermCode() << " (" << preferenceModel->version()
 		<< "), " << sim.settings.name;
+	if (doingBettingOddsCalibrations) report << " betting-odds calibration";
+	if (doingLiveBaselineSimulation) report << " pre-count live baseline";
 	if (snapshotInput && snapshotInput->timestamp) report << ", snapshot " << *snapshotInput->timestamp;
 	report << "\nOne observation is one district in one successful simulation iteration.\n"
 		<< "Pair and winner changes compare the two counts before manual overrides. "
@@ -606,8 +657,9 @@ void SimulationRun::logPreferenceCounts() const
 		auto const& seat = preferenceCountSummaries[s];
 		if (seat.standardVsRanking.compared == 0) continue;
 		if (!wroteSensitivityHeader) {
-			report << "\nPre-election preference sensitivity on the same draws\n"
+			report << "\nPreference comparisons on the same draws, before live evidence and manual overrides\n"
 				<< "TCP margins are percentage points above 50% for the first listed candidate. "
+				<< "SD describes the spread across simulated draws, not the error in the estimated mean. "
 				<< "Changes on the same pair use only draws where both counts reached it.\n"
 				<< "The count without classic TPP matching uses the original source rates for exclusions "
 				<< "and the accepted TPP when Labor and the Coalition are the finalists.\n";
@@ -620,6 +672,29 @@ void SimulationRun::logPreferenceCounts() const
 			seat.withoutClassicTppMatching, partyName);
 		appendPreferencePairComparison(report, district, "ranking count -> reduced Labor to Greens flow",
 			seat.reducedLaborToGreens, partyName);
+	}
+	bool wroteSourceHeader = false;
+	auto sourceName = [&](int party) {
+		if (party == preferenceModel->partyRoles().liberal && preferenceModel->partyRoles().national) {
+			return std::string("Coalition (LIB+NAT)");
+		}
+		return partyName(party);
+	};
+	for (std::size_t s = 0; s < preferenceCountSummaries.size(); ++s) {
+		auto const& sources = preferenceCountSummaries[s].sourceTransfers;
+		if (sources.pairs.empty()) continue;
+		if (!wroteSourceHeader) {
+			report << "\nPre-election source transfers: existing -> ranking count\n"
+				<< "Only matching finalist pairs and matching original FP accounts are attributed. "
+				<< "FP and TCP contributions average over all matched draws for that pair; "
+				<< "flow means and SD use draws with a positive vote for that source. "
+				<< "Finalists' own FP is included. Coalition sources are combined because the existing count groups them.\n"
+				<< "Positive contributions favour the first named finalist. Their sum explains the TCP-share change, "
+				<< "not the win-probability change. The one-source win test holds other transfers and finalists fixed; "
+				<< "its win changes must not be added together. Classic-TPP and LIB/NAT shortcuts have no comparable source account.\n";
+			wroteSourceHeader = true;
+		}
+		appendPreferenceSourceComparison(report, seatLookup.seat(static_cast<int>(s)).name, sources, sourceName, partyName);
 	}
 	logger << report.str();
 }
@@ -697,6 +772,9 @@ void SimulationRun::reportWarnings(FeedbackFunc feedback) const
 				break;
 			case WarningCategory::DiagnosticTest:
 				categoryCode = "DIAGNOSTIC_TEST";
+				break;
+			case WarningCategory::StatewidePreferenceReport:
+				categoryCode = "STATEWIDE_PREFERENCE_REPORT";
 				break;
 			default:
 				categoryCode = "UNKNOWN";

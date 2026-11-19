@@ -2,6 +2,7 @@
 // parameter file and districts whose vote arithmetic can be checked.
 #include "../PreferenceModel.h"
 #include "../LivePreferenceLearning.h"
+#include "../LiveStatewidePreferences.h"
 #include "../json.h"
 
 #include <algorithm>
@@ -32,7 +33,7 @@ ConfiguredFlows flows{
 	{Labor, {{{Independent, Liberal}, 82.0f}}},
 	{Liberal, {{{Independent, Labor}, 80.0f}}},
 	{Greens, {{{Independent, Liberal}, 85.0f}}},
-	{National, {{{Independent, Labor}, 80.0f}, {{Greens, Labor}, 25.0f}, {{OneNation, Labor}, 56.0f}}}
+	{National, {{{Independent, Labor}, 80.0f}, {{Greens, Labor}, 25.0f}, {{OneNation, Labor}, 82.94f}}}
 };
 
 nlohmann::json configuration()
@@ -63,6 +64,35 @@ Model model(bool sample)
 	settings["sample_uncertainty"] = sample;
 	settings["unknown_liberal_labor_first_probability"] = 1.0;
 	return *load(settings);
+}
+
+void checkLiberalProxyForNationals()
+{
+	std::pair const toOneNation{OneNation, Labor};
+	std::pair const toLabor{Labor, OneNation};
+	ConfiguredFlows configured{
+		{Liberal, {{toOneNation, 63.0f}, {toLabor, 37.0f}, {{Greens, Labor}, 24.0f}}}
+	};
+	auto const liberalOnly = configured;
+	applyLiberalProxyForNationals(configured, Liberal, -1, Labor, OneNation);
+	applyLiberalProxyForNationals(configured, Liberal, National, Labor, -1);
+	assert(configured == liberalOnly);
+
+	applyLiberalProxyForNationals(configured, Liberal, National, Labor, OneNation);
+	auto const& national = configured.at(National);
+	assert(national.size() == 2);
+	assert(national.at(toOneNation) == 63.0f && national.at(toLabor) == 37.0f);
+	assert(configured.at(Liberal) == liberalOnly.at(Liberal));
+
+	configured[National] = {{toOneNation, 82.94f}, {toLabor, 17.06f}};
+	auto const explicitRates = configured;
+	applyLiberalProxyForNationals(configured, Liberal, National, Labor, OneNation);
+	assert(configured == explicitRates);
+
+	ConfiguredFlows otherPair{{Liberal, {{{Greens, Labor}, 24.0f}}}};
+	auto const noProxy = otherPair;
+	applyLiberalProxyForNationals(otherPair, Liberal, National, Labor, OneNation);
+	assert(otherPair == noProxy);
 }
 
 void checkConfiguration()
@@ -743,13 +773,18 @@ void checkFederalPreferenceModes()
 		District{"Ryan", {}, false}, District{"Menzies", {}, false}, District{"Blaxland"}, District{"Fisher"},
 		District{"Flinders"}, District{"Grey"}, District{"Hunter"}, District{"Maranoa"}, District{"Mayo"},
 		District{"Monash"}, District{"Richmond"}, District{"Watson"}};
+	auto federalFlows = flows;
+	federalFlows[National].erase({OneNation, Labor});
+	federalFlows[Liberal][{OneNation, Labor}] = 70.0f;
+	federalFlows[Liberal][{Labor, OneNation}] = 30.0f;
+	applyLiberalProxyForNationals(federalFlows, Liberal, National, Labor, OneNation);
 	std::istringstream activeInput(settings.dump());
-	auto const active = Model::load(activeInput, roles, fedDistricts, flows);
+	auto const active = Model::load(activeInput, roles, fedDistricts, federalFlows);
 	assert(active && active->isActive() && !active->isLiveTrial());
 
 	settings["mode"] = "compare";
 	std::istringstream comparisonInput(settings.dump());
-	auto const comparison = Model::load(comparisonInput, roles, fedDistricts, flows);
+	auto const comparison = Model::load(comparisonInput, roles, fedDistricts, federalFlows);
 	assert(comparison && !comparison->isActive() && !comparison->isLiveTrial());
 	for (int district = 0; district < static_cast<int>(fedDistricts.size()); ++district) {
 		assert(active->coversDistrict(district));
@@ -758,7 +793,7 @@ void checkFederalPreferenceModes()
 
 	settings["mode"] = "live_trial";
 	std::istringstream trialInput(settings.dump());
-	auto const ranking = Model::load(trialInput, roles, fedDistricts, flows);
+	auto const ranking = Model::load(trialInput, roles, fedDistricts, federalFlows);
 	assert(ranking && ranking->isLiveTrial() && ranking->coversDistrict(0) &&
 		ranking->coversDistrict(1) && !ranking->coversDistrict(2));
 	std::array const ballot{
@@ -766,6 +801,8 @@ void checkFederalPreferenceModes()
 		Source{Independent, .181, 2, 1.4, .7}, Source{Greens, .079, 0, 1.8, .85},
 		Source{National, .048, 3, 1.8, .15}, Source{OneNation, .087, 4, 1.2, .19},
 		Source{Others, .068, 2, 1.4, .48}};
+	auto const oneNationOverLabor = active->referencePairRates(0, ballot, {OneNation, Labor});
+	assert(close(oneNationOverLabor.at(Liberal), .70) && close(oneNationOverLabor.at(National), .70));
 	PreparedCountObservation const sample{
 		{{Labor,31.6/99.9},{Liberal,25.7/99.9},{Independent,42.6/99.9}},
 		{{Greens,1342},{OneNation,1258},{National,818},{Others,879}}, .0101};
@@ -812,10 +849,15 @@ void checkFederalPreferenceSettings()
 			}
 			else federalDistricts.push_back({districtName});
 		}
+		// This fixture tests candidate history in a synthetic all-metropolitan
+		// roster. The mixed-geography centres are checked separately below.
+		for (auto& district : federalDistricts) district.regional = false;
 		return Model::load(configurationInput, roles, federalDistricts, federalFlows,
 			{{"CA", CentreAlliance}, {"KAP", KatterParty}});
 	};
 	auto const ranking = loadFederal();
+	// The maintained 2028 forecast publishes the existing count while the
+	// ranking count is reviewed on identical draws in Standard and Now-cast.
 	assert(ranking && !ranking->isActive() && !ranking->isLiveTrial());
 	assert(ranking->coversDistrict(0) && ranking->coversDistrict(1));
 
@@ -829,7 +871,8 @@ void checkFederalPreferenceSettings()
 	auto const laborGreens = ranking->referencePairRates(0, ballot, {Labor, Greens});
 	assert(close(laborGreens.at(Liberal), laborCentre) && close(laborGreens.at(National), laborCentre));
 	auto const laborOneNation = ranking->referencePairRates(0, ballot, {Labor, OneNation});
-	assert(close(laborOneNation.at(Liberal), .30) && close(laborOneNation.at(National), .44));
+	assert(close(laborOneNation.at(Liberal), .30));
+	assert(close(laborOneNation.at(National), 1.0 - double(82.94f) * .01));
 	auto const liberalGreens = ranking->referencePairRates(0, ballot, {Liberal, Greens});
 	assert(close(liberalGreens.at(Labor), 1.0 - .8203275332737616));
 
@@ -1219,6 +1262,109 @@ void checkComparisonSummary()
 	assert(samePair.outcomes[1].draws == 1 && samePair.outcomes[1].firstWins == 1);
 	assert(samePair.samePairDraws == 1 && samePair.samePairWinnerChanges == 1);
 	assert(close(samePair.samePairShareChange, .05) && close(samePair.samePairAbsoluteChange, .05));
+	assert((samePair.samePairFirstWins == std::array<std::uint64_t, 2>{0, 1}));
+	assert((trial.winnerTransitions.at({OneNation, Labor}) == std::array<std::uint64_t, 2>{1, 0}));
+	assert((summary.standardVsRanking.winnerTransitions.at({Labor, OneNation}) == std::array<std::uint64_t, 2>{0, 1}));
+	// Pair/winner diagnostics are available without enabling extra sensitivity
+	// counts. The pre-live winner differs from the live-integrated winner here.
+	observation.withoutClassicTppMatching.reset();
+	observation.reducedLaborToGreens.reset();
+	summary.record(observation, 4);
+	assert(summary.standardVsRanking.compared == 2 && summary.changedWinnerWithLiveEvidence == 0);
+}
+
+void checkSourceComparison()
+{
+	// Labor/ON, with the existing count combining Coalition ballots. The
+	// Greens change alone reverses this final; the Coalition change alone does
+	// not. Together they add 4 points to Labor's final share, not 4% more votes.
+	Comparison observation;
+	observation.reportSources = true;
+	observation.combinedCoalitionSources = Pair{Liberal, National};
+	observation.model.status = Status::Compared;
+	observation.legacy = {{Labor, OneNation}, .485, {}};
+	observation.model.final = {{Labor, OneNation}, .525, {}};
+	observation.legacySources = {{Labor,.295,1}, {OneNation,.305,0}, {Liberal,.20,.20}, {Greens,.20,.75}};
+	observation.model.finalSources = {{Labor,.295,1}, {OneNation,.305,0},
+		{Liberal,.10,.30}, {National,.10,.20}, {Greens,.20,.90}};
+	SourceComparisonSummary summary;
+	summary.record(observation);
+	auto const& pair = summary.pairs.at({Labor, OneNation});
+	assert(pair.draws == 1 && pair.unavailable == 0);
+	assert(pair.referenceFirstWins == 0 && pair.alternativeFirstWins == 1);
+	auto const& coalition = pair.sources.at(Liberal);
+	assert(!pair.sources.contains(National));
+	assert(close(coalition.primarySum, .20) && close(coalition.rateSum[1], .25));
+	assert(coalition.firstWinChangeOnlyThisSource == 0);
+	assert(pair.sources.at(Greens).firstWinChangeOnlyThisSource == 1);
+	double difference = 0.0;
+	for (auto const& [source, values] : pair.sources) {
+		(void)source;
+		difference += values.firstVotesSum[1] - values.firstVotesSum[0];
+	}
+	assert(close(difference, .04) && close(difference, pair.tcpChangeSum));
+	assert(pair.maximumAccountError < 1e-12);
+
+	// Missing accounts and altered FP must be visible exclusions, not assigned
+	// zero flow. A different finalist pair has no same-pair source comparison.
+	auto unmatched = observation;
+	unmatched.legacySources.clear();
+	summary.record(unmatched);
+	unmatched = observation;
+	unmatched.model.finalSources[2].primary += .01;
+	summary.record(unmatched);
+	// A matching total and TCP are insufficient if source primaries differ.
+	unmatched = observation;
+	unmatched.model.finalSources[2].primary = .11;
+	unmatched.model.finalSources[4].primary = .19;
+	unmatched.model.finalSources[4].firstRate = .177 / .19;
+	summary.record(unmatched);
+	unmatched = observation;
+	unmatched.model.final.candidates = {Labor, Liberal};
+	summary.record(unmatched);
+	assert(pair.draws == 1 && pair.unavailable == 3 && summary.pairs.size() == 1);
+
+	// Reversing which candidate is first reverses the TCP contribution. This
+	// also checks that winner counts are not hard-wired to Labor or One Nation.
+	auto reversed = observation;
+	reversed.legacy.firstShare = .515;
+	reversed.model.final.firstShare = .475;
+	for (auto& source : reversed.legacySources) source.firstRate = 1 - source.firstRate;
+	for (auto& source : reversed.model.finalSources) source.firstRate = 1 - source.firstRate;
+	SourceComparisonSummary reverseSummary;
+	reverseSummary.record(reversed);
+	auto const& reversePair = reverseSummary.pairs.begin()->second;
+	assert(close(reversePair.tcpChangeSum, -.04));
+	assert(reversePair.referenceFirstWins == 1 && reversePair.alternativeFirstWins == 0);
+	assert(reversePair.sources.at(Greens).firstWinChangeOnlyThisSource == -1);
+}
+
+void checkSourceReportingDoesNotChangeCount()
+{
+	auto ranking = model(true);
+	std::array const ballot{Source{Labor,.29,1,1.4,1}, Source{Liberal,.16,3,1.4,0},
+		Source{National,.04,3,1.4,.15}, Source{Greens,.12,0,1.4,.85},
+		Source{OneNation,.30,4,1.4,.27}, Source{Others,.09,2,1.4,.50}};
+	int compared = 0;
+	for (int iteration = 0; iteration < 100; ++iteration) {
+		auto const draw = ranking.drawElection(static_cast<std::uint64_t>(iteration));
+		auto const original = ranking.count(0, ballot, .51, .5, draw);
+		auto const reported = ranking.count(0, ballot, .51, .5, draw, Sensitivity::None, true);
+		assert(original.status == reported.status);
+		assert(original.final.candidates == reported.final.candidates);
+		assert(original.final.firstShare == reported.final.firstShare);
+		assert(original.final.winner() == reported.final.winner());
+		if (reported.status != Status::Compared) continue;
+		++compared;
+		double first = 0.0, total = 0.0;
+		for (auto const& source : reported.finalSources) {
+			assert(source.primary > 0 && std::isfinite(source.firstRate));
+			first += source.primary * source.firstRate;
+			total += source.primary;
+		}
+		assert(close(first, reported.final.firstShare) && close(total, 1.0));
+	}
+	assert(compared == 100);
 }
 
 }
@@ -1281,6 +1427,136 @@ void checkLivePreferenceLearning()
 	assert(reference.at(Greens) > 0 && reference.at(Greens) < 1);
 }
 
+void checkPreparedLiberalGeography()
+{
+	std::ifstream input("analysis/Preferences/2028fed.json");
+	assert(input);
+	auto settings = nlohmann::json::parse(input);
+	assert(close(settings.at("liberal_one_nation_regional_gap").get<double>(), .10));
+	settings["districts"] = nlohmann::json::object();
+	settings["sample_uncertainty"] = false;
+	std::vector<District> roster;
+	for (int seat = 0; seat < 150; ++seat) {
+		District district;
+		district.name = std::to_string(seat);
+		district.regional = seat < 63;
+		roster.push_back(district);
+	}
+	auto configured = flows;
+	configured[National][{OneNation, Labor}] = 82.94f;
+	auto prepare = [&](nlohmann::json const& config) {
+		std::istringstream stream(config.dump());
+		return *Model::load(stream, roles, roster, configured);
+	};
+	constexpr int Regional = 0, Metro = 63;
+	constexpr double metroRate = .70 - .10 * 63.0 / 150;
+	constexpr double regionalRate = metroRate + .10;
+	std::array const ballot{
+		Source{Labor, .40, 1, 1.4, 1}, Source{Liberal, .20, 3, 1.4, 0},
+		Source{OneNation, .40, 4, 1.2, .27}};
+	std::array const allSources{
+		Source{Labor, .27, 1, 1.8, 1}, Source{Liberal, .21, 3, 1.4, 0},
+		Source{National, .10, 3, 1.8, .15}, Source{Greens, .16, 0, 1.8, .85},
+		Source{OneNation, .20, 4, 1.2, .27}, Source{Others, .06, 2, 1.4, .50}};
+	for (double advice : {0.0, .8, 1.0}) {
+		settings["unknown_liberal_labor_first_probability"] = advice;
+		auto baseSettings = settings;
+		baseSettings.erase("liberal_one_nation_regional_gap");
+		auto const base = prepare(baseSettings);
+		auto const adjusted = prepare(settings);
+		for (int district : {Regional, Metro}) {
+			double const expected = district == Regional ? regionalRate : metroRate;
+			auto const rates = adjusted.referencePairRates(district, allSources, {OneNation, Labor});
+			assert(close(rates.at(Liberal), expected));
+			assert(close(rates.at(National), double(82.94f) * .01));
+			for (Pair const pair : {Pair{Labor, Greens}, Pair{Greens, OneNation},
+				Pair{Labor, Liberal}, Pair{Labor, OneNation}}) {
+				auto const before = base.referencePairRates(district, allSources, pair);
+				auto const after = adjusted.referencePairRates(district, allSources, pair);
+				for (auto const& [source, rate] : before) {
+					if (source == Liberal && pair == Pair{Labor, OneNation}) continue;
+					assert(close(rate, after.at(source)));
+				}
+			}
+			auto const result = adjusted.count(district, ballot, .508, .5, adjusted.drawElection(1));
+			assert(result.status == Status::Compared && (result.final.candidates == Pair{Labor, OneNation}));
+			assert(close(result.final.firstShare, .4 + .2 * (1 - expected)));
+		}
+		assert(close((63 * regionalRate + 87 * metroRate) / 150, .70));
+	}
+
+	// Both uncertainty levels remain active, including their shared ordering
+	// across seats. Sample actual counts so these checks exercise the forecast
+	// path as well as the central reference used by live preference learning.
+	settings["sample_uncertainty"] = true;
+	settings["unknown_liberal_labor_first_probability"] = .8;
+	auto const adjusted = prepare(settings);
+	auto baseSettings = settings;
+	baseSettings.erase("liberal_one_nation_regional_gap");
+	auto const base = prepare(baseSettings);
+	baseSettings["liberal_one_nation_regional_gap"] = 0.0;
+	auto const zeroGap = prepare(baseSettings);
+	std::array<double, 2> totals{}, squares{}, commonSquares{}, commonTotals{};
+	constexpr int Draws = 8000;
+	for (int seed = 0; seed < Draws; ++seed) {
+		auto const draw = adjusted.drawElection(seed);
+		for (int group = 0; group < 2; ++group) {
+			int const district = group == 0 ? Metro : Regional;
+			auto const count = adjusted.count(district, ballot, .508, .5, draw);
+			assert(count.status == Status::Compared && (count.final.candidates == Pair{Labor, OneNation}));
+			double const rate = (1 - count.final.firstShare - .4) / .2;
+			assert(rate >= 0 && rate <= 1);
+			totals[group] += rate;
+			squares[group] += rate * rate;
+			if (seed >= 120) continue;
+			auto commonDraw = draw;
+			commonDraw.sharedOnly = true;
+			auto const common = adjusted.count(district, ballot, .508, .5, commonDraw);
+			double const commonRate = (1 - common.final.firstShare - .4) / .2;
+			commonTotals[group] += commonRate;
+			commonSquares[group] += commonRate * commonRate;
+			auto const unchanged = base.count(district, ballot, .508, .5, draw);
+			auto const explicitZero = zeroGap.count(district, ballot, .508, .5, draw);
+			assert(unchanged.final.firstShare == explicitZero.final.firstShare);
+			// Changing Liberal geography cannot change a count with no Liberal
+			// ballots. Check both the Nationals and the Greens as donors.
+			for (Source const donor : {allSources[2], allSources[3]}) {
+				auto otherBallot = ballot;
+				otherBallot[1] = donor;
+				otherBallot[1].primary = .2;
+				double const tpp = .508 + .2 * donor.classicRate;
+				auto const oldCount = base.count(district, otherBallot, tpp, .5, draw);
+				auto const newCount = adjusted.count(district, otherBallot, tpp, .5, draw);
+				assert(oldCount.status == Status::Compared && newCount.status == Status::Compared);
+				assert(oldCount.final.firstShare == newCount.final.firstShare);
+			}
+		}
+	}
+	for (int group = 0; group < 2; ++group) {
+		double const mean = totals[group] / Draws;
+		double const variance = squares[group] / Draws - mean * mean;
+		double const commonMean = commonTotals[group] / 120;
+		double const commonVariance = commonSquares[group] / 120 - commonMean * commonMean;
+		assert(std::abs(mean - (group == 0 ? metroRate : regionalRate)) < .005);
+		assert(commonVariance > .001 && variance > commonVariance);
+	}
+
+	auto rejects = [&](nlohmann::json const& config) {
+		bool rejected = false;
+		try { prepare(config); }
+		catch (std::invalid_argument const&) { rejected = true; }
+		assert(rejected);
+	};
+	for (double gap : {-.1, 1.1, .9}) {
+		auto invalid = settings;
+		invalid["liberal_one_nation_regional_gap"] = gap;
+		rejects(invalid);
+	}
+	roster.front().regional.reset();
+	rejects(settings);
+	prepare(baseSettings); // An absent/zero adjustment does not require geography.
+}
+
 void checkLivePreferenceGeography()
 {
 	using namespace LivePreferenceLearning;
@@ -1319,8 +1595,176 @@ void checkLivePreferenceGeography()
 	assert(distant.retainedPriorSpread == same.retainedPriorSpread);
 }
 
+void checkStatewideCountedPreferenceAccounts()
+{
+	namespace S = LiveStatewidePreferences;
+	// Chaffey, 18:57:46 on SA election night. The feed identifies 41 of
+	// the 60 transfers to Liberal, without identifying the 29 Labor ballots.
+	S::Pair pair{Liberal,OneNation};
+	S::Shares fp{{Labor,29},{Liberal,85},{OneNation,72},{Greens,11},{Others,20}};
+	S::Shares tcp{{Liberal,126},{OneNation,91}};
+	S::Contest contest{};
+	contest.pair = pair;
+	for (int source : {Labor,Greens,Others}) contest.rows.push_back({source,Liberal,OneNation});
+	S::addUnit(contest,0,fp,fp,tcp,nullptr,0,0);
+	S::Accounts account;
+	S::Shares rates{{Labor,.68},{Greens,.85},{Others,.40}};
+	S::addContest(contest,rates,33,account);
+	double total = 0;
+	for (auto const& [row,amount] : account) {
+		assert(amount.donors == fp.at(row[0]));
+		total += amount.first;
+	}
+	assert(std::abs(total-41.0) < 1e-8);
+	auto oddsMultiplier = [&](int source) {
+		auto const& amount = account.at({source,Liberal,OneNation});
+		return (amount.first/(amount.donors-amount.first)) / (rates.at(source)/(1-rates.at(source)));
+	};
+	assert(close(oddsMultiplier(Labor),oddsMultiplier(Greens)));
+	assert(close(oddsMultiplier(Labor),oddsMultiplier(Others)));
+
+	// After realignment the original count still constrains its own pair.
+	// The same batch cannot also use the updated projection as new ballots.
+	LivePartialCount::TcpBasis matched{{fp.begin(),fp.end()},{tcp.begin(),tcp.end()},{}};
+	S::Contest retained{};
+	retained.pair = pair;
+	retained.rows = contest.rows;
+	S::addUnit(retained,0,fp,fp,{{Labor,107},{OneNation,110}},&matched,0,0);
+	S::Accounts old;
+	S::addContest(retained,rates,33,old);
+	for (auto const& [row,amount] : account) assert(close(old.at(row).first,amount.first));
+
+	// An exact single-source or source-labelled count stays fixed on every
+	// draw. Outstanding ballots (including a subsequent batch) may still vary.
+	S::Contest known{};
+	known.pair = pair;
+	known.rows = {{Labor,Liberal,OneNation},{Labor,OneNation,Liberal}};
+	matched.transfers = {{Labor,{{Liberal,20},{OneNation,9}}},{Greens,{{Liberal,10},{OneNation,1}}},
+		{Others,{{Liberal,11},{OneNation,9}}}};
+	fp[Labor] += 20;
+	tcp[Liberal] += 8;
+	tcp[OneNation] += 2;
+	S::addUnit(known,0,fp,fp,tcp,&matched,0,0);
+	for (double rate : {.1,.9}) {
+		rates[Labor] = rate;
+		S::Accounts result;
+		S::addContest(known,rates,33,result);
+		auto const& forward = result.at({Labor,Liberal,OneNation});
+		auto const& reverse = result.at({Labor,OneNation,Liberal});
+		assert(close(forward.donors,49) && close(forward.first,28+10*rate));
+		assert(close(forward.first+reverse.first,49));
+	}
+	// A zero reset is not another count. A larger replacement for the SAME
+	// pair that reduces a finalist supersedes its earlier allocation.
+	S::Contest reset{};
+	reset.pair = pair;
+	reset.rows = contest.rows;
+	auto originalFp = S::Shares(matched.fp.begin(),matched.fp.end());
+	S::addUnit(reset,0,originalFp,originalFp,{{Liberal,0},{OneNation,0}},&matched,0,0);
+	assert(reset.categories.at(0).measuredFirst.at(Labor) == 20);
+	S::Contest corrected{};
+	corrected.pair = pair;
+	corrected.rows = contest.rows;
+	S::addUnit(corrected,0,originalFp,originalFp,{{Liberal,120},{OneNation,97}},&matched,0,0);
+	S::Accounts revised;
+	S::addContest(corrected,rates,33,revised);
+	assert(std::abs(revised.at(contest.rows[0]).first+revised.at(contest.rows[1]).first+
+		revised.at(contest.rows[2]).first-35) < 1e-8);
+	// Where TCP arrives before FP, use the projected primary mix. A possible
+	// discrepancy beyond that whole projection has no named source.
+	S::Contest missingFp{};
+	missingFp.pair = pair;
+	missingFp.rows = {contest.rows[0]};
+	S::addUnit(missingFp,0,{{Labor,10},{Liberal,12},{OneNation,8}}, {},
+		{{Liberal,18},{OneNation,14}},nullptr,0,0);
+	auto const& mixed = missingFp.categories.at(0).batches.front();
+	assert(mixed.unknownOrigin == 2 && mixed.first == 6 && mixed.donors.at(Labor) == 10);
+}
+
+void checkStatewidePreferenceDraws()
+{
+	namespace S = LiveStatewidePreferences;
+	S::Election inputs;
+	inputs.classicReference = {{OneNation,.2},{Greens,.8}};
+	S::District district;
+	district.index = 0;
+	district.sources = {{Labor,.35,2,2,1},{Liberal,.32,3,2,0},{Greens,.18,1,2,.8},{OneNation,.15,4,2,.2}};
+	S::Pair const pair{Liberal,OneNation};
+	S::Row const laborRow{Labor,Liberal,OneNation}, onRow{OneNation,Labor,Liberal};
+	S::Contest nonClassic{}, classic{};
+	nonClassic.pair = pair;
+	nonClassic.rows = {laborRow};
+	classic.pair = {Labor,Liberal};
+	classic.classic = true;
+	classic.rows = {onRow};
+	S::addUnit(classic,0,{{OneNation,100}}, {},{},nullptr,0,0);
+	S::addUnit(nonClassic,0,{{Labor,100}}, {},{},nullptr,0,0);
+	district.nonClassicPairs = {pair};
+	district.contests = {classic,nonClassic};
+	inputs.districts.push_back(district);
+	auto ranking = model(true);
+	auto const draw = ranking.drawElection(41);
+	// The actual ballot establishes the two possible recipients. A projected
+	// zero for a recipient can still leave Labor voters to allocate, whereas
+	// a similarly named projected candidate absent from the ballot is ineligible.
+	std::array<S::Row,2> requested{laborRow,onRow};
+	S::Shares projected{{Labor,50},{OneNation,50}};
+	std::set<int> present{Labor,Liberal,OneNation};
+	assert(S::eligibleContests(requested,present,projected).at(pair).front() == laborRow);
+	present.erase(Liberal);
+	assert(S::eligibleContests(requested,present,projected).empty());
+	auto zeroRecipient = district.sources;
+	zeroRecipient[1].primary = 0;
+	zeroRecipient[0].primary += .32;
+	auto ratesWithZero = ranking.sharedPairRates(0,zeroRecipient,district.nonClassicPairs,draw,true);
+	assert(ratesWithZero.at(pair).at(Labor) > 0 && ratesWithZero.at(pair).at(Labor) < 1);
+	assert(!ratesWithZero.at(pair).contains(Liberal));
+	auto before = S::estimate(inputs,ranking,draw,{{OneNation,27}});
+	assert(close(before.at(onRow),27)); // actual accepted classic flow draw
+	// Adding another eligible district with the same mix does not shrink
+	// election-wide uncertainty. New matched evidence can move the estimate.
+	district.index = 1;
+	inputs.districts.push_back(district);
+	auto unchanged = S::estimate(inputs,ranking,draw,{{OneNation,27}});
+	assert(close(before.at(laborRow),unchanged.at(laborRow)));
+	auto& second = inputs.districts.back().contests[1];
+	second.learned = true;
+	second.reference[Labor] = before.at(laborRow)*.01;
+	auto& fit = second.categories.at(0).adjustment;
+	fit.ordinary = .6;
+	fit.otherDistrictWeight = 1;
+	S::addUnit(second,0,{{Labor,200}},{},{},nullptr,0,0);
+	auto updated = S::estimate(inputs,ranking,draw,{{OneNation,27}});
+	double const original = before.at(laborRow)*.01;
+	double const learned = LivePreferenceLearning::transferRate(original,original,fit,0);
+	assert(close(updated.at(laborRow),25*original+75*learned));
+	assert(updated.at(onRow) == unchanged.at(onRow));
+	S::Samples samples{{laborRow,{100,50,0}}};
+	std::array<float,5> thresholds{.1f,5,50,95,99.9f};
+	auto bands = S::percentiles(samples,thresholds);
+	assert(bands.at(laborRow) == std::vector<float>(thresholds.begin(),thresholds.end()));
+	for (int size : {1,1234,4096,12345,200000}) {
+		int count = 0;
+		for (int i = 0; i < size; ++i) if (S::includeDraw(i,size)) ++count;
+		assert(count == std::min(size,S::MaximumDraws));
+	}
+	// The fitted common Greens error is expressed as predicted minus actual
+	// Labor flow. It applies when inferring transfers from measured primaries.
+	S::Row greensRow{Greens,Labor,Liberal};
+	S::Contest greensClassic{};
+	greensClassic.classic = true;
+	greensClassic.pair = {Labor,Liberal};
+	greensClassic.rows = {greensRow};
+	S::addUnit(greensClassic,0,{{Greens,200}},{{Greens,100}}, {},nullptr,0,0);
+	inputs.districts.resize(1);
+	inputs.districts.front().contests = {greensClassic};
+	inputs.classicErrorMean[0] = .04;
+	assert(close(S::estimate(inputs,ranking,draw,{{Greens,80}}).at(greensRow),78));
+}
+
 int main()
 {
+	checkLiberalProxyForNationals();
 	checkConfiguration();
 	checkExtraCandidatesAgainstEnumeratedOrders();
 	checkClassicReconciliation();
@@ -1345,6 +1789,11 @@ int main()
 	checkJointThreeCandidateExtraFinalist();
 	checkJointThreeCandidateCoalitionCount();
 	checkComparisonSummary();
+	checkSourceComparison();
+	checkSourceReportingDoesNotChangeCount();
 	checkLivePreferenceLearning();
+	checkPreparedLiberalGeography();
 	checkLivePreferenceGeography();
+	checkStatewideCountedPreferenceAccounts();
+	checkStatewidePreferenceDraws();
 }

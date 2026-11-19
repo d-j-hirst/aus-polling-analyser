@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aeforecasts.com/schemas/live-publication-v1.json",
+  "title": "Australian Election Forecasts live publication version 1",
+  "description": "Immutable live/replay package. The existing website report fields remain extensible; identities, timing and comparison availability have explicit contracts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run", "forecast", "report", "comparisons", "commentary", "commentary_requests", "commentary_evidence", "released_at", "frozen"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "run": {"$ref": "#/$defs/run"},
+    "forecast": {"$ref": "#/$defs/forecast"},
+    "report": {
+      "type": "object", "required": ["termCode", "seatNames", "seatPartyWinFrequencies"],
+      "properties": {
+        "statewidePreferenceFlows": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/statewidePreferenceFlow"}}
+      }
+    },
+    "comparisons": {"type": "object", "propertyNames": {"enum": ["previous", "since_start", "15m", "1h", "3h", "24h", "today"]}, "additionalProperties": {"$ref": "#/$defs/comparison"}},
+    "reporting_schedule": {
+      "type": "object", "required": ["timezone", "day_start_hour", "three_hour_start_hour"],
+      "properties": {"timezone": {"type": "string"}, "day_start_hour": {"type": "integer", "minimum": 0, "maximum": 23},
+                     "three_hour_start_hour": {"type": "integer", "minimum": 0, "maximum": 23}}
+    },
+    "retained_reports": {
+      "type": "object", "additionalProperties": false,
+      "properties": {"yesterday": {"$ref": "#/$defs/retainedReport"}}
+    },
+    "commentary": {"type": "object", "additionalProperties": {"$ref": "#/$defs/commentary"}},
+    "commentary_requests": {"type": "object", "additionalProperties": {"type": "string"}},
+    "commentary_evidence": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": "object", "required": ["id", "kind"]}}},
+    "released_at": {"type": "string", "format": "date-time"},
+    "frozen": {"const": true}
+  },
+  "if": {"properties": {"report": {"required": ["statewidePreferenceFlows"]}}},
+  "then": {
+    "properties": {
+      "forecast": {"properties": {"origin": {"const": false}}},
+      "report": {
+        "required": ["reportMode", "voteTotalThresholds", "partyAbbr"],
+        "properties": {
+          "reportMode": {"const": "LF"},
+          "voteTotalThresholds": {"$ref": "#/$defs/forecastVoteThresholds"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "forecastVoteThresholds": {
+      "description": "Standard website vote percentiles, including the decimal endpoints as serialized by the single-precision forecast exporter.",
+      "type": "array", "minItems": 15, "items": false,
+      "prefixItems": [
+        {"type": "number", "minimum": 0.09999999, "maximum": 0.10000001}, {"const": 0.5}, {"const": 1}, {"const": 2.5}, {"const": 5},
+        {"const": 10}, {"const": 25}, {"const": 50}, {"const": 75}, {"const": 90},
+        {"const": 95}, {"const": 97.5}, {"const": 99}, {"const": 99.5}, {"type": "number", "minimum": 99.89999, "maximum": 99.90001}
+      ]
+    },
+    "statewidePreferenceFlow": {
+      "description": "Estimated percentage of all projected source-party first-preference ballots in districts where all three parties stand that favour the destination over the other finalist. Values follow report.voteTotalThresholds and describe uncertainty in the shared statewide estimate at this snapshot.",
+      "type": "object", "additionalProperties": false,
+      "required": ["sourceParty", "destinationParty", "otherFinalist", "percentiles"],
+      "properties": {
+        "sourceParty": {"type": "integer"},
+        "destinationParty": {"type": "integer"},
+        "otherFinalist": {"type": "integer"},
+        "percentiles": {"type": "array", "minItems": 15, "maxItems": 15,
+          "items": {"type": "number", "minimum": 0, "maximum": 100}}
+      }
+    },
+    "statewidePreferenceChanges": {
+      "type": "object", "additionalProperties": false,
+      "required": ["reference_forecast_id", "reference_source_time", "from_first_zero_count", "rows"],
+      "properties": {
+        "reference_forecast_id": {"type": "string"},
+        "reference_source_time": {"type": ["string", "null"], "format": "date-time"},
+        "from_first_zero_count": {"type": "boolean"},
+        "rows": {"type": "array", "minItems": 1, "items": {
+          "type": "object", "additionalProperties": false, "required": ["parties", "before", "after", "change_pp"],
+          "properties": {
+            "parties": {"description": "Party IDs as comparison strings in source, destination and other finalist order.",
+              "type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true, "items": {"type": "string"}},
+            "before": {"type": "number", "minimum": 0, "maximum": 100},
+            "after": {"type": "number", "minimum": 0, "maximum": 100},
+            "change_pp": {"type": "number", "minimum": -100, "maximum": 100}
+          }
+        }}
+      }
+    },
+    "commentary": {
+      "type": "object", "required": ["status"],
+      "properties": {"status": {"enum": ["complete", "unavailable"]}},
+      "if": {"required": ["format"], "properties": {"format": {"enum": ["inline-figures-v1", "seat-bullets-v1"]}}},
+      "then": {
+        "required": ["text", "entities"],
+        "properties": {
+          "text": {"$ref": "#/$defs/inlineCommentaryText"},
+          "entities": {"type": "object", "additionalProperties": {
+            "type": "object", "required": ["kind", "label"],
+            "properties": {"kind": {"enum": ["seat", "candidate", "party"]}, "label": {"type": "string"}}
+          }}
+        }
+      }
+    },
+    "inlineCommentaryText": {
+      "type": "object", "additionalProperties": false,
+      "required": ["summary", "developments", "insufficient_evidence"],
+      "properties": {
+        "summary": {"type": "string"}, "insufficient_evidence": {"type": "boolean"},
+        "developments": {"type": "array", "items": {
+          "type": "object", "additionalProperties": false, "required": ["seats", "text"],
+          "properties": {"seats": {"type": "array", "items": {"type": "string"}}, "text": {"type": "string"}}
+        }}
+      }
+    },
+    "retainedReport": {
+      "type": "object", "required": ["available", "report_date", "timezone", "day_start", "day_end", "selected_by_forecast_id"],
+      "properties": {
+        "available": {"type": "boolean"}, "reason": {"type": "string"},
+        "report_date": {"type": "string", "format": "date"}, "timezone": {"type": "string"},
+        "day_start": {"type": "string", "format": "date-time"}, "day_end": {"type": "string", "format": "date-time"},
+        "selected_by_forecast_id": {"type": "string"}, "source_forecast_id": {"type": "string"},
+        "source_time": {"type": "string", "format": "date-time"}, "source_window": {"enum": ["today", "since_start"]},
+        "reference_forecast_id": {"type": "string"}, "reference_source_time": {"type": ["string", "null"]},
+        "actual_seconds": {"type": ["number", "null"]}, "commentary_status": {"enum": ["complete", "unavailable"]}
+      },
+      "if": {"properties": {"available": {"const": true}}},
+      "then": {"required": ["source_forecast_id", "source_time", "source_window", "reference_forecast_id", "reference_source_time", "actual_seconds", "commentary_status"]},
+      "else": {"required": ["reason"]}
+    },
+    "run": {
+      "type": "object", "additionalProperties": false,
+      "required": ["version", "run_id", "election", "kind", "display_name", "visibility", "election_date", "timezone"],
+      "properties": {
+        "version": {"const": 1}, "run_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "election": {"type": "string", "pattern": "^[0-9]{4}[a-z]+$"},
+        "kind": {"enum": ["live", "replay"]}, "visibility": {"enum": ["private", "public"]},
+        "display_name": {"type": "string", "minLength": 1}, "election_date": {"type": "string", "format": "date"},
+        "timezone": {"type": "string", "minLength": 1}
+      }
+    },
+    "forecast": {
+      "type": "object", "additionalProperties": false,
+      "required": ["forecast_id", "simulation", "origin", "source_time", "source_timezone", "delivered_at", "completed_at", "input_revision", "input_fingerprint", "source_fingerprint", "model_revision", "iterations"],
+      "properties": {
+        "forecast_id": {"type": "string", "pattern": "^(origin|f[0-9]{8})$"},
+        "simulation": {"type": ["string", "null"]}, "origin": {"type": "boolean"},
+        "source_time": {"type": ["string", "null"], "format": "date-time"}, "source_timezone": {"type": "string"},
+        "delivered_at": {"type": "string", "format": "date-time"}, "completed_at": {"type": "string", "format": "date-time"},
+        "input_revision": {"type": "string"}, "input_fingerprint": {"type": "string"},
+        "source_fingerprint": {"type": ["string", "null"]}, "model_revision": {"type": "string"},
+        "iterations": {"type": "integer", "minimum": 1}
+      }
+    },
+    "comparison": {
+      "type": "object", "required": ["available"],
+      "properties": {
+        "available": {"type": "boolean"}, "reason": {"type": "string"},
+        "reference_forecast_id": {"type": "string"}, "reference_source_time": {"type": ["string", "null"]},
+        "actual_seconds": {"type": ["number", "null"], "minimum": 0},
+        "requested_seconds": {"type": ["number", "null"], "minimum": 0},
+        "report_date": {"type": "string", "format": "date"}, "reporting_timezone": {"type": "string"},
+        "requested_reference_time": {"type": "string", "format": "date-time"},
+        "input_revision_changed": {"type": "boolean"},
+        "win_changes": {"type": "array", "items": {"type": "object", "required": ["seat", "party_id", "before", "after", "change_pp", "minimum_within_window", "maximum_within_window", "identity_changed"]}},
+        "seat_changes": {"type": "array"}, "statewide": {"type": "object"},
+        "statewide_preference_changes": {"$ref": "#/$defs/statewidePreferenceChanges"}
+      },
+      "if": {"properties": {"available": {"const": true}}},
+      "then": {"required": ["reference_forecast_id", "reference_source_time", "actual_seconds", "input_revision_changed", "win_changes", "seat_changes", "statewide"]},
+      "else": {"required": ["reason"]}
+    }
+  }
+}

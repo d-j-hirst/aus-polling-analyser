@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 #include "Simulation.h"
+#include "json.h"
 
 class PollingProject;
 
@@ -15,6 +16,9 @@ public:
 	// Prepares the JSON consumed by uploads/upload_manager.py.
 	// Returns an error message on failure.
 	std::optional<std::string> exportReport();
+	// The automatic publication queue needs the same website fields without
+	// replacing the manual uploader's latest_json.dat handoff.
+	nlohmann::json serializeReport() const;
 private:
 
 	Simulation const& simulation;

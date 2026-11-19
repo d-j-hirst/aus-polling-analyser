@@ -4,3 +4,5 @@ django-environ==0.9.0
 idna==3.3
 requests==2.28.0
 urllib3==1.26.9
+tzdata>=2025.2
+backports.zoneinfo==0.2.1; python_version < "3.9"

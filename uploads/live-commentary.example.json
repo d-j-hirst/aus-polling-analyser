@@ -1,0 +1,14 @@
+{
+  "enabled": false,
+  "model": "SELECT_AFTER_BENCHMARK",
+  "prompt_version": "live-changes-9",
+  "service_tier": "default",
+  "reasoning_effort": "low",
+  "minimum_count_change": 10,
+  "spending_limit_usd": 10,
+  "input_usd_per_million": 0,
+  "output_usd_per_million": 0,
+  "concurrency": 4,
+  "attempts": 2,
+  "max_output_tokens": 3000
+}

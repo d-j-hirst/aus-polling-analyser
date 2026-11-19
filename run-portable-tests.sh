@@ -82,6 +82,7 @@ run_test LiveAnalysisArchiveTests
 run_test LiveSnapshotSequenceTests
 run_test LiveSnapshotDataTests
 run_test ResponsiveLiveTests
+run_test LiveAutomationTests
 run_test MacroTargetResolverTests
 run_test MajorPartyFpMathTests
 run_test MinorPartyFpMathTests

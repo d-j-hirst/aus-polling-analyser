@@ -81,6 +81,8 @@ public:
 
 	// Replay selection is saved project data; feed contents remain private files.
 	LiveSnapshotSequence::Settings const& snapshotSequence() const { return liveSnapshotSequence; }
+	nlohmann::json const& automationSettings() const { return liveAutomationSettings; }
+	void setAutomationSettings(nlohmann::json value) { liveAutomationSettings = std::move(value); }
 	void setSnapshotSequence(LiveSnapshotSequence::Settings settings) { liveSnapshotSequence = std::move(settings); }
 
 	// Refreshes the calculated 2PPs for all polls.
@@ -203,6 +205,7 @@ private:
 	// Stores full text of the last macro to be run.
 	std::string lastMacro;
 	LiveSnapshotSequence::Settings liveSnapshotSequence;
+	nlohmann::json liveAutomationSettings;
 
 	// Populated when a legacy project or its portable forecast package cannot
 	// be loaded. The GUI displays this rather than discarding validation detail.

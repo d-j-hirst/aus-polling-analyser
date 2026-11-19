@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-11-17T00:28:53Z",
+  "updated_at_utc": "2026-11-19T05:02:33Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 56,
+      "semantic_revision": 57,
       "files": {
         "2013fed.txt": {
           "sha256": "d6d75e40d7ece21df752d6edb476d99a7210847b6c1ebbb9be905b6e832cb0cd",
@@ -75,9 +75,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "3aa2265e4a36413cb90c41d0fdb2d56d154d7c41152e55c8bd5e5b57db747cae",
+          "sha256": "2d39a6d60ff2723b590530cc739a4491f67c90de7aaca2f6f846f37b631a6507",
           "size_bytes": 27439,
-          "recorded_mtime_utc": "2026-11-16T21:50:57.663401Z"
+          "recorded_mtime_utc": "2026-11-18T12:27:41.170236Z"
         },
         "2027nsw.txt": {
           "sha256": "9066c05124dc34153f7b56e0d6c2a7238d5a40e3e1edb7965d74778378c4120a",
@@ -1336,9 +1336,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261119T050233Z-other-forecast-seats-d071b455",
+          "recorded_at_utc": "2026-11-19T05:02:33Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 57,
+          "provenance_revision": 57,
+          "summary": "Seat odds updates",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 56
+      "provenance_revision": 57
     }
   }
 }

@@ -41,6 +41,7 @@ public:
 		std::optional<std::string> seatContents, Date nowcastDate);
 
 	bool reusableWith(SimulationInputs const& other) const;
+	std::string contentIdentity() const;
 	std::string const& path(File file) const;
 	std::istringstream open(std::string const& path) const;
 

@@ -149,23 +149,26 @@ bool PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 	std::getline(file, line); // first line is just a legend, skip it
 	auto splitLine = splitString(line, ",");
 	std::map<int, int> partyIds;
+	bool const saReplay = project.models().count() && project.models().viewByIndex(0).getTermCode() == "2026sa";
+	constexpr int historicalOther = -1;
 	for (int heading = 3; heading < int(splitLine.size()); ++heading) {
 		auto splitHeading = splitString(splitLine[heading], " ");
 		if (splitHeading.size() != 2) continue;
 		if (splitHeading[1] == "FP") {
 			std::string partyName = splitHeading[0];
+			int const index = project.parties().indexByShortCode(partyName);
 			if (partyName == "OTH") {
 				partyIds[heading] = PartyCollection::MaxParties;
 			}
-			bool partyFound = (partyName == "OTH");
-			for (auto const& [id, party] : project.parties()) {
-				if (contains(party.officialCodes, partyName)) {
-					partyFound = true;
-					partyIds[heading] = id;
-					break;
-				}
+			else if (index >= 0) {
+				partyIds[heading] = index;
 			}
-			if (!partyFound) {
+			else if (saReplay && (partyName == "SAB" || partyName == "DEM" || partyName == "FF")) {
+				// Older SA polls itemised these votes. Keep their contribution
+				// when importing the original table under the 2026 party list.
+				partyIds[heading] = historicalOther;
+			}
+			else {
 				messageFunc("Could not find a party with party code " + partyName + ". Please add this party code to a party and try again.");
 				return false;
 			}
@@ -205,14 +208,20 @@ bool PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 				". Please add this pollster and try again.");
 			return false;
 		}
+		float historicalOthersShare = 0;
 		for (auto const& [column, id] : partyIds) {
 			try {
-				pollInfo.results[id] = std::stof(splitLine[column]);
+				float share = std::stof(splitLine[column]);
+				if (id == historicalOther) historicalOthersShare += std::max(0.0f, share);
+				else pollInfo.results[id] = share;
 			}
 			catch (std::invalid_argument) {
 				// N/A value, just silently ignore as it's not actually an error
 			}
 		}
+		auto others = pollInfo.results.find(PartyCollection::MaxParties);
+		if (others != pollInfo.results.end() && others->second >= 0)
+			others->second += historicalOthersShare;
 		// approval-only poll, don't add it
 		if (!pollInfo.results.contains(0) && std::isnan(pollInfo.tpp)) {
 			continue;

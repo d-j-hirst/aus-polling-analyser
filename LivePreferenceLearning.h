@@ -74,6 +74,13 @@ struct Adjustment {
     double mean() const { return ordinary + category + local; }
 };
 
+// All districts share this remaining uncertainty in the difference between
+// a non-ordinary category and ordinary booths. Each effective district with
+// both types of evidence reduces the original 0.22 log-odds spread.
+inline double sharedCategorySd(Adjustment const& adjustment) {
+    return .22 / std::sqrt(1 + adjustment.categoryDistrictWeight);
+}
+
 // A shared estimate first averages the district shifts using geographic
 // similarity. Its total evidence weight still comes from the number and size
 // of reporting places, so reweighting the districts does not pull the result

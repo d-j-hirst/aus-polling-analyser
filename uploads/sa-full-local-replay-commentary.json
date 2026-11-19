@@ -1,0 +1,15 @@
+{
+  "enabled": true,
+  "model": "gpt-6.1-terra",
+  "service_tier": "default",
+  "reasoning_effort": "low",
+  "prompt_version": "live-changes-9",
+  "minimum_count_change": 10,
+  "spending_limit_usd": 11,
+  "input_usd_per_million": 1,
+  "cached_input_usd_per_million": 0.05,
+  "output_usd_per_million": 5,
+  "concurrency": 4,
+  "attempts": 1,
+  "max_output_tokens": 8192
+}

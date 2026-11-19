@@ -6,6 +6,7 @@
 
 #include "SimulationPreparation.h"
 #include "LiveAggregation.h"
+#include "LivePartyMapping.h"
 #include "CoalitionCandidacy.h"
 #include "SeatVolatility.h"
 
@@ -1389,6 +1390,10 @@ void SimulationPreparation::loadNcPreferenceFlows()
 			}
 		}
 	}
+	int oneNation = project.parties().indexByShortCode("ONP");
+	if (oneNation < 0) oneNation = project.parties().indexByShortCode("ON");
+	PreferenceModel::applyLiberalProxyForNationals(run.ncPreferenceFlow, Mp::Two,
+		run.natPartyIndex, Mp::One, oneNation);
 }
 
 const std::map<std::string, std::string> simplifiedStringToPartyCode = {
@@ -2658,12 +2663,23 @@ void SimulationPreparation::prepareRunningParties()
 			}
 		}
 	}
+	// Check once per live forecast so the operator can correct an unintended
+	// separate party entry without interrupting counting.
+	if (run.isLiveAutomatic()) {
+		for (int id : LivePartyMapping::partiesMissingFromSeatLists(project.parties(), run.runningParties)) {
+			auto const& party = project.parties().view(id);
+			logger << "Warning: " << run.getTermCode() << " lists " << party.name
+				<< " (" << party.abbreviation << ") in Parties but in no district's "
+				<< "sRunningParties. Check whether to list it in a seat or include it in Others.\n";
+		}
+	}
 }
 
 void SimulationPreparation::preparePreferenceModel()
 {
 	run.preferenceModel.reset();
 	run.preferenceCountSummaries.clear();
+	run.statewidePreferenceSamples.clear();
 
 	// Resolve party and independent identities after roster preparation. The
 	// main forecast and supporting runs read the same captured settings. Active
@@ -2719,9 +2735,15 @@ void SimulationPreparation::preparePreferenceModel()
 				namedIncumbent = PreferenceModel::District::NamedIncumbent{incumbent, candidateName};
 			}
 		}
+		// Reuse the seat types already loaded for the other forecast inputs.
+		// Only an election opting into geographic Liberal preferences uses
+		// this distinction; the ranking model centres it over this seat roster.
+		auto const seatType = run.seatTypes[seatIndex];
+		bool const regional = seatType == SimulationRun::SeatType::Provincial ||
+			seatType == SimulationRun::SeatType::Rural;
 		districts.push_back({seat.name, std::move(independentName),
 			incumbent == Mp::Two || incumbent == run.natPartyIndex,
-			independentLike, std::move(namedIncumbent)});
+			independentLike, std::move(namedIncumbent), regional});
 	}
 	std::map<std::string, int> partyCodes;
 	for (int party = 0; party < project.parties().count(); ++party) {

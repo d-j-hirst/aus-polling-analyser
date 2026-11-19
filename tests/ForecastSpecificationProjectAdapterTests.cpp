@@ -1,6 +1,7 @@
 #include "ForecastSpecificationIO.h"
 #include "ForecastSpecificationProjectAdapter.h"
 #include "General.h"
+#include "LivePartyMapping.h"
 #include "PollingProject.h"
 #include "WorkspacePaths.h"
 
@@ -11,6 +12,70 @@
 #include <string>
 
 namespace {
+	bool checkSaPartyMigration(ForecastSpecification const& current, WorkspacePaths const& paths)
+	{
+		auto old = current;
+		old.parties.insert(old.parties.begin() + 3, {
+			{3, "sa-best", "SA Best", "SAB"}, {4, "democrats", "Democrats", "DEM"},
+			{5, "family-first", "Family First", "FF"}});
+		for (int index = 0; index < int(old.parties.size()); ++index)
+			old.parties[index].index = index;
+		auto saved = ForecastSpecificationProjectAdapter::construct(old, paths);
+		if (!saved.valid()) return false;
+		auto& project = *saved.project;
+		std::vector<std::vector<std::string>> seatLists;
+		for (auto const& [id, district] : project.seats()) {
+			auto& codes = seatLists.emplace_back();
+			for (auto const& entry : district.runningParties) codes.push_back(entry.substr(0, entry.find('*')));
+		}
+		if (LivePartyMapping::partiesMissingFromSeatLists(project.parties(), seatLists) != std::vector<int>{3,4,5} ||
+			!LivePartyMapping::partiesMissingFromSeatLists(project.parties(), {{},{}}).empty()) return false;
+		Poll poll;
+		poll.primary[3] = 2;
+		poll.primary[4] = 1;
+		poll.primary[5] = 3;
+		poll.primary[6] = 5;
+		poll.primary[7] = 7;
+		poll.primary[PartyCollection::MaxParties] = 4;
+		project.polls().add(poll);
+		poll.primary[PartyCollection::MaxParties] = Poll::NullValue;
+		project.polls().add(poll);
+
+		auto& seat = project.seats().accessByName("Flinders").second;
+		seat.livePartyOne = 3;
+		auto blocked = ForecastSpecificationProjectAdapter::apply(project, current);
+		if (blocked.valid() || blocked.errorMessage().find("Flinders") == std::string::npos ||
+			project.parties().count() != 8) return false;
+		seat.livePartyOne = 7;
+		auto pollMatches = [](Poll const& result, float others) {
+			return result.primary[3] == 5 && result.primary[4] == 7 &&
+				result.primary[5] == Poll::NullValue && result.primary[6] == Poll::NullValue &&
+				result.primary[7] == Poll::NullValue && result.primary[PartyCollection::MaxParties] == others;
+		};
+		// Reopening or reapplying the package must never add the same poll shares twice.
+		for (int application = 0; application < 2; ++application) {
+			auto applied = ForecastSpecificationProjectAdapter::apply(project, current);
+			if (!applied.valid() || project.parties().count() != 5 || seat.livePartyOne != 4 ||
+				!LivePartyMapping::partiesMissingFromSeatLists(project.parties(), seatLists).empty() ||
+				project.parties().indexByShortCode("IND") != 3 || project.parties().indexByShortCode("ONP") != 4 ||
+				!pollMatches(project.polls().viewByIndex(0), 10) ||
+				!pollMatches(project.polls().viewByIndex(1), Poll::NullValue)) return false;
+		}
+		// Import the original poll-column layout into the new project and require
+		// the same totals as the migrated saved polls, including a missing residual.
+		auto folder = paths.root() / "cli-build" / "sa-poll-import";
+		std::filesystem::create_directories(folder);
+		auto file = folder / "polls.csv";
+		std::ofstream(file) <<
+			"MidDate,Firm,Brand,@TPP,ALP FP,SAB FP,DEM FP,FF FP,IND FP,ONP FP,OTH FP\n"
+			"2026-03-01,Example,,50,40,2,1,3,5,7,4\n"
+			"2026-03-02,Example,,50,40,2,1,3,5,7,#N/A\n";
+		project.pollsters().add(Pollster("Example", 0));
+		return project.polls().collectPolls([&](std::string, std::string) { return file.string(); }) &&
+			project.polls().count() == 2 && pollMatches(project.polls().viewByIndex(0), 10) &&
+			pollMatches(project.polls().viewByIndex(1), Poll::NullValue);
+	}
+
 	bool checkIndependentPreferenceImport(std::filesystem::path const& root)
 	{
 		// Exercise the real seat importer/exporter in an isolated workspace,
@@ -194,6 +259,10 @@ int main(int argc, char const* argv[])
 
 		auto const& specification = loaded.specification;
 		auto const& project = *constructed.project;
+		if (specification.electionCode == "2026sa" && !checkSaPartyMigration(specification, paths)) {
+			std::cerr << "2026sa party migration or historical poll import failed\n";
+			valid = false;
+		}
 		// The exception is local to Sharkie's post-2016 campaigns. It must not
 		// become a CA-wide default or retrospectively change NXT in 2016.
 		for (auto const& [seatId, seat] : project.seats()) {

@@ -1,5 +1,9 @@
 # Automatic Live Results
 
+For unattended folder ingestion, reporting and replay publication, see the
+[automated operation guide](../docs/live-automation.md). The workflows below
+remain available for manual snapshots and source preparation.
+
 This guide explains how to supply reported election results to live forecasts
 and reproduce forecasts from retained result feeds.
 
@@ -309,6 +313,8 @@ folder, selection controls and retained results in Live Booths. The PowerShell
 script remains useful for selecting a single feed for an ordinary manual run.
 
 ## Troubleshooting
+
+For SA commentary checks, use `Step-SaCommentaryTrial.ps1 -RunId RUN_ID` to supply the first four captures one at a time. The [operator guide](../docs/live-automation.md#four-capture-sa-commentary-check) covers setup and paid benchmark consent. The [full local publication instructions](../docs/live-automation.md#full-sa-replay-with-local-publication) cover the whole archive.
 
 - **No current-results file found:** check the exact filename convention and
   that the file is in the simulation's configured current-results directory,

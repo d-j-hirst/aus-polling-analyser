@@ -403,6 +403,10 @@ el20*.xml
 /Federal Election 2025 turnout replay.pol2
 /VIC State Election 2022 turnout replay.pol2
 /QLD State Election 2024 turnout replay.pol2
+/SA State Election 2026 commentary*replay*.pol2
+# Local adapter for the original SA benchmark projects and its format checks.
+/live_scripts/prepare_sa_commentary_trial.py
+/live_scripts/test_prepare_sa_commentary_trial.py
 /dependencies/
 /LocalBuildPaths.props
 /docs/turnout-operational-calibration/*

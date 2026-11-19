@@ -53,3 +53,5 @@ LiveInputHistory.cpp
 
 LiveSimulationJob.cpp
 LiveSnapshotViewer.cpp
+
+LiveAutomation.cpp

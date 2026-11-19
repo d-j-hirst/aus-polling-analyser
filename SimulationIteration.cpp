@@ -14,6 +14,7 @@
 #include "CoalitionPairing.h"
 #include "LiveTurnoutMath.h"
 #include "LiveAggregation.h"
+#include "LiveStatewidePreferences.h"
 #include "MajorPartyFpMath.h"
 #include "MinorPartyFpMath.h"
 #include "SpecialPartyCodes.h"
@@ -573,6 +574,26 @@ int SimulationIteration::runIteration()
 	// mutex. No recalculation or feedback into the seat forecasts follows this.
 	prepareAggregationWeights();
 
+	// Describe a shared preference tendency only after this election draw was
+	// accepted. Reuse its ranking and classic-flow samples even when a district
+	// predicted different finalists. Reporting has its own bounded workload and
+	// uses keyed draws, so collecting the table cannot change a seat result.
+	LiveStatewidePreferences::Draw statewidePreferences;
+	if (run.isLiveAutomatic() && LiveStatewidePreferences::includeDraw(iterationIndex,sim.getSettings().numIterations)) {
+		auto const* inputs = run.liveElection->statewidePreferenceInputs();
+		if (inputs) {
+			try {
+				if (!preferenceElection) throw std::runtime_error(preferenceDrawIssue);
+				statewidePreferences = LiveStatewidePreferences::estimate(*inputs,
+					*run.preferenceModel,*preferenceElection,overallPreferenceFlow);
+			}
+			catch (std::exception const& error) {
+				recordedRun.recordWarning(SimulationRun::WarningCategory::StatewidePreferenceReport,
+					iterationIndex,std::string("Statewide preference table unavailable for this report: ")+error.what());
+			}
+		}
+	}
+
 	// Add this election once to the shared seat, regional and overall totals,
 	// including its parliamentary outcome and the report's vote-share summaries.
 	// Only one iteration writes these totals at a time, so concurrent iterations
@@ -580,6 +601,8 @@ int SimulationIteration::runIteration()
 	// the combined results into the report used for subsequent forecast export.
 	std::lock_guard<std::mutex> lock(recordMutex);
 	recordIterationResults();
+	for (auto const& [row,percent] : statewidePreferences)
+		recordedRun.statewidePreferenceSamples[row].push_back(percent);
 	for (std::size_t seat = 0; seat < preferenceComparisons.size(); ++seat) {
 		if (!run.preferenceModel->coversDistrict(static_cast<int>(seat))) continue;
 		auto& summary = recordedRun.preferenceCountSummaries[seat];
@@ -3709,7 +3732,7 @@ void SimulationIteration::incorporateLegacyLiveTpp()
 }
 
 void SimulationIteration::prepareLiveFpCandidates(int seatIndex, LiveTurnoutMath::PartyAccount const& account,
-	bool poolIndependents)
+	LiveData::FpIntegrationInformation const& integration)
 {
 	// Usually every configured party already has a prior draw. A separately
 	// identified candidate that previously belonged to generic Others takes a
@@ -3717,7 +3740,8 @@ void SimulationIteration::prepareLiveFpCandidates(int seatIndex, LiveTurnoutMath
 	auto& prior = seatFpVoteShare[seatIndex];
 	auto const& seat = run.seatLookup.seat(seatIndex);
 	auto const information = liveElection->getSeatFpInformation(seat.name);
-	if (poolIndependents) {
+	double reservedIndependentShare = 0;
+	if (integration.poolIndependents) {
 		// An anonymous independent forecast belongs to the pool when neither
 		// candidate has a matched prior. Combine it before applying shared
 		// election and region movements to the pre-count draw.
@@ -3725,23 +3749,30 @@ void SimulationIteration::prepareLiveFpCandidates(int seatIndex, LiveTurnoutMath
 		for (int party : {run.indPartyIndex, EmergingIndIndex}) {
 			auto found = prior.find(party);
 			if (found == prior.end()) continue;
+			reservedIndependentShare += found->second;
 			others += found->second;
 			prior.erase(found);
 		}
 	}
 	for (auto const& [party,votes] : account.projected) {
 		if (party < 0 || party >= project.parties().count() || party == run.natPartyIndex) continue;
-		if (poolIndependents && party == run.indPartyIndex) continue;
+		if (integration.poolIndependents && party == run.indPartyIndex) continue;
 		if (prior.contains(party) && prior.at(party) > LiveSimulationMath::EvidenceEpsilon) continue;
 		if (party == run.indPartyIndex && getAt(prior,EmergingIndIndex,0.) > 0) continue;
+		// The booth comparison uses a minimum baseline share of 1% for
+		// swing calculations. Use the actual baseline draws to identify
+		// parties sharing Others, then divide that pool once below.
+		if (contains(integration.partiesFromOthers, party)) continue;
 		auto found = information.find(party);
 		if (found == information.end()) continue;
 		double source = getAt(prior,OthersIndex,0.);
 		double requested = detransformVoteShare(found->second.baseline);
-		double share = std::min<double>(source,requested);
+		double share = std::min(std::max(0.0, source - reservedIndependentShare), requested);
 		prior[party] = share;
 		prior[OthersIndex] = source-share;
 	}
+	LiveFpIntegration::assignMissingPartyPriors(prior, OthersIndex, integration.partiesFromOthers,
+		integration.othersPoolSize, reservedIndependentShare);
 }
 
 void SimulationIteration::conditionLiveFpPrior(int seatIndex)
@@ -3811,7 +3842,7 @@ void SimulationIteration::incorporateLiveSeatFp(int seatIndex)
 	double const originalNational = getAt(seatFpVoteShare[seatIndex], run.natPartyIndex, 0.0);
 	if (information->evidenceGate > 0) {
 		auto raw = LiveTurnoutMath::partitionAccount(*rawAccount,[](int id) { return id; });
-		prepareLiveFpCandidates(seatIndex,raw,information->poolIndependents);
+		prepareLiveFpCandidates(seatIndex,raw,*information);
 	}
 	conditionLiveFpPrior(seatIndex);
 	if (information->evidenceGate > 0)
@@ -4031,6 +4062,12 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	// Allocate all already-excluded votes among candidates remaining in the
 	// count. The function is rerun after each exclusion because destinations
 	// and known non-classic preference flows depend on the surviving pair.
+	// The optional source account records only the actual final allocation,
+	// never the earlier rounds or the private Coalition pairing check. This
+	// observes existing arithmetic; it must not redraw or reorder preferences.
+	bool recordFinalTransfers = false;
+	std::vector<PreferenceModel::FinalSource> legacySources;
+	int legacyFirstRecipient = -1;
 	auto allocateVotes = [&](std::vector<PartyVotes>& accumulatedVoteShares, std::vector<PartyVotes> const& excludedVoteShares) {
 		if (accumulatedVoteShares.empty()) {
 			throw InvalidIteration();
@@ -4107,6 +4144,9 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 						// later, include custom exhaust rate for known nc preference flows
 						accumulatedVoteShares[0].second += sourceVoteShare * 0.01 * flow * survivalRate;
 						accumulatedVoteShares[1].second += sourceVoteShare * 0.01 * (100.0 - flow) * survivalRate;
+						if (recordFinalTransfers) {
+							legacySources.push_back({sourceParty, sourceVoteShare * 0.01, flow * 0.01 * survivalRate});
+						}
 						continue;
 					}
 				}
@@ -4246,6 +4286,9 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 				accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight * survivalRate;
 			}
+			if (recordFinalTransfers) {
+				legacySources.push_back({sourceParty, sourceVoteShare * 0.01, weights[0] / totalWeight * survivalRate});
+			}
 		}
 	};
 
@@ -4311,7 +4354,14 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				std::erase(originalVoteShares, originalCandidate);
 			}
 			accumulatedVoteShares = originalVoteShares;
+			if (run.preferenceModel && preferenceComparisons[seatIndex].reportSources) {
+				recordFinalTransfers = true;
+				legacyFirstRecipient = accumulatedVoteShares[0].first;
+				legacySources = {{accumulatedVoteShares[0].first, accumulatedVoteShares[0].second * 0.01, 1.0},
+					{accumulatedVoteShares[1].first, accumulatedVoteShares[1].second * 0.01, 0.0}};
+			}
 			allocateVotes(accumulatedVoteShares, excludedVoteShares);
+			recordFinalTransfers = false;
 			double const finalVoteTotal =
 				accumulatedVoteShares[0].second +
 				accumulatedVoteShares[1].second;
@@ -4385,6 +4435,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				: natShare > libShare ? run.natPartyIndex : Mp::Two;
 			if (topTwo.first.first == Mp::Two) topTwo.first.first = survivingParty;
 			if (topTwo.second.first == Mp::Two) topTwo.second.first = survivingParty;
+			if (legacyFirstRecipient == Mp::Two) legacyFirstRecipient = survivingParty;
 		}
 	}
 
@@ -4392,6 +4443,16 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	if (run.preferenceModel &&
 		preferenceComparisons[seatIndex].model.status == PreferenceModel::Status::Compared) {
 		beforeLive = topTwo;
+		// Align the recorded source rates with the first finalist in party-ID
+		// order, as used by the ranking model. A LIB/NAT-only final has its own
+		// inherited shortcut, so the combined-count source account cannot explain it.
+		if (!legacySources.empty() && coalitionPairing.status != CoalitionPairing::Status::BothFinalists) {
+			int const firstParty = std::min(topTwo.first.first, topTwo.second.first);
+			if (legacyFirstRecipient != firstParty) {
+				for (auto& source : legacySources) source.firstRate = 1.0 - source.firstRate;
+			}
+			preferenceComparisons[seatIndex].legacySources = std::move(legacySources);
+		}
 	}
 	integrateLiveTcpPair(seatIndex, topTwo, livePrincipalProxy);
 	if (!validSeatFinalPair(topTwo)) throw InvalidIteration();
@@ -4573,6 +4634,10 @@ void SimulationIteration::countSeatPreferences(int seatIndex, double mergedIndep
 {
 	auto& comparison = preferenceComparisons[seatIndex];
 	auto const& model = *run.preferenceModel;
+	comparison.reportSources = !model.isActive() && !run.isLive();
+	if (model.partyRoles().national) {
+		comparison.combinedCoalitionSources = PreferenceModel::Pair{model.partyRoles().liberal, *model.partyRoles().national};
+	}
 	bool const namedIndependentMatches = !information || information->namedIndependentMatches;
 	bool const poolIndependents = information && information->poolIndependents;
 	auto const* observation = run.isLiveAutomatic()
@@ -4650,7 +4715,9 @@ void SimulationIteration::countSeatPreferences(int seatIndex, double mergedIndep
 		auto count = [&](PreferenceModel::Sensitivity sensitivity) {
 			try {
 				return model.count(seatIndex, sources, laborTpp, nationalIncoming, *preferenceElection,
-					sensitivity, run.isLiveAutomatic() && model.isActive(), namedIndependentMatches, observation, countContext);
+					sensitivity, (run.isLiveAutomatic() && model.isActive()) ||
+						(comparison.reportSources && sensitivity == PreferenceModel::Sensitivity::None),
+					namedIndependentMatches, observation, countContext);
 			}
 			catch (std::exception const& error) {
 				PreferenceModel::CountResult failed;

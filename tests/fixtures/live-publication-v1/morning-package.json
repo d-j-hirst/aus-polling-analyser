@@ -1,0 +1,2342 @@
+{
+  "schema_version": 1,
+  "run": {
+    "version": 1,
+    "run_id": "2026sa-example",
+    "election": "2026sa",
+    "kind": "replay",
+    "display_name": "Fictional four district replay",
+    "visibility": "private",
+    "election_date": "2026-03-21",
+    "timezone": "Australia/Adelaide"
+  },
+  "forecast": {
+    "forecast_id": "f00000003",
+    "input_revision": "inputs-1",
+    "input_fingerprint": "config-hash",
+    "iterations": 1000,
+    "delivered_at": "2026-11-17T01:04:00+00:00",
+    "completed_at": "2026-11-17T01:05:00+00:00",
+    "source_time": "2026-03-22T08:30:00+10:30",
+    "source_fingerprint": "raw-hash",
+    "origin": false,
+    "source_timezone": "Australia/Adelaide",
+    "simulation": "Live Simulation",
+    "model_revision": "fictional-example-build"
+  },
+  "report": {
+    "termCode": "2026sa",
+    "reportMode": "LF",
+    "seatNames": [
+      "Light",
+      "Hammond",
+      "Schubert",
+      "Finniss"
+    ],
+    "partyAbbr": [
+      [
+        0,
+        "ALP"
+      ],
+      [
+        1,
+        "LIB"
+      ],
+      [
+        2,
+        "ON"
+      ],
+      [
+        3,
+        "IND"
+      ]
+    ],
+    "probabilityBands": [
+      5,
+      50,
+      95
+    ],
+    "voteTotalThresholds": [
+      5,
+      50,
+      95
+    ],
+    "seatPartyWinFrequencies": [
+      [
+        [
+          0,
+          55
+        ],
+        [
+          2,
+          45
+        ]
+      ],
+      [
+        [
+          0,
+          55
+        ],
+        [
+          2,
+          45
+        ]
+      ],
+      [
+        [
+          0,
+          55
+        ],
+        [
+          2,
+          45
+        ]
+      ],
+      [
+        [
+          0,
+          55
+        ],
+        [
+          2,
+          45
+        ]
+      ]
+    ],
+    "seatCandidateNames": [
+      [
+        [
+          0,
+          "Fictional Labor candidate"
+        ],
+        [
+          2,
+          "Fictional One Nation candidate"
+        ]
+      ],
+      [
+        [
+          0,
+          "Fictional Labor candidate"
+        ],
+        [
+          2,
+          "Fictional One Nation candidate"
+        ]
+      ],
+      [
+        [
+          0,
+          "Fictional Labor candidate"
+        ],
+        [
+          2,
+          "Fictional One Nation candidate"
+        ]
+      ],
+      [
+        [
+          0,
+          "Fictional Labor candidate"
+        ],
+        [
+          2,
+          "Fictional One Nation candidate"
+        ]
+      ]
+    ],
+    "seatFpBands": [
+      [
+        [
+          0,
+          [
+            30,
+            35,
+            40
+          ]
+        ],
+        [
+          2,
+          [
+            31,
+            36,
+            41
+          ]
+        ]
+      ],
+      [
+        [
+          0,
+          [
+            30,
+            35,
+            40
+          ]
+        ],
+        [
+          2,
+          [
+            31,
+            36,
+            41
+          ]
+        ]
+      ],
+      [
+        [
+          0,
+          [
+            30,
+            35,
+            40
+          ]
+        ],
+        [
+          2,
+          [
+            31,
+            36,
+            41
+          ]
+        ]
+      ],
+      [
+        [
+          0,
+          [
+            30,
+            35,
+            40
+          ]
+        ],
+        [
+          2,
+          [
+            31,
+            36,
+            41
+          ]
+        ]
+      ]
+    ],
+    "seatTcpBands": [
+      [
+        [
+          [
+            0,
+            2
+          ],
+          [
+            45,
+            51,
+            57
+          ]
+        ]
+      ],
+      [
+        [
+          [
+            0,
+            2
+          ],
+          [
+            45,
+            51,
+            57
+          ]
+        ]
+      ],
+      [
+        [
+          [
+            0,
+            2
+          ],
+          [
+            45,
+            51,
+            57
+          ]
+        ]
+      ],
+      [
+        [
+          [
+            0,
+            2
+          ],
+          [
+            45,
+            51,
+            57
+          ]
+        ]
+      ]
+    ],
+    "seatTcpScenarios": [
+      [
+        [
+          [
+            0,
+            2
+          ],
+          1.0
+        ]
+      ],
+      [
+        [
+          [
+            0,
+            2
+          ],
+          1.0
+        ]
+      ],
+      [
+        [
+          [
+            0,
+            2
+          ],
+          1.0
+        ]
+      ],
+      [
+        [
+          [
+            0,
+            2
+          ],
+          1.0
+        ]
+      ]
+    ],
+    "seatTppBands": [
+      [
+        48,
+        53,
+        58
+      ],
+      [
+        48,
+        53,
+        58
+      ],
+      [
+        48,
+        53,
+        58
+      ],
+      [
+        48,
+        53,
+        58
+      ]
+    ],
+    "expectedSeats": [
+      [
+        0,
+        2.2
+      ],
+      [
+        2,
+        1.8
+      ]
+    ],
+    "majorityWinPc": [
+      [
+        0,
+        50
+      ],
+      [
+        2,
+        40
+      ]
+    ],
+    "minorityWinPc": [
+      [
+        0,
+        5
+      ],
+      [
+        2,
+        5
+      ]
+    ],
+    "mostSeatsWinPc": [
+      [
+        0,
+        55
+      ],
+      [
+        2,
+        45
+      ]
+    ],
+    "overallWinPc": [
+      [
+        0,
+        55
+      ],
+      [
+        2,
+        45
+      ]
+    ],
+    "tppFrequencies": [
+      48,
+      53,
+      58
+    ],
+    "countProgress": {
+      "fp_votes": 20000,
+      "tcp_votes": 10000,
+      "expected_formal_votes": 50000
+    }
+  },
+  "comparisons": {
+    "previous": {
+      "available": true,
+      "reference_forecast_id": "f00000002",
+      "count_activity": {
+        "known": true,
+        "changed_votes": 0
+      },
+      "reference_source_time": "2026-03-21T08:01:00+00:00",
+      "input_revision_changed": false,
+      "win_changes": [
+        {
+          "seat": "Finniss",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "before": 55,
+          "after": 55,
+          "change_pp": 0,
+          "minimum_within_window": 55,
+          "maximum_within_window": 55,
+          "identity_changed": false
+        },
+        {
+          "seat": "Finniss",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "before": 45,
+          "after": 45,
+          "change_pp": 0,
+          "minimum_within_window": 45,
+          "maximum_within_window": 45,
+          "identity_changed": false
+        },
+        {
+          "seat": "Hammond",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "before": 55,
+          "after": 55,
+          "change_pp": 0,
+          "minimum_within_window": 55,
+          "maximum_within_window": 55,
+          "identity_changed": false
+        },
+        {
+          "seat": "Hammond",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "before": 45,
+          "after": 45,
+          "change_pp": 0,
+          "minimum_within_window": 45,
+          "maximum_within_window": 45,
+          "identity_changed": false
+        },
+        {
+          "seat": "Light",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "before": 55,
+          "after": 55,
+          "change_pp": 0,
+          "minimum_within_window": 55,
+          "maximum_within_window": 55,
+          "identity_changed": false
+        },
+        {
+          "seat": "Light",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "before": 45,
+          "after": 45,
+          "change_pp": 0,
+          "minimum_within_window": 45,
+          "maximum_within_window": 45,
+          "identity_changed": false
+        },
+        {
+          "seat": "Schubert",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "before": 55,
+          "after": 55,
+          "change_pp": 0,
+          "minimum_within_window": 55,
+          "maximum_within_window": 55,
+          "identity_changed": false
+        },
+        {
+          "seat": "Schubert",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "before": 45,
+          "after": 45,
+          "change_pp": 0,
+          "minimum_within_window": 45,
+          "maximum_within_window": 45,
+          "identity_changed": false
+        }
+      ],
+      "seat_changes": [
+        {
+          "seat": "Finniss",
+          "changes": [],
+          "before": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          },
+          "after": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          }
+        },
+        {
+          "seat": "Hammond",
+          "changes": [],
+          "before": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          },
+          "after": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          }
+        },
+        {
+          "seat": "Light",
+          "changes": [],
+          "before": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          },
+          "after": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          }
+        },
+        {
+          "seat": "Schubert",
+          "changes": [],
+          "before": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          },
+          "after": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          }
+        }
+      ],
+      "statewide": {
+        "before": {
+          "expectedSeats": {
+            "0": 2.2,
+            "2": 1.8
+          },
+          "majorityWinPc": {
+            "0": 50,
+            "2": 40
+          },
+          "minorityWinPc": {
+            "0": 5,
+            "2": 5
+          },
+          "mostSeatsWinPc": {
+            "0": 55,
+            "2": 45
+          },
+          "overallWinPc": {
+            "0": 55,
+            "2": 45
+          },
+          "hungParliamentPc": null,
+          "coalitionExpectedSeats": null,
+          "countProgress": {
+            "fp_votes": 20000,
+            "tcp_votes": 10000,
+            "expected_formal_votes": 50000
+          },
+          "tpp_percentiles": {
+            "5": 48,
+            "50": 53,
+            "95": 58
+          },
+          "fp_percentiles_by_party": {}
+        },
+        "after": {
+          "expectedSeats": {
+            "0": 2.2,
+            "2": 1.8
+          },
+          "majorityWinPc": {
+            "0": 50,
+            "2": 40
+          },
+          "minorityWinPc": {
+            "0": 5,
+            "2": 5
+          },
+          "mostSeatsWinPc": {
+            "0": 55,
+            "2": 45
+          },
+          "overallWinPc": {
+            "0": 55,
+            "2": 45
+          },
+          "hungParliamentPc": null,
+          "coalitionExpectedSeats": null,
+          "countProgress": {
+            "fp_votes": 20000,
+            "tcp_votes": 10000,
+            "expected_formal_votes": 50000
+          },
+          "tpp_percentiles": {
+            "5": 48,
+            "50": 53,
+            "95": 58
+          },
+          "fp_percentiles_by_party": {}
+        }
+      },
+      "actual_seconds": 50340.0,
+      "requested_seconds": null,
+      "commentary_decision": "no_new_counting"
+    },
+    "since_start": {
+      "available": true,
+      "reference_forecast_id": "origin",
+      "reference_source_time": null,
+      "input_revision_changed": false,
+      "win_changes": [
+        {
+          "seat": "Finniss",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "before": 50,
+          "after": 55,
+          "change_pp": 5,
+          "minimum_within_window": 50,
+          "maximum_within_window": 70,
+          "identity_changed": false
+        },
+        {
+          "seat": "Finniss",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "before": 50,
+          "after": 45,
+          "change_pp": -5,
+          "minimum_within_window": 30,
+          "maximum_within_window": 50,
+          "identity_changed": false
+        },
+        {
+          "seat": "Hammond",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "before": 50,
+          "after": 55,
+          "change_pp": 5,
+          "minimum_within_window": 50,
+          "maximum_within_window": 70,
+          "identity_changed": false
+        },
+        {
+          "seat": "Hammond",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "before": 50,
+          "after": 45,
+          "change_pp": -5,
+          "minimum_within_window": 30,
+          "maximum_within_window": 50,
+          "identity_changed": false
+        },
+        {
+          "seat": "Light",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "before": 50,
+          "after": 55,
+          "change_pp": 5,
+          "minimum_within_window": 50,
+          "maximum_within_window": 70,
+          "identity_changed": false
+        },
+        {
+          "seat": "Light",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "before": 50,
+          "after": 45,
+          "change_pp": -5,
+          "minimum_within_window": 30,
+          "maximum_within_window": 50,
+          "identity_changed": false
+        },
+        {
+          "seat": "Schubert",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "before": 50,
+          "after": 55,
+          "change_pp": 5,
+          "minimum_within_window": 50,
+          "maximum_within_window": 70,
+          "identity_changed": false
+        },
+        {
+          "seat": "Schubert",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "before": 50,
+          "after": 45,
+          "change_pp": -5,
+          "minimum_within_window": 30,
+          "maximum_within_window": 50,
+          "identity_changed": false
+        }
+      ],
+      "statewide": {
+        "before": {
+          "expectedSeats": {
+            "0": 2.2,
+            "2": 1.8
+          },
+          "majorityWinPc": {
+            "0": 50,
+            "2": 40
+          },
+          "minorityWinPc": {
+            "0": 5,
+            "2": 5
+          },
+          "mostSeatsWinPc": {
+            "0": 55,
+            "2": 45
+          },
+          "overallWinPc": {
+            "0": 55,
+            "2": 45
+          },
+          "hungParliamentPc": null,
+          "coalitionExpectedSeats": null,
+          "countProgress": {
+            "fp_votes": 20000,
+            "tcp_votes": 10000,
+            "expected_formal_votes": 50000
+          },
+          "tpp_percentiles": {
+            "5": 48,
+            "50": 53,
+            "95": 58
+          },
+          "fp_percentiles_by_party": {}
+        },
+        "after": {
+          "expectedSeats": {
+            "0": 2.2,
+            "2": 1.8
+          },
+          "majorityWinPc": {
+            "0": 50,
+            "2": 40
+          },
+          "minorityWinPc": {
+            "0": 5,
+            "2": 5
+          },
+          "mostSeatsWinPc": {
+            "0": 55,
+            "2": 45
+          },
+          "overallWinPc": {
+            "0": 55,
+            "2": 45
+          },
+          "hungParliamentPc": null,
+          "coalitionExpectedSeats": null,
+          "countProgress": {
+            "fp_votes": 20000,
+            "tcp_votes": 10000,
+            "expected_formal_votes": 50000
+          },
+          "tpp_percentiles": {
+            "5": 48,
+            "50": 53,
+            "95": 58
+          },
+          "fp_percentiles_by_party": {}
+        }
+      },
+      "actual_seconds": null,
+      "requested_seconds": null,
+      "seat_changes": [
+        {
+          "seat": "Finniss",
+          "changes": [
+            {
+              "metric": "/win_percent/0",
+              "before": 50,
+              "after": 55,
+              "change": 5
+            },
+            {
+              "metric": "/win_percent/2",
+              "before": 50,
+              "after": 45,
+              "change": -5
+            }
+          ]
+        },
+        {
+          "seat": "Hammond",
+          "changes": [
+            {
+              "metric": "/win_percent/0",
+              "before": 50,
+              "after": 55,
+              "change": 5
+            },
+            {
+              "metric": "/win_percent/2",
+              "before": 50,
+              "after": 45,
+              "change": -5
+            }
+          ]
+        },
+        {
+          "seat": "Light",
+          "changes": [
+            {
+              "metric": "/win_percent/0",
+              "before": 50,
+              "after": 55,
+              "change": 5
+            },
+            {
+              "metric": "/win_percent/2",
+              "before": 50,
+              "after": 45,
+              "change": -5
+            }
+          ]
+        },
+        {
+          "seat": "Schubert",
+          "changes": [
+            {
+              "metric": "/win_percent/0",
+              "before": 50,
+              "after": 55,
+              "change": 5
+            },
+            {
+              "metric": "/win_percent/2",
+              "before": 50,
+              "after": 45,
+              "change": -5
+            }
+          ]
+        }
+      ]
+    },
+    "today": {
+      "available": true,
+      "reference_forecast_id": "f00000002",
+      "count_activity": {
+        "known": true,
+        "changed_votes": 0
+      },
+      "reference_source_time": "2026-03-21T08:01:00+00:00",
+      "input_revision_changed": false,
+      "win_changes": [
+        {
+          "seat": "Finniss",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "before": 55,
+          "after": 55,
+          "change_pp": 0,
+          "minimum_within_window": 55,
+          "maximum_within_window": 55,
+          "identity_changed": false
+        },
+        {
+          "seat": "Finniss",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "before": 45,
+          "after": 45,
+          "change_pp": 0,
+          "minimum_within_window": 45,
+          "maximum_within_window": 45,
+          "identity_changed": false
+        },
+        {
+          "seat": "Hammond",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "before": 55,
+          "after": 55,
+          "change_pp": 0,
+          "minimum_within_window": 55,
+          "maximum_within_window": 55,
+          "identity_changed": false
+        },
+        {
+          "seat": "Hammond",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "before": 45,
+          "after": 45,
+          "change_pp": 0,
+          "minimum_within_window": 45,
+          "maximum_within_window": 45,
+          "identity_changed": false
+        },
+        {
+          "seat": "Light",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "before": 55,
+          "after": 55,
+          "change_pp": 0,
+          "minimum_within_window": 55,
+          "maximum_within_window": 55,
+          "identity_changed": false
+        },
+        {
+          "seat": "Light",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "before": 45,
+          "after": 45,
+          "change_pp": 0,
+          "minimum_within_window": 45,
+          "maximum_within_window": 45,
+          "identity_changed": false
+        },
+        {
+          "seat": "Schubert",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "before": 55,
+          "after": 55,
+          "change_pp": 0,
+          "minimum_within_window": 55,
+          "maximum_within_window": 55,
+          "identity_changed": false
+        },
+        {
+          "seat": "Schubert",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "before": 45,
+          "after": 45,
+          "change_pp": 0,
+          "minimum_within_window": 45,
+          "maximum_within_window": 45,
+          "identity_changed": false
+        }
+      ],
+      "seat_changes": [
+        {
+          "seat": "Finniss",
+          "changes": [],
+          "before": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          },
+          "after": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          }
+        },
+        {
+          "seat": "Hammond",
+          "changes": [],
+          "before": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          },
+          "after": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          }
+        },
+        {
+          "seat": "Light",
+          "changes": [],
+          "before": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          },
+          "after": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          }
+        },
+        {
+          "seat": "Schubert",
+          "changes": [],
+          "before": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          },
+          "after": {
+            "candidates": {
+              "0": {
+                "party": "ALP",
+                "name": "Fictional Labor candidate"
+              },
+              "2": {
+                "party": "ON",
+                "name": "Fictional One Nation candidate"
+              }
+            },
+            "win_percent": {
+              "0": 55,
+              "2": 45
+            },
+            "fp_percentiles": {
+              "0": {
+                "5": 30,
+                "50": 35,
+                "95": 40
+              },
+              "2": {
+                "5": 31,
+                "50": 36,
+                "95": 41
+              }
+            },
+            "fp_mean_percent": {},
+            "tcp_percentiles": {
+              "0/2": {
+                "5": 45,
+                "50": 51,
+                "95": 57
+              }
+            },
+            "pairing_percent": {
+              "0/2": 100.0
+            },
+            "tpp_percentiles": {
+              "5": 48,
+              "50": 53,
+              "95": 58
+            }
+          }
+        }
+      ],
+      "statewide": {
+        "before": {
+          "expectedSeats": {
+            "0": 2.2,
+            "2": 1.8
+          },
+          "majorityWinPc": {
+            "0": 50,
+            "2": 40
+          },
+          "minorityWinPc": {
+            "0": 5,
+            "2": 5
+          },
+          "mostSeatsWinPc": {
+            "0": 55,
+            "2": 45
+          },
+          "overallWinPc": {
+            "0": 55,
+            "2": 45
+          },
+          "hungParliamentPc": null,
+          "coalitionExpectedSeats": null,
+          "countProgress": {
+            "fp_votes": 20000,
+            "tcp_votes": 10000,
+            "expected_formal_votes": 50000
+          },
+          "tpp_percentiles": {
+            "5": 48,
+            "50": 53,
+            "95": 58
+          },
+          "fp_percentiles_by_party": {}
+        },
+        "after": {
+          "expectedSeats": {
+            "0": 2.2,
+            "2": 1.8
+          },
+          "majorityWinPc": {
+            "0": 50,
+            "2": 40
+          },
+          "minorityWinPc": {
+            "0": 5,
+            "2": 5
+          },
+          "mostSeatsWinPc": {
+            "0": 55,
+            "2": 45
+          },
+          "overallWinPc": {
+            "0": 55,
+            "2": 45
+          },
+          "hungParliamentPc": null,
+          "coalitionExpectedSeats": null,
+          "countProgress": {
+            "fp_votes": 20000,
+            "tcp_votes": 10000,
+            "expected_formal_votes": 50000
+          },
+          "tpp_percentiles": {
+            "5": 48,
+            "50": 53,
+            "95": 58
+          },
+          "fp_percentiles_by_party": {}
+        }
+      },
+      "actual_seconds": 50340.0,
+      "requested_seconds": null,
+      "commentary_decision": "no_new_counting",
+      "report_date": "2026-03-22",
+      "reporting_timezone": "Australia/Sydney",
+      "requested_reference_time": "2026-03-22T05:00:00+11:00"
+    }
+  },
+  "commentary": {
+    "previous": {
+      "status": "complete",
+      "source": "local",
+      "kind": "no_new_counting",
+      "text": {
+        "summary": "No new counting occurred since the previous forecast.",
+        "developments": [],
+        "insufficient_evidence": false
+      },
+      "metrics": {},
+      "metric_contexts": {},
+      "usage": {},
+      "estimated_usd": 0
+    },
+    "today": {
+      "status": "complete",
+      "source": "local",
+      "kind": "no_new_counting",
+      "text": {
+        "summary": "No new counting occurred since the forecast used as today's starting point.",
+        "developments": [],
+        "insufficient_evidence": false
+      },
+      "metrics": {},
+      "metric_contexts": {},
+      "usage": {},
+      "estimated_usd": 0
+    },
+    "since_start": {
+      "status": "complete",
+      "text": {
+        "summary": "The outlook changed as more information arrived.",
+        "developments": [
+          {
+            "seat": "Finniss",
+            "explanation": "The estimated chance changed; the cause is not established.",
+            "evidence_ids": [],
+            "facts": [
+              {
+                "metric_id": "m0",
+                "value": 50
+              }
+            ]
+          }
+        ],
+        "insufficient_evidence": true
+      },
+      "metrics": {
+        "m0": {
+          "context_id": "c0",
+          "path": "before",
+          "value": 50
+        },
+        "m1": {
+          "context_id": "c0",
+          "path": "after",
+          "value": 55
+        },
+        "m2": {
+          "context_id": "c0",
+          "path": "change_pp",
+          "value": 5
+        },
+        "m3": {
+          "context_id": "c0",
+          "path": "minimum_within_window",
+          "value": 50
+        },
+        "m4": {
+          "context_id": "c0",
+          "path": "maximum_within_window",
+          "value": 70
+        },
+        "m5": {
+          "context_id": "c1",
+          "path": "before",
+          "value": 50
+        },
+        "m6": {
+          "context_id": "c1",
+          "path": "after",
+          "value": 45
+        },
+        "m7": {
+          "context_id": "c1",
+          "path": "change_pp",
+          "value": -5
+        },
+        "m8": {
+          "context_id": "c1",
+          "path": "minimum_within_window",
+          "value": 30
+        },
+        "m9": {
+          "context_id": "c1",
+          "path": "maximum_within_window",
+          "value": 50
+        },
+        "m10": {
+          "context_id": "c2",
+          "path": "before",
+          "value": 50
+        },
+        "m11": {
+          "context_id": "c2",
+          "path": "after",
+          "value": 55
+        },
+        "m12": {
+          "context_id": "c2",
+          "path": "change_pp",
+          "value": 5
+        },
+        "m13": {
+          "context_id": "c2",
+          "path": "minimum_within_window",
+          "value": 50
+        },
+        "m14": {
+          "context_id": "c2",
+          "path": "maximum_within_window",
+          "value": 70
+        },
+        "m15": {
+          "context_id": "c3",
+          "path": "before",
+          "value": 50
+        },
+        "m16": {
+          "context_id": "c3",
+          "path": "after",
+          "value": 45
+        },
+        "m17": {
+          "context_id": "c3",
+          "path": "change_pp",
+          "value": -5
+        },
+        "m18": {
+          "context_id": "c3",
+          "path": "minimum_within_window",
+          "value": 30
+        },
+        "m19": {
+          "context_id": "c3",
+          "path": "maximum_within_window",
+          "value": 50
+        },
+        "m20": {
+          "context_id": "c4",
+          "path": "before",
+          "value": 50
+        },
+        "m21": {
+          "context_id": "c4",
+          "path": "after",
+          "value": 55
+        },
+        "m22": {
+          "context_id": "c4",
+          "path": "change_pp",
+          "value": 5
+        },
+        "m23": {
+          "context_id": "c4",
+          "path": "minimum_within_window",
+          "value": 50
+        },
+        "m24": {
+          "context_id": "c4",
+          "path": "maximum_within_window",
+          "value": 70
+        },
+        "m25": {
+          "context_id": "c5",
+          "path": "before",
+          "value": 50
+        },
+        "m26": {
+          "context_id": "c5",
+          "path": "after",
+          "value": 45
+        },
+        "m27": {
+          "context_id": "c5",
+          "path": "change_pp",
+          "value": -5
+        },
+        "m28": {
+          "context_id": "c5",
+          "path": "minimum_within_window",
+          "value": 30
+        },
+        "m29": {
+          "context_id": "c5",
+          "path": "maximum_within_window",
+          "value": 50
+        },
+        "m30": {
+          "context_id": "c6",
+          "path": "before",
+          "value": 50
+        },
+        "m31": {
+          "context_id": "c6",
+          "path": "after",
+          "value": 55
+        },
+        "m32": {
+          "context_id": "c6",
+          "path": "change_pp",
+          "value": 5
+        },
+        "m33": {
+          "context_id": "c6",
+          "path": "minimum_within_window",
+          "value": 50
+        },
+        "m34": {
+          "context_id": "c6",
+          "path": "maximum_within_window",
+          "value": 70
+        },
+        "m35": {
+          "context_id": "c7",
+          "path": "before",
+          "value": 50
+        },
+        "m36": {
+          "context_id": "c7",
+          "path": "after",
+          "value": 45
+        },
+        "m37": {
+          "context_id": "c7",
+          "path": "change_pp",
+          "value": -5
+        },
+        "m38": {
+          "context_id": "c7",
+          "path": "minimum_within_window",
+          "value": 30
+        },
+        "m39": {
+          "context_id": "c7",
+          "path": "maximum_within_window",
+          "value": 50
+        },
+        "m40": {
+          "context_id": "c8",
+          "path": "statewide/before/expectedSeats/0",
+          "value": 2.2
+        },
+        "m41": {
+          "context_id": "c8",
+          "path": "statewide/before/expectedSeats/2",
+          "value": 1.8
+        },
+        "m42": {
+          "context_id": "c8",
+          "path": "statewide/before/majorityWinPc/0",
+          "value": 50
+        },
+        "m43": {
+          "context_id": "c8",
+          "path": "statewide/before/majorityWinPc/2",
+          "value": 40
+        },
+        "m44": {
+          "context_id": "c8",
+          "path": "statewide/before/minorityWinPc/0",
+          "value": 5
+        },
+        "m45": {
+          "context_id": "c8",
+          "path": "statewide/before/minorityWinPc/2",
+          "value": 5
+        },
+        "m46": {
+          "context_id": "c8",
+          "path": "statewide/before/mostSeatsWinPc/0",
+          "value": 55
+        },
+        "m47": {
+          "context_id": "c8",
+          "path": "statewide/before/mostSeatsWinPc/2",
+          "value": 45
+        },
+        "m48": {
+          "context_id": "c8",
+          "path": "statewide/before/overallWinPc/0",
+          "value": 55
+        },
+        "m49": {
+          "context_id": "c8",
+          "path": "statewide/before/overallWinPc/2",
+          "value": 45
+        },
+        "m50": {
+          "context_id": "c8",
+          "path": "statewide/before/countProgress/fp_votes",
+          "value": 20000
+        },
+        "m51": {
+          "context_id": "c8",
+          "path": "statewide/before/countProgress/tcp_votes",
+          "value": 10000
+        },
+        "m52": {
+          "context_id": "c8",
+          "path": "statewide/before/countProgress/expected_formal_votes",
+          "value": 50000
+        },
+        "m53": {
+          "context_id": "c8",
+          "path": "statewide/before/tpp_percentiles/5",
+          "value": 48
+        },
+        "m54": {
+          "context_id": "c8",
+          "path": "statewide/before/tpp_percentiles/50",
+          "value": 53
+        },
+        "m55": {
+          "context_id": "c8",
+          "path": "statewide/before/tpp_percentiles/95",
+          "value": 58
+        },
+        "m56": {
+          "context_id": "c8",
+          "path": "statewide/after/expectedSeats/0",
+          "value": 2.2
+        },
+        "m57": {
+          "context_id": "c8",
+          "path": "statewide/after/expectedSeats/2",
+          "value": 1.8
+        },
+        "m58": {
+          "context_id": "c8",
+          "path": "statewide/after/majorityWinPc/0",
+          "value": 50
+        },
+        "m59": {
+          "context_id": "c8",
+          "path": "statewide/after/majorityWinPc/2",
+          "value": 40
+        },
+        "m60": {
+          "context_id": "c8",
+          "path": "statewide/after/minorityWinPc/0",
+          "value": 5
+        },
+        "m61": {
+          "context_id": "c8",
+          "path": "statewide/after/minorityWinPc/2",
+          "value": 5
+        },
+        "m62": {
+          "context_id": "c8",
+          "path": "statewide/after/mostSeatsWinPc/0",
+          "value": 55
+        },
+        "m63": {
+          "context_id": "c8",
+          "path": "statewide/after/mostSeatsWinPc/2",
+          "value": 45
+        },
+        "m64": {
+          "context_id": "c8",
+          "path": "statewide/after/overallWinPc/0",
+          "value": 55
+        },
+        "m65": {
+          "context_id": "c8",
+          "path": "statewide/after/overallWinPc/2",
+          "value": 45
+        },
+        "m66": {
+          "context_id": "c8",
+          "path": "statewide/after/countProgress/fp_votes",
+          "value": 20000
+        },
+        "m67": {
+          "context_id": "c8",
+          "path": "statewide/after/countProgress/tcp_votes",
+          "value": 10000
+        },
+        "m68": {
+          "context_id": "c8",
+          "path": "statewide/after/countProgress/expected_formal_votes",
+          "value": 50000
+        },
+        "m69": {
+          "context_id": "c8",
+          "path": "statewide/after/tpp_percentiles/5",
+          "value": 48
+        },
+        "m70": {
+          "context_id": "c8",
+          "path": "statewide/after/tpp_percentiles/50",
+          "value": 53
+        },
+        "m71": {
+          "context_id": "c8",
+          "path": "statewide/after/tpp_percentiles/95",
+          "value": 58
+        }
+      },
+      "metric_contexts": {
+        "c0": {
+          "seat": "Finniss",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "quantity": "win probability; levels are percent, change_pp is percentage points"
+        },
+        "c1": {
+          "seat": "Finniss",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "quantity": "win probability; levels are percent, change_pp is percentage points"
+        },
+        "c2": {
+          "seat": "Hammond",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "quantity": "win probability; levels are percent, change_pp is percentage points"
+        },
+        "c3": {
+          "seat": "Hammond",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "quantity": "win probability; levels are percent, change_pp is percentage points"
+        },
+        "c4": {
+          "seat": "Light",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "quantity": "win probability; levels are percent, change_pp is percentage points"
+        },
+        "c5": {
+          "seat": "Light",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "quantity": "win probability; levels are percent, change_pp is percentage points"
+        },
+        "c6": {
+          "seat": "Schubert",
+          "party_id": "0",
+          "identity": {
+            "party": "ALP",
+            "name": "Fictional Labor candidate"
+          },
+          "quantity": "win probability; levels are percent, change_pp is percentage points"
+        },
+        "c7": {
+          "seat": "Schubert",
+          "party_id": "2",
+          "identity": {
+            "party": "ON",
+            "name": "Fictional One Nation candidate"
+          },
+          "quantity": "win probability; levels are percent, change_pp is percentage points"
+        },
+        "c8": {
+          "seat": "Statewide",
+          "units": "as named by the report field"
+        }
+      },
+      "model": "mock",
+      "prompt_version": "live-changes-1",
+      "configuration": {
+        "model": "mock",
+        "max_output_tokens": 500,
+        "input_usd_per_million": 1,
+        "output_usd_per_million": 2
+      },
+      "evidence_hash": "54b589e477d2d2fff336b5c54bb85ecafa8e3fdab30e6b4446ebf195ef33d5f3",
+      "request_hash": "54d51bfb202a0328b29ffa2e2479912b4f321e41c3759c41ebafde250079ea9b",
+      "latency_seconds": 0.0,
+      "usage": {
+        "input_tokens": 100,
+        "output_tokens": 80
+      },
+      "estimated_usd": 0.00026,
+      "finished_at": "2026-11-17T01:00:00+00:00",
+      "attempts": 1
+    }
+  },
+  "commentary_evidence": {
+    "8ca6a5ff08610dcf9d9f41afc51aae6db83da990d3c9994e7ebeead19b82d0d3": []
+  },
+  "commentary_requests": {
+    "since_start": "8ca6a5ff08610dcf9d9f41afc51aae6db83da990d3c9994e7ebeead19b82d0d3"
+  },
+  "released_at": "2026-11-17T01:05:01+00:00",
+  "frozen": true,
+  "reporting_schedule": {
+    "timezone": "Australia/Sydney",
+    "day_start_hour": 5,
+    "three_hour_start_hour": 13
+  },
+  "retained_reports": {
+    "yesterday": {
+      "available": true,
+      "report_date": "2026-03-21",
+      "timezone": "Australia/Sydney",
+      "day_start": "2026-03-21T05:00:00+11:00",
+      "day_end": "2026-03-22T05:00:00+11:00",
+      "selected_by_forecast_id": "f00000003",
+      "source_forecast_id": "f00000002",
+      "source_time": "2026-03-21T08:01:00+00:00",
+      "source_window": "since_start",
+      "reference_forecast_id": "origin",
+      "reference_source_time": null,
+      "actual_seconds": null,
+      "commentary_status": "complete"
+    }
+  }
+}

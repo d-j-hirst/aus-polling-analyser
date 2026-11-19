@@ -146,7 +146,7 @@ fTppMargin=34.1
 fPreviousTppSwing=0.5
 fTransposedFederalSwing=2.3
 bRetirement=1
-sBettingOdds=GRN,1.07
+sBettingOdds=GRN,1.065
 sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH*
 sCandidateNames=Gabe Steger,ALP;Adam Pulford,GRN;Adam Helman,ONP;John Margelis,LNP
 #Bulleen
@@ -195,7 +195,7 @@ fTransposedFederalSwing=2.1
 bConfirmedProminentIndependent=1
 bPreviousIndRunning=1
 sMinorViability=IND,-1
-sBettingOdds=IND,37.00
+sBettingOdds=IND,21.00
 sRunningParties=LNP,ALP,GRN,ONP,IND,OTH*
 sCandidateNames=Meng Heang Tak,ALP;Conor Boyd-Eedle,GRN;Gavin Bain,ONP;John Paganis,LNP;Caroline White,IND
 #Cranbourne
@@ -217,7 +217,7 @@ fTransposedFederalSwing=1.8
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
-sBettingOdds=IND,54.00
+sBettingOdds=IND,56.50
 sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Richard Farr,ALP;Toby Wooldridge,LNP;Lini Fernando,GRN;Glenn Brindley,ONP;David Vanderwolf,IND
 #Dandenong
@@ -258,7 +258,7 @@ fTransposedFederalSwing=0.8
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,1
-sBettingOdds=IND,8.00
+sBettingOdds=IND,8.25
 sRunningParties=LNP,ALP,GRN,ONP,IND**,OTH
 sCandidateNames=Kat Theodosis,ALP;Tommy Le Deux,LNP;James Williams,GRN;John Barnes,ONP;Oscar Yildiz,IND
 #Eureka
@@ -301,7 +301,7 @@ fPreviousTppSwing=-3.0
 fTransposedFederalSwing=3.9
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
-sBettingOdds=GRN,2.85;IND,13.00
+sBettingOdds=GRN,2.65;IND,20.50
 sRunningParties=LNP,ALP,GRN,ONP,IND***,OTH******
 sCandidateNames=Katie Hall,ALP;Elena Pereyra,GRN;Alexander Lopez,ONP;Jess Marsh,IND;Tim Chang,LNP
 #Frankston
@@ -399,7 +399,7 @@ fPreviousTppSwing=0.4
 fTransposedFederalSwing=0.1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
-sBettingOdds=IND,38.50
+sBettingOdds=IND,43.50
 sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH*
 sCandidateNames=Anthony Carbines,ALP;Oscar Lopez,LNP;Nina Crawley,GRN;Wayne Hutchinson,ONP;Michelle Kennedy,IND
 #Kalkallo
@@ -475,7 +475,7 @@ fTransposedFederalSwing=-1.3
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
-sBettingOdds=IND,63.50
+sBettingOdds=IND,48.50
 sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH**
 sCandidateNames=Annette Death,ALP;Kate Kendall,LNP;Marley McRae McLeod,GRN;Damien Parolin,ONP;Dom Bonanno,IND
 #Malvern
@@ -585,7 +585,7 @@ fByElectionSwing=-5.53
 fTransposedFederalSwing=5.2
 bConfirmedProminentIndependent=1
 bPreviousIndRunning=1
-sBettingOdds=IND,4.25
+sBettingOdds=IND,4.375
 sRunningParties=LNP,ALP,GRN,ONP,IND,OTH**
 sCandidateNames=Eden Foster,ALP;Charles Tran,LNP;Paul Schofield,GRN;Cody Rebbechi,ONP;Ian Cook,IND
 #Murray Plains
@@ -661,7 +661,7 @@ sRegion=Inner Melbourne
 fTppMargin=31.7
 fPreviousTppSwing=-1.5
 fTransposedFederalSwing=1.3
-sBettingOdds=GRN,1.33
+sBettingOdds=GRN,1.32
 sRunningParties=LNP,ALP,GRN,ONP,IND,OTH****
 sCandidateNames=Kat Theophanous,ALP;Lynda Awad,LNP;Campbell Gome,GRN;Christopher Bradbury,ONP
 #Oakleigh
@@ -706,7 +706,7 @@ sRegion=Middle NW Melbourne
 fTppMargin=22.2
 fPreviousTppSwing=0.0
 fTransposedFederalSwing=2.2
-sBettingOdds=GRN,2.385
+sBettingOdds=GRN,2.285
 sRunningParties=LNP,ALP,GRN,ONP,OTH*****
 sCandidateNames=Anthony Cianflone,ALP;Angelica Panopoulos,GRN;Rosemarie Pauline Ganci,ONP;Rohit Taggar,LNP
 #Point Cook
@@ -749,7 +749,7 @@ fTppMargin=19.7
 fPreviousTppSwing=-8.6
 fTransposedFederalSwing=1.3
 bSophomoreCandidate=1
-sBettingOdds=GRN,3.525
+sBettingOdds=GRN,3.15
 sMinorViability=ONP,-1
 sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH****
 sCandidateNames=Nathan Lambert,ALP;Loki Sangarya,GRN;Franco Guardiani,ONP;Hamza Al Katranji,LNP
@@ -821,7 +821,7 @@ sCoalitionCandidates=NAT;LNP,0.25
 fNationalsCoalitionShare=0.52
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
-sBettingOdds=IND,17.00
+sBettingOdds=IND,19.00
 sRunningParties=NAT,ALP,GRN,ONP,IND*,OTH**
 sCandidateNames=Cayla Fin,ALP;Shane Sali,NAT;Grace Verney,GRN;Phillip Bryant,ONP;Lou Costa,IND
 #South Barwon
@@ -934,7 +934,7 @@ fTransposedFederalSwing=2.2
 bDisendorsement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,0
-sBettingOdds=IND,10.00
+sBettingOdds=IND,3.75
 sRunningParties=LNP,ALP,GRN,ONP,IND,OTH***
 sCandidateNames=Melissa Horne,ALP;Paul Lindemann,LNP;Ben Hocking,GRN;Catherine Loughnan,ONP;Tony Briffa,IND
 #Yan Yean

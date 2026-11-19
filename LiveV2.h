@@ -569,6 +569,7 @@ public:
 
   // Expose some internals for diagnostics/analysis
   std::optional<LiveData::CountProgress> getCountProgress() const override { return countProgress; }
+  LiveStatewidePreferences::Election const* statewidePreferenceInputs() const override { return statewidePreferences.get(); }
 
   Internals getInternals() const override {
     Internals internals;
@@ -1028,6 +1029,20 @@ private:
   };
   using LearnedDistrict = std::map<PreferenceModel::Pair,LearnedPair>;
   std::shared_ptr<std::vector<LearnedDistrict> const> learnedPreferences;
+  std::shared_ptr<LiveStatewidePreferences::Election const> statewidePreferences;
+  int preferenceModelParty(int party, Seat const& seat) const;
+  std::vector<PreferenceModel::Source> preferenceSources(std::map<int,double> const& counts,
+    Seat const& seat, double total, bool includeZeroVoteFinalists = false) const;
+  void prepareStatewidePreferences(Results2::Election const& previousElection, Results2::Election const& currentElection,
+    LiveInputRecovery::PairPreferenceHistory const& history);
+  int publishedPreferenceParty(int candidateId, Results2::Election const& previousElection,
+    Results2::Election const& currentElection) const;
+  void addStatewidePreferenceDistrict(LiveStatewidePreferences::Election& prepared, size_t seatIndex,
+    std::set<int> roster, std::span<std::array<int,3> const> rows, Results2::Election const& previousElection,
+    Results2::Election const& currentElection, LiveInputRecovery::PairPreferenceHistory const& history) const;
+  std::map<PreferenceModel::Pair,LivePartialCount::TcpBasis> statewidePreferenceBatches(Booth const& booth,
+    Seat const& seat, Results2::Election const& previousElection, Results2::Election const& currentElection,
+    LiveInputRecovery::PairPreferenceHistory const& history) const;
   std::shared_ptr<nlohmann::json const> preferenceLearningDiagnostic;
   std::shared_ptr<std::map<int, PreferenceModel::PreparedCountObservation> const> preferenceCountObservations;
   std::shared_ptr<nlohmann::json const> preferenceCountDiagnostic;

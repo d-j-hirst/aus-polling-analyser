@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-11-17T00:40:32Z",
+  "updated_at_utc": "2026-11-17T22:04:19Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -9880,7 +9880,7 @@
         "Preferences/*.json.gz"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 11,
+      "semantic_revision": 13,
       "files": {
         "Preferences/2025fed.json": {
           "sha256": "797a5c974787cb2546f36dd2a9ace073167513b67109e6f880de5cf479d3f171",
@@ -9898,9 +9898,9 @@
           "recorded_mtime_utc": "2026-11-13T09:55:40.626019Z"
         },
         "Preferences/2028fed.json": {
-          "sha256": "a76f1f8eda58249ffddc21133e5462f2264b5f00ec17b82a6028a4c4ed0419ed",
-          "size_bytes": 15959,
-          "recorded_mtime_utc": "2026-11-17T00:40:29.726761Z"
+          "sha256": "3152bc1d47a9fda8371eb6948f460f5761f71fe08fe2b80545ebb25252989155",
+          "size_bytes": 16642,
+          "recorded_mtime_utc": "2026-11-17T21:59:01.934521Z"
         },
         "Preferences/aec-alternative-tpp-extracts.json": {
           "sha256": "937becf7a685fa1f8bf44fcb730b1f2337896820ec5cded155f6705cd20f70a9",
@@ -10188,9 +10188,51 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261117T143404Z-methodology-preference-evidence-inputs-e14e3efd",
+          "recorded_at_utc": "2026-11-17T14:34:04Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 12,
+          "provenance_revision": 12,
+          "summary": "Add a 10 percentage point regional/provincial versus metropolitan gap in Liberal preferences to One Nation against Labor, centred across project seats; preserve the Greens comparison centres and broad preference uncertainty.",
+          "files": [
+            "Preferences/2028fed.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261117T220419Z-methodology-preference-evidence-inputs-c18ff02d",
+          "recorded_at_utc": "2026-11-17T22:04:19Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 13,
+          "provenance_revision": 13,
+          "summary": "Return 2028fed to compare mode for matched-draw review of One Nation preference effects; keep existing counting for published Standard and Now-cast forecasts and calibration, with ranking profiles and uncertainty unchanged.",
+          "files": [
+            "Preferences/2028fed.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 11
+      "provenance_revision": 13
     },
     "preference_evidence_tools": {
       "description": "Cache-only extraction and population/provenance validation of observed preference evidence.",

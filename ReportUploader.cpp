@@ -3,7 +3,6 @@
 #include "Log.h"
 #include "PollingProject.h"
 
-#include <array>
 #include <fstream>
 #include <optional>
 #include <string>
@@ -15,10 +14,7 @@ using json = nlohmann::json;
 
 namespace {
 	constexpr char OutputFilename[] = "uploads/latest_json.dat";
-	constexpr std::array<float, 15> PercentileThresholds = {
-		0.1f, 0.5f, 1.0f, 2.5f, 5.0f, 10.0f, 25.0f, 50.0f,
-		75.0f, 90.0f, 95.0f, 97.5f, 99.0f, 99.5f, 99.9f
-	};
+	auto const& PercentileThresholds = Simulation::Report::CurrentlyUsedProbabilityBands;
 
 	template <typename Value, typename Getter>
 	std::vector<Value> percentileValues(Getter getter)
@@ -57,31 +53,31 @@ ReportUploader::ReportUploader(Simulation::SavedReport const& thisReport, Simula
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(StanModel::ModelledPoll, pollster, day, base, adjusted, reported)
 
-std::optional<std::string> ReportUploader::exportReport()
+json ReportUploader::serializeReport() const
 {
 	auto const& settings = simulation.getSettings();
 	if (project.projections().idToIndex(settings.baseProjection) ==
 		ProjectionCollection::InvalidIndex) {
-		return exportFailure("the simulation does not have a valid base projection.");
+		throw std::runtime_error("the simulation does not have a valid base projection.");
 	}
 	auto const& projection = project.projections().view(settings.baseProjection);
 	if (project.models().idToIndex(projection.getSettings().baseModel) ==
 		ModelCollection::InvalidIndex) {
-		return exportFailure("the simulation's base projection does not have a valid model.");
+		throw std::runtime_error("the simulation's base projection does not have a valid model.");
 	}
 	auto const modeString = reportModeCode(settings.reportMode);
 	if (!modeString) {
-		return exportFailure("the simulation has an invalid report mode.");
+		throw std::runtime_error("the simulation has an invalid report mode.");
 	}
 	if (!thisReport.dateSaved.isValid()) {
-		return exportFailure("the report does not have a valid saved date.");
+		throw std::runtime_error("the report does not have a valid saved date.");
 	}
 
 	json j;
 	// The election identity currently belongs to the model rather than the project.
 	auto const& termCode = projection.getBaseModel(project.models()).getTermCode();
 	if (termCode.empty()) {
-		return exportFailure("the simulation's base model does not have an election term code.");
+		throw std::runtime_error("the simulation's base model does not have an election term code.");
 	}
 	j["termCode"] = termCode;
 	j["electionName"] = project.getElectionName();
@@ -100,7 +96,13 @@ std::optional<std::string> ReportUploader::exportReport()
 	j["majorityWinPc"] = thisReport.report.majorityPercent;
 	j["minorityWinPc"] = thisReport.report.minorityPercent;
 	j["mostSeatsWinPc"] = thisReport.report.mostSeatsPercent;
+	j["hungParliamentPc"] = thisReport.report.getHungPercent();
 	j["voteTotalThresholds"] = PercentileThresholds;
+	if (settings.reportMode == Simulation::Settings::ReportMode::LiveForecast && !isLiveManual) {
+		for (auto const& [row,percentiles] : thisReport.report.statewidePreferenceFlows)
+			j["statewidePreferenceFlows"].push_back({{"sourceParty",row[0]},{"destinationParty",row[1]},
+				{"otherFinalist",row[2]},{"percentiles",percentiles}});
+	}
 	if (!isLiveManual) {
 		std::map<int, std::vector<float>> fpFrequencies;
 		for (auto const& partyFrequency : thisReport.report.partyPrimaryFrequency) {
@@ -142,6 +144,19 @@ std::optional<std::string> ReportUploader::exportReport()
 	j["seatMargins"] = thisReport.report.seatIncumbentMargins;
 	j["seatHideTcps"] = thisReport.report.seatHideTcps;
 	j["seatPartyWinFrequencies"] = thisReport.report.seatPartyWinPercent;
+	// These explicit units and thresholds let automated change reports compare
+	// estimates without guessing the median's array position or mistaking the
+	// reported TCP (which may change pairing) for notional Labor-Coalition TPP.
+	j["probabilityBands"] = thisReport.report.probabilityBands;
+	j["seatTppBands"] = thisReport.report.seatTppProbabilityBand;
+	j["seatMeanFp"] = thisReport.report.seatPartyMeanFpShare;
+	j["expectedSeats"] = thisReport.report.partyWinExpectation;
+	j["coalitionExpectedSeats"] = thisReport.report.coalitionWinExpectation;
+	if (thisReport.report.countProgress) {
+		auto const& progress = *thisReport.report.countProgress;
+		j["countProgress"] = {{"fp_votes",progress.fpVotes},{"tcp_votes",progress.tcpVotes},
+			{"expected_formal_votes",progress.expectedFormalVotes}};
+	}
 	if (!isLiveManual) {
 		j["seatTcpScenarios"] = thisReport.report.seatTcpScenarioPercent;
 		j["seatFpBands"] = thisReport.report.seatFpProbabilityBand;
@@ -187,6 +202,14 @@ std::optional<std::string> ReportUploader::exportReport()
 			});
 	}
 
+	return j;
+}
+
+std::optional<std::string> ReportUploader::exportReport()
+{
+	json j;
+	try { j = serializeReport(); }
+	catch (std::exception const& e) { return exportFailure(e.what()); }
 	std::string serialisedReport;
 	try {
 		// Complete serialization before truncating the previous prepared report.

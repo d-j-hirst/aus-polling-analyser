@@ -1,0 +1,22 @@
+[
+  {
+    "model": "gpt-6.1-terra",
+    "service_tier": "default",
+    "reasoning_effort": "low",
+    "input_usd_per_million": 1,
+    "cached_input_usd_per_million": 0.05,
+    "output_usd_per_million": 5,
+    "max_output_tokens": 8192,
+    "request_timeout_seconds": 180
+  },
+  {
+    "model": "gpt-6.1-sol",
+    "service_tier": "default",
+    "reasoning_effort": "low",
+    "input_usd_per_million": 2,
+    "cached_input_usd_per_million": 0.1,
+    "output_usd_per_million": 10,
+    "max_output_tokens": 8192,
+    "request_timeout_seconds": 180
+  }
+]

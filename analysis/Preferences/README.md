@@ -227,8 +227,12 @@ is used.
 The simulation captures the file with its other inputs, so a change refreshes
 any retained calibration and live baseline when the next run starts.
 
-The [2028 federal forecast](2028fed.json) uses active ranking preferences for
-Standard and Now-cast forecasts, including any betting-odds calibration.
+The [2028 federal forecast](2028fed.json) currently uses `compare` mode for
+Standard and Now-cast forecasts. The existing count supplies the ordinary
+report, website export and betting-odds calibration. The ranking count is
+recorded alongside it on the same simulated primary votes and TPP. Changing
+mode does not rewrite a saved report: rerun the macro before exporting results
+under the selected method.
 Its profiles and uncertainty start from those used for the
 [2025 federal replay](2025fed.json). The assumed
 chance that Coalition advice ranks Labor ahead of the Greens is 80% per
@@ -238,8 +242,107 @@ profile and its uncertainty. The optional
 `national_follows_election_liberal_advice` setting makes the Nationals use
 that same direction, with the corresponding Liberal head-to-head centre as
 a proxy and the existing Nationals uncertainty. District-specific Liberal
-advice applies to Liberal ballots. Nationals preferences between Labor and
-One Nation still use the project rate for those recipients.
+advice applies to Liberal ballots.
+
+The 2026 Victorian and 2028 federal forecasts assume that 82.94% of Nationals
+first-preference ballots favour One Nation over Labor. In Hunter in 2025,
+16,829 of the 20,290 Nationals ballots reached One Nation and 3,461 reached
+Labor. Using a single federal seat as a starting point for other districts
+and elections is an assumption. The ranked model retains uncertainty about
+both the election-wide flow and differences between districts.
+[AEC original-source counts](https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv)
+
+The historical replays use how-to-vote advice available at each election
+to choose a starting share of Liberal first preferences that favour One
+Nation over Labor. In Queensland in 2017, the last-excluded LNP candidate's
+votes split about evenly when the party recommended Labor. About 71% went
+to One Nation when the party recommended One Nation. Those counts included
+votes inherited from other candidates, so the rounded 50% and 70% starting
+points are approximate. Each replay also uses its Liberal setting as the
+proxy for Nationals ballots when the count tracks them separately.
+[Queensland preference distributions](https://antonygreen.com.au/statistics-on-preference-flows-between-the-coalition-and-one-nation/#the-2017-queensland-election)
+
+- **2019 federal, 50%.** The Liberals recommended Labor ahead of One Nation.
+  The Nationals set advice locally, so the replay uses the Liberal setting
+  as a proxy across the election.
+  [Liberal announcement](https://pmtranscripts.pmc.gov.au/release/transcript-42250) ·
+  [Nationals statement](https://www.michaelmccormack.com.au/2019-3-21-transcript-doorstop-inland-rail-forum-brisbane-qld-21-may-2019/)
+- **2022 federal, 60%.** Evidence was mixed across states. The midpoint of
+  the two Queensland starting points is an election-wide assumption.
+  [Coalition advice by state](https://press-files.anu.edu.au/downloads/press/n14784/html/ch18.xhtml)
+- **2022 Victoria, 70%.** The Victorian cards checked put One Nation ahead
+  of Labor, including both Coalition candidates in Morwell.
+  [VEC card archive](https://www.vec.vic.gov.au/candidates-and-parties/become-a-state-election-candidate/how-to-vote-cards/how-to-vote-cards)
+- **2025 federal, 70%.** The Coalition generally recommended One Nation
+  ahead of Labor. The ranked Liberal profiles already have this centre.
+  [House of Representatives cards](https://www.abc.net.au/news/2025-05-01/how-to-vote-cards-in-your-electorates/105217758)
+
+In compare mode, `PALog.log` records all finalist pairs and winners for both
+counts, with the mean TCP margin and its standard deviation (the spread
+across simulated elections). It separately reports draws where both counts
+reach the same pair, and identifies which party gains when the winner changes.
+Those comparisons isolate counting-method differences on the current inputs;
+they do not measure changes caused by a new poll or a separate calibration
+using active ranking preferences.
+
+Pre-election comparisons also record the actual transfers from each original
+FP source on draws with the same finalists and matching FP accounts. A flow
+is the fraction of that source reaching the first named finalist. For example,
+a 10% Greens primary with a flow rising from 70% to 90% adds 2 percentage
+points to that finalist's TCP. The reported source contributions must sum to
+the observed TCP change. Source flow means and standard deviations use draws
+where the source has a positive primary; mean FP and TCP contributions use all
+matched draws for that pair. The source records include finalists' own primary
+votes. Liberal and National sources are combined to match the existing count's
+combined Coalition account, including any allocation between its candidates.
+
+The additional “wins if only this source changes” check replaces one source's
+transfers while holding the old finalists and other transfers fixed. It helps
+test whether, for example, the Greens change is large enough to reverse close
+contests. These win changes are **not additive**: several sources may each
+suffice to reverse the same contest, or only do so together. They are conditional
+on the shared pairing, not a decomposition of overall seat expectations.
+Classic TPP and Liberal–National shortcuts, missing source accounts and
+inconsistent FP accounts are marked unavailable for this attribution. They
+remain in the broader pairing/winner comparison. These are aggregate records
+per district and pair, not files for every simulated election; reading the
+drawn transfers adds no new randomness and does not change the forecast.
+
+For Liberal ballots, the optional `liberal_one_nation_regional_gap` is the
+regional-minus-metropolitan difference in the fraction preferring One Nation
+to Labor. It is 0.10 (ten percentage points) in `2028fed`; other elections
+currently omit it and retain their existing profiles. Provincial and rural
+districts form the regional group, using the simulation's existing
+[seat types](../Data/seat-types.csv). Inner and outer metropolitan districts
+form the metropolitan group. Preparation centres the adjustment across
+equally weighted seats in the project. With 63 of 150 seats regional
+(including O'Donoghue through its previous name, Grey), the 70% profile centre
+becomes **65.8% metropolitan and 75.8% regional**.
+This preserves the average seat's preference centre, not a nationwide
+ballot-weighted flow; the latter also depends on where Liberal votes occur.
+
+The direction is supported by DemosAU's reported Coalition-to-One-Nation
+preferences against Labor: 60% inner metropolitan, 69% outer metropolitan
+and 79% rural/regional in the [March 2026 MRP report, page 20](https://acestrategies.au/assets/repository/documents/news-and-insights/reads/20260303-DemosAU-Federal-MRP-March-2026.pdf),
+and 52%, 63% and 70% respectively in the
+[August–September 2026 report, page 17](https://demosau.com/wp-content/uploads/2026/10/DemosAU-Report-Aug-Sept-2026-MRP-Model-1.pdf).
+These are survey respondents' preference rankings and combine Liberal and
+National supporters. The ten-point Liberal-only gap is therefore a cautious
+modelling assumption, not a fitted estimate. It retains the regional
+direction of the older forecast while using the revised preference centre.
+There is no additional geographic bonus for Nationals or Greens ballots.
+
+The adjustment changes the prepared Liberal ranking centres by swapping
+adjacent Labor and One Nation positions. It preserves the central Liberal
+Labor–Greens and One Nation–Greens comparisons, and supplies consistent
+rankings for both multi-candidate exclusions and final-pair transfers.
+The same election-wide and district uncertainty settings still apply, with
+the common draws shifted towards the new centres before district variation.
+Their numerical spreads can change with the centre. Specific local advice
+to put One Nation last still applies afterwards. Missing prepared seat geography
+or an incompatible requested gap is rejected rather than silently changing
+the other preference centres. The usual preparation input checks already
+cover both the preference file and the seat-type file.
 
 The 2026 South Australian replay uses the same fitted profiles and uncertainty
 as Victoria, with the two verified South Australian Liberal cards in Elder and
@@ -476,9 +579,11 @@ without the sample against the same underlying ranking model.
 ```
 
 - Append updated observations and retain the earlier rows. The current run
-  uses the latest row for each district available by its capture time, or
-  by the run time when using the current live feed. A fixed test feed uses
-  its own source timestamp. Supply an ISO date and time with a UTC offset.
+  uses the latest row for each district available at the forecast time.
+  Folder watching uses the commission's observation time in the election's
+  timezone. A manually selected archive uses the time encoded in the capture
+  filename. A fixed test feed uses its own source timestamp, and a current
+  live feed uses the run time. Supply an ISO date and time with a UTC offset.
   The date is when the figures became available to the forecast operator.
   Two rows for the same district at the same instant are ambiguous and are
   rejected.

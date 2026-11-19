@@ -2,6 +2,12 @@
 
 #include "LivePreparation.h"
 
+LiveInputRecovery::Snapshot LivePreparationBridge::readSnapshot(PollingProject& project,
+    Simulation& simulation, LiveResultsInput::CurrentFile const& file)
+{
+    return LivePreparation::readSnapshot(project, simulation, file);
+}
+
 namespace {
 	template <typename Operation>
 	void translateLivePreparationException(Operation&& operation)
@@ -22,10 +28,10 @@ namespace {
 void LivePreparationBridge::validateAutomaticSetup(
 	PollingProject const& project,
 	Simulation const& simulation,
-	std::optional<LiveResultsInput::CurrentFile> const& snapshot)
+	std::optional<LiveResultsInput::CurrentFile> const& snapshot, bool waitingForDelivery)
 {
 	translateLivePreparationException([&] {
-		LivePreparation::validateAutomaticSetup(project, simulation, snapshot);
+		LivePreparation::validateAutomaticSetup(project, simulation, snapshot, waitingForDelivery);
 	});
 }
 

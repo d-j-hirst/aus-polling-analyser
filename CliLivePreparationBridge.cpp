@@ -1,5 +1,11 @@
 #include "LivePreparationBridge.h"
 
+LiveInputRecovery::Snapshot LivePreparationBridge::readSnapshot(PollingProject&, Simulation&,
+    LiveResultsInput::CurrentFile const&)
+{
+    throw LivePreparationBridge::Exception("Feed parsing requires the GUI live preparation bridge.");
+}
+
 namespace {
 	[[noreturn]] void rejectLivePreparation()
 	{
@@ -12,7 +18,7 @@ namespace {
 void LivePreparationBridge::validateAutomaticSetup(
 	PollingProject const&,
 	Simulation const&,
-	std::optional<LiveResultsInput::CurrentFile> const&)
+	std::optional<LiveResultsInput::CurrentFile> const&, bool)
 {
 	rejectLivePreparation();
 }

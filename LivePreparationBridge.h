@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LiveResultsInput.h"
+#include "LiveInputRecovery.h"
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -13,6 +14,7 @@ class SimulationRun;
 // parser and analyser. The implementation is the composition root for live
 // preparation and translates its errors into this lightweight interface.
 namespace LivePreparationBridge {
+	LiveInputRecovery::Snapshot readSnapshot(PollingProject&, Simulation&, LiveResultsInput::CurrentFile const&);
 	class Exception : public std::runtime_error {
 	public:
 		explicit Exception(std::string const& what) : std::runtime_error(what) {}
@@ -21,7 +23,7 @@ namespace LivePreparationBridge {
 	void validateAutomaticSetup(
 		PollingProject const& project,
 		Simulation const& simulation,
-		std::optional<LiveResultsInput::CurrentFile> const& snapshot = {});
+		std::optional<LiveResultsInput::CurrentFile> const& snapshot = {}, bool waitingForDelivery = false);
 
 	void prepareAutomatic(
 		PollingProject& project,

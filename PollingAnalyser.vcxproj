@@ -295,6 +295,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="LiveSnapshotViewer.cpp" />
+    <ClCompile Include="LiveAutomation.cpp" />
     <ClCompile Include="LiveSimulationJob.cpp" />
     <ClCompile Include="AnalysisFrame.cpp" />
     <ClCompile Include="AnalysisFrameRenderer.cpp" />
@@ -421,6 +422,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LiveSnapshotViewer.h" />
+    <ClInclude Include="LiveAutomation.h" />
+    <ClInclude Include="LiveHistoryScope.h" />
     <ClInclude Include="LiveSimulationJob.h" />
     <ClInclude Include="BackgroundTask.h" />
     <ClInclude Include="AnalysisFrame.h" />
@@ -475,6 +478,7 @@
     <ClInclude Include="LiveTurnout.h" />
     <ClInclude Include="LivePreferenceCorrections.h" />
     <ClInclude Include="LivePreferenceLearning.h" />
+    <ClInclude Include="LiveStatewidePreferences.h" />
     <ClInclude Include="TurnoutModel.h" />
     <ClInclude Include="DeclarationAllocation.h" />
     <ClInclude Include="TurnoutModelIO.h" />

@@ -2,6 +2,7 @@
 
 #include "BackgroundTask.h"
 #include "PollingProject.h"
+#include "LiveAutomation.h"
 
 // Worker output contains detached values only. A failed attempt still carries
 // diagnostics; preceding successful simulations in the same snapshot remain
@@ -15,10 +16,13 @@ struct LiveSimulationUpdate {
     std::vector<SimulationUpdate> simulations;
     std::vector<Outcome> outcomes;
     std::vector<std::filesystem::path> exports;
+    std::optional<Timestamp> completedAt;
     std::optional<SeatCollection::SeatContainer> seats;
     bool succeeded = true;
     std::string failure;
     bool finished = false;
+    bool watching = false;
+    nlohmann::json automationStatus;
     std::vector<std::shared_ptr<SimulationRun>> retiredRuns;
 };
 
@@ -35,7 +39,8 @@ public:
                       std::function<void()> wake, std::function<void()> setupWorker = {}, Runner runner = {});
     bool submit(std::uint64_t generation, Input input);
     std::optional<Completion> take();
-    bool finish(std::uint64_t generation);
+    bool finish(std::uint64_t generation, std::string state = "paused");
+    void configureAutomation(nlohmann::json settings, bool acknowledgeChange);
     void retire(std::vector<std::shared_ptr<SimulationRun>> runs);
     bool idle() const { return task.idle(); }
     std::string progress() const;
@@ -44,9 +49,15 @@ private:
     struct CalculationAttempt {
         int outcomesBefore = 0;
         bool succeeded = false, actionRequired = false;
+        std::optional<Timestamp> completedAt;
         std::string feedback;
     };
     LiveSimulationUpdate calculate(TaskInput input);
+    LiveSimulationUpdate calculateAutomatic();
+    void writeAutomaticReport(Simulation const& simulation, std::string const& forecastId,
+        LiveAutomation::Capture const* capture, std::optional<std::filesystem::path> diagnostic = {},
+        std::optional<Timestamp> completedAt = {});
+    std::string automaticInputRevision(Simulation const& simulation);
     void releaseRetiredRuns();
     void calculateSimulation(Simulation::Id id, Input const& input, LiveSimulationUpdate& output);
     CalculationAttempt runSimulation(Simulation::Id id, Input const& input);
@@ -66,5 +77,13 @@ private:
     std::vector<std::shared_ptr<SimulationRun>> retiredRuns;
     std::function<void()> setupWorker;
     Runner runner;
+    nlohmann::json automationSettings;
+    std::unique_ptr<LiveAutomation::Session> automation;
+    // Large federal preload/previous-result files are immutable during a run.
+    // Reuse their content digest while size/write-time are unchanged; every
+    // process restart hashes them again before it can resume automatically.
+    std::map<std::filesystem::path,std::pair<std::string,std::string>> supportFingerprints;
+    bool acknowledgeInputChange = false;
+    std::string finishState = "paused";
     BackgroundTask<TaskInput, LiveSimulationUpdate> task;
 };

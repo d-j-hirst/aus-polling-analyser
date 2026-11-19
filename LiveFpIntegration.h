@@ -27,6 +27,27 @@ inline double value(std::map<int,double> const& values, int id) {
     return it == values.end() ? 0 : it->second;
 }
 
+// Divide the remaining anonymous vote once, after honouring named priors.
+// With four candidates in Others, two newly identified parties each receive
+// one quarter of the original pool. Splitting successively would make their
+// forecasts depend on which name came first. All amounts are percentages of
+// district first preferences in this simulation draw.
+inline void assignMissingPartyPriors(std::map<int,double>& prior, int others,
+    std::vector<int> const& parties, int poolSize, double reservedIndependentShare) {
+    if (parties.empty()) return;
+    double const available = value(prior, others) - reservedIndependentShare;
+    if (available <= 0) return;
+    double const perCandidate = available / std::max(poolSize, int(parties.size()));
+    int assigned = 0;
+    for (int party : parties) {
+        if (value(prior, party) > 0) continue;
+        prior[party] = perCandidate;
+        ++assigned;
+    }
+    if (assigned > 0)
+        prior[others] = reservedIndependentShare + std::max(0.0, available - assigned * perCandidate);
+}
+
 // Subdivide an already integrated group for the ranking count. Give the
 // named candidate their counted FP, then their projected share of the
 // group's outstanding votes. The group's size is the original simulation

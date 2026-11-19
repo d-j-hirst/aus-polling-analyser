@@ -14,6 +14,35 @@
 
 namespace LiveResultsInput {
 
+std::filesystem::path cachedSupportFile(std::string source, std::string const& suffix) {
+    for (char& character : source)
+        if (character == '/' || character == '.' || character == ':') character = '$';
+    return pathFromUtf8("downloads/" + source + suffix);
+}
+
+std::optional<PreferenceCountCutoff> snapshotPreferenceCutoff(
+	std::optional<CurrentFile> const& selected, std::string const& electionRegion)
+{
+	if (!selected) return std::nullopt;
+	// A watched forecast is dated by the commission's count. At 11:55 am
+	// in Adelaide, for example, a sample published at 12:10 pm Sydney time
+	// that day is already known. Use the election's clock for an unzoned feed.
+	if (selected->sourceObservationTime) {
+		return PreferenceCountCutoff{*selected->sourceObservationTime, electionRegion};
+	}
+	if (!selected->timestamp) return std::nullopt;
+
+	// Manual archive sequences use the capture filename as their cutoff.
+	// These filenames follow the eastern clock except for the WA archive,
+	// whose capture names are already expressed in Perth time.
+	std::string code = *selected->timestamp;
+	if (code.size() == 12) code.insert(0, "20");
+	if (code.size() != 14) throw std::runtime_error("Invalid replay capture timestamp.");
+	auto time = code.substr(0, 4) + "-" + code.substr(4, 2) + "-" + code.substr(6, 2) +
+		"T" + code.substr(8, 2) + ":" + code.substr(10, 2) + ":" + code.substr(12, 2);
+	return PreferenceCountCutoff{time, electionRegion == "wa" ? "wa" : "fed"};
+}
+
 std::string waObservationTime(CurrentFile const& file)
 {
 	if (file.timestamp) {

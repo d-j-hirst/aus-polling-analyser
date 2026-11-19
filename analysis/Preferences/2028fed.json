@@ -1,10 +1,11 @@
 {
-  "mode": "active",
+  "mode": "compare",
   "schema_version": 1,
   "model_version": "fed2028-preference-comparison-1",
   "sample_uncertainty": true,
   "unknown_liberal_labor_first_probability": 0.8,
   "national_follows_election_liberal_advice": true,
+  "liberal_one_nation_regional_gap": 0.10,
   "independent_proximity_odds_multiplier": 2.5,
   "pair_history_blend": {
     "half_weight_odds_ratio": 3,
@@ -390,6 +391,7 @@
     }
   },
   "provenance": {
+    "liberal_geography": "Assume a 10-percentage-point regional/provincial minus metropolitan gap in Liberal preferences to One Nation against Labor, preserving the profile centre across equally weighted project seats. DemosAU March and August-September 2026 MRP surveys support the direction, but combine Liberal and National voters, so this is a conservative modelling assumption rather than a fitted Liberal-only effect. Preserve the central Liberal comparisons with Greens and the existing election/district uncertainty; no additional geography effect for Nationals or Greens ballots. See README.md for source links and calculation.",
     "profile_basis": "Uses the ranking centres and uncertainty from 2025fed.json for the initial prospective federal comparison, including the 70% centre for Liberal ballots ranking One Nation ahead of Labor and the 82% centre for Labor ballots ranking Greens ahead of Liberal.",
     "coalition_advice_assumption": "For Labor versus Greens, each election draw gives an 80% chance of Coalition advice putting Labor first. The draw applies to the Nationals and to Liberal ballots where no district advice is specified. Nationals use the corresponding Liberal head-to-head centres as a proxy with their own uncertainty.",
     "others_labor_greens": "Sum of original-source preferences in 2025 federal Labor–Greens final counts, excluding Coalition and One Nation ballots because the model handles those sources separately. Source: https://results.aec.gov.au/31496/Website/Downloads/HouseTcpFlowByDivisionDownload-31496.csv",

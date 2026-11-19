@@ -130,6 +130,8 @@ enum ControlId {
 	RunLiveSimulations,
 	ConfigureSnapshotSequence,
 	RunSnapshotSequence,
+	ConfigureLiveWatch,
+	StartLiveWatch,
 	SeatName,
 	Swing,
 	PercentCounted,
@@ -194,6 +196,8 @@ void ResultsFrame::bindEventHandlers()
 	Bind(wxEVT_TOOL, &ResultsFrame::OnRunLiveSimulations, this, ControlId::RunLiveSimulations);
 	Bind(wxEVT_BUTTON, &ResultsFrame::OnConfigureSnapshotSequence, this, ControlId::ConfigureSnapshotSequence);
 	Bind(wxEVT_BUTTON, &ResultsFrame::OnRunSnapshotSequence, this, ControlId::RunSnapshotSequence);
+	Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { refresher.configureLiveWatch(); }, ControlId::ConfigureLiveWatch);
+	Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { refresher.startLiveWatch(); }, ControlId::StartLiveWatch);
 	Bind(wxEVT_TOOL, &ResultsFrame::OnAddResult, this, ControlId::AddResult);
 	Bind(wxEVT_TOOL, &ResultsFrame::OnAddFromScript, this, ControlId::AddFromScript);
 	Bind(wxEVT_TOOL, &ResultsFrame::OnNonClassic, this, ControlId::NonClassic);
@@ -585,6 +589,8 @@ void ResultsFrame::refreshToolbar()
 		"Run Live Simulations (Shift-click runs the saved snapshot sequence)");
 	toolBar->AddControl(new wxButton(toolBar, ControlId::ConfigureSnapshotSequence, "Configure snapshot sequence..."));
 	toolBar->AddControl(new wxButton(toolBar, ControlId::RunSnapshotSequence, "Run snapshot sequence"));
+	toolBar->AddControl(new wxButton(toolBar, ControlId::ConfigureLiveWatch, "Configure watching..."));
+	toolBar->AddControl(new wxButton(toolBar, ControlId::StartLiveWatch, "Watch / Resume"));
 	toolBar->AddSeparator();
 	toolBar->AddControl(seatNameStaticText);
 	toolBar->AddControl(seatNameTextCtrl);

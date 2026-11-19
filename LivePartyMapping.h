@@ -3,9 +3,11 @@
 #include <algorithm>
 #include <map>
 #include <optional>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace LivePartyMapping {
 
@@ -16,6 +18,26 @@ namespace LivePartyMapping {
 enum class SourceElection { Current, Previous };
 using CommissionPartyId = std::pair<SourceElection, int>;
 using CommissionIds = std::map<CommissionPartyId, int>;
+
+// A project party receives a separate identity in the live feed, while each
+// district's ballot list says which parties received their own forecast. Find
+// election-wide omissions once, after preparation has stripped the candidate
+// multiplicities from those lists. Older elections with no lists give us no
+// basis to identify an omission.
+template<class Parties>
+std::vector<int> partiesMissingFromSeatLists(Parties const& parties,
+    std::vector<std::vector<std::string>> const& seatLists)
+{
+    std::set<std::string> listed;
+    for (auto const& seat : seatLists) listed.insert(seat.begin(), seat.end());
+    std::vector<int> missing;
+    if (!listed.empty()) {
+        for (auto const& [id, party] : parties) {
+            if (!listed.contains(party.abbreviation)) missing.push_back(id);
+        }
+    }
+    return missing;
+}
 
 struct CandidateParty {
     SourceElection source;

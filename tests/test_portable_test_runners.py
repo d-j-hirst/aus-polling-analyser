@@ -1,5 +1,6 @@
 """Check the repository's run lists and intentional omission/error fixtures."""
 from pathlib import Path
+import os
 import subprocess
 import re
 import sys
@@ -74,6 +75,28 @@ class PortableRunnerAuditTests(unittest.TestCase):
             'echo "%TEST_DIRECTORY%\\ArgumentsTests.exe"\n', encoding="utf-8")
         self.shell.write_text('# run_test SimpleTests\n', encoding="utf-8")
         self.assertEqual(len(checker.audit(self.root)), 2)
+
+    @unittest.skipUnless(os.name == "nt", "Exercises Windows batch exit-code handling")
+    def test_windows_runner_propagates_crash_exit_codes(self):
+        # Exercise the maintained :run routine without compiling or deliberately
+        # crashing an application. A child command returns the same signed exit
+        # codes as assertion/exception failures; only the executable invocation
+        # is replaced. The old `if errorlevel 1` guard incorrectly returned success.
+        repository = Path(__file__).resolve().parent.parent
+        runner = (repository / "run-portable-tests.cmd").read_text(encoding="utf-8")
+        routine = runner.split("\n:run\n", 1)[1].split("\n:failure\n", 1)[0]
+        routine, replacements = re.subn(
+            r'^"%TEST_DIRECTORY%\\%~1\.exe"[^\n]*$',
+            'cmd /d /c exit /b %2', routine, flags=re.MULTILINE)
+        self.assertEqual(replacements, 1)
+        fixture = self.root / "exit-codes.cmd"
+        fixture.write_text('@echo off\ncall :run SyntheticTests %1\nexit /b %ERRORLEVEL%\n'
+                           ':run\n'+routine, encoding="utf-8")
+        for code in (0, 1, 3, -1073740791, -1073741819):
+            with self.subTest(child_exit=code):
+                result = subprocess.run(["cmd", "/d", "/c", str(fixture), str(code)],
+                                        text=True, capture_output=True, check=False)
+                self.assertEqual(result.returncode, 0 if code == 0 else 1, result.stdout+result.stderr)
 
 
 if __name__ == "__main__":

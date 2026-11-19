@@ -8,6 +8,7 @@
 #include "LivePartyMapping.h"
 #include "LiveTppSensitivity.h"
 #include "LiveResultsInput.h"
+#include "LiveStatewidePreferences.h"
 
 #include <algorithm>
 #include <cctype>
@@ -1013,6 +1014,13 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   prepareFpIntegration();
   prepareTppIntegration();
   prepareCoalitionTcpForecasts(previousElection,currentElection,pairPreferenceHistory,revisedCoalitionFlowHistory);
+  try {
+    prepareStatewidePreferences(previousElection,currentElection,pairPreferenceHistory);
+  }
+  catch (std::exception const& error) {
+    run.recordWarning(SimulationRun::WarningCategory::StatewidePreferenceReport,0,
+      std::string("Statewide preference table unavailable for this report: ")+error.what());
+  }
   freezePreparedBooths();
   logPreparedSummary();
 }
@@ -1032,17 +1040,10 @@ void Election::preparePreferenceCountObservations(Results2::Election const& prev
     std::string cutoff = Timestamp::now().formatIsoUtc() + "Z";
     std::string clock = run.regionCode;
     auto const& settings = sim.getSettings();
-    if (auto const& selected = run.getSnapshotInput(); selected && selected->timestamp) {
-      // The stored feed clock may describe when the commission last changed
-      // its data, earlier than the capture itself. Outside WA the capture
-      // filenames here use eastern Australian time. The WA archive is
-      // explicitly normalised to the feed's own local clock.
-      std::string code = *selected->timestamp;
-      if (code.size() == 12) code.insert(0, "20");
-      if (code.size() != 14) throw std::runtime_error("Invalid replay capture timestamp.");
-      cutoff = code.substr(0, 4) + "-" + code.substr(4, 2) + "-" + code.substr(6, 2) +
-        "T" + code.substr(8, 2) + ":" + code.substr(10, 2) + ":" + code.substr(12, 2);
-      if (clock != "wa") clock = "fed";
+    auto const snapshotCutoff = LiveResultsInput::snapshotPreferenceCutoff(run.getSnapshotInput(), run.regionCode);
+    if (snapshotCutoff) {
+      cutoff = snapshotCutoff->time;
+      clock = snapshotCutoff->clockRegion;
     }
     else if (settings.currentRealUrl.starts_with("local:") ||
         (run.regionCode == "fed" && settings.currentRealUrl.empty())) {
@@ -1162,45 +1163,54 @@ PreferenceModel::PreparedCountObservation const* Election::getPreferenceCountObs
   return found == preferenceCountObservations->end() ? nullptr : &found->second;
 }
 
+// Use the same party identities for learning from published preference counts
+// and for reporting how those voters divide between possible finalists.
+int Election::preferenceModelParty(int party, Seat const& seat) const {
+  auto const& roles = run.preferenceModel->partyRoles();
+  if (party == seat.liveIndependentPartyIndex || party == run.indPartyIndex) return roles.independent;
+  if (party == seat.secondaryIndependent) return party;
+  if (party >= 0 && party < project.parties().count()) return party;
+  return roles.others;
+}
+
+// Turn original vote totals into the district ballot used to estimate transfer
+// rates. Its source shares, local assumptions and candidate identities are also
+// used when interpreting a mixed count that names only the two finalists.
+std::vector<PreferenceModel::Source> Election::preferenceSources(std::map<int,double> const& counts,
+  Seat const& seat, double total, bool includeZeroVoteFinalists) const {
+  auto const& roles = run.preferenceModel->partyRoles();
+  std::vector<PreferenceModel::Source> sources;
+  for (auto const& [party,votes] : counts) {
+    if (votes < 0 || (votes == 0 && !includeZeroVoteFinalists)) continue;
+    double rate = preferenceFlowMap.at(PartyCollection::InvalidIndex) * .01;
+    if (preferenceFlowMap.contains(party)) rate = preferenceFlowMap.at(party) * .01;
+    if (seat.partyPreferenceFlows.contains(party)) rate = seat.partyPreferenceFlows.at(party);
+    int ideology = 2, consistency = 1;
+    if (party >= 0 && party < project.parties().count()) {
+      auto const& info = project.parties().viewByIndex(party);
+      ideology = info.ideology;
+      consistency = info.consistency;
+    }
+    bool const secondary = party == seat.secondaryIndependent;
+    if (secondary) consistency = 0;
+    bool const principal = party == roles.independent && seat.secondaryIndependent.has_value();
+    sources.push_back({party,votes/total,ideology,
+      PreferenceModel::proximityForConsistency(consistency),std::clamp(rate,0.0,1.0),secondary,principal,seat.namedIncumbentMatches});
+  }
+  return sources;
+}
+
 void Election::preparePreferenceLearning(Results2::Election const& previousElection,
   Results2::Election const& currentElection, LiveInputRecovery::PairPreferenceHistory const& history) {
   if (history.empty() || !run.preferenceModel || !run.preferenceModel->isActive() ||
       run.preferenceModel->isLiveTrial()) return;
   auto const& model = *run.preferenceModel;
   using namespace LivePreferenceLearning;
-  auto const& roles = model.partyRoles();
-  auto modelParty = [&](int party, Seat const& seat) {
-    if (party == seat.liveIndependentPartyIndex || party == run.indPartyIndex) return roles.independent;
-    if (party == seat.secondaryIndependent) return party;
-    if (party >= 0 && party < project.parties().count()) return party;
-    return roles.others;
-  };
   auto mapCounts = [&](auto const& counts, Seat const& seat) {
     LivePartialCount::Counts mapped;
     for (auto const& [id,votes] : counts)
-      mapped[modelParty(mapPartyId(id,false,previousElection,currentElection),seat)] += votes;
+      mapped[preferenceModelParty(mapPartyId(id,false,previousElection,currentElection),seat)] += votes;
     return mapped;
-  };
-  auto sourcesFor = [&](std::map<int,double> const& counts, Seat const& seat, double total) {
-    std::vector<PreferenceModel::Source> sources;
-    for (auto const& [party,votes] : counts) {
-      if (votes <= 0) continue;
-      double rate = preferenceFlowMap.at(PartyCollection::InvalidIndex) * .01;
-      if (preferenceFlowMap.contains(party)) rate = preferenceFlowMap.at(party) * .01;
-      if (seat.partyPreferenceFlows.contains(party)) rate = seat.partyPreferenceFlows.at(party);
-      int ideology = 2, consistency = 1;
-      if (party >= 0 && party < project.parties().count()) {
-        auto const& info = project.parties().viewByIndex(party);
-        ideology = info.ideology;
-        consistency = info.consistency;
-      }
-      bool const secondary = party == seat.secondaryIndependent;
-      if (secondary) consistency = 0;
-      bool const principal = party == roles.independent && seat.secondaryIndependent.has_value();
-      sources.push_back({party,votes/total,ideology,
-        PreferenceModel::proximityForConsistency(consistency),std::clamp(rate,0.0,1.0),secondary,principal,seat.namedIncumbentMatches});
-    }
-    return sources;
   };
 
   // Preserve candidate identities in history. Mapping to model parties is
@@ -1246,10 +1256,10 @@ void Election::preparePreferenceLearning(Results2::Election const& previousElect
     seatTypeByDistrict[s] = int(run.seatTypes.at(district));
     std::map<int,double> districtFp;
     for (auto const& [party,votes] : seat.node.fpVotesProjected)
-      districtFp[modelParty(party,seat)] += votes;
+      districtFp[preferenceModelParty(party,seat)] += votes;
     double const total = seat.node.totalFpVotesProjected();
     if (total <= 0) continue;
-    auto sources = sourcesFor(districtFp,seat,total);
+    auto sources = preferenceSources(districtFp,seat,total);
     for (auto const& pair : pairs) {
       if (!districtFp.contains(pair[0]) || !districtFp.contains(pair[1])) continue;
       prepared[s][pair].referenceRates = model.referencePairRates(district, sources, pair, seat.namedIndependentMatches);
@@ -1267,7 +1277,7 @@ void Election::preparePreferenceLearning(Results2::Election const& previousElect
       return row.second > 0 && !rates.contains(row.first);
     });
     if (needsBoothRates) {
-      auto boothSources = sourcesFor(std::map<int,double>(measurement.fp.begin(),measurement.fp.end()),
+      auto boothSources = preferenceSources(std::map<int,double>(measurement.fp.begin(),measurement.fp.end()),
         seat,LivePartialCount::total(measurement.fp));
       auto boothRates = model.referencePairRates(project.seats().indexByName(seat.name),
         boothSources, measurement.pair, seat.namedIndependentMatches);
@@ -1307,20 +1317,20 @@ void Election::preparePreferenceLearning(Results2::Election const& previousElect
         }
         account.excessTcp += std::max(0.0,counted-n.totalFpVotesCurrent());
         for (auto const& [party,votes] : n.fpVotesCurrent)
-          account.reportedFp[modelParty(party,seat)] += votes;
+          account.reportedFp[preferenceModelParty(party,seat)] += votes;
         auto const pending = pendingPrimaries(n.fpVotesCurrent,booth.preferenceEvidence,
           pair,counted,matchingTcp && booth.hasTcpRevision());
-        for (auto const& [party,votes] : pending) projection.pending[modelParty(party,seat)] += votes;
+        for (auto const& [party,votes] : pending) projection.pending[preferenceModelParty(party,seat)] += votes;
         double const newVotes = std::max(0.0,n.totalFpVotesProjected()-n.totalFpVotesCurrent());
         if (booth.receivesFpBatches()) {
           for (auto const& [party,share] : booth.futureFpShares)
-            projection.future[modelParty(party,seat)] += share * newVotes;
+            projection.future[preferenceModelParty(party,seat)] += share * newVotes;
         }
         else {
           for (auto const& [party,votes] : n.fpVotesProjected) {
             int const original = party == run.indPartyIndex ? seat.liveIndependentPartyIndex : party;
             double existing = LivePartialCount::value(n.fpVotesCurrent,original);
-            projection.future[modelParty(party,seat)] += std::max(0.0,votes-existing);
+            projection.future[preferenceModelParty(party,seat)] += std::max(0.0,votes-existing);
           }
         }
       }
@@ -1359,6 +1369,192 @@ void Election::preparePreferenceLearning(Results2::Election const& previousElect
   }
   learnedPreferences = std::make_shared<std::vector<LearnedDistrict> const>(std::move(prepared));
   preferenceLearningDiagnostic = std::make_shared<nlohmann::json const>(std::move(diagnostic));
+}
+
+// Freeze the population behind each public flow row once per live snapshot.
+// The ballot establishes eligibility. Booths and declaration categories
+// contribute their projected source voters whether or not the requested
+// finalists are leading there. The same immutable account serves every draw.
+void Election::prepareStatewidePreferences(Results2::Election const& previousElection,
+  Results2::Election const& currentElection, LiveInputRecovery::PairPreferenceHistory const& history) {
+  namespace Report = LiveStatewidePreferences;
+  if (sim.getSettings().reportMode != Simulation::Settings::ReportMode::LiveForecast ||
+      optionalPreferential || run.regionCode == "fed" || !run.preferenceModel ||
+      !run.preferenceModel->isActive() || run.preferenceModel->isLiveTrial()) return;
+  auto const& roles = run.preferenceModel->partyRoles();
+  auto const rows = Report::reportRows(roles,run.regionCode == "vic");
+  auto prepared = std::make_shared<Report::Election>();
+  for (auto const& [party,rate] : preferenceFlowMap) prepared->classicReference[party] = rate*.01;
+  // The joint TPP analysis learns these two errors from matched FP/TPP
+  // counts. Convert its standardised errors to fractions of each party's
+  // original ballots, retaining their covariance in the public estimate.
+  auto const& calibration = tppTransferCalibration->factors;
+  LiveTppIntegration::Matrix root;
+  if (!LiveTppComposition::factor(calibration.covariance,root))
+    throw std::logic_error("Invalid shared preference error covariance.");
+  std::array const scales{LiveTppComposition::GreensTransferFlowSd*.01,LiveTppComposition::IndependentTransferFlowSd*.01};
+  for (size_t i = 0; i < scales.size(); ++i) {
+    prepared->classicErrorMean[i] = calibration.mean.at(i)*scales[i];
+    for (size_t j = 0; j <= i; ++j) prepared->classicErrorRoot[i][j] = root.at(i).at(j)*scales[i];
+  }
+  std::map<std::string,std::set<int>> rosters;
+  for (auto const& [id,rawSeat] : currentElection.seats) {
+    auto& roster = rosters[rawSeat.name];
+    auto add = [&](int candidate) { roster.insert(publishedPreferenceParty(candidate,previousElection,currentElection)); };
+    auto found = currentElection.liveCandidateRosters.find(id);
+    if (found != currentElection.liveCandidateRosters.end() && !found->second.empty())
+      for (int candidate : found->second) add(candidate);
+    else for (auto const& [candidate,votes] : rawSeat.fpVotes) add(candidate);
+  }
+  for (size_t s = 0; s < seats.size(); ++s) {
+    addStatewidePreferenceDistrict(*prepared,s,rosters[seats[s].name],rows,previousElection,currentElection,history);
+  }
+  if (!prepared->districts.empty()) statewidePreferences = std::move(prepared);
+}
+
+// Count preparation has already assigned identities to the parties it uses.
+// Publication reads those assignments, including official aliases. An
+// unfamiliar ballot entry can contribute to Others without reserving a new
+// party ID in the forecast. Keep independents distinct until the district
+// identifies which candidate corresponds to its independent forecast.
+int Election::publishedPreferenceParty(int candidateId, Results2::Election const& previousElection,
+  Results2::Election const& currentElection) const {
+  auto const affiliation = LivePartyMapping::candidateParty(candidateId,LivePartyMapping::SourceElection::Current,
+    previousElection,currentElection);
+  if (affiliation) {
+    if (affiliation->partyId == Results2::Candidate::Independent) return candidateId + IndependentPartyIdOffset;
+    auto const known = ecPartyToInternalParty.find({affiliation->source,affiliation->partyId});
+    if (known != ecPartyToInternalParty.end()) return known->second;
+    auto const alias = ecAbbreviationToInternalParty.find(affiliation->abbreviation);
+    if (!affiliation->abbreviation.empty() && alias != ecAbbreviationToInternalParty.end()) return alias->second;
+  }
+  return run.preferenceModel->partyRoles().others;
+}
+
+// Attach a district's projected source ballots and the adjustments learned
+// for its eligible contests. Every reporting unit contributes to these same
+// accounts, including declaration categories and late or withdrawn pairs.
+void Election::addStatewidePreferenceDistrict(LiveStatewidePreferences::Election& prepared, size_t s,
+  std::set<int> roster, std::span<std::array<int,3> const> rows, Results2::Election const& previousElection,
+  Results2::Election const& currentElection, LiveInputRecovery::PairPreferenceHistory const& history) const {
+  namespace Report = LiveStatewidePreferences;
+  auto const& roles = run.preferenceModel->partyRoles();
+  auto const& seat = seats[s];
+  Report::District district;
+  district.index = project.seats().indexByName(seat.name);
+  district.namedIndependentMatches = seat.namedIndependentMatches;
+  if (roster.empty()) {
+    // Some pre-results deliveries supply no official ballot. Use the
+    // confirmed running-party list, which also distinguishes LIB from NAT.
+    for (auto const& code : run.runningParties.at(district.index)) {
+      auto id = project.parties().idByAbbreviation(code);
+      if (id != Party::InvalidId) roster.insert(project.parties().idToIndex(id));
+    }
+  }
+  auto mapped = [&](auto const& counts) {
+    Report::Shares result;
+    for (auto const& [party,votes] : counts) result[preferenceModelParty(party,seat)] += votes;
+    return result;
+  };
+  auto projectedFp = [&](Booth const& booth) {
+    auto projection = mapped(booth.node.fpVotesProjected);
+    for (auto const& [party,votes] : mapped(booth.node.fpVotesCurrent))
+      if (votes > 0) projection.try_emplace(party,votes);
+    return projection;
+  };
+  Report::Shares districtFp;
+  double total = 0;
+  for (int index : seat.booths) for (auto const& [party,votes] : projectedFp(readBooths().at(index))) {
+    if (votes <= 0) continue;
+    districtFp[party] += votes;
+    total += votes;
+  }
+  if (total <= 0) return;
+  auto const eligible = Report::eligibleContests(rows,roster,districtFp);
+  if (eligible.empty()) return;
+  for (auto const& [pair,donors] : eligible) {
+    // A confirmed candidate can receive preferences even when this snapshot
+    // projects zero first preferences for them. Keep them on the hypothetical
+    // ballot with zero source weight so that other voters can rank them.
+    for (int finalist : pair) districtFp.try_emplace(finalist,0.0);
+    Report::Contest contest{};
+    contest.pair = pair;
+    contest.rows = donors;
+    contest.classic = pair[0] == roles.labor && (pair[1] == roles.liberal || pair[1] == roles.national);
+    if (contest.classic) {
+      // When both Coalition parties stand, the other partner is itself a
+      // source of transfers. Use the leakage in the live classic forecast.
+      contest.reference[roles.liberal] = LiveCoalitionTcp::LeakageMean;
+      if (roles.national) contest.reference[*roles.national] = LiveCoalitionTcp::LeakageMean;
+    }
+    else {
+      district.nonClassicPairs.push_back(pair);
+      if (learnedPreferences && learnedPreferences->at(s).contains(pair)) {
+        auto const& account = learnedPreferences->at(s).at(pair);
+        contest.reference = account.referenceRates;
+        for (auto const& [code,projection] : account.categories) {
+          contest.categories[code].adjustment = projection.adjustment;
+          if (projection.adjustment.hasEvidence()) contest.learned = true;
+        }
+      }
+    }
+    district.contests.push_back(std::move(contest));
+  }
+  district.sources = preferenceSources(districtFp,seat,total,true);
+  // The district stores a returning independent's measured TPP flow under
+  // their commission candidate ID. Their ballots now have the ranking
+  // model's independent ID. Carry the same estimate across that change of
+  // name when apportioning a mixed booth's transfers.
+  auto const returning = seat.partyPreferenceFlows.find(seat.liveIndependentPartyIndex);
+  if (returning != seat.partyPreferenceFlows.end()) {
+    for (auto& source : district.sources)
+      if (source.id == roles.independent) source.classicRate = returning->second;
+  }
+  for (int index : seat.booths) {
+    auto const& booth = readBooths().at(index);
+    auto const fp = mapped(booth.node.fpVotesCurrent);
+    auto const tcp = mapped(booth.node.tcpVotesCurrent);
+    auto const projected = projectedFp(booth);
+    auto const bases = statewidePreferenceBatches(booth,seat,previousElection,currentElection,history);
+    for (auto& contest : district.contests) {
+      auto const pair = contest.pair;
+      auto basis = bases.find(pair);
+      double pendingOffset = 0, futureOffset = 0;
+      if (contest.classic) {
+        pendingOffset = LivePartialCount::evidenceOffset(preferencePriorOffset(booth),booth.tppPreferenceEvidence(),
+          pair[0],pair[1]);
+        futureOffset = futurePreferenceOffset(booth,pair[0],pair[1]);
+      }
+      Report::addUnit(contest,preferenceCategory(booth),projected,fp,tcp,
+        basis == bases.end() ? nullptr : &basis->second,pendingOffset,futureOffset);
+    }
+  }
+  prepared.districts.push_back(std::move(district));
+}
+
+// Historical records identify candidates by commission ID. Map each accepted
+// batch once, keeping its original finalist pair and any measured transfers
+// by source. The live history reader has already applied the replay cutoff.
+std::map<PreferenceModel::Pair,LivePartialCount::TcpBasis> Election::statewidePreferenceBatches(
+  Booth const& booth, Seat const& seat, Results2::Election const& previousElection,
+  Results2::Election const& currentElection, LiveInputRecovery::PairPreferenceHistory const& history) const {
+  namespace Report = LiveStatewidePreferences;
+  std::string role = booth.voteType != Results2::VoteType::Ordinary ? "declaration" :
+    booth.boothType == Results2::Booth::Type::Ppvc ? "ppvc" : "ordinary";
+  auto observation = history.find(seat.name+"/"+role+"/"+booth.name);
+  std::map<Report::Pair,LivePartialCount::TcpBasis> bases;
+  if (observation != history.end()) for (auto const& [candidates,cohort] : observation->second) {
+    auto party = [&](int id) { return preferenceModelParty(publishedPreferenceParty(id,previousElection,currentElection),seat); };
+    LivePartialCount::TcpBasis basis;
+    for (auto const& [id,votes] : cohort.fp) basis.fp[party(id)] += votes;
+    for (auto const& [id,votes] : cohort.tcp) basis.tcp[party(id)] += votes;
+    if (basis.tcp.size() != 2) continue;
+    for (auto const& [id,received] : cohort.transfers) for (auto const& [finalist,votes] : received)
+      basis.transfers[party(id)][party(finalist)] += votes;
+    Report::Pair pair{basis.tcp.begin()->first,basis.tcp.rbegin()->first};
+    bases.emplace(pair,std::move(basis));
+  }
+  return bases;
 }
 
 std::optional<double> Election::getLearnedTcpShare(std::string const& seatName, PreferenceModel::Pair pair,
@@ -1452,7 +1648,7 @@ std::optional<double> Election::getLearnedTcpShare(std::string const& seatName, 
     double variation = 0;
     if (code != LivePreferenceLearning::Ordinary) {
       auto const pairKey = RandomGenerator::combinePartyIds(pair[0],pair[1]);
-      double const sharedSd = .22 / std::sqrt(1 + category.adjustment.categoryDistrictWeight);
+      double const sharedSd = LivePreferenceLearning::sharedCategorySd(category.adjustment);
       variation = variabilityNormal(0,sharedSd,code,pairKey,
         uint32_t(VariabilityTag::SharedLearnedPreferenceCategory)) +
         variabilityNormal(0,.25/std::sqrt(1 + category.adjustment.localWeight),s,

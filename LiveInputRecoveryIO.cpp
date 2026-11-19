@@ -6,6 +6,7 @@
 #include "LiveInputRecovery.h"
 #include "LivePartialCount.h"
 #include "LiveInputHistory.h"
+#include "LiveHistoryScope.h"
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
@@ -363,6 +364,7 @@ void replaceFile(std::filesystem::path const& temporary, std::filesystem::path c
 }
 }
 std::filesystem::path directory(std::filesystem::path const& root, std::string const& election) {
+    if (!LiveHistoryScope::active.empty()) return LiveHistoryScope::active/"accepted-counts";
     return root/"forecasts"/election/"live-snapshots"/"accepted-counts";
 }
 std::optional<Snapshot> loadPrevious(std::filesystem::path const& folder,

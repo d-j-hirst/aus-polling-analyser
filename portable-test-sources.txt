@@ -34,3 +34,4 @@ WorkspacePathsTests
 LiveInputRecoveryTests
 LiveInputHistoryTests
 ResponsiveLiveTests
+LiveAutomationTests
