@@ -204,7 +204,7 @@ def run_benchmark(selected, models, output, budget_usd=10, concurrency=3,
     validate_models(models)
     validate_budget(budget_usd)
     versions = {m.get('prompt_version', commentary.PROMPT_VERSION) for m in models}
-    if len(versions) != 1 or not versions <= {commentary.PREVIOUS_VERSION, commentary.PROMPT_VERSION}:
+    if len(versions) != 1 or not versions <= commentary.SUPPORTED_VERSIONS:
         raise ValueError('Use one supported prompt version per benchmark directory')
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)

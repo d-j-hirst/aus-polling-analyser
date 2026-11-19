@@ -3,6 +3,7 @@
 #include "../PreferenceModel.h"
 #include "../LivePreferenceLearning.h"
 #include "../LiveStatewidePreferences.h"
+#include "../LiveFpTpp.h"
 #include "../json.h"
 
 #include <algorithm>
@@ -1760,10 +1761,64 @@ void checkStatewidePreferenceDraws()
 	inputs.districts.front().contests = {greensClassic};
 	inputs.classicErrorMean[0] = .04;
 	assert(close(S::estimate(inputs,ranking,draw,{{Greens,80}}).at(greensRow),78));
+	// A classic district calculated from its simulated FP supplies actual
+	// source totals. Applying the earlier four-point error a second time here
+	// would produce a different public flow from the one used for its TPP.
+	S::DistrictClassicTotals calculated{{inputs.districts.front().index,{{Greens,{83,100}}}}};
+	assert(close(S::estimate(inputs,ranking,draw,{{Greens,80}},calculated).at(greensRow),83));
+}
+
+void checkLivePrimaryToTpp() {
+	namespace F = LiveFpTpp;
+	F::Shares const prior{{0,40},{1,20},{2,20},{3,20}};
+	F::Shares const rates{{2,.38},{3,.62}};
+	auto shifted = prior;
+	shifted[0] -= 1;
+	shifted[2] += 1;
+	F::District district;
+	auto calculate = [&](auto const& fp, double n, double a, double b) {
+		auto result = F::project(district,prior,60,fp,rates,n,a,b);
+		assert(result);
+		double first = 0, donors = 0;
+		for (auto const& [id,row] : result->sources) { first += row.first; donors += row.donors; }
+		assert(close(100*first/donors,result->laborPercent));
+		return result->laborPercent;
+	};
+	assert(calculate(prior,1000,0,0) == 60.);
+	assert(close(calculate(shifted,1000,0,0),59.38));
+	assert(close(calculate(shifted,100000,0,0),59.38));
+	F::addBooth(district,prior,prior,{{0,60},{1,40}});
+	assert(close(calculate(prior,1000,60,40),60.));
+	assert(close(calculate(shifted,1000,60,40),59.38));
+	assert(close(calculate(prior,1000,64,36),60.4));
+	assert(close(calculate(prior,1000,63,37),60.3));
+	district.rateChange[2] = .10;
+	assert(close(calculate(prior,1000,64,36),62.2));
+	assert(calculate(prior,100,64,36) == 64.);
+
+	// Hold the starting draw exactly across a range of TPPs, including a
+	// district whose donor rates need a substantial common adjustment.
+	for (int j = 1; j < 2000; ++j) {
+		double target = 40.+j*.02;
+		auto zero = F::project({},prior,target,prior,rates,1000,0,0);
+		assert(zero && zero->laborPercent == target);
+	}
+	// A TCP-first booth fixes both finalists without attributing a transfer
+	// change elsewhere. A mixed, directly counted donor table keeps each
+	// named source's measured transfers when the complete count is consumed.
+	F::District tcpFirst;
+	F::addBooth(tcpFirst,{},prior,{{0,64},{1,36}});
+	assert(close(F::project(tcpFirst,prior,60,prior,rates,1000,64,36)->laborPercent,60.4));
+	F::District official;
+	F::addBooth(official,prior,prior,{{0,64},{1,36}},{{2,{{0,17},{1,3}}},{3,{{0,7},{1,13}}}});
+	auto final = F::project(official,prior,60,prior,rates,100,64,36);
+	assert(final && final->laborPercent == 64. && final->sources.at(2).first == 17.);
+	assert(final->sources.at(3).first == 7.);
 }
 
 int main()
 {
+	checkLivePrimaryToTpp();
 	checkLiberalProxyForNationals();
 	checkConfiguration();
 	checkExtraCandidatesAgainstEnumeratedOrders();

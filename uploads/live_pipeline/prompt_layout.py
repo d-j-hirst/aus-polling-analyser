@@ -40,11 +40,23 @@ estimated, including possible count revisions; a missing figure means unknown.
 Within an evidence record, fields under common apply at both times. Add them
 to the respective before or after fields to read each observation. An absent
 field is unknown; a reported zero is a count.
-Raw fp_votes_current and tcp_votes_current candidate counts in the supplied
+'''
+
+RAW_COUNTS = '''Raw fp_votes_current and tcp_votes_current candidate counts in the supplied
 booth records may also be quoted as **83 votes** or **1,234 votes**, retaining
 their before/after, seat, candidate and FP/TCP context. Prefer useful comparisons
 over listing these counts; never round a projected number into a counted vote.
-Use entities: Write {seat:Flinders} for a district, {candidate:Flinders:1} for its
+'''
+
+BOOTH_COUNTS = '''For a booth quote the total formal votes counted so far in that ledger and
+the candidate's observed percentage. FPtotal and TCPtotal are denominators;
+netFP and netTCP are changes since the reference. An observed share can be
+available even when the reference has no projection for the same candidates.
+District FP completion is the estimated percentage of the district count
+completed; expected turnout may change. Keep it distinct from a booth share.
+'''
+
+ENTITIES_AND_OVERVIEW = '''Use entities: Write {seat:Flinders} for a district, {candidate:Flinders:1} for its
 candidate with party ID 1, and {party:1} for that party generally. The election
 reference lists each district once as [candidate names by ID, holder party ID,
 holder margin]. Null means unavailable. The website displays the party label
@@ -75,6 +87,10 @@ BOOTH_MEASURES = {
     'TCPshare': 'observed TCP share versus reference forecast for the same pair',
 }
 MEASURE_CODES = {label: code for code, label in BOOTH_MEASURES.items()}
+OBSERVED_MEASURES = {'FPtotal': 'reported cumulative FP total',
+                     'FPshare': 'share of reported FP votes',
+                     'TCPobserved': 'share of reported TCP votes'}
+MEASURE_CODES.update({label: code for code, label in OBSERVED_MEASURES.items()})
 
 
 def _subject(row):
@@ -168,7 +184,8 @@ def _district_roster(packet):
     return roster
 
 
-def input_messages(packet, instructions, settings):
+def input_messages(packet, instructions, settings, *, include_local_win_order=False, include_booth_context=False,
+                   include_unchanged_local_counts=False):
     """Return stable-prefix messages with readable, checked display figures.
 
     The verbose numerical blocks are represented by rounded display figures.
@@ -178,14 +195,43 @@ def input_messages(packet, instructions, settings):
     """
     reference = {'parties': packet['parties'], 'units': packet['units'], 'timezone': packet.get('source_timezone'),
                  'booth_measures': BOOTH_MEASURES, 'districts': _district_roster(packet)}
+    if include_booth_context:
+        reference['booth_measures'] = dict(BOOTH_MEASURES, **OBSERVED_MEASURES)
     shared = {'source_time': packet['source_time'], 'all_seats': packet['all_seats'],
               'overview_precision': packet.get('overview_precision')}
     duplicate_fields = {'parties', 'units', 'source_timezone', 'source_time', 'all_seats',
                         'overview_precision', 'candidate_identities', 'all_candidate_identities',
                         'win_changes', 'seat_changes', 'statewide', 'observed_count_changes_by_seat',
                         'metrics', 'metric_contexts', 'display_figures', 'entities', 'seat_holders', 'booth_changes',
-                        'evidence', 'category_transfers', 'close_tcp_counts', 'statewide_preference_changes'}
+                        'evidence', 'category_transfers', 'close_tcp_counts', 'statewide_preference_changes',
+                        'district_fp_completion'}
     comparison = {k: v for k, v in packet.items() if k not in duplicate_fields}
+    if include_local_win_order and 'observed_count_changes_by_seat' in packet:
+        # The win table is already ordered by absolute percentage-point change.
+        # List each district once if its counts also changed during this window.
+        # Use the district totals from before booth evidence was shortened for
+        # the prompt. A missing booth detail alone tells us nothing about whether
+        # local counting took place. The full figures still cover wider movements.
+        local_counts = packet['observed_count_changes_by_seat']
+        moving_districts = dict.fromkeys(
+            row['seat'] for row in packet['win_changes']
+            if row['change_pp'] and not row.get('identity_changed'))
+        comparison['local_seats_by_win_movement'] = [
+            seat for seat in moving_districts if local_counts.get(seat, {}).get('affected_votes', 0) > 0]
+        if include_unchanged_local_counts and all('affected_votes' in counts for counts in local_counts.values()):
+            # An omitted booth is not evidence that counting stood still.
+            # Name districts only when the full district totals account for
+            # every observed change and history shows no extra activity between
+            # the two endpoints (such as a correction later reversed).
+            # This is count context. A separate statewide or regional movement
+            # is needed to support an explanation of the district forecast.
+            activity = packet.get('count_activity') or {}
+            accounted_votes = sum(row['affected_votes'] for row in local_counts.values())
+            if (activity.get('known') and accounted_votes > 0
+                    and activity.get('changed_votes') == activity.get('endpoint_changed_votes') == accounted_votes):
+                unchanged = [seat for seat in moving_districts if not local_counts.get(seat, {}).get('affected_votes')]
+                if unchanged:
+                    comparison['win_movements_without_changed_local_counts'] = unchanged
     if packet.get('statewide_preference_changes'):
         comparison['preference_flow_basis'] = (
             'Estimated share of all projected source-party first preferences in districts where all three parties stand. '
@@ -199,7 +245,10 @@ def input_messages(packet, instructions, settings):
             'additional_activity_between_endpoints': activity['changed_votes'] > activity['endpoint_changed_votes']
             if 'endpoint_changed_votes' in activity else None}
     comparison['identity_changes'] = [r for r in packet['win_changes'] if r.get('identity_changed')]
-    figures = packet.get('display_figures') or commentary_format.figures(packet)
+    if include_booth_context:
+        figures = commentary_format.figures_with_booth_context(packet)
+    else:
+        figures = packet.get('display_figures') or commentary_format.figures(packet)
     # Repeating long quantity labels and object keys on every number doubles
     # the request without adding evidence. A labelled table keeps the subject,
     # units and before/after distinction while avoiding repeated metadata.
@@ -213,8 +262,9 @@ def input_messages(packet, instructions, settings):
         if cache:
             block['prompt_cache_breakpoint'] = boundary.copy()
         return block
+    data_guide = FORMAT + (BOOTH_COUNTS if include_booth_context else RAW_COUNTS) + ENTITIES_AND_OVERVIEW
     return [
-        {'role': 'developer', 'content': [content(instructions+'\n\n'+FORMAT)]},
+        {'role': 'developer', 'content': [content(instructions+'\n\n'+data_guide)]},
         {'role': 'user', 'content': [content('Election reference\n'+canonical(reference), True),
                                    content('Current forecast overview\n'+canonical(shared), settings.get('cache_overview', True)),
                                    content('Comparison evidence\n'+canonical(comparison), settings.get('cache_comparison', False))]}]

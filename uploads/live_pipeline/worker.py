@@ -36,7 +36,7 @@ class Processor:
         if not isinstance(self.minimum_count_change, int) or self.minimum_count_change < 1:
             raise ValueError('minimum_count_change must be a positive number of votes')
         self.prompt_version = self.settings.get('prompt_version', commentary.PROMPT_VERSION)
-        if self.prompt_version not in (commentary.PROMPT_VERSION, commentary.PREVIOUS_VERSION):
+        if self.prompt_version not in commentary.SUPPORTED_VERSIONS:
             raise ValueError('Unsupported commentary prompt version')
         self.client = client
         self.executor = ThreadPoolExecutor(max_workers=max(1, min(8, self.settings.get('concurrency', 4))))

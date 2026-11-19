@@ -14,6 +14,7 @@
 #include <vector>
 
 namespace LiveStatewidePreferences { struct Election; }
+namespace LiveFpTpp { struct District; }
 
 // Portable boundary between the core simulation and a live-results analysis
 // implementation. These types deliberately have no dependency on electoral-
@@ -289,6 +290,10 @@ public:
 	// Frozen ballot populations and count evidence for the public flow table.
 	// Older providers and elections without the relevant ranked count omit it.
 	virtual LiveStatewidePreferences::Election const* statewidePreferenceInputs() const { return nullptr; }
+	// Ballots already counted for the classic pair, with their primary mix.
+	// The project district index also identifies a district with no local
+	// count yet: its updated FP draw may still reflect results elsewhere.
+	virtual LiveFpTpp::District const* classicPreferenceAccount(int) const { return nullptr; }
 
 	// Input/output are transformed TPP draws in project seat order. The automatic
 	// live analysis combines these with count evidence jointly across seats. An

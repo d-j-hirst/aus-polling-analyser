@@ -2679,6 +2679,7 @@ void SimulationPreparation::preparePreferenceModel()
 {
 	run.preferenceModel.reset();
 	run.preferenceCountSummaries.clear();
+	run.classicTppSummaries.assign(run.isLiveAutomatic() ? project.seats().count() : 0,{});
 	run.statewidePreferenceSamples.clear();
 
 	// Resolve party and independent identities after roster preparation. The

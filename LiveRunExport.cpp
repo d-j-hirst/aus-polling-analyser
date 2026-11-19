@@ -1435,6 +1435,22 @@ std::optional<std::filesystem::path> LiveRunExport::exportCompletedAutomaticLive
 		document["input_issues"]["completed"] = true;
 		document["input_issues"]["failure"] = "";
 		analysis["input_recovery"] = run.inputRecoveryDetails();
+		// The category posterior remains available as a diagnostic. These
+		// separate figures describe the FP-based method actually used in the
+		// successful draws, including any draws needing the older handoff.
+		auto& classic = analysis["fp_based_tpp"] = json::array();
+		auto const& seatAccounts = run.getClassicTppSummaries();
+		for (size_t s = 0; s < seatAccounts.size(); ++s) {
+			auto const& acc = seatAccounts[s];
+			if (!acc.eligible) continue;
+			json row = {{"seat",report.seatName.at(s)},{"eligible_draws",acc.eligible},{"accounted_draws",acc.used}};
+			if (acc.used) {
+				row["primary_change_pp"] = acc.primary/acc.used;
+				row["measured_change_pp"] = acc.measured/acc.used;
+				row["learned_change_pp"] = acc.learned/acc.used;
+			}
+			classic.push_back(std::move(row));
+		}
 		// Manual 3CP/4CP observations can change exclusion order without any
 		// additional feed votes. Record their actual use separately from booth
 		// counting and cross-seat preference learning, so update reports can name

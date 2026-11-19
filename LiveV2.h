@@ -570,6 +570,7 @@ public:
   // Expose some internals for diagnostics/analysis
   std::optional<LiveData::CountProgress> getCountProgress() const override { return countProgress; }
   LiveStatewidePreferences::Election const* statewidePreferenceInputs() const override { return statewidePreferences.get(); }
+  LiveFpTpp::District const* classicPreferenceAccount(int district) const override;
 
   Internals getInternals() const override {
     Internals internals;
@@ -701,6 +702,8 @@ private:
   std::shared_ptr<std::vector<LiveTppIntegration::Observation> const> tppReceivedObservations;
   std::shared_ptr<LiveTppComposition::Extension const> tppPriorExtension;
   std::shared_ptr<LivePartyConversion::Calibration const> tppTransferCalibration;
+  std::shared_ptr<std::map<int,LiveFpTpp::District> const> classicPreferenceAccounts;
+  void prepareClassicPreferenceAccounts();
   double tppCompositionBudgetScale = 1;
   LiveTppIntegration::ReportingProgress tppOrdinaryReportingProgress;
   template<typename T, typename U>

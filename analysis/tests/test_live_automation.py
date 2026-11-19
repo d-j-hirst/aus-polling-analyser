@@ -471,9 +471,14 @@ class AutomationTests(unittest.TestCase):
                 raise ConnectionError('Server unavailable')
         good = FakeServer()
         queue = UploadQueue(self.root, {})
-        queue.tick_destination('local', good)
-        queue.tick_destination('remote', Unavailable())
-        queue.tick_destination('local', good)
+        with patch('sys.stdout', new_callable=io.StringIO) as console:
+            queue.tick_destination('local', good)
+            queue.tick_destination('remote', Unavailable())
+            queue.tick_destination('local', good)
+        self.assertEqual(console.getvalue().splitlines(), [
+            'Uploaded 2026sa-engineering-test/origin to local.',
+            'Uploaded 2026sa-engineering-test/f00000001 to local.',
+        ])
         self.assertEqual(good.calls, 2) # Saved zero-count reference and current forecast.
         receipt = read(self.root/'receipts'/'local.json')
         self.assertEqual(receipt['latest_forecast_id'], 'f00000009')
@@ -1159,6 +1164,8 @@ class AutomationTests(unittest.TestCase):
         quiet = generate(enabled(), dict(response, key_changes=['There were no significant changes to the forecast.'], developments=[]))
         self.assertEqual(quiet['format'], 'inline-figures-v1')
         self.assertEqual(quiet['text']['summary'], 'There were no significant changes to the forecast.')
+        original_bullets = dict(enabled(), prompt_version='live-changes-9')
+        self.assertEqual(generate(original_bullets, response)['format'], 'seat-bullets-v1')
         previous = dict(enabled(), prompt_version='live-changes-8')
         self.assertEqual(commentary.request_payload(supplied, previous)['text']['format']['schema'], commentary.SCHEMA)
         legacy = dict(text, summary='Earlier paragraph report.', developments=[])
@@ -1166,6 +1173,37 @@ class AutomationTests(unittest.TestCase):
         self.assertEqual(restored['text'], legacy)
         self.assertEqual(restored['prompt_version'], 'live-changes-8')
         self.assertEqual(restored['format'], 'inline-figures-v1')
+
+    def test_local_win_movements_in_commentary_request(self):
+        current = comparisons.summary(numerical())
+        packet = comparisons.prompt_packet(current, comparisons.compare(
+            current, comparisons.summary(numerical('origin', None, chance=40)), [], {}, {}))
+        # One locally counted district has the same total after a correction.
+        # Another district moves without receiving votes. Replacing a candidate
+        # also breaks the comparison for that candidate's win chance.
+        packet['observed_count_changes_by_seat'] = {
+            'Schubert': {'affected_votes': 12, 'fp_net_change': 0},
+            'Finniss': {'affected_votes': 100}, 'Light': {'affected_votes': 30}}
+        for row in packet['win_changes']:
+            row['identity_changed'] = row['seat'] == 'Finniss'
+        packet = commentary.prepare_packet(packet)
+        def evidence(version):
+            payload = commentary.request_payload(packet, dict(enabled(), prompt_version=version))
+            return json.loads(payload['input'][1]['content'][-1]['text'].split('\n', 1)[1])
+        self.assertEqual(evidence(commentary.PROMPT_VERSION)['local_seats_by_win_movement'], ['Light', 'Schubert'])
+        self.assertNotIn('local_seats_by_win_movement', evidence('live-changes-9'))
+        unchanged = 'win_movements_without_changed_local_counts'
+        packet['count_activity'] = {'known': True, 'changed_votes': 142, 'endpoint_changed_votes': 142}
+        self.assertIn('Hammond', evidence(commentary.PROMPT_VERSION)[unchanged])
+        self.assertNotIn('Schubert', evidence(commentary.PROMPT_VERSION)[unchanged])
+        self.assertNotIn(unchanged, evidence('live-changes-13'))
+        # A within-window reversal or an incomplete account of the votes
+        # prevents us from placing all reported activity in named districts.
+        for changed, endpoint in [(150, 142), (150, 150)]:
+            packet['count_activity'].update(changed_votes=changed, endpoint_changed_votes=endpoint)
+            self.assertNotIn(unchanged, evidence(commentary.PROMPT_VERSION))
+        del packet['observed_count_changes_by_seat']
+        self.assertNotIn('local_seats_by_win_movement', evidence(commentary.PROMPT_VERSION))
 
     def test_inline_commentary_bold_figures_and_entities(self):
         before = comparisons.summary(numerical('origin', None, 40.38))
@@ -1179,6 +1217,7 @@ class AutomationTests(unittest.TestCase):
         rendered = commentary_format.render(text['developments'][0]['text'], packet['entities'])
         self.assertIn('<strong>47.9% (+7.5 pp)</strong>', rendered)
         self.assertIn('Fictional Labor candidate', rendered)
+        self.assertEqual(commentary_format.render('{party:2}', packet['entities']), '<small class="badge">ON</small>')
         for invalid in ('**47.9% (+7.5%)**', '**47.9% (-7.5 pp)**', '47.9% (+7.5 pp)'):
             bad = deepcopy(text); bad['developments'][0]['text'] = invalid
             with self.assertRaises(ValueError): commentary.validate(bad, packet)
@@ -1240,6 +1279,43 @@ class AutomationTests(unittest.TestCase):
             invalid['developments'][0]['text'] = invalid['developments'][0]['text'].replace('83 votes', unsupported)
             with self.assertRaisesRegex(ValueError, 'Unsupported numerical'):
                 commentary.validate(invalid, packet)
+
+    def test_booth_percentages_use_the_current_count_and_its_own_denominator(self):
+        old, new = comparisons.summary(numerical('origin', None)), comparisons.summary(numerical())
+        before = observed({'0': 60, 'ind': 10, 'other': 10}, {'0': 20, '1': 10})
+        after = observed({'0': 86, 'ind': 130, 'other': 102}, {'0': 83, 'ind': 50})
+        after['booths']['Light/Hall']['count_to_projection_ids'] = {'ind': '2'}
+        after['seats'] = {'Light': {'count_progress': {'fp_completion': .0134084}}}
+        packet = commentary.prepare_packet(comparisons.prompt_packet(new, comparisons.compare(new, old, [], after, before)))
+        payload = commentary.request_payload(packet, enabled())
+        context = json.loads(payload['input'][1]['content'][-1]['text'].split('\n', 1)[1])['context_figures']['Light']
+        booth = context['Light/Hall']
+        self.assertEqual(booth['FPtotal'], [[None, '318 votes']])
+        # Unnamed ballots count towards all 318; the net addition was only 238.
+        self.assertEqual(booth['FPshare'], [['0', '27.0%'], ['2', '40.9%']])
+        self.assertEqual(booth['TCPtotal'], [[['0', '2'], '133 votes']])
+        self.assertEqual(booth['TCPobserved'], [['0', '62.4%'], ['2', '37.6%']])
+        self.assertNotIn('TCPshare', booth)  # No expectation for the replacement pair.
+        self.assertEqual(context['']['estimated district FP count completion'], [[None, '1.3%']])
+        prose = {'key_changes': ['Local votes arrived in {seat:Light}.'], 'insufficient_evidence': False,
+                 'developments': [{'seat': 'Light', 'seat_changes': [], 'booth_evidence': [
+                     'At Hall, {candidate:Light:0} polled **27.0%** of **318 first preferences**.',
+                     '{candidate:Light:0} had **62.4%** of the **133 TCP votes** counted against {candidate:Light:2}.']}]}
+        commentary.format_points(prose, packet)
+        prose['developments'][0]['booth_evidence'][0] = 'At Hall, {candidate:Light:0} polled **72.3%**.'
+        with self.assertRaisesRegex(ValueError, 'Unsupported numerical'):
+            commentary.format_points(prose, packet)
+
+    def test_booth_shares_handle_withdrawals_unchanged_ledgers_and_ambiguous_aliases(self):
+        def shares(before, after, aliases=None):
+            event = {'seat':'Light', 'record':'Hall', 'before': {'fp_votes_current': before},
+                     'after': {'fp_votes_current': after, 'count_to_projection_ids': aliases or {}}}
+            return commentary_format.observed_booth_result(event, 'fp', {'0', '2'})
+        for after in ({}, {'0':0,'2':0}, {'0':7,'2':5}):
+            self.assertEqual(shares({'0':7,'2':5}, after), [])
+        rows = shares({}, {'0':0,'a':6,'b':6}, {'a':'2','b':'2'})
+        self.assertEqual(rows[0]['value'], '12 votes')
+        self.assertEqual([(r['candidate'], r['observed_share']) for r in rows[1:]], [('{candidate:Light:0}', '0.0%')])
 
     def test_interval_labels_and_ranges_keep_their_pair_and_forecast(self):
         packet = {'all_seats': ['Light'], 'entities': {'{seat:Light}': {'seat': 'Light'}}, 'evidence': [],
@@ -1329,6 +1405,7 @@ class AutomationTests(unittest.TestCase):
         current = observed({'0': 47, '1': 36, '2': 52}, {'0': 83, '1': 50})
         previous['booths']['Light/Hall']['tpp_votes_projected'] = {'0': 79.778938, '1': 55.221062}
         old, new = comparisons.summary(numerical('origin', None)), comparisons.summary(numerical())
+        new['seats']['Light']['candidates']['1'] = {'party': 'LIB', 'name': 'Fictional Liberal candidate'}
         group = comparisons.compare(new, old, [], current, previous)
         event = next(e for e in group['evidence'] if e['kind'] == 'booths')
         result = event['tcp_against_previous_forecast']
@@ -1340,9 +1417,17 @@ class AutomationTests(unittest.TestCase):
         row = next(r for r in packet['display_figures'] if r.get('candidate') == '{candidate:Light:0}' and 'expected_share' in r)
         self.assertEqual((row['observed_share'], row['expected_share'], row['magnitude'], row['equivalent_vote_difference']),
                          ('62.4%', '59.1%', '3.3 pp', '+4 votes'))
+        reader_wording = ('At Hall, {candidate:Light:0} polled **62.4%** '
+                          'of **133** two-candidate-preferred votes against '
+                          '{candidate:Light:1}, **3.3 pp** above the earlier estimate.')
+        commentary_format.check_text(reader_wording, ['Light'], packet)
+        with self.assertRaisesRegex(ValueError, 'Unsupported numerical'):
+            commentary_format.check_text(reader_wording.replace('3.3 pp', '8.3 pp'), ['Light'], packet)
         commentary.validate({'summary': 'More votes were counted in {seat:Light}.', 'insufficient_evidence': False,
             'developments': [{'seats': ['Light'], 'text': 'In {seat:Light}, {candidate:Light:0} received **62.4%** of the TCP count, **3.3 pp** above expectations.'}]}, packet)
         messages = prompt_layout.input_messages(packet, commentary.INSTRUCTIONS, enabled())
+        self.assertIn('above the earlier estimate', commentary.INSTRUCTIONS)
+        self.assertIn('above our earlier estimate', commentary.instructions('live-changes-12'))
         self.assertIn('expected_share', messages[1]['content'][2]['text'])
 
     def test_tcp_comparison_requires_same_pair_and_prior_evidence(self):

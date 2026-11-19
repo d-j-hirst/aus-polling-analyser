@@ -9,6 +9,7 @@ it does not prove a narrative explanation of why the forecast moved.
 import html
 import math
 import re
+from collections import Counter
 from . import commentary_counts
 
 
@@ -84,6 +85,72 @@ def tcp_comparison_figures(event):
                      'observed_share': decimal(share['observed_percent'])+'%',
                      'equivalent_vote_difference': format(round(share['equivalent_vote_difference']), '+,')+' votes',
                      **expectation_difference_fields(share['difference_pp'])})
+    return rows
+
+
+def observed_booth_result(event, ledger, candidates):
+    """Describe a changed booth count as a share of all formal votes reported
+    in that count so far. Include every ballot in the denominator, even for
+    candidates without a display name. A zero for a candidate is meaningful
+    when other candidates have votes. A missing or withdrawn count has no share.
+    FP and TCP are separate counts and can cover the same ballots."""
+    before, after = event.get('before') or {}, event.get('after') or {}
+    field = ledger + '_votes_current'
+    votes = after.get(field) or {}
+    if not votes or votes == before.get(field):
+        return []
+    if any(isinstance(v, bool) or not isinstance(v, (int, float))
+           or not math.isfinite(v) or v < 0 or v != int(v) for v in votes.values()):
+        return []
+    total = int(sum(votes.values()))
+    if total == 0:
+        return []
+    seat = event['seat']
+    aliases = dict(before.get('count_to_projection_ids') or {}) if ledger == 'tcp' else {}
+    aliases.update(after.get('count_to_projection_ids') or {})
+    identity = {raw: str(aliases.get(raw, raw)) for raw in votes}
+    occurrences = Counter(identity.values())
+    context = {'seat': seat, 'booth': event['record']}
+    if ledger == 'tcp':
+        # Matched TCP evidence already has its total and shares. For a new
+        # pairing we can report a measured split without a prior expectation.
+        if (event.get('tcp_against_previous_forecast') or {}).get('available'):
+            return []
+        if len(votes) != 2 or len(occurrences) != 2:
+            return []
+        if not all(p in candidates for p in occurrences):
+            return []
+        pair = ['{candidate:'+seat+':'+p+'}' for p in sorted(occurrences)]
+        total_row = dict(context, quantity='reported cumulative TCP total for this pairing', pair=pair)
+    else:
+        total_row = dict(context, quantity='reported cumulative FP total')
+    total_row['value'] = f'{total:,} votes'
+    rows = [total_row]
+    for raw, count in sorted(votes.items()):
+        party = identity[raw]
+        # Several ballot entries can share a forecast party. Their combined
+        # votes cannot be attributed to one named candidate.
+        if party in candidates and occurrences[party] == 1:
+            rows.append(dict(context, quantity='share of reported '+ledger.upper()+' votes',
+                             candidate='{candidate:'+seat+':'+party+'}',
+                             observed_share=decimal(100*count/total)+'%'))
+    return rows
+
+
+def figures_with_booth_context(packet):
+    """Extend the checked display figures for the booth-focused prompt. Saved
+    reports can lack district progress or a prior forecast for the booth. Only
+    publish the context actually available for this comparison window."""
+    rows = list(packet.get('display_figures') or figures(packet))
+    roster = packet.get('all_candidate_identities', packet.get('candidate_identities', {}))
+    for event in packet['evidence']:
+        if event['kind'] == 'booths':
+            candidates = roster.get(event['seat'], {})
+            for ledger in ('fp', 'tcp'):
+                rows.extend(observed_booth_result(event, ledger, candidates))
+    for seat, proportion in packet.get('district_fp_completion', {}).items():
+        rows.append({'seat': seat, 'quantity': 'estimated district FP count completion',
+                     'value': decimal(100*proportion)+'%'})
     return rows
 
 
@@ -282,7 +349,8 @@ def typed_vote_phrases(packet, seats):
         record = event.get('after') or {}
         vote_type = str(record.get('vote_type', '')).lower()
         category = {'prepoll': 'pre-poll'}.get(vote_type, vote_type)
-        for kind, labels in [('fp', ['fp', 'first-preference', 'primary']), ('tcp', ['tcp', 'two-candidate'])]:
+        for kind, labels in [('fp', ['fp', 'first-preference', 'primary']),
+                             ('tcp', ['tcp', 'two-candidate', 'two-candidate-preferred'])]:
             observed = record.get(kind+'_votes_current') or {}
             values = [event.get(kind+'_vote_change')]
             if observed:
@@ -304,7 +372,7 @@ def equivalent_vote_count(match, following, allowed, typed):
     if count:
         return count[1]+' votes' in allowed
     if re.fullmatch(COUNT_NUMBER, phrase):
-        unit = re.match(r'\s+('+COUNT_WORDS+r')\b', following, re.I)
+        unit = re.match(r'\s+(first preferences|formal votes|'+COUNT_WORDS+r')\b', following, re.I)
         if not unit:
             return False
         phrase += ' '+unit[1]
@@ -332,6 +400,12 @@ def check_text(text, seats, packet):
                for key in FIGURE_FIELDS if key in row}
     allowed.update(observed_vote_phrases(packet, seats))
     typed = typed_vote_phrases(packet, seats)
+    # In booth prose "318 first preferences" and "318 first-preference votes"
+    # name the same denominator. Only an actual cumulative FP total supplies it.
+    for row in scoped:
+        if row['quantity'] == 'reported cumulative FP total':
+            total = row['value'].split()[0]
+            typed.update((total+' first preferences', total+' formal votes'))
     # Positive additions can be quoted with an explicit plus. Only change
     # fields carry a direction; a cumulative vote count supplies no addition.
     for row in scoped:
@@ -346,6 +420,9 @@ def check_text(text, seats, packet):
                           'central', stripped, flags=re.I)
     for match in BOLD.finditer(stripped):
         phrase = match.group(1)
+        # Readers can see the unit written out while the checked figures and
+        # compact prompt tables continue to use "pp" for the same difference.
+        phrase = re.sub(r'(?<=\d) percentage points?$', ' pp', phrase)
         if phrase in allowed or equivalent_vote_count(match, stripped[match.end():], allowed, typed):
             continue
         endpoints = re.fullmatch(r'(\d+(?:\.\d+)?%)\s*(?:[–—-]|to)\s*(\d+(?:\.\d+)?%)', phrase)
@@ -377,7 +454,9 @@ def render(text, entity_map):
         output.append(html.escape(text[cursor:match.start()]))
         token = match.group()
         entity = entity_map.get(token)
-        if entity:
+        if entity and entity['kind'] == 'party':
+            output.append('<small class="badge">'+html.escape(entity['label'])+'</small>')
+        elif entity:
             label = '<b>'+html.escape(entity['label'])+'</b>'
             badge = entity.get('party') if entity['kind'] == 'candidate' else entity.get('holder_party')
             if badge:

@@ -5511,16 +5511,16 @@ void Election::generateVariability(int iterationIndex) {
   boothTypeFpIterationVariation.clear();
   voteTypeFpIterationVariation.clear();
 
-  // TPP composition errors are conditioned jointly at the simulator
-  // boundary. Only FP and non-classic TCP retain their existing draws here.
+  // Draw FP and non-classic TCP here. The simulator calculates classic TPP
+  // once it knows the accepted primaries, or uses the joint category estimate
+  // for districts requiring separate accounting.
   generateSharedFpVariability();
 
   for (int seatIndex = 0; seatIndex < int(seats.size()); ++seatIndex) {
     auto& seat = seats[seatIndex];
     std::string const seatContext = "Seat " + seat.name;
     // Official final district results have no remaining FP/TCP share draw.
-    // Inferred TPP, if no final TPP was supplied, still uses its separate joint
-    // uncertainty at the handoff; this loop does not generate TPP variation.
+    // When no final TPP was supplied, the simulator still estimates it.
     if (seat.finalResult) continue;
     // Unphased FP draws are integrated by their measured precision at the
     // simulator boundary. Both preparation and scenarios use this same finite

@@ -4,7 +4,8 @@
 // two named finalists. The live forecast supplies the district ballots, projected
 // FP counts, matched published counts and its fitted preference adjustments.
 // This calculation describes those voters even where another TCP is more likely.
-// Its estimates are output only and never feed back into a seat's forecast.
+// For a simulated classic count the table consumes the district's actual
+// allocation. Producing the table has no effect on the simulation.
 #include "LivePreferenceLearning.h"
 #include "RandomGenerator.h"
 #include <algorithm>
@@ -268,6 +269,9 @@ inline void allocateMeasured(CountedBatch const& batch, Shares const& rates,
 
 struct Totals { double first = 0, donors = 0; };
 using Accounts = std::map<Row,Totals>;
+// For a district using the FP-based classic count, these are the very same
+// ballots and Labor transfers used in that simulation draw, by original party.
+using DistrictClassicTotals = std::map<int,std::map<int,Totals>>;
 
 // Keep a single election draw for all districts and categories. A measured
 // booth can constrain its own mixture exactly and also inform the forecast
@@ -324,7 +328,8 @@ inline void addContest(Contest const& contest, Shares const& sampled, std::uint6
 }
 
 inline Draw estimate(Election const& inputs, PreferenceModel::Model const& model,
-	PreferenceModel::Model::ElectionDraw const& election, Shares const& classicPercent) {
+	PreferenceModel::Model::ElectionDraw const& election, Shares const& classicPercent,
+	DistrictClassicTotals const& simulatedClassic = {}) {
 	Accounts sums;
 	auto const& roles = model.partyRoles();
 	// The TPP model has two separately measured common errors for converting
@@ -339,16 +344,24 @@ inline Draw estimate(Election const& inputs, PreferenceModel::Model const& model
 	}
 	for (auto const& district : inputs.districts) {
 		auto sources = district.sources;
+		auto account = simulatedClassic.find(district.index);
 		// Classic TPP uses the accepted forecast's sampled flows to Labor.
 		// Preserve the district's prepared difference from the statewide centre
 		// (e.g. a returning independent) when applying that common draw.
 		for (auto& source : sources) {
+			if (source.id == roles.labor || source.id == roles.liberal || source.id == roles.national) continue;
+			if (account != simulatedClassic.end()) {
+				auto actual = account->second.find(source.id);
+				if (actual != account->second.end() && actual->second.donors > 0) {
+					source.classicRate = std::clamp(actual->second.first/actual->second.donors,0.,1.);
+					continue;
+				}
+			}
 			auto draw = classicPercent.find(source.id);
 			auto base = inputs.classicReference.find(source.id);
 			if (draw == classicPercent.end()) draw = classicPercent.find(roles.others);
 			if (base == inputs.classicReference.end()) base = inputs.classicReference.find(roles.others);
-			if (draw == classicPercent.end() || base == inputs.classicReference.end() ||
-				source.id == roles.labor || source.id == roles.liberal || source.id == roles.national) continue;
+			if (draw == classicPercent.end() || base == inputs.classicReference.end()) continue;
 			double const offset = LivePartialCount::logOdds(source.classicRate) - LivePartialCount::logOdds(base->second);
 			source.classicRate = LivePartialCount::inverseLogOdds(LivePartialCount::logOdds(draw->second*.01)+offset);
 		}
@@ -356,6 +369,17 @@ inline Draw estimate(Election const& inputs, PreferenceModel::Model const& model
 		for (auto const& contest : district.contests) {
 			if (!contest.classic) {
 				addContest(contest,sampled.at(contest.pair),election.seed,sums);
+				continue;
+			}
+			if (account != simulatedClassic.end()) {
+				for (auto const& row : contest.rows) {
+					auto source = account->second.find(row[0]);
+					if (source == account->second.end()) continue;
+					auto& total = sums[row];
+					total.donors += source->second.donors;
+					total.first += row[1] == roles.labor ? source->second.first :
+						source->second.donors - source->second.first;
+				}
 				continue;
 			}
 			Shares rates;

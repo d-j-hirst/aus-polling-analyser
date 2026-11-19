@@ -26,6 +26,7 @@
 #include <exception>
 #include <algorithm>
 #include <filesystem>
+#include <map>
 #include <sstream>
 
 #include <wx/sizer.h>
@@ -736,10 +737,19 @@ bool selectLiveCommentary(wxWindow* parent, std::filesystem::path const& root, n
             ", US$" + current.at("spending_limit_usd").dump() + " per run)";
         choices.Add(wxString::FromUTF8(label));
     }
-    auto const trialPath = root/"uploads"/"sa-local-replay-commentary.json";
-    bool const showTrial = config.at("election") == "2026sa" && std::filesystem::is_regular_file(trialPath);
-    int const trialIndex = static_cast<int>(choices.size());
-    if (showTrial) choices.Add("SA trial (Terra Standard/low, US$1 per run)");
+    auto const presetDirectory = root/"uploads";
+    std::map<int,std::filesystem::path> bundledPresets;
+    if (config.at("election") == "2026sa") {
+        auto addPreset = [&](char const* filename, wxString const& label) {
+            auto path = presetDirectory/filename;
+            if (std::filesystem::is_regular_file(path)) {
+                int const index = static_cast<int>(choices.Add(label));
+                bundledPresets.emplace(index, path);
+            }
+        };
+        addPreset("sa-local-replay-commentary.json", "SA trial (Terra Standard/low, US$1 per run)");
+        addPreset("sa-full-local-replay-commentary.json", "SA full run (Terra Standard/low, US$10 per run)");
+    }
     int const fileIndex = static_cast<int>(choices.size());
     choices.Add("Choose a commentary preset JSON file...");
     wxSingleChoiceDialog dialog(parent, "Choose commentary for this run. Restart the upload manager after changing this setting.",
@@ -753,14 +763,14 @@ bool selectLiveCommentary(wxWindow* parent, std::filesystem::path const& root, n
     }
     if (hasPreset && selected == 1) return true;
 
-    auto path = trialPath;
+    std::filesystem::path path;
     if (selected == fileIndex) {
-        wxFileDialog file(parent, "Choose a commentary preset", root.string(), "", "JSON files (*.json)|*.json",
+        wxFileDialog file(parent, "Choose a commentary preset", presetDirectory.string(), "", "JSON files (*.json)|*.json",
             wxFD_OPEN | wxFD_FILE_MUST_EXIST);
         if (file.ShowModal() != wxID_OK) return false;
         path = LiveResultsInput::pathFromUtf8(file.GetPath().ToStdString(wxConvUTF8));
-    } else if (!showTrial || selected != trialIndex) {
-        return false;
+    } else {
+        path = bundledPresets.at(selected);
     }
     auto const preset = LiveAutomation::readJson(path);
     if (!preset.is_object() || !preset.value("enabled", false) ||

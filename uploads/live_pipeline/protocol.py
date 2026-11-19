@@ -99,4 +99,6 @@ class UploadQueue:
                           'retry_after': time.time()+min(300, 2**min(attempts, 8))}
             state['forecasts'][identity] = record
             atomic(state_path, state)
+            if record['accepted']:
+                print(f"Uploaded {receipt['run_id']}/{identity} to {name}.", flush=True)
         return state

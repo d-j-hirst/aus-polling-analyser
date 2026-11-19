@@ -231,6 +231,13 @@ public:
 	// preference samples affected the forecast. Read only after iteration workers
 	// have finished: they accumulate these totals while the simulation is running.
 	std::vector<PreferenceModel::Summary> const& getPreferenceCountSummaries() const { return preferenceCountSummaries; }
+	// Movement from the same draw's pre-count Labor TPP, split into the three
+	// arithmetic contributions before any separate manual 3CP observation.
+	struct ClassicTppSummary {
+		int eligible = 0, used = 0;
+		double primary = 0, measured = 0, learned = 0;
+	};
+	auto const& getClassicTppSummaries() const { return classicTppSummaries; }
 
 private:
 	// Only the main run opens this opt-in trace. Supporting baseline/calibration
@@ -304,6 +311,7 @@ private:
 	// district result under the existing simulation recording mutex.
 	std::optional<PreferenceModel::Model> preferenceModel;
 	std::vector<PreferenceModel::Summary> preferenceCountSummaries;
+	std::vector<ClassicTppSummary> classicTppSummaries;
 	std::map<std::array<int,3>,std::vector<double>> statewidePreferenceSamples;
 
 	mutable std::mutex warningMutex;

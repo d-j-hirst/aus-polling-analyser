@@ -4,6 +4,7 @@
 // runIteration in the .cpp file explains the sequence and the recording boundary.
 
 #include "LiveData.h"
+#include "LiveStatewidePreferences.h"
 #include "Party.h"
 #include "SimulationRun.h"
 
@@ -102,6 +103,8 @@ private:
 	void solveTerminalFpReconciliation();
 	void incorporateLiveResults();
 	void incorporateLiveTpp();
+	std::optional<double> projectLiveClassicTpp(int seatIndex, LiveFpTpp::District const& account,
+		std::map<int,double> priorFp);
 	void incorporateLegacyLiveTpp();
 	void recordLiveTppBaseline();
 	void incorporateLiveSeatFp(int seatIndex);
@@ -190,6 +193,8 @@ private:
 	// Preference rates from the accepted FP pass, plus private comparison
 	// observations for this attempt. Supporting runs need neither.
 	std::vector<std::vector<std::pair<int, double>>> preferenceSourceRates;
+	LiveStatewidePreferences::DistrictClassicTotals liveClassicSources;
+	std::vector<SimulationRun::ClassicTppSummary> classicTppContributions;
 	std::vector<PreferenceModel::Comparison> preferenceComparisons;
 	std::optional<PreferenceModel::Model::ElectionDraw> preferenceElection;
 	std::string preferenceDrawIssue;

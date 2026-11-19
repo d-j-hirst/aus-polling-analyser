@@ -15,6 +15,7 @@
 #include "LiveTurnoutMath.h"
 #include "LiveAggregation.h"
 #include "LiveStatewidePreferences.h"
+#include "LiveFpTpp.h"
 #include "MajorPartyFpMath.h"
 #include "MinorPartyFpMath.h"
 #include "SpecialPartyCodes.h"
@@ -208,6 +209,8 @@ void SimulationIteration::reset()
 	seatFpVoteShare.clear();
 	seatTcpVoteShare.clear();
 	for (auto& rates : preferenceSourceRates) rates.clear();
+	liveClassicSources.clear();
+	classicTppContributions.clear();
 	preferenceComparisons.clear();
 	preferenceElection.reset();
 	preferenceDrawIssue.clear();
@@ -585,7 +588,7 @@ int SimulationIteration::runIteration()
 			try {
 				if (!preferenceElection) throw std::runtime_error(preferenceDrawIssue);
 				statewidePreferences = LiveStatewidePreferences::estimate(*inputs,
-					*run.preferenceModel,*preferenceElection,overallPreferenceFlow);
+					*run.preferenceModel,*preferenceElection,overallPreferenceFlow,liveClassicSources);
 			}
 			catch (std::exception const& error) {
 				recordedRun.recordWarning(SimulationRun::WarningCategory::StatewidePreferenceReport,
@@ -601,6 +604,15 @@ int SimulationIteration::runIteration()
 	// the combined results into the report used for subsequent forecast export.
 	std::lock_guard<std::mutex> lock(recordMutex);
 	recordIterationResults();
+	for (size_t s = 0; s < classicTppContributions.size(); ++s) {
+		auto& sum = recordedRun.classicTppSummaries.at(s);
+		auto const& draw = classicTppContributions[s];
+		sum.eligible += draw.eligible;
+		sum.used += draw.used;
+		sum.primary += draw.primary;
+		sum.measured += draw.measured;
+		sum.learned += draw.learned;
+	}
 	for (auto const& [row,percent] : statewidePreferences)
 		recordedRun.statewidePreferenceSamples[row].push_back(percent);
 	for (std::size_t seat = 0; seat < preferenceComparisons.size(); ++seat) {
@@ -631,8 +643,9 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	seatThirdPartyExhaustEffect = std::vector<double>(project.seats().count(), 0.0);
 	seatPollEffect = std::vector<double>(project.seats().count(), 0.0);
 	seatMrpPollEffect = std::vector<double>(project.seats().count(), 0.0);
-	if (run.preferenceModel) {
+	if (run.preferenceModel || run.isLiveAutomatic())
 		preferenceSourceRates.resize(project.seats().count());
+	if (run.preferenceModel) {
 		preferenceComparisons.resize(project.seats().count());
 		std::uint64_t seed = RandomGenerator::mixKey(variabilityBaseSeed, static_cast<std::uint64_t>(iterationIndex));
 		if (retryCount) seed = RandomGenerator::mixKey(seed, static_cast<std::uint64_t>(retryCount));
@@ -2321,7 +2334,9 @@ SimulationIteration::allocateMajorPartyFp(
 	double currentExhaustDenominator = 0.0;
 	std::map<int, double> preferenceVariation; // in minor -> major preferences, after transformation
 	std::map<int, double> exhaustVariation;
-	auto* comparisonRates = run.preferenceModel && run.preferenceModel->coversDistrict(seatIndex)
+	bool const saveClassicRates = (run.preferenceModel && run.preferenceModel->coversDistrict(seatIndex)) ||
+		(run.isLiveAutomatic() && liveElection && liveElection->classicPreferenceAccount(seatIndex));
+	auto* comparisonRates = saveClassicRates
 		? &preferenceSourceRates[seatIndex] : nullptr;
 	if (comparisonRates) comparisonRates->clear();
 
@@ -2349,9 +2364,9 @@ SimulationIteration::allocateMajorPartyFp(
 		double const adjustedPreferenceFlow = basicTransformedSwing(sourcePreferenceFlow, preferenceFlowDeviation);
 		double const randomisedPreferenceFlow = basicTransformedSwing(adjustedPreferenceFlow, preferenceVariation[partyIndex]);
 		currentPartyOnePrefs += voteShare * randomisedPreferenceFlow * 0.01 * (1.0 - randomisedExhaustRate);
-		// Keep this original source's draw before applying the seat-wide
-		// adjustment below. The second count will match the accepted TPP
-		// using these rates and the actual FP shares at the start of exclusions.
+		// Keep this draw's relative source rates. Live classic accounting fits
+		// them to the accepted pre-count district before applying FP changes.
+		// The exclusion count can then use the resulting source allocations.
 		if (comparisonRates) comparisonRates->emplace_back(partyIndex, randomisedPreferenceFlow * 0.01);
 		currentNonMajorFpShare += voteShare;
 		currentExhaustRateEstimate += randomisedExhaustRate * voteShare;
@@ -3634,10 +3649,104 @@ void SimulationIteration::incorporateLiveResults()
 			"Live result incorporation requires a generated live scenario.");
 	}
 
-	incorporateLiveTpp();
+	// First update the primary vote. A one-point shift from Labor to a party
+	// giving Labor 38% of its preferences costs Labor 0.62 TPP points, whether
+	// the shift came from a local booth or from districts elsewhere. The FP
+	// forecast has already allowed for how representative its samples are.
+	std::vector<std::optional<double>> classicMargins(project.seats().count());
+	if (run.isLiveAutomatic()) classicTppContributions.resize(classicMargins.size());
+	bool needsSeparateTpp = false;
+	for (int s = 0; s < project.seats().count(); ++s) {
+		auto account = run.isLiveAutomatic() ? liveElection->classicPreferenceAccount(s) : nullptr;
+		if (account) {
+			classicTppContributions[s].eligible = 1;
+			auto priorFp = seatFpVoteShare[s];
+			incorporateLiveSeatFp(s);
+			classicMargins[s] = projectLiveClassicTpp(s,*account,std::move(priorFp));
+		}
+		else incorporateLiveSeatFp(s);
+		if (!classicMargins[s]) needsSeparateTpp = true;
+	}
+	// Exhaustion, competing Coalition partners, and official final results
+	// have their own accounting. Their joint calculation still receives the
+	// original whole-election TPP draw, including its cross-seat correlations.
+	if (needsSeparateTpp) incorporateLiveTpp();
+	for (int s = 0; s < project.seats().count(); ++s)
+		if (classicMargins[s]) partyOneNewTppMargin[s] = *classicMargins[s];
+}
 
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex)
-		incorporateLiveSeatFp(seatIndex);
+// Link this draw's reconciled pre-count FP and TPP to its accepted live FP.
+// Booth preparation has identified the measured ballots and their sources.
+// Turnout and count revisions belong to this scenario, so they are read here.
+// The resulting source rates travel with the same draw into the ranking count.
+std::optional<double> SimulationIteration::projectLiveClassicTpp(int s, LiveFpTpp::District const& account,
+	std::map<int,double> priorFp)
+{
+	auto const& name = run.seatLookup.seat(s).name;
+	auto totals = liveElection->getSeatAggregateVoteTotals(name);
+	if (!totals || totals->tpp <= 0) return {};
+	auto measured = liveElection->getSeatVoteCountAccount(name,LiveData::CountKind::Tpp);
+	double labor = 0, coalition = 0;
+	if (measured) {
+		labor = getAt(*measured->counted,Mp::One,0.);
+		coalition = getAt(*measured->counted,Mp::Two,0.);
+	}
+	auto current = seatFpVoteShare[s];
+	// The legacy Coalition placeholder duplicates a share already present in
+	// the combined Coalition FP. It represents no additional ballots here.
+	priorFp.erase(CoalitionPartnerIndex);
+	current.erase(CoalitionPartnerIndex);
+	auto& saved = preferenceSourceRates[s];
+	PreferenceModel::Shares rates(saved.begin(),saved.end());
+	double const others = getAt(rates,OthersIndex,getAt(overallPreferenceFlow,OthersIndex,50.)*.01);
+	auto includeSources = [&](auto const& ballots) {
+		for (auto const& [party,n] : ballots) rates.try_emplace(party,
+			std::clamp(getAt(overallPreferenceFlow,party,100*others)*.01,0.,1.));
+	};
+	includeSources(priorFp);
+	includeSources(current);
+	includeSources(account.covered);
+	// The live principal may occupy the emerging slot on this draw. Use one
+	// identity for the measured count and both FP accounts, then translate its
+	// rate back before the candidate exclusions consume the simulated ballot.
+	auto fpAccount = liveElection->getSeatVoteCountAccount(name,LiveData::CountKind::Fp);
+	bool const identifiedPrincipal = (fpAccount && fpAccount->projected->contains(run.indPartyIndex)) ||
+		getAt(account.covered,run.indPartyIndex,0.) > 0;
+	auto usesEmergingSlot = [&](auto const& shares) {
+		return identifiedPrincipal && getAt(shares,run.indPartyIndex,0.) == 0 &&
+			getAt(shares,EmergingIndIndex,0.) > 0;
+	};
+	bool const emergingPrincipal = usesEmergingSlot(current);
+	if (usesEmergingSlot(priorFp)) {
+		rates[run.indPartyIndex] = getAt(rates,EmergingIndIndex,others);
+		priorFp[run.indPartyIndex] = getAt(priorFp,EmergingIndIndex,0.);
+		priorFp.erase(EmergingIndIndex);
+	}
+	if (emergingPrincipal) {
+		current[run.indPartyIndex] = current.at(EmergingIndIndex);
+		current.erase(EmergingIndIndex);
+	}
+	double const priorTpp = partyOneNewTppMargin[s]+50.;
+	auto result = LiveFpTpp::project(account,priorFp,priorTpp,current,std::move(rates),totals->tpp,labor,coalition);
+	if (!result) return {};
+	classicTppContributions[s] = {1,1,result->primaryChange,result->measuredChange,result->learnedChange};
+	if (run.preferenceModel) {
+		if (LiveStatewidePreferences::includeDraw(iterationIndex,sim.getSettings().numIterations))
+			liveClassicSources.emplace(s,std::move(result->sources));
+		// With an unchanged primary draw and no preference evidence, exclusions
+		// perform their ordinary initial fit, including any small IND/OTH merge.
+		bool learned = std::any_of(account.rateChange.begin(),account.rateChange.end(),
+			[](auto const& entry) { return entry.second != 0; });
+		bool primaryChange = std::any_of(result->rates.begin(),result->rates.end(),[&](auto const& row) {
+			return getAt(priorFp,row.first,0.) != getAt(current,row.first,0.);
+		});
+		if (primaryChange || labor+coalition > 0 || learned) {
+			if (emergingPrincipal) result->rates[EmergingIndIndex] = result->rates.at(run.indPartyIndex);
+			saved.assign(result->rates.begin(),result->rates.end());
+		}
+	}
+	if (result->laborPercent == priorTpp) return partyOneNewTppMargin[s];
+	return result->laborPercent-50.;
 }
 
 void SimulationIteration::incorporateLiveTpp()

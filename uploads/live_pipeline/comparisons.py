@@ -738,6 +738,20 @@ def prompt_packet(current, comparison):
             'win_changes': [r for r in comparison['win_changes'] if r['seat'] in selected][:24],
             'seat_changes': seat_changes,
             'evidence': included, 'omitted_evidence_records': len(comparison['evidence'])-len(included)-len(matched_ids)}
+    # A conspicuous booth result can still represent a small part of its
+    # district. Keep the model's current FP completion estimate for districts
+    # with selected booth results, before the detailed seat diagnostics are
+    # shortened. Missing progress gives no basis for calling a count small.
+    booth_districts = {event['seat'] for event in included if event['kind'] == 'booths' and event.get('changed_votes')}
+    progress = {}
+    for event in comparison['evidence']:
+        if event['kind'] == 'seats' and event.get('seat') in booth_districts:
+            current_progress = (event.get('after') or {}).get('count_progress') or {}
+            value = current_progress.get('fp_completion')
+            if value is not None and 0 <= value <= 1:
+                progress[event['seat']] = value
+    if progress:
+        packet['district_fp_completion'] = progress
     flow = comparison.get('statewide_preference_changes')
     if flow and not comparison['input_revision_changed']:
         # This is an editorial cutoff in percentage points, with at most three

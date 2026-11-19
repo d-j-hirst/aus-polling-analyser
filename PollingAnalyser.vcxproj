@@ -479,6 +479,7 @@
     <ClInclude Include="LivePreferenceCorrections.h" />
     <ClInclude Include="LivePreferenceLearning.h" />
     <ClInclude Include="LiveStatewidePreferences.h" />
+    <ClInclude Include="LiveFpTpp.h" />
     <ClInclude Include="TurnoutModel.h" />
     <ClInclude Include="DeclarationAllocation.h" />
     <ClInclude Include="TurnoutModelIO.h" />

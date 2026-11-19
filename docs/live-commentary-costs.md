@@ -14,7 +14,7 @@ The November 19 estimate rebuilds the commentary inputs for all 544 comparisons 
 | Rest of the count | 246 | 4.19 |
 | **Whole replay, calculated before rounding** | **544** | **7.94** |
 
-If every request starts with a cold cache, the estimate is **US$9.40**. The [full SA preset](../uploads/sa-full-local-replay-commentary.json) reserves **US$11** for the run. Actual response length, new forecast evidence, API failures and cache reuse can change expenditure. The worker reserves the maximum request cost before dispatch and checks the cumulative ledger on restart. At the limit it can still publish numerical results and mechanical comparisons after the commentary deadline.
+If every request starts with a cold cache, the estimate is **US$9.40**. The full SA preset sets a **US$10** spending limit for the run. Actual response length, new forecast evidence, API failures and cache reuse can change expenditure. The worker reserves the maximum request cost before dispatch and checks the cumulative ledger on restart. At the limit it can still publish numerical results and mechanical comparisons after the commentary deadline. [Full SA preset](../uploads/sa-full-local-replay-commentary.json)
 
 ## Schedule estimate from the November 18 benchmark
 

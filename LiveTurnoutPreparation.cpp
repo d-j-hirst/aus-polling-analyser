@@ -495,8 +495,13 @@ std::optional<LiveData::VoteCountAccount> LiveV2::Election::getSeatVoteCountAcco
     std::string const& seatName, LiveData::CountKind kind) const {
     // Before any results, the ordinary simulation owns the whole forecast.
     // There is no observed count constraint to hand off at this stage.
-    if (node.totalFpVotesCurrent() == 0 || inactiveContests.contains(seatName)) return {};
+    if (inactiveContests.contains(seatName)) return {};
     std::size_t s = turnout->seatIndex(seatName);
+    if (node.totalFpVotesCurrent() == 0) {
+        // Occasionally the first delivery contains only a classic TCP. Those
+        // two totals are already known even though their primary mix is not.
+        if (kind != LiveData::CountKind::Tpp || total(turnout->counted(kind,s)) == 0) return {};
+    }
     auto const& n = seats.at(s).node;
     if (kind == LiveData::CountKind::Fp) return LiveData::VoteCountAccount{scenarioCountedVotes ? &scenarioCountedVotes->fp[s] : &turnout->counted(kind, s), &n.fpVotesProjected};
     if (kind == LiveData::CountKind::Tpp && n.tppVotesProjected.size() == 2)

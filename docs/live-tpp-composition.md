@@ -1,15 +1,51 @@
 # Live TPP category composition
 
-This document explains how the live forecast learns from ordinary, early and
-declaration votes without treating their different counting schedules as extra
-independent uncertainty about the overall result. It also describes the
-historical calibration and its limitations.
+This document explains how reported primaries and preferences change the live
+Labor–Coalition TPP forecast, and how ordinary, early and declaration counts
+contribute as they arrive at different times.
 
-The pre-election simulation supplies a correlated distribution of seat TPP:
-uncertainty shared across the election and regions, as well as local uncertainty.
-The live update allocates that existing distribution between voting categories.
-It conditions on received counts jointly, allowing the still-uncounted categories
-to differ. It does not add a second national TPP error distribution.
+## From a district's primary votes to its TPP
+
+In an automatic compulsory-preferential forecast with one Coalition candidate,
+each simulated district starts with its own pre-count primaries, TPP and rates
+of transfer from minor parties. The simulator adjusts the donor rates together
+to reproduce that starting TPP. A change in the accepted primary forecast
+then carries through at those rates, including when the evidence came from
+outside the district. For example, shifting one primary point from Labor to
+One Nation lowers Labor TPP by 0.62 points if 38% of those voters preference
+Labor over the Coalition. The primary forecast already accounts for the size
+and representativeness of the count.
+
+Each measured Labor–Coalition booth total replaces the estimate for its own
+ballots. If a batch expected to give Labor 60 of its 100 votes actually gives
+it 64, the district gains four Labor votes. A result of 60 removes uncertainty
+on those ballots while leaving the district estimate in place. Earlier classic
+counts can still supply this evidence after the reported pairing changes.
+An identified primary batch or published donor transfers establish the source
+mix where available. A partial or TCP-first count uses the available booth mix,
+subject to each finalist's total and the voters available in this draw. A draw
+with a simulated recheck uses its revised counts.
+
+The existing matched-count calibration can change the Greens and independent
+transfer rates on outstanding ballots. The initial rates vary between simulated
+elections. The ranked exclusion count receives the resulting rates by source,
+and eligible classic rows in the statewide preference table use the same
+sources' Labor transfers and projected voter totals.
+
+Optional-preferential districts require an allowance for exhaustion. Contests
+with both Coalition parties have separate opponent-specific estimates. These
+paths retain the joint category calculation described below, as do districts
+with a joint three-candidate tally. Official final TPP takes priority. If a
+draw's starting primaries cannot supply its starting TPP, or its live primaries
+cannot fit the counted finalists, the simulator uses the count-constrained
+category calculation for that draw.
+
+The analysis archive's `fp_based_tpp` lists eligible and successfully accounted
+draws by district. Its three mean movements are percentage points of district
+Labor TPP due to the accepted primary changes, replacement of estimated votes
+with measured TPP, and matched learning on outstanding votes. The separate
+`tpp_integration` diagnostics describe the joint category estimate. The
+simulation report records the forecast after the applicable method is used.
 
 ## Candidate corrections before TCP catches up
 

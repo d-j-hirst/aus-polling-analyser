@@ -2,6 +2,7 @@
 #include "Simulation.h"
 #include "PollingProject.h"
 #include "LiveFpIntegration.h"
+#include "LiveFpTpp.h"
 #include "SimulationRun.h"
 #include "LiveSimulationMath.h"
 
@@ -140,6 +141,7 @@ void LiveV2::Election::prepareTppIntegration() {
     prepareTppCategoryAccounts();
     prepareTppReportingOrder();
     prepareMatchedConversion();
+    prepareClassicPreferenceAccounts();
     auto prior = tppJointPrior();
     tppPriorExtension = std::make_shared<LiveTppComposition::Extension const>(
         LiveTppComposition::prepareExtension(prior, sim.getLiveBaselineReport()->liveBaselineTppMoments.mean.size()));
@@ -148,6 +150,75 @@ void LiveV2::Election::prepareTppIntegration() {
         LiveTppIntegration::prepareWithExternalFactors(std::move(prior), observations,
             sim.getLiveBaselineReport()->liveBaselineTppMoments.mean.size()
                 + tppCategoryCodes.size() + LiveTppComposition::ReportingOrderFactors));
+}
+
+// Prepare the part of each district's TPP that can be identified with real
+// ballots. Ordinary, early and declaration counts all retain their own FP
+// mix when assigning their measured transfers. The simulator supplies the
+// changing primary shares and turnout separately for every draw.
+void LiveV2::Election::prepareClassicPreferenceAccounts() {
+    if (optionalPreferential) return; // Exhausted ballots need a separate denominator.
+    auto accounts = std::make_shared<std::map<int,LiveFpTpp::District>>();
+    auto const& error = tppTransferCalibration->factors.mean;
+    for (size_t s = 0; s < seats.size(); ++s) {
+        auto const& seat = seats[s];
+        // Two Coalition candidates need distinct leakage accounts. A final
+        // official TPP already supersedes every estimate of missing transfers.
+        if (seat.splitCoalitionCandidates || inactiveContests.contains(seat.name) ||
+            (seat.finalResult && !seat.finalResult->tpp.empty())) continue;
+        int const projectIndex = tppProjectSeatIndices.at(s);
+        auto observation = getPreferenceCountObservation(projectIndex);
+        // A published three-way tally can identify transfers among all three
+        // recipients. That joint ballot model already estimates both the TPP
+        // and the exclusion from the same sample; keep its established input.
+        if (observation && !observation->candidateTotals.empty() && run.preferenceModel &&
+            run.preferenceModel->isActive() && run.preferenceModel->coversDistrict(projectIndex)) continue;
+        auto& account = (*accounts)[projectIndex];
+        // These are errors learned from matched FP/TPP, not disagreement
+        // with the seat prior. Positive error means the prediction favoured
+        // Labor too strongly. The draw already varies its initial source rates.
+        if (run.grnPartyIndex >= 0)
+            account.rateChange[run.grnPartyIndex] = -error.at(0)*LiveTppComposition::GreensTransferFlowSd*.01;
+        double indChange = -error.at(1)*LiveTppComposition::IndependentTransferFlowSd*.01;
+        account.rateChange[run.indPartyIndex] = indChange;
+        account.rateChange[EmergingIndIndex] = indChange;
+        auto partyGroup = [&](int party) {
+            if (party == seat.liveIndependentPartyIndex) return run.indPartyIndex;
+            if (natPartyIndex >= 0 && party == natPartyIndex) return 1;
+            return party >= 0 && party < project.parties().count() ? party : OthersIndex;
+        };
+        auto grouped = [&](auto const& values) {
+            PreferenceModel::Shares result;
+            for (auto const& [party,n] : values) result[partyGroup(party)] += n;
+            return result;
+        };
+        for (int b : seat.booths) {
+            auto const& booth = readBooths().at(b);
+            auto const bounds = booth.tppLowerBounds(natPartyIndex);
+            if (LiveFpTpp::total(bounds) <= 0) continue;
+            auto const& original = booth.tppCount(natPartyIndex);
+            auto const* basis = booth.retainedClassic ? &booth.retainedClassic->basis :
+                (booth.tcpBasis ? &*booth.tcpBasis : nullptr);
+            bool const exact = basis && basis->tcp == original && !booth.hasTppRevision()
+                && LivePartialCount::validBasis(*basis);
+            // Use the original matched primaries even after another pairing
+            // replaces this one. A recheck only guarantees the exported lower
+            // bounds, and its remaining ballots stay available for estimation.
+            auto const& fp = exact ? basis->fp : booth.tppPreferencePrimaries();
+            LivePartialCount::Transfers transfers;
+            if (exact) for (auto const& [source,received] : basis->transfers)
+                for (auto const& [side,n] : received) transfers[partyGroup(source)][partyGroup(side)] += n;
+            LiveFpTpp::addBooth(account,grouped(fp),grouped(booth.node.fpVotesProjected),
+                grouped(bounds),transfers);
+        }
+    }
+    classicPreferenceAccounts = std::move(accounts);
+}
+
+LiveFpTpp::District const* LiveV2::Election::classicPreferenceAccount(int district) const {
+    if (!classicPreferenceAccounts) return nullptr;
+    auto found = classicPreferenceAccounts->find(district);
+    return found == classicPreferenceAccounts->end() ? nullptr : &found->second;
 }
 
 double LiveV2::Election::heldOutPreferenceOffset(int excludedSeat) const {
@@ -1070,9 +1141,10 @@ double LiveV2::Election::tppScenarioCountChange(int seatIndex) const {
 double LiveV2::Election::preparedTppShare(int seatIndex) const {
     if (auto const& final = seats.at(seatIndex).finalResult; final && !final->tpp.empty())
         return double(100*final->tpp.at(0)/(final->tpp.at(0)+final->tpp.at(1)));
-    // Results' estimated swing follows the same prepared centre as the new
-    // simulator handoff. Keep the older composition centre only during setup,
-    // before the joint state exists; the raw-swing column is independent.
+    // The booth viewer's estimated swing describes the prepared category
+    // estimate. The simulation report also has access to each draw's accepted
+    // primaries and uses those to calculate TPP where a ballot account exists.
+    // During setup the category estimate still comes from projected counts.
     auto const& projected = turnout->mean(LiveData::CountKind::Tpp, seatIndex);
     double transformed = tppIntegration
         ? accountedTpp(seatIndex,tppIntegration->posterior.mean.at(tppProjectSeatIndices.at(seatIndex)))
