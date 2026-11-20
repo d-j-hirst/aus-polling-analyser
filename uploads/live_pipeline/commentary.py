@@ -16,8 +16,8 @@ from pathlib import Path
 from .storage import fingerprint
 from . import prompt_layout, commentary_format
 
-PROMPT_VERSION = 'live-changes-15'
-SEPARATE_TREND_VERSIONS = {'live-changes-14', PROMPT_VERSION}
+PROMPT_VERSION = 'live-changes-16'
+SEPARATE_TREND_VERSIONS = {'live-changes-14', 'live-changes-15', PROMPT_VERSION}
 PARAGRAPH_VERSION = 'live-changes-8'
 BOOTH_CONTEXT_VERSIONS = {'live-changes-11', 'live-changes-12', 'live-changes-13'} | SEPARATE_TREND_VERSIONS
 BULLET_VERSIONS = {'live-changes-9', 'live-changes-10'} | BOOTH_CONTEXT_VERSIONS
@@ -207,7 +207,7 @@ and qualify or omit an explanation if the evidence is inconclusive.'''
 BOOTH_STORIES = '''Give the reader a denominator: For a booth result, name the booth and report the
 candidate's observed percentage of the formal FP or TCP votes counted there so far.
 Give that booth total once alongside the share. For a TCP share identify the opponents.
-Add the comparison with expectations if it helps. Reserve individual ballot counts for
+{expectation_guidance} Reserve individual ballot counts for
 a correction or a change in a close lead where the number of ballots itself matters.
 Distinguish the cumulative count from the latest batch. FP and TCP describe overlapping ballots.
 Connect booth and district: If a primary share differs markedly from expectations while
@@ -240,6 +240,18 @@ as a short closing phrase, using "above the earlier estimate" or "below the earl
 estimate" with the unsigned gap in pp. For the zero-count reference use "the estimate
 before counting began". Omit a zero gap or an unavailable comparison.'''
 
+MATCHED_TCP_WORDING = '''Quote a booth TCP share only with its earlier estimate for the same
+booth and the same two candidates. Use one sentence per booth TCP result:
+"At [booth], [candidate] received **85.7%** of **91** two-candidate-preferred
+votes against [opponent], **4.5 pp** above the earlier estimate." Copy the
+observed share, total, magnitude and direction from that booth's TCPshare and
+TCPtotal rows. Use "below the earlier estimate" for a negative gap. If the gap
+rounds to zero, say "matching the earlier estimate". For the zero-count reference
+use "the estimate before counting began". If there is no TCPshare row for that
+pair, omit the booth split altogether. Its primary results may still be useful.
+A seat projection, a previous counted share or a different opponent cannot supply
+the comparison. A major correction or a change of pairing can still be news.'''
+
 def instructions(version):
     if version == PARAGRAPH_VERSION:
         return EDITORIAL + '\n\n' + PARAGRAPHS + '\n' + INLINE
@@ -253,8 +265,13 @@ def instructions(version):
     if version == 'live-changes-10':
         return stories + '\n\n' + INLINE
     if version in BOOTH_CONTEXT_VERSIONS:
-        sections = [stories, BOOTH_STORIES, INLINE_FORMAT if separate_trends else INLINE]
+        booth_guidance = BOOTH_STORIES.format(expectation_guidance=(
+            'Include the same-pair expectation whenever quoting a TCP result.' if version == PROMPT_VERSION
+            else 'Add the comparison with expectations if it helps.'))
+        sections = [stories, booth_guidance, INLINE_FORMAT if separate_trends else INLINE]
         if version == PROMPT_VERSION:
+            sections.append(MATCHED_TCP_WORDING)
+        elif version == 'live-changes-15':
             sections.append(COMPACT_TCP_WORDING)
         elif version != 'live-changes-11':
             article = 'our' if version == 'live-changes-12' else 'the'
@@ -285,21 +302,32 @@ POINT_SCHEMA = {'type': 'object', 'additionalProperties': False,
             'properties': {'seat': {'type': 'string'}, 'seat_changes': POINT_LIST, 'booth_evidence': POINT_LIST}}}}}
 
 
-def checked_points(items, seats, packet):
+def checked_points(items, seats, packet, *, require_tcp_comparison=False, booth_points=False):
     """A model supplies the wording of each point. Only the exporter may start a
     new line or list, so inline names and bold figures can be rendered safely."""
     if not isinstance(items, list):
         raise ValueError('Expected a list of commentary points')
+    accepted = []
     for point in items:
         if (not isinstance(point, str) or not point.strip() or point != point.strip()
                 or point.splitlines() != [point]
                 or re.match(r'^(?:[-*+•]|\d+[.)])\s|^#|^Key changes:|^In \{seat:[^}]+\}:', point, re.I)):
             raise ValueError('Commentary points must be single-line text without headings or list markers')
+        if require_tcp_comparison:
+            try:
+                commentary_format.check_booth_tcp_context(point, seats, packet, booth_points)
+            except commentary_format.MissingBoothTcpComparison:
+                # Booth details are optional. One unusable split need not cost
+                # the reader a verified district update or trigger another call.
+                if booth_points:
+                    continue
+                raise
         commentary_format.check_text(point, seats, packet)
-    return items
+        accepted.append(point)
+    return accepted
 
 
-def format_points(response, packet, *, include_booth_context=True):
+def format_points(response, packet, *, include_booth_context=True, require_tcp_comparison=True):
     """Validate the structured reply, then build the published summary and one
     block per district. The wire format uses the same inline entities as earlier
     reports. Its exact line breaks also let the website render semantic lists."""
@@ -307,12 +335,13 @@ def format_points(response, packet, *, include_booth_context=True):
         raise ValueError('Invalid structured commentary envelope')
     if include_booth_context:
         # Use the same measured shares and denominators the writer could see.
-        packet = dict(packet, display_figures=commentary_format.figures_with_booth_context(packet))
+        packet = dict(packet, display_figures=commentary_format.figures_with_booth_context(
+            packet, require_tcp_comparison=require_tcp_comparison))
     developments = response['developments']
     if (not isinstance(response['insufficient_evidence'], bool)
             or not isinstance(developments, list) or len(developments) > 12):
         raise ValueError('Invalid structured commentary developments')
-    headlines = checked_points(response['key_changes'], [], packet)
+    headlines = checked_points(response['key_changes'], [], packet, require_tcp_comparison=require_tcp_comparison)
     if not headlines:
         raise ValueError('A commentary summary is required')
     def block(heading, points):
@@ -329,8 +358,13 @@ def format_points(response, packet, *, include_booth_context=True):
         if not isinstance(seat, str) or seat not in packet['all_seats'] or seat in seen:
             raise ValueError('Unknown or repeated commentary seat')
         seen.add(seat)
-        points = checked_points(row['seat_changes'], [seat], packet) + checked_points(row['booth_evidence'], [seat], packet)
+        seat_points = checked_points(row['seat_changes'], [seat], packet, require_tcp_comparison=require_tcp_comparison)
+        booth_points = checked_points(row['booth_evidence'], [seat], packet,
+                                     require_tcp_comparison=require_tcp_comparison, booth_points=True)
+        points = seat_points + booth_points
         if not points:
+            if row['booth_evidence']:
+                continue  # All the proposed booth details lacked a usable comparison.
             raise ValueError('A seat commentary section needs at least one point')
         sections.append({'seats': [seat], 'text': block('In {seat:' + seat + '}:', points)})
     if len(summary) + sum(len(section['text']) for section in sections) > 9000:
@@ -431,7 +465,8 @@ def prompt_messages(packet, settings):
     return prompt_layout.input_messages(packet, instructions(version), settings,
                                         include_local_win_order=version == 'live-changes-10' or version in BOOTH_CONTEXT_VERSIONS,
                                         include_booth_context=version in BOOTH_CONTEXT_VERSIONS,
-                                        include_unchanged_local_counts=version in SEPARATE_TREND_VERSIONS)
+                                        include_unchanged_local_counts=version in SEPARATE_TREND_VERSIONS,
+                                        require_tcp_comparison=version == PROMPT_VERSION)
 
 
 def request_payload(packet, settings):
@@ -523,7 +558,8 @@ def generate(packet, settings, budget, deadline, client=None):
         cost = usage_cost(usage, settings)
         version = settings.get('prompt_version', PROMPT_VERSION)
         if version in BULLET_VERSIONS:
-            validated = format_points(response, packet, include_booth_context=version in BOOTH_CONTEXT_VERSIONS)
+            validated = format_points(response, packet, include_booth_context=version in BOOTH_CONTEXT_VERSIONS,
+                                      require_tcp_comparison=version == PROMPT_VERSION)
         else:
             validated = validate(response, packet)
         result = {'status': 'complete', 'text': validated, 'format': 'inline-figures-v1',

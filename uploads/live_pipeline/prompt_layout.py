@@ -50,8 +50,7 @@ over listing these counts; never round a projected number into a counted vote.
 
 BOOTH_COUNTS = '''For a booth quote the total formal votes counted so far in that ledger and
 the candidate's observed percentage. FPtotal and TCPtotal are denominators;
-netFP and netTCP are changes since the reference. An observed share can be
-available even when the reference has no projection for the same candidates.
+netFP and netTCP are changes since the reference. {tcp_guidance}
 District FP completion is the estimated percentage of the district count
 completed; expected turnout may change. Keep it distinct from a booth share.
 '''
@@ -185,7 +184,7 @@ def _district_roster(packet):
 
 
 def input_messages(packet, instructions, settings, *, include_local_win_order=False, include_booth_context=False,
-                   include_unchanged_local_counts=False):
+                   include_unchanged_local_counts=False, require_tcp_comparison=False):
     """Return stable-prefix messages with readable, checked display figures.
 
     The verbose numerical blocks are represented by rounded display figures.
@@ -246,7 +245,7 @@ def input_messages(packet, instructions, settings, *, include_local_win_order=Fa
             if 'endpoint_changed_votes' in activity else None}
     comparison['identity_changes'] = [r for r in packet['win_changes'] if r.get('identity_changed')]
     if include_booth_context:
-        figures = commentary_format.figures_with_booth_context(packet)
+        figures = commentary_format.figures_with_booth_context(packet, require_tcp_comparison=require_tcp_comparison)
     else:
         figures = packet.get('display_figures') or commentary_format.figures(packet)
     # Repeating long quantity labels and object keys on every number doubles
@@ -262,7 +261,10 @@ def input_messages(packet, instructions, settings, *, include_local_win_order=Fa
         if cache:
             block['prompt_cache_breakpoint'] = boundary.copy()
         return block
-    data_guide = FORMAT + (BOOTH_COUNTS if include_booth_context else RAW_COUNTS) + ENTITIES_AND_OVERVIEW
+    booth_guide = BOOTH_COUNTS.format(tcp_guidance=(
+        'Only TCPshare supplies a quotable booth TCP result and its same-pair difference.'
+        if require_tcp_comparison else 'An observed share can be\navailable even when the reference has no projection for the same candidates.'))
+    data_guide = FORMAT + (booth_guide if include_booth_context else RAW_COUNTS) + ENTITIES_AND_OVERVIEW
     return [
         {'role': 'developer', 'content': [content(instructions+'\n\n'+data_guide)]},
         {'role': 'user', 'content': [content('Election reference\n'+canonical(reference), True),

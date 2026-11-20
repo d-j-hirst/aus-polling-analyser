@@ -137,7 +137,7 @@ def observed_booth_result(event, ledger, candidates):
     return rows
 
 
-def figures_with_booth_context(packet):
+def figures_with_booth_context(packet, *, require_tcp_comparison=False):
     """Extend the checked display figures for the booth-focused prompt. Saved
     reports can lack district progress or a prior forecast for the booth. Only
     publish the context actually available for this comparison window."""
@@ -146,7 +146,9 @@ def figures_with_booth_context(packet):
     for event in packet['evidence']:
         if event['kind'] == 'booths':
             candidates = roster.get(event['seat'], {})
-            for ledger in ('fp', 'tcp'):
+            # Matched TCP totals, shares and gaps already come from figures().
+            # Earlier prompts also offered a quotable split without an expectation.
+            for ledger in (('fp',) if require_tcp_comparison else ('fp', 'tcp')):
                 rows.extend(observed_booth_result(event, ledger, candidates))
     for seat, proportion in packet.get('district_fp_completion', {}).items():
         rows.append({'seat': seat, 'quantity': 'estimated district FP count completion',
@@ -378,6 +380,69 @@ def equivalent_vote_count(match, following, allowed, typed):
         phrase += ' '+unit[1]
     phrase = phrase.lower().replace(' additional ', ' ')
     return phrase in typed or phrase in allowed
+
+
+class MissingBoothTcpComparison(ValueError):
+    """An optional booth point cannot give a checked same-pair comparison."""
+
+
+def matches_booth_tcp_quote(event, subject, opponent, share, sentence, estimate):
+    comparison = event.get('tcp_against_previous_forecast') or {}
+    seat, party = subject
+    if (not comparison.get('available') or seat != event['seat'] or opponent[0] != seat
+            or party == opponent[1] or sorted([party, opponent[1]]) != comparison['pair']):
+        return False
+    observed = comparison['shares'][party]
+    if share != decimal(observed['observed_percent'])+'%':
+        return False
+    gap = expectation_difference_fields(observed['difference_pp'])
+    if gap['direction'] == 'at expectations':
+        phrase = r'\bmatching the '+estimate
+    else:
+        amount, direction = re.escape(gap['magnitude'].split()[0]), gap['direction'].split()[0]
+        phrase = r'\*\*'+amount+r' (?:pp|percentage points?)\*\*\s+'+direction+' the '+estimate
+    return bool(re.search(phrase+r'\b', sentence, re.I))
+
+
+def check_booth_tcp_context(text, seats, packet, booth_points):
+    """A measured booth split needs a comparison for the same voters and
+    opponents. A coincidentally identical figure elsewhere in the district
+    cannot establish either the result or the size and direction of its gap."""
+    progress = packet.get('statewide', {}).get('before', {}).get('countProgress') or {}
+    pre_count = (packet.get('reference_forecast_id') == 'origin'
+                 or (progress.get('fp_votes') == 0 and progress.get('tcp_votes') == 0))
+    estimate = r'(?:earlier estimate|estimate before counting began)' if pre_count else 'earlier estimate'
+    ledger = r'(?:TCP|2CP|two[- ]candidate(?:[- ]preferred)?)'
+    for sentence in commentary_counts.SEPARATOR.split(text):
+        if not re.search(r'\b'+ledger+r'\b|\bagainst\s+'+commentary_counts.CANDIDATE, sentence, re.I):
+            continue
+        # Isolate a quoted share. A win chance with a signed change, or a
+        # booth revision expressed only in ballots, is a different claim.
+        shares = list(re.finditer(r'\*\*(\d+(?:\.\d+)?%)\*\*', sentence))
+        if not shares:
+            continue
+        events = []
+        for event in packet.get('evidence', []):
+            if event['kind'] != 'booths' or (seats and event['seat'] not in seats):
+                continue
+            name = (event.get('after') or event.get('before') or {}).get('name') or event['record'].rsplit('/', 1)[-1]
+            if name and re.search(r'(?<!\w)'+re.escape(name)+r'(?!\w)', sentence, re.I):
+                events.append(event)
+        if not events and not booth_points:
+            continue  # A district's projected TCP has its own figures.
+        # Primary results can legitimately be followed by a note that TCP is
+        # still outstanding. Only check percentages presented as a TCP split.
+        for share in shares:
+            before, after = sentence[:share.start()], sentence[share.end():]
+            follows = re.match(r'\s+(?:of|on)\s+(?:the\s+)?(?:\*\*[\d,]+(?:\*\*\s+|\s+))?'+ledger+r'\b', after, re.I)
+            if not follows and re.search(r'\b(?:FP|primary|primaries|first[- ]preferences?|win chance|pairing chance)\b',
+                                         before+' '+after, re.I):
+                continue
+            subjects = re.findall(commentary_counts.CANDIDATE, before)
+            opponents = re.findall(r'\bagainst\s+'+commentary_counts.CANDIDATE, after, re.I)
+            if not subjects or not opponents or not any(matches_booth_tcp_quote(
+                    event, subjects[-1], opponents[0], share[1], sentence, estimate) for event in events):
+                raise MissingBoothTcpComparison('Booth TCP share needs its same-pair difference from the earlier estimate')
 
 
 def check_text(text, seats, packet):

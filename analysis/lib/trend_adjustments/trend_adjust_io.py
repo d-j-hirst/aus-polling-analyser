@@ -38,16 +38,23 @@ def write_smoothed_series(
     force_monotone=False,
     bounds=(-math.inf, math.inf),
     prefix=None,
+    local_interpolation=False,
 ):
-    """Spline sparse triangular-day values onto every intervening day."""
+    """Write one calibrated parameter at daily intervals on the forecast horizon."""
 
     if len(values_by_day) < 4:
         raise ValueError(f'{label} requires at least four smoothing points')
     x_orig, y = zip(*sorted(values_by_day.items()))
     x = range(0, len(x_orig))
     total_days = x_orig[-1]
-    w = [100 if a == 0 else 1 for a in x]
-    spline = UnivariateSpline(x=x, y=y, w=w, s=100)
+    if local_interpolation:
+        # Join consecutive fitted values with straight lines on the calibration
+        # time scale. The fitted days (0, 1, 3, 6, ...) are one step apart on
+        # this scale. Each intervening day uses only the two fits around it.
+        spline = UnivariateSpline(x=x, y=y, k=1, s=0)
+    else:
+        w = [100 if a == 0 else 1 for a in x]
+        spline = UnivariateSpline(x=x, y=y, w=w, s=100)
     full_spline = spline(x)
     full_spline = {x_orig[a]: b for a, b in enumerate(full_spline)}
     if config.show_parameters:
@@ -147,10 +154,18 @@ def save_party_data(
             write_smoothed_series(
                 config, 'Upper Kurtosis', party_data.upper_kurtoses, f,
                 bounds=(3, math.inf), prefix=target_trend)
+            # Most groups smooth the poll weight across the whole horizon.
+            # One Nation's group has few comparisons at high support. In the
+            # 2026 Victorian calibration, fits near two weeks gave polls about
+            # 97% weight, but smoothing in fits extending nearly three years
+            # out reduced that to about 91%. Preserve the locally fitted mix,
+            # including any reversal: the historical errors and uncertainty
+            # above were measured using those same poll weights.
+            local_mix = party_group == 'Misc-p'
             write_smoothed_series(
                 config, 'Mix factor', party_data.final_mix_factors, f,
-                force_monotone=True, bounds=(0, 1),
-                prefix=target_trend)
+                force_monotone=not local_mix, bounds=(0, 1),
+                prefix=target_trend, local_interpolation=local_mix)
         if config.show_written_files:
             print(f'Wrote parameter data to: {filename}')
     return str(filename)

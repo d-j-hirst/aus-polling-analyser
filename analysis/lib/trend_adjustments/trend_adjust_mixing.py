@@ -623,7 +623,14 @@ def one_sided_error_parameters(errors, weights, lower_tail):
 
 def get_party_data(config, exclude, inputs, poll_trend, party_group,
                    target_trend):
-    """Calculate sparse adjustment parameters for one support anchor."""
+    """Learn the correction and uncertainty for a party group at one level of support.
+
+    At each forecast horizon, compare the chosen mix of polls and fundamentals
+    with historical results. The forecast subtracts the typical signed error
+    from its estimate and uses the two sides of the error distribution to
+    vary possible outcomes. Both are measured on the transformed vote-share
+    scale, on which a given error means fewer vote points for a small party.
+    """
 
     party_data = PartyData()
     for day in config.days:
@@ -640,19 +647,29 @@ def get_party_data(config, exclude, inputs, poll_trend, party_group,
             day_data.overall_poll_biases, 2)
         fundamentals_bias = smoothed_median(
             day_data.overall_fundamentals_biases, 2)
-        mixed_bias = weighted_median(
-            day_data.mixed_errors[0],
-            day_data.mixed_weights[0])
-        # Positive forecast-minus-result errors populate the lower outcome
-        # tail; negative errors populate the upper outcome tail.
+        errors = day_data.mixed_errors[0]
+        weights = day_data.mixed_weights[0]
+        if party_group == 'Misc-p':
+            # One Nation's group has few past elections at high support. With
+            # a median, one comparable election can set the whole correction
+            # even between two equally weighted assumed errors of opposite
+            # sign. Take the signed average so both assumptions contribute
+            # their weight. With equal weights, one observed overestimate of
+            # 6 and assumed errors of +6 and -6 give a correction of +2.
+            mixed_bias = average(errors, weights=weights)
+        else:
+            mixed_bias = weighted_median(errors, weights)
+
+        # Measure the original misses on each side of zero, including both
+        # assumed misses at their full size. A smaller central correction
+        # therefore still allows for large errors in either direction.
+        # An overestimate puts the actual result on the lower side.
         lower_rmse, lower_kurtosis = one_sided_error_parameters(
-            day_data.mixed_errors[0],
-            day_data.mixed_weights[0],
+            errors, weights,
             lower_tail=True,
         )
         upper_rmse, upper_kurtosis = one_sided_error_parameters(
-            day_data.mixed_errors[0],
-            day_data.mixed_weights[0],
+            errors, weights,
             lower_tail=False,
         )
         party_data.poll_biases[day] = poll_bias

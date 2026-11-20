@@ -1015,8 +1015,10 @@ class AutomationTests(unittest.TestCase):
                 self.assertFalse(runner.tick())
             # Advancing through already completed captures should not reopen
             # the GUI's growing ledger once for every earlier forecast.
+            # Windows can supply a short temp path while Trial uses its resolved name.
+            state_file = self.root/'state.json'
             state_reads = [call for call in ledger_reads.call_args_list
-                           if call.args[0] == self.root/'state.json']
+                           if state_file.samefile(call.args[0])]
             self.assertEqual(len(state_reads), 1)
             self.assertTrue((workspace/'inbox'/names[3]).exists())
             self.assertEqual(calls, [])
@@ -1293,14 +1295,23 @@ class AutomationTests(unittest.TestCase):
         self.assertEqual(booth['FPtotal'], [[None, '318 votes']])
         # Unnamed ballots count towards all 318; the net addition was only 238.
         self.assertEqual(booth['FPshare'], [['0', '27.0%'], ['2', '40.9%']])
-        self.assertEqual(booth['TCPtotal'], [[['0', '2'], '133 votes']])
-        self.assertEqual(booth['TCPobserved'], [['0', '62.4%'], ['2', '37.6%']])
+        self.assertNotIn('TCPobserved', booth)
+        self.assertNotIn('TCPtotal', booth)
         self.assertNotIn('TCPshare', booth)  # No expectation for the replacement pair.
+        old_payload = commentary.request_payload(packet, dict(enabled(), prompt_version='live-changes-15'))
+        old_booth = json.loads(old_payload['input'][1]['content'][-1]['text'].split('\n', 1)[1])['context_figures']['Light']['Light/Hall']
+        self.assertEqual(old_booth['TCPtotal'], [[['0', '2'], '133 votes']])
+        self.assertEqual(old_booth['TCPobserved'], [['0', '62.4%'], ['2', '37.6%']])
         self.assertEqual(context['']['estimated district FP count completion'], [[None, '1.3%']])
         prose = {'key_changes': ['Local votes arrived in {seat:Light}.'], 'insufficient_evidence': False,
                  'developments': [{'seat': 'Light', 'seat_changes': [], 'booth_evidence': [
                      'At Hall, {candidate:Light:0} polled **27.0%** of **318 first preferences**.',
                      '{candidate:Light:0} had **62.4%** of the **133 TCP votes** counted against {candidate:Light:2}.']}]}
+        commentary.format_points(prose, packet, require_tcp_comparison=False)
+        rendered = commentary.format_points(prose, packet)
+        self.assertNotIn('62.4%', rendered['developments'][0]['text'])
+        self.assertIn('27.0%', rendered['developments'][0]['text'])
+        prose['developments'][0]['booth_evidence'].pop()
         commentary.format_points(prose, packet)
         prose['developments'][0]['booth_evidence'][0] = 'At Hall, {candidate:Light:0} polled **72.3%**.'
         with self.assertRaisesRegex(ValueError, 'Unsupported numerical'):
@@ -1421,6 +1432,25 @@ class AutomationTests(unittest.TestCase):
                           'of **133** two-candidate-preferred votes against '
                           '{candidate:Light:1}, **3.3 pp** above the earlier estimate.')
         commentary_format.check_text(reader_wording, ['Light'], packet)
+        def check_context(text):
+            commentary_format.check_booth_tcp_context(text, ['Light'], packet, booth_points=True)
+        check_context(reader_wording)
+        check_context(reader_wording.replace('earlier estimate', 'estimate before counting began'))
+        later = dict(packet, reference_forecast_id='f00000008', statewide={'before': {'countProgress': {'fp_votes': 100}}})
+        with self.assertRaisesRegex(ValueError, 'same-pair'):
+            commentary_format.check_booth_tcp_context(reader_wording.replace('earlier estimate',
+                'estimate before counting began'), ['Light'], later, booth_points=True)
+        for bad in (reader_wording.split(', **3.3 pp**')[0], reader_wording.replace('above', 'below'),
+                    reader_wording.replace('3.3 pp', '4.3 pp'), reader_wording.replace('Light:1', 'Light:2')):
+            with self.subTest(bad=bad), self.assertRaisesRegex(ValueError, 'same-pair'):
+                check_context(bad)
+        other = deepcopy(packet)
+        counted = next(e for e in other['evidence'] if e['kind'] == 'booths')['tcp_against_previous_forecast']
+        counted['shares']['0']['difference_pp'] = .01
+        matching = reader_wording.replace('**3.3 pp** above', 'matching')
+        commentary_format.check_booth_tcp_context(matching, ['Light'], other, booth_points=True)
+        with self.assertRaisesRegex(ValueError, 'same-pair'):
+            check_context(matching)
         with self.assertRaisesRegex(ValueError, 'Unsupported numerical'):
             commentary_format.check_text(reader_wording.replace('3.3 pp', '8.3 pp'), ['Light'], packet)
         commentary.validate({'summary': 'More votes were counted in {seat:Light}.', 'insufficient_evidence': False,

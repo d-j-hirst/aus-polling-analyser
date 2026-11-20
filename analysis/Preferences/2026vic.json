@@ -192,6 +192,7 @@
     "Box Hill": {"liberal_advice": "labor_first"},
     "Brighton": {"liberal_advice": "labor_first"},
     "Broadmeadows": {"liberal_advice": "labor_first"},
+    "Brunswick": {"liberal_advice": "open"},
     "Bulleen": {"liberal_advice": "labor_first"},
     "Bundoora": {"liberal_advice": "labor_first"},
     "Carrum": {"liberal_advice": "labor_first"},
@@ -205,6 +206,7 @@
     "Essendon": {"liberal_advice": "labor_first"},
     "Eureka": {"liberal_advice": "labor_first"},
     "Evelyn": {"liberal_advice": "labor_first"},
+    "Footscray": {"liberal_advice": "open"},
     "Frankston": {"liberal_advice": "labor_first"},
     "Geelong": {"liberal_advice": "labor_first"},
     "Glen Waverley": {"liberal_advice": "labor_first"},
@@ -292,7 +294,16 @@
         "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=019a1686-89fb-4714-8607-5a7f1948fd1d%2Fliberal_combined_nmr+preston_1.pdf&settingsItemId=%7BD753655F-845A-4BD0-B3DA-B772208E0B6B%7D"
       ],
       "glen_waverley": "Cards 542 and 694 put One Nation fourth, Labor fifth and the Greens sixth.",
-      "glen_waverley_source": "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=478ac3c3-5093-462c-b7f8-b80a5a149fb8%2Fliberal_combined_nemr%20glen%20waverley_1.pdf&settingsItemId=%7B001D8F7A-28BA-45B7-897A-F0A24F37AEC3%7D"
+      "glen_waverley_source": "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=478ac3c3-5093-462c-b7f8-b80a5a149fb8%2Fliberal_combined_nemr%20glen%20waverley_1.pdf&settingsItemId=%7B001D8F7A-28BA-45B7-897A-F0A24F37AEC3%7D",
+      "brunswick": "VEC card 828 recommends a Liberal first preference and leaves the remaining Legislative Assembly rankings open.",
+      "brunswick_source": "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=d6c9d374-9928-46d9-a9f9-987d8dd7c9ef%2Fliberal_combined_nmr+brunswick_1.pdf&settingsItemId=%7BDD5CA75F-3AE2-48B7-93B9-65C6A7A40604%7D",
+      "footscray": "VEC card 829 recommends a Liberal first preference and leaves the remaining Legislative Assembly rankings open.",
+      "footscray_source": "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=c17439b1-30ad-49c0-a49e-29a0d5350850%2Fliberal_combined_wmr+footscray_2.pdf&settingsItemId=%7BDD5CA75F-3AE2-48B7-93B9-65C6A7A40604%7D"
+    },
+    "clarinda_card_evidence": {
+      "basis": "Labor card 86 ranks John Paganis (Liberal) fifth and Caroline White (independent) sixth. Liberal card 670 ranks White second. These are Legislative Assembly recommendations.",
+      "labor_source": "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=4f79fd04-c087-41a6-8b55-39ca52f4ab1a%2Falp_combined_sem+clarinda_1.pdf&settingsItemId=%7BDD5CA75F-3AE2-48B7-93B9-65C6A7A40604%7D",
+      "liberal_source": "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=5895444a-0bee-4175-8092-05c263b998f9%2Fliberal_combined_semr+clarinda_1.pdf&settingsItemId=%7BDD5CA75F-3AE2-48B7-93B9-65C6A7A40604%7D"
     },
     "prahran_open_labor_ticket": {
       "source": "https://vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=0171098b-6571-4f45-80f5-c241ac1d0d97%2Falp_combined_sm_caulfield_prahran_1.pdf&settingsItemId=%7BD753655F-845A-4BD0-B3DA-B772208E0B6B%7D",

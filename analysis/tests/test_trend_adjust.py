@@ -12,6 +12,16 @@ from tests import ANALYSIS_DIRECTORY
 from lib.shared.election_code import ElectionCode
 
 
+def _weighted_average(values, weights):
+    weighted_total = sum(value * weight for value, weight in zip(values, weights))
+    return weighted_total / sum(weights)
+
+
+def _weighted_mse(values, targets, sample_weight):
+    squared_errors = [(value - target) ** 2 for value, target in zip(values, targets)]
+    return _weighted_average(squared_errors, sample_weight)
+
+
 def _load_trend_adjust_without_optional_dependencies():
     """Load calculation helpers without requiring the full Stan environment."""
 
@@ -20,8 +30,9 @@ def _load_trend_adjust_without_optional_dependencies():
     fake_numpy.transpose = lambda columns: [
         list(row) for row in zip(*columns)
     ]
-    for name in ("dot", "average", "amax", "amin"):
+    for name in ("dot", "amax", "amin"):
         setattr(fake_numpy, name, lambda *args, **kwargs: None)
+    fake_numpy.average = _weighted_average
     fake_numpy.median = statistics.median
 
     fake_scipy = types.ModuleType("scipy")
@@ -31,7 +42,7 @@ def _load_trend_adjust_without_optional_dependencies():
     fake_sklearn_linear = types.ModuleType("sklearn.linear_model")
     fake_sklearn_linear.ElasticNetCV = object
     fake_sklearn_metrics = types.ModuleType("sklearn.metrics")
-    fake_sklearn_metrics.mean_squared_error = lambda *args, **kwargs: None
+    fake_sklearn_metrics.mean_squared_error = _weighted_mse
     fake_kurtosis = types.ModuleType("lib.shared.sample_kurtosis")
     fake_kurtosis.one_tail_kurtosis = lambda *args, **kwargs: None
     replacements = {
@@ -76,6 +87,43 @@ class TrendAdjustmentTests(unittest.TestCase):
         )
 
         self.assertEqual(result, ["ALP FP", "xOTH FP"])
+
+    def test_misc_p_poll_weight_uses_only_neighbouring_fits(self):
+        try:
+            from scipy.interpolate import UnivariateSpline
+        except ImportError:
+            self.skipTest("Serializing fitted curves requires SciPy")
+
+        config = types.SimpleNamespace(show_parameters=False, show_written_files=False)
+        fitted_weights = {0: 1.0, 1: 0.8, 3: 0.6, 6: 0.9, 10: 0.2, 15: 0.1}
+        party_data = self.mixing.PartyData()
+        for series in vars(party_data).values():
+            series.update(fitted_weights)
+        by_level = {level: party_data for level in self.io.TREND_ADJUSTMENT_LEVELS}
+
+        with tempfile.TemporaryDirectory() as folder, mock.patch.object(
+            self.io, "UnivariateSpline", UnivariateSpline
+        ):
+            def rows_for(group):
+                path = self.io.save_party_data(
+                    config, by_level, ElectionCode(2026, "vic"), group, folder
+                )
+                return Path(path).read_text().splitlines()[:8]
+
+            local = rows_for("Misc-p")
+            other_group = rows_for("Misc-c")
+            self.assertEqual(local[:7], other_group[:7])
+            self.assertNotEqual(local[7], other_group[7])
+            daily = [float(value) for value in local[7].split(",")[1:]]
+            for day, weight in fitted_weights.items():
+                self.assertEqual(daily[day], weight)
+            fraction = self.io.triangular_root(4) - self.io.triangular_root(3)
+            self.assertAlmostEqual(daily[4], 0.6 + 0.3 * fraction, places=4)
+
+            party_data.final_mix_factors[15] = 0.99
+            revised = [float(value) for value in rows_for("Misc-p")[7].split(",")[1:]]
+            self.assertEqual(daily[:11], revised[:11])
+            self.assertEqual(revised[15], 0.99)
 
     def test_unnamed_others_contributes_one_training_observation(self):
         historical = ElectionCode(2023, "nsw")
@@ -375,30 +423,7 @@ class TrendAdjustmentTests(unittest.TestCase):
             (-4.0, 6.0, 1.0, 1.5),
         ]
 
-        def weighted_average(values, weights):
-            return sum(
-                value * weight for value, weight in zip(values, weights)
-            ) / sum(weights)
-
-        def weighted_mse(values, targets, sample_weight):
-            return weighted_average(
-                [
-                    (value - target) ** 2
-                    for value, target in zip(values, targets)
-                ],
-                sample_weight,
-            )
-
-        with mock.patch.object(
-            self.mixing, "average", side_effect=weighted_average
-        ), mock.patch.object(
-            self.mixing,
-            "mean_squared_error",
-            side_effect=weighted_mse,
-        ):
-            _, day_data = self.mixing.evaluate_prepared_mix(
-                prepared, "TPP", 0, 0.25
-            )
+        _, day_data = self.mixing.evaluate_prepared_mix(prepared, "TPP", 0, 0.25)
 
         self.assertEqual(
             day_data.mixed_errors[0][:2],
@@ -408,6 +433,34 @@ class TrendAdjustmentTests(unittest.TestCase):
         self.assertEqual(day_data.mixed_weights[0][:2], [2.5, 1.5])
         self.assertEqual(day_data.overall_poll_biases, [1.25])
         self.assertEqual(day_data.overall_fundamentals_biases, [-0.75])
+
+    def test_one_nation_group_averages_signed_errors_and_keeps_both_tails(self):
+        config = types.SimpleNamespace(
+            days=[0], diagnostics_enabled_for=lambda group: False)
+        for sign in (-1, 1):
+            with self.subTest(sign=sign):
+                prepared = self.mixing.PreparedDayData()
+                prepared.overall_poll_biases = [1.25]
+                prepared.overall_fundamentals_biases = [-0.75]
+                prepared.observations = [(sign * 8, sign * 8, 0, 75)]
+                _, day = self.mixing.evaluate_prepared_mix(prepared, "Misc-p", 0, 0.75)
+                day.final_mix_factor = 0.75
+                with mock.patch.object(self.mixing, "get_day_data", return_value=day):
+                    result = self.mixing.get_party_data(
+                        config, None, None, None, "Misc-p", -40)
+                    control = self.mixing.get_party_data(
+                        config, None, None, None, "Misc-c", -40)
+
+                # One historical miss of weight 75, and assumed misses of +6
+                # and -6 of weight 150 each. Both groups receive the same evidence.
+                self.assertAlmostEqual(result.mixed_biases[0], sign * 1.6)
+                self.assertEqual(control.mixed_biases[0], sign * 6)
+                observed_side = ((75 * 8**2 + 150 * 6**2) / 225) ** 0.5
+                self.assertAlmostEqual(
+                    result.lower_rmses[0], observed_side if sign > 0 else 6)
+                self.assertAlmostEqual(
+                    result.upper_rmses[0], observed_side if sign < 0 else 6)
+                self.assertEqual(result.final_mix_factors[0], 0.75)
 
     def test_day_search_prepares_historical_evidence_once(self):
         prepared = self.mixing.PreparedDayData()

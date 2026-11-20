@@ -482,6 +482,24 @@ support anchors from `-100` to `0`. The C++ model selects the surrounding
 anchors from the median poll trend and linearly interpolates their parameters.
 Legacy eight-row files remain supported as unconditioned adjustments.
 
+After combining polls with a forecast based on previous election results,
+the model subtracts the typical error that remained in comparable elections.
+For One Nation's calibration group (`Misc-p` in `Data/party-groups.csv`),
+it takes a weighted average of the signed errors. The two assumed misses of
+equal size in opposite directions pull that average towards zero when there
+is little comparable history. Both misses still count at their full size
+when estimating how far the result could fall above or below the forecast.
+The other groups use the weighted median for the central correction.
+
+For One Nation's group the model also keeps the fitted polling weight at
+each distance from election day where it measures historical accuracy.
+For example, the weight four days out falls between the weights fitted
+three and six days out. The model joins the two on the same time scale
+used to space the fits, which are closer together near election day.
+This keeps the polling weight close to election day independent of fits
+made months or years out, while allowing a rise or fall supported by the
+neighbouring fits.
+
 ## Election Results And Seat Analysis
 
 Historical lower-house results pass through three separate stages:
