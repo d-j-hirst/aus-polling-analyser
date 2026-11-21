@@ -484,7 +484,8 @@
       "scope": "election",
       "core": true,
       "paths": [
-        "seats/*.txt"
+        "seats/*.txt",
+        "seats/*-greens-fp-priors.json"
       ],
       "description": "Current seat configuration consumed directly by the C++ forecast pipeline."
     },

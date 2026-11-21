@@ -26,13 +26,16 @@ def run(folder, destinations, settings_path=None, once=False, prepare_only=False
         has_forecasts = any((folder/'packages').glob('*/ready-numerical.json'))
         status = 'watching for new forecasts' if has_forecasts else 'waiting for first forecast'
         model = settings['model'] if settings and settings.get('enabled') else 'off'
-        print(f"Watching {config['run_id']} ({target}, commentary {model}), {status}.", flush=True)
+        writers = f'commentary {model}'
+        if worker.compare_writers:
+            writers += ', rule-based comparison on'
+        print(f"Watching {config['run_id']} ({target}, {writers}), {status}.", flush=True)
         try:
             while True:
                 try:
                     worker.tick()
                 except Exception as error:
-                    atomic(folder/'reporting-status.json', {'updated_at': utc(), 'error': str(error)})
+                    worker.publish_status({'error': str(error)})
                     if once:
                         raise
                 for name, server in servers.items():

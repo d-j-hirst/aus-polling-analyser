@@ -211,8 +211,8 @@ int main() {
         std::string firstCode, lateCode;
     };
     for (auto const& capture : std::vector<LateStateCapture>{
-        {"2026vic", "State2026mediafilelitepplh_20261128_180000.zip",
-            "State2026mediafilelitepplh_20270115_120000.xml",
+        {"2026vic", "State2026mediafilelitepplhv2_20261128_180000.zip",
+            "State2026mediafilelitepplhv2_20270115_120000.xml",
             "State2022mediafilelitepplh_20270115_120001.xml",
             "State2026mediafilelitepplh_20270115_120000.zip",
             "20261128180000", "20270115120000"},

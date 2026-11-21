@@ -4,15 +4,16 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-11-20T00:21:41Z",
+  "updated_at_utc": "2026-11-21T13:35:18Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
       "file_patterns": [
-        "*.txt"
+        "*.txt",
+        "*-greens-fp-priors.json"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 58,
+      "semantic_revision": 60,
       "files": {
         "2013fed.txt": {
           "sha256": "d6d75e40d7ece21df752d6edb476d99a7210847b6c1ebbb9be905b6e832cb0cd",
@@ -69,15 +70,20 @@
           "size_bytes": 13511,
           "recorded_mtime_utc": "2026-10-28T06:04:13.910853Z"
         },
+        "2026sa-greens-fp-priors.json": {
+          "sha256": "7ba5ee6b16f556d7c283303e1fae4d2017115b07ad27bbe8f4e3626d06a82c13",
+          "size_bytes": 355,
+          "recorded_mtime_utc": "2026-11-20T12:03:58.848951Z"
+        },
         "2026sa.txt": {
           "sha256": "18df906548db0e0181a663ec50d918a98dd2ac855acebb0509561f58b1652f38",
           "size_bytes": 13405,
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "f36be44335715e1f7c24b93f9e5338e898b738be7956d7559270071916952212",
-          "size_bytes": 27439,
-          "recorded_mtime_utc": "2026-11-20T00:19:42.262830Z"
+          "sha256": "155aaf08bf239cb935fb2324908deae71086d5b47fe9e78487a14e98a3db04b6",
+          "size_bytes": 27440,
+          "recorded_mtime_utc": "2026-11-21T09:35:07.949069Z"
         },
         "2027nsw.txt": {
           "sha256": "9066c05124dc34153f7b56e0d6c2a7238d5a40e3e1edb7965d74778378c4120a",
@@ -1378,9 +1384,53 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261120T120632Z-coverage_extension-forecast-seats-b8369d28",
+          "recorded_at_utc": "2026-11-20T12:06:32Z",
+          "change_type": "coverage_extension",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 59,
+          "provenance_revision": 59,
+          "summary": "Use pre-election 2018 district results for the four Greens candidates without a 2022 local result.",
+          "files": [
+            "2026sa-greens-fp-priors.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026sa"
+            ],
+            "parties": [
+              "GRN"
+            ],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261121T133518Z-other-forecast-seats-51d1f1c2",
+          "recorded_at_utc": "2026-11-21T13:35:18Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 60,
+          "provenance_revision": 60,
+          "summary": "update seat odds",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 58
+      "provenance_revision": 60
     }
   }
 }

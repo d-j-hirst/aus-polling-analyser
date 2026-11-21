@@ -25,8 +25,13 @@ struct TcpBasis {
     Transfers transfers;
     // This status belongs to the matched pair, not a later FP-only recheck.
     bool recheckedReconciledPair = false;
+    // During an SA reset, recovery may explicitly identify an ordinary booth's
+    // unfinished count as the last usable result for the old pair. This permits
+    // bounding that booth's votes even outside the preference-learning limit.
+    bool partialHandover = false;
 };
 inline constexpr double ComparableTotalFraction = .02;
+inline constexpr double OrdinaryTcpComparableFraction = .95;
 // An observed flow supplies this many non-finalist votes' worth of evidence
 // before it receives half the weight. This limits dependence on a tiny batch.
 inline constexpr double PriorPreferenceVotes = 500;
@@ -239,7 +244,7 @@ inline std::optional<RevisedTcp> reviseTransfers(Counts const& fp, TcpBasis cons
     return RevisedTcp{total(fp),std::clamp(primary+gain,lower,upper),lower,upper};
 }
 
-inline std::optional<RevisedTcp> reviseTcp(Counts const& fp, Counts const& tcp,
+inline std::optional<RevisedTcp> reviseMatchedTcp(Counts const& fp, Counts const& tcp,
     TcpBasis const& basis, Flows const& flows, double offset, int first, int second,
     double variation = 0) {
     if (!validBasis(basis) || tcp != basis.tcp || !tcp.contains(first) || !tcp.contains(second)) return {};
@@ -247,18 +252,35 @@ inline std::optional<RevisedTcp> reviseTcp(Counts const& fp, Counts const& tcp,
     return reviseTransfers(fp,basis,flows,offset,first,second,gain,gain,gain,variation);
 }
 
-// After realignment a small FP recheck may disturb the old Labor–Coalition
+// An ordinary booth can supply a useful count even when too many preferences
+// are outstanding to measure a transferable flow. The two published tallies
+// must fit inside the original FP account: even if every outstanding ballot
+// belonged to one finalist, that finalist must still cover their own primaries.
+inline bool usablePartialTcp(Counts const& fp, Counts const& tcp) {
+    double const primary = total(fp), counted = total(tcp);
+    double const pending = primary-counted;
+    if (tcp.size() != 2 || counted <= 0 || pending <= 0 || counted < OrdinaryTcpComparableFraction*primary) return false;
+    for (auto const& [candidate,votes] : tcp) {
+        if (votes < 0 || !fp.contains(candidate) || votes + pending < fp.at(candidate)) return false;
+    }
+    return true;
+}
+
+// After a withdrawal a small FP recheck may disturb the old two-candidate
 // count. Keep its observed allocation for unaffected ballots. If TCP covered
 // fewer ballots than the old FP, allow every missing ballot to go to either
 // finalist, subject to their known primaries. Start at the reported TCP share
 // within those bounds, then account for candidate additions and removals.
-// The caller has verified the old FP/TCP match and the size of the recheck.
+// Recovery checks the size of any primary removals against the original batch.
 inline std::optional<RevisedTcp> reviseRetainedTcp(Counts const& fp, TcpBasis const& basis,
     Flows const& flows, double offset, int first, int second, double variation = 0) {
     double const originalFp = total(basis.fp), originalTcp = total(basis.tcp);
     double const gap = originalFp-originalTcp;
-    if (gap == 0) return reviseTcp(fp,basis.tcp,basis,flows,offset,first,second,variation);
-    if (gap < 0 || !measureTransfer(basis.fp,basis.tcp,first,second)) return {};
+    if (gap == 0) return reviseMatchedTcp(fp,basis.tcp,basis,flows,offset,first,second,variation);
+    if (first == second || !basis.tcp.contains(first) || !basis.tcp.contains(second) || gap < 0) return {};
+    if (basis.partialHandover) {
+        if (!usablePartialTcp(basis.fp,basis.tcp)) return {};
+    } else if (!measureTransfer(basis.fp,basis.tcp,first,second)) return {};
     double const primary = value(basis.fp,first);
     double const pool = originalFp-primary-value(basis.fp,second);
     double const counted = value(basis.tcp,first);
@@ -267,6 +289,17 @@ inline std::optional<RevisedTcp> reviseRetainedTcp(Counts const& fp, TcpBasis co
     if (lower > upper) return {};
     double const gain = std::clamp(counted*originalFp/originalTcp-primary,lower,upper);
     return reviseTransfers(fp,basis,flows,offset,first,second,gain,lower,upper,variation);
+}
+
+// Most active TCP revisions have an exact original batch. Only an explicitly
+// retained unfinished count uses the wider bounds for missing preferences.
+// In either case a newly reported TCP supersedes the earlier allocation.
+inline std::optional<RevisedTcp> reviseTcp(Counts const& fp, Counts const& tcp,
+    TcpBasis const& basis, Flows const& flows, double offset, int first, int second,
+    double variation = 0) {
+    if (basis.partialHandover && tcp == basis.tcp)
+        return reviseRetainedTcp(fp,basis,flows,offset,first,second,variation);
+    return reviseMatchedTcp(fp,tcp,basis,flows,offset,first,second,variation);
 }
 
 inline std::map<int,double> revisedLowerBounds(Counts const& fp, Counts const& tcp, TcpBasis const& basis) {

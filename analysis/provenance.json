@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-11-20T02:37:46Z",
+  "updated_at_utc": "2026-11-20T12:09:17Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -5576,9 +5576,9 @@
           "recorded_mtime_utc": "2026-10-30T09:34:34.301396Z"
         },
         "pipeline_registry.json": {
-          "sha256": "448b3d3530f422bf9a20302462ce193cf1bd4e96665d713a72d67fe5cb83ee39",
-          "size_bytes": 48335,
-          "recorded_mtime_utc": "2026-11-10T13:29:20.869872Z"
+          "sha256": "ed3688041e42d84b46526528fc59f75a1b710728e7f26dd5e44b2d4241c0a9e1",
+          "size_bytes": 48376,
+          "recorded_mtime_utc": "2026-11-20T12:06:15.286267Z"
         },
         "scripts/__init__.py": {
           "sha256": "d30f97119ad0e36b9f1fd52fcae6097b1b207747d0c17933368fd996ce1f7b8f",
@@ -7765,6 +7765,25 @@
           "summary": "Include existing seat-volatility outputs in validated archive restores.",
           "files": [
             "lib/orchestration/generated_data_archive.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261120T120917Z-schema-pipeline-orchestration-tools-ffb1070f",
+          "recorded_at_utc": "2026-11-20T12:09:17Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "List optional district Greens FP prior files with the other forecast seat inputs for inventory and provenance checks.",
+          "files": [
+            "pipeline_registry.json"
           ],
           "scope": {
             "all": true,

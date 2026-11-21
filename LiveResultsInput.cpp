@@ -82,7 +82,8 @@ bool isSnapshotResultsXml(std::string_view memberName, std::string_view regionCo
 		[](unsigned char c) { return char(std::tolower(c)); });
 	if (name.size() < 4 || name.substr(name.size() - 4) != ".xml") return false;
 	if (regionCode == "fed") return name.find("aec-mediafeed-results-detailed") != std::string::npos;
-	if (regionCode == "vic") return name.find("mediafilelitepplh_") != std::string::npos;
+	if (regionCode == "vic") return name.find("mediafilelitepplh_") != std::string::npos ||
+		name.find("mediafilelitepplhv2_") != std::string::npos;
 	// ECQ bundles the state election and any concurrent local elections in one
 	// publicResults.xml. Election identity is checked after reading that document.
 	if (regionCode == "qld") {
@@ -148,10 +149,17 @@ std::optional<std::string> stateFeedTimestamp(
 		return fixedWidthNativeDigits(path.filename().native(), 0, 14);
 	}
 	if (regionCode == "vic") {
-		auto const marker = std::filesystem::path("mediafilelitepplh_").native();
-		if (!filenameContains(path, "mediafilelitepplh_")) return std::nullopt;
-		auto const filename = path.filename().native();
+		auto name = pathToUtf8(path.filename());
+		std::transform(name.begin(), name.end(), name.begin(),
+			[](unsigned char c) { return char(std::tolower(c)); });
+		// VEC distributes separate example elections alongside the genuine
+		// feed. A mixed download directory must not select a TestState file.
+		if (name.starts_with("teststate")) return std::nullopt;
+		auto const marker = std::filesystem::path(name.find("mediafilelitepplhv2_") != std::string::npos ?
+			"mediafilelitepplhv2_" : "mediafilelitepplh_").native();
+		auto const filename = pathFromUtf8(name).native();
 		auto const markerOffset = filename.find(marker);
+		if (markerOffset == decltype(filename)::npos) return std::nullopt;
 		auto const date = fixedWidthNativeDigits(
 			filename, markerOffset + marker.size(), 8);
 		auto const time = fixedWidthNativeDigits(

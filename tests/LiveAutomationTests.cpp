@@ -93,17 +93,31 @@ void checkNamedConfiguration(Path const& root) {
     std::string const id = "2026sa-replay";
     assert(LiveAutomation::suggestRunId(root, "2026sa", "replay") == id);
     auto folder = root/"live_runs"/id;
+    std::filesystem::create_directories(folder);
+    assert(!LiveAutomation::newRunConflict(folder));
+    auto const project = folder/"my-replay.pol2";
+    auto const script = folder/"Next.ps1";
+    std::ofstream(project) << "prepared project";
+    std::ofstream(script) << "feeder script";
+    std::ofstream(folder/"captures.txt") << "20260321190000";
+    std::filesystem::create_directories(folder/"inbox");
+    std::ofstream(folder/"inbox"/"delivery.xml") << "operator delivery";
+    auto const projectHash = fingerprint(project);
+    auto const scriptHash = fingerprint(script);
+    assert(LiveAutomation::suggestRunId(root, "2026sa", "replay") == id);
     auto settings = config(std::filesystem::path("live_runs")/id/"inbox", id);
     settings["commentary"] = {{"enabled",true},{"model","fixture"},{"spending_limit_usd",1}};
     LiveAutomation::Session saved(root, settings);
+    LiveAutomation::Session competing(root, settings);
     saved.saveConfiguration(true);
+    assert(fingerprint(project) == projectHash && fingerprint(script) == scriptHash);
     assert(LiveAutomation::readJson(folder/"run.json") == settings);
     assert(std::filesystem::is_directory(folder/"inbox"));
     assert(saved.status().at("state") == "paused");
     assert(!std::filesystem::exists(folder/"packages"));
     assert(LiveAutomation::suggestRunId(root, "2026sa", "replay") == id+"-2");
     bool rejected = false;
-    try { saved.saveConfiguration(true); }
+    try { competing.saveConfiguration(true); }
     catch (std::runtime_error const&) { rejected = true; }
     assert(rejected && LiveAutomation::readJson(folder/"run.json") == settings);
 
@@ -127,6 +141,36 @@ void checkNamedConfiguration(Path const& root) {
     assert(edited.at("input_revision") == "inputs");
     assert(edited.at("run_id") == id);
     assert(LiveAutomation::readJson(folder/"state.json").at("state") == "paused");
+}
+void checkPartialRunFolders(Path const& root) {
+    auto const id = "2026sa-partial";
+    auto const folder = root/"live_runs"/id;
+    auto const source = root/"inbox";
+    auto settings = config(source, id);
+    std::filesystem::create_directories(folder/"packages"/"origin");
+    assert(!LiveAutomation::newRunConflict(folder));
+    LiveAutomation::Session session(root, settings);
+    // A missing external inbox can be fixed without leaving a claimed run ID.
+    bool rejected = false;
+    try { session.saveConfiguration(true); }
+    catch (std::runtime_error const&) { rejected = true; }
+    assert(rejected && !LiveAutomation::newRunConflict(folder));
+    std::filesystem::create_directories(source);
+    for (auto relative : {"state.json", "run.json.tmp", "forecast.lock", "publisher.lock",
+        "commentary-budget.sqlite", "history/accepted-counts/changes.json", "feeds/abc/capture.xml",
+        "packages/origin/numerical.json", "receipts/local.json", "snapshot_20260321__run_20261120.analysis.json.gz"}) {
+        auto path = folder/relative;
+        std::filesystem::create_directories(path.parent_path());
+        std::ofstream(path) << "previous run";
+        assert(LiveAutomation::newRunConflict(folder) == path);
+        rejected = false;
+        try { session.saveConfiguration(true); }
+        catch (std::runtime_error const&) { rejected = true; }
+        assert(rejected && std::filesystem::file_size(path) == 12 && !std::filesystem::exists(folder/"run.json"));
+        std::filesystem::remove(path);
+    }
+    session.saveConfiguration(true);
+    assert(LiveAutomation::readJson(folder/"run.json").at("run_id") == id);
 }
 void checkFinnissPreferenceCutoff(Path const& root) {
     auto source = root/"inbox";
@@ -374,6 +418,7 @@ int main() {
     try {
         checkStateReplacement(root);
         checkNamedConfiguration(root);
+        checkPartialRunFolders(root/"partial");
         checkFinnissPreferenceCutoff(root/"finniss");
         check(root);
         checkCrashAndProcessingErrors(root/"crash");

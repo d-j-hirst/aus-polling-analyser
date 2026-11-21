@@ -86,6 +86,7 @@ CI_TEST_MODULES = (
     'test_turnout_transfer',
     'test_turnout_routine_remainders',
     'test_prepare_qld_live',
+    'test_vec_2026_feed',
     'test_prepare_wa_live',
     'test_prepare_wa_baseline',
     'test_category_tpp_relationships',

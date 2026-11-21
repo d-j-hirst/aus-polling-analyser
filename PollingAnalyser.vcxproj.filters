@@ -561,6 +561,9 @@
     <ClInclude Include="MinorPartyFpMath.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
+    <ClInclude Include="GreensFpPrior.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
     <ClInclude Include="WorkspacePaths.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>

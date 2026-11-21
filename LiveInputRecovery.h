@@ -27,7 +27,7 @@ enum class CountStage { Unspecified, Preliminary, Rechecked };
 // report complete pairs; declaration batches and OPV exhaustion behave differently.
 inline constexpr double AbsoluteTcpAllowance = 10;
 inline constexpr double RelativeTcpAllowance = .05;
-inline constexpr double OrdinaryTcpComparableFraction = .95;
+inline constexpr double OrdinaryTcpComparableFraction = LivePartialCount::OrdinaryTcpComparableFraction;
 
 struct CountMetadata {
     Status status = Status::Unavailable;
@@ -74,9 +74,10 @@ struct Record {
     bool closed = false;
     bool incremental = false; // Explicit mixed-place FP batches, not an inference from count size.
     std::optional<PreferenceCohort> matchedPreferences;
-    // Original FP/transfer account belonging to the current TCP. Unlike the
-    // most recent useful flow measurement, this must follow an unchanged TCP
-    // through later FP revisions and source withdrawal/recovery.
+    // Original FP/transfer account belonging to the current TCP. A temporary SA
+    // handover record can also hold the FP accompanying an unfinished booth TCP
+    // here, solely to bound the revised count. hasCurrentTcpBasis still requires
+    // an exact match for normal recovery and storage.
     std::optional<PreferenceCohort> tcpBasis;
     // Source-only publication status, never inherited from cached counts.
     // ECQ withdraws indicative TCP while official rechecking is in progress.

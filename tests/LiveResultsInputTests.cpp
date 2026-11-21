@@ -36,6 +36,8 @@ int main()
 	// ZIP replay must select booth-level lower-house results, not an aggregate
 	// or upper-house file stored alongside them in a VEC collection.
 	assert(LiveResultsInput::isSnapshotResultsXml("Media feed/State2022mediafilelitepplh_20221126_180329.XML", "vic"));
+	assert(LiveResultsInput::isSnapshotResultsXml("State2026mediafilelitepplhv2_20261128_180505.xml", "vic"));
+	assert(!LiveResultsInput::isSnapshotResultsXml("State2026mediafileliteppuhv2_20261128_180505.xml", "vic"));
 	assert(!LiveResultsInput::isSnapshotResultsXml("State2022mediafilelitelh_20221126_180329.xml", "vic"));
 	assert(!LiveResultsInput::isSnapshotResultsXml("State2022mediafileliteppuh_20221126_180329.xml", "vic"));
 	assert(!LiveResultsInput::isSnapshotResultsXml("State2022mediafilelitepplh_20221126_180329.zip", "vic"));
@@ -88,6 +90,9 @@ int main()
 	assert(vic->path.filename() ==
 		"mediafilelitepplh_20260315_001500.zip");
 	assert(vic->timestamp == "20260315001500");
+	touch(unicodePath / "State2026MediaFileLitePpLhV2_20261128_180505.zip");
+	touch(unicodePath / "TestState2026mediafilelitepplhv2_20261128_220000.zip");
+	assert(LiveResultsInput::findCurrentFile(unicodePath, "vic", "2026vic")->timestamp == "20261128180505");
 
 	touch(unicodePath / "001200-SG20270324.zip");
 	touch(unicodePath / "000100-SG20270325.zip");

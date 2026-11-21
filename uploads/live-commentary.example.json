@@ -1,7 +1,8 @@
 {
   "enabled": false,
+  "compare_writers": false,
   "model": "SELECT_AFTER_BENCHMARK",
-  "prompt_version": "live-changes-16",
+  "prompt_version": "live-changes-37",
   "service_tier": "default",
   "reasoning_effort": "low",
   "minimum_count_change": 10,

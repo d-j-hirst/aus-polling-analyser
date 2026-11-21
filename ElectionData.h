@@ -369,6 +369,9 @@ namespace Results2 {
 
 		void applyResultOverrides();
 	private:
+		// VEC supplies each of these centres both as a location and inside the
+		// district's early totals. The current forecast uses the district account.
+		std::set<int> vecEarlyLocationIds;
 		void beginLiveCountRead();
 		void captureLiveCandidateRosters();
 		void clearLiveCountRecords();

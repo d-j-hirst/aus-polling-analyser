@@ -140,6 +140,12 @@ Unavailable commentary includes a reason. It is permanent for that publication e
 
 Unchanged or insignificant counts instead receive completed local text: `status: "complete"`, `source: "local"`, and `kind: "no_new_counting"` or `"minor_changes"`. These use the inline text structure with an empty entities map and no model/request metadata. They have no entry in `commentary_requests`; the frontend must not require an API request for every completed window. Mechanical comparisons remain available even when the local notice replaces paid commentary. `count_activity` and `commentary_decision` explain the filter. The activity measure is a conservative count of changed allocations, including manual preference samples, not a change in formal turnout.
 
+### Optional comparison of commentary writers
+
+A trial publication can carry two editions in the existing `text.developments` list. The original summary and its developments come first. The separator is a development with `"seats": []` whose text starts with the exact line `[[AEF_RULE_BASED_COMMENTARY_V1]]`, a literal newline and a nonempty rule-written summary. The remaining developments are the rule-written district sections. Both editions use the same entity dictionary. A marker mentioned inside a district's prose has no special meaning.
+
+The frontend splits at that boundary before rendering either edition. It uses the original status, reason and model attribution for the AI edition. An unavailable AI edition can still carry a complete local edition after the marker. Quiet notices, unavailable comparisons and older publications without a separator retain their usual presentation. A retained daily report inherits the editions from its original publication. The version-one forecast identity, submission and acknowledgement are the same for both writers.
+
 ## Fixtures and checks
 
 `tests/fixtures/live-publication-v1/` contains fictional election-night and morning packages plus capability/acknowledgement examples. The morning package shows the new schedule and a yesterday reference to the election-night package. `uploads/live_pipeline/mock_server.py` implements only the test boundary: it demonstrates duplicate acceptance, conflict rejection, origin handling, run isolation and monotonic latest selection, including a retained source arriving after the newer forecast. It is not a production backend or authentication implementation.

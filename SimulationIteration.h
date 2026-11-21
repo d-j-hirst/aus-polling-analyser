@@ -68,7 +68,10 @@ private:
 		int seatIndex,
 		int partyIndex,
 		double& voteShare,
-		SimulationRun::SeatStatistics const& seatStatistics);
+		SimulationRun::SeatStatistics const& seatStatistics,
+		std::optional<double> missingGreensMedian = std::nullopt);
+	double specificPartyFpWithLocalEvidence(int seatIndex, int partyIndex,
+		double transformedFp, double localVariation, double minorVoteMod) const;
 	double applySeatFpPolls(
 		int seatIndex, int partyIndex, double transformedVoteShare) const;
 	void determinePopulistFp(int seatIndex, int partyIndex, double& voteShare);

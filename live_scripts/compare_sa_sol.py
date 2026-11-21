@@ -30,10 +30,10 @@ def load_baseline(folder, *, for_new_requests=False):
     return selected
 
 
-def review_saved(selected, rows):
+def review_saved(selected, rows, prompt_version):
     # Use the original prose even when the old check rejected it. Retain its
     # original decision and cost on the local review copy for comparison.
-    prepared = {key: commentary.prepare_packet(packet) for key, packet in selected}
+    prepared = {key: commentary.prepare_packet(packet, prompt_version) for key, packet in selected}
     reviewed = []
     for old in rows:
         row = dict(old, original_status=old['status'], original_reason=old.get('reason'))
@@ -103,7 +103,7 @@ def main(argv=None):
     baseline = run / 'benchmark'
     selected = load_baseline(baseline, for_new_requests=args.start)
     old = read(baseline / 'benchmark.json')
-    reviewed = review_saved(selected, old['results'])
+    reviewed = review_saved(selected, old['results'], read(baseline/'manifest.json')['prompt_version'])
     sol = [row for row in reviewed if row['model'] == 'gpt-6.1-sol']
     if not selected or Counter(row['comparison'] for row in sol) != Counter(key for key, _ in selected):
         raise ValueError('Expected one Sol 6.1 receipt per comparison.')

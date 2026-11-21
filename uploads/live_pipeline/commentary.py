@@ -16,8 +16,27 @@ from pathlib import Path
 from .storage import fingerprint
 from . import prompt_layout, commentary_format
 
-PROMPT_VERSION = 'live-changes-16'
-SEPARATE_TREND_VERSIONS = {'live-changes-14', 'live-changes-15', PROMPT_VERSION}
+PROMPT_VERSION = 'live-changes-37'
+CANDIDATE_FOCUS_VERSIONS = {PROMPT_VERSION}
+COUNT_OUTLOOK_VERSIONS = {'live-changes-36'} | CANDIDATE_FOCUS_VERSIONS
+CENTRAL_EXPECTATION_VERSIONS = {'live-changes-34', 'live-changes-35'} | COUNT_OUTLOOK_VERSIONS
+PLAIN_PREFERENCE_VERSIONS = {'live-changes-33'} | CENTRAL_EXPECTATION_VERSIONS
+MATCHED_TCP_COVERAGE_VERSIONS = {'live-changes-31', 'live-changes-32'} | PLAIN_PREFERENCE_VERSIONS
+REPLACEMENT_TCP_VERSIONS = {'live-changes-29', 'live-changes-30'} | MATCHED_TCP_COVERAGE_VERSIONS
+STATEWIDE_RESET_HEADLINE_VERSIONS = {'live-changes-28'} | REPLACEMENT_TCP_VERSIONS
+TCP_REPORTING_VERSIONS = {'live-changes-27'} | STATEWIDE_RESET_HEADLINE_VERSIONS
+MEDIAN_SEATS_VERSIONS = {'live-changes-26'} | TCP_REPORTING_VERSIONS
+COUNTED_LEAD_VERSIONS = {'live-changes-25'} | MEDIAN_SEATS_VERSIONS
+GROUPED_PRIMARY_VERSIONS = {'live-changes-24'} | COUNTED_LEAD_VERSIONS
+LOCAL_HEADLINE_VERSIONS = {'live-changes-23'} | GROUPED_PRIMARY_VERSIONS
+BOOTH_CORRECTION_VERSIONS = {'live-changes-22'} | LOCAL_HEADLINE_VERSIONS
+SMALL_MOVEMENT_VERSIONS = {'live-changes-21'} | BOOTH_CORRECTION_VERSIONS
+LEAD_AND_RANGE_VERSIONS = {'live-changes-20'} | SMALL_MOVEMENT_VERSIONS
+PRIMARY_OUTCOME_VERSIONS = {'live-changes-19'} | LEAD_AND_RANGE_VERSIONS
+PROJECTED_LEAD_VERSIONS = {'live-changes-18'} | PRIMARY_OUTCOME_VERSIONS
+EXPLICIT_FP_VERSIONS = {'live-changes-17'} | PROJECTED_LEAD_VERSIONS
+MATCHED_TCP_VERSIONS = {'live-changes-16'} | EXPLICIT_FP_VERSIONS
+SEPARATE_TREND_VERSIONS = {'live-changes-14', 'live-changes-15'} | MATCHED_TCP_VERSIONS
 PARAGRAPH_VERSION = 'live-changes-8'
 BOOTH_CONTEXT_VERSIONS = {'live-changes-11', 'live-changes-12', 'live-changes-13'} | SEPARATE_TREND_VERSIONS
 BULLET_VERSIONS = {'live-changes-9', 'live-changes-10'} | BOOTH_CONTEXT_VERSIONS
@@ -210,14 +229,58 @@ Give that booth total once alongside the share. For a TCP share identify the opp
 {expectation_guidance} Reserve individual ballot counts for
 a correction or a change in a close lead where the number of ballots itself matters.
 Distinguish the cumulative count from the latest batch. FP and TCP describe overlapping ballots.
-Connect booth and district: If a primary share differs markedly from expectations while
-the win outlook barely moves, join those facts in one point. Use the scale of the
-count, other parties' shares or a measured TCP where informative. Without a TCP,
-preferences are still estimated. Only give a reason that the evidence supports.
-If the offset is uncertain, acknowledge the contrast or omit a minor story.
+{primary_and_outcome}
 Group wider movement: Cover a shared trend once. Usually omit seat sections that
 repeat the trend without local counting. Give at most one illustrative district
 unless a second has a distinct consequence for who might win.'''
+
+BOOTH_CORRECTIONS = '''Locate the correction: When the evidence identifies a booth or declaration
+category, name it and say what was revised there. Combine this with the result
+for that place. If it also reported its first TCP count, describe that as a separate
+observation. The two counts can cover the same ballots. Avoid implying ballots moved
+between them or explaining them to readers as “overlapping ledgers”.
+Use district totals when they summarise several places, add useful context such as
+a change in the district lead, or are the only supported figures. Omit a district
+total that merely repeats the booth change. A shortened booth list cannot by itself
+establish that every vote in a district change came from one place.'''
+
+LOCAL_HEADLINES = '''Back up a local explanation: Write the headline outcome as a complete sentence
+that can stand on its own, without attributing it to local votes. To connect a
+district movement to counting, return a key_changes object with that outcome,
+the full booth_record from context_figures, the candidate placeholder whose
+observed share illustrates the change, and count_type FP or TCP. Name the district
+with its seat placeholder in the outcome. Select FP only with FPshare, FPtotal and
+FPdiff for that candidate; select TCP only with TCPshare and TCPtotal for the same
+two candidates. Use the same rule for declaration categories. The exporter adds
+the location to the headline and the checked comparison to the seat detail.
+Leave that comparison out of your other bullets. A measured TCP and a projected
+TCP can involve different opponents. Use ordinary text for other headlines,
+including statewide trends and quiet updates. If no relevant comparison is
+available, just report the change in outlook.'''
+
+EARLIER_PRIMARY_GUIDANCE = '''Connect booth and district: If a primary share differs markedly from expectations while
+the win outlook barely moves, join those facts in one point. Use the scale of the
+count, other parties' shares or a measured TCP where informative. Without a TCP,
+preferences are still estimated. Only give a reason that the evidence supports.
+If the offset is uncertain, acknowledge the contrast or omit a minor story.'''
+
+PRIMARY_AND_OUTCOME = '''Explain what the primary change means for the winner. When first preferences
+move materially but the win chance barely changes, check the district's projected
+share after preferences against the likely opponent. If the projected lead shrank
+but stayed comfortable, name the opponent and give the updated TCP share to show
+why the candidate is still favoured. {small_movement} Distinguish a projected final share from votes counted at
+a booth. If several pairings are plausible, scope the figure to that matchup.
+When a comparable TCP is unavailable, use other supplied evidence that explains
+the outlook, or omit the minor story. Avoid linking two numbers with “despite”
+and leaving the reader to infer why. Never infer a change in preference flows
+from first preferences alone.'''
+
+SMALL_MOVEMENT_GUIDANCE = '''Choose a story for the significance of the development as a whole.
+When a small movement helps explain a larger one, give the current shares or
+chances and their supplied signed percentage-point changes together. In particular,
+when first preferences shift substantially and win chance barely moves, keep
+the small signed win change alongside its current level. Use the supplied
+display precision. A small movement on its own rarely warrants a story.'''
 
 TCP_WORDING = '''Lead a booth TCP sentence with the result: Name the booth, then the candidate
 and their observed share. If there is a forecast for the same pair, put the
@@ -252,6 +315,44 @@ pair, omit the booth split altogether. Its primary results may still be useful.
 A seat projection, a previous counted share or a different opponent cannot supply
 the comparison. A major correction or a change of pairing can still be news.'''
 
+FP_WORDING = '''Name the count before giving the comparison: For a primary result, write
+"At [booth], [candidate] received [share] of [total] first preferences, [gap]
+above the earlier estimate." Use FPshare and FPtotal for the count and FPdiff
+for the gap from the earlier first-preference estimate for that candidate at
+that booth. Use "below" when appropriate and omit the comparison if unavailable.
+When grouping booths, introduce them as first-preference results before listing
+the shares. If you also report TCP, give it a separate sentence with its own
+opponent and comparison, even when both counts cover the same number of ballots.'''
+
+PROJECTED_LEAD_GUIDANCE = '''When a candidate becomes more likely to win, check whether the
+projected lead grew or the forecast became more confident the lead would hold.
+Look at the median and both ends of the range for the same plausible pairing.
+Even a booth in line with the earlier estimate, or slightly below it, can leave
+less room for the trailing candidate to catch up. When the figures support it,
+explain this in everyday language and give the win chance. If the booth result
+was substantially weaker than expected, acknowledge it. Only attribute the
+change to a particular booth or mechanism when the evidence supports that.
+Give these local win movements priority over the identity of a likely runner-up
+or an easily described large booth in a race that is already nearly settled.'''
+
+LEAD_AND_RANGE_GUIDANCE = '''Explain a changing lead in light of the range of plausible results.
+For the same two candidates, compare the median projected TCP share and the
+distance between the 5th and 95th percentiles before and after the update. If
+the lead shrank and that range narrowed meaningfully, say both in plain language.
+Then use the reported win chance to say whether the forecast became more confident
+the lead would hold, remained about as confident, or gave the leader a lower
+chance. A sizeable loss of projected margin can accompany only a modest loss
+of win chance. Usually the reader needs the intuition more than all four bounds.
+Check where the range sits relative to an even split. A narrower range alone
+does not tell you which way win chance moved. If either bound is missing or the
+opponents changed, stick to the figures that can be compared. If other pairings
+matter, qualify what this matchup explains about the overall chance of winning.
+A booth in line with its earlier estimate, or a little below it, can still
+help settle how close the race is. Acknowledge a weaker result when relevant
+and attribute a change to that booth only when the evidence supports it. Give
+these local win movements priority over a change of runner-up in a safe seat.'''
+
+
 def instructions(version):
     if version == PARAGRAPH_VERSION:
         return EDITORIAL + '\n\n' + PARAGRAPHS + '\n' + INLINE
@@ -265,11 +366,176 @@ def instructions(version):
     if version == 'live-changes-10':
         return stories + '\n\n' + INLINE
     if version in BOOTH_CONTEXT_VERSIONS:
-        booth_guidance = BOOTH_STORIES.format(expectation_guidance=(
-            'Include the same-pair expectation whenever quoting a TCP result.' if version == PROMPT_VERSION
-            else 'Add the comparison with expectations if it helps.'))
+        primary_guidance = EARLIER_PRIMARY_GUIDANCE
+        if version in PRIMARY_OUTCOME_VERSIONS:
+            small_movement = (SMALL_MOVEMENT_GUIDANCE if version in SMALL_MOVEMENT_VERSIONS else
+                              'A tiny change near certainty rarely needs an\nexplanation of its own.')
+            primary_guidance = PRIMARY_AND_OUTCOME.format(small_movement=small_movement)
+        booth_guidance = BOOTH_STORIES.format(
+            expectation_guidance=('Include the same-pair expectation whenever quoting a TCP result.'
+                                  if version in MATCHED_TCP_VERSIONS else 'Add the comparison with expectations if it helps.'),
+            primary_and_outcome=primary_guidance)
+        if version in BOOTH_CORRECTION_VERSIONS:
+            booth_guidance += '\n' + BOOTH_CORRECTIONS
+        if version in LOCAL_HEADLINE_VERSIONS:
+            booth_guidance += '\n' + LOCAL_HEADLINES
+        if version in GROUPED_PRIMARY_VERSIONS:
+            booth_guidance += (
+                '\nGroup first preferences by booth: Normally give one bullet per booth or declaration '
+                'category for its first preferences. Give the total once and put noteworthy candidate '
+                'shares and their gaps together. For a booth already selected in a headline, the exporter '
+                'supplies that candidate; use the standard first-preference sentence for any additional '
+                'candidate there so both can appear in one bullet. Use another bullet when a distinct '
+                'development, such as a substantial correction, needs its own explanation.')
+        if version in COUNTED_LEAD_VERSIONS:
+            booth_guidance += (
+                '\nName the candidate who moved ahead: When the same two candidates switch places in the '
+                'counted votes, write “In the two-candidate count, [candidate] went from **[N] votes** '
+                'behind to **[M] votes** ahead of [opponent].” Use the observed margins at the two ends '
+                'of this comparison. If either count was tied, say so. Describe projected margins separately.')
+        if version in MEDIAN_SEATS_VERSIONS:
+            stories += (
+                '\nReport seat totals as medians: Use the median seats shown on the forecast page. '
+                'Give the old and new whole-seat totals for a noteworthy change. An unchanged median '
+                'does not show a party gaining or losing seats. Use the supplied {party:ID} token '
+                'for each party so the reader sees its election-specific badge.')
+        if version in TCP_REPORTING_VERSIONS:
+            stories += (
+                '\nExplain material TCP reporting resets using tcp_reporting_changes. A district-wide reset '
+                'to zero usually means a different pairing is being prepared. If the same two candidates '
+                'are still listed, say “likely” and make clear the replacement has yet to be confirmed. '
+                'When different candidates are named, distinguish a zero placeholder from votes counted '
+                'for them. Earlier usable counts can still inform the forecast for their original pairing '
+                '(including Labor–Coalition TPP) while excluded from current reported progress. Say they '
+                'are still in use where the booth evidence confirms retention. A booth correction alone '
+                'does not establish a district reset.')
+        if version in STATEWIDE_RESET_HEADLINE_VERSIONS:
+            stories += (
+                '\nLead with a reconciled statewide TCP drop: When tcp_reporting_reconciliation accounts '
+                'for the drop, write one statewide key_changes bullet in two or three short sentences. '
+                'Start “The reported statewide two-candidate count fell by **[drop] votes** to '
+                '**[ending total] votes**” using the statewide tcp_votes figures. Give the number of '
+                'districts that reset. If the feed still lists the original candidates, explain in this '
+                'same bullet that a change of pairing is likely. If it names replacements, say so. '
+                'Finish the bullet by explaining that the earlier booth counts still inform the forecast '
+                'for the original two candidates wherever retention is confirmed. Put an individual '
+                'booth correction only in booth_evidence under its own district.')
+        if version in {'live-changes-29', 'live-changes-30'}:
+            booth_guidance += (
+                '\nWhen the counted TCP opponents change, use replacement_tcp for the combined result '
+                'across all reporting units on the new pair. In the district outcome points, identify '
+                'both candidates and give the size and split when relevant. The earlier median describes '
+                'the whole district against those same opponents, not an expectation for these booths. '
+                'A matched transfer share describes all non-finalist first preferences combined. A different '
+                'old opponent gives no comparable swing. Use selected individual booths only as examples. '
+                'Detailed booth FP and TCP maps give changed counts by candidate ID at each endpoint; an '
+                'omitted ledger supplies no comparison. A null booth_TCP_reference means there is no '
+                'usable earlier same-pair estimate for that booth.')
+        if version == 'live-changes-30':
+            stories += (
+                '\nExplain a district TCP revision: When new counting helps explain a change in the '
+                'projected TCP, connect the evidence and the forecast in the same seat_changes bullet. '
+                'Name both opponents and give the combined measured share and count coverage. For a '
+                'new pairing use the figures together in its replacement_tcp row. Explicitly say whether '
+                'the measured share is above, below or in line with the earlier estimate of **[median]%** for the whole district '
+                'against that opponent. Then give the revised district projection and its supplied '
+                'change, making the direction of the link clear. Describe a partial count as evidence '
+                'supporting the move. If the earlier same-pair district estimate is missing, omit that '
+                'comparison. Keep individual-booth expectations distinct.')
+        if version == 'live-changes-32':
+            stories += (
+                '\nWhen district_preference_evidence accompanies a material win change, explain how '
+                'the named source district’s ordinary-booth preference counts shifted the estimate '
+                'for unallocated ballots in the target district, naming both districts and the '
+                'finalists. Distinguish a change in winning this matchup from a change in reaching it. '
+                'The hold-one-district check measures influence on the shared preference estimate only. '
+                'Describe this as a supported contributor to the forecast movement; do not assign it '
+                'an exact share of the win change. Mention an offsetting district only if it helps. '
+                'Districts in retained_tcp_only_published_zero_at_both_ends had zero published TCP '
+                'at both endpoints. A change in which earlier votes the model could use is internal. '
+                'Ordinarily omit it. Only discuss it when material to a very close late count for '
+                'those opponents, and explicitly distinguish it from a published withdrawal.')
+        if version in PLAIN_PREFERENCE_VERSIONS:
+            # Keep the example in step with the instructions. The writer often
+            # follows its wording closely when a real district fits the example.
+            comparison = ' than the forecast had expected' if version in COUNT_OUTLOOK_VERSIONS | {'live-changes-35'} else ''
+            stories += (
+                '\nExplain preferences in everyday language: Lead with what counting in the named source '
+                'district showed and why it matters in the district being forecast. For example, '
+                '"Counting in {seat:Source} pointed to stronger preferences for Party A against Party B'
+                f'{comparison}. '
+                'That helped lift the forecast for Candidate A in {seat:Target}." Use actual entity tokens. '
+                'A stronger flow can still be a minority of preferences. If the source gained weight, '
+                'avoid implying its voters changed their minds or its own flow rate rose. '
+                'Only include conditional win chances when they clarify the story. Name both opponents '
+                'in the sentence giving the figure: "If A and B are the final two, A now has a '
+                '[supplied chance and change] chance of winning." Omit generic '
+                'explanations about reaching the final two or references to "that matchup". '
+                'The source comparison isolates its influence on the shared ordinary-booth estimate; '
+                'describe a contribution to the target forecast without assigning it the whole change.'
+                '\nExplain a material change in earlier counts: Where retained_pair_revisions appears, '
+                'name the old opponents and the booths whose earlier count the forecast can no longer '
+                'use. Mention revised first preferences when indicated and which local counts still '
+                'inform this contest. Explain which candidate gained when the forecast had to estimate '
+                'those booths again. Use the local preference split if supplied and helpful. Published '
+                'TCP was zero at both endpoints. Otherwise omit routine changes in retained votes '
+                'unless marked material to a very close late contest.')
+        if version in COUNT_OUTLOOK_VERSIONS:
+            stories += (
+                '\nPut counted votes in the context of who will win: Whenever you report a raw district '
+                'tally, lead, reversal or booth share (FP or TCP), give the current seat outlook alongside '
+                'it, even if the win chances hardly moved. A count headline must make sense on its own. '
+                'In district detail give the outlook once, then group the supporting counts underneath. '
+                'Use the all-seat win chances to identify a strong favourite, a close contest or several '
+                'plausible winners. A rounded 100% describes simulation results; avoid declaring the seat. '
+                'A change in the counted leader does not establish a change in favourite. If a count-only '
+                'headline in a safe seat adds little, omit it. '
+                'When the counted lead and the projected result tell different stories, explain who is '
+                'expected to do better on the remaining votes using the supplied approximate remaining TCP '
+                'share for those opponents. Label it an estimate, including possible revisions. If it is '
+                'missing, use the same-pair district projection or overall win outlook; do not infer a '
+                'remaining split from the latest booth or invent a reason involving a type of voter.')
+        if version in CANDIDATE_FOCUS_VERSIONS:
+            stories += (
+                '\nChoose the district subject: When two candidates have at least 95% of the win chance '
+                'between them, lead the headline and district detail with the one now more likely to win. '
+                'In a wider contest lead with the largest absolute win chance change. Use comparable '
+                'figures and also name a different candidate when their movement helps explain the race. '
+                'Describe any outstanding vote total as a forecast estimate. For districts listed in '
+                'continuing_realigned_tcp_pairs, further counting for the revised opponents is evidence '
+                'for this update. The pairing was already in use. A verified district bullet with net '
+                'votes added and reporting coverage will be supplied locally.')
+        if version in CENTRAL_EXPECTATION_VERSIONS:
+            stories += (
+                '\nDescribe the earlier estimate precisely: When counts point to stronger or weaker '
+                'preferences than the forecast’s earlier central estimate, say "than the forecast had '
+                'expected". A difference from that estimate says nothing by itself about the range of '
+                'simulated outcomes. Avoid "than the forecast had allowed for". If the only change '
+                'was more evidence of the same flow, describe the added evidence instead.')
+        if version in MATCHED_TCP_COVERAGE_VERSIONS:
+            stories += (
+                '\nCompare TCP figures on the same basis: For a change in the projected district result, '
+                'name both opponents and give the earlier and revised whole-district medians for that '
+                'pair, with the supplied change. Report a new partial count separately, with its measured '
+                'share, number of reporting units and ballots. Describe counting as context for the update. '
+                'Only call that result above, below or in line with expectations if replacement_tcp gives '
+                'an earlier estimate for those exact units and opponents. If that field is null, compare '
+                'district forecast with district forecast and give the counted share in a separate sentence. '
+                'Do not infer overperformance, or attribute the direction or size of the revision, from '
+                'a difference between a partial count and a district estimate.')
+            booth_guidance += (
+                '\nRead replacement_tcp as a combined count for the new opponents. Its matched transfer '
+                'share covers all non-finalist first preferences combined. Old counts against a different '
+                'opponent supply no comparable swing. For an individual booth, FP and TCP maps show changed '
+                'counts by candidate ID; a null booth_TCP_reference means there is no usable same-pair booth estimate.')
         sections = [stories, booth_guidance, INLINE_FORMAT if separate_trends else INLINE]
-        if version == PROMPT_VERSION:
+        if version in EXPLICIT_FP_VERSIONS:
+            sections.append(FP_WORDING)
+        if version in LEAD_AND_RANGE_VERSIONS:
+            sections.append(LEAD_AND_RANGE_GUIDANCE)
+        elif version in PROJECTED_LEAD_VERSIONS:
+            sections.append(PROJECTED_LEAD_GUIDANCE)
+        if version in MATCHED_TCP_VERSIONS:
             sections.append(MATCHED_TCP_WORDING)
         elif version == 'live-changes-15':
             sections.append(COMPACT_TCP_WORDING)
@@ -301,33 +567,134 @@ POINT_SCHEMA = {'type': 'object', 'additionalProperties': False,
             'required': ['seat', 'seat_changes', 'booth_evidence'],
             'properties': {'seat': {'type': 'string'}, 'seat_changes': POINT_LIST, 'booth_evidence': POINT_LIST}}}}}
 
+# One optional form of headline links the writer's editorial choice to an
+# actual ballot count. These selection fields stay local. The published page
+# still receives ordinary headline and district bullets.
+LOCAL_HEADLINE = {'type': 'object', 'additionalProperties': False,
+    'required': ['outcome', 'booth_record', 'candidate', 'count_type'],
+    'properties': {'outcome': {'type': 'string'}, 'booth_record': {'type': 'string'},
+                   'candidate': {'type': 'string'}, 'count_type': {'type': 'string', 'enum': ['FP', 'TCP']}}}
+LINKED_POINT_SCHEMA = dict(POINT_SCHEMA, properties={
+    **POINT_SCHEMA['properties'], 'key_changes': {'type': 'array', 'items': {'anyOf': [{'type': 'string'}, LOCAL_HEADLINE]}}})
 
-def checked_points(items, seats, packet, *, require_tcp_comparison=False, booth_points=False):
+
+def single_line_point(point):
+    """The exporter supplies the bullet and heading. Discard padding around
+    the wording, but keep line breaks visible to the format check."""
+    if not isinstance(point, str):
+        raise ValueError('Expected commentary point text')
+    point = point.strip(' \t')
+    if (not point or point.splitlines() != [point]
+            or re.match(r'^(?:[-*+•]|\d+[.)])\s|^#|^Key changes:|^In \{seat:[^}]+\}:', point, re.I)):
+        raise ValueError('Commentary points must be single-line text without headings or list markers')
+    return point
+
+
+def checked_points(items, seats, packet, *, require_tcp_comparison=False, booth_points=False, contextualise_counts=False):
     """A model supplies the wording of each point. Only the exporter may start a
     new line or list, so inline names and bold figures can be rendered safely."""
     if not isinstance(items, list):
         raise ValueError('Expected a list of commentary points')
     accepted = []
     for point in items:
-        if (not isinstance(point, str) or not point.strip() or point != point.strip()
-                or point.splitlines() != [point]
-                or re.match(r'^(?:[-*+•]|\d+[.)])\s|^#|^Key changes:|^In \{seat:[^}]+\}:', point, re.I)):
-            raise ValueError('Commentary points must be single-line text without headings or list markers')
-        if require_tcp_comparison:
-            try:
-                commentary_format.check_booth_tcp_context(point, seats, packet, booth_points)
-            except commentary_format.MissingBoothTcpComparison:
-                # Booth details are optional. One unusable split need not cost
-                # the reader a verified district update or trigger another call.
-                if booth_points:
-                    continue
-                raise
-        commentary_format.check_text(point, seats, packet)
+        point = single_line_point(point)
+        if contextualise_counts:
+            # The display figure already includes “votes”. If the writer copies
+            # it before “two-candidate-preferred votes”, keep one unit and run
+            # the usual checks on the resulting count and booth comparison.
+            point = re.sub(r'\*\*([\d,]+) votes\*\*(?= two-candidate(?:-preferred)? votes\b)', r'**\1**', point)
+        try:
+            commentary_format.check_text(point, seats, packet,
+                                         booth_points=booth_points if require_tcp_comparison else None)
+        except commentary_format.MissingBoothTcpComparison:
+            # Booth details are optional. One unusable split need not cost
+            # the reader a verified district update or trigger another call.
+            if booth_points:
+                continue
+            raise
         accepted.append(point)
     return accepted
 
 
-def format_points(response, packet, *, include_booth_context=True, require_tcp_comparison=True):
+def movement_without_local_clause(outcome, packet):
+    """Keep a standalone seat movement when the writer uses the earlier
+    'rose following strong local counting' wording instead of selecting its
+    source. A statewide trend or a headline reporting a count in its own
+    right does not require a local explanation."""
+    if ('{seat:' not in outcome or re.search(r'\b(?:statewide|national|broader|wider)\b|'
+            r'\b(?:without|no) (?:any |new |further )?(?:local )?(?:votes|counting|returns)\b', outcome, re.I)):
+        return outcome
+    names = [(e.get('record') or '').rsplit('/', 1)[-1] for e in packet['evidence']
+             if e['kind'] == 'booths' and '{seat:'+e['seat']+'}' in outcome]
+    def mentions_local_count(text):
+        return (re.search(r'\b(?:booths?|count(?:s|ing)?|ballots?|postals?|local (?:results?|votes?|returns?))\b', text, re.I)
+                or any(name and re.search(r'(?<!\w)'+re.escape(name)+r'(?!\w)', text, re.I) for name in names))
+    for link in re.finditer(r'\b(?:following|after|as|with|because of|thanks to|driven by|on the back of)\s+', outcome, re.I):
+        clause = outcome[link.end():]
+        if not mentions_local_count(clause):
+            continue
+        if link.start() == 0:
+            _, separator, rest = outcome.partition(',')
+            if separator and '{seat:' in rest:
+                rest = rest.lstrip()
+                return rest[:1].upper() + rest[1:]
+        base = outcome[:link.start()].rstrip(' ,')
+        if '{seat:' in base and re.search(r'\b(?:win|chance|favou?rite|favou?red|lead|gained|lost|rose|fell|improved|likely|prospects|outlook|pairing)\b', base, re.I):
+            return base.rstrip('.') + '.'
+    # If the local return is the grammatical subject ("Aldinga boosted X's
+    # win chance"), cutting off a clause would leave a sentence fragment.
+    # For a single named candidate we can state the verified movement directly.
+    if mentions_local_count(outcome) and re.search(r'\b(?:win|prospects)\b', outcome, re.I):
+        candidates = set(re.findall(r'\{candidate:[^{}]+\}', outcome))
+        for row in packet['display_figures']:
+            if (row['quantity'] == 'win chance' and candidates == {row['candidate']}
+                    and '{seat:'+row['seat']+'}' in outcome):
+                return ('In {seat:'+row['seat']+'}, the win chance for '+row['candidate']
+                        +' is **'+row['current_with_change']+'**.')
+    return outcome
+
+
+def linked_headlines(items, packet):
+    """Resolve each chosen comparison before assembling the public lists. A
+    usable comparison supplies both its location in the headline and a checked
+    district bullet. Without it, the reader still gets the standalone outcome."""
+    if not isinstance(items, list):
+        raise ValueError('Expected a list of headlines')
+    headlines, local_points = [], {}
+    for item in items:
+        selection = isinstance(item, dict)
+        if selection and set(item) != set(LOCAL_HEADLINE['required']):
+            raise ValueError('Invalid local headline selection')
+        outcome = item['outcome'] if selection else item
+        outcome = movement_without_local_clause(single_line_point(outcome), packet)
+        checked_points([outcome], [], packet, require_tcp_comparison=True)
+        seats = set(re.findall(r'\{seat:([^{}]+)\}', outcome))
+        if selection and len(seats) == 1:
+            seat = seats.pop()
+            details = local_points.setdefault(seat, [])
+            detail = commentary_format.headline_booth_comparison(
+                packet, seat, item['booth_record'], item['candidate'], item['count_type'])
+            if detail:
+                location, point = detail
+                context = ' following ' + location
+                if commentary_format.other_local_counts_changed(packet, seat):
+                    context += ' and other counting in the district'
+                headline = outcome.rstrip('.') + context + '.'
+                try:
+                    checked_points([headline], [seat], packet, require_tcp_comparison=True)
+                    accepted = checked_points([point], [seat], packet, require_tcp_comparison=True, booth_points=True)
+                except ValueError:
+                    accepted = []
+                if accepted:
+                    outcome = headline
+                    if point not in details:
+                        details.append(point)
+        headlines.append(outcome)
+    return headlines, local_points
+
+
+def format_points(response, packet, *, include_booth_context=True, require_tcp_comparison=True,
+                  link_local_headlines=False, contextualise_counts=False):
     """Validate the structured reply, then build the published summary and one
     block per district. The wire format uses the same inline entities as earlier
     reports. Its exact line breaks also let the website render semantic lists."""
@@ -341,11 +708,37 @@ def format_points(response, packet, *, include_booth_context=True, require_tcp_c
     if (not isinstance(response['insufficient_evidence'], bool)
             or not isinstance(developments, list) or len(developments) > 12):
         raise ValueError('Invalid structured commentary developments')
-    headlines = checked_points(response['key_changes'], [], packet, require_tcp_comparison=require_tcp_comparison)
+    local_points = {}
+    if link_local_headlines:
+        headlines, local_points = linked_headlines(response['key_changes'], packet)
+    else:
+        headlines = checked_points(response['key_changes'], [], packet, require_tcp_comparison=require_tcp_comparison)
+    if contextualise_counts:
+        for index, headline in enumerate(headlines):
+            # Evaluate each named district on its own wording, so a nearby
+            # district's win chance cannot explain this district's raw count.
+            mentions = list(re.finditer(r'\{seat:([^}]+)\}.*?(?=\{seat:|$)', headline))
+            for mention in mentions:
+                wording = headline if len(mentions) == 1 else mention[0]
+                outlook = commentary_format.count_outlook(mention[1], [wording], [], packet)
+                if outlook:
+                    headlines[index] += ' ' + outlook
     if not headlines:
         raise ValueError('A commentary summary is required')
     def block(heading, points):
         return '\n'.join([heading, *('- ' + point for point in points)])
+    def district_section(seat, seat_points, booth_points):
+        if link_local_headlines:
+            booth_points = commentary_format.group_booth_primaries(booth_points, seat, packet)
+        if contextualise_counts:
+            outlook = commentary_format.count_outlook(seat, seat_points, booth_points, packet, explain_remaining=True)
+            seat_points = commentary_format.add_remaining_to_lead(seat, seat_points, packet)
+            if outlook:
+                seat_points = [outlook, *seat_points]
+            follow_up = commentary_format.continued_pair_point(seat, packet)
+            if follow_up:
+                seat_points.append(follow_up)
+        return {'seats': [seat], 'text': block('In {seat:' + seat + '}:', seat_points + booth_points)}
     summary = block('Key changes:', headlines)
     if not developments and headlines == ['There were no significant changes to the forecast.']:
         summary = headlines[0]
@@ -358,23 +751,33 @@ def format_points(response, packet, *, include_booth_context=True, require_tcp_c
         if not isinstance(seat, str) or seat not in packet['all_seats'] or seat in seen:
             raise ValueError('Unknown or repeated commentary seat')
         seen.add(seat)
-        seat_points = checked_points(row['seat_changes'], [seat], packet, require_tcp_comparison=require_tcp_comparison)
+        seat_points = checked_points(row['seat_changes'], [seat], packet, require_tcp_comparison=require_tcp_comparison,
+                                     contextualise_counts=contextualise_counts)
         booth_points = checked_points(row['booth_evidence'], [seat], packet,
-                                     require_tcp_comparison=require_tcp_comparison, booth_points=True)
-        points = seat_points + booth_points
-        if not points:
-            if row['booth_evidence']:
+                                     require_tcp_comparison=require_tcp_comparison, booth_points=True,
+                                     contextualise_counts=contextualise_counts)
+        selected = local_points.pop(seat, None)
+        booth_points = [p for p in selected or [] if p not in seat_points and p not in booth_points] + booth_points
+        if not seat_points and not booth_points:
+            if row['booth_evidence'] or selected is not None:
                 continue  # All the proposed booth details lacked a usable comparison.
             raise ValueError('A seat commentary section needs at least one point')
-        sections.append({'seats': [seat], 'text': block('In {seat:' + seat + '}:', points)})
+        sections.append(district_section(seat, seat_points, booth_points))
+    # A headline may be the writer's only mention of a district. Its selected
+    # comparison still needs a visible home in the published report.
+    for seat, points in local_points.items():
+        if points:
+            sections.append(district_section(seat, [], points))
     if len(summary) + sum(len(section['text']) for section in sections) > 9000:
         raise ValueError('Commentary exceeds output size limit')
     return {'summary': summary, 'developments': sections, 'insufficient_evidence': response['insufficient_evidence']}
 
 
-def prepare_packet(packet):
+def prepare_packet(packet, version=PROMPT_VERSION):
     """Prepare display figures once for both the prompt and local checking."""
-    return dict(packet, display_figures=commentary_format.figures(packet),
+    return dict(packet, display_figures=commentary_format.figures(packet, use_median_seats=version in MEDIAN_SEATS_VERSIONS,
+                match_tcp_coverage=version in MATCHED_TCP_COVERAGE_VERSIONS,
+                contextualise_counts=version in COUNT_OUTLOOK_VERSIONS),
                 entities=commentary_format.entities(packet))
 
 
@@ -425,8 +828,9 @@ class Budget:
 
 
 class OpenAIClient:
-    def __init__(self, settings):
+    def __init__(self, settings, time_exchange=None):
         self.settings = settings
+        self.time_exchange = time_exchange
 
     def __call__(self, packet, timeout):
         import requests
@@ -434,8 +838,11 @@ class OpenAIClient:
         if not key:
             raise ValueError('OPENAI_API_KEY is not configured')
         payload = request_payload(packet, self.settings)
-        response = requests.post('https://api.openai.com/v1/responses', json=payload,
-                                 headers={'Authorization': f'Bearer {key}'}, timeout=(5, max(1, timeout)))
+        # The upload console measures the actual exchange. Building the
+        # prompt above and validating the returned commentary below are local work.
+        post = self.time_exchange(requests.post) if self.time_exchange else requests.post
+        response = post('https://api.openai.com/v1/responses', json=payload,
+                        headers={'Authorization': f'Bearer {key}'}, timeout=(5, max(1, timeout)))
         if not response.ok:
             raise RuntimeError(f'OpenAI request failed with HTTP {response.status_code}')
         result = response.json()
@@ -466,30 +873,38 @@ def prompt_messages(packet, settings):
                                         include_local_win_order=version == 'live-changes-10' or version in BOOTH_CONTEXT_VERSIONS,
                                         include_booth_context=version in BOOTH_CONTEXT_VERSIONS,
                                         include_unchanged_local_counts=version in SEPARATE_TREND_VERSIONS,
-                                        require_tcp_comparison=version == PROMPT_VERSION)
+                                        require_tcp_comparison=version in MATCHED_TCP_VERSIONS,
+                                        compact_booths=version in REPLACEMENT_TCP_VERSIONS,
+                                        match_tcp_coverage=version in MATCHED_TCP_COVERAGE_VERSIONS)
 
 
 def request_payload(packet, settings):
     version = settings.get('prompt_version', PROMPT_VERSION)
+    schema = POINT_SCHEMA if version in BULLET_VERSIONS else SCHEMA
+    if version in LOCAL_HEADLINE_VERSIONS:
+        schema = LINKED_POINT_SCHEMA
     payload = {'model': settings['model'], 'store': False,
                'input': prompt_messages(packet, settings),
                'prompt_cache_options': {'mode': 'explicit', 'ttl': '30m'},
                'service_tier': settings.get('service_tier', 'default'),
                'max_output_tokens': settings.get('max_output_tokens', 1600),
                'text': {'format': {'type': 'json_schema', 'name': 'live_changes', 'strict': True,
-                                   'schema': POINT_SCHEMA if version in BULLET_VERSIONS else SCHEMA}}}
+                                   'schema': schema}}}
     if settings.get('reasoning_effort'):
         payload['reasoning'] = {'effort': settings['reasoning_effort']}
     return payload
 
 
 def maximum_cost(packet, settings):
+    return _payload_maximum_cost(request_payload(packet, settings), settings)
+
+
+def _payload_maximum_cost(payload, settings):
     # UTF-8 bytes conservatively bound tokens. Count decoded message text, not
     # its JSON transport escaping (a transmitted \" is still just one quote in
     # the model's input). Include the output schema and a message-overhead allowance.
     # A cold 30-minute cache write costs 1.25 times ordinary input. Reserve that
     # rate even for the changing suffix so cache writes cannot exceed the cap.
-    payload = request_payload(packet, settings)
     input_bound = sum(len(block['text'].encode('utf-8')) for message in payload['input'] for block in message['content'])
     input_bound += len(json.dumps(payload['text']['format']['schema'], ensure_ascii=False).encode('utf-8'))+1024
     return (1.25*input_bound*settings['input_usd_per_million']+
@@ -533,16 +948,20 @@ def request_identity(packet, settings):
                         'prompt': settings.get('prompt_version', PROMPT_VERSION)})
 
 
-def generate(packet, settings, budget, deadline, client=None):
+def generate(packet, settings, budget, deadline, client=None, record_input=None):
     started = time.time()
     if started >= deadline:
         raise TimeoutError('Commentary deadline reached before request')
-    packet = prepare_packet(packet)
+    version = settings.get('prompt_version', PROMPT_VERSION)
+    packet = prepare_packet(packet, version)
     input_price = settings['input_usd_per_million']
     output_price = settings['output_usd_per_million']
     if input_price <= 0 or output_price <= 0:
         raise ValueError('Configure positive verified API prices before enabling paid requests')
-    reservation = maximum_cost(packet, settings)
+    payload = request_payload(packet, settings)
+    if record_input is not None:
+        record_input(payload['input'])
+    reservation = _payload_maximum_cost(payload, settings)
     configuration = request_configuration(settings)
     request_key = request_identity(packet, settings)
     identity = budget.reserve(request_key, reservation)
@@ -556,10 +975,11 @@ def generate(packet, settings, budget, deadline, client=None):
             raise TimeoutError('Commentary deadline reached before API dispatch')
         response, usage = (client or OpenAIClient(settings))(packet, min(settings.get('request_timeout_seconds', 120), deadline-time.time()))
         cost = usage_cost(usage, settings)
-        version = settings.get('prompt_version', PROMPT_VERSION)
         if version in BULLET_VERSIONS:
             validated = format_points(response, packet, include_booth_context=version in BOOTH_CONTEXT_VERSIONS,
-                                      require_tcp_comparison=version == PROMPT_VERSION)
+                                      require_tcp_comparison=version in MATCHED_TCP_VERSIONS,
+                                      link_local_headlines=version in LOCAL_HEADLINE_VERSIONS,
+                                      contextualise_counts=version in COUNT_OUTLOOK_VERSIONS)
         else:
             validated = validate(response, packet)
         result = {'status': 'complete', 'text': validated, 'format': 'inline-figures-v1',

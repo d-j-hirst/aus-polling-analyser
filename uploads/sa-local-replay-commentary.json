@@ -3,7 +3,7 @@
   "model": "gpt-6.1-terra",
   "service_tier": "default",
   "reasoning_effort": "low",
-  "prompt_version": "live-changes-16",
+  "prompt_version": "live-changes-37",
   "minimum_count_change": 10,
   "spending_limit_usd": 1,
   "input_usd_per_million": 1,

@@ -81,6 +81,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 environ.Env.read_env(os.path.join(BASE_DIR, 'uploads/.env'))
 if args.watch:
     from live_pipeline.run_settings import load_run
+    from live_pipeline.storage import RunLockBusy
     from live_pipeline.watch import run
     try:
         folder, _ = load_run(BASE_DIR, args.watch, allow_path=True)
@@ -91,7 +92,11 @@ if args.watch:
         destinations = [name for name, active in (
             ('local', upload_local), ('test', upload_test), ('remote', upload_remote)
         ) if active]
-    run(folder, destinations, args.commentary_config, args.once, args.prepare_only)
+    try:
+        run(folder, destinations, args.commentary_config, args.once, args.prepare_only)
+    except RunLockBusy:
+        raise SystemExit(f'A reporting worker is already running for {folder.name}. '
+                         'Stop the existing worker before restarting the upload manager.')
     raise SystemExit(0)
 AUTO_EMAIL = env('AUTO_EMAIL')
 AUTO_PASSWORD = env('AUTO_PASSWORD')

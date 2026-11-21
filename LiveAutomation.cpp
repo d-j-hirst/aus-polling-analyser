@@ -13,6 +13,7 @@
 #include <mutex>
 #include <thread>
 #include <regex>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <system_error>
@@ -79,10 +80,52 @@ void validateRunId(std::string const& id) {
     if (id.size() > 255 || !std::regex_match(id, slug) || std::regex_match(id, deviceName))
         throw std::runtime_error("Use a run ID with lowercase letters, digits and hyphens, starting with a letter or digit.");
 }
+std::optional<std::filesystem::path> newRunConflict(std::filesystem::path const& folder) {
+    auto const status = std::filesystem::symlink_status(folder);
+    if (!std::filesystem::exists(status)) return {};
+    if (!std::filesystem::is_directory(status)) return folder;
+    auto const manifest = folder/"run.json";
+    if (std::filesystem::exists(std::filesystem::symlink_status(manifest))) return manifest;
+
+    // Check the paths written by the watcher, publisher and diagnostics. A
+    // partial run may still contain counted votes or upload receipts even if
+    // its run.json is missing. The inbox and captures.txt are operator inputs.
+    static const std::set<std::string> runFiles = {
+        "run.json", "state.json", "status.json", "discovery.json", "arrival-status.json",
+        "forecast.lock", "publisher.lock", "reporting-status.json", "trial-status.json",
+        "commentary-budget.sqlite", "commentary-budget.sqlite-journal",
+        "commentary-budget.sqlite-wal", "commentary-budget.sqlite-shm"
+    };
+    static const std::set<std::string> outputFolders = {
+        "arrivals", "feeds", "history", "packages", "receipts", "daily-reports", "benchmark"
+    };
+    for (auto const& entry : std::filesystem::directory_iterator(folder)) {
+        auto name = LiveResultsInput::pathToUtf8(entry.path().filename());
+#ifdef _WIN32
+        // A differently capitalised name can still be the same Windows file.
+        for (char& c : name) {
+            if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+        }
+#endif
+        if (outputFolders.contains(name)) {
+            if (!std::filesystem::is_directory(entry.symlink_status())) return entry.path();
+            for (auto const& output : std::filesystem::recursive_directory_iterator(entry.path())) {
+                if (!std::filesystem::is_directory(output.symlink_status())) return output.path();
+            }
+        }
+        // Atomic writers can leave their temporary output behind after a crash.
+        if (name.ends_with(".tmp")) name.resize(name.size() - 4);
+        if (runFiles.contains(name)) return entry.path();
+        if (name.starts_with("snapshot_") && name.find("__run_") != std::string::npos &&
+            (name.ends_with(".json") || name.ends_with(".analysis.json.gz")))
+            return entry.path();
+    }
+    return {};
+}
 std::string suggestRunId(std::filesystem::path const& root, std::string const& election, std::string const& kind) {
     auto const base = election + "-" + kind;
     auto candidate = base;
-    for (int number = 2; std::filesystem::exists(root/"live_runs"/candidate); ++number)
+    for (int number = 2; newRunConflict(root/"live_runs"/candidate); ++number)
         candidate = base + "-" + std::to_string(number);
     return candidate;
 }
@@ -135,20 +178,25 @@ std::optional<std::string> captureCode(std::string const& name, std::string cons
 // The OS releases the run lock on a crash, so a stale lock filename is harmless.
 class ArrivalInbox {
 public:
-    ArrivalInbox(std::filesystem::path sourceDirectory,std::filesystem::path runDirectory,std::string term)
+    ArrivalInbox(std::filesystem::path sourceDirectory,std::filesystem::path runDirectory,std::string term,
+        bool newRun = false)
         : source(std::move(sourceDirectory)),folder(std::move(runDirectory)),election(std::move(term)) {
-        std::filesystem::create_directories(folder/"arrivals");
+        std::filesystem::create_directories(folder);
+        // A fresh run must claim the name exactly once, even when two GUIs
+        // both inspected the prepared folder before either saved its settings.
 #ifdef _WIN32
-        lease = CreateFileW((folder/"forecast.lock").c_str(),GENERIC_READ|GENERIC_WRITE,0,nullptr,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,nullptr);
+        lease = CreateFileW((folder/"forecast.lock").c_str(),GENERIC_READ|GENERIC_WRITE,0,nullptr,
+            newRun ? CREATE_NEW : OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,nullptr);
         if (lease == INVALID_HANDLE_VALUE) throw std::runtime_error("Another forecasting process owns this run, or its state is not writable.");
 #else
-        lease = ::open((folder/"forecast.lock").c_str(),O_RDWR|O_CREAT,0600);
+        lease = ::open((folder/"forecast.lock").c_str(),O_RDWR|O_CREAT|(newRun ? O_EXCL : 0),0600);
         if (lease < 0 || flock(lease,LOCK_EX|LOCK_NB)) {
             if (lease >= 0) ::close(lease);
             throw std::runtime_error("Another forecasting process owns this run, or its state is not writable.");
         }
 #endif
         try {
+            std::filesystem::create_directories(folder/"arrivals");
             discovery = std::filesystem::exists(folder/"discovery.json") ? readJson(folder/"discovery.json") : json::object();
             for (auto const& entry : std::filesystem::directory_iterator(folder/"arrivals"))
                 if (entry.path().extension() == ".json") ++collected;
@@ -262,21 +310,24 @@ Session::Session(std::filesystem::path workspace, json config) : root(std::move(
 }
 Session::~Session() = default;
 void Session::saveConfiguration(bool newRun) {
+    auto source = sourceFolder(root, settings);
+    bool const defaultInbox = source.lexically_normal() == (folder/"inbox").lexically_normal();
     if (newRun) {
-        std::filesystem::create_directories(folder.parent_path());
-        if (!std::filesystem::create_directory(folder))
-            throw std::runtime_error("This run ID is already in use. Open that run or choose a new ID.");
+        if (auto conflict = newRunConflict(folder))
+            throw std::runtime_error("Cannot start a new run here. Choose another ID or inspect: " + conflict->string());
     }
+    // An unavailable delivery location can be corrected without claiming a
+    // new ID. A missing default inbox will be created once we own the run.
+    if (!std::filesystem::is_directory(source) &&
+        (!defaultInbox || std::filesystem::exists(std::filesystem::symlink_status(source))))
+        throw std::runtime_error("Feed folder is unavailable: " + source.string());
     // Use the same forecast lock as Watch / Resume. This protects an existing
     // run from a configuration edit while another program instance is writing.
-    auto source = sourceFolder(root, settings);
-    ArrivalInbox lease(source, folder, settings.at("election"));
+    ArrivalInbox lease(source, folder, settings.at("election"), newRun);
     auto manifest = folder/"run.json";
     checkRunIdentity(manifest, settings);
-    if (source.lexically_normal() == (folder/"inbox").lexically_normal())
+    if (defaultInbox)
         std::filesystem::create_directories(source);
-    if (!std::filesystem::is_directory(source))
-        throw std::runtime_error("Feed folder is unavailable: " + source.string());
     if (std::filesystem::exists(folder/"state.json")) {
         ledger = readJson(folder/"state.json");
         if (ledger.value("state", "paused") == "armed") {

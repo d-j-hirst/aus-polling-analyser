@@ -73,6 +73,7 @@ private:
 	void loadPreviousPreferenceFlows();
 	void loadNcPreferenceFlows();
 	void loadPastSeatResults();
+	void prepareMissingGreensFpMedians();
 	void prepareCoalitionPreferenceHistory(std::vector<std::string> const& historicalSeats);
 	void loadSeatTypes();
 	void calculateRegionalProportion();

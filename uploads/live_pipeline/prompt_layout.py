@@ -75,6 +75,29 @@ def canonical(value):
     return json.dumps(value, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(',', ':'))
 
 
+def display_precision(value, places=3):
+    """Round only the presentation copy. Ballots and projected vote totals
+    use whole votes, while three decimals on an internal proportion preserve
+    a tenth of a percentage point. Checked public figures already carry their
+    own units and precision. Never round identifiers, timestamps or raw counts."""
+    if isinstance(value, dict):
+        result = {}
+        for key, item in value.items():
+            decimals = places
+            if (key.startswith('projected_') and 'votes' in key) or key in (
+                    'expected_formal', 'expected_remaining_fp', 'adjusted_first_votes_from_pending_fp',
+                    'prior_first_votes_from_pending_fp'):
+                decimals = 0
+            result[key] = display_precision(item, decimals)
+        return result
+    if isinstance(value, list):
+        return [display_precision(item, places) for item in value]
+    if isinstance(value, float):
+        rounded = round(value, places)
+        return int(rounded) if rounded.is_integer() else rounded
+    return value
+
+
 # Booth measures recur for many seats and windows. Give their long labels
 # once in the reusable election reference, including the units and denominator.
 BOOTH_MEASURES = {
@@ -144,7 +167,7 @@ def _share_unchanged_fields(event):
     return packed if len(canonical(packed)) < len(canonical(event)) else event
 
 
-def _prompt_event(event):
+def _prompt_event(event, *, compact_booth=False):
     """Keep the observations behind a selected booth comparison. The display
     tables already give checked differences from expectations and net additions.
     The long, unrounded projected party vectors used to derive those comparisons
@@ -152,6 +175,45 @@ def _prompt_event(event):
     equivalent in the display table, so keep its explanatory detail."""
     if event['kind'] != 'booths':
         return _share_unchanged_fields({k:v for k,v in event.items() if k not in ('id', 'interpretation')})
+    if compact_booth:
+        # The record identifies district, booth type, vote type and name.
+        # Use the forecast's candidate IDs directly when each ID represents
+        # one ballot entry. Preserve raw IDs and the explicit mapping in the
+        # exceptional case where conversion would merge two candidates.
+        result = {'booth': event['record']}
+        for time in ('before', 'after'):
+            source = event.get(time)
+            if source is None:
+                result[time] = None
+                continue
+            account = {}
+            aliases = source.get('count_to_projection_ids', {})
+            for label, key in (('FP', 'fp_votes_current'), ('TCP', 'tcp_votes_current')):
+                if key not in source:
+                    continue
+                raw = source[key]
+                mapped = {aliases.get(p, p): v for p, v in raw.items()}
+                if len(mapped) == len(raw):
+                    account[label] = mapped
+                else:
+                    account[label+'_raw'] = raw
+                    account['raw_to_candidate'] = aliases
+            result[time] = account
+        # An older saved comparison may still include the entire FP ledger
+        # on a TCP-only update. Drop it at both endpoints after resolving
+        # aliases. A missing field and an explicitly reported zero differ.
+        before, after = result['before'], result['after']
+        if before is not None and after is not None:
+            for ledger in ('FP', 'TCP'):
+                if ledger in before and ledger in after and before[ledger] == after[ledger]:
+                    del before[ledger]
+                    del after[ledger]
+        if event.get('pair_changed'):
+            result['replacement'] = True
+        comparison = event.get('tcp_against_previous_forecast')
+        if comparison:
+            result['booth_TCP_reference'] = comparison.get('expectation_kind') if comparison['available'] else None
+        return result
     result = {k:event[k] for k in ('kind', 'seat', 'record', 'pair_changed') if k in event}
     for time in ('before', 'after'):
         record = event.get(time)
@@ -165,6 +227,19 @@ def _prompt_event(event):
         else:
             result['tcp_comparison_unavailable'] = comparison['reason']
     return _share_unchanged_fields(result)
+
+
+def evidence_size(event, candidates):
+    """Charge the selected record and its booth-specific checked table against
+    the byte allowance. Column definitions are shared across the whole request.
+    Pricing each booth's enclosing district key separately is conservative."""
+    record = display_precision(_prompt_event(event, compact_booth=True))
+    size = len(canonical(record).encode('utf-8')) + 1
+    if event['kind'] == 'booths':
+        rows = commentary_format.booth_figures(event)
+        rows.extend(commentary_format.observed_booth_result(event, 'fp', candidates))
+        size += len(canonical(_figure_tables(rows)['context_figures']).encode('utf-8')) + 1
+    return size
 
 
 def _district_roster(packet):
@@ -184,7 +259,8 @@ def _district_roster(packet):
 
 
 def input_messages(packet, instructions, settings, *, include_local_win_order=False, include_booth_context=False,
-                   include_unchanged_local_counts=False, require_tcp_comparison=False):
+                   include_unchanged_local_counts=False, require_tcp_comparison=False, compact_booths=False,
+                   match_tcp_coverage=False):
     """Return stable-prefix messages with readable, checked display figures.
 
     The verbose numerical blocks are represented by rounded display figures.
@@ -203,8 +279,21 @@ def input_messages(packet, instructions, settings, *, include_local_win_order=Fa
                         'win_changes', 'seat_changes', 'statewide', 'observed_count_changes_by_seat',
                         'metrics', 'metric_contexts', 'display_figures', 'entities', 'seat_holders', 'booth_changes',
                         'evidence', 'category_transfers', 'close_tcp_counts', 'statewide_preference_changes',
-                        'district_fp_completion'}
+                        'district_fp_completion', 'replacement_tcp_counts'}
     comparison = {k: v for k, v in packet.items() if k not in duplicate_fields}
+    if packet.get('ranked_tcp_groups'):
+        # The checked tables carry both shares and the size of the original
+        # group. Supply its reporting locations separately from booth quotes
+        # so the writer can explain the update without changing denominators.
+        comparison['ranked_tcp_groups'] = {seat: [
+            {k: group[k] for k in ('category', 'pair', 'units', 'largest_reporting_booths')}
+            for group in groups] for seat, groups in packet['ranked_tcp_groups'].items()}
+        comparison['ranked_tcp_reading'] = (
+            'The two estimates follow exactly the same district ballots whose first preferences were known '
+            'but whose TCP was outstanding at the earlier forecast. The later figure combines new counts '
+            'with the ranked estimate for the remainder. Give the group comparison in seat_changes. '
+            'Name the reporting booth separately. Neither figure is an earlier estimate for an individual booth '
+            'or the district as a whole. This can help explain the direction of a forecast change.')
     if include_local_win_order and 'observed_count_changes_by_seat' in packet:
         # The win table is already ordered by absolute percentage-point change.
         # List each district once if its counts also changed during this window.
@@ -217,7 +306,8 @@ def input_messages(packet, instructions, settings, *, include_local_win_order=Fa
             if row['change_pp'] and not row.get('identity_changed'))
         comparison['local_seats_by_win_movement'] = [
             seat for seat in moving_districts if local_counts.get(seat, {}).get('affected_votes', 0) > 0]
-        if include_unchanged_local_counts and all('affected_votes' in counts for counts in local_counts.values()):
+        if (include_unchanged_local_counts and not packet.get('tcp_reporting_changes')
+                and all('affected_votes' in counts for counts in local_counts.values())):
             # An omitted booth is not evidence that counting stood still.
             # Name districts only when the full district totals account for
             # every observed change and history shows no extra activity between
@@ -243,7 +333,8 @@ def input_messages(packet, instructions, settings, *, include_local_win_order=Fa
         comparison['count_activity'] = {'known': activity.get('known'),
             'additional_activity_between_endpoints': activity['changed_votes'] > activity['endpoint_changed_votes']
             if 'endpoint_changed_votes' in activity else None}
-    comparison['identity_changes'] = [r for r in packet['win_changes'] if r.get('identity_changed')]
+    comparison['identity_changes'] = [{'seat': r['seat'], 'party_id': r['party_id'], 'identity': r.get('identity')}
+                                      for r in packet['win_changes'] if r.get('identity_changed')]
     if include_booth_context:
         figures = commentary_format.figures_with_booth_context(packet, require_tcp_comparison=require_tcp_comparison)
     else:
@@ -251,8 +342,29 @@ def input_messages(packet, instructions, settings, *, include_local_win_order=Fa
     # Repeating long quantity labels and object keys on every number doubles
     # the request without adding evidence. A labelled table keeps the subject,
     # units and before/after distinction while avoiding repeated metadata.
+    replacements = packet.get('replacement_tcp_counts', {})
+    if replacements:
+        # The validator keeps individually labelled figures. On the wire one
+        # row gives the entire district, including when its smallest booth was
+        # omitted from the detailed evidence or its earlier opponent differed.
+        # In current requests the observed share and its benchmark cover
+        # exactly the same booths. A null here means no matched comparison.
+        # Both district forecasts belong in the separate seat-level table.
+        fields = commentary_format.replacement_measures(match_tcp_coverage)
+        by_seat = {}
+        for seat, count in replacements.items():
+            rows = commentary_format.replacement_figures(seat, count, match_tcp_coverage=match_tcp_coverage)
+            values = {r['quantity']: r['value'] for r in rows}
+            by_seat[seat] = [count['previous_pair'], count['pair'], *(values.get(f) for f in fields)]
+        comparison['replacement_tcp'] = {'columns': ['earlier pair IDs', 'replacement pair IDs', *fields],
+                                         'by_district': by_seat}
+        figures = [r for r in figures if r['quantity'] not in fields]
     comparison.update(_figure_tables(figures))
-    comparison['evidence'] = [_prompt_event(event) for event in packet['evidence']]
+    follow_ups = {seat: counts['pair'] for seat, counts in packet.get('close_tcp_counts', {}).items()
+                  if counts.get('continued_realigned_count')}
+    if follow_ups:
+        comparison['continuing_realigned_tcp_pairs'] = follow_ups
+    comparison['evidence'] = [_prompt_event(event, compact_booth=compact_booths) for event in packet['evidence']]
     comparison['booth_summary_by_seat'] = {seat: {kind: group[kind]['text'] for kind in ('new', 'updated')}
         for seat, group in packet.get('booth_changes', {}).get('by_seat', {}).items()}
     boundary = {'mode': 'explicit', 'ttl': '30m'}
@@ -267,9 +379,9 @@ def input_messages(packet, instructions, settings, *, include_local_win_order=Fa
     data_guide = FORMAT + (booth_guide if include_booth_context else RAW_COUNTS) + ENTITIES_AND_OVERVIEW
     return [
         {'role': 'developer', 'content': [content(instructions+'\n\n'+data_guide)]},
-        {'role': 'user', 'content': [content('Election reference\n'+canonical(reference), True),
-                                   content('Current forecast overview\n'+canonical(shared), settings.get('cache_overview', True)),
-                                   content('Comparison evidence\n'+canonical(comparison), settings.get('cache_comparison', False))]}]
+        {'role': 'user', 'content': [content('Election reference\n'+canonical(display_precision(reference)), True),
+                                   content('Current forecast overview\n'+canonical(display_precision(shared, 2)), settings.get('cache_overview', True)),
+                                   content('Comparison evidence\n'+canonical(display_precision(comparison)), settings.get('cache_comparison', False))]}]
 
 
 def sizes(messages):

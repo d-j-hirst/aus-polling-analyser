@@ -23,7 +23,7 @@ public:
 	// entries rather than maintaining an independent list of files to open.
 	enum class File {
 		Preferences, PriorResults, SeatTypes, PastSeatResults, TppSwingFactors,
-		GreensStatistics, IndependentStatistics, OthersStatistics,
+		GreensStatistics, GreensFpPriors, IndependentStatistics, OthersStatistics,
 		GreensIndependentCorrelation, IndependentEmergence,
 		PopulistStatistics, PopulistModifiers, CentristStatistics, CentristModifiers,
 		IndividualSeats, NationalsParameters, NationalsSeats,

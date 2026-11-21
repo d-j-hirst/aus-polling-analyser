@@ -63,7 +63,7 @@ Discovery discover(std::filesystem::path const& folder,
     else if (federal)
         pattern = std::regex("^aec-mediafeed-(?:results-)?detailed(?:-light)?-([0-9]+)-([0-9]{14})\\.(?:zip|xml)$", std::regex::icase);
     else if (election.size() == 7 && election.substr(4) == "vic")
-        pattern = std::regex("^state" + election.substr(0, 4) + "mediafilelitepplh_([0-9]{8})_([0-9]{6})\\.(?:zip|xml)$", std::regex::icase);
+        pattern = std::regex("^state" + election.substr(0, 4) + "mediafilelitepplh(?:v2)?_([0-9]{8})_([0-9]{6})\\.(?:zip|xml)$", std::regex::icase);
     else if (election.size() == 7 && election.substr(4) == "qld")
         pattern = std::regex("^([0-9]{14})_publicresults\\.(?:zip|xml)$", std::regex::icase);
     else if (election.size() == 6 && election.substr(4) == "wa")

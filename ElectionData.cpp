@@ -623,6 +623,9 @@ void Results2::Election::preload2022Vic(tinyxml2::XMLDocument const& input_candi
 {
   const std::map<std::string, std::string> shortCodes = {
     {"The Australian Greens - Victoria", "GRN"},
+    {"Australian Greens Victoria", "GRN"},
+    {"One Nation Victoria", "ONP"},
+    {"Australian Democrats", "DEM"},
     {"Australian Labor Party - Victorian Branch", "ALP"},
     {"Liberal Party of Australia - Victorian Division", "LNP"},
     // Liberal and National candidates have separate identities. A project may
@@ -726,6 +729,17 @@ void Results2::Election::preload2022Vic(tinyxml2::XMLDocument const& input_candi
         districtContext + "/PollingPlaces/PollingPlace/PollingPlaceIdentifier", 0);
       booth.name = requiredAttribute(boothIdentifier, "Name",
         districtContext + "/PollingPlaces/PollingPlace/PollingPlaceIdentifier");
+      // Ordinary locations have their own forecast and historical comparison.
+      // VEC V2 also identifies early centres and mobile teams. Their counts
+      // contribute to one Early estimate per district until we model their
+      // individual sizes. Retain their IDs to recognise the detailed rows.
+      std::string_view classification = boothIdentifier.Attribute("Classification") ?
+        boothIdentifier.Attribute("Classification") : "";
+      if (classification == "EarlyVotingCentre" || classification == "MobileVoting") {
+        vecEarlyLocationIds.insert(booth.id);
+        currentBooth = currentBooth->NextSiblingElement("PollingPlace");
+        continue;
+      }
       booth.parentSeat = seatId;
       booths[booth.id] = booth;
       currentBooth = currentBooth->NextSiblingElement("PollingPlace");
@@ -805,6 +819,9 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
     {"SUSTAINABLE AUSTRALIA", 91},
     {"AUSTRALIAN GREENS", 4},
     {"AUSTRALIAN LABOR PARTY", 5},
+    {"AUSTRALIAN LABOR PARTY - VICTORIAN BRANCH", 5},
+    {"PAULINE HANSON'S ONE NATION", 88},
+    {"FAMILY FIRST VICTORIA", 101},
     {"LABOUR DLP", 7},
     {"SHOOTERS, FISHERS & FARMERS VIC", 28},
     {"VICTORIAN SOCIALISTS", 90},
@@ -2708,6 +2725,15 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 
   std::set<int> boothIdsPresent;
 
+  auto districtVoteType = [format](std::string const& name) {
+    // The V2 district rows are disjoint. Early is the residual early count,
+    // alongside early-centre and mobile votes. Their sum is comparable with
+    // the single Early category published in 2022.
+    if (format == Format::VEC && (name == "EVCEarly" || name == "MobileVotingEarly")) return VoteType::Early;
+    auto found = typeNameToVoteType.find(name);
+    return found == typeNameToVoteType.end() ? VoteType::Invalid : found->second;
+  };
+
   while (currentContest) {
     Seat seat;
     auto contestIdFinder = [&]() -> tinyxml2::XMLElement const* {
@@ -2759,6 +2785,20 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
       seatContext + "/Enrolment", 0);
 
     auto const& firstPrefs = requiredChild(*currentContest, "FirstPreferences", seatContext);
+    // In the normal lower-house feed the candidate totals are broken down
+    // by vote type and the ordinary booths are listed. VEC's late V2 samples
+    // also contain contests with only district-wide candidate totals, both
+    // before and after declaration.
+    // Those totals cannot be attributed to services. Leave their current
+    // records absent so recovery can retain earlier detailed counts while
+    // other districts continue updating from this same capture.
+    bool const vecWithoutLocations = format == Format::VEC && !currentContest->FirstChildElement("PollingPlaces");
+    auto firstVoteType = [&](tinyxml2::XMLElement const& candidate, std::string const& group)
+      -> tinyxml2::XMLElement const* {
+      if (vecWithoutLocations && candidate.FirstChildElement("Votes") && !candidate.FirstChildElement("VotesByType"))
+        return nullptr;
+      return requiredChild(candidate, "VotesByType", seatContext + "/" + group + "/Candidate").FirstChildElement("Votes");
+    };
     auto currentCandidate = firstPrefs.FirstChildElement("Candidate");
     while (currentCandidate) {
       Candidate candidate;
@@ -2809,16 +2849,15 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
         parties[Candidate::Independent].name = "Independent";
         candidates[candidate.id] = candidate;
       }
-      auto const& votesByType = requiredChild(*currentCandidate, "VotesByType",
-        seatContext + "/FirstPreferences/Candidate");
-      auto fpVoteType = votesByType.FirstChildElement("Votes");
+      auto fpVoteType = firstVoteType(*currentCandidate, "FirstPreferences");
       while (fpVoteType) {
         std::string typeName = requiredAttribute(*fpVoteType, "Type",
           seatContext + "/FirstPreferences/Candidate/VotesByType/Votes");
+        auto const category = districtVoteType(typeName);
         int fpCount = readCount(fpVoteType,
           seatContext + "/FirstPreferences/Candidate/VotesByType/Votes", seat.id, 0,
-          typeNameToVoteType.contains(typeName) ? typeNameToVoteType.at(typeName) : VoteType::Invalid, false);
-        if (typeNameToVoteType.contains(typeName)) seat.fpVotes[candidate.id][typeNameToVoteType[typeName]] += fpCount;
+          category, false);
+        if (category != VoteType::Invalid) seat.fpVotes[candidate.id][category] += fpCount;
         fpVoteType = fpVoteType->NextSiblingElement("Votes");
       }
 
@@ -2858,18 +2897,24 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
         
         auto candidateId = candidateIdFinder();
         int partyId = candidates.at(candidateId).party;
-        auto const& votesByType = requiredChild(*currentCandidate, "VotesByType",
-          seatContext + "/TwoCandidatePreferred/Candidate");
-        auto tcpVoteType = votesByType.FirstChildElement("Votes");
+        auto tcpVoteType = firstVoteType(*currentCandidate, "TwoCandidatePreferred");
+        int vecEarlyVotes = 0;
         while (tcpVoteType) {
           std::string typeName = requiredAttribute(*tcpVoteType, "Type",
             seatContext + "/TwoCandidatePreferred/Candidate/VotesByType/Votes");
+          auto const category = districtVoteType(typeName);
           int tcpCount = readCount(tcpVoteType,
             seatContext + "/TwoCandidatePreferred/Candidate/VotesByType/Votes", seat.id, 0,
-            typeNameToVoteType.contains(typeName) ? typeNameToVoteType.at(typeName) : VoteType::Invalid, true);
+            category, true);
           // Note: for NSWEC the PP/PR categories are always zero - will need to extract them from the booth data
-          if (typeNameToVoteType.contains(typeName)) seat.tcpVotes[partyId][typeNameToVoteType[typeName]] = tcpCount;
-          if (typeNameToVoteType.contains(typeName)) seat.tcpVotesCandidate[candidateId][typeNameToVoteType[typeName]] = tcpCount;
+          if (format == Format::VEC && category == VoteType::Early) {
+            vecEarlyVotes += tcpCount;
+            tcpCount = vecEarlyVotes;
+          }
+          if (category != VoteType::Invalid) {
+            seat.tcpVotes[partyId][category] = tcpCount;
+            seat.tcpVotesCandidate[candidateId][category] = tcpCount;
+          }
 
           tcpVoteType = tcpVoteType->NextSiblingElement("Votes");
         }
@@ -2878,8 +2923,8 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
       }
     }
 
-    auto const& boothsEl = requiredChild(*currentContest, "PollingPlaces", seatContext);
-    auto currentBooth = boothsEl.FirstChildElement("PollingPlace");
+    auto currentBooth = vecWithoutLocations ? nullptr :
+      requiredChild(*currentContest, "PollingPlaces", seatContext).FirstChildElement("PollingPlace");
     while (currentBooth) {
       auto const& boothIdEl = requiredChild(*currentBooth,
         "PollingPlaceIdentifier", seatContext + "/PollingPlaces/PollingPlace");
@@ -2894,6 +2939,10 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
       }
       booth.id = requiredIntAttribute(boothIdEl, "Id",
         seatContext + "/PollingPlaces/PollingPlace/PollingPlaceIdentifier", 0);
+      if (format == Format::VEC && vecEarlyLocationIds.contains(booth.id)) {
+        currentBooth = currentBooth->NextSiblingElement("PollingPlace");
+        continue; // Already counted in the district Early records above.
+      }
       if (format == Format::NSWEC) booth.id += seat.id * 100000; // create unique booth ID for booths with the same name in different seats
       boothIdsPresent.emplace(booth.id);
       if (booths.contains(booth.id)) booth = booths[booth.id]; // maintain already existing data

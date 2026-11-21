@@ -48,6 +48,40 @@ the centrist/populist baseline retain numerical bounds of 0.01--99% before the
 log-odds transformation. These bounds keep the calculation finite; they are not
 guaranteed final candidate shares.
 
+## Greens standing after missing a district
+
+The ordinary Greens calculation starts from their previous district result.
+When the Greens field a candidate in a seat they previously missed, the model
+instead needs a starting estimate of their share of formal first preferences.
+The result is missing even though the previous election's total formal vote
+is known. A recorded Greens result rounded to zero still uses the ordinary
+historical calculation.
+
+When there is comparable older evidence, an election can supply a median
+percentage by current district name in `analysis/seats/<election>-greens-fp-priors.json`.
+The SA replay uses 2018 votes on the 2022 boundaries, all available before
+the 2026 election. The estimates are 3.1% in Narungga, 2.5% in MacKillop,
+3.1% in Mount Gambier and 5.6% in Ngadjuri. The last figure uses redistributed
+Frome because the original district included Port Pirie. Sources are the
+2022 election guides for [Narungga](https://www.abc.net.au/news/elections/sa/2022/guide/naru),
+[MacKillop](https://www.abc.net.au/news/elections/sa/2022/guide/mack),
+[Mount Gambier](https://www.abc.net.au/news/elections/sa/2022/guide/moun) and
+[Frome](https://www.abc.net.au/news/elections/sa/2022/guide/from).
+
+Without a local estimate the model assumes a median of 2%. Skipping a
+district previously suggests relatively weak support, but leaves considerable
+uncertainty. Both kinds of estimate use a normal distribution on the model's
+log-odds scale. Around the 2% median, the middle 90% spans approximately
+0.5–7.7% before any other evidence. These are assumptions about support when
+standing. A known ballot, or the usual minor-party contest selection before
+nominations are known, determines whether there is a candidate in that draw.
+
+Local viability, odds and seat polls still apply to the resulting estimate.
+The election-wide FP target is reconciled across seats as usual. The starting
+estimate supplies no historical votes to turnout, swing or live booth comparisons.
+Published intervals can differ from this initial range once these steps and
+live counting evidence have been applied.
+
 ## Polling, odds and the overall forecast
 
 The baseline profile adjustment precedes local FP-poll integration. Polls can

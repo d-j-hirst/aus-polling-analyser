@@ -100,13 +100,13 @@ FP and classic TCP together for preference calibration and retains one classic
 account per reporting location for the joint TPP estimate. The published pair
 continues to supply the current TCP and its count progress.
 
-After a small FP recheck, the earlier classic count can still anchor the
+Once the replacement pair is reporting, an earlier classic count can still anchor the
 received-vote estimate. The accepted history permits downward primary changes
 totalling up to two ballots or 0.5% of the original FP, whichever is larger.
 The model applies the same candidate revision calculation as above. If the
 original FP was ahead of TCP, the original gap also contributes to the feasible
 range of transfers. Only the lower bound for each side counts as measured.
-An earlier count with more TCP than FP is excluded from this revised estimate.
+An earlier count with more TCP than its original FP is excluded from this revised estimate.
 The archive records the original counts and any resulting bounds under
 `retained_tpp`. This pathway requires compulsory preferences.
 
@@ -116,6 +116,34 @@ earlier booth counts for the last pair that reported. The earlier observations
 keep their original clocks. The first positive replacement count accepted
 by input recovery switches the whole district to the new pair. Reported TCP
 progress continues to follow the published pair throughout the handover.
+
+During the zero-count gap, the forecast can adjust the last usable compulsory
+TCP for the booth's revised primaries. It adds up the decreases for individual
+candidates since the FP count that accompanied the TCP. Up to two ballots or
+5% of that original FP total, whichever is larger, can be removed. A transfer
+between candidates counts even if the booth total stays the same. Above this
+safeguard the booth uses its current primaries to estimate the withdrawn pair.
+The 5% allowance is a modelling choice. Even a small recheck can change a
+provisional TCP for reasons the primary counts do not reveal.
+
+An ordinary booth or PPVC can use the same calculation for an unfinished TCP
+if it covered at least 95% of the original FP and passes the count checks
+against the revised primaries. The model varies the allocation of the missing
+and revised ballots. The separate 2% limit on the difference between the
+original FP and TCP totals still applies when learning flows for other booths.
+
+For example, Mypolonga in Hammond had 301 TCP votes from 314 primaries.
+Moving one primary between minor candidates left a feasible Labor tally of
+137 to 152 across those 314 ballots. This allows for both the 13 missing
+preferences and the changed ballot. At Palmer, removing 11 of 268 primaries
+left a feasible Labor tally of 116 to 132 of the 257 remaining ballots.
+At Victor Harbor East in Finniss, removing 13 of 977 primaries still left
+958 earlier TCP votes to inform the estimate. Basham's feasible tally was
+417 to 443 of the revised 964 formal ballots. The returning count gave him 429.
+These bounds describe the effect of the known FP changes on the earlier TCP.
+At Port Elliot the same calculation allowed 274 to 284 Basham votes out of
+710, while the later count recorded 269 out of 711. A preliminary TCP can
+itself be corrected independently of the FP recheck.
 
 Booth-type and declaration-vote biases compare each category with election-day
 polling places in the same district. Their weights use the Labor–Coalition

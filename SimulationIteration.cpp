@@ -18,6 +18,7 @@
 #include "LiveFpTpp.h"
 #include "MajorPartyFpMath.h"
 #include "MinorPartyFpMath.h"
+#include "GreensFpPrior.h"
 #include "SpecialPartyCodes.h"
 #include "PollingProject.h"
 #include "RandomGenerator.h"
@@ -922,7 +923,9 @@ void SimulationIteration::determineMinorPartyContests()
 				uint32_t(VariabilityTag::MinorPartySeatPriority));
 			double priority = rng.flexibleDist(seatMod, seatMod * 0.2, seatMod * 0.6, 3.0, 6.0, quantile);
 			seatPriorities.push_back({ seatIndex, priority });
-			// Make sure this seat is able to be contested later on for this party
+			// Include parties that could stand here when iterating over candidates.
+			// This zero is a placeholder in the iteration's private copy. The
+			// distinction from a recorded zero is preserved during preparation.
 			pastSeatResults[seatIndex].fpVotePercent.insert({ partyIndex, 0.0 });
 		}
 
@@ -1377,7 +1380,8 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		bool effectivePopulist = partyIndex >= Mp::Others && !effectiveGreen && !effectiveIndependent &&
 			(overallFpSwing.contains(partyIndex) || contains(run.seatProminentMinors[seatIndex], partyIndex));
 		if (effectiveGreen) {
-			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.greensSeatStatistics);
+			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.greensSeatStatistics,
+				run.missingGreensFpMedian[seatIndex]);
 		}
 		// Independents use the continuing-candidate model when incumbent,
 		// confirmed, or sampled as a possible recontest before the ballot is
@@ -1426,7 +1430,8 @@ void SimulationIteration::determineSpecificPartyFp(
 	int seatIndex,
 	int partyIndex,
 	double& voteShare,
-	SimulationRun::SeatStatistics const& seatStatistics)
+	SimulationRun::SeatStatistics const& seatStatistics,
+	std::optional<double> missingGreensMedian)
 {
 	Seat const& seat = run.seatLookup.seat(seatIndex);
 	int const incumbentPartyIndex = project.parties().idToIndex(seat.incumbent);
@@ -1450,16 +1455,31 @@ void SimulationIteration::determineSpecificPartyFp(
 		voteShare = 0.0;
 		return;
 	}
-	double modifiedVoteShare = voteShare;
 	// A returning candidate's observed primary already captures the profile
 	// represented by minor viability; multiplying it would count that twice.
 	double minorViability = returningUnsuccessfulIndependent ? 0.0 : getAt(
 		run.seatMinorViability[seatIndex], partyIndex, 0.0);
 	double minorVoteMod = MinorPartyFpMath::viabilityMultiplier(minorViability);
-	modifiedVoteShare = std::clamp<double>(
-		modifiedVoteShare * minorVoteMod, 0.01, 99.0);
+	double const modifiedVoteShare = std::clamp<double>(
+		missingGreensMedian.value_or(voteShare) * minorVoteMod, 0.01, 99.0);
 
 	double transformedFp = transformVoteShare(modifiedVoteShare);
+	if (missingGreensMedian) {
+		// A new local candidacy has no last-election vote from which to
+		// calculate a swing or a recontest rate. The ballot or this draw's
+		// contest selection determines whether anyone stands. Conditional on
+		// standing, sample around the prepared current-election estimate.
+		// Statewide FP reconciliation and live booth evidence still follow.
+		if (!seatContested.at(partyIndex)[seatIndex]) {
+			voteShare = 0.0;
+			return;
+		}
+		double const variation = variabilityNormal(0.0, GreensFpPrior::TransformedSd,
+			seatIndex, partyIndex, uint32_t(VariabilityTag::MinorQuantile));
+		voteShare = specificPartyFpWithLocalEvidence(
+			seatIndex, partyIndex, transformedFp, variation, minorVoteMod);
+		return;
+	}
 	double seatStatisticsExact = (std::clamp<double>(transformedFp, seatStatistics.scaleLow, seatStatistics.scaleHigh)
 		- seatStatistics.scaleLow) / seatStatistics.scaleStep;
 	int seatStatisticsLower = int(std::floor(seatStatisticsExact));
@@ -1546,6 +1566,34 @@ void SimulationIteration::determineSpecificPartyFp(
 	if (seat.sophomoreCandidate && project.parties().idToIndex(seat.incumbent) == partyIndex) {
 		transformedFp += sophomoreMixed;
 	}
+	double quantile = partyIndex == run.indPartyIndex ?
+		variabilityBeta(indAlpha, indBeta, seatIndex, partyIndex, uint32_t(VariabilityTag::MinorQuantile)) :
+		variabilityUniform(0.0, 1.0, seatIndex, partyIndex, uint32_t(VariabilityTag::MinorQuantile));
+	double variableVote = rng.flexibleDist(0.0, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed, quantile);
+	double const regularVoteShare = specificPartyFpWithLocalEvidence(
+		seatIndex, partyIndex, transformedFp, variableVote, minorVoteMod);
+
+	if (partyIndex == run.indPartyIndex &&
+		incumbentPartyIndex != run.indPartyIndex &&
+		!returningUnsuccessfulIndependent) {
+		// Add potential re-runs under "Emerging Independent" instead
+		voteShare = 0.0;
+		seatFpVoteShare[seatIndex][EmergingIndIndex] = regularVoteShare;
+	}
+	else {
+		voteShare = regularVoteShare;
+	}
+}
+
+// Combine the seat's initial estimate and its sampled variation (both on the
+// transformed FP scale) with candidate prominence, betting odds and local polls.
+// Both a returning party and a Greens candidate with an older or generic prior
+// pass through this step once. The returned share is a percentage of formal
+// first preferences before statewide reconciliation and live count integration.
+double SimulationIteration::specificPartyFpWithLocalEvidence(int seatIndex, int partyIndex,
+	double transformedFp, double localVariation, double minorVoteMod) const
+{
+	auto const& seat = run.seatLookup.seat(seatIndex);
 	if (partyIndex >= Mp::Others && contains(run.seatProminentMinors[seatIndex], partyIndex))
 	{
 		transformedFp += variabilityUniform(0.0, 15.0, seatIndex, partyIndex, uint32_t(VariabilityTag::ProminentMinorPreBonus));
@@ -1558,16 +1606,12 @@ void SimulationIteration::determineSpecificPartyFp(
 	else if (run.oddsFinalMeans.contains({ seatIndex, partyIndex })) {
 		transformedFp = mix(transformedFp, run.oddsFinalMeans.at({seatIndex, partyIndex}), OddsWeight);
 	}
-	double quantile = partyIndex == run.indPartyIndex ?
-		variabilityBeta(indAlpha, indBeta, seatIndex, partyIndex, uint32_t(VariabilityTag::MinorQuantile)) :
-		variabilityUniform(0.0, 1.0, seatIndex, partyIndex, uint32_t(VariabilityTag::MinorQuantile));
-	double variableVote = rng.flexibleDist(0.0, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed, quantile);
-	transformedFp += variableVote;
+	transformedFp += localVariation;
 	// Update generated local support with this named party's FP polls. Keep
 	// IND's existing eligibility: confirmed new candidates are handled separately,
 	// and only returning unsuccessful INDs use polls at this point. All candidate
 	// and recontest checks above still apply before any poll can affect a draw.
-	if (partyIndex != run.indPartyIndex || returningUnsuccessfulIndependent) {
+	if (partyIndex != run.indPartyIndex || seat.previousIndRunning) {
 		transformedFp = applySeatFpPolls(
 			seatIndex, partyIndex, transformedFp);
 	}
@@ -1595,18 +1639,7 @@ void SimulationIteration::determineSpecificPartyFp(
 	}
 
 	constexpr double MaxSpecificPartyFpShare = 99.0;
-	regularVoteShare = std::min<double>(regularVoteShare, MaxSpecificPartyFpShare);
-
-	if (partyIndex == run.indPartyIndex &&
-		incumbentPartyIndex != run.indPartyIndex &&
-		!returningUnsuccessfulIndependent) {
-		// Add potential re-runs under "Emerging Independent" instead
-		voteShare = 0.0;
-		seatFpVoteShare[seatIndex][EmergingIndIndex] = regularVoteShare;
-	}
-	else {
-		voteShare = regularVoteShare;
-	}
+	return std::min<double>(regularVoteShare, MaxSpecificPartyFpShare);
 }
 
 // Connect one generated seat/party share to its prepared local poll evidence.

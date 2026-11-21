@@ -5,6 +5,7 @@
 // live forecasts also use LivePreparation to obtain and interpret reported votes.
 
 #include "SimulationPreparation.h"
+#include "GreensFpPrior.h"
 #include "LiveAggregation.h"
 #include "LivePartyMapping.h"
 #include "CoalitionCandidacy.h"
@@ -404,6 +405,7 @@ void SimulationPreparation::prepareForIterations()
 	loadIndividualSeatParameters();
 	loadPastSeatResults();
 	validatePastSeatResults();
+	prepareMissingGreensFpMedians();
 
 	// Combine historical estimates with configured local circumstances, such as
 	// a retiring MP, to prepare each seat's expected TPP adjustment. Compare its
@@ -1684,6 +1686,30 @@ void SimulationPreparation::loadPastSeatResults()
 	}
 	if (run.useSeparateCoalitionPreferenceAccounting) {
 		prepareCoalitionPreferenceHistory(historicalSeats);
+	}
+}
+
+// Ordinary Greens forecasts start from the previous local result, including
+// the selected predecessor district where boundaries changed. Establish a
+// separate prior for the other districts once, before iterations simulate
+// candidacy. It supplies no historical ballots, booth swings or turnout.
+void SimulationPreparation::prepareMissingGreensFpMedians()
+{
+	run.missingGreensFpMedian.assign(run.pastSeatResults.size(), std::nullopt);
+	if (run.grnPartyIndex < 0) return;
+	auto const& path = inputFile(SimulationInputs::File::GreensFpPriors);
+	auto input = run.preparationInputs->open(path);
+	GreensFpPrior::DistrictMedians olderEstimates;
+	try {
+		olderEstimates = GreensFpPrior::readDistrictMedians(input);
+	}
+	catch (std::exception const& error) {
+		throw Exception("Invalid Greens FP estimates in " + path + ": " + error.what());
+	}
+	for (int index = 0; index < project.seats().count(); ++index) {
+		auto const& previous = run.pastSeatResults[index].fpVotePercent;
+		run.missingGreensFpMedian[index] = GreensFpPrior::missingResultMedian(
+			previous.contains(run.grnPartyIndex), run.seatLookup.seat(index).name, olderEstimates);
 	}
 }
 

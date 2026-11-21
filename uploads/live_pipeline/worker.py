@@ -11,8 +11,9 @@ from functools import lru_cache
 from pathlib import Path
 import time
 
-from . import activity, commentary, comparisons, reporting_days
+from . import activity, commentary, comparisons, reporting_days, rule_commentary, tcp_reporting
 from .storage import atomic, fingerprint, read
+from .vote_type_names import VoteTypeNames
 
 
 def utc(seconds=None):
@@ -30,8 +31,14 @@ class Processor:
     def __init__(self, folder, settings=None, client=None):
         self.folder = Path(folder)
         self.config = read(self.folder / 'run.json')
+        self.vote_type_names = VoteTypeNames(self.config['election'])
         reporting_days.schedule(self.config)  # Reject invalid reporting hours before any API call.
-        self.settings = settings or {'enabled': False}
+        self.settings = dict(settings or {'enabled': False})
+        # This switch affects only the frozen website text. Toggling it must
+        # not change an AI request identity, reserve credit or resend a call.
+        self.compare_writers = self.settings.pop('compare_writers', False)
+        if not isinstance(self.compare_writers, bool):
+            raise ValueError('compare_writers must be true or false')
         self.minimum_count_change = self.settings.get('minimum_count_change', 10)
         if not isinstance(self.minimum_count_change, int) or self.minimum_count_change < 1:
             raise ValueError('minimum_count_change must be a positive number of votes')
@@ -41,14 +48,18 @@ class Processor:
         self.client = client
         self.executor = ThreadPoolExecutor(max_workers=max(1, min(8, self.settings.get('concurrency', 4))))
         self.pending = {}
+        self.received = set()
+        self.awaiting_timing = {}
         self.budget = None
         if self.settings.get('enabled'):
             self.budget = commentary.Budget(self.folder/'commentary-budget.sqlite', self.settings['spending_limit_usd'])
-        self.status = {}
+        self.last_status = None
+        self.status_written_at = 0
+        self.status_write_error = None
         self.closing = False
         self.summary_index = {}
         self.released = set()
-        self.load_summary = lru_cache(maxsize=16)(lambda identity: read(self.folder/'packages'/identity/'summary.json'))
+        self.load_summary = lru_cache(maxsize=16)(lambda identity: comparisons.comparison_summary(self.folder/'packages'/identity))
 
     def close(self):
         # Running HTTP calls have finite timeouts; preserve their eventual local
@@ -62,6 +73,43 @@ class Processor:
             if future.done():
                 atomic(path, future.result())
                 del self.pending[key]
+        self.log_finished_commentary()
+
+    def log_finished_commentary(self):
+        # Most forecasts have all their replies by publication. If a request
+        # is still in flight at the deadline, report its actual end when it
+        # returns. Only the console and local receipts use these timings.
+        for package, (keys, deadline) in list(self.awaiting_timing.items()):
+            if not keys.isdisjoint(self.pending):
+                continue
+            receipts = []
+            for key in keys:
+                path = package/'commentary'/f'{key}.json'
+                if path.exists():
+                    receipts.append(read(path))
+            spans = [r.get('request_timing', {}) for r in receipts]
+            starts = [s['first_sent_at'] for s in spans if 'first_sent_at' in s]
+            ends = [s['last_received_at'] for s in spans if 'last_received_at' in s]
+            complete = sum(r['status'] == 'complete' for r in receipts)
+            identity = f"{self.config['run_id']}/{package.name}"
+            message = f"Commentary for {identity}: {complete}/{len(keys)} distinct comparisons completed."
+            # Older saved replies lack exchange timestamps. A timeout without
+            # a reply likewise cannot supply a last-response time.
+            if any('request_timing' not in r for r in receipts):
+                message += ' Full request timing unavailable.'
+            elif starts and ends and max(ends) >= min(starts):
+                seconds = max(ends) - min(starts)
+                message += f' First request to last response: {seconds:.1f}s.'
+                if max(ends) > deadline:
+                    message += ' Last response arrived after the publication deadline.'
+            elif ends:
+                message += ' Clock readings do not give a valid elapsed time.'
+            elif starts:
+                message += ' No API response received.'
+            else:
+                message += ' No recorded API request.'
+            print(message, flush=True)
+            del self.awaiting_timing[package]
 
     def request(self, packet, deadline, result_path, cache_overview):
         started_path = result_path.with_suffix('.started.json')
@@ -77,19 +125,39 @@ class Processor:
                                  'finished_at': utc()})
             return
         atomic(started_path, {'queued_at': utc(), 'deadline': utc(deadline)})
-        atomic(result_path.with_suffix('.input.json'), packet)
-        self.pending[key] = (self.executor.submit(self.perform, packet, deadline, cache_overview), result_path)
+        self.pending[key] = (self.executor.submit(self.perform, packet, deadline, cache_overview,
+                                                  result_path.with_suffix('.input.json')), result_path)
 
-    def perform(self, packet, deadline, cache_overview=False):
+    def perform(self, packet, deadline, cache_overview=False, input_path=None):
         errors = []
+        timing = {}
+        # Each distinct comparison has its own worker and may retry. Save the
+        # first dispatch across attempts and the last actual reply, even if a
+        # reply is subsequently rejected. UTC epoch times also span restarts.
+        def time_exchange(send):
+            def measured(*args, **kwargs):
+                timing.setdefault('first_sent_at', time.time())
+                response = send(*args, **kwargs)
+                timing['last_received_at'] = time.time()
+                return response
+            return measured
+        settings = dict(self.settings, cache_overview=cache_overview)
+        client = (commentary.OpenAIClient(settings, time_exchange) if self.client is None
+                  else time_exchange(self.client))
         maximum = max(1, min(3, self.settings.get('attempts', 2)))
+        # requests.json holds the local working evidence. Archive the actual
+        # message text and cache boundaries once, using the same payload that
+        # determines the spending reservation. Preparation belongs to this
+        # comparison's worker, so other timeframes can proceed independently.
+        def record_input(messages):
+            if input_path is not None and not input_path.exists():
+                atomic(input_path, {'format': 'commentary-messages-v1', 'input': messages})
         for attempt in range(maximum):
             if time.time() >= deadline:
                 break
             try:
-                settings = dict(self.settings, cache_overview=cache_overview)
-                result = commentary.generate(packet, settings, self.budget, deadline, self.client)
-                result.update(finished_at=utc(), attempts=attempt+1)
+                result = commentary.generate(packet, settings, self.budget, deadline, client, record_input)
+                result.update(finished_at=utc(), attempts=attempt+1, request_timing=timing)
                 return result
             except Exception as error:
                 errors.append(str(error))
@@ -99,7 +167,7 @@ class Processor:
                 if attempt+1 < maximum:
                     time.sleep(max(0, min(1, deadline-time.time())))
         return {'status': 'unavailable', 'reason': errors[-1] if errors else 'Commentary deadline reached in queue.',
-                'errors': errors, 'finished_at': utc()}
+                'errors': errors, 'finished_at': utc(), 'request_timing': timing}
 
     def prepare(self, paths):
         summaries = []
@@ -114,25 +182,67 @@ class Processor:
                     raise ValueError('Numerical handoff identity does not match its run/folder')
                 if read(path).get('forecast_id') != numerical['forecast_id']:
                     raise ValueError('Numerical readiness marker has the wrong identity')
+                if package.name not in self.received:
+                    source = (f"source {numerical['source_time']}" if numerical.get('source_time')
+                              else 'start-of-counting reference')
+                    received_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
+                    print(f"Received forecast {self.config['run_id']}/{package.name} at {received_at} ({source}).", flush=True)
+                    self.received.add(package.name)
                 # Write summary last. It is also the acknowledgement that local
                 # explanatory evidence has been fully materialised.
                 evidence = comparisons.evidence(numerical, self.folder)
-                full = comparisons.summary(numerical)
+                full = comparisons.summary(numerical, self.folder)
                 if summaries:
                     previous = read(self.folder/'packages'/summaries[-1]['forecast_id']/'evidence.json.gz')
-                    full['count_activity_since_previous'] = activity.count_changes(previous, evidence)
+                    earlier = self.load_summary(summaries[-1]['forecast_id'])
+                    before, after, _ = tcp_reporting.reporting_views(previous, evidence,
+                        tcp_reporting.zero_districts(earlier), tcp_reporting.zero_districts(full))
+                    full['count_activity_since_previous'] = activity.count_changes(before, after)
                 atomic(package/'evidence.json.gz', evidence)
                 atomic(package/'summary.json', full)
-            full = self.load_summary(package.name)
+            else:
+                full = read(package/'summary.json')
             # Reversal detection needs every earlier winning chance, but only
             # actual comparison anchors need all percentile/candidate accounts.
             # Keep that small index in memory and bound the larger summary cache.
             compact = {k: full[k] for k in ('forecast_id', 'source_time', 'input_revision', 'origin')}
             compact['count_activity_since_previous'] = full.get('count_activity_since_previous', {})
+            # Later reports can establish that the commission had previously
+            # named different finalists, even when both comparison dates are
+            # well after the switch. The district totals are small enough to
+            # keep alongside win chances without reopening old booth archives.
+            compact['published_district_tcp'] = full.get('published_district_tcp', {})
             compact['seats'] = {s: {'win_percent': row['win_percent']} for s, row in full['seats'].items()}
             self.summary_index[package.name] = compact
             summaries.append(compact)
         return summaries
+
+    def publish_status(self, status):
+        """Keep the GUI informed without letting a busy display file hold up forecasts."""
+        now = time.monotonic()
+        # Report changes immediately. An idle watcher only needs an occasional
+        # timestamp to show it is alive; replacing the same file twice a second
+        # creates needless contention with Windows readers of a WSL replay.
+        if self.last_status == status and not self.status_write_error and now - self.status_written_at < 30:
+            return
+        path = self.folder/'reporting-status.json'
+        try:
+            atomic(path, dict(status, updated_at=utc()))
+        except OSError as error:
+            # This is the GUI's status display. Forecasts, commentary and server
+            # receipts have their own durable files. Leave the previous status
+            # readable and try the latest status on the next poll. In particular,
+            # a failure to write an error message must not stop the upload loop.
+            message = f'Could not update {path}: {error}'
+            if 'error' in status:
+                message += f" (reporting error: {status['error']})"
+            if message != self.status_write_error:
+                print(message, flush=True)
+            self.status_write_error = message
+            return
+        self.last_status = status
+        self.status_written_at = now
+        self.status_write_error = None
 
     def tick(self):
         self.collect()
@@ -144,19 +254,19 @@ class Processor:
         paths = sorted((self.folder/'packages').glob('*/ready-numerical.json'),
                        key=lambda p: (p.parent.name != 'origin', p.parent.name))
         summaries = self.prepare(paths)
-        self.status = {'updated_at': utc(), 'packages': {}, 'pending_commentary_requests': len(self.pending)}
+        packages = {}
         for path in paths:
             package = path.parent
             if package.name in self.released or (package/'ready-publication.json').exists():
                 self.released.add(package.name)
-                self.status['packages'][package.name] = 'released'
+                packages[package.name] = 'released'
                 continue
             numerical = read(package/'numerical.json')
             if package.name == 'origin':
                 atomic(package/'requests.json', {})
                 self.release(package, numerical, {}, {})
                 self.released.add(package.name)
-                self.status['packages'][package.name] = 'released reference'
+                packages[package.name] = 'released reference'
                 continue
             complete = comparisons.instant(numerical['completed_at'], 'UTC').timestamp()
             timeout = self.config.get('commentary_timeout_seconds', 30 if self.config['election'].endswith('fed') else 90)
@@ -171,7 +281,8 @@ class Processor:
                 requests = {}
                 mechanical = {}
                 for window, group in groups.items():
-                    mechanical[window] = {k: v for k, v in group.items() if k not in ('evidence', 'seat_changes')}
+                    mechanical[window] = {k: v for k, v in group.items()
+                                          if k not in ('evidence', 'seat_changes', 'ranked_tcp_groups')}
                     if not group['available']:
                         continue
                     mechanical[window]['seat_changes'] = [
@@ -199,6 +310,7 @@ class Processor:
                 result_path = package/'commentary'/f"{request['key']}.json"
                 if result_path.exists():
                     result = read(result_path)
+                    result.pop('request_timing', None)  # Operator-only timing stays in the local receipt.
                     if comparisons.instant(result['finished_at'], 'UTC').timestamp() <= deadline:
                         results[window] = result
                 elif not self.settings.get('enabled'):
@@ -223,12 +335,19 @@ class Processor:
                     elif window not in results:
                         results[window] = {'status': 'unavailable', 'reason': 'Commentary publication deadline reached.'}
                 self.release(package, numerical, mechanical, results)
+                if self.settings.get('enabled'):
+                    if requests:
+                        self.awaiting_timing[package] = ({r['key'] for r in requests.values()}, deadline)
+                    else:
+                        print(f"No commentary requests needed for {self.config['run_id']}/{package.name}.", flush=True)
                 self.released.add(package.name)
-                self.status['packages'][package.name] = 'released'
+                packages[package.name] = 'released'
             else:
-                self.status['packages'][package.name] = 'waiting for commentary'
-        atomic(self.folder/'reporting-status.json', self.status)
-        return self.status
+                packages[package.name] = 'waiting for commentary'
+        self.log_finished_commentary()
+        status = {'packages': packages, 'pending_commentary_requests': len(self.pending)}
+        self.publish_status(status)
+        return dict(status, updated_at=utc())
 
     def release(self, folder, numerical, mechanical, results):
         if (folder/'ready-publication.json').exists():
@@ -252,6 +371,9 @@ class Processor:
         # diagnostics stay local; cited evidence is included only in compact form.
         requests = read(folder/'requests.json')
         selected_evidence = {r['key']: r['packet']['evidence'] for r in requests.values()}
+        if self.compare_writers:
+            results = rule_commentary.append_editions(results, requests, numerical['forecast_id'], self.load_summary)
+        results = self.vote_type_names.reports(results)
         payload = {'schema_version': 1, 'run': public_run(self.config), 'forecast': metadata,
                    'report': numerical['report'], 'comparisons': mechanical, 'commentary': results,
                    'commentary_evidence': selected_evidence,

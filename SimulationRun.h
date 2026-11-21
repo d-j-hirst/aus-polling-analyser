@@ -410,6 +410,9 @@ private:
 	std::vector<std::array<int, 2>> seatTcpTally;
 	std::vector<float> seatIndividualBoothGrowth;
 	std::vector<PastSeatResult> pastSeatResults;
+	// Optional starting Greens FP percentage, conditional on standing. Set only
+	// when there is no previous result, separately from all measured votes.
+	std::vector<std::optional<double>> missingGreensFpMedian;
 	bool useSeparateCoalitionPreferenceAccounting = false;
 	std::vector<SeatType> seatTypes;
 	std::vector<float> seatPopulistModifiers;

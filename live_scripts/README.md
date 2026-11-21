@@ -193,15 +193,16 @@ Required durable files:
 - `downloads/<term>_booths.xml`
 - `analysis/Booth Results/<previous-term>.json`
 
-For `2026vic`, the previous-result file is therefore
-`analysis/Booth Results/2022vic.json`. It still needs to be generated before
-that live forecast is operational. The file has no supported generator yet and
-is deliberately not required by generated-data archive preflight.
+For `2026vic`, the preparation command downloads the current VEC rosters,
+builds the 2022 booth comparison if missing, generates the turnout prior and
+sets up the two run folders. The Python collector delivers timestamped Lower
+House V2 ZIPs directly to the selected inbox. See the [Victorian rehearsal and
+election-night instructions](../forecasts/2026vic/README.md).
 
-Put VEC media-feed ZIPs whose names contain
-`mediafilelitepplh_YYYYMMDD_HHMMSS` in the configured current-results
-directory. If several are present, the embedded filename timestamp selects the
-newest. Its result XML is extracted to `downloads/<term>_latest.xml`.
+The manual current-results directory also accepts the older
+`mediafilelitepplh_YYYYMMDD_HHMMSS` and current
+`mediafilelitepplhv2_YYYYMMDD_HHMMSS` filename forms. Its timestamp selects
+the newest capture.
 
 ## New South Wales (NSWEC)
 

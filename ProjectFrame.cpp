@@ -784,7 +784,7 @@ bool selectLiveCommentary(wxWindow* parent, std::filesystem::path const& root, n
     for (auto key : {"enabled","model","service_tier","reasoning_effort","prompt_version",
         "minimum_count_change","spending_limit_usd","input_usd_per_million","cached_input_usd_per_million",
         "output_usd_per_million","concurrency","attempts","max_output_tokens","request_timeout_seconds",
-        "cache_comparison"}) {
+        "cache_comparison","compare_writers"}) {
         if (preset.contains(key)) settings[key] = preset.at(key);
     }
     auto label = settings.at("model").get<std::string>() + " with a US$" +
@@ -822,7 +822,8 @@ void ProjectFrame::configureLiveWatch() {
                 auto id = name.GetValue().ToStdString(wxConvUTF8);
                 LiveAutomation::validateRunId(id);
                 auto folder = root/"live_runs"/id;
-                if (!std::filesystem::exists(folder)) {
+                auto const conflict = LiveAutomation::newRunConflict(folder);
+                if (!conflict) {
                     config = {{"version",1},{"election",election},{"run_id",id},{"kind",runKind},
                         {"visibility","private"},{"night_end_hour",6},
                         {"commentary_timeout_seconds",election.ends_with("fed") ? 30 : 90},
@@ -830,7 +831,7 @@ void ProjectFrame::configureLiveWatch() {
                     break;
                 }
                 auto manifest = folder/"run.json";
-                if (std::filesystem::is_regular_file(manifest)) {
+                if (*conflict != folder && std::filesystem::is_regular_file(manifest)) {
                     auto existing = LiveAutomation::readJson(manifest);
                     if (existing.value("election","") == election && existing.value("kind","") == runKind &&
                         existing.value("run_id","") == id) {
@@ -847,7 +848,9 @@ void ProjectFrame::configureLiveWatch() {
                             "Run ID in use",wxOK | wxICON_INFORMATION,this);
                     }
                 } else {
-                    wxMessageBox("A folder already exists for this ID. Choose another ID.",
+                    auto message = "Cannot start a new run here. Choose another ID or inspect: " +
+                        LiveResultsInput::pathToUtf8(*conflict);
+                    wxMessageBox(wxString::FromUTF8(message),
                         "Run ID in use",wxOK | wxICON_INFORMATION,this);
                 }
             }

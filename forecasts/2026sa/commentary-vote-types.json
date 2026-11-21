@@ -1,0 +1,9 @@
+{
+  "PrePoll": "Early Voting Absent Ordinary Votes",
+  "Absent": "Polling Day Absent Ordinary Votes",
+  "Provisional": "Polling Day Declaration Votes",
+  "Early Provisional": "Early Voting Declaration Votes",
+  "Postal": "Postal Votes",
+  "EVM": "Electoral Visitor/Mobile Declaration Votes",
+  "TIO": "Telephone/Interstate/Overseas Declaration Votes"
+}

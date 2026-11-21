@@ -1156,6 +1156,13 @@ void testRetainedTppThroughFpRecheck() {
     excess.tcp.at(1) = 451;
     assert(!reviseRetainedTcp(fp,excess,flows,0,0,1));
 
+    // Five outstanding preferences can cover a finalist's shortfall of
+    // five primaries. A sixth missing primary cannot belong to this account.
+    Counts original{{0,70},{1,20},{2,10}};
+    assert(usablePartialTcp(original,{{0,65},{1,30}}));
+    assert(!usablePartialTcp(original,{{0,64},{1,31}}));
+    assert(!usablePartialTcp(original,{{0,65},{1,29}})); // Below 95% coverage.
+
     basis.tcp.at(1) = 450;
     auto reconciled = reviseRetainedTcp(fp,basis,flows,0,0,1);
     assert(reconciled && reconciled->lower == 549 && reconciled->upper == 550);

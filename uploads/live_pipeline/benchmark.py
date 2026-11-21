@@ -43,11 +43,24 @@ def refresh_packet(packages, window, original):
     saved = read(destination/'comparisons.json')[window]
     if saved['reference_forecast_id'] != original['reference_forecast_id']:
         raise ValueError('The archived comparison refers to a different forecast')
-    current = read(destination/'summary.json')
-    group = comparisons.compare(current, read(reference/'summary.json'), [],
+    current = comparisons.comparison_summary(destination)
+    # This reconstruction has no intervening summaries. Calculate a fresh
+    # endpoint account before adding the saved within-window activity below.
+    current.pop('count_activity_since_previous', None)
+    group = comparisons.compare(current, comparisons.comparison_summary(reference), [],
                                 read(destination/'evidence.json.gz'), read(reference/'evidence.json.gz'))
-    for field in ('win_changes', 'count_activity', 'actual_seconds'):
+    for field in ('win_changes', 'actual_seconds'):
         group[field] = saved[field]
+    # Retain within-window activity (including corrections later reversed).
+    # Replace the endpoint component: older summaries counted some changes in
+    # eligibility of retained TCPs as new reporting.
+    archived = saved['count_activity']
+    if archived.get('known') and group['count_activity'].get('known') and 'endpoint_changed_votes' in archived:
+        endpoints = group['count_activity']['changed_votes']
+        extra = max(0, archived['changed_votes']-archived['endpoint_changed_votes'])
+        group['count_activity'] = dict(known=True, endpoint_changed_votes=endpoints, changed_votes=endpoints+extra)
+    elif not group.get('retained_tcp_changes_while_published_zero'):
+        group['count_activity'] = archived
     refreshed = comparisons.prompt_packet(current, group)
     for field in ('forecast_id', 'source_time', 'reference_forecast_id', 'reference_source_time'):
         if refreshed[field] != original[field]:
@@ -253,7 +266,7 @@ def run_benchmark(selected, models, output, budget_usd=10, concurrency=3,
                 # Failed/incomplete responses still cost money. Look up this
                 # request's receipt rather than a concurrent call's latest row.
                 with closing(sqlite3.connect(budget.path)) as database:
-                    supplied = commentary.prepare_packet(packet)
+                    supplied = commentary.prepare_packet(packet, settings.get('prompt_version', commentary.PROMPT_VERSION))
                     row = database.execute('SELECT cost,detail FROM calls WHERE request_key=? ORDER BY id DESC LIMIT 1',
                         (commentary.request_identity(supplied, settings),)).fetchone()
                 if row:
@@ -333,7 +346,8 @@ def main(argv=None):
     if args.dry_run:
         total = 0
         for model in models:
-            maximum = sum(commentary.maximum_cost(commentary.prepare_packet(p), model) for _, p in selected)
+            version = model.get('prompt_version', commentary.PROMPT_VERSION)
+            maximum = sum(commentary.maximum_cost(commentary.prepare_packet(p, version), model) for _, p in selected)
             total += maximum
             print(model['model'], model.get('service_tier', 'default'), model.get('reasoning_effort', 'medium'),
                   '%d comparisons; conservative reservation US$%.2f' % (len(selected), maximum))

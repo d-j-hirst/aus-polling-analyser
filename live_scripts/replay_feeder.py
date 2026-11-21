@@ -27,7 +27,7 @@ def catalogue(folder, election):
     region = election[4:]
     patterns = {
         'sa': rf'el{election[:4]}(\d{{12}})\.xml',
-        'vic': rf'state{election[:4]}mediafilelitepplh_(\d{{8}})_(\d{{6}})\.(?:zip|xml)',
+        'vic': rf'state{election[:4]}mediafilelitepplh(?:v2)?_(\d{{8}})_(\d{{6}})\.(?:zip|xml)',
         'fed': r'aec-mediafeed-(?:results-)?detailed(?:-light)?-\d+-(\d{14})\.(?:zip|xml)',
         'qld': r'(\d{14})_publicresults\.(?:zip|xml)',
         'wa': r'waec-la-verbose-(\d{14})\.xml',

@@ -32,6 +32,10 @@ def fingerprint(value):
                                      allow_nan=False).encode()).hexdigest()
 
 
+class RunLockBusy(BlockingIOError):
+    """Another process already owns this folder's publisher lock."""
+
+
 @contextlib.contextmanager
 def run_lock(folder):
     """OS-released lock: a stale filename after a crash never prevents recovery."""
@@ -51,11 +55,14 @@ def run_lock(folder):
                 # exception used by the non-blocking POSIX lock below. File
                 # permission failures from open() remain ordinary errors.
                 if error.errno in (13, 11) or getattr(error, 'winerror', None) == 33:
-                    raise BlockingIOError('Another reporting worker owns this run') from error
+                    raise RunLockBusy(f'Another process holds {path}') from error
                 raise
         else:
             import fcntl
-            fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            try:
+                fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as error:
+                raise RunLockBusy(f'Another process holds {path}') from error
         try:
             yield
         finally:

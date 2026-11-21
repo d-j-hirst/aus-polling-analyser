@@ -998,9 +998,9 @@ void checkEcsaRetiredTcpPair(std::filesystem::path const& folder) {
     }
     // The reset stays a zero in the accepted history and published progress.
     // Only the forecast retrieves the last valid count. Hall can keep its
-    // matched TCP through a one-ballot FP recheck, but Early Centre has lost
-    // too many of the primaries that belonged to the old batch.
-    reset.records[1].fp.votes = Counts{{11,31},{12,39},{13,30}};
+    // matched TCP through a five-ballot transfer (5% of its original FP).
+    // Early Centre has lost too many primaries from the original batch.
+    reset.records[1].fp.votes = Counts{{11,35},{12,35},{13,30}};
     reset.records[2].fp.votes = Counts{{11,40},{12,30},{13,30}};
     commit(folder,reset);
     // A later capture can already exist when an earlier snapshot is replayed.
@@ -1013,7 +1013,7 @@ void checkEcsaRetiredTcpPair(std::filesystem::path const& folder) {
     assert(handover.size() == 2 && handover.at(reset.records[1].key).tcpBasis);
     assert(gap.seats.at(1).totalVotesTcp({}) == 200);
     assert(gap.seats.at(1).tcpVotesCandidate.size() == 2 && gap.seats.at(1).tcpVotesCandidate.contains(12));
-    assert(gap.booths.at(8).fpVotes.at(11) == 31);
+    assert(gap.booths.at(8).fpVotes.at(11) == 35);
     assert(gap.booths.at(9).tcpVotesCandidate.empty());
     assert(gap.reportedCountProgress->tcpVotes == 0);
     assert(reset.records[0].tcp.votes->at(11) == 0);
@@ -1612,6 +1612,122 @@ void checkTcpHandoverHistory(std::filesystem::path const& folder) {
     assert(loadTcpHandoverCounts(folder,subsequentReset,{"North"}).at(key).tcp.votes == newCount.records[0].tcp.votes);
 }
 
+void checkHammondPartialHandover(std::filesystem::path const& folder) {
+    // These are the two published Hammond accounts before the zero reset and
+    // their revised primaries on 23 March. Both had an unfinished classic TCP.
+    constexpr int liberal = 119006, labor = 119009;
+    Snapshot first;
+    first.election = "2026sa";
+    first.sourceTime = "2026-03-21T20:14:10";
+    first.sourceHash = "0000000000000001";
+    first.districts["Hammond"] = {30000,false};
+    auto addBooth = [&](std::string name, std::vector<int> primaries, int libTcp, int alpTcp) {
+        Record record;
+        record.name = name;
+        record.district = "Hammond";
+        record.role = "ordinary";
+        record.identity = record.key = "Hammond/ordinary/" + name;
+        record.fp.votes = Counts{};
+        for (int i = 0; i < int(primaries.size()); ++i) {
+            int candidate = 119001+i;
+            record.candidates.push_back(candidate);
+            record.fp.votes->emplace(candidate,primaries[i]);
+        }
+        record.tcp.votes = Counts{{liberal,libTcp},{labor,alpTcp}};
+        first.records.push_back(std::move(record));
+    };
+    addBooth("Mypolonga",{10,80,2,2,13,74,0,6,91,0,2,34},163,138);
+    addBooth("Palmer",{8,75,2,0,1,67,1,13,75,0,0,26},133,126);
+    first = recover(first,{}).snapshot;
+    commit(folder,first);
+    auto reset = first;
+    reset.sourceTime = "2026-03-23T13:44:18";
+    reset.sourceHash = "0000000000000002";
+    for (auto& booth : reset.records) booth.tcp.votes = Counts{{liberal,0},{labor,0}};
+    reset = recover(reset,first).snapshot;
+    assert(loadTcpHandoverCounts(folder,reset,{"Hammond"}).size() == 2);
+    commit(folder,reset);
+
+    auto revised = reset;
+    revised.sourceTime = "2026-03-23T18:52:16";
+    revised.sourceHash = "0000000000000003";
+    auto& myp = *revised.records[0].fp.votes;
+    --myp.at(119002);
+    ++myp.at(119003);
+    auto& palmer = *revised.records[1].fp.votes;
+    palmer.at(119002) -= 5;
+    --palmer.at(liberal);
+    --palmer.at(119008);
+    palmer.at(labor) -= 3;
+    --palmer.at(119012);
+    revised = recover(revised,reset).snapshot;
+    auto handover = loadTcpHandoverCounts(folder,revised,{"Hammond"});
+    assert(handover.size() == 2);
+    auto const& kept = handover.at(revised.records[0].key);
+    assert(kept.tcp.votes == first.records[0].tcp.votes && kept.tcp.status == Status::Restored);
+    assert(kept.tcp.observedAt == first.sourceTime && total(revised.records[0].tcp.votes) == 0);
+    assert(kept.tcpBasis && kept.tcpBasis->fp == *first.records[0].fp.votes && !hasCurrentTcpBasis(kept));
+    assert(!kept.matchedPreferences && !LivePartialCount::measureTransfer(kept.tcpBasis->fp,*kept.tcp.votes,labor,liberal));
+    LivePartialCount::TcpBasis basis{kept.tcpBasis->fp,*kept.tcp.votes};
+    assert(LivePartialCount::revisedLowerBounds(*kept.fp.votes,*kept.tcp.votes,basis).empty());
+    basis.partialHandover = true;
+    auto const bounds = LivePartialCount::revisedLowerBounds(*kept.fp.votes,*kept.tcp.votes,basis);
+    assert(bounds.at(labor) == 137 && bounds.at(liberal) == 162);
+    LivePartialCount::Flows flows;
+    for (int id : kept.candidates) flows[id] = id == labor ? 1.0 : id == liberal ? 0.0 : .5;
+    for (double draw : {-5.,0.,5.}) {
+        auto tcp = LivePartialCount::reviseTcp(*kept.fp.votes,*kept.tcp.votes,basis,flows,0,labor,liberal,draw);
+        assert(tcp && tcp->votes == 314 && tcp->lower == 137 && tcp->upper == 152);
+        assert(tcp->first >= tcp->lower && tcp->first <= tcp->upper);
+    }
+    auto newTcp = *kept.tcp.votes;
+    ++newTcp.at(liberal);
+    assert(!LivePartialCount::reviseTcp(*kept.fp.votes,newTcp,basis,flows,0,labor,liberal));
+    // Palmer lost 11 of 268 primaries, including three Labor and one Liberal.
+    // The old TCP can exceed the new FP total. The possible allocation covers
+    // only the revised 257 ballots, including the nine preferences originally
+    // missing and uncertainty about the seven removed non-finalist ballots.
+    auto const& keptPalmer = handover.at(revised.records[1].key);
+    assert(keptPalmer.tcpBasis && keptPalmer.tcp.observedAt == first.sourceTime);
+    assert(total(revised.records[1].tcp.votes) == 0);
+    LivePartialCount::TcpBasis palmerBasis{keptPalmer.tcpBasis->fp,*keptPalmer.tcp.votes};
+    palmerBasis.partialHandover = true;
+    auto palmerTcp = LivePartialCount::reviseTcp(*keptPalmer.fp.votes,*keptPalmer.tcp.votes,
+        palmerBasis,flows,0,labor,liberal);
+    assert(palmerTcp && palmerTcp->votes == 257 && palmerTcp->lower == 116 && palmerTcp->upper == 132);
+    commit(folder,revised);
+    // Several small rechecks can add up to a large transfer even when every
+    // snapshot has exactly 314 FP. Compare with the batch behind the TCP.
+    auto later = revised;
+    later.sourceTime = "2026-03-23T19:00:00";
+    auto& primaries = *later.records[0].fp.votes;
+    primaries.at(119002) -= 14;
+    primaries.at(119003) += 14;
+    assert(loadTcpHandoverCounts(folder,later,{"Hammond"}).contains(kept.key)); // 15/314
+    --primaries.at(119002);
+    ++primaries.at(119003);
+    auto afterTransfer = loadTcpHandoverCounts(folder,later,{"Hammond"});
+    assert(!afterTransfer.contains(kept.key) && afterTransfer.contains(keptPalmer.key)); // 16/314
+    // Net additions cannot hide an offsetting transfer between candidates.
+    primaries.at(119002) -= 20;
+    primaries.at(119003) += 21;
+    assert(!loadTcpHandoverCounts(folder,later,{"Hammond"}).contains(kept.key));
+
+    // Had the revised primaries been published from the outset, Palmer's
+    // two extra TCP votes would be within the normal count tolerance. With no
+    // observed primary revision there is no original batch to adjust.
+    auto unchanged = first;
+    for (size_t i = 0; i < unchanged.records.size(); ++i)
+        unchanged.records[i].fp = revised.records[i].fp;
+    unchanged = recover(unchanged,{}).snapshot;
+    auto const controlFolder = folder/"unchanged";
+    commit(controlFolder,unchanged);
+    auto control = loadTcpHandoverCounts(controlFolder,revised,{"Hammond"});
+    assert(total(control.at(revised.records[0].key).tcp.votes) == 301);
+    assert(total(control.at(revised.records[1].key).tcp.votes) == 259);
+    assert(!control.at(revised.records[1].key).tcpBasis);
+}
+
 int main(int argc, char** argv) {
     auto root = argc > 1 ? std::filesystem::path(argv[1]) : std::filesystem::current_path();
     auto folder = root/"cli-build"/"input-recovery-tests";
@@ -1630,6 +1746,7 @@ int main(int argc, char** argv) {
     checkPreferenceHistory(folder/"preferences");
     checkPreferenceHistoryAcrossPairChange(folder/"pair-preferences");
     checkTcpHandoverHistory(folder/"tcp-handover");
+    checkHammondPartialHandover(folder/"hammond-handover");
     checkTcpRevisionBasis(folder/"tcp-revision");
     checkRetainedRecheckStatus(folder/"retained-recheck-status");
     checkRecheckedPrimaryRecovery(folder/"rechecked-primaries");

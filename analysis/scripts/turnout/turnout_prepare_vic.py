@@ -1,9 +1,10 @@
 """Prepare Victorian live turnout inputs from pre-election evidence.
 
 Current candidate and booth preloads supply the roll and reporting identities.
-Previous public final results supply rates and relative booth/category sizes;
-only pre-election operational observations are read from the target election's
-turnout dataset. The generated configuration and its booth audit are private.
+Previous public results supply rates and relative booth/category sizes. Early
+and postal totals can use either pre-election observations or an explicitly
+configured historical share of the expected formal count. The generated
+configuration and its booth audit are private.
 This command neither fits coefficients nor reads live result snapshots.
 """
 
@@ -17,7 +18,7 @@ from types import SimpleNamespace
 from xml.etree import ElementTree as ET
 
 from lib.paths import REPOSITORY_DIRECTORY
-from lib.turnout import category_policy, maintained_parameters
+from lib.turnout import category_policy, maintained_parameters, prior
 from scripts.turnout import turnout_prepare_live
 
 
@@ -53,8 +54,9 @@ def seat_metadata(path):
 def read_preloads(candidate_path, booth_path):
     """Retain the pre-election roll and all ordinary reporting services.
 
-    Combined Early votes are declaration-style records in this feed format;
-    the polling-place preload provides the ordinary booths only.
+    The forecast has one Early account per district. In V2 the preload also
+    names individual early centres and mobile teams whose votes feed that
+    account. Only election-day locations get separate ordinary booth weights.
     """
     districts = {}
     for contest in ET.parse(candidate_path).findall('.//{*}Contest'):
@@ -66,6 +68,9 @@ def read_preloads(candidate_path, booth_path):
     for district in ET.parse(booth_path).findall('.//{*}PollingDistrict'):
         name = district_name(district.findtext('./{*}PollingDistrictIdentifier/{*}Name'))
         for booth in district.findall('./{*}PollingPlaces/{*}PollingPlace/{*}PollingPlaceIdentifier'):
+            classification = booth.get('Classification')
+            if classification in ('EarlyVotingCentre', 'MobileVoting'):
+                continue
             districts[name]['booths'].append(dict(id=int(booth.attrib['Id']), name=booth.attrib['Name']))
     for name, row in districts.items():
         if row['enrolment'] <= 0 or len({b['name'] for b in row['booths']}) != len(row['booths']):
@@ -167,13 +172,14 @@ def _configuration_evidence(settings, districts, metadata, historical, previous_
     matches, ambiguous = match_booths(districts, previous_booths)
     shared_size = median(r['count'] for r in matches.values() if r['count'] > 0)
     parameters = maintained_parameters.prior_parameters(settings['parameter_preset'])
-    controls = operational_controls(observations, names, settings['schedule']['poll_close'])
+    historical_controls = settings.get('early_postal_history')
+    controls = {} if historical_controls else operational_controls(observations, names, settings['schedule']['poll_close'])
     inputs = dict(identity=settings['election'] + '/operational', election_code=settings['election'],
         seat_names=names, categories=CATEGORIES, subdivisions=[], enrolment=[],
         previous_turnout_pct=[], previous_formality_pct=[], local_scale=[], controls=[],
         remainder=dict(name='remainder', indices=[0, 2, 3], weights=[]))
     units, audit = [], []
-    return SimpleNamespace(names=names, totals=totals, partitions=partitions, pooled=pooled, rates=rates, matches=matches, ambiguous=ambiguous, shared_size=shared_size, parameters=parameters, controls=controls, inputs=inputs, units=units, audit=audit)
+    return SimpleNamespace(names=names, totals=totals, partitions=partitions, pooled=pooled, rates=rates, matches=matches, ambiguous=ambiguous, shared_size=shared_size, parameters=parameters, controls=controls, inputs=inputs, units=units, audit=audit, historical_controls=historical_controls)
 
 
 def _append_district_configuration(work, index, name, districts, metadata):
@@ -246,6 +252,27 @@ def _populate_early_postal_controls(work):
     district error scales remain separate; no target-election final count enters.
     """
     controls, parameters, inputs, names = work.controls, work.parameters, work.inputs, work.names
+    if work.historical_controls:
+        # Before complete pre-election counts are available, carry forward each
+        # category's share of formal votes. Scale it to the current roll and
+        # expected turnout/formality. Districts without a complete predecessor
+        # use the pooled share across complete previous districts. Narracan
+        # uses that fallback in 2026 because its 2022 contest was postponed.
+        turnout, formality = prior.starting_rates(inputs, parameters)
+        expected_formal = turnout * formality * inputs['enrolment'] / 10000
+        for group, previous_category in [('early', 'early_combined'), ('postal', 'postal')]:
+            amounts = []
+            for formal, seat in zip(expected_formal, work.audit):
+                partition = work.partitions.get(seat['previous_seat'], work.pooled)
+                amounts.append(float(formal) * partition[previous_category] / sum(partition.values()))
+            # These are provisional uncertainties about a historical estimate,
+            # expressed as fractions of the expected count. One shift is shared
+            # by districts and the other can vary independently in each district.
+            inputs['controls'].append(dict(name=group, indices=[CATEGORIES.index(group)],
+                weights=[[1] for _ in names], aggregate=False, amount=amounts,
+                common_sd=[a * work.historical_controls['common_relative_sd'] for a in amounts],
+                local_sd=[a * work.historical_controls['district_relative_sd'] for a in amounts]))
+        return
     for category, rows in controls.items():
         coefficients = parameters['controls'][category]
         inputs['controls'].append(dict(name=category, indices=[CATEGORIES.index(category)],
@@ -315,7 +342,9 @@ def _load_victorian_sources(args):
         booths=args.booths or root / 'downloads' / (args.election + '_booths.xml'),
         previous_totals=root / 'analysis/Data/Turnout' / (previous + '.json'),
         previous_booths=root / 'analysis/Booth Results' / (previous + '.json'))
-    observations = json.loads((root / 'analysis/Data/Turnout' / (args.election + '.json')).read_text(encoding='utf-8'))['operational_observations']
+    observations = []
+    if not settings.get('early_postal_history'):
+        observations = json.loads((root / 'analysis/Data/Turnout' / (args.election + '.json')).read_text(encoding='utf-8'))['operational_observations']
     return SimpleNamespace(settings=settings, settings_path=settings_path, paths=paths,
         observations=observations, election=args.election)
 
@@ -338,9 +367,12 @@ def _record_adapter_provenance(config, context):
     """
     paths, observations = context.paths, context.observations
     config['sources'] = {key: dict(name=path.name, sha256=hashlib.sha256(path.read_bytes()).hexdigest()) for key, path in paths.items()}
-    config['sources']['operational_observations'] = dict(
-        name=context.election + '.json: operational_observations only',
-        sha256=hashlib.sha256(json.dumps(observations, sort_keys=True).encode()).hexdigest())
+    if context.settings.get('early_postal_history'):
+        config['sources']['early_postal_basis'] = 'Previous formal vote shares scaled to the current roll.'
+    else:
+        config['sources']['operational_observations'] = dict(
+            name=context.election + '.json: operational_observations only',
+            sha256=hashlib.sha256(json.dumps(observations, sort_keys=True).encode()).hexdigest())
     config['sources']['adapter_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 
 

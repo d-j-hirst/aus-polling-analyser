@@ -200,15 +200,26 @@ bool containedFpCohort(Counts const& older, Counts const& current) {
     return true;
 }
 
-bool minorFpRecheck(Counts const& older, Counts const& current) {
-    // Count displaced ballots by candidate. A similar total alone can conceal
-    // a much larger correction to the underlying primary vote.
-    constexpr double RecheckFraction = .005;
-    constexpr double RecheckMinimum = 2;
+// A withdrawn count can answer two different questions. To estimate a booth's
+// own compulsory TCP, the model can vary the allocation of just the affected
+// ballots. In Finniss, removing 13 of 977 primaries at Victor Harbor East
+// barely changed the TCP when it returned. Allow up to 5% for this calculation,
+// a practical safeguard against using a substantially different batch. This is
+// not an estimate of how accurate the original TCP was. Keep the stricter
+// existing allowance when selecting historical preference evidence or when the
+// forecast cannot adjust the ballots (optional preferences allow exhaustion).
+constexpr double BoothTcpRecheckFraction = .05;
+constexpr double MinorRecheckFraction = .005;
+
+bool fpRecheckWithin(Counts const& original, Counts const& current, double maximumFraction) {
+    // A loss for one candidate still counts if someone else gains those votes.
+    // Compare against the FP behind the withdrawn TCP every time, so successive
+    // small corrections cannot disguise a large transfer. Two ballots remain
+    // allowable at a small booth where a percentage alone would be too strict.
     double displaced = 0;
-    for (auto const& [candidate,votes] : older)
+    for (auto const& [candidate,votes] : original)
         displaced += std::max(0.0,votes-LivePartialCount::value(current,candidate));
-    return displaced <= std::max(RecheckMinimum,RecheckFraction*LivePartialCount::total(older));
+    return displaced <= std::max(2.0,maximumFraction*LivePartialCount::total(original));
 }
 
 bool compatiblePreferenceCohort(PreferenceCohort const& cohort, Record const& current) {
@@ -713,7 +724,7 @@ PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& fol
                 // occur during withdrawal, so neither rules out the older pair.
                 if (now.tcp.fresh() && total(now.tcp.votes) > 0 &&
                     samePreferencePair(cohort.tcp,*now.tcp.votes)) return;
-                if (!minorFpRecheck(cohort.fp,*now.fp.votes)) {
+                if (!fpRecheckWithin(cohort.fp,*now.fp.votes,MinorRecheckFraction)) {
                     if (!retiredFlows || !retiredFlows->include || !retiredFlows->include(now,pair)) return;
                     flowOnly = true;
                 }
@@ -830,16 +841,28 @@ std::map<std::string,Record> loadTcpHandoverCounts(std::filesystem::path const& 
         prior.tcp.status = Status::Restored;
         prior.tcpBasis.reset();
         prior.matchedPreferences.reset();
-        // A proven matched batch can account for a small FP correction using
-        // the existing revision bounds. Otherwise require the old primary
-        // cohort to fit inside the current one, and validate the TCP normally.
+        // An intact primary batch can carry its earlier TCP directly. When some
+        // primaries have been removed, compare every candidate with the original
+        // batch: a large transfer can leave the booth total exactly unchanged.
         if (hasCurrentTcpBasis(old)) prior.tcpBasis = old.tcpBasis;
         else if (LivePartialCount::validBasis({*old.fp.votes,*old.tcp.votes,{}}))
             prior.tcpBasis = PreferenceCohort{*old.fp.votes,*old.tcp.votes,old.fp.observedAt,
                 old.tcp.observedAt,{},explicitlyRecheckedPair(old.fp.metadata(),old.tcp.metadata())};
         auto const& basisFp = prior.tcpBasis ? prior.tcpBasis->fp : *old.fp.votes;
-        if (!containedFpCohort(basisFp,*now->fp.votes) &&
-            (!hasCurrentTcpBasis(prior) || !minorFpRecheck(basisFp,*now->fp.votes))) continue;
+        if (!containedFpCohort(basisFp,*now->fp.votes)) {
+            double const limit = effective.optionalPreferential ? MinorRecheckFraction : BoothTcpRecheckFraction;
+            if (!fpRecheckWithin(basisFp,*now->fp.votes,limit)) continue;
+            if (!hasCurrentTcpBasis(prior)) {
+                // An ordinary booth can have reported most preferences before
+                // withdrawal. Carry the original, incomplete account so the
+                // forecast can allow for both the missing preferences and the
+                // small correction. It still has to pass the usual TCP checks
+                // against today's FP below. No estimated votes enter history.
+                if (effective.optionalPreferential || old.incremental || old.role == "declaration" ||
+                    !old.fp.fresh() || !LivePartialCount::usablePartialTcp(*old.fp.votes,*old.tcp.votes)) continue;
+                prior.tcpBasis = PreferenceCohort{*old.fp.votes,*old.tcp.votes,old.fp.observedAt,old.tcp.observedAt};
+            }
+        }
         if (!tcpFits(prior,prior.tcp,effective.optionalPreferential)) continue;
         // An asynchronous pair may pass the count checks without an exact
         // FP/TCP match. If its earlier FP mix is close enough to measure a

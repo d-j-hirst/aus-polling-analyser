@@ -1,12 +1,48 @@
-// Exercise the local centrist/populist FP calculation with controlled support
-// and bonus draws, including exact preservation of the old zero-rating path.
+// Exercise local minor-party FP estimates, including the Greens starting
+// distribution in seats with no previous result and centrist/populist viability.
+#include "../GreensFpPrior.h"
 #include "../MinorPartyFpMath.h"
 #include "../SeatFpPolls.h"
 
 #include <cassert>
+#include <fstream>
 #include <iostream>
+#include <sstream>
 
 namespace {
+
+void checkMissingGreensFpPrior()
+{
+	std::ifstream input("analysis/seats/2026sa-greens-fp-priors.json");
+	assert(input);
+	auto const sa = GreensFpPrior::readDistrictMedians(input);
+	GreensFpPrior::DistrictMedians const expected{
+		{"Narungga", 3.1}, {"MacKillop", 2.5}, {"Mount Gambier", 3.1}, {"Ngadjuri", 5.6}};
+	assert(sa == expected);
+	for (auto const& [district, median] : expected) {
+		assert(GreensFpPrior::missingResultMedian(false, district, sa) == median);
+		// A genuine previous result (even a reported zero) takes priority.
+		assert(!GreensFpPrior::missingResultMedian(true, district, sa));
+	}
+	std::istringstream absent;
+	absent.setstate(std::ios::failbit);
+	auto const none = GreensFpPrior::readDistrictMedians(absent);
+	assert(none.empty());
+	auto const generic = GreensFpPrior::missingResultMedian(false, "New district", none);
+	assert(generic == 2.0);
+	assert(!GreensFpPrior::missingResultMedian(true, "New district", none));
+	double const centre = transformVoteShare(*generic);
+	double const halfWidth = 1.644854 * GreensFpPrior::TransformedSd;
+	assert(std::abs(detransformVoteShare(centre - halfWidth) - 0.5) < 0.05);
+	assert(std::abs(detransformVoteShare(centre + halfWidth) - 7.7) < 0.1);
+	for (auto invalid : {R"({"districts":{"Narungga":0}})", R"({"districts":{"Narungga":"3%"}})"}) {
+		std::istringstream bad(invalid);
+		bool rejected = false;
+		try { GreensFpPrior::readDistrictMedians(bad); }
+		catch (std::exception const&) { rejected = true; }
+		assert(rejected);
+	}
+}
 
 double oldBaseline(double support, double modifier, double incumbent)
 {
@@ -105,6 +141,7 @@ void checkPollEvidenceModeratesProfileAssessment()
 
 int main()
 {
+	checkMissingGreensFpPrior();
 	checkZeroViabilityPreservesExistingResults();
 	checkProfileChangesLocalSupport();
 	checkProminentSupplementsRespondToViability();

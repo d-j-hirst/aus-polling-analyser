@@ -716,7 +716,11 @@ void Election::prepareTcpBases(Results2::Election const& previousElection,
       auto& target = basis.transfers[mapPartyId(candidate,false,previousElection,currentElection)];
       for (auto const& [finalist,votes] : mapCounts(counts)) target[finalist] += votes;
     }
-    if (LivePartialCount::validBasis(basis) && basis.tcp == booth.node.tcpVotesCurrent)
+    // Source-matched batches are normally exact. SA's forecast-only handover
+    // can explicitly supply a partial original account after a small recheck.
+    // A nearby historical flow measurement alone cannot establish such a batch.
+    basis.partialHandover = found->second.tcpBasis && LivePartialCount::usablePartialTcp(basis.fp,basis.tcp);
+    if ((basis.partialHandover || LivePartialCount::validBasis(basis)) && basis.tcp == booth.node.tcpVotesCurrent)
       booth.tcpBasis = std::move(basis);
   }
 }
@@ -1359,7 +1363,15 @@ void Election::preparePreferenceLearning(Results2::Election const& previousElect
           auto const& observed = local->second.at(code);
           row["local_matched_units"] = observed.units;
           row["local_matched_preference_votes"] = observed.preferenceVotes;
+          if (code == Ordinary) {
+            // Commentary can check the effect of holding this district's ordinary
+            // evidence at its previous value. Save the actual inputs to the shared
+            // estimate, including the weight given to this district's booths.
+            row["ordinary_district_weight"] = fit.localWeight;
+            row["ordinary_district_mean_offset"] = observed.mean();
+          }
         }
+        if (code == Ordinary) row["geographic_type"] = seatTypeByDistrict[s];
         auto retired = retiredUnits.find(pair);
         if (retired != retiredUnits.end() && retired->second.contains(s))
           row["local_retired_matched_units"] = retired->second.at(s);

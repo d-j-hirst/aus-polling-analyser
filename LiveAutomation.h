@@ -21,6 +21,9 @@ json readJson(std::filesystem::path const& path);
 std::string digest(std::string const& text);
 void validateRunId(std::string const& id);
 void validateSettings(json const& settings);
+// Return the entry that prevents starting a fresh run, if any. Operators can
+// prepare a folder with project files, scripts and an incoming feed inbox.
+std::optional<std::filesystem::path> newRunConflict(std::filesystem::path const& folder);
 std::string suggestRunId(std::filesystem::path const& root, std::string const& election, std::string const& kind);
 
 struct Capture {

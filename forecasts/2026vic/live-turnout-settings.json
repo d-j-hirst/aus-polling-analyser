@@ -1,0 +1,18 @@
+{
+  "election": "2026vic",
+  "previous_election": "2022vic",
+  "parameter_preset": "2022vic/earlier_only",
+  "preparation_samples": 256,
+  "count_draws": 8,
+  "seed": 20261002,
+  "early_postal_history": {
+    "common_relative_sd": 0.15,
+    "district_relative_sd": 0.15
+  },
+  "schedule": {
+    "poll_close": "2026-11-28T18:00:00",
+    "postal_deadline": "2026-12-04T18:00:00",
+    "receipt_deadline": "2026-12-04T18:00:00",
+    "ppvc_reporting_decay": false
+  }
+}
