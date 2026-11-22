@@ -151,17 +151,18 @@ def approval_confidence_factor(initial_param_ratio):
 # synthetic TPP.
 # Core approval-to-TPP processing
 
-def generate_synthetic_tpps(display_analysis=False):
+def generate_synthetic_tpps(display_analysis=False, poll_inputs=None):
     recorder = approvals_provenance.SyntheticTppRecorder(
         generated_provenance.current_command()
     )
-    analysis = Approvals(display_analysis, recorder)
+    analysis = Approvals(display_analysis, recorder, poll_inputs)
     return analysis.synthetic_tpps_by_region
 
 
 class Approvals:
-    def __init__(self, display_analysis, provenance_recorder=None):
+    def __init__(self, display_analysis, provenance_recorder=None, poll_inputs=None):
         print('*** Generating synthetic TPPs ***')
+        self.poll_inputs = poll_inputs
         self.load_data()
         dependencies = (
             provenance_recorder.dependencies_for(
@@ -169,7 +170,7 @@ class Approvals:
                     "{}{}".format(*election)
                     for election, approvals in self.approvals.items()
                     if approvals
-                }
+                }, poll_inputs=poll_inputs,
             )
             if provenance_recorder is not None
             else None
@@ -203,7 +204,7 @@ class Approvals:
                 (a[0], a[1])
                 for a in [b.strip().split(',') for b in f.readlines()]
             }
-        approval_terms = approvals_provenance.approval_elections()
+        approval_terms = approvals_provenance.approval_elections(self.poll_inputs)
         for election in sorted(self.elections):
             if "{}{}".format(*election) not in approval_terms:
                 continue
@@ -234,7 +235,8 @@ class Approvals:
     def load_approvals(self, poll_file):
         filename = f'Data/poll-data-{poll_file}.csv'
         cols = ['MidDate', 'Firm', 'GLApp', 'GLDis']
-        df = pd.read_csv(filename, usecols=cols)
+        source = self.poll_inputs.open(poll_file) if self.poll_inputs is not None else filename
+        df = pd.read_csv(source, usecols=cols)
         approvals = [
             (
                 datetime.date.fromisoformat(date),

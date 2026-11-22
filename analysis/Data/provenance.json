@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-11-20T00:20:01Z",
+  "updated_at_utc": "2026-11-22T10:58:56Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -88,12 +88,12 @@
         "poll-data-*.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 99,
+      "semantic_revision": 101,
       "files": {
         "poll-data-fed.csv": {
-          "sha256": "4fcd65860ac175661687141d89d8d423f495c8a7b3dcbc6fdb32dd8e447b69c2",
-          "size_bytes": 287617,
-          "recorded_mtime_utc": "2026-11-17T12:53:07.779144Z"
+          "sha256": "89f68768ef51b46b7a9777856ddcee81f7d40d00631e69830cd57677115a5d83",
+          "size_bytes": 287686,
+          "recorded_mtime_utc": "2026-11-22T10:45:38.048979Z"
         },
         "poll-data-nsw.csv": {
           "sha256": "39eab1d795b7f07131f00bce0516e4f8a29cd11af8516d6b65fc7fd0595e109f",
@@ -111,9 +111,9 @@
           "recorded_mtime_utc": "2026-09-03T06:19:32.111274Z"
         },
         "poll-data-vic.csv": {
-          "sha256": "6aca81ce250864b7c9d38043f5bd88a1a76db2a20892eded72f07f0466cf8acd",
-          "size_bytes": 38678,
-          "recorded_mtime_utc": "2026-11-20T00:18:11.076466Z"
+          "sha256": "6017eaed5bf85c81f676d8de0654dc11cb3db3c6c7a807dcf08615e82b36b90c",
+          "size_bytes": 38808,
+          "recorded_mtime_utc": "2026-11-22T10:05:35.284759Z"
         },
         "poll-data-wa.csv": {
           "sha256": "d09f6b3606e7b2cfb27c3c17ce9e44f378c9d7c94eea774af6b0b3fb35974bf5",
@@ -2431,9 +2431,51 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261122T100631Z-new_polling-raw-poll-data-a5ad42bf",
+          "recorded_at_utc": "2026-11-22T10:06:31Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 100,
+          "provenance_revision": 100,
+          "summary": "Redbridge poll",
+          "files": [
+            "poll-data-vic.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261122T105856Z-new_polling-raw-poll-data-74a2e062",
+          "recorded_at_utc": "2026-11-22T10:58:56Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 101,
+          "provenance_revision": 101,
+          "summary": "Newspoll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 99
+      "provenance_revision": 101
     },
     "poll_model_configuration": {
       "description": "Party coverage, discontinuities and sampling settings used by fp_model.py.",
@@ -2571,12 +2613,12 @@
         "preference-estimates.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 2,
       "files": {
         "preference-estimates.csv": {
-          "sha256": "5cce771de8ba655b078a92e11f48929c87c229e31413b9b3f5c8e7e480a94a57",
-          "size_bytes": 5695,
-          "recorded_mtime_utc": "2026-10-06T14:06:53.273807Z"
+          "sha256": "f5591f1e7b1cfd485cf1de3d80bfa069395fc3baddbdbdeb23a23a08faf5e5da",
+          "size_bytes": 5781,
+          "recorded_mtime_utc": "2026-11-22T04:23:42.520956Z"
         }
       },
       "events": [
@@ -2618,9 +2660,33 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261122T042543Z-coverage_extension-preference-estimates-f6383547",
+          "recorded_at_utc": "2026-11-22T04:25:43Z",
+          "change_type": "coverage_extension",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Use the May 2022 federal flow among Victorian One Nation voters for their Labor\u2013Coalition split in 2022vic, including polls that identified this primary vote.",
+          "files": [
+            "preference-estimates.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2022vic"
+            ],
+            "parties": [
+              "@TPP",
+              "ONP FP"
+            ],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 1
+      "provenance_revision": 2
     },
     "prior_result_inputs": {
       "description": "Summarised previous-election results used as polling and regional-model priors.",

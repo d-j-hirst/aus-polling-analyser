@@ -149,7 +149,7 @@ bool PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 	std::getline(file, line); // first line is just a legend, skip it
 	auto splitLine = splitString(line, ",");
 	std::map<int, int> partyIds;
-	bool const saReplay = project.models().count() && project.models().viewByIndex(0).getTermCode() == "2026sa";
+	auto const term = project.models().count() ? project.models().viewByIndex(0).getTermCode() : std::string{};
 	constexpr int historicalOther = -1;
 	for (int heading = 3; heading < int(splitLine.size()); ++heading) {
 		auto splitHeading = splitString(splitLine[heading], " ");
@@ -163,9 +163,10 @@ bool PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 			else if (index >= 0) {
 				partyIds[heading] = index;
 			}
-			else if (saReplay && (partyName == "SAB" || partyName == "DEM" || partyName == "FF")) {
-				// Older SA polls itemised these votes. Keep their contribution
-				// when importing the original table under the 2026 party list.
+			else if ((term == "2026sa" && (partyName == "SAB" || partyName == "DEM" || partyName == "FF")) ||
+				(term == "2022vic" && (partyName == "ONP" || partyName == "ON" || partyName == "UAP" || partyName == "DEM"))) {
+				// Historical polls itemised minor parties that the replay now
+				// groups in Others. Preserve their contribution to the residual.
 				partyIds[heading] = historicalOther;
 			}
 			else {

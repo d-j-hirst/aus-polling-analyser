@@ -5,6 +5,10 @@
   "preparation_samples": 256,
   "count_draws": 8,
   "seed": 20261002,
+  "early_vote_workbooks": {
+    "recheck": "https://www.vec.vic.gov.au/-/media/c4665365795d431e811d0ce818e373d4.xlsx",
+    "venues": "https://www.vec.vic.gov.au/-/media/19326aa361284a49a69b08194421da96.xlsx"
+  },
   "early_postal_history": {
     "common_relative_sd": 0.15,
     "district_relative_sd": 0.15

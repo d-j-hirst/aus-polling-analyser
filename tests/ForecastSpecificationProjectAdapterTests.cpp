@@ -177,6 +177,42 @@ namespace {
 			PartyCollection::InvalidIndex;
 	}
 
+	bool checkVicPartyMigration(ForecastSpecification const& current, WorkspacePaths const& paths)
+	{
+		auto old = current;
+		old.parties.insert(old.parties.begin() + 4, {
+			{4, "one-nation", "One Nation", "ONP"}, {5, "uap", "United Australia", "UAP"},
+			{6, "democrats", "Democrats", "DEM"}});
+		for (int i = 0; i < int(old.parties.size()); ++i) old.parties[i].index = i;
+		auto saved = ForecastSpecificationProjectAdapter::construct(old, paths);
+		if (!saved.valid()) return false;
+		auto& project = *saved.project;
+		auto& seat = project.seats().accessByName("Euroa").second;
+		seat.livePartyOne = 7;
+		Poll poll;
+		poll.primary[4] = 2;
+		poll.primary[5] = 1;
+		poll.primary[6] = 3;
+		poll.primary[7] = 8;
+		poll.primary[PartyCollection::MaxParties] = 4;
+		project.polls().add(poll);
+		for (int pass = 0; pass < 2; ++pass) {
+			auto result = ForecastSpecificationProjectAdapter::apply(project, current);
+			auto const& shares = project.polls().viewByIndex(0).primary;
+			if (!result.valid() || seat.livePartyOne != 4 || project.parties().indexByShortCode("NAT") != 4 ||
+				shares[4] != 8 || shares[7] != Poll::NullValue || shares[PartyCollection::MaxParties] != 10) return false;
+		}
+		auto folder = paths.root() / "cli-build" / "vic-poll-import";
+		std::filesystem::create_directories(folder);
+		auto file = folder / "polls.csv";
+		std::ofstream(file) << "MidDate,Firm,Brand,@TPP,ALP FP,ONP FP,UAP FP,DEM FP,NAT FP,OTH FP\n"
+			"2022-11-20,Example,,50,40,2,1,3,8,4\n";
+		project.pollsters().add(Pollster("Example", 0));
+		if (!project.polls().collectPolls([&](std::string, std::string) { return file.string(); })) return false;
+		auto const& imported = project.polls().viewByIndex(0).primary;
+		return imported[4] == 8 && imported[PartyCollection::MaxParties] == 10;
+	}
+
 	bool checkVictorianCoalition(PollingProject const& project)
 	{
 		// These are configuration checks, using the known 2022 candidate roster.
@@ -184,7 +220,7 @@ namespace {
 		// must not acquire a fictional Liberal candidate.
 		auto const& parties = project.parties();
 		auto const national = parties.separateNationalsIndex();
-		if (parties.count() != 8 || national != 7 ||
+		if (parties.count() != 5 || national != 4 ||
 			parties.indexByShortCode("LIB") != 1 ||
 			parties.viewByIndex(national).relationType !=
 				Party::RelationType::Coalition ||
@@ -285,7 +321,7 @@ int main(int argc, char const* argv[])
 			valid = false;
 		}
 		if (specification.electionCode == "2022vic" &&
-			!checkVictorianCoalition(project)) {
+			(!checkVictorianCoalition(project) || !checkVicPartyMigration(specification, paths))) {
 			std::cerr << "2022vic Coalition configuration was not imported correctly\n";
 			valid = false;
 		}

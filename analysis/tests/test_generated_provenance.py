@@ -555,6 +555,30 @@ class GeneratedProvenanceTests(unittest.TestCase):
         self.assertEqual(current["digest"], dependency["digest"])
         hash_file.assert_called_once_with(self.output_path)
 
+    def test_unregistered_polls_are_checked_against_the_trend_being_planned(self):
+        fed = self.data_directory / "poll-data-fed.csv"
+        fed.write_bytes(b"registered\n")
+        source_provenance.add_category(
+            self.source_manifest_path, "raw_poll_data", "Polls", ["poll-data-*.csv"]
+        )
+        polls = generated_provenance.source_manifest_dependency(
+            "raw_poll_data", self.source_manifest_path, self.base
+        )
+        fed.write_bytes(b"registered\nnew poll\n")
+        for election, stage, targets, blocks in (
+            ("2025fed", "generate_pure_poll_trends", ["2025fed"], True),
+            ("2025fed", "generate_pure_poll_trends", ["2026vic"], False),
+            ("2026vic", "generate_poll_trends", ["2026vic"], False),
+            ("2026vic", "generate_cutoff_poll_trends", ["2026vic"], True),
+        ):
+            with self.subTest(election=election, stage=stage, targets=targets):
+                record = self._record(election)
+                record.update(stage=stage, dependencies={"raw_poll_data": polls})
+                issues = generated_provenance.check_record(
+                    record, self.base, check_context=generated_provenance.ManifestCheckContext(targets)
+                )
+                self.assertEqual(issues, ["unrecorded source change raw_poll_data"] if blocks else [])
+
     def test_scoped_source_change_only_stales_matching_work_unit(self):
         self._write_manifest(
             {"election_result_exports:2025fed": self._record()}

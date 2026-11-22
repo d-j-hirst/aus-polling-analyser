@@ -1,0 +1,177 @@
+seat,mode,prior_candidate,venues,estimated_votes,geographic_venues,target_pct,weighted_pct,minimum_pct,maximum_pct
+Albert Park,early,False,4,24804,0,20.0,20.0,20.0,20.0
+Albert Park,ordinary,False,18,17538,18,20.0,20.0,16.539,23.456
+Ashwood,early,False,3,21361,0,20.0,20.0,20.0,20.0
+Ashwood,ordinary,False,21,20085,21,20.0,20.0,13.899,27.362
+Bass,early,False,2,23348,0,20.0,20.0,20.0,20.0
+Bass,ordinary,False,25,20048,25,20.0,20.0,10.88,31.503
+Bayswater,early,False,3,28714,0,20.0,20.0,20.0,20.0
+Bayswater,ordinary,False,18,17934,18,20.0,20.0,14.057,23.31
+Bellarine,early,False,4,27625,0,20.0,20.0,20.0,20.0
+Bellarine,ordinary,False,15,21336,15,20.0,20.0,11.491,40.119
+Benambra,early,False,2,27529,0,20.0,20.0,20.0,20.0
+Benambra,ordinary,False,24,18288,23,20.0,20.0,12.301,25.699
+Bendigo East,early,True,3,33201,0,20.0,20.0,20.0,20.0
+Bendigo East,ordinary,True,28,19768,28,20.0,20.0,14.376,35.081
+Bendigo West,early,False,4,31236,0,20.0,20.0,20.0,20.0
+Bendigo West,ordinary,False,22,16863,22,20.0,20.0,12.283,26.5
+Bentleigh,early,False,4,27413,0,20.0,20.0,20.0,20.0
+Bentleigh,ordinary,False,20,20075,20,20.0,20.0,11.43,27.965
+Berwick,early,False,3,29953,0,20.0,20.0,20.0,20.0
+Berwick,ordinary,False,19,22963,19,20.0,20.0,15.871,29.228
+Box Hill,early,False,4,30749,0,20.0,20.0,20.0,20.0
+Box Hill,ordinary,False,21,18599,21,20.0,20.0,13.191,26.438
+Brighton,early,False,4,30866,0,20.0,20.0,20.0,20.0
+Brighton,ordinary,False,15,15244,15,20.0,20.0,17.034,24.009
+Broadmeadows,early,False,2,21576,0,20.0,20.0,20.0,20.0
+Broadmeadows,ordinary,False,17,17131,17,20.0,20.0,11.875,27.336
+Brunswick,early,False,3,35732,0,20.0,20.0,20.0,20.0
+Brunswick,ordinary,False,20,21187,20,20.0,20.0,17.123,26.167
+Bulleen,early,False,4,23219,0,20.0,20.0,20.0,20.0
+Bulleen,ordinary,False,19,17272,19,20.0,20.0,16.288,24.107
+Bundoora,early,False,4,28934,0,20.0,20.0,20.0,20.0
+Bundoora,ordinary,False,18,15658,18,20.0,20.0,15.975,23.807
+Carrum,early,False,4,31869,0,20.0,20.0,20.0,20.0
+Carrum,ordinary,False,17,16118,17,20.0,20.0,15.258,24.048
+Caulfield,early,False,4,23192,0,20.0,20.0,20.0,20.0
+Caulfield,ordinary,False,18,14987,18,20.0,20.0,14.384,25.923
+Clarinda,early,False,5,23096,0,20.0,20.0,20.0,20.0
+Clarinda,ordinary,False,23,17532,23,20.0,20.0,14.739,23.163
+Cranbourne,early,False,2,32286,0,20.0,20.0,20.0,20.0
+Cranbourne,ordinary,False,17,17757,17,20.0,20.0,11.803,23.292
+Croydon,early,False,4,28050,0,20.0,20.0,20.0,20.0
+Croydon,ordinary,False,21,18271,21,20.0,20.0,14.46,24.754
+Dandenong,early,False,5,39396,0,20.0,20.0,20.0,20.0
+Dandenong,ordinary,False,21,15105,21,20.0,20.0,14.5,24.764
+Eildon,early,False,3,12612,0,20.0,20.0,20.0,20.0
+Eildon,ordinary,False,39,22708,34,20.0,20.0,13.526,24.287
+Eltham,early,False,4,28445,0,20.0,20.0,20.0,20.0
+Eltham,ordinary,False,18,18589,18,20.0,20.0,18.213,22.728
+Essendon,early,False,3,28553,0,20.0,20.0,20.0,20.0
+Essendon,ordinary,False,15,17938,15,20.0,20.0,13.569,24.803
+Eureka,early,False,4,28093,0,20.0,20.0,20.0,20.0
+Eureka,ordinary,False,28,20489,27,20.0,20.0,12.903,27.502
+Euroa,early,False,3,20542,0,20.0,20.0,20.0,20.0
+Euroa,ordinary,False,33,19740,31,20.0,20.0,14.656,24.505
+Evelyn,early,False,5,26614,0,20.0,20.0,20.0,20.0
+Evelyn,ordinary,False,21,19089,21,20.0,20.0,18.01,22.912
+Footscray,early,False,4,30334,0,20.0,20.0,20.0,20.0
+Footscray,ordinary,False,16,15538,16,20.0,20.0,16.941,26.446
+Frankston,early,False,3,25194,0,20.0,20.0,20.0,20.0
+Frankston,ordinary,False,17,18120,17,20.0,20.0,13.09,21.852
+Geelong,early,False,5,33058,0,20.0,20.0,20.0,20.0
+Geelong,ordinary,False,24,19122,24,20.0,20.0,14.306,27.809
+Gippsland East,early,False,3,27343,0,20.0,20.0,20.0,20.0
+Gippsland East,ordinary,False,35,18196,33,20.0,20.0,17.33,25.813
+Gippsland South,early,False,2,22143,0,20.0,20.0,20.0,20.0
+Gippsland South,ordinary,False,41,21657,40,20.0,20.0,9.571,31.288
+Glen Waverley,early,False,4,27779,0,20.0,20.0,20.0,20.0
+Glen Waverley,ordinary,False,21,17888,21,20.0,20.0,15.53,24.246
+Greenvale,early,False,3,32318,0,20.0,20.0,20.0,20.0
+Greenvale,ordinary,False,15,13254,15,20.0,20.0,16.409,33.42
+Hastings,early,False,3,31452,0,20.0,20.0,20.0,20.0
+Hastings,ordinary,False,16,15471,16,20.0,20.0,14.64,22.004
+Hawthorn,early,False,2,21075,0,20.0,20.0,20.0,20.0
+Hawthorn,ordinary,False,20,19669,20,20.0,20.0,16.134,26.685
+Ivanhoe,early,False,2,23228,0,20.0,20.0,20.0,20.0
+Ivanhoe,ordinary,False,16,18850,16,20.0,20.0,16.067,26.404
+Kalkallo,early,False,5,30158,0,20.0,20.0,20.0,20.0
+Kalkallo,ordinary,False,18,22601,18,20.0,20.0,12.484,30.852
+Kew,early,False,4,27414,0,20.0,20.0,20.0,20.0
+Kew,ordinary,False,19,19077,19,20.0,20.0,15.945,29.525
+Kororoit,early,False,5,37619,0,20.0,20.0,20.0,20.0
+Kororoit,ordinary,False,16,13736,16,20.0,20.0,15.448,22.78
+Lara,early,False,4,25764,0,20.0,20.0,20.0,20.0
+Lara,ordinary,False,20,18963,20,20.0,20.0,13.114,22.032
+Laverton,early,False,5,31004,0,20.0,20.0,20.0,20.0
+Laverton,ordinary,False,16,13513,16,20.0,20.0,15.982,27.757
+Lowan,early,False,3,23896,0,20.0,20.0,20.0,20.0
+Lowan,ordinary,False,51,24192,41,20.0,20.0,11.458,29.633
+Macedon,early,True,2,17806,0,20.0,20.0,20.0,20.0
+Macedon,ordinary,True,25,20558,25,20.0,20.0,15.783,27.324
+Malvern,early,False,2,24910,0,20.0,20.0,20.0,20.0
+Malvern,ordinary,False,16,15680,16,20.0,20.0,15.809,26.426
+Melbourne,early,False,6,91121,0,20.0,20.0,20.0,20.0
+Melbourne,ordinary,False,15,14754,15,20.0,20.0,14.45,25.418
+Melton,early,False,2,34989,0,20.0,20.0,20.0,20.0
+Melton,ordinary,False,14,15959,14,20.0,20.0,12.379,25.187
+Mildura,early,False,2,22157,0,20.0,20.0,20.0,20.0
+Mildura,ordinary,False,34,18111,28,20.0,20.0,13.62,27.067
+Mill Park,early,False,3,27502,0,20.0,20.0,20.0,20.0
+Mill Park,ordinary,False,14,14983,14,20.0,20.0,16.548,21.541
+Monbulk,early,False,3,19606,0,20.0,20.0,20.0,20.0
+Monbulk,ordinary,False,23,19980,23,20.0,20.0,14.895,29.747
+Mordialloc,early,False,4,30047,0,20.0,20.0,20.0,20.0
+Mordialloc,ordinary,False,17,19604,17,20.0,20.0,16.94,22.026
+Mornington,early,False,2,30532,0,20.0,20.0,20.0,20.0
+Mornington,ordinary,False,13,15785,13,20.0,20.0,16.387,25.898
+Morwell,early,True,3,36891,0,20.0,20.0,20.0,20.0
+Morwell,ordinary,True,20,16093,20,20.0,20.0,15.767,22.675
+Mulgrave,early,False,4,23485,0,20.0,20.0,20.0,20.0
+Mulgrave,ordinary,False,19,15940,19,20.0,20.0,10.937,24.39
+Murray Plains,early,False,2,23770,0,20.0,20.0,20.0,20.0
+Murray Plains,ordinary,False,36,19011,33,20.0,20.0,13.832,23.907
+Narracan,early,True,3,26510,0,20.0,20.0,20.0,20.0
+Narracan,ordinary,True,32,20216,32,20.0,20.0,16.217,33.422
+Narre Warren North,early,False,4,21479,0,20.0,20.0,20.0,20.0
+Narre Warren North,ordinary,False,16,19427,16,20.0,20.0,17.767,22.539
+Narre Warren South,early,False,4,29011,0,20.0,20.0,20.0,20.0
+Narre Warren South,ordinary,False,18,18602,18,20.0,20.0,14.967,22.56
+Nepean,early,False,3,29861,0,20.0,20.0,20.0,20.0
+Nepean,ordinary,False,12,12351,12,20.0,20.0,11.684,22.605
+Niddrie,early,False,3,32413,0,20.0,20.0,20.0,20.0
+Niddrie,ordinary,False,18,16829,18,20.0,20.0,15.968,23.8
+Northcote,early,False,5,35613,0,20.0,20.0,20.0,20.0
+Northcote,ordinary,False,18,19234,18,20.0,20.0,11.726,31.673
+Oakleigh,early,False,5,26845,0,20.0,20.0,20.0,20.0
+Oakleigh,ordinary,False,24,19582,24,20.0,20.0,12.526,23.766
+Ovens Valley,early,False,2,20373,0,20.0,20.0,20.0,20.0
+Ovens Valley,ordinary,False,33,21964,32,20.0,20.0,13.077,31.114
+Pakenham,early,True,4,38155,0,20.0,20.0,20.0,20.0
+Pakenham,ordinary,True,15,16473,15,20.0,20.0,14.232,24.273
+Pascoe Vale,early,False,3,22941,0,20.0,20.0,20.0,20.0
+Pascoe Vale,ordinary,False,22,19071,22,20.0,20.0,13.12,25.166
+Point Cook,early,False,4,28656,0,20.0,20.0,20.0,20.0
+Point Cook,ordinary,False,12,16877,12,20.0,20.0,14.39,24.673
+Polwarth,early,False,2,26375,0,20.0,20.0,20.0,20.0
+Polwarth,ordinary,False,32,20511,32,20.0,20.0,8.436,34.544
+Prahran,early,False,3,23173,0,20.0,20.0,20.0,20.0
+Prahran,ordinary,False,20,16070,20,20.0,20.0,12.397,23.634
+Preston,early,False,3,25386,0,20.0,20.0,20.0,20.0
+Preston,ordinary,False,19,20103,19,20.0,20.0,16.816,23.085
+Richmond,early,False,4,40387,0,20.0,20.0,20.0,20.0
+Richmond,ordinary,False,16,14473,16,20.0,20.0,16.228,22.475
+Ringwood,early,False,6,28354,0,20.0,20.0,20.0,20.0
+Ringwood,ordinary,False,23,19748,23,20.0,20.0,15.856,25.388
+Ripon,early,False,4,18983,0,20.0,20.0,20.0,20.0
+Ripon,ordinary,False,38,20959,36,20.0,20.0,13.21,25.56
+Rowville,early,False,4,31251,0,20.0,20.0,20.0,20.0
+Rowville,ordinary,False,15,19470,15,20.0,20.0,14.827,24.483
+Sandringham,early,False,4,28594,0,20.0,20.0,20.0,20.0
+Sandringham,ordinary,False,17,16127,17,20.0,20.0,13.854,27.854
+Shepparton,early,False,3,28572,0,20.0,20.0,20.0,20.0
+Shepparton,ordinary,False,30,20974,29,20.0,20.0,17.635,26.028
+South Barwon,early,False,5,32986,0,20.0,20.0,20.0,20.0
+South Barwon,ordinary,False,21,23446,21,20.0,20.0,12.387,25.348
+South-West Coast,early,False,2,32664,0,20.0,20.0,20.0,20.0
+South-West Coast,ordinary,False,34,22714,32,20.0,20.0,15.374,28.916
+St Albans,early,False,3,28237,0,20.0,20.0,20.0,20.0
+St Albans,ordinary,False,13,10334,13,20.0,20.0,14.713,24.188
+Sunbury,early,False,4,34452,0,20.0,20.0,20.0,20.0
+Sunbury,ordinary,False,14,17743,14,20.0,20.0,10.35,23.591
+Sydenham,early,False,5,36494,0,20.0,20.0,20.0,20.0
+Sydenham,ordinary,False,15,18333,15,20.0,20.0,12.687,23.483
+Tarneit,early,False,3,34728,0,20.0,20.0,20.0,20.0
+Tarneit,ordinary,False,17,18637,17,20.0,20.0,10.123,27.722
+Thomastown,early,False,2,24890,0,20.0,20.0,20.0,20.0
+Thomastown,ordinary,False,17,19183,17,20.0,20.0,14.414,23.807
+Warrandyte,early,False,5,23025,0,20.0,20.0,20.0,20.0
+Warrandyte,ordinary,False,23,18271,23,20.0,20.0,13.489,27.176
+Wendouree,early,False,4,35313,0,20.0,20.0,20.0,20.0
+Wendouree,ordinary,False,17,18067,17,20.0,20.0,13.871,25.153
+Werribee,early,False,3,36644,0,20.0,20.0,20.0,20.0
+Werribee,ordinary,False,17,18819,17,20.0,20.0,15.446,30.278
+Williamstown,early,False,4,29933,0,20.0,20.0,20.0,20.0
+Williamstown,ordinary,False,19,17930,19,20.0,20.0,16.242,25.118
+Yan Yean,early,False,6,36499,0,20.0,20.0,20.0,20.0
+Yan Yean,ordinary,False,17,16776,17,20.0,20.0,12.781,31.67

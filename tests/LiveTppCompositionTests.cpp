@@ -1495,9 +1495,10 @@ void testParallelCoalitionTcpAccounts() {
     // An empty replacement contributes neither a count nor a fitted
     // observation. The old Liberal tally can be supplied by history.
     Counts primaries{{0,40},{1,20},{10,30},{7,10}};
-    checkClose(referenceOpponent({{0,0},{1,0}},primaries,10),10);
-    checkClose(referenceOpponent({{0,0},{10,0}},primaries,10),10);
-    checkClose(referenceOpponent({{0,62},{1,38}},primaries,10),1);
+    checkClose(referenceOpponent({{0,0},{10,0}},false,10),1);
+    checkClose(referenceOpponent({{0,0},{1,0}},true,10),10);
+    checkClose(referenceOpponent({{0,0},{10,0}},true,10),10);
+    checkClose(referenceOpponent({{0,62},{1,38}},true,10),1);
     measured.pairs[1] = {100,54,{},{}};
     LiveCoalitionTcp::Observation replacement{0,1,{{Liberal,20,odds(.2)},{Other,10,odds(.7)}},30,14,1};
     auto both = LiveCoalitionTcp::prepare({measured},{old,replacement});
@@ -1527,7 +1528,159 @@ void testParallelCoalitionTcpAccounts() {
     checkClose(future.draw(1,100,shares,centre).labor,51);
 }
 
+void testFixedCoalitionOpponent() {
+    using namespace LiveCoalitionTcp;
+    using enum SourceGroup;
+    using CoalitionPreference::historicalNational;
+    assert(!historicalNational(true,true,false,10,30,true));
+    assert(historicalNational(true,false,true,30,10,false));
+    assert(!historicalNational(false,true,false,24,15,true));
+    assert(historicalNational(false,false,false,0,0,true));
+    auto normal = [](std::size_t) { return 0.; };
+    auto odds = LivePartialCount::logOdds;
+    CoalitionPreference::Scenario scenario;
+    scenario.priorFp = {{0,40},{1,20},{10,30},{7,10}};
+    scenario.rates = {{7,.7},{-1,.5}};
+    scenario.leakage = {.3,.2,false};
+    auto project = [&](auto const& fp,double reference) {
+        return CoalitionPreference::projectPrimaries(scenario,fp,10,reference,-1);
+    };
+    checkClose(CoalitionPreference::feasibleLeakage(.2,30,10,3),.1);
+    checkClose(CoalitionPreference::feasibleLeakage(.2,30,10,19),.3);
+    checkClose(CoalitionPreference::feasibleLeakage(.2,30,10,10),.2);
+    auto baseLeak = CoalitionPreference::sample(false,0,0);
+    auto liberalShock = CoalitionPreference::sample(false,1,0);
+    auto nationalShock = CoalitionPreference::sample(false,0,1);
+    checkClose(baseLeak.liberal,.2);
+    checkClose(baseLeak.national,.2);
+    assert(liberalShock.liberal > baseLeak.liberal && liberalShock.national == baseLeak.national);
+    assert(nationalShock.national > nationalShock.liberal && nationalShock.liberal > baseLeak.liberal);
+    auto fp = scenario.priorFp;
+    scenario.results = project(fp,53.);
+    checkClose(scenario.results.labor[0],53);
+    checkClose(scenario.results.labor[1],53);
+    scenario.leakage.liberal = .1;
+    checkClose(project(fp,53).labor[0],53);
+    checkClose(project(fp,53).labor[1],49);
+    scenario.leakage.nationalReference = true;
+    checkClose(project(fp,49).labor[0],53);
+    checkClose(project(fp,49).labor[1],49);
+    fp[10] -= 2; fp[7] += 2;
+    checkClose(project(fp,49).labor[0],54);
+    checkClose(project(fp,49).labor[1],50.4);
+    fp = scenario.priorFp;
+    scenario.results = project(fp,49);
+    std::vector<Source> sources{{Labor,40,0,0},{Liberal,20,odds(.2),1},
+        {National,30,odds(.2),10},{Other,10,odds(.7),7}};
+    Booth booth{0,{},{}};
+    for (auto& pair : booth.pairs) pair.pending = sources;
+    auto empty = prepare({booth},{});
+    empty.countedFp = fp;
+    auto before = scenario.results.labor;
+    empty.update(scenario,fp,10,-1,100,normal);
+    assert(before == scenario.results.labor);
+    auto regional = scenario;
+    empty.broadLogOdds = std::log(2.);
+    empty.update(regional,fp,10,-1,100,normal);
+    for (size_t p = 0; p < 2; ++p) checkClose(regional.results.labor[p]-before[p],10.*(1.4/1.7-.7));
+    // Empty feed labels and the first partner's withdrawal leave its
+    // retained positive count in its own account. New NAT evidence can fill
+    // that account without spending the original LIB ballots twice.
+    booth.pairs[0] = {100,59,{},{}};
+    auto libCount = prepare({booth},{{0,0,{sources[2],sources[3]},40,19,1}});
+    libCount.countedFp = fp;
+    libCount.update(scenario,fp,10,-1,100,normal);
+    checkClose(scenario.results.labor[0],59);
+    assert(scenario.results.counted[0] && !scenario.results.counted[1]);
+    assert(scenario.results.labor[1] > before[1]);
+    booth.pairs[1] = {100,47,{},{}};
+    auto both = prepare({booth},{});
+    both.countedFp = fp;
+    both.update(scenario,fp,10,-1,100,normal);
+    checkClose(scenario.results.labor[0],59);
+    checkClose(scenario.results.labor[1],47);
+    assert(scenario.results.counted[0] && scenario.results.counted[1]);
+}
+
+void testUncertaintyAcrossCoalitionHandover() {
+    using namespace LiveCoalitionTcp;
+    using enum SourceGroup;
+    auto odds = LivePartialCount::logOdds;
+    CoalitionPreference::Scenario scenario;
+    scenario.priorFp = {{0,35},{1,10},{10,30},{7,25}};
+    scenario.rates = {{7,.6},{-1,.5}};
+    auto fp = scenario.priorFp;
+    auto project = [&](auto& draw) {
+        double reference = draw.leakage.nationalReference ? 52. : 56.;
+        draw.results = CoalitionPreference::projectPrimaries(draw,fp,10,reference,-1);
+    };
+    // Hold leakage and primaries fixed. A one-SD preference difference
+    // must vary only the counterfactual, in either historical orientation.
+    scenario.opponentDifference = CoalitionPreference::OpponentDifferenceSd;
+    for (bool refNat : {false,true}) {
+        scenario.leakage.nationalReference = refNat;
+        project(scenario);
+        checkClose(scenario.results.labor[refNat],refNat ? 52. : 56.);
+        assert(refNat ? scenario.results.labor[0] < 55. : scenario.results.labor[1] > 53.);
+    }
+    scenario.leakage.nationalReference = false;
+    project(scenario);
+    auto zero = [](std::uint64_t) { return 0.; };
+    std::vector<Source> voters{{Labor,35,0,0},{Liberal,10,odds(.2),1},
+        {National,30,odds(.2),10},{Other,25,odds(.6),7}};
+    Booth ordinary{0,{},{}}, early{1,{},{}};
+    ordinary.sourceId = 17; early.sourceId = 39;
+    for (auto* booth : {&ordinary,&early}) {
+        booth->minorPrimaries[7] = 25;
+        for (auto& pair : booth->pairs) pair.pending = voters;
+    }
+    ordinary.pairs[0] = {100,56,{},{}};
+    LiveCoalitionTcp::Observation lib{0,0,{voters[2],voters[3]},55,21,1};
+    auto stillLiberal = prepare({ordinary,early},{lib},false);
+    auto update = [&](LiveCoalitionTcp::Prepared const& model, double difference, auto normal) {
+        auto draw = scenario;
+        draw.opponentDifference = difference;
+        project(draw);
+        model.update(draw,fp,10,-1,200,normal);
+        return draw.results;
+    };
+    // The old 100 ballots measure their expected split. Replaying
+    // them from history cannot resolve the other matchup's uncertainty.
+    double const sd = CoalitionPreference::OpponentDifferenceSd;
+    auto high = update(stillLiberal,sd,zero), low = update(stillLiberal,-sd,zero);
+    checkClose(high.labor[0],low.labor[0]);
+    checkClose(high.labor[1],scenario.results.labor[1],.1); // half-ballot smoothing of the small batch
+    double const oldWidth = high.labor[1]-low.labor[1];
+    assert(oldWidth > 4.);
+    // The same category or booth draw must act on every pending voter
+    // there and on the observation predicting its transfers. A leaning
+    // ordinary booth implies a different preference rate across the district
+    // than a representative one, even with the same published count.
+    for (auto key : { (1ULL<<32), (3ULL<<32)+17 }) {
+        auto lean = [=](std::uint64_t term) { return term == key ? 1. : 0.; };
+        auto geography = drawGeographicFlows(stillLiberal,lean);
+        checkClose((geography.rate(7,.6,0)+geography.rate(7,.6,1))*.5,.6);
+        auto varied = update(stillLiberal,sd,lean);
+        assert(varied.labor[0] < high.labor[0] && varied.labor[1] < high.labor[1]);
+    }
+    // A newly measured NAT batch constrains both the count already in
+    // hand and the remaining transfer rates. At completion its sampled
+    // result must equal the actual count even under extreme flow draws.
+    early.pairs[1] = {100,52,{},{}};
+    LiveCoalitionTcp::Observation nat{1,1,{voters[1],voters[3]},35,17,1};
+    auto partial = prepare({ordinary,early},{lib,nat},false);
+    auto highPartial = update(partial,sd,zero), lowPartial = update(partial,-sd,zero);
+    assert(highPartial.counted[1] && !high.counted[1]);
+    assert(highPartial.labor[1] > lowPartial.labor[1] && highPartial.labor[1]-lowPartial.labor[1] < oldWidth*.5);
+    ordinary.pairs[1] = {100,48,{},{}};
+    auto complete = prepare({ordinary,early},{lib,nat},false);
+    checkClose(update(complete,sd,zero).labor[1],50.);
+    checkClose(update(complete,-sd,[](std::uint64_t) {return -2.;}).labor[1],50.);
+}
+
 int main() {
+    testUncertaintyAcrossCoalitionHandover();
+    testFixedCoalitionOpponent();
     testParallelCoalitionTcpAccounts();
     testUnifiedCategoryReceivedAccount();
     testUnifiedCategoryPreservesMeasuredInformation();

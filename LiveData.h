@@ -64,6 +64,9 @@ enum class VoteType : int {
 	EVM = 11,
 	TIO = 12,
 	MarkedAsVoted = 13,
+	EvcEarly = 14,
+	MobileEarly = 15,
+	OtherEarly = 16, // VEC V2 residual. Early (6) remains the historical pooled account.
 };
 
 // Numeric values preserve the existing Results2::Booth::Type representation.
@@ -93,9 +96,19 @@ constexpr std::string_view voteTypeName(VoteType voteType)
 	case VoteType::EVM: return "EVM";
 	case VoteType::TIO: return "TIO";
 	case VoteType::MarkedAsVoted: return "Marked as voted";
+	case VoteType::EvcEarly: return "EVC early";
+	case VoteType::MobileEarly: return "Mobile early";
+	case VoteType::OtherEarly: return "Other early";
 	case VoteType::Invalid: return "Invalid";
 	}
 	return "Invalid";
+}
+
+// These district accounts can receive successive batches with different
+// mixes of voters. A single physical centre has its own reporting behaviour.
+constexpr bool aggregatedEarly(VoteType type) {
+	return type == VoteType::Early || type == VoteType::PrePoll || type == VoteType::EvcEarly ||
+		type == VoteType::MobileEarly || type == VoteType::OtherEarly;
 }
 
 constexpr std::string_view boothTypeName(BoothType boothType)
@@ -304,6 +317,7 @@ public:
 	// An optional pair-specific Labor share for a project district and its
 	// simulated Coalition finalist. The three primary shares, in percent, are
 	// Labor, Liberal and National in this same simulation draw.
+	virtual void updateCoalitionMatchups(int, CoalitionPreference::Scenario&, CoalitionPreference::Shares const&) const {}
 	virtual std::optional<CoalitionTcpShare> getSeatCoalitionTcpShare(
 		int, int, std::array<double,3>) const { return {}; }
 

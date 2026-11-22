@@ -71,6 +71,8 @@ int main(int argc, char** argv) try {
         {"expected_votes",100000}, {"inferred_evidence_votes",5000},
         {"observed_evidence_votes",10000}, {"confidence",.15},
         {"inferred_share",1./3}, {"influence",.30987654321}};
+    double const warningProbability = std::nextafter(0.98, 1.0);
+    source["preference_rechecking"]["seats"][0]["booths"][0]["broad_probability"] = warningProbability;
     for (int i = 0; i < 70; ++i) source["extra_field_" + std::to_string(i)] = i;
     auto const serialised = LiveAnalysisArchive::serialize(source);
     auto const packet = json::parse(serialised);
@@ -96,6 +98,7 @@ int main(int argc, char** argv) try {
     CHECK(std::abs(historical.at("extrapolation_reliability").get<double>()-.0429688)<1e-12);
     CHECK(data.at("turnout").at("units").at(0).at("name_booth_ref") == 0);
     CHECK(data.at("preference_rechecking").at("seats").at(0).at("booths").at(0).at("booth_name_ref") == 0);
+    CHECK(data.at("preference_rechecking").at("seats").at(0).at("booths").at(0).at("broad_probability") == warningProbability);
     auto const& restoredNode = data.at("seats").at(0).at("node");
     CHECK(restoredNode.at("fp_votes_current").at(0).at("party_ref") == 0);
     CHECK(restoredNode.at("fp_votes_current").at(0).at("value") == 1234567);

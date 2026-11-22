@@ -281,6 +281,23 @@ def input_messages(packet, instructions, settings, *, include_local_win_order=Fa
                         'evidence', 'category_transfers', 'close_tcp_counts', 'statewide_preference_changes',
                         'district_fp_completion', 'replacement_tcp_counts'}
     comparison = {k: v for k, v in packet.items() if k not in duplicate_fields}
+    if packet.get('possible_booth_errors'):
+        comparison['booth_error_context'] = (
+            'These booth preference counts look unusual against comparable booths. Confidence describes how '
+            'often the model applies its discrepancy-driven correction. A count error is possible, not confirmed. '
+            'Mention a warning when it helps readers understand a competitive seat; do not attribute a change '
+            'in win chance to it without supporting evidence.')
+    if packet.get('reported_preference_samples'):
+        comparison['reported_preference_samples'] = {
+            seat: {'observed': commentary_format.preference_sample_detail(packet, seat),
+                   'source_first_preferences': sample['sources']}
+            for seat, sample in packet['reported_preference_samples'].items()}
+        comparison['preference_sample_context'] = (
+            'For a material change, name the sampled voters and who gained on whom in the exclusion count. '
+            'Connect that evidence to the observed change in the chance of reaching the final two or winning. '
+            'A ballot total or a statement that the forecast used the sample does not explain its direction. '
+            'A three-way tally includes the surviving candidates’ first preferences; a transfer split alone cannot establish their order. '
+            'Describe the sampled ballots separately from district projections. Other counting can also contribute.')
     if packet.get('ranked_tcp_groups'):
         # The checked tables carry both shares and the size of the original
         # group. Supply its reporting locations separately from booth quotes
@@ -359,7 +376,25 @@ def input_messages(packet, instructions, settings, *, include_local_win_order=Fa
         comparison['replacement_tcp'] = {'columns': ['earlier pair IDs', 'replacement pair IDs', *fields],
                                          'by_district': by_seat}
         figures = [r for r in figures if r['quantity'] not in fields]
+    # The observed sample above already contains its checked numbers, units
+    # and recipients. Keep them in the local validator without sending twice.
+    if packet.get('reported_preference_samples'):
+        figures = [r for r in figures if r['quantity'] not in ('number of sampled preference ballots', 'sampled second-place lead after transfers')
+                   and not r['quantity'].startswith('share of sampled transfers to ')]
     comparison.update(_figure_tables(figures))
+    lead_sources = {seat: counts['lead_source'] for seat, counts in packet.get('close_tcp_counts', {}).items()
+                    if counts.get('lead_source')}
+    if lead_sources:
+        comparison['when_reporting_a_counted_lead_change_name_its_source'] = lead_sources
+    smaller_remainders = {seat: counts['pair'] for seat, counts in packet.get('close_tcp_counts', {}).items()
+                          if counts.get('fewer_votes_favour_counted_leader')}
+    if smaller_remainders:
+        comparison['fewer_votes_favour_counted_leader'] = smaller_remainders
+        comparison['remaining_vote_context'] = (
+            'For these pairs the counted leader (first ID) gained both overall and against this opponent. '
+            'Link the gain to the smaller estimated number of TCP votes still to come: the trailer now '
+            'needs a larger share of them to catch up. Quote the counted lead and both remaining estimates. '
+            'This helps explain the gain; it does not measure the exact effect or establish any new counting.')
     follow_ups = {seat: counts['pair'] for seat, counts in packet.get('close_tcp_counts', {}).items()
                   if counts.get('continued_realigned_count')}
     if follow_ups:

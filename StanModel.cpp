@@ -932,6 +932,16 @@ StanModel::SupportSample StanModel::generateAdjustedSupportSample(Date date, int
 	return adjustedSample;
 }
 
+// The two Coalition matchup accounts allocate every formal ballot to a
+// finalist. Use the same exhaustion assumptions that produced the projected
+// FP draw, including for a saved projection loaded from an earlier run.
+bool StanModel::allPreferencesContinue() const
+{
+	return preferenceExhaustMap.contains(OthersCode) &&
+		std::none_of(preferenceExhaustMap.begin(),preferenceExhaustMap.end(),
+			[](auto const& party) { return party.second > 0.; });
+}
+
 void StanModel::generateUnnamedOthersSeries()
 {
 	if (rawSupport.count(OthersCode) && rawSupport.count(UnnamedOthersCode)) {

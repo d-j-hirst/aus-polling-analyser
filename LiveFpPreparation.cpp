@@ -17,37 +17,121 @@ LiveFpEvidence::Unit LiveV2::Election::fpEvidenceUnit(int boothIndex, bool varie
     unit.relevance = booth.node.relevanceModifier;
     unit.group = int(booth.voteType)*100+int(booth.boothType);
     unit.ordinary = booth.voteType == Results2::VoteType::Ordinary && booth.boothType != Results2::Booth::Type::Ppvc;
-    unit.aggregatedEarly = booth.incrementalFp || booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll;
+    unit.aggregatedEarly = booth.incrementalFp || LiveData::aggregatedEarly(booth.voteType);
+    if (boothGeography && boothGeography->units.at(boothIndex)) {
+        auto const& reference = *boothGeography->units[boothIndex];
+        int party = boothGeography->party;
+        unit.geographicShare = {party,reference.absoluteShare};
+        // These ordinary comparisons refer to a federal prediction. Even in
+        // the five returning Victorian seats an old state swing supplies no
+        // independent confidence in that prediction. Mobile teams share the
+        // SA feed's ordinary label but form a separate voting population.
+        if (reference.ordinary) unit.comparable.erase(party);
+        else if (unit.ordinary) {
+            unit.ordinary = false;
+            unit.group = -1;
+        }
+    }
     return unit;
 }
 
-void LiveV2::Election::prepareFpEvidence() {
+void LiveV2::Election::prepareFpEvidence(LiveFederalDeclarations::Prior const& declarationPrior) {
     // Prepare once from accepted counts and the historical projection. Every
     // scenario shares this small immutable state; no snapshots or JSON trees
     // are retained. Candidate-specific comparability prevents a new independent
     // from inheriting the major parties' confidence in historical swings.
     std::vector<LiveFpEvidence::Prepared> prepared;
     prepared.reserve(seats.size());
+    int oneNation = InvalidPartyIndex;
+    if (!declarationPrior.empty()) {
+        // Where the booth comparison is active, both calculations describe
+        // the same candidate even if the project recognises two party codes.
+        oneNation = boothGeography ? boothGeography->party : project.parties().indexByShortCode("ON");
+        if (oneNation < 0) oneNation = project.parties().indexByShortCode("ONP");
+    }
     for (auto const& seat : seats) {
         std::vector<LiveFpEvidence::Unit> units;
         units.reserve(seat.booths.size());
         for (int booth : seat.booths) units.push_back(fpEvidenceUnit(booth));
         prepared.push_back(LiveFpEvidence::prepare(units,seat.node.fpConfidence));
+        if (oneNation >= 0 && !seat.finalResult)
+            prepareFederalDeclarations(seat, units, prepared.back().factors, declarationPrior, oneNation);
     }
     fpEvidence = std::make_shared<std::vector<LiveFpEvidence::Prepared> const>(std::move(prepared));
+}
+
+// Measure the district's in-person result after the ordinary FP evidence has
+// been balanced across booths. The common reference covers exactly the same
+// population as the federal ordinary vote. It includes the projected remainder
+// at unreported booths and the fixed count at reported ones. The optional
+// federal booth geography is already reflected in those projections.
+void LiveV2::Election::prepareFederalDeclarations(Seat const& seat, std::vector<LiveFpEvidence::Unit> const& units,
+    LiveFpEvidence::Shares const& factors, LiveFederalDeclarations::Prior const& prior, int party) {
+    auto const election = run.getTermCode();
+    LiveFederalDeclarations::HomeVote home;
+    for (size_t j = 0; j < units.size(); ++j) {
+        auto const& booth = readBooths()[seat.booths[j]];
+        if (!LiveFederalDeclarations::homeInPerson(election, booth.voteType, booth.boothType, booth.name) ||
+            !booth.node.runningParties.contains(party)) continue;
+        auto projected = LiveFpEvidence::adjusted(units[j], factors);
+        home.on += LiveFpEvidence::value(projected, party);
+        home.formal += LiveFpEvidence::total(projected);
+        home.counted += LiveFpEvidence::total(units[j].counted);
+    }
+    bool hasVictorianBaseline = election == "2026vic" && boothGeography;
+    if (home.counted <= 0 && !hasVictorianBaseline) return;
+
+    // Both feeds accumulate each absent, postal or early-away category in one district
+    // account. Replace the central estimate for its future voters after both
+    // the historical and current-share estimates have had their usual say.
+    // This avoids adding the federal difference on top of an existing tilt
+    // or feeding the same category return into its own estimate twice.
+    for (size_t j = 0; j < units.size(); ++j) {
+        auto& booth = preparationBooths()[seat.booths[j]];
+        auto shift = prior.find(booth.voteType);
+        if (shift == prior.end() || !booth.node.runningParties.contains(party)) continue;
+        auto const& unit = units[j];
+        auto projected = LiveFpEvidence::adjusted(unit, factors);
+        double counted = LiveFpEvidence::total(unit.counted);
+        double expected = LiveFpEvidence::total(projected);
+        if (expected <= counted || projected.size() < 2 || !projected.contains(party)) continue;
+        double countedOn = LiveFpEvidence::value(unit.counted, party);
+        double original = std::clamp((projected.at(party) - countedOn) / (expected - counted), 0., 1.);
+        if (home.counted > 0) {
+            booth.federalDeclaration = LiveFederalDeclarations::estimate(party, home, shift->second,
+                countedOn, counted, expected, original, booth.voteType);
+        } else if (counted > 0) {
+            // If this declaration is Victoria's first return in the district,
+            // its pre-count share already includes the federal allowance.
+            // Blend the batch once with that starting share. With no ballots
+            // reported anywhere the centred district baseline stands as prepared.
+            auto const& reference = boothGeography->units.at(seat.booths[j]).value();
+            booth.federalDeclaration = LiveFederalDeclarations::estimateFromContext(party, reference.share,
+                countedOn, counted, expected, original, booth.voteType);
+        }
+    }
 }
 
 void LiveV2::Election::applyFpEvidence(int boothIndex) {
     if (!fpEvidence) return; // The initial historical composition is prepared first.
     auto& booth = preparationBooths().at(boothIndex);
     auto const& factors = fpEvidence->at(booth.parentSeatId).factors;
-    if (factors.empty()) return; // Preserve zero-evidence and fully counted accounts.
+    if (factors.empty() && !booth.federalDeclaration) return;
     auto unit = fpEvidenceUnit(boothIndex,createRandomVariation);
     auto adjusted = LiveFpEvidence::adjusted(unit,factors);
     unit.projected = adjusted;
     auto future = LiveFpEvidence::remainder(unit);
-    if (LiveFpEvidence::total(future)>0)
+    double pool = LiveFpEvidence::total(future);
+    if (pool > 0) {
+        if (booth.federalDeclaration) {
+            LiveFederalDeclarations::allocate(future, pool, *booth.federalDeclaration,
+                booth.node.fpVotesCurrent, createRandomVariation);
+            for (auto const& [id, votes] : future) adjusted[id] = LiveFpEvidence::value(unit.counted, id) + votes;
+        }
+        // Preferences for the same outstanding voters and the turnout scenarios
+        // must see the same composition as the seat's first-preference account.
         booth.futureFpShares = LiveNewVotes::normalize(std::move(future));
+    }
     storeFpProjection(boothIndex,mapFpProjection(boothIndex,adjusted));
 }
 

@@ -624,6 +624,9 @@ void Results2::Election::preload2022Vic(tinyxml2::XMLDocument const& input_candi
   const std::map<std::string, std::string> shortCodes = {
     {"The Australian Greens - Victoria", "GRN"},
     {"Australian Greens Victoria", "GRN"},
+    // The 2022 and 2026 ballots use different registered names for the
+    // same party. Keep its first preferences identifiable in either replay.
+    {"Pauline Hanson's One Nation", "ONP"},
     {"One Nation Victoria", "ONP"},
     {"Australian Democrats", "DEM"},
     {"Australian Labor Party - Victorian Branch", "ALP"},
@@ -731,8 +734,8 @@ void Results2::Election::preload2022Vic(tinyxml2::XMLDocument const& input_candi
         districtContext + "/PollingPlaces/PollingPlace/PollingPlaceIdentifier");
       // Ordinary locations have their own forecast and historical comparison.
       // VEC V2 also identifies early centres and mobile teams. Their counts
-      // contribute to one Early estimate per district until we model their
-      // individual sizes. Retain their IDs to recognise the detailed rows.
+      // already appear in the district's separate centre and mobile totals.
+      // Retain the IDs so their detailed rows cannot count the ballots twice.
       std::string_view classification = boothIdentifier.Attribute("Classification") ?
         boothIdentifier.Attribute("Classification") : "";
       if (classification == "EarlyVotingCentre" || classification == "MobileVoting") {
@@ -878,9 +881,16 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
         if (boothName == "Postal Votes") voteType = VoteType::Postal;
         if (boothName == "Absent Votes") voteType = VoteType::Absent;
         if (boothName == "Early Votes") voteType = VoteType::Early;
+        if (boothName == "EVC Early Votes") voteType = VoteType::EvcEarly;
+        if (boothName == "Mobile Early Votes") voteType = VoteType::MobileEarly;
+        if (boothName == "Other Early Votes") voteType = VoteType::OtherEarly;
         if (boothName == "Provisional Votes") voteType = VoteType::Provisional;
         if (boothName == "Marked As Voted Votes") voteType = VoteType::MarkedAsVoted;
         if (voteType == VoteType::Invalid) continue;
+        // The 2022 VEC recheck measured home-centre FP separately in the
+        // November districts. Even there the TCP split was reconstructed.
+        if (boothValue.value("synthetic",false)) seats[seatId].syntheticBaselineTypes.insert(voteType);
+        if (boothValue.value("measured_fp",false)) seats[seatId].measuredFpInSyntheticTypes.insert(voteType);
         auto fps = boothValue["fp"];
         for (auto const& [fpCandIndex, fpVotes] : fps.items()) {
           int fpCandIndexI = std::stoi(fpCandIndex);
@@ -2725,11 +2735,16 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 
   std::set<int> boothIdsPresent;
 
-  auto districtVoteType = [format](std::string const& name) {
-    // The V2 district rows are disjoint. Early is the residual early count,
-    // alongside early-centre and mobile votes. Their sum is comparable with
-    // the single Early category published in 2022.
-    if (format == Format::VEC && (name == "EVCEarly" || name == "MobileVotingEarly")) return VoteType::Early;
+  auto districtVoteType = [&](std::string const& name) {
+    // V1 used Early for all early voters. The 2026 file gives three
+    // disjoint totals, even when the location breakdown is suppressed.
+    // Distinct identities also prevent recovery of a pooled V1 count as a
+    // residual V2 count when a later capture omits its breakdown.
+    if (format == Format::VEC) {
+      if (name == "EVCEarly") return VoteType::EvcEarly;
+      if (name == "MobileVotingEarly") return VoteType::MobileEarly;
+      if (name == "Early" && (termCode == "2026vic" || !vecEarlyLocationIds.empty())) return VoteType::OtherEarly;
+    }
     auto found = typeNameToVoteType.find(name);
     return found == typeNameToVoteType.end() ? VoteType::Invalid : found->second;
   };
@@ -2898,7 +2913,6 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
         auto candidateId = candidateIdFinder();
         int partyId = candidates.at(candidateId).party;
         auto tcpVoteType = firstVoteType(*currentCandidate, "TwoCandidatePreferred");
-        int vecEarlyVotes = 0;
         while (tcpVoteType) {
           std::string typeName = requiredAttribute(*tcpVoteType, "Type",
             seatContext + "/TwoCandidatePreferred/Candidate/VotesByType/Votes");
@@ -2907,10 +2921,6 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
             seatContext + "/TwoCandidatePreferred/Candidate/VotesByType/Votes", seat.id, 0,
             category, true);
           // Note: for NSWEC the PP/PR categories are always zero - will need to extract them from the booth data
-          if (format == Format::VEC && category == VoteType::Early) {
-            vecEarlyVotes += tcpCount;
-            tcpCount = vecEarlyVotes;
-          }
           if (category != VoteType::Invalid) {
             seat.tcpVotes[partyId][category] = tcpCount;
             seat.tcpVotesCandidate[candidateId][category] = tcpCount;
@@ -2941,7 +2951,7 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
         seatContext + "/PollingPlaces/PollingPlace/PollingPlaceIdentifier", 0);
       if (format == Format::VEC && vecEarlyLocationIds.contains(booth.id)) {
         currentBooth = currentBooth->NextSiblingElement("PollingPlace");
-        continue; // Already counted in the district Early records above.
+        continue; // Already counted in the district centre or mobile account.
       }
       if (format == Format::NSWEC) booth.id += seat.id * 100000; // create unique booth ID for booths with the same name in different seats
       boothIdsPresent.emplace(booth.id);

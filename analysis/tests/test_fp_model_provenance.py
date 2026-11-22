@@ -500,7 +500,7 @@ class FinalTrendProvenanceTests(unittest.TestCase):
         )
         self.assertNotIn("poll_trend_outputs", major_dependencies)
         approval_call.assert_called_once_with(
-            ["2026vic"], non_invalidating_elections=()
+            ["2026vic"], non_invalidating_elections=(), poll_inputs=None
         )
 
         with mock.patch.object(
@@ -672,6 +672,7 @@ class FinalTrendProvenanceTests(unittest.TestCase):
         approval_call.assert_called_once_with(
             ["2025fed"],
             non_invalidating_elections=("2026vic", "2028fed"),
+            poll_inputs=None,
         )
 
 

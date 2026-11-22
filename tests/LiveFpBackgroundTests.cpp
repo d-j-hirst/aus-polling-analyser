@@ -2,6 +2,8 @@
 // batch blend, not also through background movement or candidate counts.
 #include "../LiveNewVotes.h"
 #include "../LiveSimulationMath.h"
+#include "../LiveFpEvidence.h"
+#include "../LiveFederalDeclarations.h"
 
 #include <cassert>
 #include <iostream>
@@ -130,6 +132,264 @@ void checkCompositionClassificationAndNoCountIdentity()
     Shares const prior{{0,.4723456789123},{1,1-.4723456789123}};
     assert(composition({},prior,10000,compositionCategory(true,false)) == prior);
 }
+
+void checkSharedOthersAtFirstDistrictReturn()
+{
+    // Two unprofiled candidates share what remains of the 14% Others prior
+    // after 40 historically comparable votes have been assigned out of 1,000.
+    std::map<int,double> projected{{7,40}};
+    std::vector<UnprofiledCandidate> candidates{{8,{},0}, {9,{},0}};
+    auto projectCandidates = [&](double median, double weight) {
+        projectUnprofiledCandidates(projected, candidates, 1000, median, 40, weight);
+        assert(projected.at(7) == 40);
+    };
+    projectCandidates(14,0);
+    assert(projected.at(8) == 50 && projected.at(9) == 50);
+    candidates[0].districtPercent = 5;
+    projectCandidates(14,.01);
+    assert(std::abs(projected.at(8)-50) < 1e-10 && projected.at(9) == 50);
+    candidates[0].districtPercent = 0;
+    candidates[0].boothVariation = 9;
+    projectCandidates(14,0);
+    assert(projected.at(8) == 50 && projected.at(9) == 50);
+    candidates[0].boothVariation = 0;
+    projectCandidates(14,.1);
+    assert(projected.at(8) < 50 && projected.at(8) > 10 && projected.at(9) == 50);
+    candidates[0].districtPercent = 12;
+    projectCandidates(14,1);
+    assert(std::abs(projected.at(8)-120) < 1e-10 && projected.at(9) == 50);
+    for (double median : {0.,3.}) {
+        projectCandidates(median,0);
+        assert(projected.at(8) == 10 && projected.at(9) == 10);
+    }
+}
+
+void checkFederalReferenceAcrossDistrictLevels()
+{
+    namespace Geo = LiveBoothGeography;
+    // Strong, weak and remote ordinary booths, two early centres and postal.
+    // None of these weights come from the election-night return being tested.
+    std::vector<Geo::Place> places{{"ordinary",1000,-.8},{"ordinary",2000,-2.2},
+        {"ordinary",500,{}},{"early",1500,{}},{"early",1000,{}},{"postal",1000,{}}};
+    for (double target : {.09,.22,.36}) {
+        auto ref = Geo::baseline(places,target);
+        assert(ref[0].share > target && ref[1].share < target && ref[2].share == target);
+        assert(ref[3].share == target && ref[4].share == target && ref[5].share == target);
+        Geo::District district;
+        std::vector<Geo::Return> accepted(places.size());
+        // A remote booth represents the full mix of ordinary voters. An
+        // early batch is allowed to train its own category later in the count.
+        accepted[2] = {200,800};
+        accepted[3] = {900,1000};
+        auto remoteFirst = Geo::prepareDistrict(places,accepted,target,district);
+        assert(std::abs(remoteFirst[2].absoluteShare-.25) < 1e-12);
+        assert(std::abs(remoteFirst[0].absoluteShare/3+2*remoteFirst[1].absoluteShare/3-.25) < 1e-12);
+        accepted[2] = {};
+        auto earlyOnly = Geo::prepareDistrict(places,accepted,target,district);
+        assert(!district.ordinaryMovement);
+        for (auto const& r : earlyOnly) assert(r.absoluteShare == r.share);
+        // Missing 2022 candidacy and sharply rising support both preserve the
+        // weighted district mean. A genuine historical difference between
+        // postal and ordinary survives at the current polling level.
+        auto historical = places;
+        historical[0].previousOn = 10; historical[0].previousFormal = 1000;
+        historical[1].previousOn = 120; historical[1].previousFormal = 2000;
+        historical[5].previousOn = 80; historical[5].previousFormal = 1000;
+        auto returning = Geo::baseline(historical,target);
+        assert(returning[5].share > returning[2].share);
+        historical[0].previousOn += 90; historical[1].previousOn -= 90;
+        auto rearranged = Geo::baseline(historical,target);
+        for (auto const* pattern : {&ref,&returning}) {
+            double votes = 0, total = 0;
+            for (size_t i = 0; i < places.size(); ++i) {
+                votes += pattern->at(i).share*places[i].size; total += places[i].size;
+                assert(returning[i].share == rearranged[i].share);
+            }
+            assert(std::abs(votes/total-target) < 1e-12);
+            auto high = pattern->front().share;
+            std::vector<Geo::Point> counted{{LivePartialCount::logOdds(high),400}};
+            assert(std::abs(*Geo::movement(counted,400*high,400)) < 1e-12);
+            assert(*Geo::movement(counted,400*(high+.02),400) > 0);
+            assert(*Geo::movement(counted,400*(high-.02),400) < 0);
+            assert(std::isfinite(*Geo::movement(counted,0,400)));
+            assert(std::isfinite(*Geo::movement(counted,400,400)));
+            // Two simultaneous reports of very different sizes and shares
+            // recover the same shift from their combined actual ballots.
+            counted.push_back({LivePartialCount::logOdds(pattern->at(1).share),1100});
+            double observed = 0;
+            for (auto const& p : counted) observed += p.weight*LivePartialCount::inverseLogOdds(p.odds+.35);
+            assert(std::abs(*Geo::movement(counted,observed,1500)-.35) < 1e-12);
+        }
+    }
+    assert(!Geo::movement({},0,0));
+}
+
+void checkOutstandingVoteUsesReportingLocations()
+{
+    namespace Fp = LiveFpEvidence;
+    // A high ordinary booth has reported at its 40% expectation. The other
+    // ordinary booth expects 10%. Postal voters expect 20%. Both sources of
+    // FP evidence must give the outstanding voters those specific shares.
+    auto unit = [](bool ordinary, double expectedShare, Fp::Shares counts, Fp::Shares projection) {
+        Fp::Unit u;
+        u.counted = counts; u.projected = projection; u.ordinary = ordinary;
+        u.group = ordinary ? 0 : 1; u.geographicShare = {2,expectedShare}; return u;
+    };
+    auto strong = unit(true,.4,{{0,350},{1,250},{2,400}},{{0,350},{1,250},{2,400}});
+    auto weak = unit(true,.1,{},{{0,500},{1,400},{2,100}});
+    auto postal = unit(false,.2,{},{{0,300},{1,500},{2,200}});
+    auto prepared = Fp::prepare({strong,weak,postal},.33);
+    assert(std::abs(prepared.evidence.absolute.at(2)-300) < 1e-9);
+    assert(std::abs(prepared.future.at(2)-.15) < 1e-10);
+    assert(Fp::adjusted(strong,prepared.factors) == strong.counted);
+    assert(std::abs(Fp::adjusted(weak,prepared.factors).at(2)
+        + Fp::adjusted(postal,prepared.factors).at(2)-300) < .001);
+    // A distinct postal batch then supplies its own composition. Only the
+    // remainder is allocated. The same input without the opt-in reproduces
+    // the legacy estimate from the raw ordinary share, and completion keeps
+    // every observed candidate count in either case.
+    postal.counted = {{0,50},{1,50},{2,100}};
+    auto partial = Fp::prepare({strong,weak,postal},.4);
+    assert(partial.evidence.absolute.at(2)>100+800*.2);
+    for (auto const& [id,v] : Fp::adjusted(postal,partial.factors)) assert(v >= postal.counted.at(id));
+    for (auto* u : {&strong,&weak,&postal}) u->geographicShare.reset();
+    assert(Fp::collect({strong,weak,postal},.4).absolute.at(2)>600);
+    weak.counted = weak.projected; postal.counted = postal.projected;
+    assert(Fp::prepare({strong,weak,postal},1).factors.empty());
+}
+
+void checkEveryCandidateAndBoothTotalAtZeroCount()
+{
+    namespace Fp = LiveFpEvidence;
+    // 400 One Nation votes move between the two ordinary booths. A third
+    // candidate also stands in both places. Different rival mixes expose the
+    // drift that proportional rescaling within each booth alone would cause.
+    std::vector<Fp::GeographicRow> rows{
+        {{{0,900},{1,200},{2,700}},300./1800},
+        {{{0,100},{1,600},{2,100}},500./800},
+        {{{0,110},{1,190},{2,100}},.25}};
+    auto factors = Fp::opponentFactors(rows,2);
+    Fp::Shares before, after;
+    for (auto const& row : rows) {
+        auto votes = row.blind;
+        auto size = Fp::total(votes);
+        Fp::add(before,votes);
+        LiveBoothGeography::allocate(votes,2,row.share,size,factors);
+        Fp::add(after,votes);
+        assert(std::abs(Fp::total(votes)-size) < 1e-10);
+        assert(std::abs(votes.at(2)-size*row.share) < 1e-10);
+    }
+    for (auto [id,votes] : before) assert(std::abs(after.at(id)-votes) < .001);
+}
+void checkSaFederalDeclarationPrior()
+{
+    namespace Fed = LiveFederalDeclarations;
+    using enum LiveData::VoteType;
+    auto path = Fed::inputPath(".", "2026sa");
+    assert(path && !Fed::inputPath(".", "2022vic"));
+    auto prior = Fed::readPrior(*path,"2026sa");
+    assert(prior.size() == 3 && !prior.contains(Early) && !prior.contains(Provisional));
+    using Booth = LiveData::BoothType;
+    assert(Fed::homeInPerson("2026sa",Ordinary, Booth::Normal, "Central"));
+    assert(Fed::homeInPerson("2026sa",Ordinary, Booth::Ppvc, "Central EVC"));
+    assert(!Fed::homeInPerson("2026sa",Ordinary, Booth::Normal, "West Coast Mobile"));
+    assert(!Fed::homeInPerson("2026sa",PrePoll, Booth::Other, "Early Absent"));
+
+    // Exactly 22% smoothed in-person support. Before the first category
+    // batch the predicted odds ratio must equal the transferred federal one.
+    Fed::HomeVote home{2199.5, 9999, 2000};
+    for (auto [mode, difference] : {std::pair{Absent, .231435490}, {PrePoll, .262142884}, {Postal, .114061102 / 2}}) {
+        auto noBatch = Fed::estimate(4, home, prior.at(mode), 0, 0, 1000, .19, mode).value();
+        assert(std::abs(LivePartialCount::logOdds(noBatch.future) - std::log(22./78) - difference) < 1e-9);
+        auto partial = Fed::estimate(4, home, prior.at(mode), 150, 400, 1000, .19, mode).value();
+        double w = mode == PrePoll ? 400./(400+4*600+300) : .4;
+        double expected = (1-w)*noBatch.future + w*150.5/401.;
+        assert(std::abs(partial.future - expected) < 1e-12);
+
+        Counts counts{{0, 150}, {1, 100}, {4, 150}};
+        Shares rest{{0, 324}, {1, 162}, {4, 114}};
+        Fed::allocate(rest, 600, partial, counts, false);
+        auto projected = project(counts, normalize(rest), 1000);
+        assert(std::abs(projected.at(4) - (150 + 600*expected)) < 1e-9);
+        assert(std::abs(rest.at(0) / rest.at(1) - 2) < 1e-12);
+        assert(std::abs(LiveFpEvidence::total(projected) - 1000) < 1e-9);
+
+        // Preserve the existing draw relative to the deterministic centre.
+        Shares drawn{{0, 300}, {1, 150}, {4, 150}};
+        Fed::allocate(drawn, 600, partial, counts, true);
+        double before = LivePartialCount::logOdds(.25) - LivePartialCount::logOdds(.19);
+        double after = LivePartialCount::logOdds(drawn.at(4)/600) - LivePartialCount::logOdds(expected);
+        assert(std::abs(before - after) < 1e-12);
+    }
+    assert(!Fed::estimate(4, {2000, 10000, 0}, prior.at(Absent), 0, 0, 1000, .19, Absent));
+    assert(!Fed::estimate(4, home, prior.at(Postal), 100, 400, 400, .19, Postal));
+    // A reported zero is evidence. It differs from an unreported category,
+    // and even a previously unanimous projection can give rivals future votes.
+    auto zero = Fed::estimate(4, home, prior.at(Postal), 0, 100, 200, 1., Postal).value();
+    assert(zero.future > 0 && zero.future < zero.context);
+    Shares unanimous{{4, 100}, {2, 0}, {3, 0}};
+    Fed::allocate(unanimous, 100, zero, {{4, 0}, {2, 25}, {3, 75}}, false);
+    assert(std::abs(unanimous.at(4) - 100*zero.future) < 1e-10);
+    assert(std::abs(unanimous.at(2)/unanimous.at(3) - 25.5/75.5) < 1e-10);
+}
+
+void checkVictorianDeclarationMedian()
+{
+    namespace Geo = LiveBoothGeography;
+    namespace Fed = LiveFederalDeclarations;
+    using enum LiveData::VoteType;
+    using Booth = LiveData::BoothType;
+    auto path = Fed::inputPath(".", "2026vic").value();
+    auto prior = Fed::readPrior(path,"2026vic");
+    assert(prior.size() == 3 && prior.at(OtherEarly) == 0);
+    assert(std::abs(prior.at(Absent) - .295566590) < 1e-9);
+    assert(std::abs(prior.at(Postal) - .220832223/2) < 1e-9);
+    assert(Fed::homeInPerson("2026vic",EvcEarly,Booth::Other,"EVC early"));
+    assert(!Fed::homeInPerson("2026vic",MobileEarly,Booth::Other,"Mobile early"));
+    assert(!Fed::homeInPerson("2026vic",OtherEarly,Booth::Other,"Other early"));
+    Geo::ModeShifts shifts;
+    for (auto [type,shift] : prior) shifts.emplace(LiveData::voteTypeName(type),shift);
+
+    // Use both a new and a returning candidacy. Where home early and ordinary
+    // differed last time their shares may differ again. The federal comparator
+    // is their combined formal vote, including a remote ordinary booth.
+    for (bool returning : {false,true}) for (double median : {.08,.20,.41}) {
+        std::vector<Geo::Place> units{{"ordinary",1100,-1.1},{"ordinary",700,-2.4},{"ordinary",100,{}},
+            {"EVC early",2450,{}},{"Mobile early",110,{}},{"Other early",650,{}},
+            {"Absent",420,{}},{"Postal",800,{}},{"Provisional",45,{}}};
+        if (returning) {
+            units[0].previousOn = 40; units[0].previousFormal = 1400;
+            units[3].previousOn = 210; units[3].previousFormal = 2000;
+            units[6].previousOn = 80; units[6].previousFormal = 100;
+        }
+        Geo::District district;
+        auto refs = Geo::prepareDistrict(units,std::vector<Geo::Return>(units.size()),median,district,shifts);
+        assert(!district.ordinaryMovement && refs[0].share > refs[1].share);
+        double ballots = 0, formal = 0, homeVotes = 0, homeFormal = 0;
+        for (size_t j = 0; j < units.size(); ++j) {
+            ballots += refs[j].share * units[j].size; formal += units[j].size;
+            if (j < 4) { homeVotes += refs[j].share * units[j].size; homeFormal += units[j].size; }
+        }
+        double homeShare = homeVotes/homeFormal, homeOdds = LivePartialCount::logOdds(homeShare);
+        assert(std::abs(ballots/formal - median) < 1e-12);
+        assert(std::abs(refs[5].share - homeShare) < 1e-12);
+        assert(std::abs(LivePartialCount::logOdds(refs[6].share) - homeOdds - prior.at(Absent)) < 1e-11);
+        assert(std::abs(LivePartialCount::logOdds(refs[7].share) - homeOdds - prior.at(Postal)) < 1e-11);
+        if (returning) assert(refs[3].share > refs[0].modeShare);
+    }
+    // A postal batch can arrive before home ballots. The frozen postal
+    // share already includes its half federal weight. A later home count
+    // giving the same expectation must change neither the blend nor its base.
+    Fed::HomeVote home{1999.5,9999,1000};
+    auto postal = Fed::estimate(4,home,prior.at(Postal),0,0,1000,.2,Postal).value();
+    auto first = Fed::estimateFromContext(4,postal.context,50,200,1000,.2,Postal).value();
+    auto later = Fed::estimate(4,home,prior.at(Postal),50,200,1000,.2,Postal).value();
+    assert(std::abs(later.future - first.future) < 1e-12);
+    assert(std::abs(first.future - (.8*postal.context + .2*50.5/201.)) < 1e-12);
+    auto residual = Fed::estimate(4,home,0,90,200,1000,.2,OtherEarly).value();
+    auto weight = 200./(200 + 4*800 + 300);
+    assert(std::abs(residual.future - ((1-weight)*.2 + weight*90.5/201.)) < 1e-12);
+}
 } // namespace
 
 int main()
@@ -137,6 +397,12 @@ int main()
     checkPartialBatchCannotTrainItsOwnBackground();
     checkDenominatorsAndCompletedBooths();
     checkMissingCandidateFallbackUsesTheSameSources();
+    checkSharedOthersAtFirstDistrictReturn();
     checkCompositionClassificationAndNoCountIdentity();
+    checkFederalReferenceAcrossDistrictLevels();
+    checkOutstandingVoteUsesReportingLocations();
+    checkEveryCandidateAndBoothTotalAtZeroCount();
+    checkSaFederalDeclarationPrior();
+    checkVictorianDeclarationMedian();
     std::cout << "Live FP background tests passed\n";
 }

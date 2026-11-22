@@ -153,6 +153,9 @@ Precision precisionFor(Precision parent, std::string_view key) {
     // Keep parameter tables exact so an archive can still identify its tuning.
     parent.coordinates = parent.coordinates || key == "coords";
     parent.full = parent.full || key.find("parameters") != std::string_view::npos;
+    // The public booth warning uses exact 50%, 80% and 98% boundaries.
+    // Preserve the discrepancy-driven correction probability before classification.
+    if (key == "broad_probability") parent.full = true;
     parent.counts = parent.counts || key.find("count") != std::string_view::npos
         || key.find("votes") != std::string_view::npos || key.find("remaining") != std::string_view::npos
         || key.find("total") != std::string_view::npos || key == "model_mean_fp"

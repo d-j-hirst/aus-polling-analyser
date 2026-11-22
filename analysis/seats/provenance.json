@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-11-21T13:35:18Z",
+  "updated_at_utc": "2026-11-22T11:00:47Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -13,7 +13,7 @@
         "*-greens-fp-priors.json"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 60,
+      "semantic_revision": 64,
       "files": {
         "2013fed.txt": {
           "sha256": "d6d75e40d7ece21df752d6edb476d99a7210847b6c1ebbb9be905b6e832cb0cd",
@@ -46,9 +46,9 @@
           "recorded_mtime_utc": "2023-03-08T11:39:51.540035Z"
         },
         "2022vic.txt": {
-          "sha256": "e452a92824ddb8addc6d60304fdce20ecd16f605ea52973ad84bb64b46007685",
-          "size_bytes": 29014,
-          "recorded_mtime_utc": "2026-10-13T10:21:25.670875Z"
+          "sha256": "44e609713ae7eea8eb9adf1dc4f057289efd0728582d126f2aef17bdb084b5d1",
+          "size_bytes": 29052,
+          "recorded_mtime_utc": "2026-11-22T10:48:38.376102Z"
         },
         "2023nsw.txt": {
           "sha256": "a324cacfaf45789638764a8870e0425d31e504f802f35abe58db4d809dcd9133",
@@ -81,9 +81,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "155aaf08bf239cb935fb2324908deae71086d5b47fe9e78487a14e98a3db04b6",
-          "size_bytes": 27440,
-          "recorded_mtime_utc": "2026-11-21T09:35:07.949069Z"
+          "sha256": "e7a0616e049741f9e6cd2e4176d9f346949f369a682f71bbf4fdcfb989fed2d5",
+          "size_bytes": 27441,
+          "recorded_mtime_utc": "2026-11-22T10:09:35.132244Z"
         },
         "2027nsw.txt": {
           "sha256": "9066c05124dc34153f7b56e0d6c2a7238d5a40e3e1edb7965d74778378c4120a",
@@ -1428,9 +1428,93 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261122T042448Z-coverage_extension-forecast-seats-e423970a",
+          "recorded_at_utc": "2026-11-22T04:24:48Z",
+          "change_type": "coverage_extension",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 61,
+          "provenance_revision": 61,
+          "summary": "Activate whole-election rankings using pre-count evidence and identify the four November One Nation candidacies in the Victorian replay.",
+          "files": [
+            "2022vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2022vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261122T043859Z-correction-forecast-seats-8b6f3f2f",
+          "recorded_at_utc": "2026-11-22T04:38:59Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 62,
+          "provenance_revision": 62,
+          "summary": "Give both Coalition candidates a primary vote baseline in Euroa using their 2014 joint contest.",
+          "files": [
+            "2022vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2022vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261122T110000Z-other-forecast-seats-c66ee6da",
+          "recorded_at_utc": "2026-11-22T11:00:00Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 63,
+          "provenance_revision": 63,
+          "summary": "preference flow system adjustments",
+          "files": [
+            "2022vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2022vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261122T110047Z-other-forecast-seats-f50ca727",
+          "recorded_at_utc": "2026-11-22T11:00:47Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 64,
+          "provenance_revision": 64,
+          "summary": "Seat odds updates",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 60
+      "provenance_revision": 64
     }
   }
 }

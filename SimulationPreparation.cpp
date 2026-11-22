@@ -5,7 +5,9 @@
 // live forecasts also use LivePreparation to obtain and interpret reported votes.
 
 #include "SimulationPreparation.h"
+#include "CoalitionPreference.h"
 #include "GreensFpPrior.h"
+#include "MinorPartyFpMath.h"
 #include "LiveAggregation.h"
 #include "LivePartyMapping.h"
 #include "CoalitionCandidacy.h"
@@ -1272,8 +1274,11 @@ void SimulationPreparation::determineSpecificPartyIndices()
 	if (run.natPartyIndex == PartyCollection::InvalidIndex) {
 		run.natPartyIndex = InvalidPartyIndex;
 	}
-	// The first use of the named-pair accounting is the Victorian forecast.
-	// It assumes every formal ballot continues to the final pair.
+	// Only a full-preference count gives every formal ballot a destination
+	// in both hypothetical finals. Optional-preference contests retain their
+	// existing continuing-vote calculation.
+	auto const& model = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models());
+	run.projectBothCoalitionMatchups = run.natPartyIndex >= 0 && model.allPreferencesContinue();
 	run.useSeparateCoalitionPreferenceAccounting =
 		run.getTermCode() == "2026vic" && run.natPartyIndex >= 0;
 }
@@ -1666,25 +1671,26 @@ void SimulationPreparation::loadPastSeatResults()
 	// turnout and the prior "others" strength only after they are applied so
 	// all downstream weighting uses that final result.
 	run.totalPreviousTurnout = 0;
-	for (auto& results : run.pastSeatResults) {
-		results.prevOthers = 0.0f;
-		results.turnoutCount = 0;
-		for (auto const& [party, voteShare] : results.fpVotePercent) {
-			bool const isMajor =
-				party == Mp::One || party == Mp::Two;
-			if (!isMajor && party != run.grnPartyIndex) {
-				results.prevOthers += std::min<double>(
-					voteShare,
-					detransformVoteShare(run.indEmergence.fpThreshold));
-			}
+	std::optional<int> coalitionPartner;
+	if (run.natPartyIndex >= 0) {
+		auto const& nationals = project.parties().viewByIndex(run.natPartyIndex);
+		bool const belongsToCoalition = nationals.relationType == Party::RelationType::Coalition ||
+			nationals.relationType == Party::RelationType::IsPartOf;
+		if (belongsToCoalition && nationals.relationTarget == project.parties().indexToId(Mp::Two)) {
+			coalitionPartner = run.natPartyIndex;
 		}
-		results.prevOthers = std::max(2.0, results.prevOthers);
+	}
+	double const othersCap = detransformVoteShare(run.indEmergence.fpThreshold);
+	for (auto& results : run.pastSeatResults) {
+		results.prevOthers = MinorPartyFpMath::historicalOthersSupport(results.fpVotePercent,
+			Mp::One, Mp::Two, run.grnPartyIndex, coalitionPartner, othersCap);
+		results.turnoutCount = 0;
 		for (auto const& [party, voteCount] : results.fpVoteCount) {
 			results.turnoutCount += voteCount;
 		}
 		run.totalPreviousTurnout += results.turnoutCount;
 	}
-	if (run.useSeparateCoalitionPreferenceAccounting) {
+	if (run.projectBothCoalitionMatchups || run.useSeparateCoalitionPreferenceAccounting) {
 		prepareCoalitionPreferenceHistory(historicalSeats);
 	}
 }
@@ -1772,8 +1778,14 @@ void SimulationPreparation::prepareCoalitionPreferenceHistory(std::vector<std::s
 		int const laborPrimary = getAt(results.fpVoteCount, Mp::One, 0);
 		int const liberalPrimary = getAt(results.fpVoteCount, Mp::Two, 0);
 		int const nationalPrimary = getAt(results.fpVoteCount, run.natPartyIndex, 0);
-		results.useNamedCoalitionPreferenceHistory = nationalPrimary > 0;
-		if (!results.useNamedCoalitionPreferenceHistory || laborPrimary <= 0) continue;
+		auto const& seat = run.seatLookup.seat(int(index));
+		bool const configuredNational = project.parties().idToIndex(seat.incumbent) == run.natPartyIndex ||
+			project.parties().idToIndex(seat.challenger) == run.natPartyIndex;
+		results.nationalTppReference = CoalitionPreference::historicalNational(
+			getAt(results.tcpVoteCount,Mp::One,0.) > 0, getAt(results.tcpVoteCount,Mp::Two,0.) > 0,
+			getAt(results.tcpVoteCount,run.natPartyIndex,0.) > 0,liberalPrimary,nationalPrimary,configuredNational);
+		results.useNamedCoalitionPreferenceHistory = run.useSeparateCoalitionPreferenceAccounting && nationalPrimary > 0;
+		if (nationalPrimary <= 0 || laborPrimary <= 0) continue;
 
 		// Prefer a complete real Labor/Coalition TCP. With a different final
 		// pair, only a separately counted TPP supplies the historical split.
@@ -1795,6 +1807,7 @@ void SimulationPreparation::prepareCoalitionPreferenceHistory(std::vector<std::s
 			bool const agreesWithClassic = !completeClassicCount ||
 				(record.coalitionFinalist == countedFinalist && record.votes.laborTpp == countedLabor);
 			if (matchedPrimaries && agreesWithClassic) {
+				results.nationalTppReference = record.coalitionFinalist == run.natPartyIndex;
 				results.minorPreferencesInCoalitionContest = MajorPartyFpMath::historicalMinorPreferenceRange(record.votes);
 				continue;
 			}
@@ -2705,6 +2718,7 @@ void SimulationPreparation::preparePreferenceModel()
 {
 	run.preferenceModel.reset();
 	run.preferenceCountSummaries.clear();
+	run.coalitionMatchupSummaries.clear();
 	run.classicTppSummaries.assign(run.isLiveAutomatic() ? project.seats().count() : 0,{});
 	run.statewidePreferenceSamples.clear();
 
@@ -2716,14 +2730,17 @@ void SimulationPreparation::preparePreferenceModel()
 	auto const& fileName = inputFile(SimulationInputs::File::PreferenceModel);
 	auto input = run.preparationInputs->open(fileName);
 	if (!input) return;
-	// South Australia lists One Nation as ON. Its Liberal vote is a single
-	// party in the forecast, with any minor National candidacy in Others.
+	// Use the project's own ballot roles. South Australia lists One Nation
+	// as ON. In the 2022 Victorian replay those candidates belong to Others,
+	// while Liberal and National can still meet as separate finalists.
 	int oneNation = project.parties().indexByShortCode("ONP");
 	if (oneNation < 0) oneNation = project.parties().indexByShortCode("ON");
 	std::optional<int> national;
 	if (run.natPartyIndex >= 0) national = run.natPartyIndex;
+	std::optional<int> separateOneNation;
+	if (oneNation >= 0) separateOneNation = oneNation;
 	PreferenceModel::Roles const roles{
-		Mp::One, Mp::Two, national, run.grnPartyIndex, oneNation,
+		Mp::One, Mp::Two, national, run.grnPartyIndex, separateOneNation,
 		run.indPartyIndex, EmergingIndIndex, OthersIndex};
 	std::vector<PreferenceModel::District> districts;
 	districts.reserve(project.seats().count());
@@ -2770,7 +2787,7 @@ void SimulationPreparation::preparePreferenceModel()
 			seatType == SimulationRun::SeatType::Rural;
 		districts.push_back({seat.name, std::move(independentName),
 			incumbent == Mp::Two || incumbent == run.natPartyIndex,
-			independentLike, std::move(namedIncumbent), regional});
+			independentLike, std::move(namedIncumbent), regional, {run.othCount[seatIndex], run.indCount[seatIndex]}});
 	}
 	std::map<std::string, int> partyCodes;
 	for (int party = 0; party < project.parties().count(); ++party) {

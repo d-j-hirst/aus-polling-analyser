@@ -19,7 +19,8 @@ from xml.etree import ElementTree as ET
 
 from lib.paths import REPOSITORY_DIRECTORY
 from lib.turnout import category_policy, maintained_parameters, prior
-from scripts.turnout import turnout_prepare_live
+from scripts.elections.prepare_vec_2022_booths import save
+from scripts.turnout import turnout_prepare_live, turnout_vic_early
 
 
 CATEGORIES = ['absent', 'early', 'ordinary', 'other', 'postal']
@@ -54,9 +55,9 @@ def seat_metadata(path):
 def read_preloads(candidate_path, booth_path):
     """Retain the pre-election roll and all ordinary reporting services.
 
-    The forecast has one Early account per district. In V2 the preload also
-    names individual early centres and mobile teams whose votes feed that
-    account. Only election-day locations get separate ordinary booth weights.
+    Early centres and mobile teams report through district early totals in V2.
+    Only election-day locations get separate ordinary booth weights, so a
+    ballot listed at an early venue and in its district total enters just once.
     """
     districts = {}
     for contest in ET.parse(candidate_path).findall('.//{*}Contest'):
@@ -234,6 +235,13 @@ def _append_district_configuration(work, index, name, districts, metadata):
     if other is None:
         other = category_policy.possible_proportions([pooled['provisional'], pooled['marked_as_voted']])
     for declaration, group in DECLARATIONS:
+        if group == 'early' and work.early_weights is not None:
+            # Each V2 account draws from the same district early turnout pool.
+            # V1 had only a combined Early result and retains one unit below.
+            seat_audit['early_unit_weights'] = work.early_weights[name]
+            for mode, share in work.early_weights[name].items():
+                units.append(unit(index, mode, group, 'declaration', share, False))
+            continue
         weight = other[0 if declaration == 'Provisional' else 1] if group == 'other' else 1
         units.append(unit(index, declaration, group, 'declaration', weight, False))
     audit.append(seat_audit)
@@ -294,7 +302,7 @@ def _assemble_victorian_configuration(settings, work):
     return config, dict(districts=audit, controls=controls, inactive_contests=settings.get('inactive_contests', []))
 
 
-def configuration(settings, districts, metadata, historical, previous_booths, observations):
+def configuration(settings, districts, metadata, historical, previous_booths, observations, early_weights=None):
     """Combine the evidence into the existing operational sampler's input format.
 
     Booth weights divide each district's ordinary allowance; they do not create
@@ -303,6 +311,7 @@ def configuration(settings, districts, metadata, historical, previous_booths, ob
     estimate a shared ordinary-booth size change from their current results.
     """
     work = _configuration_evidence(settings, districts, metadata, historical, previous_booths, observations)
+    work.early_weights = early_weights
     _populate_district_accounts(work, districts, metadata)
     _populate_early_postal_controls(work)
     return _assemble_victorian_configuration(settings, work)
@@ -342,6 +351,9 @@ def _load_victorian_sources(args):
         booths=args.booths or root / 'downloads' / (args.election + '_booths.xml'),
         previous_totals=root / 'analysis/Data/Turnout' / (previous + '.json'),
         previous_booths=root / 'analysis/Booth Results' / (previous + '.json'))
+    if 'early_vote_workbooks' in settings:
+        paths.update(turnout_vic_early.cached_workbooks(settings['early_vote_workbooks'],
+            root / 'downloads/turnout/vec-2026-public'))
     observations = []
     if not settings.get('early_postal_history'):
         observations = json.loads((root / 'analysis/Data/Turnout' / (args.election + '.json')).read_text(encoding='utf-8'))['operational_observations']
@@ -352,10 +364,14 @@ def _load_victorian_sources(args):
 def _build_adapter_configuration(context):
     """Interpret the authority's preloads and public historical results together."""
     settings, paths, observations = context.settings, context.paths, context.observations
+    previous = json.loads(paths['previous_booths'].read_text(encoding='utf-8'))
+    early_weights, history = None, None
+    if 'early_vote_workbooks' in settings:
+        early_weights, history = turnout_vic_early.prepare(previous, paths)
     config, audit = configuration(settings, read_preloads(paths['candidates'], paths['booths']),
         seat_metadata(paths['seats']), json.loads(paths['previous_totals'].read_text(encoding='utf-8')),
-        json.loads(paths['previous_booths'].read_text(encoding='utf-8')), observations)
-    return config, audit
+        previous, observations, early_weights)
+    return config, audit, history
 
 
 def _record_adapter_provenance(config, context):
@@ -374,9 +390,11 @@ def _record_adapter_provenance(config, context):
             name=context.election + '.json: operational_observations only',
             sha256=hashlib.sha256(json.dumps(observations, sort_keys=True).encode()).hexdigest())
     config['sources']['adapter_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    if 'early_vote_workbooks' in context.settings:
+        config['sources']['early_split_adapter_sha256'] = hashlib.sha256(Path(turnout_vic_early.__file__).read_bytes()).hexdigest()
 
 
-def _write_victorian_inputs(settings_path, config, audit):
+def _write_victorian_inputs(settings_path, config, audit, history):
     """Save the private configuration and explanatory audit beside the election.
 
     The fixed count prior is generated separately from this normalized input;
@@ -384,8 +402,11 @@ def _write_victorian_inputs(settings_path, config, audit):
     """
     output = settings_path.parent / 'live-inputs'
     output.mkdir(parents=True, exist_ok=True)
-    for filename, value in [('turnout-config.json', config), ('turnout-input-audit.json', audit)]:
-        (output / filename).write_text(json.dumps(value, indent=2, allow_nan=False) + '\n', encoding='utf-8')
+    files = [('turnout-config.json', config), ('turnout-input-audit.json', audit)]
+    if history is not None:
+        files.append(('historical-baseline.json', history))
+    for filename, value in files:
+        save(output / filename, (json.dumps(value, indent=2, allow_nan=False) + '\n').encode('utf-8'))
     return output / 'turnout-config.json'
 
 
@@ -393,9 +414,9 @@ def main(argv=None):
     """Load evidence, configure district accounts and prepare the fixed live prior."""
     args = _adapter_arguments(argv)
     context = _load_victorian_sources(args)
-    config, audit = _build_adapter_configuration(context)
+    config, audit, history = _build_adapter_configuration(context)
     _record_adapter_provenance(config, context)
-    configuration_path = _write_victorian_inputs(context.settings_path, config, audit)
+    configuration_path = _write_victorian_inputs(context.settings_path, config, audit, history)
     return turnout_prepare_live.main([str(configuration_path)])
 
 

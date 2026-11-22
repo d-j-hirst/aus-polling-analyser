@@ -70,12 +70,16 @@ def decision(group, threshold=10):
     votes = max(votes, reporting.get('votes_for_activity_threshold', 0))
     if votes == 0:
         return 'no_new_counting'
+    if group.get('noteworthy_booth_warnings'):
+        return 'request'
+    if votes < threshold and group.get('seat_call_changes'):
+        return 'call_update'
     return 'minor_changes' if votes < threshold else 'request'
 
 
 def notice(group, window):
     kind = group.get('commentary_decision')
-    if kind not in ('no_new_counting', 'minor_changes'):
+    if kind not in ('no_new_counting', 'minor_changes', 'call_update'):
         return None
     # Rolling comparisons can span longer than their nominal window. The text
     # uses the actual interval; reference IDs/times remain in the comparison.
@@ -93,6 +97,8 @@ def notice(group, window):
         period = f'over the {minutes:g}-minute comparison period'
     text = (f'No new counting occurred {period}.' if kind == 'no_new_counting' else
             f'There were no significant changes to the results {period}.')
+    if kind == 'call_update':
+        text = f'There was a small count update {period}.'
     if group.get('input_revision_changed'):
         text += ' Forecast inputs changed; any resulting forecast movement is listed separately.'
     return {'status': 'complete', 'source': 'local', 'kind': kind,

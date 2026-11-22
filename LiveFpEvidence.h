@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LiveNewVotes.h"
+#include "LiveBoothGeography.h"
 #include <algorithm>
 #include <cmath>
 #include <map>
@@ -29,6 +30,9 @@ struct Unit {
     double relevance = 1;
     int group = 0;
     bool ordinary = false, aggregatedEarly = false;
+    // Expected absolute share at this destination after interpreting the
+    // ordinary returns at their actual locations. Empty in other forecasts.
+    std::optional<std::pair<int,double>> geographicShare;
 };
 struct Evidence {
     // Historical/absolute contain *remaining vote counts*. The confidence
@@ -36,6 +40,7 @@ struct Evidence {
     // and final future proportions are all fractions, not percentages.
     double completion = 0, observed = 0, breadth = 0;
     Shares counted, historical, absolute, historicalConfidence;
+    std::optional<int> geographicParty;
 };
 struct Prepared {
     Evidence evidence;
@@ -78,7 +83,7 @@ inline Evidence collect(std::vector<Unit> const& units, double seatConfidence) {
     // including a very small chance that a long-delayed location still reports.
     struct Group {
         Shares counted;
-        double remaining = 0;
+        double remaining = 0, geographicVotes = 0;
         bool ordinary = false, aggregatedEarly = false;
     };
     std::map<int,Group> groups;
@@ -94,7 +99,13 @@ inline Evidence collect(std::vector<Unit> const& units, double seatConfidence) {
         for (int id : unit.comparable) evidence.historicalConfidence[id] += size*unit.relevance;
         auto& group = groups[unit.group];
         add(group.counted,unit.counted);
-        group.remaining += total(future);
+        double pool = total(future);
+        group.remaining += pool;
+        if (unit.geographicShare) {
+            auto [party,share] = *unit.geographicShare;
+            evidence.geographicParty = party;
+            group.geographicVotes += pool*share;
+        }
         group.ordinary = unit.ordinary; group.aggregatedEarly = unit.aggregatedEarly;
     }
     evidence.observed = total(evidence.counted);
@@ -110,7 +121,17 @@ inline Evidence collect(std::vector<Unit> const& units, double seatConfidence) {
             : LiveNewVotes::observedWeight(counted,target,group.aggregatedEarly
                 ? LiveNewVotes::Category::AggregatedEarly : LiveNewVotes::Category::General);
         auto observed = smoothed(group.counted,evidence.historical);
-        for (auto const& [party,share] : background)
+        auto groupBackground = background;
+        if (evidence.geographicParty && pool > 0) {
+            // A high ordinary return can be typical of its own neighbourhood.
+            // The pooled absolute estimate transfers its measured movement
+            // to the outstanding locations. Other modes borrow that movement
+            // around their own baselines and blend in their own observed mix.
+            double share = group.geographicVotes/pool;
+            LiveBoothGeography::allocate(groupBackground,*evidence.geographicParty,share,1);
+            if (group.ordinary) LiveBoothGeography::allocate(observed,*evidence.geographicParty,share,1);
+        }
+        for (auto const& [party,share] : groupBackground)
             evidence.absolute[party] += pool*((1-weight)*share+weight*observed.at(party));
     }
     return evidence;
@@ -139,6 +160,16 @@ inline Shares combine(Evidence const& evidence, Shares& weights) {
         double w = weights[id] = absoluteWeight(evidence,id);
         result[id] = std::exp((1-w)*std::log(std::max(floor,share))
             +w*std::log(std::max(floor,value(absolute,id))));
+    }
+    if (evidence.geographicParty) {
+        // The two estimates each specify One Nation versus the whole field.
+        // Blend those odds directly so rounding or disagreement about which
+        // rival gains a vote cannot move the common One Nation expectation.
+        int id = *evidence.geographicParty;
+        double w = weights.at(id);
+        double h = LivePartialCount::logOdds(historical.at(id)), a = LivePartialCount::logOdds(absolute.at(id));
+        LiveBoothGeography::allocate(result,id,LivePartialCount::inverseLogOdds(h+w*(a-h)),1);
+        return result;
     }
     return LiveNewVotes::normalize(std::move(result));
 }
@@ -191,18 +222,18 @@ inline double earlyVariance(Prepared const& prepared, int party) {
 inline double additionalVariance(Prepared const& prepared, int party) {
     return disagreementVariance(prepared,party)+earlyVariance(prepared,party);
 }
-inline Shares adjusted(Unit const& unit, Shares const& factors) {
+inline Shares adjusted(Unit const& unit, Shares const& factors, double voteFloor = .5) {
     auto future = remainder(unit);
     double pool = total(future);
     if (pool == 0 || factors.empty()) return unit.projected;
     // A half vote permits a currently zero *estimate* to move. Counted zeros
     // are untouched, and candidates absent from a unit's ballot stay absent.
-    for (auto& [id,v] : future) v = std::max(v,.5)*value(factors,id);
+    for (auto& [id,v] : future) v = std::max(v,voteFloor)*value(factors,id);
     future = LiveNewVotes::normalize(std::move(future));
     for (auto& [id,v] : future) v = value(unit.counted,id)+pool*v;
     return future;
 }
-inline Shares balance(std::vector<Unit> const& units, Shares const& target, double pool) {
+inline Shares balance(std::vector<Unit> const& units, Shares const& target, double pool, double voteFloor = .5) {
     // Alternate matching seat candidate totals and each unit's fixed future
     // total. This retains ordinary geographic/category differences while
     // making their sum agree with the competing-evidence seat estimate. The
@@ -212,7 +243,7 @@ inline Shares balance(std::vector<Unit> const& units, Shares const& target, doub
     for (int iteration = 0; iteration < 200; ++iteration) {
         Shares actual;
         for (auto const& unit : units) {
-            auto projection = adjusted(unit,factors);
+            auto projection = adjusted(unit,factors,voteFloor);
             for (auto const& [id,v] : projection) actual[id] += std::max(0.,v-value(unit.counted,id));
         }
         double largest = 0;
@@ -225,6 +256,30 @@ inline Shares balance(std::vector<Unit> const& units, Shares const& target, doub
     }
     throw std::runtime_error("FP evidence composition could not be balanced across turnout units.");
 }
+// Set One Nation's share at each unit while preserving its turnout and the
+// other candidates' district-wide proportions among non-One-Nation voters.
+// A row starts as the coherent candidate counts from the ordinary blind
+// projection, before geographic adjustment. When One Nation is redistributed
+// at a fixed district total, every other candidate retains their total too.
+struct GeographicRow { Shares blind; double share; };
+inline Shares opponentFactors(std::vector<GeographicRow> const& rows, int party) {
+    std::vector<Unit> opponents;
+    Shares targets;
+    double pool = 0;
+    for (auto const& row : rows) {
+        Unit unit;
+        unit.projected = row.blind;
+        LiveBoothGeography::allocate(unit.projected,party,row.share,total(row.blind));
+        unit.projected.erase(party);
+        for (auto const& [id,v] : row.blind) if (id != party) targets[id] += v;
+        pool += total(unit.projected);
+        opponents.push_back(std::move(unit));
+    }
+    // These are pre-count proportions. Preserve genuine zero allocations
+    // rather than introducing a half-vote smoothing floor at small units.
+    return balance(opponents,LiveNewVotes::normalize(std::move(targets)),pool,0.);
+}
+
 inline Prepared prepare(std::vector<Unit> const& units, double seatConfidence) {
     Prepared result;
     result.evidence = collect(units,seatConfidence);

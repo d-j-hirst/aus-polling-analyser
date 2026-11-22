@@ -621,6 +621,15 @@ def _work_unit_status(issues):
     return max(statuses, key=WORK_UNIT_STATUS_PRECEDENCE.get)
 
 
+def generation_blocked(status, category):
+    # An interrupted trend fit can replace its CSVs before publishing their
+    # hashes. The election generator owns those files and can rebuild them.
+    # Invalid inputs take precedence over altered outputs in _work_unit_status.
+    return status == "blocked" or (
+        status == "altered" and category not in {"pure_poll_outputs", "poll_trend_outputs"}
+    )
+
+
 def _manifest_label(path):
     resolved = Path(path).resolve()
     try:
@@ -1659,13 +1668,13 @@ def audit_repository(
     diagnostic_work_units = defaultdict(list)
     touched = []
     generated_check_context = (
-        generated_provenance.ManifestCheckContext()
+        generated_provenance.ManifestCheckContext(requested_elections=target_elections)
     )
     report("Checking authored source provenance...")
     for manifest_path in source_manifest_paths:
         try:
             source_manifest = source_provenance.load_manifest(manifest_path)
-            comparisons = source_provenance.check_manifest(manifest_path)
+            comparisons = source_provenance.check_manifest(manifest_path, source_manifest)
         except source_provenance.ProvenanceError as error:
             internal_errors.append("{}: {}".format(manifest_path, error))
             continue
@@ -1721,6 +1730,7 @@ def audit_repository(
                             "code": "unregistered_source_change",
                             "change_kind": change_kind,
                             "path": path,
+                            "registered_copy_available": path in comparison.get("recoverable_poll_files", ()),
                             "message": message,
                         }
                     )
@@ -2023,8 +2033,7 @@ def audit_repository(
                         [],
                     ),
                     "status": work_unit_status,
-                    "blocking": work_unit_status
-                    in {"altered", "blocked"},
+                    "blocking": generation_blocked(work_unit_status, record["category"]),
                     "path_classes": sorted(path_classes),
                     "issues": [
                         {

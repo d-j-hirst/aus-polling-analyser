@@ -118,7 +118,7 @@ def _tcp_account(booths):
     return totals, remaining
 
 
-def _district_tcp_median(endpoint, first, second):
+def district_tcp_median(endpoint, first, second):
     """Read the forecast district share for the first named candidate against
     this opponent. The saved percentiles refer to the first name in the
     stored pair, which can be either of the candidates in the counted lead."""
@@ -147,7 +147,7 @@ def _replacement_count(booths, before, after, seat):
               'units': len(units), 'counted_votes': total, 'counts': dict(after)}
     result['unit_label'] = ('booth' if all(b.get('vote_type') == 'Ordinary' and b.get('booth_type') in ('Normal', 'PPVC')
                                            for b in units) else 'reporting unit')
-    median = _district_tcp_median(seat['before'], first, second)
+    median = district_tcp_median(seat['before'], first, second)
     if median is not None:
         result['previous_district_median_first_percent'] = median
     transfers = {first: 0, second: 0}
@@ -207,7 +207,53 @@ def add_matched_booth_expectations(replacements, events):
             count['previous_matched_booths_first_percent'] = sum(size * share for size, share in observations) / ballots
 
 
-def district_tcp_changes(previous, current, seats, continuing_pairs=None):
+def _lead_source_text(old_units, new_units, pair, lead_change, transferred_units):
+    """Locate a change in the published lead for the same two candidates.
+
+    A batch of 230 votes for one finalist and 142 for the other moves their
+    lead by 88 votes. Rank locations by this difference, not batch size.
+    Exclude recognised transfers between categories: they cancel in the
+    district account. Only describe sources that reconcile to its full change.
+    This arithmetic explains the counted lead, not the simulated win chance.
+    """
+    if not lead_change:
+        return None
+    by_location = defaultdict(int)
+    first, second = pair
+    for key in old_units.keys() | new_units.keys():
+        if key in transferred_units:
+            continue
+        before, after = old_units.get(key, {}), new_units.get(key, {})
+        old = mapped_tcp(before) or {}
+        new = mapped_tcp(after) or {}
+        delta = new.get(first, 0) - new.get(second, 0) - old.get(first, 0) + old.get(second, 0)
+        if delta:
+            unit = after or before
+            name = unit.get('name') or key.rsplit('/', 1)[-1]
+            location = 'the '+name+' count' if name == unit.get('vote_type') else name
+            by_location[location] += delta
+    sources = sorted((name for name, delta in by_location.items() if delta),
+                     key=lambda name: (-abs(by_location[name]), name))
+    if not sources or sum(by_location.values()) != lead_change:
+        return None
+    first_source = sources[0]
+    if len(sources) == 1:
+        return 'That change came entirely from '+first_source+'.'
+    # Call one location dominant only when it accounts for more movement
+    # than all the other locations combined, including movements in reverse.
+    strongest = by_location[first_source]
+    if 2 * abs(strongest) > sum(abs(v) for v in by_location.values()):
+        if (lead_change - strongest) * strongest < 0:
+            return 'The change came mainly from '+first_source+', partly offset by other counting.'
+        return 'The change came mainly from '+first_source+', with other counting also contributing.'
+    named = sources[:3]
+    if len(named) < len(sources):
+        named.append('other counting')
+    places = ', '.join(named[:-1])+' and '+named[-1]
+    return 'That change reflects updates from '+places+'.'
+
+
+def district_tcp_changes(previous, current, seats, continuing_pairs=None, transferred_units=()):
     """Give the first aggregate on a replacement pair, or the lead, each
     finalist's net votes and estimated remainder for a continuing close race.
 
@@ -220,18 +266,19 @@ def district_tcp_changes(previous, current, seats, continuing_pairs=None):
         return {}, {}
     by_district = []
     for evidence in (previous, current):
-        groups = defaultdict(list)
-        for booth in evidence.get('booths', {}).values():
-            groups[booth['seat_name']].append(booth)
+        groups = defaultdict(dict)
+        for key, booth in evidence.get('booths', {}).items():
+            groups[booth['seat_name']][key] = booth
         by_district.append(groups)
     changes, replacements = {}, {}
     for seat in seats:
         district = seat['seat']
-        old, new = [_tcp_account(groups[district]) for groups in by_district]
+        old_units, new_units = [groups[district] for groups in by_district]
+        old, new = _tcp_account(old_units.values()), _tcp_account(new_units.values())
         if not old or old == new:
             continue
         before, remaining_before = old
-        new_booths = by_district[1][district]
+        new_booths = new_units.values()
         if not new:
             new_booths = _new_pair_booths(new_booths, before.keys())
             new = _tcp_account(new_booths)
@@ -248,15 +295,20 @@ def district_tcp_changes(previous, current, seats, continuing_pairs=None):
             continue
         first, second = sorted(after, key=lambda p: (-after[p], p))
         counted_share = 100 * after[first] / sum(after.values())
-        median = _district_tcp_median(seat['after'], first, second)
+        median = district_tcp_median(seat['after'], first, second)
         shares = [counted_share, 100 * before[first] / sum(before.values()),
-                  median, _district_tcp_median(seat['before'], first, second)]
+                  median, district_tcp_median(seat['before'], first, second)]
         if all(abs(share - 50) > 5 for share in shares if share is not None):
             continue
         changes[district] = {'pair': [first, second],
             'lead_before': before[first]-before[second], 'lead_after': after[first]-after[second],
             'net_by_candidate': {p: after[p]-before[p] for p in (first, second)},
-            'remaining_before': remaining_before, 'remaining_after': remaining_after}
+            'counted_after': sum(after.values()), 'remaining_before': remaining_before, 'remaining_after': remaining_after}
+        account = changes[district]
+        source = _lead_source_text(old_units, new_units, account['pair'],
+                                   account['lead_after'] - account['lead_before'], transferred_units)
+        if source:
+            account['lead_source'] = source
         if district in (continuing_pairs or {}):
             # An earlier announced change identifies the pairing. Check that
             # the published tallies also match both candidates' booth totals

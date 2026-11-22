@@ -1,0 +1,31 @@
+election,catchment,quantity,districts,pairs,uniform_mae_pp,location_mae_pp
+2019fed,at least one likely outside,Labor TPP,29,177,7.6275,4.9004
+2019fed,at least one likely outside,Labor FP,29,177,6.0743,4.7319
+2019fed,at least one likely outside,Coalition FP,29,177,7.5984,5.4201
+2019fed,at least one likely outside,Greens FP,29,177,4.0741,2.8351
+2019fed,at least one likely outside,Other FP,29,177,3.1819,3.1819
+2019fed,neither likely outside,Labor TPP,31,117,6.5794,3.4706
+2019fed,neither likely outside,Labor FP,31,117,4.4918,3.5307
+2019fed,neither likely outside,Coalition FP,31,117,6.5404,3.7721
+2019fed,neither likely outside,Greens FP,31,117,2.7879,1.6644
+2019fed,neither likely outside,Other FP,31,117,3.01,3.01
+2022fed,at least one likely outside,Labor TPP,34,255,7.1261,5.1219
+2022fed,at least one likely outside,Labor FP,34,255,4.7591,3.8922
+2022fed,at least one likely outside,Coalition FP,34,255,6.5707,4.3228
+2022fed,at least one likely outside,Greens FP,34,255,4.9756,3.7251
+2022fed,at least one likely outside,Other FP,34,255,3.0305,3.0305
+2022fed,neither likely outside,Labor TPP,34,137,5.6426,2.7194
+2022fed,neither likely outside,Labor FP,34,137,3.2618,2.8442
+2022fed,neither likely outside,Coalition FP,34,137,5.5754,3.0435
+2022fed,neither likely outside,Greens FP,34,137,3.3864,2.0313
+2022fed,neither likely outside,Other FP,34,137,3.0192,3.0192
+2025fed,at least one likely outside,Labor TPP,34,325,7.8827,4.8553
+2025fed,at least one likely outside,Labor FP,34,325,4.7992,3.6001
+2025fed,at least one likely outside,Coalition FP,34,325,7.6844,5.6551
+2025fed,at least one likely outside,Greens FP,34,325,4.6683,3.7255
+2025fed,at least one likely outside,Other FP,34,325,3.8889,3.8889
+2025fed,neither likely outside,Labor TPP,35,152,5.1341,3.4437
+2025fed,neither likely outside,Labor FP,35,152,3.2581,2.8036
+2025fed,neither likely outside,Coalition FP,35,152,5.5017,4.012
+2025fed,neither likely outside,Greens FP,35,152,2.2269,1.6527
+2025fed,neither likely outside,Other FP,35,152,3.4351,3.4351

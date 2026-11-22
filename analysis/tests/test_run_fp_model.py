@@ -1,10 +1,54 @@
 import io
 import sys
 import unittest
+from contextlib import ExitStack
+from types import SimpleNamespace
 from unittest import mock
 
 from scripts.pipeline import run_fp_model
 from scripts.pipeline.run_fp_model import StanOutputFilter
+
+
+class TrendPreflightTests(unittest.TestCase):
+    def test_later_party_preflight_failure_prevents_all_trend_and_approval_writes(self):
+        # The first party needs no approval history. A failure preparing the
+        # second party must occur before either party runs or any CSV is saved.
+        with mock.patch.dict(sys.modules, {"pystan": SimpleNamespace(__version__="test")}):
+            from lib.poll_models import fp_model_runner as runner
+        election = runner.ElectionCode(2026, "vic")
+        config = mock.Mock(
+            elections=[election], pure=False, calibrate_bias=False, calibrate_pollsters=False,
+            cutoff_mode=False, calibration_traces=False, seed=None, registered_poll_history=False,
+            synthetic_tpps_by_region=None,
+        )
+        config.use_approvals.return_value = True
+        data = SimpleNamespace(e_tuple=("2026", "vic"), federal_prior_files_by_party={})
+        model = SimpleNamespace(parties={data.e_tuple: ["GRN FP", "LNP FP"]})
+        recorder = mock.Mock()
+        recorder.dependencies_for.side_effect = [{}, ValueError("unverified LNP inputs")]
+        with ExitStack() as patches:
+            def replace(module, name, **kwargs):
+                return patches.enter_context(mock.patch.object(module, name, **kwargs))
+
+            replace(runner, "StanDiagnosticsRecorder")
+            replace(runner, "build_config", return_value=config)
+            replace(runner, "build_model_params")
+            replace(runner, "ModellingData", return_value=model)
+            replace(runner, "build_election_data", return_value=data)
+            replace(runner.approvals_provenance, "TrendPollInputs")
+            replace(runner.fp_model_provenance, "FinalTrendRecorder", return_value=recorder)
+            approvals = replace(runner, "generate_synthetic_tpps")
+            fit = replace(runner, "run_party")
+            patches.enter_context(mock.patch("builtins.open", mock.mock_open()))
+            with self.assertRaisesRegex(ValueError, "unverified LNP inputs"):
+                runner.run_models()
+        self.assertEqual(
+            recorder.dependencies_for.call_args_list,
+            [mock.call("2026vic", "GRN FP", []), mock.call("2026vic", "LNP FP", [])],
+        )
+        approvals.assert_not_called()
+        fit.assert_not_called()
+        recorder.record.assert_not_called()
 
 
 class StanOutputFilterTests(unittest.TestCase):

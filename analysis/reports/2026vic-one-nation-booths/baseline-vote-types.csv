@@ -1,0 +1,4 @@
+mode,districts,median_difference_pp,tenth_percentile_pp,ninetieth_percentile_pp
+election_day_ordinary,47,-0.8228,-1.82,0.6217
+early_in_person,47,-0.5364,-1.9716,0.8811
+postal,47,1.3745,-0.0579,4.0843

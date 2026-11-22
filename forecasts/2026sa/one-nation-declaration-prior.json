@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "election": "2026sa",
+  "federal_election": "2025fed",
+  "federal_log_odds": {
+    "Absent": 0.23143549,
+    "PrePoll": 0.262142884,
+    "Postal": 0.114061102
+  },
+  "weights": {
+    "absent": 1.0,
+    "postal": 0.5
+  }
+}

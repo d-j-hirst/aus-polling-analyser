@@ -1,0 +1,169 @@
+election,district,comparison,actual_pct,first_pct,predicted_pct,uniform_error_pp,location_error_pp
+2022fed,Aston,"substantial, final sizes",45.20979,43.07675,46.54685,2.13305,1.33705
+2022fed,Aston,"full roster, prior sizes",45.33063,43.07675,49.35084,2.25389,4.02021
+2022fed,Aston,"full roster, equal sizes",45.33063,43.07675,49.51267,2.25389,4.18204
+2022fed,Bendigo,"substantial, final sizes",61.82413,57.02686,58.08811,4.79727,3.73602
+2022fed,Bendigo,"full roster, prior sizes",61.90435,57.02686,51.77158,4.87749,10.13277
+2022fed,Bendigo,"full roster, equal sizes",61.90435,57.02686,53.59997,4.87749,8.30438
+2022fed,Bruce,"substantial, final sizes",56.212,60.2071,50.64018,3.9951,5.57182
+2022fed,Bruce,"full roster, prior sizes",56.28029,60.2071,47.79159,3.92681,8.4887
+2022fed,Bruce,"full roster, equal sizes",56.28029,60.2071,44.94302,3.92681,11.33727
+2022fed,Calwell,"substantial, final sizes",61.12976,49.6732,47.81994,11.45656,13.30981
+2022fed,Calwell,"full roster, prior sizes",61.32348,49.6732,47.45791,11.65027,13.86557
+2022fed,Calwell,"full roster, equal sizes",61.32348,49.6732,47.45571,11.65027,13.86777
+2022fed,Casey,"substantial, final sizes",46.44613,43.50343,46.2816,2.9427,0.16453
+2022fed,Casey,"full roster, prior sizes",46.74261,43.50343,48.74981,3.23918,2.00721
+2022fed,Casey,"full roster, equal sizes",46.74261,43.50343,52.26314,3.23918,5.52053
+2022fed,Chisholm,"substantial, final sizes",56.13352,57.30237,51.16348,1.16885,4.97004
+2022fed,Chisholm,"full roster, prior sizes",56.23219,57.30237,51.7454,1.07018,4.48679
+2022fed,Chisholm,"full roster, equal sizes",56.23219,57.30237,52.01617,1.07018,4.21601
+2022fed,Corangamite,"substantial, final sizes",59.88717,55.85628,59.78523,4.03089,0.10194
+2022fed,Corangamite,"full roster, prior sizes",59.96047,55.85628,57.39821,4.1042,2.56226
+2022fed,Corangamite,"full roster, equal sizes",59.96047,55.85628,57.39821,4.1042,2.56226
+2022fed,Corio,"substantial, final sizes",61.356,63.22188,56.52145,1.86589,4.83455
+2022fed,Corio,"full roster, prior sizes",61.36881,63.22188,57.94565,1.85307,3.42316
+2022fed,Corio,"full roster, equal sizes",61.36881,63.22188,57.94565,1.85307,3.42316
+2022fed,Deakin,"substantial, final sizes",48.00266,55.68182,52.69383,7.67916,4.69116
+2022fed,Deakin,"full roster, prior sizes",48.08204,55.68182,50.3542,7.59978,2.27216
+2022fed,Deakin,"full roster, equal sizes",48.08204,55.68182,50.17782,7.59978,2.09578
+2022fed,Dunkley,"substantial, final sizes",57.16912,47.01048,66.70251,10.15864,9.53339
+2022fed,Dunkley,"full roster, prior sizes",57.19461,47.01048,65.92006,10.18412,8.72546
+2022fed,Dunkley,"full roster, equal sizes",57.19461,47.01048,65.56188,10.18412,8.36728
+2022fed,Flinders,"substantial, final sizes",42.41035,42.86155,39.85579,0.4512,2.55455
+2022fed,Flinders,"full roster, prior sizes",42.76725,42.86155,38.39144,0.09431,4.37581
+2022fed,Flinders,"full roster, equal sizes",42.76725,42.86155,38.43933,0.09431,4.32792
+2022fed,Fraser,"substantial, final sizes",64.01961,61.48148,64.13264,2.53813,0.11303
+2022fed,Fraser,"full roster, prior sizes",64.14452,61.48148,62.95882,2.66304,1.1857
+2022fed,Fraser,"full roster, equal sizes",64.14452,61.48148,63.80525,2.66304,0.33928
+2022fed,Gellibrand,"substantial, final sizes",60.21025,58.92623,63.57343,1.28402,3.36318
+2022fed,Gellibrand,"full roster, prior sizes",60.23418,58.92623,65.94233,1.30795,5.70815
+2022fed,Gellibrand,"full roster, equal sizes",60.23418,58.92623,66.26158,1.30795,6.0274
+2022fed,Gippsland,"substantial, final sizes",29.3833,24.41946,33.38373,4.96384,4.00044
+2022fed,Gippsland,"full roster, prior sizes",29.44659,24.41946,31.94713,5.02713,2.50054
+2022fed,Gippsland,"full roster, equal sizes",29.44659,24.41946,32.2231,5.02713,2.77652
+2022fed,Gorton,"substantial, final sizes",59.83653,64.58515,58.44952,4.74862,1.38702
+2022fed,Gorton,"full roster, prior sizes",59.87824,64.58515,50.82361,4.70691,9.05463
+2022fed,Gorton,"full roster, equal sizes",59.87824,64.58515,50.82361,4.70691,9.05463
+2022fed,Hawke,"substantial, final sizes",56.73029,51.14491,55.87585,5.58538,0.85444
+2022fed,Hawke,"full roster, prior sizes",56.94396,51.14491,53.25205,5.79904,3.69191
+2022fed,Hawke,"full roster, equal sizes",56.94396,51.14491,53.25205,5.79904,3.69191
+2022fed,Higgins,"substantial, final sizes",50.31376,57.36138,50.15653,7.04762,0.15723
+2022fed,Higgins,"full roster, prior sizes",50.41646,57.36138,49.65235,6.94491,0.76411
+2022fed,Higgins,"full roster, equal sizes",50.41646,57.36138,50.91093,6.94491,0.49447
+2022fed,Holt,"substantial, final sizes",56.50002,55.13608,58.54006,1.36393,2.04004
+2022fed,Holt,"full roster, prior sizes",56.605,55.13608,59.09587,1.46891,2.49088
+2022fed,Holt,"full roster, equal sizes",56.605,55.13608,59.09587,1.46891,2.49088
+2022fed,Hotham,"substantial, final sizes",64.48428,63.22009,66.11106,1.26419,1.62678
+2022fed,Hotham,"full roster, prior sizes",64.58742,63.22009,63.63885,1.36733,0.94857
+2022fed,Hotham,"full roster, equal sizes",64.58742,63.22009,63.76087,1.36733,0.82654
+2022fed,Isaacs,"substantial, final sizes",57.73919,53.80183,55.94498,3.93736,1.79421
+2022fed,Isaacs,"full roster, prior sizes",57.73242,53.80183,57.02223,3.93059,0.71018
+2022fed,Isaacs,"full roster, equal sizes",57.73242,53.80183,57.31783,3.93059,0.41459
+2022fed,La Trobe,"substantial, final sizes",42.04807,37.23745,40.96655,4.81062,1.08152
+2022fed,La Trobe,"full roster, prior sizes",42.19016,37.23745,35.92037,4.95271,6.26979
+2022fed,La Trobe,"full roster, equal sizes",42.19016,37.23745,35.92037,4.95271,6.26979
+2022fed,Lalor,"substantial, final sizes",61.84008,59.78391,57.17206,2.05616,4.66802
+2022fed,Lalor,"full roster, prior sizes",62.00845,59.78391,58.67109,2.22454,3.33736
+2022fed,Lalor,"full roster, equal sizes",62.00845,59.78391,58.66118,2.22454,3.34727
+2022fed,Macnamara,"substantial, final sizes",61.78564,34.54282,34.12326,27.24283,27.66239
+2022fed,Macnamara,"full roster, prior sizes",61.96835,34.54282,31.2937,27.42553,30.67465
+2022fed,Macnamara,"full roster, equal sizes",61.96835,34.54282,30.88861,27.42553,31.07974
+2022fed,Mallee,"substantial, final sizes",28.96386,45.9588,40.79386,16.99493,11.83
+2022fed,Mallee,"full roster, prior sizes",29.10359,45.9588,36.63321,16.85521,7.52962
+2022fed,Mallee,"full roster, equal sizes",29.10359,45.9588,37.64081,16.85521,8.53722
+2022fed,Maribyrnong,"substantial, final sizes",61.20074,55.35125,61.87606,5.84949,0.67532
+2022fed,Maribyrnong,"full roster, prior sizes",61.42823,55.35125,63.75709,6.07698,2.32885
+2022fed,Maribyrnong,"full roster, equal sizes",61.42823,55.35125,62.37489,6.07698,0.94665
+2022fed,McEwen,"substantial, final sizes",52.09106,52.82885,48.8061,0.73779,3.28497
+2022fed,McEwen,"full roster, prior sizes",52.36355,52.82885,50.14238,0.4653,2.22117
+2022fed,McEwen,"full roster, equal sizes",52.36355,52.82885,50.00692,0.4653,2.35663
+2022fed,Menzies,"substantial, final sizes",49.00407,45.40957,44.84494,3.59451,4.15913
+2022fed,Menzies,"full roster, prior sizes",49.22562,45.40957,44.25719,3.81605,4.96843
+2022fed,Menzies,"full roster, equal sizes",49.22562,45.40957,45.65454,3.81605,3.57108
+2022fed,Monash,"substantial, final sizes",47.27509,50.78765,45.22087,3.51256,2.05422
+2022fed,Monash,"full roster, prior sizes",47.17201,50.78765,44.6023,3.61564,2.5697
+2022fed,Monash,"full roster, equal sizes",47.17201,50.78765,46.46175,3.61564,0.71026
+2022fed,Scullin,"substantial, final sizes",63.7872,58.98876,65.56262,4.79844,1.77542
+2022fed,Scullin,"full roster, prior sizes",63.86603,58.98876,64.60036,4.87727,0.73433
+2022fed,Scullin,"full roster, equal sizes",63.86603,58.98876,64.60036,4.87727,0.73433
+2022fed,Wannon,"substantial, final sizes",40.77664,46.49232,42.24265,5.71568,1.46601
+2022fed,Wannon,"full roster, prior sizes",41.04106,46.49232,45.86596,5.45126,4.82491
+2022fed,Wannon,"full roster, equal sizes",41.04106,46.49232,45.96756,5.45126,4.9265
+2025fed,Aston,"substantial, final sizes",51.69313,60.86331,57.64169,9.17018,5.94856
+2025fed,Aston,"full roster, prior sizes",51.70147,60.86331,56.94609,9.16184,5.24462
+2025fed,Aston,"full roster, equal sizes",51.70147,60.86331,57.49018,9.16184,5.78871
+2025fed,Ballarat,"substantial, final sizes",60.29515,54.7864,58.17369,5.50875,2.12146
+2025fed,Ballarat,"full roster, prior sizes",60.30097,54.7864,58.1806,5.51457,2.12037
+2025fed,Ballarat,"full roster, equal sizes",60.30097,54.7864,58.54459,5.51457,1.75638
+2025fed,Bruce,"substantial, final sizes",64.09296,72.21239,67.81248,8.11943,3.71951
+2025fed,Bruce,"full roster, prior sizes",64.02474,72.21239,68.18782,8.18765,4.16307
+2025fed,Bruce,"full roster, equal sizes",64.02474,72.21239,66.32975,8.18765,2.305
+2025fed,Calwell,"substantial, final sizes",61.60278,53.65141,54.07209,7.95137,7.53069
+2025fed,Calwell,"full roster, prior sizes",61.64174,53.65141,54.72736,7.99033,6.91438
+2025fed,Calwell,"full roster, equal sizes",61.64174,53.65141,54.49488,7.99033,7.14687
+2025fed,Casey,"substantial, final sizes",43.93482,59.29648,43.82967,15.36166,0.10516
+2025fed,Casey,"full roster, prior sizes",44.01133,59.29648,44.35124,15.28515,0.33991
+2025fed,Casey,"full roster, equal sizes",44.01133,59.29648,46.54468,15.28515,2.53335
+2025fed,Chisholm,"substantial, final sizes",54.89231,62.27477,58.79948,7.38247,3.90718
+2025fed,Chisholm,"full roster, prior sizes",54.95835,62.27477,57.03531,7.31643,2.07696
+2025fed,Chisholm,"full roster, equal sizes",54.95835,62.27477,57.75599,7.31643,2.79764
+2025fed,Corangamite,"substantial, final sizes",58.83115,52.85556,56.56183,5.97559,2.26932
+2025fed,Corangamite,"full roster, prior sizes",58.83963,52.85556,56.49116,5.98407,2.34847
+2025fed,Corangamite,"full roster, equal sizes",58.83963,52.85556,55.53309,5.98407,3.30655
+2025fed,Corio,"substantial, final sizes",62.74046,65.80271,63.80228,3.06225,1.06182
+2025fed,Corio,"full roster, prior sizes",62.74337,65.80271,63.87907,3.05934,1.1357
+2025fed,Corio,"full roster, equal sizes",62.74337,65.80271,63.89818,3.05934,1.15481
+2025fed,Deakin,"substantial, final sizes",51.49268,50.80559,54.35962,0.6871,2.86694
+2025fed,Deakin,"full roster, prior sizes",51.56224,50.80559,54.84208,0.75665,3.27984
+2025fed,Deakin,"full roster, equal sizes",51.56224,50.80559,54.29922,0.75665,2.73698
+2025fed,Dunkley,"substantial, final sizes",56.65603,50.2455,52.95173,6.41053,3.7043
+2025fed,Dunkley,"full roster, prior sizes",56.66396,50.2455,51.99911,6.41846,4.66485
+2025fed,Dunkley,"full roster, equal sizes",56.66396,50.2455,51.9001,6.41846,4.76386
+2025fed,Gellibrand,"substantial, final sizes",63.3054,59.18004,61.21312,4.12536,2.09228
+2025fed,Gellibrand,"full roster, prior sizes",63.39284,59.18004,61.40706,4.2128,1.98578
+2025fed,Gellibrand,"full roster, equal sizes",63.39284,59.18004,63.08312,4.2128,0.30971
+2025fed,Gippsland,"substantial, final sizes",29.60733,23.30208,27.44578,6.30525,2.16155
+2025fed,Gippsland,"full roster, prior sizes",29.61337,23.30208,27.81189,6.31129,1.80148
+2025fed,Gippsland,"full roster, equal sizes",29.61337,23.30208,27.28761,6.31129,2.32575
+2025fed,Gorton,"substantial, final sizes",61.34194,55.39627,58.74206,5.94567,2.59988
+2025fed,Gorton,"full roster, prior sizes",61.16191,55.39627,57.78948,5.76564,3.37243
+2025fed,Gorton,"full roster, equal sizes",61.16191,55.39627,55.97515,5.76564,5.18676
+2025fed,Hawke,"substantial, final sizes",56.37294,59.49367,60.20071,3.12073,3.82777
+2025fed,Hawke,"full roster, prior sizes",56.37684,59.49367,60.63083,3.11683,4.25399
+2025fed,Hawke,"full roster, equal sizes",56.37684,59.49367,59.52392,3.11683,3.14708
+2025fed,Holt,"substantial, final sizes",63.90301,73.11644,70.80999,9.21343,6.90698
+2025fed,Holt,"full roster, prior sizes",63.88843,73.11644,68.68459,9.22801,4.79616
+2025fed,Holt,"full roster, equal sizes",63.88843,73.11644,69.66211,9.22801,5.77369
+2025fed,Hotham,"substantial, final sizes",67.13176,66.39664,65.62239,0.73512,1.50937
+2025fed,Hotham,"full roster, prior sizes",67.17745,66.39664,67.34108,0.7808,0.16363
+2025fed,Hotham,"full roster, equal sizes",67.17745,66.39664,66.00504,0.7808,1.17241
+2025fed,Isaacs,"substantial, final sizes",63.7798,75.82301,72.11312,12.04321,8.33332
+2025fed,Isaacs,"full roster, prior sizes",63.60323,75.82301,69.96546,12.21978,6.36223
+2025fed,Isaacs,"full roster, equal sizes",63.60323,75.82301,71.02202,12.21978,7.41879
+2025fed,Jagajaga,"substantial, final sizes",60.10483,54.76943,56.38312,5.3354,3.72171
+2025fed,Jagajaga,"full roster, prior sizes",60.14545,54.76943,58.12218,5.37603,2.02327
+2025fed,Jagajaga,"full roster, equal sizes",60.14545,54.76943,56.75939,5.37603,3.38606
+2025fed,La Trobe,"substantial, final sizes",47.69273,35.66122,45.14744,12.03151,2.54529
+2025fed,La Trobe,"full roster, prior sizes",47.69912,35.66122,45.56537,12.03791,2.13375
+2025fed,La Trobe,"full roster, equal sizes",47.69912,35.66122,45.16575,12.03791,2.53337
+2025fed,Lalor,"substantial, final sizes",61.13547,59.92472,61.32707,1.21075,0.1916
+2025fed,Lalor,"full roster, prior sizes",61.16049,59.92472,60.8248,1.23577,0.33569
+2025fed,Lalor,"full roster, equal sizes",61.16049,59.92472,60.76813,1.23577,0.39237
+2025fed,Mallee,"substantial, final sizes",29.98559,38.26777,32.83231,8.28218,2.84672
+2025fed,Mallee,"full roster, prior sizes",30.12102,38.26777,33.18033,8.14675,3.05931
+2025fed,Mallee,"full roster, equal sizes",30.12102,38.26777,32.75951,8.14675,2.63849
+2025fed,Maribyrnong,"substantial, final sizes",60.16764,69.2,65.85938,9.03236,5.69174
+2025fed,Maribyrnong,"full roster, prior sizes",60.31822,69.2,68.61057,8.88178,8.29235
+2025fed,Maribyrnong,"full roster, equal sizes",60.31822,69.2,68.04722,8.88178,7.729
+2025fed,McEwen,"substantial, final sizes",53.827,48.70181,49.79467,5.12519,4.03232
+2025fed,McEwen,"full roster, prior sizes",53.82014,48.70181,50.59483,5.11833,3.22531
+2025fed,McEwen,"full roster, equal sizes",53.82014,48.70181,49.77144,5.11833,4.0487
+2025fed,Menzies,"substantial, final sizes",48.72826,52.94677,56.39521,4.2185,7.66694
+2025fed,Menzies,"full roster, prior sizes",48.91758,52.94677,55.13198,4.02919,6.21439
+2025fed,Menzies,"full roster, equal sizes",48.91758,52.94677,55.23505,4.02919,6.31747
+2025fed,Nicholls,"substantial, final sizes",33.46947,32.63608,31.44371,0.83339,2.02576
+2025fed,Nicholls,"full roster, prior sizes",33.47364,32.63608,30.38445,0.83755,3.08919
+2025fed,Nicholls,"full roster, equal sizes",33.47364,32.63608,30.43614,0.83755,3.0375
+2025fed,Scullin,"substantial, final sizes",61.77378,54.6851,58.40033,7.08868,3.37345
+2025fed,Scullin,"full roster, prior sizes",61.81226,54.6851,59.26541,7.12716,2.54685
+2025fed,Scullin,"full roster, equal sizes",61.81226,54.6851,59.02708,7.12716,2.78518

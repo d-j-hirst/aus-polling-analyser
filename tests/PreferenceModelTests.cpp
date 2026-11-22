@@ -96,6 +96,59 @@ void checkLiberalProxyForNationals()
 	assert(otherPair == noProxy);
 }
 
+void checkIndependentsReceivingGroupedOthers()
+{
+	using IndependentCandidacy::OtherCandidateRoster;
+	using IndependentCandidacy::othersPreferenceWeight;
+	OtherCandidateRoster const roster{5,3}; // OTH**** and IND**
+	assert(roster.remaining(1,false) == 7 && roster.remaining(2,true) == 5);
+	assert(roster.remaining(4,false) == 5);
+	assert(close(othersPreferenceWeight(3,30,2),.5)); // 20% of the group is easier.
+	assert(close(othersPreferenceWeight(2,30,6),.5)); // 80% of an even share is easier.
+	assert(othersPreferenceWeight(4,30,6) == 1 && othersPreferenceWeight(6,30,2) == 1);
+	assert(othersPreferenceWeight(0,30,0) == 0 && othersPreferenceWeight(0,0,0) == 1);
+	assert(close(othersPreferenceWeight(3,30,0),.5));
+	// In a legacy round reduce a weak independent even if they have
+	// accumulated transfers. Redistribute all continuing ballots, including
+	// when two affected independents are the only remaining candidates.
+	std::vector<std::pair<int,double>> remaining{{Independent,45.},{EmergingIndependent,55.}};
+	std::vector<double> weights{60.,40.};
+	double total = IndependentCandidacy::adjustLegacyOthersWeights(remaining,weights,
+		{{Independent,.5},{EmergingIndependent,.25}},100.);
+	assert(close(weights[0]/total,.75) && close(weights[1]/total,.25));
+	assert(IndependentCandidacy::adjustLegacyOthersWeights(remaining,weights,{{Greens,.1}},total) == total);
+
+	auto settings = syntheticConfiguration();
+	settings["sample_uncertainty"] = false;
+	std::istringstream input(settings.dump());
+	auto seats = districts;
+	seats[0].otherCandidates = roster;
+	auto ranking = Model::load(input, roles, seats, flows);
+	assert(ranking);
+	constexpr int secondary = 1001;
+	std::vector<Source> ballot{{Labor,.30,1,2,1},{Liberal,.32,3,2,0},{Greens,.08,0,2,.8},
+		{Independent,.05,2,2,.5},{secondary,.05,2,2,.5,true},{Others,.20,2,2,.5}};
+	std::array const recipients{Labor,Liberal,Independent,secondary};
+	auto splits = [&]() { return ranking->referenceTransferRates(0,ballot,recipients,true); };
+	auto const full = splits();
+	ballot[0].primary += .02;
+	ballot[3].primary -= .02; // 3% is above the 2.67% threshold (six in the pool).
+	auto const qualified = splits();
+	assert(full.at(Others) == qualified.at(Others));
+	ballot[0].primary += .02999;
+	ballot[3].primary -= .02999;
+	auto const weak = splits();
+	auto const& others = weak.at(Others);
+	assert(others[2] < .001 && others[3] >= full.at(Others)[3]);
+	assert(close(std::accumulate(others.begin(),others.end(),0.),1.));
+	assert(weak.at(Greens) == full.at(Greens));
+	std::swap(ballot[3].primary,ballot[4].primary);
+	auto const swapped = splits().at(Others);
+	assert(close(others[2],swapped[3]) && close(others[3],swapped[2]));
+	auto classic = ranking->referencePairRates(0,ballot,{Labor,Liberal},true);
+	assert(close(classic.at(Others),.5));
+}
+
 void checkConfiguration()
 {
 	auto settings = syntheticConfiguration();
@@ -377,6 +430,16 @@ void checkBothCoalitionPartners()
 		assert(close(result.final.firstShare, .37 + .29 * (1.0 - incoming)));
 		assert(result.classic.pairsChecked == 2);
 		assert(result.classic.maximumError < Tolerance);
+	}
+	// Each conditional Labor TCP uses its own excluded partner. Either one
+	// can be the fixed starting margin, including when its party has fewer FP.
+	for (bool nationalReference : {false,true}) {
+		auto rates = CoalitionPreference::Leakage{.10,.20,nationalReference};
+		double tpp = .18+.06+rates.reference(.37,.34);
+		auto result = prepared.count(0,fp,tpp,.5,prepared.drawElection(2),
+			Sensitivity::None,false,true,nullptr,{},rates);
+		assert(result.status == Status::Compared);
+		assert(result.classic.pairsChecked == 2 && result.classic.maximumError < Tolerance);
 	}
 	// One National candidate occupies the Coalition slot. Any absent
 	// Liberal role remains latent and cannot receive the actual ballots.
@@ -763,6 +826,49 @@ void checkLivePreferenceCountConditioning()
 		changedThree += partial.final.candidates != base.final.candidates;
 	}
 	assert(after > before && changedThree > 0);
+}
+
+void checkVictorianReplaySettings()
+{
+	// The 2022 Liberal ticket put Greens ahead of Labor. Copying the 2026
+	// profile would reverse that comparison and import evidence from later counts.
+	std::ifstream input("analysis/Preferences/2022vic.json");
+	assert(input);
+	ConfiguredFlows configured;
+	constexpr int vicNational = 4;
+	constexpr Roles vicRoles{Labor, Liberal, vicNational, Greens, std::nullopt, Independent, EmergingIndependent, Others};
+	configured[vicNational][{Greens, Labor}] = 75.0f;
+	std::array const seats{District{"Melbourne"}, District{"Morwell"}};
+	auto const model = Model::load(input, vicRoles, seats, configured);
+	assert(model && model->isActive() && !model->isLiveTrial() && model->coversDistrict(1));
+	std::array<Source,6> const ballot{{
+		{Labor,.32,1,1.4,1.}, {Liberal,.24,3,1.4,0.}, {Greens,.23,0,1.8,.8194},
+		{vicNational,.10,3,1.4,.1}, {Independent,.07,2,1.,.5}, {Others,.04,2,1.,.5}}};
+	auto const toGreens = model->referencePairRates(0, ballot, {Greens,Labor});
+	assert(close(toGreens.at(Liberal), .75) && close(toGreens.at(vicNational), .75));
+	auto classic = model->referencePairRates(0, ballot, {Labor,Liberal});
+	assert(close(classic.at(Greens), .8194));
+	std::vector<Model::ReportFlow> expected{{Greens,Labor,Liberal}, {Liberal,Labor,Greens}};
+	assert(model->liveReportFlows() && *model->liveReportFlows() == expected);
+	assert(LiveStatewidePreferences::reportRows(vicRoles, true) == expected);
+	input.clear();
+	input.seekg(0);
+	auto settings = nlohmann::json::parse(input);
+	// A missing party and a repeated comparison with reversed opponents
+	// both indicate a mistake in the election's publication settings.
+	for (auto const& invalid : {nlohmann::json{{"GRN","ALP","ON"}},
+		nlohmann::json{{"GRN","ALP","LIB"},{"GRN","LIB","ALP"}}}) {
+		settings["live_report_flows"] = invalid;
+		std::istringstream bad(settings.dump());
+		bool rejected = false;
+		try { Model::load(bad, vicRoles, seats, configured); }
+		catch (std::invalid_argument const&) { rejected = true; }
+		assert(rejected);
+	}
+	for (int seed = 0; seed < 12; ++seed) {
+		auto result = model->count(1, ballot, .55, .25, model->drawElection(seed));
+		assert(result.status == Status::Compared && result.classic.maximumError < Tolerance);
+	}
 }
 
 void checkFederalPreferenceModes()
@@ -1816,9 +1922,66 @@ void checkLivePrimaryToTpp() {
 	assert(final->sources.at(3).first == 7.);
 }
 
+void checkBroadPreferenceMovement() {
+	namespace F = LiveFpTpp;
+	F::Shares const primaries{{Labor,40},{Liberal,30},{Greens,10},{OneNation,20}};
+	F::Shares const rates{{Greens,.75},{OneNation,.25}};
+	constexpr double priorTpp = 52.5;
+	F::District district;
+	district.transferOddsMultiplier = 2.;
+	// Even with unchanged FP and no local TCP, doubling the odds moves
+	// Greens from 3/4 to 6/7 and ON from 1/4 to 2/5. A further five
+	// points for Greens comes from the separate party-specific evidence.
+	district.rateChange[Greens] = .05;
+	auto result = F::project(district,primaries,priorTpp,primaries,rates,1000,0,0);
+	assert(result);
+	double const broad = 10*(6./7.-.75) + 20*(.4-.25);
+	assert(close(result->broadPreferenceChange,broad));
+	assert(close(result->learnedChange,broad+.5));
+	assert(close(result->laborPercent,priorTpp+broad+.5));
+	assert(close(result->rates.at(OneNation),.4));
+	assert(close(result->rates.at(Greens),6./7.+.05));
+
+	// Start another draw well above the TPP implied by these same generic
+	// rates. A movement against Labor must act on its fitted starting rates.
+	F::District againstLabor;
+	againstLabor.transferOddsMultiplier = .5;
+	auto starting = F::project({},primaries,61.,primaries,rates,1000,0,0);
+	auto revised = F::project(againstLabor,primaries,61.,primaries,rates,1000,0,0);
+	assert(starting && revised && revised->laborPercent < 61.);
+	for (int p : {Greens,OneNation}) {
+		double const rate = starting->rates.at(p);
+		assert(close(revised->rates.at(p),rate/(2.-rate)));
+	}
+
+	// A new primary point shifting from Labor to ON still costs Labor
+	// the share of those voters who finish with the Coalition.
+	auto shifted = primaries;
+	shifted[Labor] -= 1.;
+	shifted[OneNation] += 1.;
+	auto moved = F::project(district,primaries,priorTpp,shifted,rates,1000,0,0);
+	assert(moved && close(result->laborPercent - moved->laborPercent,.60));
+
+	// A measured batch accounts for half of each source, including exact
+	// transfers by party. Only the uncounted half can follow the new rates.
+	F::Shares const half{{Labor,200},{Liberal,150},{Greens,50},{OneNation,100}};
+	F::addBooth(district,half,half,{{Labor,280},{Liberal,220}},
+		{{Greens,{{Labor,45},{Liberal,5}}},{OneNation,{{Labor,35},{Liberal,65}}}});
+	auto partial = F::project(district,primaries,priorTpp,primaries,rates,1000,280,220);
+	assert(partial && close(partial->broadPreferenceChange,broad*.5));
+	assert(close(partial->sources.at(OneNation).first,35+100*.4));
+	assert(close(partial->rates.at(OneNation),(35+100*.4)/200));
+	assert(close(partial->laborPercent,28.+.5*result->laborPercent));
+	auto final = F::project(district,primaries,priorTpp,primaries,rates,500,280,220);
+	assert(final && final->broadPreferenceChange == 0. && final->learnedChange == 0.);
+	assert(final->laborPercent == 56. && final->sources.at(Greens).first == 45.);
+}
+
 int main()
 {
+	checkIndependentsReceivingGroupedOthers();
 	checkLivePrimaryToTpp();
+	checkBroadPreferenceMovement();
 	checkLiberalProxyForNationals();
 	checkConfiguration();
 	checkExtraCandidatesAgainstEnumeratedOrders();
@@ -1838,6 +2001,7 @@ int main()
 	checkHistoricalFinnissTransfers();
 	checkLivePreferenceCountRevisions();
 	checkLivePreferenceCountConditioning();
+	checkVictorianReplaySettings();
 	checkFederalPreferenceModes();
 	checkFederalPreferenceSettings();
 	checkJointThreeCandidateCount();

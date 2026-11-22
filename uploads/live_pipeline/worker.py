@@ -11,7 +11,7 @@ from functools import lru_cache
 from pathlib import Path
 import time
 
-from . import activity, commentary, comparisons, reporting_days, rule_commentary, tcp_reporting
+from . import activity, commentary, comparisons, reporting_days, rule_commentary, seat_alerts, tcp_reporting
 from .storage import atomic, fingerprint, read
 from .vote_type_names import VoteTypeNames
 
@@ -192,6 +192,12 @@ class Processor:
                 # explanatory evidence has been fully materialised.
                 evidence = comparisons.evidence(numerical, self.folder)
                 full = comparisons.summary(numerical, self.folder)
+                # Store the call's first forecast alongside the current winners.
+                # Every comparison window and a restarted uploader then read the
+                # same history, even if the earlier package is still uploading.
+                prior_calls = summaries[-1].get('seat_calls', {}) if summaries else {}
+                full['seat_calls'] = seat_alerts.active_calls(full, evidence, prior_calls)
+                full['booth_warnings'] = evidence.get('booth_warnings', {})
                 if summaries:
                     previous = read(self.folder/'packages'/summaries[-1]['forecast_id']/'evidence.json.gz')
                     earlier = self.load_summary(summaries[-1]['forecast_id'])
@@ -212,6 +218,7 @@ class Processor:
             # well after the switch. The district totals are small enough to
             # keep alongside win chances without reopening old booth archives.
             compact['published_district_tcp'] = full.get('published_district_tcp', {})
+            compact['seat_calls'] = full.get('seat_calls', {})
             compact['seats'] = {s: {'win_percent': row['win_percent']} for s, row in full['seats'].items()}
             self.summary_index[package.name] = compact
             summaries.append(compact)
@@ -277,12 +284,13 @@ class Processor:
             prepared = package/'comparisons.json'
             if not prepared.exists():
                 groups = comparisons.comparisons(current, summaries,
-                    lambda identity: read(self.folder/'packages'/identity/'evidence.json.gz'), self.config, self.load_summary)
+                    lambda identity: comparisons.comparison_evidence(self.folder/'packages'/identity), self.config, self.load_summary)
                 requests = {}
+                rule_contexts = {}
                 mechanical = {}
                 for window, group in groups.items():
                     mechanical[window] = {k: v for k, v in group.items()
-                                          if k not in ('evidence', 'seat_changes', 'ranked_tcp_groups')}
+                                          if k not in ('evidence', 'seat_changes', 'ranked_tcp_groups', 'rule_regional')}
                     if not group['available']:
                         continue
                     mechanical[window]['seat_changes'] = [
@@ -294,6 +302,12 @@ class Processor:
                     packet['source_timezone'] = self.config['timezone']
                     key = fingerprint({'packet': packet, 'settings': self.settings, 'prompt': self.prompt_version})
                     requests[window] = {'key': key, 'packet': packet}
+                    if self.compare_writers:
+                        # Summarise all comparable booths locally. AI requests,
+                        # cache identities and public evidence retain their normal size.
+                        if key not in rule_contexts:
+                            rule_contexts[key] = rule_commentary.comparison_context(group, packet)
+                        requests[window]['rule_context'] = rule_contexts[key]
                 atomic(package/'requests.json', requests)
                 atomic(prepared, mechanical)
             mechanical, requests = read(prepared), read(package/'requests.json')
@@ -374,8 +388,19 @@ class Processor:
         if self.compare_writers:
             results = rule_commentary.append_editions(results, requests, numerical['forecast_id'], self.load_summary)
         results = self.vote_type_names.reports(results)
+        # A call is a model decision every reader should see. Both writers
+        # share this bulletin, including on quiet updates or an API timeout.
+        for window, group in mechanical.items():
+            if group.get('seat_call_changes'):
+                results[window] = dict(results[window], seat_call_changes=group['seat_call_changes'])
+        summary = self.load_summary(numerical['forecast_id'])
+        report = dict(numerical['report'])
+        if summary.get('seat_calls'):
+            report['seatCalls'] = summary['seat_calls']
+        if summary.get('booth_warnings'):
+            report['possibleBoothErrors'] = summary['booth_warnings']
         payload = {'schema_version': 1, 'run': public_run(self.config), 'forecast': metadata,
-                   'report': numerical['report'], 'comparisons': mechanical, 'commentary': results,
+                   'report': report, 'comparisons': mechanical, 'commentary': results,
                    'commentary_evidence': selected_evidence,
                    'commentary_requests': {w: r['key'] for w, r in requests.items()},
                    'released_at': utc(), 'frozen': True}

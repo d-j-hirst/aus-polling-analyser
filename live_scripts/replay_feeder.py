@@ -8,6 +8,7 @@ advance on the website's acknowledgement of each forecast.
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -138,6 +139,8 @@ def main(argv=None):
     pacing.add_argument('--step', action='store_true', help='Deliver just the next capture')
     pacing.add_argument('--after-local-upload', action='store_true',
                         help='Deliver each capture after the previous local website receipt, including the pre-count reference')
+    pacing.add_argument('--interval-seconds', type=float, metavar='SECONDS',
+                        help='Deliver at a fixed wall-clock interval, regardless of the time between archived captures')
     parser.add_argument('--speed', type=float, default=1, help='Original speed is 1; for example 60 is one hour per minute')
     parser.add_argument('--codes-file', type=Path, help='Optional subset of timestamp codes, one per line')
     parser.add_argument('--limit', type=int)
@@ -162,6 +165,9 @@ def main(argv=None):
         parser.error('Specify --run-id or all of --election, --source and --inbox.')
     if args.after_local_upload and (not args.run_id or args.speed != 1):
         parser.error('--after-local-upload requires a saved --run-id and uses receipt-based pacing instead of --speed.')
+    if args.interval_seconds is not None:
+        if not math.isfinite(args.interval_seconds) or args.interval_seconds <= 0 or args.speed != 1:
+            parser.error('--interval-seconds requires a positive finite interval and cannot be combined with a speed multiplier.')
     if args.speed <= 0 or not args.speed < float('inf'):
         parser.error('Speed must be positive and finite')
     if args.source.resolve() == args.inbox.resolve():
@@ -190,14 +196,28 @@ def main(argv=None):
                 print('The final selected capture is already in the inbox.')
         if args.after_local_upload:
             wait_for_local_upload(run_folder)
+        # A fixed-rate rehearsal uses real elapsed time between deliveries, even
+        # when the archived captures cover several days. On restart, honour
+        # the remaining interval and then resume normal pacing without a burst.
+        next_due = time.monotonic()
+        if args.interval_seconds is not None and state['delivered']:
+            last_sent = max(row['delivered_at_unix'] for row in state['delivered'].values())
+            elapsed = max(0, time.time() - last_sent)
+            next_due += max(0, args.interval_seconds - elapsed)
         previous = None
         for code, clock, path in records:
             if args.step or code not in state['delivered']:
-                if previous and not args.step and not args.after_local_upload:
+                if args.interval_seconds is not None:
+                    remaining = next_due - time.monotonic()
+                    if remaining > 0:
+                        time.sleep(remaining)
+                elif previous and not args.step and not args.after_local_upload:
                     until = time.monotonic()+max(0, (clock-previous).total_seconds())/args.speed
                     while time.monotonic() < until:
                         time.sleep(max(0, min(.5, until-time.monotonic())))
                 digest = deliver(path, args.inbox)
+                if args.interval_seconds is not None:
+                    next_due = time.monotonic() + args.interval_seconds
                 state['delivered'][code] = {'sha256': digest, 'delivered_at_unix': time.time()}
                 atomic(state_path, state)
                 print(code, path.name, flush=True)

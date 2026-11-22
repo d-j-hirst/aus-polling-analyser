@@ -743,12 +743,14 @@ def _cutoff_record_key(election):
     return "cutoff_poll_outputs:{}".format(election)
 
 
-def _source_dependencies(include_cutoff_runtime=False):
+def _source_dependencies(include_cutoff_runtime=False, poll_inputs=None):
     dependencies = dict(SOURCE_DEPENDENCIES)
     if include_cutoff_runtime:
         dependencies.update(CUTOFF_SOURCE_DEPENDENCIES)
     return {
-        category: generated_provenance.source_manifest_dependency(
+        category: poll_inputs.dependency
+        if category == "raw_poll_data" and poll_inputs is not None
+        else generated_provenance.source_manifest_dependency(
             category,
             manifest_path,
             ANALYSIS_DIRECTORY,
@@ -981,8 +983,8 @@ def _prune_irrelevant_federal_priors(
 class PureTrendRecorder:
     """Preflight dependencies and certify completed pure-trend work units."""
 
-    def __init__(self, command):
-        self.source_dependencies = _source_dependencies()
+    def __init__(self, command, poll_inputs=None):
+        self.source_dependencies = _source_dependencies(poll_inputs=poll_inputs)
         self.run_id, self.run = generated_provenance.generation_run(
             command=command,
             source_revision=generated_provenance.current_source_revision(
@@ -1043,11 +1045,12 @@ class PureTrendRecorder:
 class FinalTrendRecorder:
     """Preflight dependencies and certify completed final-trend work units."""
 
-    def __init__(self, command):
-        self.source_dependencies = _source_dependencies()
+    def __init__(self, command, poll_inputs=None):
+        self.poll_inputs = poll_inputs
+        self.source_dependencies = _source_dependencies(poll_inputs=poll_inputs)
         self.approval_dependencies = {}
         self.approval_elections = set(
-            approvals_provenance.approval_elections()
+            approvals_provenance.approval_elections(poll_inputs)
         )
         self.run_id, self.run = generated_provenance.generation_run(
             command=command,
@@ -1071,6 +1074,7 @@ class FinalTrendRecorder:
                 approvals_provenance.generation_dependencies(
                     [election],
                     non_invalidating_elections=cache_key[1],
+                    poll_inputs=self.poll_inputs,
                 )
             )
         return self.approval_dependencies[cache_key]

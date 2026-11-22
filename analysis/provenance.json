@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-11-20T12:09:17Z",
+  "updated_at_utc": "2026-11-22T11:25:20Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -1231,9 +1231,9 @@
           "recorded_mtime_utc": "2026-10-01T04:46:46.804855Z"
         },
         "lib/poll_models/fp_model_data.py": {
-          "sha256": "fb840ba75317cbcd751d1b1b84b80eff6648549d3120ee61ba641dde86969d6d",
-          "size_bytes": 64693,
-          "recorded_mtime_utc": "2026-10-01T04:46:46.816404Z"
+          "sha256": "15c3098007e7a6264f14b51bb0eab9360e06de88420e1b22cd0b274839660618",
+          "size_bytes": 65399,
+          "recorded_mtime_utc": "2026-11-22T11:22:18.227304Z"
         },
         "lib/poll_models/fp_model_outputs.py": {
           "sha256": "cef6fd02634d7c348b4765d5888759a9618f9763103df7a93ebf241f3639e51b",
@@ -1246,9 +1246,9 @@
           "recorded_mtime_utc": "2026-10-01T03:39:14.434868Z"
         },
         "lib/poll_models/fp_model_runner.py": {
-          "sha256": "d77e590d908c1c2b0155392ef037b3080f466eb32bcaaf4cea708c2ef757963b",
-          "size_bytes": 34789,
-          "recorded_mtime_utc": "2026-10-01T05:04:09.659244Z"
+          "sha256": "af47fe8c5e5ab5e49f6a288f873dc3316d5f02c04090323b8374ad582fbb974f",
+          "size_bytes": 34667,
+          "recorded_mtime_utc": "2026-11-22T11:22:18.635698Z"
         },
         "lib/poll_models/fp_model_stan.py": {
           "sha256": "ba2dee2ef1aefbbb9394bd423c49b9bc08ca020a2894e3c9ab52a7f601765c3a",
@@ -2241,6 +2241,26 @@
             "lib/poll_models/fp_model_outputs.py",
             "lib/poll_models/fp_model_runner.py",
             "scripts/pipeline/fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261122T112520Z-correction-fp-model-script-186aaffc",
+          "recorded_at_utc": "2026-11-22T11:25:20Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 14,
+          "provenance_revision": 20,
+          "summary": "Verify and capture registered poll inputs before trend publication, scope polling checks to target and shared evidence, and schedule refits for interrupted pure and final trend outputs. Successfully generated numerical outputs remain valid.",
+          "files": [
+            "lib/poll_models/fp_model_data.py",
+            "lib/poll_models/fp_model_runner.py"
           ],
           "scope": {
             "all": true,
@@ -3343,9 +3363,9 @@
       "semantic_revision": 5,
       "files": {
         "lib/provenance/fp_model_provenance.py": {
-          "sha256": "6cae0086a1b03560e1408ba2e0b80f65b19fe820729d4ec63f490e1131b353c8",
-          "size_bytes": 53401,
-          "recorded_mtime_utc": "2026-10-01T05:03:09.042110Z"
+          "sha256": "9a7f444c689f8045a8821b784b7971303d38a723608148dab21ca1ed5187161c",
+          "size_bytes": 53704,
+          "recorded_mtime_utc": "2026-11-22T11:17:13.117735Z"
         }
       },
       "events": [
@@ -3854,6 +3874,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261122T112520Z-correction-fp-model-provenance-script-a3f9e30a",
+          "recorded_at_utc": "2026-11-22T11:25:20Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 6,
+          "summary": "Verify and capture registered poll inputs before trend publication, scope polling checks to target and shared evidence, and schedule refits for interrupted pure and final trend outputs. Successfully generated numerical outputs remain valid.",
+          "files": [
+            "lib/provenance/fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 6
@@ -3867,9 +3906,9 @@
       "semantic_revision": 2,
       "files": {
         "scripts/pipeline/approvals.py": {
-          "sha256": "08703f8976ce0589badc9bdbfe1c40705695a31afa3f2cb2408aae3f9cf46dec",
-          "size_bytes": 19803,
-          "recorded_mtime_utc": "2026-10-01T05:03:09.045112Z"
+          "sha256": "8ad2be64d61b7c577a392163ee4a2972a003ead6e941d3c62c484a37d70f8171",
+          "size_bytes": 20027,
+          "recorded_mtime_utc": "2026-11-22T11:17:12.895718Z"
         }
       },
       "events": [
@@ -4040,6 +4079,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261122T112520Z-correction-approvals-script-a22151ae",
+          "recorded_at_utc": "2026-11-22T11:25:20Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Verify and capture registered poll inputs before trend publication, scope polling checks to target and shared evidence, and schedule refits for interrupted pure and final trend outputs. Successfully generated numerical outputs remain valid.",
+          "files": [
+            "scripts/pipeline/approvals.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 2
@@ -4053,9 +4111,9 @@
       "semantic_revision": 2,
       "files": {
         "lib/provenance/approvals_provenance.py": {
-          "sha256": "3ce18083e25462f82f1c93912b0704c67607070b3a09da641064bff1303e4609",
-          "size_bytes": 14104,
-          "recorded_mtime_utc": "2026-10-01T05:03:08.961390Z"
+          "sha256": "c860ff3d68ff8a5d57c2d0947d370d63da79d5b27d9a83801c56a2f23ad7aef6",
+          "size_bytes": 16167,
+          "recorded_mtime_utc": "2026-11-22T11:24:59.068572Z"
         }
       },
       "events": [
@@ -4236,6 +4294,25 @@
           "summary": "Move remaining pipeline stages and occasional utilities into scripts/ and shared backends into lib/; update packaged launch commands, imports, durable data paths, captured module invocations and historical pickle class resolution. Numerical algorithms and existing generated content are unchanged.",
           "files": [
             "approvals_provenance.py",
+            "lib/provenance/approvals_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261122T112520Z-correction-approvals-provenance-script-2ab11d39",
+          "recorded_at_utc": "2026-11-22T11:25:20Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Verify and capture registered poll inputs before trend publication, scope polling checks to target and shared evidence, and schedule refits for interrupted pure and final trend outputs. Successfully generated numerical outputs remain valid.",
+          "files": [
             "lib/provenance/approvals_provenance.py"
           ],
           "scope": {
@@ -5481,9 +5558,9 @@
       "provenance_revision": 45,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "cd5b715f77cdc389c24eca0306ae052c51925dc0ec6da54fd5d5a4467a0277bc",
-          "size_bytes": 133920,
-          "recorded_mtime_utc": "2026-10-01T04:46:46.731837Z"
+          "sha256": "4cc916034ed5f39103290bcbb4e24c63d84a5bfd1d3d8947cee428a97d89cdfb",
+          "size_bytes": 134488,
+          "recorded_mtime_utc": "2026-11-22T11:24:58.855270Z"
         },
         "lib/__init__.py": {
           "sha256": "ee3293d28006d6db658657b690a444ce3e76d244d4cec783a2ee351ca23dd38f",
@@ -5571,9 +5648,9 @@
           "recorded_mtime_utc": "2026-10-02T10:57:03.181178Z"
         },
         "pipeline.py": {
-          "sha256": "3dce54ea94d3edfad290a4888851a86e15e36c450b9a1142402ccb7534f19ac0",
-          "size_bytes": 97248,
-          "recorded_mtime_utc": "2026-10-30T09:34:34.301396Z"
+          "sha256": "71ad8ffdb319b6763061d6e5178f47addb4d2a9fd83419dfa706e636e988cb27",
+          "size_bytes": 98087,
+          "recorded_mtime_utc": "2026-11-22T11:22:18.022521Z"
         },
         "pipeline_registry.json": {
           "sha256": "ed3688041e42d84b46526528fc59f75a1b710728e7f26dd5e44b2d4241c0a9e1",
@@ -7791,6 +7868,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261122T112520Z-correction-pipeline-orchestration-tools-97252e13",
+          "recorded_at_utc": "2026-11-22T11:25:20Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Verify and capture registered poll inputs before trend publication, scope polling checks to target and shared evidence, and schedule refits for interrupted pure and final trend outputs. Successfully generated numerical outputs remain valid.",
+          "files": [
+            "analysis_provenance.py",
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },
@@ -7811,14 +7908,14 @@
           "recorded_mtime_utc": "2026-07-27T00:11:25.197301Z"
         },
         "lib/provenance/generated_provenance.py": {
-          "sha256": "91ad543f65ce1a289516aa7a56a8664c3d6b243767050fcd24c9140e70f6f7a9",
-          "size_bytes": 61507,
-          "recorded_mtime_utc": "2026-10-01T05:03:05.310632Z"
+          "sha256": "6851de7478afd3be352dc89295a0d60df93103df36487873e50802fa517f46ea",
+          "size_bytes": 62249,
+          "recorded_mtime_utc": "2026-11-22T11:24:58.640284Z"
         },
         "lib/provenance/source_provenance.py": {
-          "sha256": "5c49a5b34ffa8709509f5554c0835b898f23f787e20fadcce2390fed4227be1a",
-          "size_bytes": 45274,
-          "recorded_mtime_utc": "2026-10-01T04:50:15.485221Z"
+          "sha256": "7da195114402835e46e16e7dd816dc7f355435823fdaae09023fd3c21b37a9ce",
+          "size_bytes": 48611,
+          "recorded_mtime_utc": "2026-11-22T11:24:58.424733Z"
         },
         "source_provenance.schema.json": {
           "sha256": "6d4f145bbc2a23372ec0a692cc202cc9351deb759ce7892549188c16f7a1e2b4",
@@ -8264,6 +8361,26 @@
             "lib/provenance/generated_provenance.py",
             "lib/provenance/source_provenance.py",
             "source_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261122T112520Z-correction-provenance-core-tools-0521cae1",
+          "recorded_at_utc": "2026-11-22T11:25:20Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 14,
+          "summary": "Verify and capture registered poll inputs before trend publication, scope polling checks to target and shared evidence, and schedule refits for interrupted pure and final trend outputs. Successfully generated numerical outputs remain valid.",
+          "files": [
+            "lib/provenance/generated_provenance.py",
+            "lib/provenance/source_provenance.py"
           ],
           "scope": {
             "all": true,
@@ -9955,8 +10072,13 @@
         "Preferences/*.json.gz"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 14,
+      "semantic_revision": 16,
       "files": {
+        "Preferences/2022vic.json": {
+          "sha256": "2ccd8eaca4441e7f4b942ae7d231d05f0a6c7d137fdb87ee81136181937d1cee",
+          "size_bytes": 1849,
+          "recorded_mtime_utc": "2026-11-22T11:03:19.219710Z"
+        },
         "Preferences/2025fed.json": {
           "sha256": "797a5c974787cb2546f36dd2a9ace073167513b67109e6f880de5cf479d3f171",
           "size_bytes": 5334,
@@ -10326,9 +10448,72 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261122T042448Z-coverage_extension-preference-evidence-inputs-905d1152",
+          "recorded_at_utc": "2026-11-22T04:24:48Z",
+          "change_type": "coverage_extension",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 15,
+          "provenance_revision": 15,
+          "summary": "Activate whole-election rankings using pre-count evidence and identify the four November One Nation candidacies in the Victorian replay.",
+          "files": [
+            "Preferences/2022vic.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2022vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261122T110000Z-other-preference-evidence-inputs-8994abb7",
+          "recorded_at_utc": "2026-11-22T11:00:00Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 16,
+          "provenance_revision": 16,
+          "summary": "preference flow system adjustments",
+          "files": [
+            "Preferences/2022vic.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2022vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261122T110935Z-formatting-preference-evidence-inputs-758d8d51",
+          "recorded_at_utc": "2026-11-22T11:09:35Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 16,
+          "provenance_revision": 16,
+          "summary": "Express the Victorian replay profiles as the single ranking choice used without a separate One Nation role, retaining the registered preference centres, uncertainty and two published comparisons.",
+          "files": [
+            "Preferences/2022vic.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2022vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 14
+      "provenance_revision": 16
     },
     "preference_evidence_tools": {
       "description": "Cache-only extraction and population/provenance validation of observed preference evidence.",

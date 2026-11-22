@@ -21,6 +21,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 import uuid
@@ -638,6 +639,59 @@ def _hash_bytes(value):
     return digest.hexdigest()
 
 
+def registered_poll_bytes(path, fingerprint, shared=False):
+    """Read a verified poll CSV from the working file or its committed history."""
+    try:
+        content = _canonical_source_bytes(path)
+    except FileNotFoundError:
+        return None
+    size = fingerprint["size_bytes"]
+    registered = content[:size] if shared else content
+    if len(registered) == size and _hash_bytes(registered) == fingerprint["sha256"]:
+        return registered
+    if shared:
+        # Federal and state approval histories are shared across fits. After
+        # an in-place edit, the repository may still hold the registered CSV.
+        # Its hash must match the manifest even if the last registration has
+        # not yet been committed. Reading the blob leaves the worktree alone.
+        try:
+            blob = subprocess.run(
+                ["git", "show", "HEAD:./" + path.name], cwd=path.parent,
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False,
+            )
+        except FileNotFoundError:
+            return None
+        registered = blob.stdout.replace(b"\r\n", b"\n")
+        if blob.returncode == 0 and _hash_bytes(registered) == fingerprint["sha256"]:
+            return registered
+    return None
+
+
+def supporting_poll_jurisdiction(stage, elections, requested_elections):
+    """Whether this trend is a prerequisite in a different jurisdiction from every target."""
+    if stage not in {"generate_pure_poll_trends", "generate_poll_trends"}:
+        return False
+    regions = {election[4:] for election in elections}
+    targets = {target[4:] for target in requested_elections or ()}
+    return bool(regions and targets) and regions.isdisjoint(targets)
+
+
+def raw_poll_change_blocks(stage, elections, path, registered_copy_available=False,
+                           requested_elections=None):
+    """Which unregistered poll edits could enter this election's generation?"""
+    if not elections or not path or stage not in {
+        "generate_pure_poll_trends", "generate_poll_trends"
+    }:
+        return True
+    if path in {"poll-data-{}.csv".format(election[4:]) for election in elections}:
+        supporting = supporting_poll_jurisdiction(stage, elections, requested_elections)
+        return not (supporting and registered_copy_available)
+    # Pure fits read voting intentions for their own jurisdiction. Final fits
+    # also train on other jurisdictions' approvals, using the registered bytes
+    # captured at startup. Only a verifiable registered copy can supply those.
+    return stage == "generate_poll_trends" and not registered_copy_available
+
+
 def _fingerprint_file(path):
     canonical_bytes = _canonical_source_bytes(path)
     return {
@@ -708,6 +762,20 @@ def _changed_paths(comparison):
             + comparison["touched"]
         )
     )
+
+
+def compare_category_files(folder, category_id, category, current):
+    comparison = compare_snapshots(category["files"], current)
+    if category_id == "raw_poll_data":
+        # Report all edits in the audit. Also identify files whose registered
+        # version is available for shared, cross-jurisdiction poll history.
+        comparison["recoverable_poll_files"] = [
+            path for path in comparison["modified"]
+            if registered_poll_bytes(
+                folder / path, category["files"][path], shared=True
+            ) is not None
+        ]
+    return comparison
 
 
 def _event_id(change_type, category_id):
@@ -1064,13 +1132,16 @@ def record_change(
     return event, comparison
 
 
-def check_manifest(manifest_path):
-    manifest = load_manifest(manifest_path)
+def check_manifest(manifest_path, manifest=None):
+    if manifest is None:
+        manifest = load_manifest(manifest_path)
     result = {}
     matched_paths = {}
     for category_id, category in manifest["categories"].items():
         current_files = snapshot_category(manifest_path, manifest, category)
-        comparison = compare_snapshots(category["files"], current_files)
+        comparison = compare_category_files(
+            Path(manifest_path).parent / manifest["folder"], category_id, category, current_files
+        )
         result[category_id] = comparison
         for path in current_files:
             if path in matched_paths:

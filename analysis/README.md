@@ -146,11 +146,30 @@ Generation plans block unregistered source changes only in input categories
 used by their selected stages, including selected upstream stages and optional
 or feedback inputs. For example, an edit to `seats/2026vic.txt` is still reported
 by the audit and status commands, but does not block `regular-with-approvals`:
-the Python stages do not consume the `forecast_seats` category. Checks operate
-on whole source categories, so a change to any file in a required category
-still needs registration. Missing and legacy outputs use the stage's declared
-inputs for this check. Invalid provenance and blocked selected work units
-remain blockers; metadata maintenance retains its repository-wide source check.
+the Python stages do not consume the `forecast_seats` category. Missing and
+legacy outputs use the stage's declared inputs for this check.
+
+Pure and final poll trends take a copy of the registered polls they need at
+startup. The polling CSV for each requested jurisdiction must match its
+registration. Each CSV covers the jurisdiction's entire polling history.
+A pure fit reads voting intentions only for its own jurisdiction. A final
+fit also uses historical approvals from other jurisdictions. For example,
+when a new federal poll is appended during a Victorian update, the model
+can use the registered federal history up to that append. It verifies the
+whole original file against its recorded hash. For an edit to an earlier
+row, it can also use the committed copy if its hash matches. This same rule
+applies when a Victorian approval refresh needs to rebuild a federal trend
+as a prerequisite. If the required history cannot be verified, the plan
+identifies the file that needs registration. Shared configuration and other
+source categories retain their category-wide checks.
+
+Before writing an election's trend CSVs, the generator checks the inputs
+for every party, including the pure trends used to convert approvals to
+TPP and the federal trends used as state priors. If a run is interrupted
+between writing a CSV and recording its hash, the next ordinary generation
+plan marks that election's trend task `altered` and schedules a refit.
+The refit writes the files and records their new hashes. Metadata maintenance
+retains its repository-wide source check.
 
 The calibration profile runs only the leave-one-pollster-out and bias
 calibration fits. After those complete, build a separate regular or

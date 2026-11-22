@@ -630,6 +630,11 @@ class Config:
                 'its election, party, endpoint and excluded pollster.'
             ),
         )
+        parser.add_argument(
+            '--registered-poll-history', action='store_true',
+            help='Use verified registered polls when rebuilding a trend as historical '
+                 'evidence for a forecast in another jurisdiction.',
+        )
         args = parser.parse_args()
         if args.election is None:
             raise ConfigError('The --election argument is required.')
@@ -671,6 +676,10 @@ class Config:
             raise ConfigError('The --seed value must be between 1 and 2^31-1.')
         self.seed = args.seed
         self.synthetic_tpps_by_region = None
+        self.trend_poll_inputs = None
+        self.registered_poll_history = args.registered_poll_history
+        if self.registered_poll_history and (self.cutoff_mode or self.calibrate_pollsters or self.calibrate_bias):
+            raise ConfigError('--registered-poll-history requires a pure or final trend run.')
         self.prepare_election_list()
 
     def prepare_election_list(self):
@@ -912,7 +921,9 @@ class ElectionData:
         # Collect and validate the model data before doing expensive work.
         poll_path = data_source[tup[1]]
         try:
-            self.base_df = pd.read_csv(poll_path)
+            poll_inputs = config.trend_poll_inputs
+            source = poll_path if poll_inputs is None else poll_inputs.open(tup[1])
+            self.base_df = pd.read_csv(source)
         except (OSError, ValueError) as error:
             raise ConfigError(
                 'Could not read poll data from {}: {}'.format(

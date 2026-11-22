@@ -44,7 +44,7 @@ class VoteTypeNames:
         self.phrases = re.compile(
             r'\{[^{}]*\}|\[\[[^\]]+\]\]|\b(?:'+official+r')\b|'
             r'\b(?P<code>'+codes+r')\b(?:\s+(?P<noun>counts?|ballots?|votes?)\b|'
-            r'(?=\s*(?:[,.;:]|$|\band\b|\bto\b)))'+bare, re.I)
+            r'(?=\s*(?:[,.;:]|$|\band\b|\bto\b|\b(?:fell|rose|increased|decreased|changed)\b)))'+bare, re.I)
 
     def text(self, prose):
         if not self.names:

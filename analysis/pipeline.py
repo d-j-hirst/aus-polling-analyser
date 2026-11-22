@@ -44,8 +44,7 @@ except ImportError:
 
 
 ELECTION_PATTERN = re.compile(r"^(\d{4})([a-z]+)$")
-PLAN_STATUSES = {"missing", "legacy", "stale"}
-BLOCKING_STATUSES = {"altered", "blocked"}
+PLAN_STATUSES = {"missing", "legacy", "stale", "altered"}
 STATUS_ORDER = (
     "current",
     "provenance-stale",
@@ -56,6 +55,7 @@ STATUS_ORDER = (
     "blocked",
 )
 TASK_STATUS_PRIORITY = {
+    "altered": 0,
     "provenance-stale": 0,
     "missing": 0,
     "legacy": 1,
@@ -397,7 +397,7 @@ def build_status(audit, registry, include_details=False):
             unclassified[work_unit["status"]] += 1
         else:
             by_run_class[run_class][work_unit["status"]] += 1
-        if work_unit["status"] in BLOCKING_STATUSES:
+        if analysis_provenance.generation_blocked(work_unit["status"], work_unit["category"]):
             blockers.append(
                 {
                     "status": work_unit["status"],
@@ -514,7 +514,7 @@ def _task_keys(work_unit, stage):
 
 
 def _task_status(status_counts):
-    for status in ("missing", "legacy", "stale", "dependency-refresh"):
+    for status in ("altered", "missing", "legacy", "stale", "dependency-refresh"):
         if status_counts.get(status):
             return status
     raise AssertionError("planned task has no plannable status")
@@ -557,7 +557,7 @@ def _stage_dependency_categories(stage):
     }
 
 
-def _plan_source_categories(
+def _plan_source_consumers(
     work_units, reachable_work_units, registry, stage_by_id,
     producer_by_category,
 ):
@@ -570,13 +570,11 @@ def _plan_source_categories(
     the same protection as existing outputs. Optional and feedback inputs
     count too: a generator can read them when they are present.
 
-    Source provenance currently validates whole categories, not individual
-    files within them. Keep that boundary here so planning agrees with the
-    generators' own source validation. Recorded dependency problems remain
-    enforced separately through the selected work units' blocking status.
+    Keep the elections and stages for each category so raw poll checks can
+    follow the same jurisdiction rules as the trend generator.
     """
 
-    categories = set()
+    consumers = defaultdict(set)
     for work_unit in work_units:
         if work_unit.get("id", work_unit["record_key"]) not in reachable_work_units:
             continue
@@ -584,8 +582,10 @@ def _plan_source_categories(
             work_unit, registry, stage_by_id, producer_by_category
         )
         if stage is not None:
-            categories.update(_stage_dependency_categories(stage))
-    return categories
+            scope = (stage["id"], tuple(_scope_values(work_unit, "elections")))
+            for category in _stage_dependency_categories(stage):
+                consumers[category].add(scope)
+    return consumers
 
 
 def _reachable_work_unit_ids(
@@ -824,6 +824,7 @@ def build_plan(audit, registry, profiles):
             work_unit.get("id", work_unit["record_key"])
             in reachable_work_units
             and work_unit["status"] in PLAN_STATUSES
+            and not analysis_provenance.generation_blocked(work_unit["status"], work_unit["category"])
             and (
                 require_fresh_dependencies
                 or not _is_inherited_only_staleness(work_unit)
@@ -848,7 +849,7 @@ def build_plan(audit, registry, profiles):
     warnings = []
     accepted_stale_work_units = []
     deferred_task_keys = {}
-    source_categories = _plan_source_categories(
+    source_consumers = _plan_source_consumers(
         audit["work_units"], reachable_work_units, registry, stage_by_id,
         producer_by_category,
     )
@@ -887,9 +888,18 @@ def build_plan(audit, registry, profiles):
         if (
             issue["code"] == "unregistered_source_change"
             and issue.get("category") in registry["categories"]
-            and issue["category"] not in source_categories
         ):
-            continue
+            consumers = source_consumers.get(issue["category"], ())
+            if not consumers:
+                continue
+            if issue["category"] == "raw_poll_data" and not any(
+                source_provenance.raw_poll_change_blocks(
+                    stage, elections, issue.get("path"), issue.get("registered_copy_available", False),
+                    audit["target_elections"],
+                )
+                for stage, elections in consumers
+            ):
+                continue
         blockers.append(_issue_summary(issue))
     for issue in audit["manifest_issues"]:
         if issue["status"] == "blocked":
@@ -922,7 +932,7 @@ def build_plan(audit, registry, profiles):
             for election in _scope_values(work_unit, "elections")
         ):
             continue
-        if work_unit["status"] in BLOCKING_STATUSES:
+        if analysis_provenance.generation_blocked(work_unit["status"], work_unit["category"]):
             blockers.append(
                 {
                     "status": work_unit["status"],
@@ -1025,6 +1035,10 @@ def build_plan(audit, registry, profiles):
                 command = _task_command(
                     stage, task["election"], task["party"]
                 )
+                if source_provenance.supporting_poll_jurisdiction(
+                    stage["id"], [task["election"]], audit["target_elections"]
+                ):
+                    command.append("--registered-poll-history")
             except (PipelineError, pipeline_registry.RegistryError) as error:
                 blockers.append(
                     {
@@ -1039,6 +1053,7 @@ def build_plan(audit, registry, profiles):
             status_counts = {
                 status: task["status_counts"].get(status, 0)
                 for status in (
+                    "altered",
                     "missing",
                     "legacy",
                     "stale",

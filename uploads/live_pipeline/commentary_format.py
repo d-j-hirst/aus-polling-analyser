@@ -211,6 +211,90 @@ def booth_figures(event):
     return rows
 
 
+def sample_recipient(packet, seat, label):
+    """Return a district candidate token when the sample identifies one person.
+    In particular, a sample naming one independent must never be attributed
+    to another independent who shares their party abbreviation."""
+    party, _, name = label.partition(':')
+    identities = packet.get('all_candidate_identities', packet.get('candidate_identities', {})).get(seat, {})
+    matches = [key for key, person in identities.items() if person.get('party') == party
+               and (not name or person.get('name') == name)]
+    if len(matches) == 1:
+        return '{candidate:'+seat+':'+matches[0]+'}'
+    return name or party
+
+
+def sample_finalist_movements(packet, seat, labels):
+    recipients = {sample_recipient(packet, seat, label) for label in labels}
+    changes = next((district['changes'] for district in packet.get('seat_changes', [])
+                    if district['seat'] == seat), [])
+    movements = {}
+    for row in changes:
+        if row['metric'].startswith('/finalist_percent/'):
+            subject = '{candidate:'+seat+':'+row['metric'].rsplit('/', 1)[-1]+'}'
+            if subject in recipients and abs(row['change']) >= 1:
+                movements[subject] = row
+    return movements
+
+
+def sample_exclusion_comparison(packet, seat, sample):
+    """Find a race for survival supported by both the sample and the forecasts.
+    A transfer-only sample has no totals for the continuing candidates. We can
+    say which way it helps two rivals when one gained a material chance of
+    reaching the final two and the other's chance fell. We cannot measure
+    their chance of surviving a particular intermediate exclusion from that."""
+    if sample['revised'] or packet.get('input_revision_changed') or not sample['use_in_simulations_confirmed']:
+        return None  # A revised cumulative split alone does not give the direction of the revision.
+    shares = {sample_recipient(packet, seat, label): share for label, share in sample['destination_percent'].items()}
+    movements = sample_finalist_movements(packet, seat, sample['destination_percent'])
+    if len(movements) < 2:
+        return None
+    def change(subject):
+        return movements[subject]['change']
+    gain, loss = max(movements, key=change), min(movements, key=change)
+    # One point is the same editorial threshold as the finalist-change bullet.
+    # Prefer the two principal movers. If the evidence points the other way,
+    # searching for a lesser pair would give a misleading explanation.
+    if change(gain) > 0 and change(loss) < 0 and round(shares[gain], 1) > round(shares[loss], 1):
+        return gain, loss
+    return None
+
+
+def preference_sample_detail(packet, seat):
+    """Describe the reported division of the sampled transfers. The denominator
+    excludes existing votes for the surviving candidates. The sample can give
+    evidence about who reaches the final two without fixing the whole district."""
+    sample = packet.get('reported_preference_samples', {}).get(seat)
+    if not sample:
+        return None
+    shares = sample['destination_percent']
+    count_name = {3: 'three-candidate', 4: 'four-candidate'}.get(len(shares), 'multi-candidate')
+    results = []
+    for label, share in sorted(shares.items(), key=lambda i: (-i[1], i[0])):
+        percent = f'{round(share, 1):g}'
+        verb = ' went to ' if not results else ' to '
+        results.append(f'**{percent}%**'+verb+sample_recipient(packet, seat, label))
+    split = ', '.join(results[:-1])+' and '+results[-1]
+    description = ' ('+sample['description']+')' if sample.get('description') else ''
+    updated = 'updated ' if sample['revised'] else ''
+    text = f'Of about **{sample["preference_ballots"]:,} ballots** in the {updated}{count_name} preference sample{description}, '+split+'.'
+    placing = sample.get('second_place')
+    if placing:
+        ahead = sample_recipient(packet, seat, placing['ahead'])
+        behind = sample_recipient(packet, seat, placing['behind'])
+        text = (f'In the {updated}three-candidate count{description}, {ahead} led {behind} by '
+                f'**{placing["votes"]:,} votes** for second place on the sampled ballots after transfers. '
+                f'Of the **{sample["preference_ballots"]:,} ballots** transferred, '+split+'.')
+    else:
+        rivals = sample_exclusion_comparison(packet, seat, sample)
+        if rivals:
+            gain, loss = rivals
+            return text + f' That split makes it easier for {gain} to outlast {loss} and reach the final two.'
+    if sample['use_in_simulations_confirmed']:
+        text += ' The forecast used this sample to estimate the order of exclusions in the district.'
+    return text
+
+
 def figures(packet, *, use_median_seats=True, match_tcp_coverage=True, contextualise_counts=False):
     """Supply exact, ready-to-copy display phrases instead of repeated fact IDs.
 
@@ -350,6 +434,18 @@ def figures(packet, *, use_median_seats=True, match_tcp_coverage=True, contextua
                              'value': f'{votes:,} votes'})
     for seat, counts in sorted(packet.get('replacement_tcp_counts', {}).items()):
         rows.extend(replacement_figures(seat, counts, match_tcp_coverage=match_tcp_coverage))
+    for seat, sample in sorted(packet.get('reported_preference_samples', {}).items()):
+        rows.append({'seat': seat, 'quantity': 'number of sampled preference ballots',
+                     'value': f"{sample['preference_ballots']:,} ballots"})
+        for label, share in sample['destination_percent'].items():
+            percent = f'{round(share, 1):g}'
+            rows.append({'seat': seat, 'quantity': 'share of sampled transfers to '+label, 'value': percent+'%'})
+        if sample.get('second_place'):
+            rows.append({'seat': seat, 'quantity': 'sampled second-place lead after transfers',
+                         'value': f"{sample['second_place']['votes']:,} votes"})
+    for warning in packet.get('possible_booth_errors', []):
+        rows.append({'seat': warning['seat'], 'quantity': 'probability of discrepancy-driven TCP correction',
+                     'booth': warning['booth'], 'value': decimal(warning['confidencePercent'])+'%'})
     for seat, counts in sorted(packet.get('close_tcp_counts', {}).items()):
         pair = ['{candidate:'+seat+':'+p+'}' for p in counts['pair']]
         remaining_share = counts.get('approx_remaining_tcp_percent_for_first')
@@ -917,6 +1013,20 @@ def check_text(text, seats, packet, *, booth_points=None):
     allowed = {row[key] for row in scoped
                for key in FIGURE_FIELDS if key in row}
     allowed.update(observed_vote_phrases(packet, seats))
+    for seat, sample in packet.get('reported_preference_samples', {}).items():
+        if seats and seat not in seats:
+            continue
+        count = format(sample['preference_ballots'], ',')
+        stripped = re.sub(r'\*\*'+count+r'\*\* ballots\b', '**'+count+' ballots**', stripped)
+        allowed.add(count+' votes')
+        for share in sample['destination_percent'].values():
+            allowed.add(decimal(share)+'%')
+        # A published label can itself say e.g. "AEC indicative 3CP, 28
+        # listed entries". Its numbers are only checked as part of that label.
+        if sample.get('description'):
+            stripped = stripped.replace(sample['description'], '')
+        size = len(sample['destination_percent'])
+        stripped = re.sub(r'\b'+str(size)+r'CP\b', 'preference sample', stripped)
     typed = typed_vote_phrases(packet, seats)
     # In booth prose "318 first preferences" and "318 first-preference votes"
     # name the same denominator. Only an actual cumulative FP total supplies it.

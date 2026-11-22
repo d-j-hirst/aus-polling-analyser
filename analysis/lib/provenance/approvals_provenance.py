@@ -15,6 +15,7 @@ Main functions:
 
 import argparse
 import csv
+import io
 import math
 import sys
 from datetime import date
@@ -22,7 +23,7 @@ from pathlib import Path
 from lib.paths import ANALYSIS_DIRECTORY
 
 from lib.shared import election_catalogue
-from lib.provenance import generated_provenance
+from lib.provenance import generated_provenance, source_provenance
 
 
 DATA_DIRECTORY = ANALYSIS_DIRECTORY / "Data"
@@ -45,6 +46,39 @@ SOURCE_DEPENDENCIES = {
 
 
 # Election and approval-input selection
+
+class TrendPollInputs:
+    """Keep the registered polls used by a trend batch and its approval training together."""
+
+    def __init__(self, elections, include_approvals, registered_history=False):
+        manifest_path = DATA_DIRECTORY / "provenance.json"
+        manifest = source_provenance.load_manifest(manifest_path)
+        category = manifest["categories"]["raw_poll_data"]
+        target_regions = {election.region() for election in elections}
+        regions = target_regions | set(POLL_REGIONS) if include_approvals else target_regions
+        self.by_region = {}
+        for region in sorted(regions):
+            filename = "poll-data-{}.csv".format(region)
+            path = DATA_DIRECTORY / filename
+            expected = category["files"].get(filename)
+            content = None
+            if expected is not None:
+                content = source_provenance.registered_poll_bytes(
+                    path, expected, shared=registered_history or region not in target_regions
+                )
+            if content is None:
+                raise generated_provenance.GeneratedProvenanceError(
+                    "Cannot verify registered raw_poll_data for {}".format(filename)
+                )
+            self.by_region[region] = content
+        # Each reader gets a fresh stream of the same bytes. An edit during
+        # sampling therefore cannot change which polls this revision certifies.
+        self.dependency = generated_provenance.registered_source_dependency(
+            category, manifest_path, ANALYSIS_DIRECTORY
+        )
+
+    def open(self, region):
+        return io.BytesIO(self.by_region[region])
 
 def _configured_elections():
     try:
@@ -115,7 +149,7 @@ def _valid_number(value):
         return False
 
 
-def approval_dates_by_election():
+def approval_dates_by_election(poll_inputs=None):
     """Return valid approval-poll dates grouped into configured terms."""
 
     configured = _configured_elections()
@@ -132,7 +166,8 @@ def approval_dates_by_election():
     selected = {}
     for region in POLL_REGIONS:
         path = DATA_DIRECTORY / "poll-data-{}.csv".format(region)
-        with path.open(newline="", encoding="utf-8-sig") as source:
+        stream = poll_inputs.open(region) if poll_inputs is not None else path.open("rb")
+        with io.TextIOWrapper(stream, newline="", encoding="utf-8-sig") as source:
             reader = csv.DictReader(source)
             required = {"MidDate", "GLApp", "GLDis"}
             if reader.fieldnames is None or not required <= set(
@@ -162,13 +197,13 @@ def approval_dates_by_election():
     return selected
 
 
-def approval_elections():
+def approval_elections(poll_inputs=None):
     """Return configured election terms containing valid approval polls."""
 
-    return set(approval_dates_by_election())
+    return set(approval_dates_by_election(poll_inputs))
 
 
-def synthetic_dependency_elections(target_elections):
+def synthetic_dependency_elections(target_elections, poll_inputs=None):
     """Return pure trends capable of training target synthetic observations.
 
     The approval regression can use observations from any jurisdiction that
@@ -177,7 +212,7 @@ def synthetic_dependency_elections(target_elections):
     but not on terms whose observations all occur later.
     """
 
-    dates_by_election = approval_dates_by_election()
+    dates_by_election = approval_dates_by_election(poll_inputs)
     target_dates = [
         poll_date
         for election in target_elections
@@ -219,9 +254,11 @@ def available_pure_tpp_records(elections):
     return records
 
 
-def _source_dependencies():
+def _source_dependencies(poll_inputs=None):
     return {
-        category: generated_provenance.source_manifest_dependency(
+        category: poll_inputs.dependency
+        if category == "raw_poll_data" and poll_inputs is not None
+        else generated_provenance.source_manifest_dependency(
             category,
             manifest,
             ANALYSIS_DIRECTORY,
@@ -231,16 +268,16 @@ def _source_dependencies():
 
 
 def generation_dependencies(
-    elections=None, non_invalidating_elections=()
+    elections=None, non_invalidating_elections=(), poll_inputs=None
 ):
     """Snapshot the direct inputs used to derive synthetic observations."""
 
     if elections is None:
-        elections = approval_elections()
+        elections = approval_elections(poll_inputs)
     else:
-        elections = synthetic_dependency_elections(elections)
+        elections = synthetic_dependency_elections(elections, poll_inputs)
     non_invalidating_elections = set(non_invalidating_elections)
-    dependencies = _source_dependencies()
+    dependencies = _source_dependencies(poll_inputs)
     records = available_pure_tpp_records(elections)
     if records:
         non_invalidating_records = [
@@ -277,8 +314,8 @@ class SyntheticTppRecorder:
             ),
         )
 
-    def dependencies_for(self, elections):
-        return generation_dependencies(elections)
+    def dependencies_for(self, elections, poll_inputs=None):
+        return generation_dependencies(elections, poll_inputs=poll_inputs)
 
     def record(self, output_files, output_elections, dependencies):
         records = {}

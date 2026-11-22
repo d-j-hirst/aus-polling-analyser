@@ -331,7 +331,7 @@ Booth::Booth(
   int natPartyIndex,
   bool sameSeat
 )
-  : name(currentBooth.name), parentSeatId(parentSeatId), voteType(Results2::VoteType::Ordinary), boothType(currentBooth.type),
+  : name(currentBooth.name), parentSeatId(parentSeatId), sourceId(currentBooth.id), voteType(Results2::VoteType::Ordinary), boothType(currentBooth.type),
   coords(currentBooth.coords), sameSeat(sameSeat)
 {
 
@@ -992,6 +992,10 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   calculateTppEstimates(false); // Calculate again, this time using the observed deviations from preference flows
   includeBaselineResults(previousElection, currentElection);
   extrapolateBaselineSwings();
+  LiveFederalDeclarations::Prior declarations;
+  if (auto path = LiveFederalDeclarations::inputPath(project.paths().root(),run.getTermCode()))
+    declarations = LiveFederalDeclarations::readPrior(*path,run.getTermCode());
+  prepareBoothGeography(turnoutInput.prior,declarations);
   calculateDeviationsFromBaseline();
   aggregate();
   determineSpecificDeviations();
@@ -1006,7 +1010,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   prepareFinalResults(previousElection,currentElection);
   preparePreferenceCountObservations(previousElection,currentElection);
   recomposeVoteCounts();
-  prepareFpEvidence();
+  prepareFpEvidence(declarations);
   refreshFpEvidenceProjections();
   preparePreferenceLearning(previousElection,currentElection,pairPreferenceHistory);
   prepareTppProjectionSensitivities();
@@ -1394,7 +1398,8 @@ void Election::prepareStatewidePreferences(Results2::Election const& previousEle
       optionalPreferential || run.regionCode == "fed" || !run.preferenceModel ||
       !run.preferenceModel->isActive() || run.preferenceModel->isLiveTrial()) return;
   auto const& roles = run.preferenceModel->partyRoles();
-  auto const rows = Report::reportRows(roles,run.regionCode == "vic");
+  auto const rows = run.preferenceModel->liveReportFlows().value_or(Report::reportRows(roles,run.regionCode == "vic"));
+  if (rows.empty()) return;
   auto prepared = std::make_shared<Report::Election>();
   for (auto const& [party,rate] : preferenceFlowMap) prepared->classicReference[party] = rate*.01;
   // The joint TPP analysis learns these two errors from matched FP/TPP
@@ -1821,6 +1826,10 @@ void Election::createNodesFromElectionData(
         for (int candidate : published->second) add(candidate);
       for (auto const& entry : seat.fpVotes) add(entry.first);
       seats.back().splitCoalitionCandidates = roster.contains(1) && roster.contains(natPartyIndex);
+      if (seats.back().splitCoalitionCandidates) {
+        int projectIndex = project.seats().indexByName(seat.name);
+        seats.back().nationalTppReference = run.pastSeatResults.at(projectIndex).nationalTppReference;
+      }
     }
     largeRegions.at(parentRegionIndex).seats.push_back(seatIndex);
     for (auto const& boothId : seat.booths) {
@@ -1962,6 +1971,7 @@ void Election::createNodesFromElectionData(
       if (previousSeatPtr) {
         preparationBooths().back().previousPreferenceSeat = (*previousSeatPtr)->name;
         preparationBooths().back().syntheticPreviousCategory = (*previousSeatPtr)->syntheticBaselineTypes.contains(voteType);
+        preparationBooths().back().measuredFpInSyntheticCategory = (*previousSeatPtr)->measuredFpInSyntheticTypes.contains(voteType);
         if (!preparationBooths().back().syntheticPreviousCategory) {
           LivePartialCount::Counts raw;
           for (auto const& [candidate,types] : (*previousSeatPtr)->fpVotes) {
@@ -2351,12 +2361,11 @@ double Election::preferencePriorOffset(Booth const& booth, bool includeLocal) co
 int Election::coalitionFinalist(Booth const& booth) const {
   auto const& tcp = booth.tppCount(natPartyIndex);
   auto const& seat = seats.at(booth.parentSeatId);
-  // The shared TPP calculation already uses measured classic votes wherever
-  // they exist. At unmeasured booths in a split seat, infer the opponent from
-  // primaries. An announcement or a report from another booth cannot switch
-  // the conversion for all those votes.
+  // A measured comparison belongs to the actual candidates counted. Where
+  // that comparison is still missing, convert FP against the opponent in
+  // the seat's starting TPP, even if the other partner leads on primaries.
   if (seat.splitCoalitionCandidates)
-    return LiveCoalitionTcp::referenceOpponent(tcp,booth.node.fpVotesCurrent,natPartyIndex);
+    return LiveCoalitionTcp::referenceOpponent(tcp,seat.nationalTppReference,natPartyIndex);
   if (isTppSet(tcp,natPartyIndex)) return tcp.contains(natPartyIndex) ? natPartyIndex : 1;
   if (isTppSet(seat.node.tcpVotesCurrent,natPartyIndex))
     return seat.node.tcpVotesCurrent.contains(natPartyIndex) ? natPartyIndex : 1;
@@ -2869,8 +2878,8 @@ void Election::extrapolateBaselineSwings() {
       }
       for (auto const& [partyId, share] : seat.node.fpSharesBaseline) {
         // If there isn't a swing baseline, use the share baseline instead
-        // TODO: Make this more realistic in situations where the party would be
-        // expected to perform differently in different parts of the seat
+        // The separate federal booth reference, where configured, subsequently
+        // accounts for One Nation's variation within this district.
         if (!booth.node.fpSwingsBaseline.contains(partyId)) {
           booth.node.fpSharesBaseline[partyId] = share;
         }
@@ -2886,7 +2895,7 @@ void Election::calculateDeviationsFromBaseline() {
   for (auto& seat : seats) {
     for (int boothIndex : seat.booths) {
       auto& booth = preparationBooths().at(boothIndex);
-      for (auto const& [partyId, baselineSwing] : seat.node.fpSwingsBaseline) {
+      for (auto const& [partyId, baselineSwing] : booth.node.fpSwingsBaseline) {
         if (booth.node.fpSwings.contains(partyId)) {
           booth.node.fpDeviations[partyId] = booth.node.fpSwings.at(partyId) - baselineSwing;
         }
@@ -2896,7 +2905,7 @@ void Election::calculateDeviationsFromBaseline() {
           }
         }
       }
-      for (auto const& [partyId, baselineShare] : seat.node.fpSharesBaseline) {
+      for (auto const& [partyId, baselineShare] : booth.node.fpSharesBaseline) {
         // fp swings are preferred, so only use share baseline if there is no swing baseline
         if (booth.node.fpSwingsBaseline.contains(partyId)) continue;
         if (booth.node.fpShares.contains(partyId)) {
@@ -3283,8 +3292,11 @@ void Election::aggregateToElection() {
 }
 
 LiveNewVotes::FpEvidence Election::primaryEvidence(Node const& source) const {
-  return {expectedVotesForAggregation(source),double(source.totalFpVotesCurrent()),
+  LiveNewVotes::FpEvidence result{expectedVotesForAggregation(source),double(source.totalFpVotesCurrent()),
     source.fpConfidence,source.relevanceModifier,source.fpDeviations,{},source.fpPoolingVotes};
+  if (source.geographicPoolingDeviation)
+    result.deviations[boothGeography->party] = *source.geographicPoolingDeviation;
+  return result;
 }
 
 void Election::prepareIndependentPooling(LiveNewVotes::FpEvidence& evidence, Seat const& seat) const {
@@ -3493,7 +3505,9 @@ void Election::determineSeatSpecificDeviations() {
         double parentsFpDeviation = largeRegion.node.specificFpDeviations.contains(partyId) ? largeRegion.node.specificFpDeviations.at(partyId) : 0.0;
         parentsFpDeviation += node.specificFpDeviations.contains(partyId) ? node.specificFpDeviations.at(partyId) : 0.0;
         double excludingParents = deviation - parentsFpDeviation;
-        seat.node.specificFpDeviations[partyId] = excludingParents * fpObsWeight;
+        double const weight = boothGeography && partyId == boothGeography->party
+          ? fpPoolingObservationWeight(seat.node,partyId,VoteObsWeightStrength) : fpObsWeight;
+        seat.node.specificFpDeviations[partyId] = excludingParents * weight;
       }
       double tppObsWeight = obsWeight(seat.node.tppConfidence);
       double parentsTppDeviation = largeRegion.node.specificTppDeviation.value_or(0.0);
@@ -3721,7 +3735,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
     auto projected = LiveNewVotes::project({},context,turnoutFpTarget(boothIndex));
     storeFpProjection(boothIndex,mapFpProjection(boothIndex,projected,false));
   } else {
-    storeFpProjection(boothIndex,projectUnreportedFp(allowCurrentData,boothIndex));
+    storeFpProjection(boothIndex,projectUnreportedFp(allowCurrentData,boothIndex,turnoutFpTarget(boothIndex)));
     if (allowCurrentData) recordFpProjectionSensitivity(boothIndex,turnoutFpTarget(boothIndex));
   }
   if (allowCurrentData) applyFpEvidence(boothIndex);
@@ -3787,9 +3801,10 @@ Election::OrdinaryFpHierarchy Election::collectOrdinaryFpEvidence() const {
       // them here would let their batch move its own background before that
       // same batch is explicitly blended in. Use this rule for both movement
       // and missing-history candidate counts, including in other jurisdictions.
-      sources.add({expectedVotesForAggregation(n),double(n.totalFpVotesCurrent()),
-        n.fpConfidence,n.relevanceModifier,n.fpDeviations,{}, {}},
-        n.fpVotesCurrent,booth.receivesFpBatches());
+      auto evidence = primaryEvidence(n);
+      if (boothGeography && boothGeography->units.at(index) && !boothGeography->units[index]->ordinary)
+        evidence.poolingVotes[boothGeography->party] = 0;
+      sources.add(std::move(evidence),n.fpVotesCurrent,booth.receivesFpBatches());
     }
     auto evidence = LiveNewVotes::aggregate(sources.movementSources,expectedVotesForAggregation(seat.node));
     prepareIndependentPooling(evidence,seat);
@@ -3816,8 +3831,11 @@ void Election::conditionOrdinaryFpEvidence(OrdinaryFpHierarchy& hierarchy) const
       fpPoolingObservationWeights(region,VoteObsWeightStrength));
   for (std::size_t i = 0; i < seats.size(); ++i) {
     auto& evidence = hierarchy.seats[i];
+    std::map<int,double> weights;
+    if (boothGeography && evidence.poolingVotes.contains(boothGeography->party))
+      weights[boothGeography->party] = obsWeight(LiveNewVotes::poolingConfidence(evidence,boothGeography->party));
     LiveNewVotes::condition(evidence,{&hierarchy.election,&hierarchy.regions.at(seats[i].parentRegionIndex)},
-      obsWeight(double(evidence.confidence)));
+      obsWeight(double(evidence.confidence)),weights);
   }
 }
 
@@ -3850,7 +3868,7 @@ LiveNewVotes::Shares Election::declarationFpContext(bool allowCurrentData, int b
   OrdinaryFpHierarchy const* hierarchy) const {
   auto const& booth = readBooths().at(boothIndex);
   auto const& seat = seats.at(booth.parentSeatId);
-  auto projected = projectUnreportedFp(allowCurrentData,boothIndex,hierarchy);
+  auto projected = projectUnreportedFp(allowCurrentData,boothIndex,turnoutFpTarget(boothIndex),hierarchy);
   int independent = allowCurrentData ? seat.liveIndependentPartyIndex : seat.independentPartyIndex;
   LiveNewVotes::Shares context;
   for (int candidate : booth.node.runningParties) {
@@ -3872,7 +3890,7 @@ LiveNewVotes::Shares Election::composeDeclarationFp(int boothIndex) const {
   auto const& booth = readBooths().at(boothIndex);
   auto const& seat = seats.at(booth.parentSeatId);
   auto category = LiveNewVotes::compositionCategory(booth.incrementalFp,
-    booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll);
+    LiveData::aggregatedEarly(booth.voteType));
   double target = turnoutFpTarget(boothIndex);
   auto const& context = newVoteContexts->at(boothIndex);
   LiveNewVotes::Shares shifts,variation;
@@ -3895,7 +3913,7 @@ void Election::updateDeclarationFpProgress(int boothIndex) {
   auto& booth = preparationBooths().at(boothIndex);
   double target = turnoutFpTarget(boothIndex);
   auto category = LiveNewVotes::compositionCategory(booth.incrementalFp,
-    booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll);
+    LiveData::aggregatedEarly(booth.voteType));
   booth.node.fpCompletion = booth.node.fpConfidence = double(std::clamp(booth.node.totalFpVotesCurrent()/target,0.0,1.0));
   // The pooled category bias enters on the context side, whose influence
   // declines as this service's own primary composition becomes informative.
@@ -3903,34 +3921,7 @@ void Election::updateDeclarationFpProgress(int boothIndex) {
   recordFpProjectionSensitivity(boothIndex,double(std::max(0.0,target-booth.node.totalFpVotesCurrent())*contextWeight));
 }
 
-void Election::assignBlindFpOthers(
-    std::map<int, double>& votesProjected,
-    std::set<int> const& blindOthers,
-    int projectSeatIndex,
-    double currentVotesEstimate,
-    double othersAccountedFor) const {
-    double remainingExpectedVotes = 0.01 * blindOthers.size() * currentVotesEstimate;
-    if (
-      sim.getLiveBaselineReport().has_value()
-      && sim.getLiveBaselineReport().value().seatFpProbabilityBand[projectSeatIndex].contains(OthersIndex)
-    ) {
-      auto const& probabilityBands = sim.getLiveBaselineReport().value()
-        .seatFpProbabilityBand[projectSeatIndex].at(OthersIndex);
-      if (probabilityBands.empty()) {
-        throw std::runtime_error(
-          "Baseline Others distribution is empty for seat "
-          + project.seats().viewByIndex(projectSeatIndex).name + ".");
-      }
-      double median = probabilityBands[(probabilityBands.size() - 1) / 2];
-      remainingExpectedVotes = std::max(remainingExpectedVotes, median * currentVotesEstimate * 0.01 - othersAccountedFor);
-    }
-    for (auto const& partyId : blindOthers) {
-      votesProjected[partyId] = remainingExpectedVotes / double(blindOthers.size());
-    }
-}
-
-
-std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int boothIndex,
+std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int boothIndex, double currentVoteTarget,
   OrdinaryFpHierarchy const* hierarchy) const {
   // Historical composition, pooled category biases and ordinary movement form
   // the usual starting estimate. Existing new-candidate and missing-history
@@ -3940,10 +3931,24 @@ std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int bo
   int projectSeatIndex = project.seats().indexByName(seat.name);
   const double votesGuess = booth.boothType == Results2::Booth::Type::Hospital ? HospitalBoothVotesGuess : PreviousTotalVotesGuess;
   double previousTotalVotes = booth.node.totalVotesPrevious() ? booth.node.totalVotesPrevious() : votesGuess;
-  double const currentVoteTarget = turnoutFpTarget(boothIndex);
+  // Preparation also calls this with a fixed size before turnout is updated,
+  // to obtain the existing relative composition of the other candidates.
+  auto const* geographic = boothGeography && boothGeography->units.at(boothIndex)
+    ? &*boothGeography->units.at(boothIndex) : nullptr;
+  std::optional<double> geographicShare;
   std::map<int, double> tempFpVotesProjected;
-  double othersAccountedFor = 0.0;
-  std::set<int> blindOthers;
+  double accountedOthersVotes = 0.0;
+  std::vector<LiveNewVotes::UnprofiledCandidate> unprofiled;
+  auto baselinePercent = [&](int party) -> std::optional<double> {
+    auto const& report = sim.getLiveBaselineReport();
+    if (!report) return {};
+    auto const& seatBands = report->seatFpProbabilityBand[projectSeatIndex];
+    auto const bands = seatBands.find(party);
+    if (bands == seatBands.end()) return {};
+    if (bands->second.empty()) throw std::runtime_error("Empty baseline FP distribution for party "
+      + std::to_string(party) + " in seat " + seat.name + ".");
+    return bands->second[(bands->second.size() - 1) / 2];
+  };
   // A declaration/WA-early background must use the same source pool even when
   // this candidate lacks historical booth FP. The unrestricted district account
   // remains the existing fallback for ordinary unreported-booth projections,
@@ -3957,7 +3962,8 @@ std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int bo
     double deviation = 0.0;
     int indIndex = allowCurrentData ? seat.liveIndependentPartyIndex : seat.independentPartyIndex;
     int effectivePartyId = partyId == indIndex ? run.indPartyIndex : partyId;
-    if (allowCurrentData && booth.node.totalVotesPrevious()) {
+    bool const useGeography = geographic && effectivePartyId == boothGeography->party;
+    if (allowCurrentData && (booth.node.totalVotesPrevious() || useGeography)) {
       if (hierarchy) {
         // Declaration services inherit movement measured in ordinary booths.
         // Their own partial batch enters later, once, through the FP blend.
@@ -3984,19 +3990,18 @@ std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int bo
     if (allowCurrentData && voteTypeFpBiases.contains(effectivePartyId) && voteTypeFpBiases.at(effectivePartyId).contains(booth.voteType)) {
       deviation += voteTypeFpBiases.at(effectivePartyId).at(booth.voteType);
     }
-    std::optional<double> baselineShareUntransformed;
-    if (sim.getLiveBaselineReport().has_value()) {
-      if (sim.getLiveBaselineReport().value().seatFpProbabilityBand[projectSeatIndex].contains(effectivePartyId)) {
-        auto const& fpProbabilityBands = sim.getLiveBaselineReport().value().seatFpProbabilityBand[projectSeatIndex].at(effectivePartyId);
-        if (fpProbabilityBands.empty()) {
-          throw std::runtime_error(
-            "Baseline FP distribution is empty for party "
-            + std::to_string(effectivePartyId) + " in seat "
-            + project.seats().viewByIndex(projectSeatIndex).name + ".");
-        }
-        baselineShareUntransformed = fpProbabilityBands[(fpProbabilityBands.size() - 1) / 2];
-      }
+    if (useGeography) {
+      // Pooled deviations are measured against these same booth expectations.
+      // Only the future pool is projected here. A newly opened booth can
+      // inherit movement even when it has no previous state count at all.
+      geographicShare = LiveBoothGeography::shiftedShare(*geographic,
+        boothGeography->districts.at(booth.parentSeatId),deviation/25);
+      if (randomFactor != 0) geographicShare = LivePartialCount::inverseLogOdds(
+        LivePartialCount::logOdds(*geographicShare)+randomFactor/25);
+      tempFpVotesProjected[effectivePartyId] = *geographicShare*currentVoteTarget;
+      continue;
     }
+    auto const baselineShareUntransformed = baselinePercent(effectivePartyId);
     if (booth.node.fpVotesPrevious.contains(effectivePartyId) && booth.node.totalVotesPrevious()) {
       // We have previous election data and some sort of a deviation estimate (even if it's just zero)
       double prevVotes = booth.node.fpVotesPrevious.at(effectivePartyId);
@@ -4006,8 +4011,17 @@ std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int bo
       double newVotes = detransformVoteShare(newShare) * currentVoteTarget * 0.01;
       tempFpVotesProjected[effectivePartyId] = newVotes;
       if (!baselineShareUntransformed.has_value()) {
-        othersAccountedFor += newVotes;
+        accountedOthersVotes += newVotes;
       }
+    } else if (!baselineShareUntransformed) {
+      // Compute the shared starting allocation after all candidates with
+      // history have been accounted for. Read votes under the ballot ID,
+      // even when the forecast labels that independent with a different ID.
+      std::optional<double> districtPercent;
+      if (allowCurrentData && currentSeatTotal > 0 && currentSeatFp.contains(partyId)) {
+        districtPercent = 100.0 * currentSeatFp.at(partyId) / currentSeatTotal;
+      }
+      unprofiled.push_back({effectivePartyId, districtPercent, randomFactor});
     } else if (
       allowCurrentData &&
       currentSeatTotal > 0 &&
@@ -4016,19 +4030,15 @@ std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int bo
       // No previous candidate comparison, but eligible district booths provide
       // a current share. For incremental backgrounds, the account above excludes
       // all incremental services, so this cannot reuse the target's own batch.
-      // If there is a baseline, use it and modify from there; otherwise, use a low initial expectation
-      // Either way, use the seat share data to modify the initial expectation
-      double baselineShare = transformVoteShare(baselineShareUntransformed.value_or(1.0));
+      // This candidate has an individual seat forecast to update.
+      double baselineShare = transformVoteShare(*baselineShareUntransformed);
       double weight = obsWeight(currentSeatConfidence, VoteObsWeightStrength);
       double currentPartyVotes = double(currentSeatFp.at(partyId));
       double seatShare = transformVoteShare(std::clamp(currentPartyVotes / currentSeatTotal * 100.0, 0.1, 99.9));
       double newShare = seatShare * weight + baselineShare * (1.0 - weight);
       double newVotes = detransformVoteShare(newShare + randomFactor) * currentVoteTarget * 0.01;
       tempFpVotesProjected[effectivePartyId] = newVotes;
-      if (!baselineShareUntransformed.has_value()) {
-        othersAccountedFor += newVotes;
-      }
-    } else if (baselineShareUntransformed.has_value()) {
+    } else {
       // No previous data and no current data, but we have a baseline
       // (Typically occurs for independents, early on the night when no useful data at all has been recorded for this party yet)
       double transformedBaselineShare = transformVoteShare(std::clamp(baselineShareUntransformed.value(), 0.1, 99.9));
@@ -4040,19 +4050,13 @@ std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int bo
       double detransformedShare = detransformVoteShare(adjustedShare);
       double newVotes = detransformedShare * currentVoteTarget * 0.01;
       tempFpVotesProjected[effectivePartyId] = newVotes;
-    } else {
-      // No previous data, no current data, no baseline
-      // Blind others are parties that we have no information about
-      // other than that they are part of the "Others" category
-      // record this for later so that the "Others" category can be shared
-      // between them.
-      // Typically only the case early on the night when no data is recorded for the seat
-      // and no pre-election expectations exist yet
-      blindOthers.insert(effectivePartyId);
     }
   }
 
-  assignBlindFpOthers(tempFpVotesProjected, blindOthers, projectSeatIndex, currentVoteTarget, othersAccountedFor);
+  if (!unprofiled.empty()) {
+    LiveNewVotes::projectUnprofiledCandidates(tempFpVotesProjected, unprofiled, currentVoteTarget,
+      baselinePercent(OthersIndex).value_or(0), accountedOthersVotes, obsWeight(currentSeatConfidence));
+  }
 
   // normalize so that the sum of the votes is the same as the previous election (or other estimate)
   double totalVotes = 0.0;
@@ -4066,6 +4070,12 @@ std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int bo
   if (!std::isfinite(totalVotes) || totalVotes <= 0.0) {
     throw std::runtime_error(
       "No positive FP projection was produced for booth " + booth.name + ".");
+  }
+  if (geographicShare) {
+    auto const& district = boothGeography->districts.at(booth.parentSeatId);
+    LiveBoothGeography::allocate(tempFpVotesProjected,boothGeography->party,*geographicShare,
+      currentVoteTarget,district.opponentFactors);
+    return tempFpVotesProjected;
   }
   for (auto& [partyId, votes] : tempFpVotesProjected) {
     votes *= currentVoteTarget / totalVotes;

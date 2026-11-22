@@ -299,6 +299,9 @@
     <ClCompile Include="LiveFpPreparation.cpp">
       <Filter>Source Files\Process Objects\Live</Filter>
     </ClCompile>
+    <ClCompile Include="LiveBoothGeography.cpp">
+      <Filter>Source Files\Process Objects\Live</Filter>
+    </ClCompile>
     <ClCompile Include="LiveInputAdapter.cpp">
       <Filter>Source Files\Process Objects\Live</Filter>
     </ClCompile>
@@ -870,6 +873,15 @@
     <ClInclude Include="LiveFpEvidence.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
+    <ClInclude Include="LiveFederalDeclarations.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveBoothGeography.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveBoothGeographyInput.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
     <ClInclude Include="LiveFpIntegration.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
@@ -927,6 +939,9 @@
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
     <ClInclude Include="LiveTppComposition.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="CoalitionPreference.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
     <ClInclude Include="LiveCoalitionTcp.h">

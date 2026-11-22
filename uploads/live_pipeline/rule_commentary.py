@@ -6,8 +6,9 @@ a reader about the winner, then give supporting measurements where available.
 They make editorial choices only. They neither recalculate a forecast nor use
 the other writer's selections, prose or subsequent counting.
 """
+import re
 from typing import NamedTuple, Optional
-from . import activity, commentary_format as display, pairing_commentary
+from . import activity, commentary_format as display, count_context, pairing_commentary, rule_evidence
 from .comparisons import headline_candidate_priority
 
 
@@ -23,6 +24,29 @@ def candidate(seat, party):
 def movement(after, delta):
     verb = 'rose' if delta > 0 else 'fell'
     return f'{verb} to **{display.decimal(after)}% ({display.decimal(delta, True)} pp)**'
+
+
+def win_outlook(row, *, name_seat=False):
+    """Give the simulated win chance and its movement. Use extra precision
+    near either endpoint so a candidate losing a few simulations still reads
+    differently from one who won every simulation."""
+    seat, after, delta = row['seat'], row['after'], row['change_pp']
+    subject = candidate(seat, row['party_id'])
+    opening = f'In {{seat:{seat}}}, the' if name_seat else 'The'
+    if after in (0, 100):
+        change = f' ({display.decimal(delta, True)} pp)' if abs(delta) >= .05 else ''
+        return f'{opening} forecast gave {subject} a win in **{after:.0f}%** of simulations{change}.'
+    level = display.decimal(after) + '%'
+    if level in ('0.0%', '100.0%'):
+        level = f'{after:.2f}%'
+        if level == '0.00%':
+            level = 'less than 0.01%'
+        elif level == '100.00%':
+            level = 'over 99.99%'
+    if abs(delta) < .05:
+        return f'{opening} forecast puts {subject} on a **{level}** win chance.'
+    verb = 'rose' if delta > 0 else 'fell'
+    return f'{opening} win chance for {subject} {verb} to **{level} ({display.decimal(delta, True)} pp)**.'
 
 
 def seat_total_headline(old, new, parties, endpoints):
@@ -103,7 +127,17 @@ def election_headlines(packet, endpoints):
     # The comparison supplies only matched, material changes in estimated
     # preferences. These refer to projected first-preference voters, including
     # those whose eventual distribution between the named opponents is unknown.
-    flows = packet.get('statewide_preference_changes', [])
+    regional = packet['rule_context']['regional']
+    if regional:
+        stronger, weaker = regional
+        def location(row):
+            rounded = round(row['swing'], 1)
+            change = ('held steady' if rounded == 0 else
+                      f"{'rose' if rounded > 0 else 'fell'} **{abs(rounded):.1f} pp**")
+            return f"{change} in {row['region']} (**{row['booths']} booths**)"
+        headlines.append(f"At matched election-day booths, the {{party:0}} {stronger['ledger']} share "
+                         f"{location(stronger)} and {location(weaker)} compared with the previous election.")
+    flows = packet['rule_context']['supported_flows']
     if flows:
         flow = flows[0]
         source, destination, other = flow['parties']
@@ -113,11 +147,23 @@ def election_headlines(packet, endpoints):
     return headlines
 
 
+def late_tcp_count(count):
+    """A raw district lead becomes worth discussing once more than 90% of
+    the expected votes for these two opponents have been counted. Use the
+    same district turnout estimate that supplies the remaining vote figure.
+    A missing or inconsistent remainder cannot establish a late count."""
+    counted = count.get('counted_after') or 0
+    remaining = count.get('remaining_after')
+    return remaining is not None and remaining >= 0 and counted > 9 * remaining
+
+
 def district_order(packet, entities):
     """Choose up to three districts. Give priority to a win chance movement
     alongside actual local counting (one percentage point). A five-point
-    movement elsewhere can also merit coverage. A large reversal within the
-    period or a counted lead changing hands in a competitive seat can earn a
+    movement elsewhere can also merit coverage. Use the local threshold when
+    the same counted leader gains with materially fewer votes projected to come
+    late in counting, even if no new booth reported. A large reversal within the
+    period or a late counted lead changing hands in a competitive seat can earn a
     place even when the endpoint movements are small. The thresholds select
     stories; coincidence alone gives no cause for the movement."""
     selected, subjects = {}, {}
@@ -131,10 +177,12 @@ def district_order(packet, entities):
         score = max(change, reversal if reversal >= 10 else 0)
         count = packet.get('close_tcp_counts', {}).get(seat, {})
         favourite = max(packet['all_seats'].get(seat, {}).values(), default=0)
-        if (party in count.get('pair', []) and row['after'] >= 10 and favourite <= 90
+        late = late_tcp_count(count)
+        if (late and party in count.get('pair', []) and row['after'] >= 10 and favourite <= 90
                 and count['lead_before'] < 0 < count['lead_after']):
             score = max(3, score)
-        if score < (1 if local else 5):
+        remainder_story = late and count.get('fewer_votes_favour_counted_leader') and party == count['pair'][0]
+        if score < (1 if local or remainder_story else 5):
             continue
         # With no local counts, a movement twice as large can take the place of
         # a local story. This is an editorial preference for results a reader
@@ -154,48 +202,182 @@ def district_order(packet, entities):
 
 
 class LocalCount(NamedTuple):
-    """A checked district bullet and, for one identifiable reporting unit,
-    its location and the number of changed ballots in the count described."""
+    """A local count bullet, its locations and changed ballot total. The gap
+    describes the candidate's share relative to the earlier estimate, or the
+    change in the FP gap against a rival when the bullet reports both."""
     location: Optional[str]
     changed_ballots: int
     point: str
+    gap_pp: Optional[float] = None
+    count_type: Optional[str] = None
+    units: int = 1
 
 
-def supporting_booth(packet, row, minimum_ballots=10):
-    """Use the largest change in ballots for which this candidate has a
-    comparison against the earlier estimate at the same booth. A revision
-    to a handful of ballots in a large booth receives only its actual size.
-    The sentence describes the cumulative share, without assigning the
-    district's entire forecast movement to this one observation."""
-    seat = row['seat']
-    subject = candidate(seat, row['party_id'])
-    choices = []
-    for event in packet['evidence']:
-        if event['kind'] != 'booths' or event.get('seat') != seat:
-            continue
-        before, after = event.get('before') or {}, event.get('after') or {}
-        for ledger in ('TCP', 'FP'):
-            if ledger == 'TCP' and seat in packet.get('retained_tcp_only_published_zero_at_both_ends', ()):
+class PairProjection(NamedTuple):
+    """District median final share for the subject against one opponent, at
+    the two ends of the comparison. Both shares are percentages."""
+    opponent: str
+    before: Optional[float]
+    after: float
+
+    def point(self, row):
+        first = candidate(row['seat'], row['party_id'])
+        other = candidate(row['seat'], self.opponent)
+        text = f'The projected final TCP share for {first} against {other}'
+        if self.before is None:
+            return text + f' is **{self.after:.1f}%**.'
+        if round(self.before, 1) == round(self.after, 1):
+            return text + f' held at **{self.after:.1f}%**.'
+        verb = 'rose' if self.after > self.before else 'fell'
+        return text + f' {verb} from **{self.before:.1f}%** to **{self.after:.1f}%**.'
+
+
+def most_likely_pair(seat, endpoints):
+    chances = endpoints[1].get('seats', {}).get(seat, {}).get('pairing_percent', {}) if endpoints else {}
+    if chances and max(chances.values()) > 0:
+        return max(chances, key=chances.get).split('/')
+    return []
+
+
+def local_pair_projection(packet, row, endpoints):
+    """Use the district's most likely final pairing. The commission can be
+    counting another opponent. Use a counted pairing as a fallback only
+    where the saved forecast lacks simulated pairing probabilities."""
+    seat, party = row['seat'], row['party_id']
+    count = packet.get('close_tcp_counts', {}).get(seat, {})
+    replacement = packet.get('replacement_tcp_counts', {}).get(seat, {})
+    districts = [side.get('seats', {}).get(seat, {}) for side in endpoints] if endpoints else []
+    pair = most_likely_pair(seat, endpoints) or replacement.get('pair') or count.get('pair')
+    if not pair:
+        measured_pairs = set()
+        for event in packet['evidence']:
+            comparison = event.get('tcp_against_previous_forecast') or {}
+            if event.get('seat') == seat and comparison.get('available'):
+                measured_pairs.add(tuple(sorted(comparison['pair'])))
+        if len(measured_pairs) == 1:
+            pair = measured_pairs.pop()
+    if not pair or party not in pair or len(pair) != 2:
+        return None
+    opponent = pair[1] if pair[0] == party else pair[0]
+    if candidate(seat, opponent) not in packet['entities']:
+        return None
+    before = after = None
+    if districts:
+        before, after = [count_context.district_tcp_median(d, party, opponent) for d in districts]
+        if districts[0].get('candidates', {}).get(opponent) != districts[1].get('candidates', {}).get(opponent):
+            before = None
+    if after is None and set(count.get('pair', [])) == set(pair):
+        median = count.get('projected_median_percent_for_first')
+        if median is not None:
+            after = median if count['pair'][0] == party else 100 - median
+    return PairProjection(opponent, before, after) if after is not None else None
+
+
+def supporting_booth(packet, row, minimum_ballots=10, projection=None, rival=None, modal=()):
+    """Compare the combined result at all comparable reporting places with
+    their own earlier estimates. Prefer TCP for the projected finalists,
+    then FP. Choose the ledger by coverage and identity before examining
+    the direction of the movement. A contrary result is still informative."""
+    seat, party = row['seat'], row['party_id']
+    pools = packet['rule_context']['pools'].get(seat, {}).get(party, [])
+    candidates = [g for g in pools if g['changed'] >= minimum_ballots and
+                  (g['ledger'] == 'FP' or
+                   (seat not in packet.get('retained_tcp_only_published_zero_at_both_ends', ()) and
+                    (not modal or set(modal) == set(g['pair'])) and
+                    (not projection or projection.opponent in g['pair'])))]
+    if not candidates:
+        return None
+    group = max(candidates, key=lambda g: (bool(projection) and g['ledger'] == 'TCP', g['changed'], g['ledger'] == 'TCP'))
+    share, gap = group['rates'][party]
+    ledger = group['ledger']
+    locations = group['locations']
+    if group['units'] == 1:
+        location = locations if group['declaration'] else 'the result at '+locations
+        opening = ('In ' if group['declaration'] else 'At ')+locations
+    else:
+        location = locations
+        opening = 'Across '+locations
+    def difference(value):
+        if abs(value) < .05:
+            return 'matching the earlier estimate'
+        return f"**{abs(value):.1f} pp** {'above' if value > 0 else 'below'} the earlier estimate"
+    # These totals are cumulative even when only part of a booth changed.
+    point = (f"{opening}, {candidate(seat, party)} received **{share:.1f}%** of "
+             f"**{group['ballots']:,}** {ledger} votes" + ('' if group['first'] else ' counted so far'))
+    if ledger == 'TCP':
+        opponent = next(p for p in group['pair'] if p != party)
+        point += ' against '+candidate(seat, opponent)
+    point += ', '+difference(gap)+'.'
+    if ledger == 'FP' and rival in group['rates']:
+        rival_share, rival_gap = group['rates'][rival]
+        if abs(rival_gap) >= 1 and abs(gap-rival_gap) >= 1:
+            point += f' {candidate(seat, rival)} received **{rival_share:.1f}%**, '+difference(rival_gap)+'.'
+            lead_gap = gap-rival_gap
+            if gap*rival_gap > 0 and abs(lead_gap) >= 2:
+                ahead = party if lead_gap > 0 else rival
+                point += f' The FP gap was **{abs(lead_gap):.1f} pp** more favourable to {candidate(seat, ahead)} than estimated.'
+            gap = lead_gap
+    if group.get('other_categories'):
+        places = rule_evidence.joined(['the '+category+' count' for category in group['other_categories']])
+        point += f' Separate {ledger} updates also came from {places}.'
+    # When both sides reported below expectation, it is the difference between
+    # their shortfalls that tells us which of these contenders gained ground.
+    return LocalCount(location, group['changed'], point, gap, count_type=ledger, units=group['units'])
+
+
+def firmer_lead(packet, row, endpoints):
+    """Explain a gain in confidence that a projected TCP lead will hold even
+    though the median lead stayed level or shrank. Compare the same finalists
+    in both completed forecasts. A range for just one of several possible
+    matchups cannot by itself explain the overall chance of winning."""
+    seat, subject = row['seat'], row['party_id']
+    pair = packet.get('close_tcp_counts', {}).get(seat, {}).get('pair', [])
+    if (not endpoints or packet.get('input_revision_changed') or len(pair) != 2
+            or subject not in pair or not row['change_pp']):
+        return None
+    opponent = next(p for p in pair if p != subject)
+    leader, rival = (subject, opponent) if row['change_pp'] > 0 else (opponent, subject)
+    if any(candidate(seat, p) not in packet['entities'] for p in pair):
+        return None
+    ranges = []
+    for summary in endpoints:
+        district = summary.get('seats', {}).get(seat, {})
+        # The count comparison has already matched both candidate identities.
+        # Read the share from the leader's perspective. If the stored share
+        # belongs to the opponent, their upper bound is the leader's lower one.
+        for first, second in ((leader, rival), (rival, leader)):
+            key = first+'/'+second
+            if district.get('pairing_percent', {}).get(key) != 100:
                 continue
-            field = ledger.lower() + '_votes_current'
-            old, new = before.get(field, {}), after.get(field, {})
-            size = activity.affected_ballots(old, new)
-            if ledger == 'TCP':
-                size = activity.first_tcp_size(before, after) or size
-            if size >= minimum_ballots and sum(new.values()):
-                choices.append((-size, ledger != 'TCP', event['record'], ledger))
-    for negative_size, _, record, ledger in sorted(choices):
-        detail = display.headline_booth_comparison(packet, seat, record, subject, ledger)
-        if detail:
-            location, point = detail
-            return LocalCount(location, -negative_size, point)
-    return None
+            bands = district.get('tcp_percentiles', {}).get(key) or {}
+            values = [bands.get(q) for q in ('5', '50', '95')]
+            if None not in values:
+                if first != leader:
+                    values = [100-value for value in reversed(values)]
+                ranges.append([round(value, 1) for value in values])
+            break
+    if len(ranges) != 2:
+        return None
+    (old_low, old_median, old_high), (low, median, high) = ranges
+    # Require the median to remain ahead and both ends of the middle 90% to
+    # move inwards at the precision the reader sees. A smaller range alone
+    # could also accompany a shift towards defeat.
+    if not (50 < median <= old_median and old_low < low and high < old_high):
+        return None
+    share = f'The projected TCP share for {candidate(seat, leader)} against {candidate(seat, rival)}'
+    if median == old_median:
+        share += f' held at **{median:.1f}%**'
+    else:
+        share += f' fell from **{old_median:.1f}%** to **{median:.1f}%**'
+    return (share + f', but the middle 90% of outcomes narrowed from **{old_low:.1f}–{old_high:.1f}%** '
+            f'to **{low:.1f}–{high:.1f}%**. The forecast is more confident the lead will hold.')
 
 
-def quiet_count_headline(packet):
+def quiet_count_story(packet, endpoints):
     """When the whole report would otherwise be quiet, give at most one
     smaller movement with a local count readers can check. Half the usual
-    one-point cutoff and 100 changed ballots in one reporting unit are
+    one-point cutoff and 100 changed ballots in one reporting unit or a
+    net addition of 100 votes to an explanatory district TCP count are
     editorial choices. They keep tiny rechecks and simulation noise from
     supplying a story just because nothing larger happened."""
     eligible = [row for row in packet['win_changes']
@@ -213,46 +395,95 @@ def quiet_count_headline(packet):
     for seat, rows in by_seat.items():
         eligible.extend(sorted(rows, key=lambda r: headline_candidate_priority(r, packet['all_seats'][seat]), reverse=True))
     for row in eligible:
-        booth = supporting_booth(packet, row, minimum_ballots=100)
+        seat = row['seat']
+        count = packet.get('close_tcp_counts', {}).get(seat, {})
+        modal = most_likely_pair(seat, endpoints)
+        if modal and set(modal) != set(count.get('pair', [])):
+            count = {}
+        projection = None if late_tcp_count(count) else local_pair_projection(packet, row, endpoints)
+        # When a substantial TCP count firms up an existing lead, the district
+        # totals and the range of final outcomes explain more than an individual
+        # booth's first preferences. Keep the headline short and put that
+        # evidence together in the seat section.
+        if sum(count.get('net_by_candidate', {}).values()) >= 100:
+            confidence = firmer_lead(packet, row, endpoints)
+            if confidence:
+                booth = supporting_booth(packet, row, minimum_ballots=100, projection=projection) if projection else None
+                points = [count_detail(packet, seat, with_forecast_range=True), booth.point if booth else None, confidence]
+                return win_outlook(row, name_seat=True), {
+                    'seats': [seat], 'text': '\n- '.join([f'In {{seat:{seat}}}:', *filter(None, points)])}
+        booth = supporting_booth(packet, row, minimum_ballots=100, projection=projection, modal=modal)
+        neutral_only = projection and not booth
+        if neutral_only:
+            # A quiet update can still name the reporting location if a
+            # comparison exists but it does not explain the district trend.
+            booth = supporting_booth(packet, row, minimum_ballots=100, modal=modal)
         if not booth or any(token not in packet['entities'] for token in display.TOKEN.findall(booth.point)):
             continue
-        subject = candidate(row['seat'], row['party_id'])
-        if display.decimal(row['after']) == '100.0':
-            outlook = f'the forecast now overwhelmingly favours {subject} to win'
-        else:
-            outlook = 'the win chance for '+subject+' '+movement(row['after'], row['change_pp'])
-        headline = 'In {seat:'+row['seat']+'}, '+outlook+'. '+booth.point
-        if display.other_local_counts_changed(packet, row['seat']):
+        headline = win_outlook(row, name_seat=True)
+        multiple = booth.units == 1 and display.other_local_counts_changed(packet, seat)
+        # Without a comparable district explanation, a primary result on the
+        # opposite side of expectations is only evidence that counting took
+        # place. Identify the update without presenting it as support for the
+        # win chance movement, or searching for a more convenient booth.
+        if neutral_only or (booth.gap_pp is not None and booth.gap_pp * row['change_pp'] < 0):
+            elsewhere = ' and other local counts' if multiple else ''
+            headline += f' Counting updates included {booth.location}{elsewhere}.'
+            if projection:
+                headline += ' '+projection.point(row)
+            return headline, None
+        headline += ' '+booth.point
+        if projection:
+            headline += ' '+projection.point(row)
+        if multiple:
             headline += ' Other local counts also changed.'
-        return headline
-    return None
+        return headline, None
+    return None, None
 
 
-def count_detail(packet, seat):
-    """Put a continuing district TCP in perspective. The remaining share
+def count_detail(packet, seat, *, with_forecast_range=False):
+    """Put a late, continuing district TCP in perspective. The remaining share
     compares the same opponents and comes from the district forecast and
     estimated final turnout, including possible count revisions."""
     count = packet.get('close_tcp_counts', {}).get(seat)
-    if not count:
+    if not count or not late_tcp_count(count):
         return None
     first, other = [candidate(seat, p) for p in count['pair']]
     before, after = count['lead_before'], count['lead_after']
-    if before == after:
+    added = sum(count.get('net_by_candidate', {}).values())
+    fewer_remaining = count.get('fewer_votes_favour_counted_leader')
+    if before == after and not fewer_remaining and not (with_forecast_range and added > 0):
         return None
-    if before < 0 < after:
+    if fewer_remaining and before == after:
+        unit = 'vote' if after == 1 else 'votes'
+        text = f'The TCP count put {first} **{after:,} {unit}** ahead of {other} at both updates.'
+    elif before < 0 < after:
         unit = 'vote' if before == -1 else 'votes'
         text = f'In the TCP count, {first} went from **{-before:,} {unit}** behind {other} to **{after:,}** ahead.'
     elif after == 0:
         text = f'{first} and {other} are now level in the TCP count.'
     elif before > 0:
-        direction = 'grew' if after > before else 'narrowed'
-        text = (f'The counted TCP lead for {first} over {other} {direction} '
-                f'from **{before:,}** to **{after:,}** votes.')
+        opening = 'The counted TCP lead'
+        if with_forecast_range and added > 0:
+            votes = 'vote' if added == 1 else 'votes'
+            opening = f'With **{added:,}** more TCP {votes} counted, the lead'
+        text = f'{opening} for {first} over {other}'
+        if before == after:
+            text += f' held at **{after:,}** votes.'
+        else:
+            direction = 'grew' if after > before else 'narrowed'
+            text += f' {direction} from **{before:,}** to **{after:,}** votes.'
     else:
         unit = 'vote' if after == 1 else 'votes'
         text = f'{first} now leads {other} by **{after:,} {unit}** in the TCP count.'
+    if count.get('lead_source'):
+        text += ' '+count['lead_source']
     remaining = count.get('remaining_after')
-    if remaining is not None and remaining > 0:
+    if fewer_remaining:
+        old = count['remaining_before']
+        text += (f' The forecast now projects about **{remaining:,} votes** still to come, down from '
+                 f'**{old:,} votes**. That leaves {other} needing a larger share to catch {first}.')
+    elif remaining is not None and remaining > 0:
         share = count.get('approx_remaining_tcp_percent_for_first')
         if share is not None and count.get('count_and_projection_diverge'):
             text += (f' The forecast puts {first} on about **{display.decimal(share)}%** of the '
@@ -262,7 +493,7 @@ def count_detail(packet, seat):
     elif remaining == 0:
         text += ' '+display.projected_remaining_votes(remaining)
     median = count.get('projected_median_percent_for_first')
-    if median is not None and abs(median - 50) <= 5:
+    if not with_forecast_range and not fewer_remaining and median is not None and abs(median - 50) <= 5:
         # A hundred-vote lead has different implications at the beginning and
         # end of counting. Give the median final share for the same opponents
         # when the forecast itself puts them within five points of 50%.
@@ -300,13 +531,15 @@ def retained_count_detail(packet, seat):
             f"{candidate(seat, favoured)}. The published district TCP stayed at zero.")
 
 
-def ranked_count_detail(packet, seat, party):
+def ranked_count_detail(packet, seat, party, projection=None):
     """Use the earlier ranked forecast for the same ballots where a booth-level
     comparison cannot be made. Known TCP replaces an estimate for some of these
     ballots. Both percentages still refer to the entire original group."""
     groups = [group for group in packet.get('ranked_tcp_groups', {}).get(seat, [])
               if party in group['pair'] and group['newly_counted'] >= 10
               and abs(group['first_share_after'] - group['first_share_before']) >= .5]
+    if projection:
+        groups = [group for group in groups if projection.opponent in group['pair']]
     if not groups:
         return None
     group = max(groups, key=lambda item: item['newly_counted'])
@@ -329,7 +562,7 @@ def ranked_count_detail(packet, seat, party):
             f"{group['category'].lower()} votes awaiting preferences at the earlier update. "
             f"Across that whole group, the estimated share for {candidate(seat, party)} "
             f"against {candidate(seat, opponent)} went from **{display.decimal(before)}%** to **{display.decimal(after)}%**.")
-    return LocalCount(location, group['newly_counted'], point)
+    return LocalCount(location, group['newly_counted'], point, after-before)
 
 
 def count_revision_headline(packet):
@@ -371,39 +604,73 @@ def count_revision_headline(packet):
     return max(material)[1] if material else None
 
 
-def district_story(packet, row, endpoints):
+def preference_sample_point(packet, seat, matchup=None):
+    """Put the measured transfers beside the largest change in a sampled
+    candidate’s chance of qualifying. Either finalist can still change.
+    The district movement covers everything received in the window."""
+    text = display.preference_sample_detail(packet, seat)
+    if not text or matchup:
+        return text  # A separate matchup bullet already explains the exclusion.
+    sample = packet['reported_preference_samples'][seat]
+    placing = sample.get('second_place')
+    labels = (placing['ahead'], placing['behind']) if placing else sample['destination_percent']
+    movements = display.sample_finalist_movements(packet, seat, labels)
+    if movements:
+        subject = max(movements, key=lambda person: (abs(movements[person]['change']), person))
+        row = movements[subject]
+        verb = 'rose' if row['change'] > 0 else 'fell'
+        text += (f' Across the district, the chance of {subject} reaching the final two {verb} '
+                 f'from **{display.decimal(row["before"])}%** to **{display.decimal(row["after"])}%**.')
+    return text
+
+
+def district_story(packet, row, endpoints, concise=False):
     seat = row['seat']
     subject = candidate(seat, row['party_id'])
-    after, delta = row['after'], row['change_pp']
+    delta = row['change_pp']
     scope = '{seat:'+seat+'}'
-    if display.decimal(after) == '100.0':
-        outcome = f'The forecast overwhelmingly favours {subject} to win.'
-    elif abs(delta) >= .05:
-        outcome = f'The win chance for {subject} '+movement(after, delta)+'.'
-    else:
-        outcome = f'The forecast gives {subject} a **{display.decimal(after)}%** win chance.'
+    outcome = win_outlook(row)
     # If much of a candidate's gain came alongside another candidate losing
     # ground, the second win chance tells readers who else is in contention.
     other_moves = [r for r in packet['win_changes'] if r['seat'] == seat and r['party_id'] != row['party_id']
                    and not r.get('identity_changed') and r['change_pp']*delta < 0
                    and abs(r['change_pp']) >= max(3, abs(delta)*.5)
                    and candidate(seat, r['party_id']) in packet['entities']]
-    if other_moves:
-        other = max(other_moves, key=lambda r: abs(r['change_pp']))
-        other_subject = candidate(seat, other['party_id'])
-        outcome += f" The win chance for {other_subject} "+movement(other['after'], other['change_pp'])+'.'
+    other = max(other_moves, key=lambda r: abs(r['change_pp']), default=None)
+    if other:
+        outcome += ' '+win_outlook(other)
     points = [outcome]
     low, high = row['minimum_within_window'], row['maximum_within_window']
     if high - low - abs(delta) >= 10:
         points.append(f'The win chance for {subject} ranged from **{display.decimal(low)}%** to '
                       f'**{display.decimal(high)}%** during the period.')
     count = follow_up = None
-    if row['party_id'] in packet.get('close_tcp_counts', {}).get(seat, {}).get('pair', ()):
-        count = count_detail(packet, seat)
+    confidence = firmer_lead(packet, row, endpoints)
+    close_tcp = packet.get('close_tcp_counts', {}).get(seat, {})
+    likely = local_pair_projection(packet, row, endpoints)
+    modal = set(most_likely_pair(seat, endpoints))
+    counted_pair_relevant = not modal or modal == set(close_tcp.get('pair', ()))
+    if counted_pair_relevant and row['party_id'] in close_tcp.get('pair', ()):
+        count = count_detail(packet, seat, with_forecast_range=bool(confidence))
         follow_up = display.continued_pair_point(seat, packet)
     prefs = preference_detail(packet, seat)
     retained = retained_count_detail(packet, seat)
-    booth = ranked_count_detail(packet, seat, row['party_id']) or supporting_booth(packet, row)
+    projection = None if counted_pair_relevant and late_tcp_count(close_tcp) else likely
+    rival = other['party_id'] if other and max(other['before'], other['after']) >= 5 else None
+    if projection:
+        booth = supporting_booth(packet, row, projection=projection, rival=rival)
+        if not booth or booth.count_type == 'FP':
+            # If individual TCP estimates are unavailable, the ranked model
+            # can still compare the same group of ballots at the two dates.
+            # A matched transfer count is more direct evidence than FP alone.
+            ranked = ranked_count_detail(packet, seat, row['party_id'], projection)
+            if ranked:
+                booth = ranked
+    else:
+        booth = supporting_booth(packet, row, rival=rival, modal=modal)
+        if not booth or booth.count_type == 'FP':
+            if not modal or row['party_id'] in modal:
+                booth = ranked_count_detail(packet, seat, row['party_id'], likely) or booth
     matchup = pairing_commentary.explain(row, endpoints)
     if booth and any(token not in packet['entities'] for token in display.TOKEN.findall(booth.point)):
         booth = None
@@ -415,57 +682,155 @@ def district_story(packet, row, endpoints):
         # least a quarter of the local activity in this window. The timing
         # alone cannot tell us how much of the win chance movement it caused.
         local_ballots = packet.get('observed_count_changes_by_seat', {}).get(seat, {}).get('affected_votes', 0)
-        if (booth and booth.location and local_ballots and booth.changed_ballots >= .25 * local_ballots
+        can_highlight_booth = (booth and booth.location and not confidence
+                               and (booth.gap_pp is None or booth.gap_pp * delta > 0))
+        if (can_highlight_booth and local_ballots and booth.changed_ballots >= .25 * local_ballots
                 and not packet.get('input_revision_changed')):
-            if display.other_local_counts_changed(packet, seat):
+            if booth.units > 1:
+                headline += f' with counting in {booth.location}'
+            elif display.other_local_counts_changed(packet, seat):
                 headline += f' with updates to {booth.location} and other local counts'
             else:
                 headline += f' as {booth.location} was updated'
         elif follow_up and not packet.get('input_revision_changed'):
             headline += ' as more votes were counted for the revised TCP pairing'
+        elif (packet.get('reported_preference_samples', {}).get(seat, {}).get('use_in_simulations_confirmed')
+              and not packet.get('input_revision_changed')):
+            headline += ' after a preference sample was reported'
+        elif close_tcp.get('fewer_votes_favour_counted_leader') and count:
+            headline += ' with fewer TCP votes projected to remain'
         headline += '.'
     else:
-        headline = f'In {scope}, the forecast puts {subject} on a **{display.decimal(after)}%** win chance.'
-    for point in (matchup, follow_up, count, retained, prefs, booth.point if booth else None):
+        headline = win_outlook(row, name_seat=True)
+    sample = preference_sample_point(packet, seat, matchup)
+    # Show the projection for the opponents under discussion even when no
+    # available booth explains its movement. The interval explanation already
+    # supplies that same district median when the projected lead firms up.
+    projected_share = None
+    local_activity = seat in packet.get('observed_count_changes_by_seat', {})
+    if projection and not confidence and (local_activity or close_tcp or booth):
+        projected_share = projection.point(row)
+        if (booth and booth.count_type and booth.gap_pp is not None and projection.before is not None and
+                abs(booth.gap_pp) >= 1 and abs(projection.after - projection.before) >= .1 and
+                booth.gap_pp * (projection.after - projection.before) < 0):
+            # Be explicit when the measured booths and the district forecast
+            # point in opposite directions. Neither gives a causal account
+            # of the other. The evidence may also include remaining booths,
+            # other parties' transfers or broader movement across districts.
+            projected_share = ('Despite that local '+booth.count_type+' result, '+
+                               projected_share[0].lower()+projected_share[1:])
+        if close_tcp.get('pair') and not counted_pair_relevant:
+            chances = endpoints[1]['seats'][seat]['pairing_percent']
+            projected_share += f' These candidates reach the TCP in **{max(chances.values()):.1f}%** of simulations.'
+    observations = (sample, matchup, follow_up, count, retained, prefs, booth.point if booth else None,
+                    confidence, projected_share)
+    if concise:
+        # In a long overview a second district needs its outcome and strongest
+        # explanation. Keep any new preference sample ahead of other details.
+        points = [outcome]
+        observations = (next((p for p in observations if p), None),)
+    for point in observations:
         if point and all(token in packet['entities'] for token in display.TOKEN.findall(point)):
             points.append(point)
     if ((packet.get('count_activity') or {}).get('known') and not prefs and not retained
+            and not (count and close_tcp.get('fewer_votes_favour_counted_leader'))
             and not packet.get('input_revision_changed') and 'observed_count_changes_by_seat' in packet
             and seat not in packet['observed_count_changes_by_seat']):
         points.append('The two forecasts show the same local booth counts.')
     return headline, {'seats': [seat], 'text': '\n- '.join([f'In {scope}:', *points])}
 
 
-def write(packet, endpoints=None):
+def abbreviate_counts(text):
+    """Use the glossary abbreviations throughout the rules edition, including
+    points shared with the AI formatter. Leave candidate and seat tokens intact."""
+    names = {'first preferences':'FP votes', 'first preference':'FP', 'first-preference':'FP',
+             'two-candidate-preferred':'TCP', 'two-candidate':'TCP'}
+    return re.sub(r'\{[^{}]+\}|\b(?:first preferences?|first-preference|two-candidate(?:-preferred)?)\b',
+                  lambda match: names.get(match[0].lower(), match[0]), text, flags=re.I)
+
+
+def comparison_context(group, packet):
+    """Shortlist districts using every candidate's movement. Keep both rivals
+    for each selected story and their comparable local counts. This selection
+    travels only to the rules writer, independently of the paid evidence budget."""
+    full = dict(packet, win_changes=group['win_changes'], close_tcp_counts=group.get('close_tcp_counts', {}))
+    selected = {r['seat'] for r in district_order(full, display.entities(packet))}
+    if not selected:
+        selected = {r['seat'] for r in group['win_changes'] if .5 <= abs(r['change_pp']) < 1
+                    and r['seat'] in packet.get('observed_count_changes_by_seat', {})}
+    rows = [r for r in group['win_changes'] if r['seat'] in selected]
+    flows = (group.get('statewide_preference_changes') or {}).get('rows', [])
+    noteworthy = [f for f in flows if abs(f['change_pp']) >= 2 and not packet.get('input_revision_changed')]
+    context = rule_evidence.context(group, rows, noteworthy)
+    context['district_inputs'] = {'win_changes': rows}
+    for key in ('close_tcp_counts', 'replacement_tcp_counts', 'ranked_tcp_groups', 'district_preference_evidence'):
+        if key in group:
+            context['district_inputs'][key] = {s: v for s, v in group[key].items() if s in selected}
+    return context
+
+
+def write(packet, endpoints=None, rule_context=None):
     """Return a summary and district bullets from the frozen window, together
     with the display identities needed by this edition. A change of model
     inputs can affect every movement, even in a seat with new counts."""
     entities = display.entities(packet)
-    packet = dict(packet, entities=entities,
-                  display_figures=display.figures_with_booth_context(packet, require_tcp_comparison=True))
+    if rule_context is None:
+        # Already-prepared packages may contain only the AI evidence shortlist.
+        rule_context = rule_evidence.context(packet, packet['win_changes'], packet.get('statewide_preference_changes', []))
+    packet = dict(packet, entities=entities, rule_context=rule_context)
+    packet.update(rule_context.get('district_inputs', {}))
     headlines = election_headlines(packet, endpoints)
+    for warning in packet.get('possible_booth_errors', []):
+        seat, booth = warning['seat'], warning['booth']
+        confidence = display.decimal(warning['confidencePercent'])
+        headlines.append(f'In {{seat:{seat}}}, the reported preference split at {booth} looks unusual. '
+                         f'The model applies a correction in **{confidence}%** of simulations.')
     sections = []
-    for row in district_order(packet, entities):
-        headline, section = district_story(packet, row, endpoints)
+    # On a busy long comparison, the overview can explain a pattern spanning
+    # many races. Reserve detailed seat accounts for the two largest stories.
+    # A short update or a period with only a few competitive changes retains
+    # the usual detail. Distinct seats are counted once regardless of how many
+    # candidates gained or lost chances in each.
+    busy_seats = len(rule_context.get('large_local_moves', []))
+    long_window = (packet.get('actual_seconds') or 0) >= 3600 or not packet.get('reference_source_time')
+    order = district_order(packet, entities)
+    broad = long_window and busy_seats >= 5
+    if broad:
+        headlines.append(f'In **{busy_seats} districts** with local counting, at least one candidate’s win chance changed by **5 pp** or more.')
+        order = order[:2]
+    for index, row in enumerate(order):
+        headline, section = district_story(packet, row, endpoints, concise=broad and index > 0)
         headlines.append(headline)
         sections.append(section)
+    # A new sample can clarify the exclusion order even if the same person
+    # remains favoured to win. Still report that observation when its district
+    # was shortlisted but the change in win chance did not earn a section.
+    covered = {seat for section in sections for seat in section['seats']}
+    for seat in sorted(packet.get('reported_preference_samples', {}).keys() - covered):
+        point = preference_sample_point(packet, seat)
+        headlines.append(f'In {{seat:{seat}}}, a preference sample was reported.')
+        sections.append({'seats': [seat], 'text': f'In {{seat:{seat}}}:\n- '+point})
     revision = count_revision_headline(packet)
     if revision and all(t in entities for t in display.TOKEN.findall(revision)):
         headlines.append(revision)
     if packet.get('input_revision_changed'):
         headlines.insert(0, 'Forecast inputs also changed during this period.')
     if not headlines and (packet.get('count_activity') or {}).get('known'):
-        local = quiet_count_headline(packet)
+        local, section = quiet_count_story(packet, endpoints)
         if local:
             headlines.append(local)
+        if section:
+            sections.append(section)
     if headlines:
         summary = '\n- '.join(['Key changes:', *headlines])
     elif (packet.get('count_activity') or {}).get('known'):
         summary = 'Counting was updated with little change in the projected winners.'
     else:
         summary = 'There is insufficient comparable count evidence to explain this update.'
+    summary = abbreviate_counts(summary)
     used = set(display.TOKEN.findall(summary))
     for section in sections:
+        section['text'] = abbreviate_counts(section['text'])
         used.update(display.TOKEN.findall(section['text']))
     return summary, sections, {token: entities[token] for token in sorted(used)}
 
@@ -493,7 +858,7 @@ def append_editions(results, requests, forecast_id, load_summary=None):
                         # A saved comparison can still supply the ordinary
                         # count stories if an older diagnostic is unavailable.
                         print(f'Simulation detail unavailable for {forecast_id}/{window}: {error}', flush=True)
-                editions[key] = write(packet, endpoints)
+                editions[key] = write(packet, endpoints, request.get('rule_context'))
             except Exception as error:
                 # A trial writer failure must leave an otherwise complete
                 # numerical publication and the primary commentary available.

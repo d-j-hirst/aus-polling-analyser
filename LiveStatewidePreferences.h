@@ -39,7 +39,9 @@ inline bool includeDraw(int iteration, int iterations) {
 }
 
 inline std::vector<Row> reportRows(PreferenceModel::Roles const& roles, bool victoria) {
-	int const labor = roles.labor, liberal = roles.liberal, on = roles.oneNation, greens = roles.greens;
+	int const labor = roles.labor, liberal = roles.liberal, greens = roles.greens;
+	if (!roles.oneNation) return {{greens,labor,liberal},{liberal,labor,greens}};
+	int const on = *roles.oneNation;
 	std::vector<Row> rows{{labor,liberal,on},{liberal,on,labor},{on,labor,liberal}};
 	if (victoria) {
 		rows.insert(rows.end(),{{greens,labor,liberal},{greens,labor,on},{liberal,labor,greens},

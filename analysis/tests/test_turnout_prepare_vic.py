@@ -3,9 +3,29 @@
 import unittest
 
 from scripts.turnout import turnout_prepare_vic as preparation
+from scripts.turnout import turnout_vic_early as early
 
 
 class PrepareVicTests(unittest.TestCase):
+    def test_split_early_conserves_each_candidate_and_records_measured_centres(self):
+        weights = early.district_weights(.75, 3000, 120)
+        self.assertEqual(weights, {'EVC early': .75, 'Mobile early': .03, 'Other early': .22})
+        pooled = {'fp': {'0': 53, '1': 34, '2': 13}, 'tcp': {'0': 65, '1': 37}}
+        measured = {'0': 48, '1': 22, '2': 5}
+        for centre in (measured, None):
+            split = early.split_previous(pooled, centre, weights)
+            home = split['EVC Early Votes']
+            self.assertEqual(home.get('measured_fp', False), centre is not None)
+            if centre is not None:
+                self.assertEqual(home['fp'], measured)
+            for stage, counts in pooled.items():
+                for candidate, total in counts.items():
+                    self.assertEqual(sum(row[stage][candidate] for row in split.values()), total)
+            self.assertTrue(all(row['synthetic'] for row in split.values()))
+        self.assertEqual(early.district_weights(.75, 3000, 0)['Mobile early'], 0)
+        with self.assertRaises(ValueError):
+            early.district_weights(.95, 1000, 1000)
+
     def test_booth_matches_do_not_choose_between_conflicting_old_records(self):
         districts = {
             'New': dict(booths=[dict(id=1, name='Unique'), dict(id=2, name='Repeated'), dict(id=3, name='Conflicting')]),

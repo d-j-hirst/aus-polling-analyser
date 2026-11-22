@@ -2,6 +2,7 @@
 #include "LivePartialCount.h"
 #include "LiveNewVotes.h"
 #include "LiveFpEvidence.h"
+#include "LiveFederalDeclarations.h"
 #include "LiveEstimatedTpp.h"
 #include "LiveTppComposition.h"
 #include "LiveCoalitionTcp.h"
@@ -68,6 +69,10 @@ public:
   std::optional<double> tppShareBaseline; // transformed vote share, median result from baseline (no-results) simulation
   std::optional<double> tppSwingBaseline; // change in transformed vote share, median result from baseline (no-results) simulation
   std::map<int, double> fpDeviations; // observed deviation from baseline
+  // For a reporting ordinary site, pool One Nation's common movement fitted
+  // to the district's reported ballots while keeping its own local deviation
+  // above for booth comparisons and export. Empty at all higher levels.
+  std::optional<double> geographicPoolingDeviation;
   std::optional<double> tppDeviation; // observed deviation from baseline
   std::map<int, double> specificFpDeviations; // deviations reduced according to confidence level
   std::optional<double> specificTppDeviation; // deviations reduced according to confidence level
@@ -155,6 +160,7 @@ public:
   std::string name;
 
   const int parentSeatId;
+  int sourceId = -1; // Commission polling-place ID. District declaration accounts have none.
 
   Results2::VoteType voteType = Results2::VoteType::Ordinary;
   Results2::Booth::Type boothType = Results2::Booth::Type::Normal;
@@ -204,6 +210,9 @@ public:
   // and pair preparation consume the same composition; preparation samples
   // own separate copies. Main draws use the prepared seat-level responses.
   LiveNewVotes::Shares futureFpShares;
+  // Fixed centre for an SA declaration category, prepared from this snapshot's
+  // in-person estimate and its own accepted count. Variability draws reuse it.
+  std::optional<LiveFederalDeclarations::Estimate> federalDeclaration;
 
   // Booths from a different seat are much less reliable for extrapolation
   // so we use this to make sure they're treated differently
@@ -212,6 +221,7 @@ public:
   // Source district survives redistribution matching; historical party flows
   // must follow the old booth's electorate, not its new district's name.
   bool syntheticPreviousCategory = false;
+  bool measuredFpInSyntheticCategory = false;
   bool incrementalFp = false;
   bool receivesFpBatches() const { return incrementalFp || voteType != Results2::VoteType::Ordinary; }
   std::string previousPreferenceSeat;
@@ -281,6 +291,7 @@ public:
   // From the FP ballot roster. Zero indications in the TCP feed cannot
   // start or end a split Coalition contest.
   bool splitCoalitionCandidates = false;
+  bool nationalTppReference = false;
 
   // Index into Election::largeRegions, not the persistent project region ID.
   const int parentRegionIndex;
@@ -600,6 +611,8 @@ public:
     int iterationIndex) const override;
 
   std::optional<std::vector<double>> integrateTpp(std::vector<double> const& prior) const override;
+  void updateCoalitionMatchups(int district, CoalitionPreference::Scenario& scenario,
+    CoalitionPreference::Shares const& current) const override;
   std::optional<LiveData::CoalitionTcpShare> getSeatCoalitionTcpShare(int district,
     int opponent, std::array<double,3> primaryShares) const override;
 
@@ -808,6 +821,9 @@ private:
   void includeElectionBaselineResults();
 
   void extrapolateBaselineSwings();
+  void prepareBoothGeography(TurnoutModel::Prior const& prior, LiveFederalDeclarations::Prior const& declarations);
+  void balanceGeographicOpponents(std::vector<int> const& indexes,
+    std::vector<LiveBoothGeography::Place> const& places, LiveBoothGeography::Prepared& geography);
 
   void calculateDeviationsFromBaseline();
 
@@ -840,7 +856,9 @@ private:
 
   void recomposeVoteCounts();
   void refreshProjectedVoteAggregates();
-  void prepareFpEvidence();
+  void prepareFpEvidence(LiveFederalDeclarations::Prior const& declarations);
+  void prepareFederalDeclarations(Seat const& seat, std::vector<LiveFpEvidence::Unit> const& units,
+    LiveFpEvidence::Shares const& factors, LiveFederalDeclarations::Prior const& prior, int party);
   LiveFpEvidence::Unit fpEvidenceUnit(int boothIndex, bool varied = false) const;
   void applyFpEvidence(int boothIndex);
   void refreshFpEvidenceProjections();
@@ -890,10 +908,8 @@ private:
   std::vector<LiveNewVotes::Shares> declarationFpContexts(OrdinaryFpHierarchy const& hierarchy) const;
   LiveNewVotes::Shares declarationFpContext(bool allowCurrentData, int boothIndex,
     OrdinaryFpHierarchy const* hierarchy = nullptr) const;
-  std::map<int,double> projectUnreportedFp(bool allowCurrentData, int boothIndex,
+  std::map<int,double> projectUnreportedFp(bool allowCurrentData, int boothIndex, double currentVoteTarget,
     OrdinaryFpHierarchy const* hierarchy = nullptr) const;
-  void assignBlindFpOthers(std::map<int,double>& projection, std::set<int> const& candidates,
-    int projectSeatIndex, double target, double accounted) const;
   void projectDeclarationFp(int boothIndex);
   LiveNewVotes::Shares composeDeclarationFp(int boothIndex) const;
   void updateDeclarationFpProgress(int boothIndex);
@@ -1055,6 +1071,7 @@ private:
   // share these compact maps and own only their varied future compositions.
   std::shared_ptr<std::vector<LiveNewVotes::Shares> const> newVoteContexts;
   std::shared_ptr<std::vector<LiveFpEvidence::Prepared> const> fpEvidence;
+  std::shared_ptr<LiveBoothGeography::Prepared const> boothGeography;
   std::shared_ptr<std::vector<LiveData::FpIntegrationInformation> const> fpIntegration;
   std::map<std::string, TurnoutModelIO::InactiveContest> inactiveContests;
   std::shared_ptr<nlohmann::json const> turnoutDiagnostic;

@@ -33,6 +33,8 @@ if ($Mode -eq 'prepare') {
         }
         & $python -B -m scripts.turnout.turnout_prepare_vic 2026vic
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        & $python -B (Join-Path $PSScriptRoot 'prepare_one_nation_booths.py') 2026vic
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         & $python -B (Join-Path $PSScriptRoot 'prepare_vec_2026_runs.py')
         exit $LASTEXITCODE
     } finally {

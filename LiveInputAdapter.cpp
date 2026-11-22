@@ -9,7 +9,7 @@ using namespace LiveInputRecovery;
 using VoteType = Results2::VoteType;
 
 VoteType declarationType(std::string const& name) {
-    for (int i = int(VoteType::Absent); i <= int(VoteType::MarkedAsVoted); ++i)
+    for (int i = int(VoteType::Absent); i <= int(VoteType::OtherEarly); ++i)
         if (Results2::voteTypeName(VoteType(i)) == name) return VoteType(i);
     throw std::runtime_error("Unknown configured declaration service: " + name);
 }

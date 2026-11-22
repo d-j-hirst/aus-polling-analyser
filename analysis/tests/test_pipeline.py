@@ -1198,6 +1198,47 @@ class PipelineTests(unittest.TestCase):
             "generate_cutoff_poll_trends",
         )
 
+    def test_changed_trend_files_schedule_their_producer_and_consumers(self):
+        pure = work_unit("pure_poll_outputs:2026vic:@TPP", "pure_poll_outputs",
+                         "generate_pure_poll_trends", "altered", "2026vic", "@TPP")
+        final = work_unit("poll_trend_outputs:2026vic:LNP FP", "poll_trend_outputs",
+                          "generate_poll_trends", "current", "2026vic", "LNP FP",
+                          dependencies=[pure["id"]])
+        audit = audit_result([pure, final])
+        plan = pipeline.build_plan(audit, self.registry, {"regular-with-approvals"})
+        self.assertEqual(plan["blockers"], [])
+        self.assertEqual([(task["stage"], task["status"]) for task in plan["tasks"]], [
+            ("generate_pure_poll_trends", "altered"), ("generate_poll_trends", "dependency-refresh")
+        ])
+        pure["status"] = "current"
+        final["status"] = "altered"
+        plan = pipeline.build_plan(audit, self.registry, {"regular"})
+        self.assertEqual([(task["stage"], task["status"]) for task in plan["tasks"]], [
+            ("generate_poll_trends", "altered")
+        ])
+        final["status"] = "blocked"
+        self.assertTrue(pipeline.build_plan(audit, self.registry, {"regular"})["blockers"])
+
+    def test_foreign_poll_append_only_blocks_a_stage_requiring_the_new_file(self):
+        final = work_unit("poll_trend_outputs:2026vic:LNP FP", "poll_trend_outputs",
+                          "generate_poll_trends", "altered", "2026vic", "LNP FP")
+        issue = {"status": "blocked", "category": "raw_poll_data", "code": "unregistered_source_change",
+                 "message": "unregistered modified file poll-data-fed.csv", "path": "poll-data-fed.csv",
+                 "registered_copy_available": True}
+        audit = audit_result([final], source_issues=[issue])
+        self.assertFalse(pipeline.build_plan(audit, self.registry, {"regular"})["blockers"])
+        federal = work_unit("pure_poll_outputs:2028fed:@TPP", "pure_poll_outputs",
+                            "generate_pure_poll_trends", "stale", "2028fed", "@TPP",
+                            target_match=False)
+        final["dependencies"] = [federal["id"]]
+        audit["work_units"].append(federal)
+        plan = pipeline.build_plan(audit, self.registry, {"regular-with-approvals"})
+        self.assertFalse(plan["blockers"])
+        self.assertIn("--registered-poll-history", plan["tasks"][0]["command"])
+        self.assertNotIn("--registered-poll-history", plan["tasks"][1]["command"])
+        issue["registered_copy_available"] = False
+        self.assertTrue(pipeline.build_plan(audit, self.registry, {"regular"})["blockers"])
+
     def test_metadata_plan_prevalidates_candidates_before_confirmation(self):
         manifest_path = pipeline.ANALYSIS_DIRECTORY / "test-metadata.json"
         manifest = {

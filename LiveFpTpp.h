@@ -19,7 +19,8 @@ using LiveStatewidePreferences::votesFor;
 struct District {
 	Shares covered; // Original FP voters already counted for Labor versus Coalition.
 	Category measured; // Observed transfers in each matched or partially matched batch.
-	Shares rateChange; // Matched evidence, as changes in fractions going to Labor.
+	Shares rateChange; // Party-specific changes in the fraction going to Labor after accounting for the broad movement.
+	double transferOddsMultiplier = 1.; // Election and regional preference evidence. One leaves the draw unchanged.
 };
 
 // Freeze the primary mix of this reporting unit's measured TPP once per
@@ -80,6 +81,7 @@ struct Result {
 	Shares rates;
 	std::map<int,Totals> sources;
 	double primaryChange = 0, measuredChange = 0, learnedChange = 0; // District percentage points.
+	double broadPreferenceChange = 0; // Portion of learnedChange from election and regional evidence.
 };
 
 // Match the prepared booth cohorts to this draw's turnout, FP and rechecks.
@@ -161,13 +163,25 @@ inline std::optional<Result> project(District const& district, Shares const& pri
 	auto covered = coveredInDraw(district.covered,population,laborVotes,coalitionVotes);
 	if (!covered) return {};
 	auto first = countedTransfers(district.measured,rates,*covered,laborVotes);
-	double measuredDifference = laborVotes, learnedDifference = 0;
+	double measuredDifference = laborVotes, learnedDifference = 0, broadDifference = 0;
 	Result result{priorTpp+movement,rates,{}};
 	for (auto const& [party,n] : population) {
 		double used = covered->at(party), rate = rates.at(party);
 		double outstanding = std::max(0.,n-used);
-		double revised = std::clamp(rate+votesFor(district.rateChange,party),0.,1.);
+		// The starting rate belongs to this draw and already agrees with its
+		// original TPP. Matched counts can change the odds of a minor-party
+		// voter preferring Labor over the Coalition. For example, doubling
+		// equal odds changes a 50% rate to two in three. Apply that evidence
+		// only to voters whose preferences are still unknown, followed by
+		// the party-specific change estimated after the broad movement.
+		double broadRate = rate;
+		if (district.transferOddsMultiplier != 1. && rate > 0. && rate < 1.) {
+			double const laborWeight = rate * district.transferOddsMultiplier;
+			broadRate = laborWeight / (laborWeight + (1. - rate));
+		}
+		double revised = std::clamp(broadRate+votesFor(district.rateChange,party),0.,1.);
 		measuredDifference -= used*rate;
+		broadDifference += outstanding*(broadRate-rate);
 		learnedDifference += outstanding*(revised-rate);
 		double toLabor = party == 0 ? n : party == 1 ? 0. : votesFor(first,party)+outstanding*revised;
 		result.sources[party] = {toLabor,n};
@@ -176,6 +190,7 @@ inline std::optional<Result> project(District const& district, Shares const& pri
 	result.primaryChange = movement;
 	result.measuredChange = 100*measuredDifference/turnout;
 	result.learnedChange = 100*learnedDifference/turnout;
+	result.broadPreferenceChange = 100*broadDifference/turnout;
 	result.laborPercent += result.measuredChange + result.learnedChange;
 	if (counted == turnout) result.laborPercent = 100*laborVotes/turnout;
 	return result;

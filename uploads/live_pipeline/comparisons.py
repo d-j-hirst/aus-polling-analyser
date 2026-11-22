@@ -8,6 +8,7 @@ of the change in winning probability.
 """
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict, deque
+from functools import lru_cache
 import math
 from pathlib import Path, PureWindowsPath
 import sys
@@ -16,7 +17,7 @@ from .timezones import ZoneInfo
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'analysis'))
 from lib.live_analysis_archive import load_json, analysis_path_for_snapshot
 from .activity import affected_ballots, count_changes, first_tcp_size
-from . import count_context, preference_context, prompt_layout, ranked_tcp, tcp_reporting
+from . import count_context, pairing_commentary, preference_context, prompt_layout, ranked_tcp, rule_evidence, seat_alerts, tcp_reporting
 from .storage import read
 
 
@@ -227,6 +228,53 @@ def simulation_context(numerical, run_folder, medians):
             'chance_at_least_seats': chances}
 
 
+def preference_count_observations(analysis):
+    """Keep the published split and the three-way tallies on their own denominators.
+    Only changes to the observed ballots establish new counting. The simulator's
+    separate draw statistics tell us whether it actually used that observation."""
+    result = {}
+    for row in analysis.get('preference_count_observations', []):
+        result[row['district']] = {
+            'seat': row['district'],
+            'sample': row.get('sample'), 'available_at': row.get('available_at'),
+            'sampled_preference_ballots': row['sampled_preference_ballots'],
+            'flow_percent': row['flow_percent'],
+            'transferred_votes': {p: row['sampled_preference_ballots']*share/100
+                                  for p, share in row['flow_percent'].items()},
+            'sampled_first_preferences': row.get('sampled_first_preferences', {}),
+            'sampled_candidate_totals': row.get('sampled_candidate_totals', {})}
+    return result
+
+
+@lru_cache(maxsize=32)
+def archived_regional_counts(path):
+    # Saved archives are immutable. Retain only small regional totals when
+    # several comparison windows return to an older capture.
+    return rule_evidence.regional_counts(load_json(path))
+
+
+def comparison_evidence(package):
+    """Recover evidence omitted by older packages from that capture's own
+    diagnostic. The frozen report and the accepted vote history stay intact."""
+    saved = read(package/'evidence.json.gz')
+    records = saved.get('manual_count_observations', {})
+    missing = [seat for seat, row in records.items() if 'flow_percent' not in row]
+    need_regions = 'matched_regional_counts' not in saved and bool(saved.get('booths'))
+    if (missing or need_regions) and (package/'numerical.json').is_file():
+        snapshot = diagnostic_path(read(package/'numerical.json'), package.parent.parent)
+        path = analysis_path_for_snapshot(snapshot) if snapshot else None
+        if path and path.is_file() and need_regions:
+            saved['matched_regional_counts'] = archived_regional_counts(path)
+        if path and path.is_file() and missing:
+            archived = preference_count_observations(load_json(path))
+            for seat in missing:
+                row = archived.get(seat)
+                if row and all(records[seat].get(k, {}) == row[k] for k in
+                               ('transferred_votes', 'sampled_first_preferences', 'sampled_candidate_totals')):
+                    records[seat] = row
+    return saved
+
+
 def evidence(numerical, run_folder=None):
     """Retain measured booth counts and estimated outstanding votes separately.
     Shared preference adjustments use log odds rather than percentage points."""
@@ -236,22 +284,17 @@ def evidence(numerical, run_folder=None):
                 'observed_counts_available': numerical.get('origin', False)}
     analysis = load_json(analysis_path_for_snapshot(snapshot))
     result = {'booths': {}, 'seats': {}, 'preferences': {}, 'issues': analysis.get('input_recovery', []),
+              'booth_warnings': seat_alerts.booth_warnings(analysis),
               'observed_counts_available': 'booths' in analysis,
               'statewide': _shared_evidence(analysis.get('election', {})),
               'category_biases': _category_evidence(analysis.get('category_biases', {}))}
     result['regions'] = {r['name']: _shared_evidence(r) for r in analysis.get('regions', [])}
+    result['matched_regional_counts'] = rule_evidence.regional_counts(analysis)
     result['manual_preferences'] = {r['seat']: r for r in analysis.get('manual_preference_evidence', [])}
     # These are published sample counts, whereas manual_preferences above
     # describes their use in simulation draws. Only the former can establish
     # new counting without changed FP/TCP totals (for example a Finniss 4CP).
-    result['manual_count_observations'] = {}
-    for row in analysis.get('preference_count_observations', []):
-        result['manual_count_observations'][row['district']] = {
-            'seat': row['district'],
-            'transferred_votes': {p: row['sampled_preference_ballots']*share/100
-                                  for p, share in row['flow_percent'].items()},
-            'sampled_first_preferences': row.get('sampled_first_preferences', {}),
-            'sampled_candidate_totals': row.get('sampled_candidate_totals', {})}
+    result['manual_count_observations'] = preference_count_observations(analysis)
     district_settings = {s['name']: s for s in analysis.get('seats', [])}
     independent_parties = [p for p, abbr in pairs(numerical['report'].get('partyAbbr', {})).items()
                            if abbr == 'IND' and int(p) >= 0]
@@ -515,6 +558,11 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
                 event['changed_votes'] = count_changes(
                     {'observed_counts_available': True, kind: {key: old.get(key) or {}}},
                     {'observed_counts_available': True, kind: {key: new.get(key) or {}}})['changed_votes']
+            if kind == 'manual_count_observations' and event['changed_votes'] and event['after']:
+                # Eligibility alone cannot establish that a draw actually used
+                # the sample. Older diagnostics may record only the observation.
+                used = current_evidence.get('manual_preferences', {}).get(key, {})
+                event['sample_used_in_draws'] = used.get('sample_conditioned_draws', 0) > 0
             if kind == 'booths' and old.get(key) and new.get(key):
                 event['fp_vote_change'] = sum(new[key]['fp_votes_current'].values())-sum(old[key]['fp_votes_current'].values())
                 event['tcp_vote_change'] = sum(new[key]['tcp_votes_current'].values())-sum(old[key]['tcp_votes_current'].values())
@@ -563,7 +611,18 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
     if counts.get('known') and intervals and all(v.get('known') for v in intervals):
         counts['endpoint_changed_votes'] = counts['changed_votes']
         counts['changed_votes'] = max(counts['changed_votes'], sum(v['changed_votes'] for v in intervals))
-    leads, replacements = count_context.district_tcp_changes(previous_evidence, current_evidence, details, continuing_pairs)
+    transfers = count_context.category_transfers(events) if counts.get('known') else []
+    transferred_ids = {i for t in transfers for i in t['evidence_ids']}
+    transferred_units = {e['record'] for e in events if e['id'] in transferred_ids}
+    leads, replacements = count_context.district_tcp_changes(
+        previous_evidence, current_evidence, details, continuing_pairs, transferred_units)
+    if current['input_revision'] == previous['input_revision']:
+        # An earlier pair can still inform the simulation after a reset. Only
+        # describe a lead in a continuing count here, with comparable inputs.
+        resets = tcp_reporting.zero_districts(previous) | tcp_reporting.zero_districts(current)
+        for seat, count in leads.items():
+            if seat not in resets and pairing_commentary.fewer_votes_favour_counted_leader(seat, count, previous, current):
+                count['fewer_votes_favour_counted_leader'] = True
     if replacements:
         count_context.add_matched_booth_expectations(replacements, events)
     result = {'available': True, 'reference_forecast_id': previous['forecast_id'],
@@ -571,11 +630,22 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
             'reference_source_time': previous['source_time'],
             'input_revision_changed': current['input_revision'] != previous['input_revision'],
             'win_changes': rows, 'seat_changes': details, 'evidence': events,
-            'category_transfers': count_context.category_transfers(events) if counts.get('known') else [],
+            'category_transfers': transfers,
             'close_tcp_counts': leads, 'replacement_tcp_counts': replacements,
             'booth_changes': booth_changes(events, counts.get('known', False)),
             'statewide': {side: {k:v for k,v in item['statewide'].items() if k != 'preference_flow_medians'}
                           for side, item in [('before', previous), ('after', current)]}}
+    # Older packages lack matched booth history. An absent reference does
+    # not establish that all of today's matched booths are newly counted.
+    if previous.get('origin') or 'matched_regional_counts' in original_before:
+        result['rule_regional'] = rule_evidence.regional_contrast(
+            original_before.get('matched_regional_counts', {}), original_after.get('matched_regional_counts', {}))
+    calls = seat_alerts.call_changes(previous, current)
+    if calls:
+        result['seat_call_changes'] = calls
+    warnings = seat_alerts.noteworthy_warnings(previous, current)
+    if warnings:
+        result['noteworthy_booth_warnings'] = warnings
     if retained:
         result['retained_tcp_changes_while_published_zero'] = retained
         result['close_contests_with_material_retained_tcp_changes'] = tcp_reporting.close_retained_contests(
@@ -1029,6 +1099,34 @@ def prompt_packet(current, comparison):
     matched_ids = {identity for t in transfers for identity in t['evidence_ids']}
     events = [e for e in comparison['evidence'] if e['id'] not in matched_ids
               and (e['kind'] in ('statewide', 'category_biases', 'regions') or e.get('seat') in selected)]
+    # A preference sample counts transfers from specified sources to three or
+    # more survivors. Preserve its reported shares and coverage together. The
+    # estimated candidate vote totals used to detect revisions are not exact
+    # ballot counts and would give the writer a misleading second version.
+    samples = {}
+    for event in events:
+        observed = event.get('after') or {}
+        if (event['kind'] == 'manual_count_observations' and event.get('changed_votes')
+                and observed.get('flow_percent') and observed.get('sampled_preference_ballots')):
+            sample = {
+                'description': observed.get('sample'), 'preference_ballots': observed['sampled_preference_ballots'],
+                'sources': list(observed.get('sampled_first_preferences', {})),
+                'destination_percent': observed['flow_percent'], 'revised': bool(event.get('before')),
+                'use_in_simulations_confirmed': event.get('sample_used_in_draws', False)}
+            totals = observed.get('sampled_candidate_totals', {})
+            if len(totals) == 3 and totals.keys() == observed['flow_percent'].keys():
+                # A full three-way tally includes the survivors' own primaries.
+                # The two lowest totals identify the contest for second on
+                # these ballots, even when a third party won most transfers.
+                leaders = sorted(totals, key=totals.get, reverse=True)
+                first, second, third = leaders
+                if totals[first] > totals[second] > totals[third]:
+                    sample['second_place'] = {'ahead': second, 'behind': third,
+                                              'votes': totals[second] - totals[third]}
+            samples[event['seat']] = sample
+    if samples:
+        events = [e for e in events if not (e.get('seat') in samples
+                  and e['kind'] in ('manual_preferences', 'manual_count_observations'))]
     included = _selected_evidence(events, selection_order, current['seats'], comparison.get('replacement_tcp_counts', {}))
     seat_changes = []
     for seat in comparison['seat_changes']:
@@ -1072,7 +1170,11 @@ def prompt_packet(current, comparison):
             median_paths = {f'/tcp_percentiles/{a}/{b}/50' for a, b in (pair, pair[::-1])}
             included_paths = {row['metric'] for row in ranked}
             ranked += [row for row in seat['changes'] if row['metric'] in median_paths - included_paths]
-        ranked += [r for r in seat['changes'] if '/finalist_percent/' in r['metric']]
+        for row in seat['changes']:
+            if row['metric'].startswith('/finalist_percent/'):
+                party = row['metric'].rsplit('/', 1)[-1]
+                if seat['before']['candidates'].get(party) == seat['after']['candidates'].get(party):
+                    ranked.append(row)
         seat_changes.append({'seat': seat['seat'], 'changes': ranked})
     def central_statewide(row):
         result = dict(row)
@@ -1105,6 +1207,10 @@ def prompt_packet(current, comparison):
             'win_changes': _district_win_rows(comparison, selected, current['seats']),
             'seat_changes': seat_changes,
             'evidence': included, 'omitted_evidence_records': len(comparison['evidence'])-len(included)-len(matched_ids)}
+    if samples:
+        packet['reported_preference_samples'] = samples
+    if comparison.get('noteworthy_booth_warnings'):
+        packet['possible_booth_errors'] = comparison['noteworthy_booth_warnings']
     # A conspicuous booth result can still represent a small part of its
     # district. Keep the model's current FP completion estimate for districts
     # with selected booth results, before the detailed seat diagnostics are

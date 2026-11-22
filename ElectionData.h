@@ -205,6 +205,7 @@ namespace Results2 {
 		// turnout. A winner declaration alone does not establish FP completion.
 		bool fpFinalised = false;
 		std::set<VoteType> syntheticBaselineTypes; // Historical declaration allocations reconstructed by the reader.
+		std::set<VoteType> measuredFpInSyntheticTypes; // Actual FP count where only the preference split was reconstructed.
 		std::vector<int32_t> booths;
 		VotesByType fpVotes; // map candidate id -> (vote type -> vote count)
 		VotesByType tcpVotes; // map party id -> (vote type -> vote count)

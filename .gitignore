@@ -395,6 +395,15 @@ analysis/betting_odds/tab-current.json
 # Optional full-precision iteration traces are large, local diagnostic outputs.
 /downloads/simulation-audits/
 # Authorised live feeds and their close derivatives remain operator-local.
+**/operator/count-history/
+# Older report generators wrote these detailed histories beside public scores.
+/analysis/reports/2026vic-early-centres/first-reports.csv
+/analysis/reports/2026vic-early-centres/election-night.csv
+/analysis/reports/2026vic-one-nation-booths/first-returns.csv
+/analysis/reports/2026vic-one-nation-booths/replay-districts.csv
+/analysis/reports/2026sa-late-one-nation/checkpoints.csv
+/analysis/reports/2026sa-late-one-nation/daily-accounts.csv
+/analysis/reports/2026sa-late-one-nation/batch-mix.csv
 /downloads/**/*.xml
 /downloads/**/*.XML
 /tests/fixtures/turnout/[0-9]*-turnout-*.json

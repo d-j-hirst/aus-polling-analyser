@@ -134,6 +134,8 @@ enum class VariabilityTag : std::uint32_t {
 	MinorQuantile = 19,
 	ProminentMinorPreBonus = 20,
 	RecontestRateCheck = 21,
+	CoalitionPartnerLeakage = 1002,
+	CoalitionOpponentDifference = 1003,
 	KiamaBias = 22,
 	KiamaExhaust = 23,
 	EmergingPartyHomeRegion = 24,
@@ -209,6 +211,7 @@ void SimulationIteration::reset()
 	seatWinner.clear();
 	seatFpVoteShare.clear();
 	seatTcpVoteShare.clear();
+	coalitionScenarios.clear();
 	for (auto& rates : preferenceSourceRates) rates.clear();
 	liveClassicSources.clear();
 	classicTppContributions.clear();
@@ -504,6 +507,7 @@ int SimulationIteration::runIteration()
 			// change both expected support and uncertainty about uncounted votes;
 			// counted votes constrain the possible final allocations. Ordinary
 			// forecasts and supporting runs keep their modelled shares at this step.
+			prepareCoalitionMatchups();
 			capturePrecisionAudit("before_live");
 			incorporateLiveResults();
 			capturePrecisionAudit("after_live");
@@ -605,6 +609,17 @@ int SimulationIteration::runIteration()
 	// the combined results into the report used for subsequent forecast export.
 	std::lock_guard<std::mutex> lock(recordMutex);
 	recordIterationResults();
+	if (run.isLiveAutomatic()) {
+		for (auto const& [s,scenario] : coalitionScenarios) {
+			auto& summary = recordedRun.coalitionMatchupSummaries[s];
+			++summary.draws;
+			summary.nationalReference = scenario.leakage.nationalReference;
+			for (size_t p = 0; p < 2; ++p) {
+				summary.laborSum[p] += scenario.results.labor[p];
+				summary.countedDraws[p] += scenario.results.counted[p];
+			}
+		}
+	}
 	for (size_t s = 0; s < classicTppContributions.size(); ++s) {
 		auto& sum = recordedRun.classicTppSummaries.at(s);
 		auto const& draw = classicTppContributions[s];
@@ -613,6 +628,7 @@ int SimulationIteration::runIteration()
 		sum.primary += draw.primary;
 		sum.measured += draw.measured;
 		sum.learned += draw.learned;
+		sum.broadPreference += draw.broadPreference;
 	}
 	for (auto const& [row,percent] : statewidePreferences)
 		recordedRun.statewidePreferenceSamples[row].push_back(percent);
@@ -644,7 +660,7 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	seatThirdPartyExhaustEffect = std::vector<double>(project.seats().count(), 0.0);
 	seatPollEffect = std::vector<double>(project.seats().count(), 0.0);
 	seatMrpPollEffect = std::vector<double>(project.seats().count(), 0.0);
-	if (run.preferenceModel || run.isLiveAutomatic())
+	if (run.preferenceModel || run.isLiveAutomatic() || run.projectBothCoalitionMatchups)
 		preferenceSourceRates.resize(project.seats().count());
 	if (run.preferenceModel) {
 		preferenceComparisons.resize(project.seats().count());
@@ -1149,6 +1165,22 @@ void SimulationIteration::determineSeatInitialResults()
 	nationalsShare.assign(project.seats().count(), 0.0);
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineNationalsShare(seatIndex);
+		if (!run.projectBothCoalitionMatchups) continue;
+		auto const& roster = run.runningParties[seatIndex];
+		bool bothDeclared = contains(roster,std::string("NAT")) &&
+			contains(roster,project.parties().viewByIndex(Mp::Two).abbreviation);
+		if (bothDeclared || (nationalsShare[seatIndex] > 0 && nationalsShare[seatIndex] < 1)) {
+			// Keep these two leakage rates through FP reconciliation, live
+			// counting and candidate exclusions in this simulated election.
+			auto normal = [&](int party) {
+				return variabilityNormal(0.,1.,seatIndex,party,uint32_t(VariabilityTag::CoalitionPartnerLeakage));
+			};
+			auto& scenario = coalitionScenarios[seatIndex];
+			scenario.leakage = CoalitionPreference::sample(
+				run.pastSeatResults[seatIndex].nationalTppReference,normal(Mp::Two),normal(run.natPartyIndex));
+			scenario.opponentDifference = variabilityNormal(0.,CoalitionPreference::OpponentDifferenceSd,
+				seatIndex,0,uint32_t(VariabilityTag::CoalitionOpponentDifference));
+		}
 	}
 	allocateMajorPartyFpsWithCompatibleTpp();
 	if (hasInvalidValues("After corrections")) {
@@ -2151,6 +2183,7 @@ void SimulationIteration::determineNationalsShare(int seatIndex)
 
 bool SimulationIteration::usesSeparateCoalitionPreferenceAccounting(int seatIndex) const
 {
+	if (coalitionScenarios.contains(seatIndex)) return true;
 	if (!run.useSeparateCoalitionPreferenceAccounting) return false;
 	// Seats with a historical National candidate can have a different named
 	// historical finalist. Seats with both parties running now also need a
@@ -2168,7 +2201,7 @@ void SimulationIteration::constrainCoalitionPrimariesToTpp(int seatIndex)
 	auto& shares = seatFpVoteShare[seatIndex];
 	double const labor = shares.at(Mp::One);
 	double const combinedMajor = labor + shares.at(Mp::Two);
-	double const coalitionLeakageFraction = MajorPartyFpMath::coalitionLeakageFraction(nationalsShare[seatIndex]);
+	double const coalitionLeakageFraction = referenceLeakageFraction(seatIndex);
 	double const laborTpp = 50.0 + partyOneNewTppMargin[seatIndex];
 	auto const compatibleLabor = MajorPartyFpMath::compatibleClassicLaborPrimary(
 		labor, combinedMajor, laborTpp, coalitionLeakageFraction, MinMajorPartyFp);
@@ -2367,7 +2400,7 @@ SimulationIteration::allocateMajorPartyFp(
 	double currentExhaustDenominator = 0.0;
 	std::map<int, double> preferenceVariation; // in minor -> major preferences, after transformation
 	std::map<int, double> exhaustVariation;
-	bool const saveClassicRates = (run.preferenceModel && run.preferenceModel->coversDistrict(seatIndex)) ||
+	bool const saveClassicRates = coalitionScenarios.contains(seatIndex) || (run.preferenceModel && run.preferenceModel->coversDistrict(seatIndex)) ||
 		(run.isLiveAutomatic() && liveElection && liveElection->classicPreferenceAccount(seatIndex));
 	auto* comparisonRates = saveClassicRates
 		? &preferenceSourceRates[seatIndex] : nullptr;
@@ -2478,7 +2511,7 @@ SimulationIteration::allocateMajorPartyFp(
 		// Include the current partner's contribution once. Removing that
 		// candidate gives zero leakage. With both running, the amount depends
 		// on the Coalition primary, so solve for both sides together.
-		coalitionLeakageFraction = MajorPartyFpMath::coalitionLeakageFraction(nationalsShare[seatIndex]);
+		coalitionLeakageFraction = referenceLeakageFraction(seatIndex);
 		directPartyOneFp = MajorPartyFpMath::classicLaborPrimary(
 			partyOneCurrentTpp, majorFpShare, overallAdjustedPartyOnePrefs, coalitionLeakageFraction);
 		directPartyTwoFp = majorFpShare - directPartyOneFp;
@@ -3671,6 +3704,68 @@ void SimulationIteration::correctMajorPartyFpBias(
 	}
 }
 
+double SimulationIteration::referenceLeakageFraction(int s) const
+{
+	auto found = coalitionScenarios.find(s);
+	double national = nationalsShare[s];
+	if (found == coalitionScenarios.end()) return MajorPartyFpMath::coalitionLeakageFraction(national);
+	return found->second.leakage.reference(1.-national,national);
+}
+
+CoalitionPreference::Shares SimulationIteration::splitCoalitionPrimaries(int s) const
+{
+	auto shares = seatFpVoteShare[s];
+	shares.erase(CoalitionPartnerIndex); // An alias for votes already in the combined Coalition total.
+	double coalition = shares.at(Mp::Two);
+	shares[run.natPartyIndex] = coalition*nationalsShare[s];
+	shares[Mp::Two] = coalition-shares.at(run.natPartyIndex);
+	return shares;
+}
+
+// The seat margin describes one historical Labor–Coalition contest. After
+// FP reconciliation we know which simulated voters must produce that margin.
+// Fit the minor parties' relative preference rates once against the original
+// opponent. The other matchup uses those same voters and excludes the other
+// Coalition candidate, whose leakage can differ in this simulated election.
+void SimulationIteration::prepareCoalitionMatchups()
+{
+	for (auto& [s,scenario] : coalitionScenarios) {
+		constrainCoalitionPrimariesToTpp(s);
+		scenario.priorFp = splitCoalitionPrimaries(s);
+		auto donors = scenario.priorFp;
+		double const referenceTpp = 50.+partyOneNewTppMargin[s];
+		double const referenceLeak = scenario.leakage.reference(donors.at(Mp::Two),donors.at(run.natPartyIndex));
+		donors.erase(run.natPartyIndex);
+		auto& rates = scenario.rates;
+		for (auto [id,rate] : overallPreferenceFlow) rates[id] = std::clamp(rate*.01,0.,1.);
+		rates.try_emplace(OthersIndex,.5);
+		for (auto [id,rate] : preferenceSourceRates[s]) rates[id] = rate;
+		for (auto [id,votes] : donors) rates.try_emplace(id,rates.at(OthersIndex));
+		if (!LiveFpTpp::anchorRates(donors,referenceTpp-referenceLeak,rates)) {
+			// In an extreme tail the sampled leakage alone can exceed the
+			// entire starting Labor TPP, even with zero Labor primaries. Use
+			// its nearest feasible rate before fitting the remaining voters.
+			double& rate = scenario.leakage.nationalReference ? scenario.leakage.liberal : scenario.leakage.national;
+			double excludedFraction = scenario.leakage.nationalReference ? 1.-nationalsShare[s] : nationalsShare[s];
+			auto& shares = seatFpVoteShare[s];
+			double major = shares.at(Mp::One)+shares.at(Mp::Two);
+			if (major*excludedFraction > 0) rate = std::min(rate,referenceTpp/(major*excludedFraction));
+			auto labor = MajorPartyFpMath::compatibleClassicLaborPrimary(shares.at(Mp::One),major,
+				referenceTpp,rate*excludedFraction,0.);
+			if (!labor) throw InvalidIteration();
+			shares[Mp::One] = *labor;
+			shares[Mp::Two] = major-*labor;
+			scenario.priorFp = splitCoalitionPrimaries(s);
+			donors = scenario.priorFp;
+			double leak = scenario.leakage.reference(donors.at(Mp::Two),donors.at(run.natPartyIndex));
+			donors.erase(run.natPartyIndex);
+			if (!LiveFpTpp::anchorRates(donors,referenceTpp-leak,rates)) throw InvalidIteration();
+		}
+		scenario.results = CoalitionPreference::projectPrimaries(scenario,scenario.priorFp,
+			run.natPartyIndex,referenceTpp,OthersIndex);
+	}
+}
+
 void SimulationIteration::incorporateLiveResults()
 {
 	if (!sim.isLive() || run.doingBettingOddsCalibrations ||
@@ -3691,7 +3786,20 @@ void SimulationIteration::incorporateLiveResults()
 	bool needsSeparateTpp = false;
 	for (int s = 0; s < project.seats().count(); ++s) {
 		auto account = run.isLiveAutomatic() ? liveElection->classicPreferenceAccount(s) : nullptr;
-		if (account) {
+		auto split = coalitionScenarios.find(s);
+		if (run.isLiveAutomatic() && split != coalitionScenarios.end() &&
+			!liveElection->getFinalSeatResult(run.seatLookup.seat(s).name)) {
+			auto& scenario = split->second;
+			incorporateLiveSeatFp(s);
+			auto const current = splitCoalitionPrimaries(s);
+			scenario.results = CoalitionPreference::projectPrimaries(scenario,current,run.natPartyIndex,
+				partyOneNewTppMargin[s]+50.,OthersIndex);
+			liveElection->updateCoalitionMatchups(s,scenario,current);
+			double const referenceChange = scenario.results.labor[scenario.leakage.nationalReference]
+				- (partyOneNewTppMargin[s]+50.);
+			classicMargins[s] = partyOneNewTppMargin[s]+referenceChange;
+		}
+		else if (account) {
 			classicTppContributions[s].eligible = 1;
 			auto priorFp = seatFpVoteShare[s];
 			incorporateLiveSeatFp(s);
@@ -3700,9 +3808,9 @@ void SimulationIteration::incorporateLiveResults()
 		else incorporateLiveSeatFp(s);
 		if (!classicMargins[s]) needsSeparateTpp = true;
 	}
-	// Exhaustion, competing Coalition partners, and official final results
-	// have their own accounting. Their joint calculation still receives the
-	// original whole-election TPP draw, including its cross-seat correlations.
+	// Seats needing the separate joint calculation (including exhaustion
+	// and official final results) still see the original whole-election
+	// TPP draw. Then install the margins calculated from the FP accounts.
 	if (needsSeparateTpp) incorporateLiveTpp();
 	for (int s = 0; s < project.seats().count(); ++s)
 		if (classicMargins[s]) partyOneNewTppMargin[s] = *classicMargins[s];
@@ -3762,18 +3870,19 @@ std::optional<double> SimulationIteration::projectLiveClassicTpp(int s, LiveFpTp
 	double const priorTpp = partyOneNewTppMargin[s]+50.;
 	auto result = LiveFpTpp::project(account,priorFp,priorTpp,current,std::move(rates),totals->tpp,labor,coalition);
 	if (!result) return {};
-	classicTppContributions[s] = {1,1,result->primaryChange,result->measuredChange,result->learnedChange};
+	classicTppContributions[s] = {1,1,result->primaryChange,result->measuredChange,
+		result->learnedChange,result->broadPreferenceChange};
 	if (run.preferenceModel) {
 		if (LiveStatewidePreferences::includeDraw(iterationIndex,sim.getSettings().numIterations))
 			liveClassicSources.emplace(s,std::move(result->sources));
 		// With an unchanged primary draw and no preference evidence, exclusions
 		// perform their ordinary initial fit, including any small IND/OTH merge.
-		bool learned = std::any_of(account.rateChange.begin(),account.rateChange.end(),
+		bool const partyRatesChanged = std::any_of(account.rateChange.begin(),account.rateChange.end(),
 			[](auto const& entry) { return entry.second != 0; });
 		bool primaryChange = std::any_of(result->rates.begin(),result->rates.end(),[&](auto const& row) {
 			return getAt(priorFp,row.first,0.) != getAt(current,row.first,0.);
 		});
-		if (primaryChange || labor+coalition > 0 || learned) {
+		if (primaryChange || labor+coalition > 0 || partyRatesChanged || account.transferOddsMultiplier != 1.) {
 			if (emergingPrincipal) result->rates[EmergingIndIndex] = result->rates.at(run.indPartyIndex);
 			saved.assign(result->rates.begin(),result->rates.end());
 		}
@@ -4081,6 +4190,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			if (run.preferenceModel && run.preferenceModel->coversDistrict(seatIndex)) {
 				preferenceComparisons[seatIndex].model.status = PreferenceModel::Status::FinalOfficial;
 			}
+			coalitionScenarios.erase(seatIndex); // Both counterfactual estimates ended with the official result.
 			// Final TCP fixes both the pairing and winner. Re-running exclusions could
 			// otherwise retain an obsolete pairing or override a known result with a
 			// preference assumption. Restore the final separate Liberal/National FP
@@ -4210,6 +4320,23 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	bool recordFinalTransfers = false;
 	std::vector<PreferenceModel::FinalSource> legacySources;
 	int legacyFirstRecipient = -1;
+	// The legacy count, including its use as a fallback or for calibrating
+	// odds, distributes the same grouped pile before the first exclusion.
+	// Base the safeguard on original FP throughout. Inherited votes cannot
+	// qualify a candidate to receive more of the same pile on the next pass.
+	auto const& primaries = seatFpVoteShare[seatIndex];
+	IndependentCandidacy::OtherCandidateRoster const roster{run.othCount[seatIndex], run.indCount[seatIndex]};
+	int const separateIndependents = int(getAt(primaries, run.indPartyIndex, 0.0) > 0.0) +
+		int(getAt(primaries, EmergingIndIndex, 0.0) > 0.0);
+	int const groupedCandidates = roster.remaining(separateIndependents, getAt(primaries, EmergingPartyIndex, 0.0) > 0.0);
+	std::map<int, double> reducedOthersWeights;
+	for (int party : {run.indPartyIndex, EmergingIndIndex}) {
+		double const primary = getAt(primaries, party, 0.0);
+		if (primary <= 0.0) continue;
+		double const factor = IndependentCandidacy::othersPreferenceWeight(primary,
+			getAt(primaries, OthersIndex, 0.0), groupedCandidates);
+		if (factor < 1.0) reducedOthersWeights.emplace(party, factor);
+	}
 	auto allocateVotes = [&](std::vector<PartyVotes>& accumulatedVoteShares, std::vector<PartyVotes> const& excludedVoteShares) {
 		if (accumulatedVoteShares.empty()) {
 			throw InvalidIteration();
@@ -4424,6 +4551,13 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				weights[0] = flow;
 				weights[1] = 100.0 - flow;
 				totalWeight = 100.0;
+			}
+			// Explicit final-pair flows above take precedence. For generic
+			// Others, redistribute the continuing ballots among survivors in
+			// proportion to their revised weights, retaining any exhaustion.
+			if (sourceParty == OthersIndex && !reducedOthersWeights.empty()) {
+				totalWeight = IndependentCandidacy::adjustLegacyOthersWeights(
+					accumulatedVoteShares, weights, reducedOthersWeights, totalWeight);
 			}
 			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 				accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight * survivalRate;
@@ -4640,6 +4774,18 @@ bool SimulationIteration::integrateLiveTcpPair(int seatIndex, TcpPair& topTwo, b
 		(topTwo.first.first == Mp::One || topTwo.second.first == Mp::One) &&
 		isMajor(topTwo.first.first, run.natPartyIndex) &&
 		isMajor(topTwo.second.first, run.natPartyIndex);
+	auto split = coalitionScenarios.find(seatIndex);
+	if (classicTppPair && split != coalitionScenarios.end() && !run.isLiveManual()) {
+		bool const laborFirst = topTwo.first.first == Mp::One;
+		int const opponent = laborFirst ? topTwo.second.first : topTwo.first.first;
+		auto const& results = split->second.results;
+		auto pair = size_t(opponent == run.natPartyIndex);
+		if (observedThreeCandidateCount && !results.counted[pair]) return false;
+		double labor = results.labor[pair];
+		topTwo = {{Mp::One,labor},{opponent,100.-labor}};
+		if (topTwo.first.second > topTwo.second.second) std::swap(topTwo.first,topTwo.second);
+		return results.counted[pair];
+	}
 	if (run.isLiveAutomatic() && classicTppPair && run.natPartyIndex > 1) {
 		bool const laborFirst = topTwo.first.first == Mp::One;
 		int const opponent = laborFirst ? topTwo.second.first : topTwo.first.first;
@@ -4784,6 +4930,9 @@ void SimulationIteration::countSeatPreferences(int seatIndex, double mergedIndep
 	bool const poolIndependents = information && information->poolIndependents;
 	auto const* observation = run.isLiveAutomatic()
 		? liveElection->getPreferenceCountObservation(seatIndex) : nullptr;
+	auto split = coalitionScenarios.find(seatIndex);
+	std::optional<CoalitionPreference::Leakage> leakage;
+	if (split != coalitionScenarios.end()) leakage = split->second.leakage;
 	std::optional<PreferenceModel::ThreeCandidateCountContext> countContext;
 	if (observation && !observation->candidateTotals.empty()) {
 		auto const& name = run.seatLookup.seat(seatIndex).name;
@@ -4793,7 +4942,17 @@ void SimulationIteration::countSeatPreferences(int seatIndex, double mergedIndep
 		// half. TPP inferred from FP cannot overrule a three-way observation.
 		bool const hasCountedTpp = tpp && std::any_of(tpp->counted->begin(), tpp->counted->end(),
 			[](auto const& row) { return row.second > 0.0; });
-		if (totals) countContext = PreferenceModel::ThreeCandidateCountContext{totals->fp, hasCountedTpp};
+		if (totals) {
+			countContext = PreferenceModel::ThreeCandidateCountContext{totals->fp, hasCountedTpp};
+			if (leakage) {
+				auto const& results = split->second.results;
+				bool national = observation->candidateTotals.contains(run.natPartyIndex) &&
+					!observation->candidateTotals.contains(Mp::Two);
+				countContext->sampledPairTpp = results.labor[national]*.01;
+				countContext->hasCountedTpp = results.counted[national];
+				countContext->hasCountedReference = results.counted[leakage->nationalReference];
+			}
+		}
 	}
 	double const laborTpp = (partyOneNewTppMargin[seatIndex] + 50.0) * 0.01;
 	comparison.model.laborTpp = laborTpp;
@@ -4842,7 +5001,8 @@ void SimulationIteration::countSeatPreferences(int seatIndex, double mergedIndep
 		sources.reserve(shares.size() + 3);
 		// Zero-primary core roles can still define a fitted ranking, even
 		// when the actual ballot only contains a subset of those recipients.
-		for (int const party : {roles.labor, roles.greens, roles.oneNation}) shares.try_emplace(party, 0.0);
+		for (int const party : {roles.labor, roles.greens}) shares.try_emplace(party, 0.0);
+		if (roles.oneNation) shares.try_emplace(*roles.oneNation, 0.0);
 		for (auto const& [party, primary] : shares) {
 			bool const secondary = party == secondaryIndependent;
 			double rate = savedRate(party).value_or(party == run.indPartyIndex ? liveIndependentRate : othersRate);
@@ -4859,7 +5019,7 @@ void SimulationIteration::countSeatPreferences(int seatIndex, double mergedIndep
 				return model.count(seatIndex, sources, laborTpp, nationalIncoming, *preferenceElection,
 					sensitivity, (run.isLiveAutomatic() && model.isActive()) ||
 						(comparison.reportSources && sensitivity == PreferenceModel::Sensitivity::None),
-					namedIndependentMatches, observation, countContext);
+					namedIndependentMatches, observation, countContext, leakage);
 			}
 			catch (std::exception const& error) {
 				PreferenceModel::CountResult failed;
@@ -4921,7 +5081,10 @@ std::optional<SimulationIteration::TcpPair> SimulationIteration::integrateRankin
 		// Use one finite vote account when this pair has live preference
 		// evidence. The learner already combines its local and shared counts,
 		// so the older local-TCP blend must not update these same votes again.
-		if (run.isLiveAutomatic() && !comparison.model.finalSources.empty()) {
+		bool const splitClassic = coalitionScenarios.contains(seatIndex) &&
+			(result.candidates[0] == Mp::One || result.candidates[1] == Mp::One) &&
+			isMajor(result.candidates[0],run.natPartyIndex) && isMajor(result.candidates[1],run.natPartyIndex);
+		if (run.isLiveAutomatic() && !splitClassic && !comparison.model.finalSources.empty()) {
 			auto const& name = run.seatLookup.seat(seatIndex).name;
 			auto learned = liveElection->getLearnedTcpShare(name,result.candidates,comparison.model.finalSources);
 			if (learned) {

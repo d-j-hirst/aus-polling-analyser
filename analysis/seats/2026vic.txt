@@ -560,7 +560,7 @@ fTransposedFederalSwing=0.8
 bSophomoreCandidate=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1
-sBettingOdds=IND,22.50
+sBettingOdds=IND,24.50
 sRunningParties=LNP,ALP,GRN,ONP,IND*,OTH
 sCandidateNames=Chris Crewther,LNP;Ashli Beards,ONP;Melissa Goffin,IND;Kai Titcher,GRN;Kerry Macdonald,ALP
 #Morwell
@@ -661,7 +661,7 @@ sRegion=Inner Melbourne
 fTppMargin=31.7
 fPreviousTppSwing=-1.5
 fTransposedFederalSwing=1.3
-sBettingOdds=GRN,1.24
+sBettingOdds=GRN,1.225
 sRunningParties=LNP,ALP,GRN,ONP,IND,OTH****
 sCandidateNames=Kat Theophanous,ALP;Lynda Awad,LNP;Campbell Gome,GRN;Christopher Bradbury,ONP
 #Oakleigh

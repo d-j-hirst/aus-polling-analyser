@@ -1,0 +1,40 @@
+{
+  "mode": "active",
+  "schema_version": 1,
+  "model_version": "vic2022-precount-rankings-1",
+  "sample_uncertainty": true,
+  "live_report_flows": [["GRN", "ALP", "LIB"], ["LIB", "ALP", "GRN"]],
+  "unknown_liberal_labor_first_probability": 0,
+  "generic_concentrations": [24, 9.666667],
+  "profiles": {
+    "labor": {
+      "primary_points": [{"primary": 0.1, "means": [0.82]}],
+      "election_concentration": [24],
+      "district_concentration": [9.666667]
+    },
+    "liberal_labor_first": {
+      "primary_points": [{"primary": 0.1, "means": [0.65]}],
+      "election_concentration": [24],
+      "district_concentration": [9.666667]
+    },
+    "liberal_greens_first": {
+      "primary_points": [{"primary": 0.1, "means": [0.25]}],
+      "election_concentration": [24],
+      "district_concentration": [9.666667]
+    },
+    "greens": {
+      "primary_points": [{"primary": 0.1, "means": [0.8194]}],
+      "election_concentration": [24],
+      "district_concentration": [9.666667]
+    }
+  },
+  "provenance": {
+    "evidence_cutoff": "2022-11-25",
+    "method": "The first ranking choice for each source uses the pre-count comparison in the 2022 Victorian replay section of README.md. Other candidates enter the rankings under the ordinary district rules. District and election spreads are broad assumptions.",
+    "victorian_advice": "The Liberal statewide direction puts Greens ahead of Labor. The registered Melbourne card lists Greens seventh and Labor ninth. The Nationals use the project's own Greens versus Labor setting. One Nation candidates are included in Others.",
+    "sources": [
+      "https://www.vec.vic.gov.au/candidates-and-parties/become-a-state-election-candidate/how-to-vote-cards/how-to-vote-cards",
+      "https://antonygreen.com.au/vic22-the-impact-of-the-liberal-partys-change-of-preference-recommendation/"
+    ]
+  }
+}

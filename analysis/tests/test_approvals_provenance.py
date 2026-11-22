@@ -5,6 +5,8 @@ from unittest import mock
 
 from lib.provenance import approvals_provenance
 from lib.provenance import generated_provenance
+from lib.provenance import source_provenance
+from lib.shared.election_code import ElectionCode
 
 
 class ApprovalsProvenanceTests(unittest.TestCase):
@@ -43,6 +45,49 @@ class ApprovalsProvenanceTests(unittest.TestCase):
                 poll_header, encoding="utf-8"
             )
         return data, outputs, synthetic
+
+    def test_trend_fit_and_approval_training_use_registered_poll_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            data, _, _ = self._write_data(base)
+            manifest = data / "provenance.json"
+            source_provenance.initialize_manifest(manifest, "Poll inputs")
+            source_provenance.add_category(manifest, "raw_poll_data", "Polls", ["poll-data-*.csv"])
+            vic = data / "poll-data-vic.csv"
+            fed = data / "poll-data-fed.csv"
+            registered_federal = fed.read_bytes().replace(b"\r\n", b"\n")
+            with fed.open("a") as output:
+                output.write("1984-02-01,Unregistered,49,40\n")
+            victoria = [ElectionCode(2026, "vic")]
+            with mock.patch.object(approvals_provenance, "DATA_DIRECTORY", data), mock.patch.object(
+                approvals_provenance, "ANALYSIS_DIRECTORY", base
+            ):
+                snapshot = approvals_provenance.TrendPollInputs(victoria, include_approvals=True)
+                self.assertEqual(snapshot.open("fed").read(), registered_federal)
+                self.assertNotIn("1984fed", approvals_provenance.approval_elections(snapshot))
+                self.assertIn("1984fed", approvals_provenance.approval_elections())
+                with self.assertRaisesRegex(generated_provenance.GeneratedProvenanceError, "fed.csv"):
+                    approvals_provenance.TrendPollInputs([ElectionCode(1984, "fed")], False)
+
+                # A correction within foreign training data cannot be peeled off like an append.
+                fed.write_text("edited existing rows\n", encoding="utf-8")
+                with self.assertRaisesRegex(generated_provenance.GeneratedProvenanceError, "fed.csv"):
+                    approvals_provenance.TrendPollInputs(victoria, True)
+                with mock.patch.object(source_provenance.subprocess, "run") as git:
+                    git.return_value.returncode = 0
+                    git.return_value.stdout = registered_federal
+                    restored = approvals_provenance.TrendPollInputs(victoria, True)
+                    self.assertEqual(restored.open("fed").read(), registered_federal)
+                    git.return_value.stdout = b"different committed revision\n"
+                    with self.assertRaisesRegex(generated_provenance.GeneratedProvenanceError, "fed.csv"):
+                        approvals_provenance.TrendPollInputs(victoria, True)
+                pure = approvals_provenance.TrendPollInputs(victoria, False)
+                with vic.open("a") as output:
+                    output.write("2026-01-01,New Victorian poll,52,40\n")
+                self.assertEqual(pure.open("vic").read(), snapshot.open("vic").read())
+                self.assertNotIn(b"New Victorian poll", pure.open("vic").read())
+                with self.assertRaisesRegex(generated_provenance.GeneratedProvenanceError, "vic.csv"):
+                    approvals_provenance.TrendPollInputs(victoria, False)
 
     def test_approval_elections_exclude_terms_without_approval_polls(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

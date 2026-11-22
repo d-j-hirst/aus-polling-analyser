@@ -1,5 +1,8 @@
 #pragma once
 
+#include "CoalitionPreference.h"
+#include "IndependentCandidacy.h"
+
 // A compulsory-preferential count for a simulated district. Each source is
 // the set of ballots with the same original first preference. One ranking
 // profile for that source supplies its transfers at every exclusion.
@@ -71,6 +74,8 @@ struct PreparedCountObservation {
 struct ThreeCandidateCountContext {
 	double finalFormalVotes;
 	bool hasCountedTpp;
+	std::optional<double> sampledPairTpp{}; // Labor fraction against the actual sampled Coalition candidate.
+	bool hasCountedReference = false;
 };
 
 // Higher consistency makes the generic rankings more responsive to distance
@@ -106,7 +111,11 @@ struct Roles {
 	// Only projects with a separate Coalition partner have a National slot.
 	// A minor candidate grouped in Others contributes through that source.
 	std::optional<int> national;
-	int greens, oneNation, independent, emergingIndependent, others;
+	int greens;
+	// Some elections include the few One Nation candidates in Others. Their
+	// ballots then follow that group's preferences and there is no ON finalist.
+	std::optional<int> oneNation;
+	int independent, emergingIndependent, others;
 };
 
 struct District {
@@ -123,6 +132,7 @@ struct District {
 	// Missing geography is allowed unless an enabled preference adjustment
 	// needs it; it must not silently count an unknown district as metropolitan.
 	std::optional<bool> regional{};
+	IndependentCandidacy::OtherCandidateRoster otherCandidates{};
 };
 
 struct Source {
@@ -223,7 +233,8 @@ public:
 		double laborTpp, double nationalIncoming, ElectionDraw const& election,
 		Sensitivity sensitivity = Sensitivity::None, bool reportFinalSources = false,
 		bool namedIndependentMatches = true, PreparedCountObservation const* observation = nullptr,
-		std::optional<ThreeCandidateCountContext> countContext = {}) const;
+		std::optional<ThreeCandidateCountContext> countContext = {},
+		std::optional<CoalitionPreference::Leakage> partnerLeakage = {}) const;
 	// Expected original-source rates from the same ranking profiles, using
 	// the supplied district primaries and pre-count classic flow assumptions.
 	// Each source's fractions are returned in the order of the supplied survivors.
@@ -244,8 +255,11 @@ public:
 	bool coversDistrict(int district) const { return !liveTrial || contexts.at(static_cast<std::size_t>(district)).liveTrial; }
 	std::string const& version() const { return modelVersion; }
 	Roles const& partyRoles() const { return roles; }
+	using ReportFlow = std::array<int, 3>; // original party, preferred finalist, other finalist
+	std::optional<std::vector<ReportFlow>> const& liveReportFlows() const { return reportFlows; }
 
 private:
+	std::optional<std::vector<ReportFlow>> reportFlows;
 	enum class Advice { Unknown, LaborFirst, GreensFirst, Open };
 
 	using Nodes = std::array<double, 5>;
@@ -280,6 +294,7 @@ private:
 		};
 		Advice advice = Advice::Unknown;
 		bool regional = false;
+		IndependentCandidacy::OtherCandidateRoster otherCandidates{};
 		double liberalOneNationLastWeight = 0.0;
 		bool highIndependentFlow = false;
 		bool namedIndependent = false;
@@ -307,19 +322,19 @@ private:
 		double historicalWeight = 0.0;
 	};
 	std::vector<SourceProfile> buildSourceProfiles(int district, std::span<Source const> ballot,
-		Shares const& primaries, double leakageVotes, double nationalIncoming, bool dual, bool classicAvailable,
+		Shares const& primaries, CoalitionPreference::Leakage leakage, double nationalIncoming, bool dual, bool classicAvailable,
 		Shares const& classicRates, ElectionDraw const& election, Sensitivity sensitivity,
 		bool namedIndependentMatches, std::optional<std::uint64_t> localSeed = {},
 		std::optional<int> onlySource = {}, bool usePairHistory = true) const;
 	std::vector<SourceProfile> conditionOnCountObservation(std::vector<SourceProfile> profiles,
 		PreparedCountObservation const& observation, int district, std::span<Source const> ballot,
-		Shares const& primaries, double leakageVotes, bool dual, bool classicAvailable,
+		Shares const& primaries, CoalitionPreference::Leakage leakage, bool dual, bool classicAvailable,
 		Shares const& classicRates, double nationalIncoming, ElectionDraw const& election,
 		Sensitivity sensitivity, bool namedIndependentMatches, bool& usedSample) const;
 	std::optional<CountResult> countWithThreeCandidateTotals(PreparedCountObservation const& observation,
 		ThreeCandidateCountContext context, int district, std::span<Source const> ballot,
 		Shares const& primaries, std::vector<int> candidates, double laborTpp,
-		bool dual, double leakageVotes, double nationalIncoming, ElectionDraw const& election,
+		bool dual, CoalitionPreference::Leakage leakage, double nationalIncoming, ElectionDraw const& election,
 		bool namedIndependentMatches) const;
 	void applyHistoricalTransfer(std::vector<Ranking>& rankings, Shares const& weights, int district,
 		int source, int independent, Shares const& primaries, ElectionDraw const& election,

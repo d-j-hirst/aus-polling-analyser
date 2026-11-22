@@ -4,6 +4,56 @@ This document explains how reported primaries and preferences change the live
 Labor–Coalition TPP forecast, and how ordinary, early and declaration counts
 contribute as they arrive at different times.
 
+
+## Labor against either Coalition candidate
+
+In a full-preference seat where Liberal and National both stand, the starting
+Labor TPP describes one historical opponent. A named past Labor–Coalition
+count identifies that opponent. If the historical final was different and
+there is no matching published notional count, the forecast uses the stronger
+historical Coalition primary. A tied or absent historical comparison falls
+back to the configured incumbent or challenger. This choice stays fixed for
+the forecast and its replay.
+
+Each simulation estimates Labor's share against both parties. Leakage means
+the proportion of an excluded partner's first-preference voters who prefer
+Labor to the other partner. Each party has its own uncertain rate, centred on
+20%, with roughly 10 percentage points of spread near the centre and a 0.25
+correlation on log odds. These are modelling assumptions. The other sources'
+preference rates are adjusted together to reproduce the starting TPP against
+the reference opponent. For example, with Liberal on 10%, National on 30% and
+both leakage rates at 20%, Labor receives six points from Nationals against
+Liberal and two points from Liberals against National. With identical minor-party
+flows its second estimate starts four points lower. Each simulation also draws
+how much those voters prefer Labor against one partner compared with the other.
+The difference is centred on zero, with about ten percentage points of spread for
+a source that splits evenly. If these voters supply a quarter of the district's
+FP, a five-point difference in their flow changes the alternative TCP by 1.25
+points. The reference matchup retains the original TPP.
+
+New FP changes both estimates through the projected mix of voters. Measured
+election-wide and regional preference movements update the expected transfers
+from minor parties. Local preference evidence measures any further change. A
+positive TCP count fixes those ballots for the named pair. Its matched
+preferences can also inform outstanding ballots in either matchup. The
+calculation compares the count with what the same simulation expected for
+that opponent at that location. A vote category and an individual booth
+each have roughly six preference points of local variation near an even
+split. These are modelling assumptions. For each donor party the local
+variations balance over its projected district voters. They allow, for
+example, an early centre to differ from ordinary booths while preserving
+the initial district rate. Counting one opponent leaves uncertainty about
+how those voters would split against the other. After a
+realignment each pair retains its own usable counts, and a zero-filled
+announcement contributes no new ballots. The exclusion count selects the
+finalists for each simulation. A final official result takes precedence.
+
+The live diagnostic export's `coalition_matchups` rows give the reference
+opponent and mean Labor share against each partner in draws where both
+stand, before any separate manual three-candidate sample. Each mean includes
+draws where that particular pair would miss the final two. The count fields
+indicate how many of those draws used positive TCP for the specified opponent.
+
 ## From a district's primary votes to its TPP
 
 In an automatic compulsory-preferential forecast with one Coalition candidate,
@@ -26,9 +76,18 @@ mix where available. A partial or TCP-first count uses the available booth mix,
 subject to each finalist's total and the voters available in this draw. A draw
 with a simulated recheck uses its revised counts.
 
-The existing matched-count calibration can change the Greens and independent
-transfer rates on outstanding ballots. The initial rates vary between simulated
-elections. The ranked exclusion count receives the resulting rates by source,
+Booths with comparable first preferences and Labor–Coalition counts in both
+elections show whether preferences have moved towards either finalist after
+allowing for the primary mix. For voters still awaiting a Labor–Coalition
+count, the simulator applies this election-wide movement and the additional
+movement in the district's region to the starting transfer odds in each draw.
+An FP-only booth can change the primary mix immediately. It supplies no
+measurement of this change in preferences. The regional and election estimates
+gain weight as comparable counts arrive, including in other districts.
+
+Matched counts can also identify a further change specific to Greens or
+independent voters. The simulator applies these remaining differences after
+the broad movement. The ranked exclusion count receives the resulting rates by source,
 and eligible classic rows in the statewide preference table use the same
 sources' Labor transfers and projected voter totals.
 
@@ -43,7 +102,9 @@ category calculation for that draw.
 The analysis archive's `fp_based_tpp` lists eligible and successfully accounted
 draws by district. Its three mean movements are percentage points of district
 Labor TPP due to the accepted primary changes, replacement of estimated votes
-with measured TPP, and matched learning on outstanding votes. The separate
+with measured TPP, and matched learning on outstanding votes. In new archives
+`broad_preference_change_pp` gives the election and regional portion already
+included in `learned_change_pp`. The separate
 `tpp_integration` diagnostics describe the joint category estimate. The
 simulation report records the forecast after the applicable method is used.
 

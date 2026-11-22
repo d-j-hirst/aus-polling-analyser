@@ -1,6 +1,7 @@
 """Batch orchestration and CLI entry helpers for fp_model."""
 
 from lib.provenance import calibration_provenance
+from lib.provenance import approvals_provenance
 from scripts.pipeline import calibration_summary
 import datetime
 from lib.poll_models import fp_model_checkpoints
@@ -106,9 +107,16 @@ def build_model_params() -> ModelParams:
     return model_params
 
 
-def maybe_generate_approvals(config: Config) -> None:
-    if config.use_approvals():
-        config.synthetic_tpps_by_region = generate_synthetic_tpps()
+def prepare_trend_dependencies(election, parties, prior_files, pure_recorder, final_recorder):
+    """Check every party's inputs before the first fit replaces any election CSV."""
+    dependencies = {}
+    for party in parties:
+        federal_files = prior_files.get(party, [])
+        if pure_recorder is not None:
+            dependencies[party] = pure_recorder.dependencies_for(election, federal_files)
+        elif final_recorder is not None:
+            dependencies[party] = final_recorder.dependencies_for(election, party, federal_files)
+    return dependencies
 
 
 def build_election_data(inputs: ElectionDataInputs) -> Optional[ElectionData]:
@@ -270,6 +278,11 @@ def run_models() -> None:
     diagnostics_recorder = StanDiagnosticsRecorder()
     try:
         config = build_config()
+        if not (config.cutoff_mode or config.calibrate_pollsters or config.calibrate_bias):
+            config.trend_poll_inputs = approvals_provenance.TrendPollInputs(
+                config.elections, include_approvals=config.use_approvals(),
+                registered_history=config.registered_poll_history,
+            )
 
         model_params = build_model_params()
         base_seed = (
@@ -302,7 +315,7 @@ def run_models() -> None:
         )
         pure_provenance_recorder = (
             fp_model_provenance.PureTrendRecorder(
-                generated_provenance.current_command()
+                generated_provenance.current_command(), config.trend_poll_inputs
             )
             if (
                 config.pure
@@ -314,7 +327,7 @@ def run_models() -> None:
         )
         final_provenance_recorder = (
             fp_model_provenance.FinalTrendRecorder(
-                generated_provenance.current_command()
+                generated_provenance.current_command(), config.trend_poll_inputs
             )
             if config.use_approvals() and not config.cutoff_mode
             else None
@@ -332,7 +345,8 @@ def run_models() -> None:
             else None
         )
 
-        maybe_generate_approvals(config)
+        if cutoff_provenance_recorder is not None:
+            config.synthetic_tpps_by_region = generate_synthetic_tpps()
 
         m_data = ModellingData()
         if config.cutoff_mode:
@@ -386,6 +400,17 @@ def run_models() -> None:
             if e_data is None:
                 continue
             election_tag = ''.join(e_data.e_tuple)
+            trend_recorder = pure_provenance_recorder or final_provenance_recorder
+            if trend_recorder is not None:
+                trend_dependencies = prepare_trend_dependencies(
+                    election_tag, m_data.parties[e_data.e_tuple],
+                    e_data.federal_prior_files_by_party,
+                    pure_provenance_recorder, final_provenance_recorder,
+                )
+                if final_provenance_recorder is not None and config.synthetic_tpps_by_region is None:
+                    config.synthetic_tpps_by_region = generate_synthetic_tpps(
+                        poll_inputs=config.trend_poll_inputs
+                    )
             if (
                 config.cutoff_mode
                 and election_tag not in cutoff_elections_started
@@ -641,18 +666,7 @@ def run_models() -> None:
                             )),
                             feedback_category=e_data.federal_prior_category,
                         )
-                    if (
-                        pure_provenance_recorder is not None
-                        and output_context is not None
-                    ):
-                        pure_dependencies = (
-                            pure_provenance_recorder.dependencies_for(
-                                election_tag,
-                                e_data.federal_prior_files_by_party.get(
-                                    party, []
-                                ),
-                            )
-                        )
+                    if trend_recorder is not None and output_context is not None:
                         output_files = [
                             output_filename_ctx(output_context, kind)
                             for kind in (
@@ -661,39 +675,11 @@ def run_models() -> None:
                                 'house_effects',
                             )
                         ]
-                        pure_provenance_recorder.record(
+                        trend_recorder.record(
                             election=election_tag,
                             party=party,
                             outputs=output_files,
-                            dependencies=pure_dependencies,
-                            random_seed=random_seed,
-                        )
-                    if (
-                        final_provenance_recorder is not None
-                        and output_context is not None
-                    ):
-                        final_dependencies = (
-                            final_provenance_recorder.dependencies_for(
-                                election_tag,
-                                party,
-                                e_data.federal_prior_files_by_party.get(
-                                    party, []
-                                ),
-                            )
-                        )
-                        output_files = [
-                            output_filename_ctx(output_context, kind)
-                            for kind in (
-                                'trend',
-                                'polls',
-                                'house_effects',
-                            )
-                        ]
-                        final_provenance_recorder.record(
-                            election=election_tag,
-                            party=party,
-                            outputs=output_files,
-                            dependencies=final_dependencies,
+                            dependencies=trend_dependencies[party],
                             random_seed=random_seed,
                         )
                 if calibration_checkpoint_store is not None:

@@ -329,6 +329,7 @@
     <ClCompile Include="LiveV2.cpp" />
     <ClCompile Include="LiveTppPreparation.cpp" />
     <ClCompile Include="LiveFpPreparation.cpp" />
+    <ClCompile Include="LiveBoothGeography.cpp" />
     <ClCompile Include="LiveTurnoutPreparation.cpp" />
     <ClCompile Include="LiveInputWarningPanel.cpp" />
     <ClCompile Include="LiveInputAdapter.cpp" />
@@ -462,10 +463,14 @@
     <ClInclude Include="UnreportedPlaceCounting.h" />
     <ClInclude Include="LivePartialCount.h" />
     <ClInclude Include="LiveFpEvidence.h" />
+    <ClInclude Include="LiveFederalDeclarations.h" />
+    <ClInclude Include="LiveBoothGeography.h" />
+    <ClInclude Include="LiveBoothGeographyInput.h" />
     <ClInclude Include="LiveEstimatedTpp.h" />
     <ClInclude Include="LiveTppIntegration.h" />
     <ClInclude Include="LiveTppDiagnostics.h" />
     <ClInclude Include="LiveTppComposition.h" />
+    <ClInclude Include="CoalitionPreference.h" />
     <ClInclude Include="LiveCoalitionTcp.h" />
     <ClInclude Include="LivePartyConversion.h" />
     <ClInclude Include="LiveHistoricalPreferences.h" />

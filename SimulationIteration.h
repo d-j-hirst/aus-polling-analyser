@@ -104,6 +104,10 @@ private:
 	void applyCorrectionsToSeatFps();
 	void correctMajorPartyFpBias(bool accountForSeatNormalisation = false);
 	void solveTerminalFpReconciliation();
+	std::map<int,CoalitionPreference::Scenario> coalitionScenarios;
+	double referenceLeakageFraction(int seatIndex) const;
+	CoalitionPreference::Shares splitCoalitionPrimaries(int seatIndex) const;
+	void prepareCoalitionMatchups();
 	void incorporateLiveResults();
 	void incorporateLiveTpp();
 	std::optional<double> projectLiveClassicTpp(int seatIndex, LiveFpTpp::District const& account,

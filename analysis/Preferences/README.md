@@ -380,6 +380,18 @@ starting Labor/Coalition split, and poorly observed splits have broad priors
 centred around even proportions. The existing project rows for independent
 recipients and Nationals donors supply additional prior centres.
 
+The count distributes grouped Others first, although on a real ballot a weak
+independent could be excluded before some of those individual candidates.
+For each simulated ballot, an independent gets their usual weight in generic
+Others preferences if their FP reaches either 20% of the grouped pile or 80%
+of an even share among the candidates still in it. Below both thresholds the
+weight falls in proportion to their FP. For example, with six candidates
+sharing 30% in Others, an independent on 4% gets full weight and one on 2%
+gets half weight. Other separately modelled independents have their own FP
+accounts. Before the candidate list is known, only the 20% test is available.
+These thresholds are modelling assumptions used in odds calibration and in
+the forecast itself. They apply to the generic allocation of Others ballots.
+
 The optional `districts` object is keyed by the exact district name.
 `liberal_advice` accepts `labor_first`, `greens_first`, `open` and
 `unknown`. Unknown advice shares an election-wide draw of the direction,
@@ -547,6 +559,16 @@ For checks at fixed preference
 means, set `sample_uncertainty` to `false` and set
 `unknown_liberal_labor_first_probability` to 0 or 1 to use one advice direction.
 Both modes use the original simulated first preferences and TPP.
+
+## 2022 Victorian replay
+
+The replay estimates how voters would rank the remaining candidates using information available before polls opened on 26 November 2022. The same active ranking model supplies the calibration, baseline and seat forecasts. The pre-election Liberal recommendation placed the Greens above Labor. In three Victorian contests in 2006 with the same advice, about 75% of the final excluded Liberal piles went to the Greens. Those piles included some inherited ballots. The replay uses 75% as its starting estimate for original Liberal voters and allows it to vary. [Replay settings](2022vic.json) · [VEC registered cards](https://www.vec.vic.gov.au/candidates-and-parties/become-a-state-election-candidate/how-to-vote-cards/how-to-vote-cards) · [Analysis published 21 November 2022](https://antonygreen.com.au/vic22-the-impact-of-the-liberal-partys-change-of-preference-recommendation/)
+
+The live table publishes two estimates. Each describes voters who gave their FP to the named source in districts where all three parties stood. Greens preferences start at 81.94% to Labor over Liberal, based on the 2018 Victorian classic flow. Liberal preferences start at 25% to Labor over Greens under the Greens-first recommendation. The Nationals have their own 75% Greens-over-Labor setting. The reported estimates also reflect the projected district vote mix and counting available at the snapshot. The model still calculates Labor transfers to Greens versus Coalition wherever that exclusion matters.
+
+With One Nation grouped in Others, the principal ranking for each of Labor, Liberal and Greens has two possible orders of the other two parties. Only the first branch mean and its election and district concentrations are needed in the profile. Other candidates, including a separate National or a prominent independent, enter the rankings using the usual district rules. The statewide and district spreads remain assumptions. At an even split they correspond to about 10 and 15 percentage points respectively.
+
+The four One Nation candidates standing in the November count contribute to Others in Bendigo East, Macedon, Morwell and Pakenham. The seat settings keep the number of candidates on each ballot. Narracan’s postponed contest contributes no November votes. [Ballot settings](../seats/2022vic.txt) · [Count population](../../forecasts/2022vic/live-turnout-settings.json)
 
 ## Manual live preference counts
 

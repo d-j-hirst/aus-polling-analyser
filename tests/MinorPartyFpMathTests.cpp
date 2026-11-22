@@ -11,6 +11,20 @@
 
 namespace {
 
+void checkHistoricalOthersSupport()
+{
+	// 2018 Morwell mapped to the 2022 project: individually recognised
+	// primaries plus the remaining candidates already grouped into Others.
+	std::map<int, double> morwell{{0,34.19},{1,12.34},{2,3.64},{3,19.56},{4,10.67},{-1,19.60}};
+	constexpr double cap = 7.72722;
+	assert(MinorPartyFpMath::historicalOthersSupport(morwell,0,1,2,4,cap) == 2 * cap);
+	// A separately listed non-Coalition party still contributes. When NAT
+	// is absent or mapped to Liberal, the negative Others ID stays eligible.
+	assert(std::abs(MinorPartyFpMath::historicalOthersSupport(morwell,0,1,2,{},cap) - 3 * cap) < 1e-10);
+	assert(MinorPartyFpMath::historicalOthersSupport({{1,42},{-1,4}},0,1,2,{},cap) == 4);
+	assert(MinorPartyFpMath::historicalOthersSupport({{4,55},{-1,1}},0,1,2,4,cap) == 2);
+}
+
 void checkMissingGreensFpPrior()
 {
 	std::ifstream input("analysis/seats/2026sa-greens-fp-priors.json");
@@ -141,6 +155,7 @@ void checkPollEvidenceModeratesProfileAssessment()
 
 int main()
 {
+	checkHistoricalOthersSupport();
 	checkMissingGreensFpPrior();
 	checkZeroViabilityPreservesExistingResults();
 	checkProfileChangesLocalSupport();

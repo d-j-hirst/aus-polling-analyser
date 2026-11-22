@@ -52,6 +52,15 @@ std::optional<std::string> fixedWidthDigits(
 	}
 	return std::string(value);
 }
+// The 2026 feed distinguishes three early populations. Its prepared copy of
+// the previous results supplies matching comparisons while older Victorian
+// replays read the combined Early account published for their feed.
+std::string victorianHistoryPath(std::string const& election, std::string const& previous)
+{
+	return election == "2026vic" ? "forecasts/2026vic/live-inputs/historical-baseline.json"
+		: "analysis/Booth Results/" + previous + ".json";
+}
+
 void requireLiveInputFile(std::filesystem::path const& path, std::vector<std::string>& missingFiles)
 {
 	std::error_code error;
@@ -201,7 +210,9 @@ void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simu
 	if (regionCode == "vic") {
 		requireLiveInputFile("downloads/" + termCode + "_candidates.xml", missingFiles);
 		requireLiveInputFile("downloads/" + termCode + "_booths.xml", missingFiles);
-		requireLiveInputFile("analysis/Booth Results/" + previousTermCode + ".json", missingFiles);
+		requireLiveInputFile(victorianHistoryPath(termCode, previousTermCode), missingFiles);
+		if (auto path = LiveFederalDeclarations::inputPath(project.paths().root(),termCode))
+			requireLiveInputFile(*path, missingFiles);
 	}
 	else if (regionCode == "nsw" || regionCode == "qld") {
 		requireLiveInputFile("downloads/" + termCode + "_zeros.xml", missingFiles);
@@ -426,7 +437,7 @@ void LivePreparation::parsePreviousResults()
 		loadLiveXml(candidatesXml, "downloads/" + getTermCode() + "_candidates.xml");
 		tinyxml2::XMLDocument boothsXml;
 		loadLiveXml(boothsXml, "downloads/" + getTermCode() + "_booths.xml");
-		nlohmann::json resultsJson = loadLiveJson("analysis/Booth Results/" + prevTermCode + ".json");
+		nlohmann::json resultsJson = loadLiveJson(victorianHistoryPath(getTermCode(), prevTermCode));
 		// The historical reader needs predecessor names while linking shared
 		// venue names to current IDs. Supplying them only later to LiveV2 cannot
 		// recover a historical booth that the reader left unattached here.

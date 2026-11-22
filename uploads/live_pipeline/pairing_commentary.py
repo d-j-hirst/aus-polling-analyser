@@ -1,35 +1,50 @@
-"""Explain a change in winning prospects when a strong opponent's route to
-the final two opens or closes. Each completed forecast records how often a
-pair met and who won those simulated contests. The local writer compares two
-such forecasts for an already selected seat. The comparison describes the
-forecast arithmetic and does not attribute the movement to a particular booth.
+"""Explain changes in winning prospects by checking who met in the final two
+and who won when they met. This distinguishes a change in the exclusion order
+from a change in a counted leader's prospects against the same opponent.
 """
 from . import commentary_format as display
 
 
-def matchup_outlook(summary, seat, subject, opponent):
-    """Return the frequency of this pair, the subject's win rate when it
-    occurs and their win rate in all other simulations, each as a percentage.
-    The last group includes elections where the subject missed the final two."""
+def pair_win_rate(summary, seat, subject, opponent):
+    """Read how often the two candidates met and how often the subject won
+    when they did (both percentages). Either candidate may be listed first."""
     district = summary['seats'][seat]
     pairs = district.get('pairing_percent', {})
     rates = summary.get('conditional_wins', {}).get(seat, {})
     for first, second in ((subject, opponent), (opponent, subject)):
         key = first+'/'+second
-        if key in pairs and key in rates:
+        if key in pairs and (key in rates or pairs[key] == 100):
             break
     else:
         # The simulator omits very rare pairs. A missing pair or win rate
         # gives no basis for saying how this contest would have gone.
         return None
-    chance, inside = pairs[key], rates[key]
+    chance = pairs[key]
     iterations = summary.get('iterations') or 0
-    if not 0 < chance < 100 or inside is None or not 0 <= inside <= 100:
+    if not 0 < chance <= 100 or iterations * chance / 100 < 20:
         return None
-    if iterations * min(chance, 100-chance) / 100 < 20:
-        return None  # Either conditional rate would describe fewer than 20 draws.
+    # If these opponents met in every draw, the overall win rate gives the
+    # same answer even for an archive without separate matchup diagnostics.
+    inside = rates.get(key)
+    if inside is None and chance == 100:
+        inside = district.get('win_percent', {}).get(first)
+    if inside is None or not 0 <= inside <= 100:
+        return None
     if first != subject:
         inside = 100-inside
+    return chance, inside
+
+
+def matchup_outlook(summary, seat, subject, opponent):
+    """Return pair frequency, wins within the pair and wins across the other
+    simulations (including draws where the subject missed the final two)."""
+    pair = pair_win_rate(summary, seat, subject, opponent)
+    if pair is None:
+        return None
+    chance, inside = pair
+    if (summary.get('iterations') or 0) * (100-chance) / 100 < 20:
+        return None  # Too few draws outside the pair to describe that group.
+    district = summary['seats'][seat]
     overall = district.get('win_percent', {}).get(subject)
     if overall is None or not 0 <= overall <= 100:
         return None
@@ -40,6 +55,42 @@ def matchup_outlook(summary, seat, subject, opponent):
         return None
     outside = min(100, max(0, 100 * other_wins / (100-chance)))
     return chance, inside, outside
+
+
+def fewer_votes_favour_counted_leader(seat, count, previous, current):
+    """Decide whether a smaller projected remainder helps explain a win gain
+    in a continuing close TCP. The commission supplies the lead. The remaining
+    votes are a net forecast, including possible revisions to existing counts.
+    This selects commentary only and cannot isolate the effect of turnout."""
+    old, new = count['remaining_before'], count['remaining_after']
+    old_lead, new_lead = count['lead_before'], count['lead_after']
+    if (old is None or new is None or not 0 < new < old
+            or not 0 < old_lead < old or not 0 < new_lead < new):
+        return False
+    # To draw level the trailer needs half the remaining votes plus half the
+    # counted deficit. Compare that share with the earlier hurdle, then hold
+    # today's lead fixed and check whether the smaller remainder itself makes
+    # a material difference. Two percentage points in each comparison is an
+    # editorial threshold. It avoids highlighting a handful of revised votes,
+    # or crediting turnout for a change driven entirely by a larger lead.
+    hurdle_increase = 50 * (new_lead/new - old_lead/old)
+    effect_of_remainder = 50 * new_lead * (1/new - 1/old)
+    if min(hurdle_increase, effect_of_remainder) < 2:
+        return False
+    leader, trailer = count['pair']
+    chances = [s['seats'][seat]['win_percent'].get(leader, 0) for s in (previous, current)]
+    gain = chances[1] - chances[0]
+    if gain < 1:
+        return False
+    rates = [pair_win_rate(s, seat, leader, trailer) for s in (previous, current)]
+    if None in rates:
+        return False
+    # A candidate can gain by facing a different opponent. Require the
+    # improvement *within this pair*, weighted by how often they met across
+    # both forecasts, to account for at least half the overall gain before
+    # offering this explanation. Other factors can still contribute.
+    (freq0, win0), (freq1, win1) = rates
+    return (freq0 + freq1) / 200 * (win1 - win0) >= gain / 2
 
 
 def qualifying_shift(districts, favoured, change):

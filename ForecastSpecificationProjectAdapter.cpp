@@ -33,31 +33,38 @@ namespace {
 			});
 	}
 
-	// The old 2026 SA projects used the party list for historical poll columns
-	// as well as current candidates. Only migrate this known pair of layouts:
-	// other count/order mismatches still require the operator's attention.
-	bool usesOldSaPartyTable(PollingProject const& project, ForecastSpecification const& spec)
+	// Older projects kept a separate column for minor parties now counted in
+	// Others. Recognise the exact saved and replacement layouts before moving
+	// poll columns or seat references. Custom lists may have different IDs.
+	using PartyLayout = std::array<int, 8>; // old index to new index, or -1 for Others
+	std::optional<PartyLayout> oldPartyLayout(PollingProject const& project, ForecastSpecification const& spec)
 	{
-		if (spec.electionCode != "2026sa" || project.parties().count() != 8 || spec.parties.size() != 5)
-			return false;
-		std::array<std::string, 8> const oldCodes{"ALP","LNP","GRN","SAB","DEM","FF","IND","ON"};
-		std::array<std::string, 5> const currentCodes{"ALP","LNP","GRN","IND","ON"};
+		if (project.parties().count() != 8 || spec.parties.size() != 5) return {};
+		std::array<std::string, 8> oldCodes;
+		PartyLayout newIndex;
+		if (spec.electionCode == "2026sa") {
+			oldCodes = {"ALP","LNP","GRN","SAB","DEM","FF","IND","ON"};
+			newIndex = {0,1,2,-1,-1,-1,3,4};
+		} else if (spec.electionCode == "2022vic") {
+			oldCodes = {"ALP","LNP","GRN","IND","ONP","UAP","DEM","NAT"};
+			newIndex = {0,1,2,3,-1,-1,-1,4};
+		} else return {};
 		for (int i = 0; i < int(oldCodes.size()); ++i) {
 			if (project.parties().indexToId(i) != i || project.parties().viewByIndex(i).abbreviation != oldCodes[i])
-				return false;
+				return {};
+			if (newIndex[i] >= 0) {
+				auto const& destination = spec.parties.at(newIndex[i]);
+				if (destination.index != newIndex[i] || destination.abbreviation != oldCodes[i]) return {};
+			}
 		}
-		for (auto const& party : spec.parties) {
-			if (currentCodes.at(party.index) != party.abbreviation) return false;
-		}
-		return true;
+		return newIndex;
 	}
 
-	void importOldSaPartyTable(PollingProject& project, std::vector<Diagnostic>& diagnostics)
+	void importOldPartyTable(PollingProject& project, PartyLayout const& newIndex, std::vector<Diagnostic>& diagnostics)
 	{
 		// Moving the surviving parties into their new positions preserves their
 		// colours, poll settings and identities across the next save/reopen.
 		// Saved forecasts already carry their own party labels and vote shares.
-		std::array<int, 8> const newIndex{0,1,2,-1,-1,-1,3,4};
 		for (auto const& [id, seat] : project.seats()) {
 			// A customised project may have explicitly selected a party that
 			// this package removes. Report the seat before changing any records.
@@ -78,15 +85,16 @@ namespace {
 			// The poll file's Others column excludes separately reported
 			// parties. Preserve an unreported residual as missing.
 			auto& others = poll.primary[PartyCollection::MaxParties];
-			if (others >= 0) {
-				for (int retired : {3,4,5}) others += std::max(0.0f, poll.primary[retired]);
+			auto const oldPrimary = poll.primary;
+			for (int i = 0; i < int(newIndex.size()); ++i) {
+				if (newIndex[i] >= 0) poll.primary[newIndex[i]] = oldPrimary[i];
+				else if (others >= 0) others += std::max(0.0f, oldPrimary[i]);
 			}
-			poll.primary[3] = poll.primary[6];
-			poll.primary[4] = poll.primary[7];
 		}
 		auto& parties = project.parties();
-		parties.replace(3, parties.view(6));
-		parties.replace(4, parties.view(7));
+		for (int i = 0; i < int(newIndex.size()); ++i) {
+			if (newIndex[i] >= 0 && newIndex[i] != i) parties.replace(newIndex[i], parties.view(i));
+		}
 		for (int obsolete : {7,6,5}) parties.remove(obsolete);
 	}
 
@@ -276,8 +284,8 @@ ForecastSpecificationProjectAdapter::apply(
 				std::to_string(specificationCount));
 		}
 	};
-	bool const migrateSaParties = usesOldSaPartyTable(project, specification);
-	if (!migrateSaParties)
+	auto const migration = oldPartyLayout(project, specification);
+	if (!migration)
 		requireCount("parties.csv", project.parties().count(), specification.parties.size());
 	requireCount("regions.csv", project.regions().count(),
 		specification.regions.size());
@@ -288,8 +296,8 @@ ForecastSpecificationProjectAdapter::apply(
 	requireCount("forecast.json.simulations", project.simulations().count(),
 		specification.simulations.size());
 	if (hasErrors(result.diagnostics)) return result;
-	if (migrateSaParties) {
-		importOldSaPartyTable(project, result.diagnostics);
+	if (migration) {
+		importOldPartyTable(project, *migration, result.diagnostics);
 		if (hasErrors(result.diagnostics)) return result;
 	}
 
@@ -320,7 +328,7 @@ ForecastSpecificationProjectAdapter::apply(
 	// these maps exist, malformed input cannot leave a partially configured
 	// project.
 	project.setElectionName(specification.electionName);
-	bool simulationInputsChanged = migrateSaParties;
+	bool simulationInputsChanged = migration.has_value();
 	for (auto const& configured : specification.regions) {
 		auto& region = project.regions().access(
 			result.runtimeIds.regions.at(configured.id));

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "election": "2026vic",
+  "federal_election": "2025fed",
+  "federal_log_odds": {
+    "Absent": 0.295566590,
+    "PrePoll": 0.233669318,
+    "Postal": 0.220832223
+  },
+  "weights": {
+    "absent": 1.0,
+    "early": 0.0,
+    "postal": 0.5
+  }
+}

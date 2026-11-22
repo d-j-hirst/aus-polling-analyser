@@ -8,8 +8,26 @@
 // any subsequent integration of live votes.
 
 #include "General.h"
+#include <optional>
 
 namespace MinorPartyFpMath {
+
+// Previous local support outside Labor, the Coalition and the Greens informs
+// both the Others baseline and the prospects for emerging independents.
+// Cap each mapped party's contribution at the emergence threshold and retain
+// the existing 2% floor. A separate National party belongs outside this pool
+// when it is configured as the Liberal coalition partner. An unrepresented
+// party's historical votes are already in the grouped Others entry.
+inline double historicalOthersSupport(std::map<int, double> const& primaries,
+	int labor, int liberal, int greens, std::optional<int> coalitionPartner, double capPercent)
+{
+	double support = 0.0;
+	for (auto const& [party, primary] : primaries) {
+		if (party == labor || party == liberal || party == greens || party == coalitionPartner) continue;
+		support += std::min(primary, capPercent);
+	}
+	return std::max(2.0, support);
+}
 
 inline constexpr double ProminentMinorFlatBonus = 5.0;
 inline constexpr double ProminentMinorFlatBonusThreshold = 10.0;

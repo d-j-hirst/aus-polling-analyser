@@ -1,0 +1,16 @@
+{
+  "ftp://mediafeedarchive.aec.gov.au/27966/Detailed/Light/": {
+    "date": "20220521",
+    "captures": 242,
+    "first": "aec-mediafeed-Detailed-Light-27966-20220521170100.zip",
+    "last": "aec-mediafeed-Detailed-Light-27966-20220521235937.zip",
+    "filename_and_sha256_digest": "a60487065e362bb0cac49a77e93885d00fb19bb9af59422add5b514998b6c044"
+  },
+  "ftp://mediafeedarchive.aec.gov.au/31496/Detailed/Light/": {
+    "date": "20250503",
+    "captures": 229,
+    "first": "aec-mediafeed-Detailed-Light-31496-20250503175946.zip",
+    "last": "aec-mediafeed-Detailed-Light-31496-20250503235949.zip",
+    "filename_and_sha256_digest": "d6e411ff9cfb29d224eb2ff8fad2783c0bbdfe78345f701514d1abba7ccfda57"
+  }
+}

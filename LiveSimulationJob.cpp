@@ -6,6 +6,8 @@
 #include "Log.h"
 #include "LivePreparationBridge.h"
 #include "LiveHistoryScope.h"
+#include "LiveBoothGeographyInput.h"
+#include "LiveFederalDeclarations.h"
 #include "SimulationInputs.h"
 #include "ReportUploader.h"
 #include "TurnoutModelIO.h"
@@ -174,6 +176,7 @@ void LiveSimulationJob::publish(PollingProject& project, LiveSimulationUpdate& u
 void LiveSimulationJob::configureAutomation(nlohmann::json settings, bool acknowledgeChange) {
     // Called before the first worker submission. Settings are detached from the
     // editable GUI project, just like every other live calculation input.
+    context->setAutomationSettings(settings);
     automationSettings = std::move(settings);
     acknowledgeInputChange = acknowledgeChange;
 }
@@ -222,6 +225,15 @@ std::string LiveSimulationJob::automaticInputRevision(Simulation const& simulati
         support[key] = cached.second;
     };
     fingerprintFile(TurnoutModelIO::priorPath(context->paths().root(),term));
+    if (auto path = LiveFederalDeclarations::inputPath(context->paths().root(), term))
+        fingerprintFile(*path);
+    // Victoria uses both inputs for rehearsal and election night. SA shares
+    // a declaration prior across replays and selects ordinary geography per run.
+    if (auto path = LiveBoothGeography::inputPath(context->paths().root(),term,automationSettings)) {
+        if (!std::filesystem::is_regular_file(*path))
+            throw std::runtime_error("Missing prepared federal booth geography: "+path->string());
+        fingerprintFile(*path);
+    }
     // These optional manual live inputs are deliberately outside non-live
     // calibration identity, but must still be fixed within an unattended run.
     auto liveInputs = context->paths().root()/"forecasts"/term/"live-inputs";

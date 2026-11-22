@@ -920,6 +920,7 @@ fPreviousTppSwing=-0.97
 fTransposedFederalSwing=1.8
 bRetirement=1
 sRunningParties=ALP,LNP,NAT,GRN,OTH**
+fNationalsCoalitionShare=0.5809684143
 sCandidateNames=Angela Tough,ALP;Annabelle Cleeland,NAT;James Bennett,GRN;Brad Hearn,LNP
 fKnownPrepollPercent=40.3
 fKnownPostalPercent=12.2

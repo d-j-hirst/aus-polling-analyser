@@ -1242,11 +1242,17 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 				// Keep the two primary compositions and their influence available
 				// for replay inspection without recording draws or extra identities.
 				auto category = LiveNewVotes::compositionCategory(booth.incrementalFp,
-					booth.voteType == Results2::VoteType::Early || booth.voteType == Results2::VoteType::PrePoll);
+					LiveData::aggregatedEarly(booth.voteType));
 				boothJson["new_vote_composition"] = {
 					{"observed_weight",number(LiveNewVotes::observedWeight(booth.node.totalFpVotesCurrent(),turnoutFpTarget(boothIndex),category))},
 					{"context_shares",parties.values(newVoteContexts->at(boothIndex))},
 					{"future_shares",parties.values(booth.futureFpShares)}};
+				if (booth.federalDeclaration) {
+					// These two One Nation shares among future voters show how the
+					// federal starting difference and the district's own batch combine.
+					boothJson["new_vote_composition"]["one_nation_federal_context_share"] = number(booth.federalDeclaration->context);
+					boothJson["new_vote_composition"]["one_nation_blended_share"] = number(booth.federalDeclaration->future);
+				}
 			}
 			// Keep the local batch explanation beside its projection so replay
 			// analysis can distinguish an identified older FP cohort from an
@@ -1448,8 +1454,19 @@ std::optional<std::filesystem::path> LiveRunExport::exportCompletedAutomaticLive
 				row["primary_change_pp"] = acc.primary/acc.used;
 				row["measured_change_pp"] = acc.measured/acc.used;
 				row["learned_change_pp"] = acc.learned/acc.used;
+				row["broad_preference_change_pp"] = acc.broadPreference/acc.used;
 			}
 			classic.push_back(std::move(row));
+		}
+		auto& matchups = analysis["coalition_matchups"] = json::array();
+		for (auto const& [seat,summary] : run.getCoalitionMatchupSummaries()) {
+			matchups.push_back({{"seat",report.seatName.at(seat)},
+				{"reference_opponent",summary.nationalReference ? "NAT" : "LIB"},
+				{"draws_with_both_partners",summary.draws},
+				{"labor_vs_liberal_mean_percent",summary.laborSum[0]/summary.draws},
+				{"labor_vs_national_mean_percent",summary.laborSum[1]/summary.draws},
+				{"draws_with_liberal_tcp_counted",summary.countedDraws[0]},
+				{"draws_with_national_tcp_counted",summary.countedDraws[1]}});
 		}
 		// Manual 3CP/4CP observations can change exclusion order without any
 		// additional feed votes. Record their actual use separately from booth

@@ -48,7 +48,7 @@ def refresh_packet(packages, window, original):
     # endpoint account before adding the saved within-window activity below.
     current.pop('count_activity_since_previous', None)
     group = comparisons.compare(current, comparisons.comparison_summary(reference), [],
-                                read(destination/'evidence.json.gz'), read(reference/'evidence.json.gz'))
+                                comparisons.comparison_evidence(destination), comparisons.comparison_evidence(reference))
     for field in ('win_changes', 'actual_seconds'):
         group[field] = saved[field]
     # Retain within-window activity (including corrections later reversed).

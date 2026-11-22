@@ -738,7 +738,7 @@ def source_manifest_dependency(
                 manifest_path, category_id
             )
         ) from error
-    comparison = source_provenance.check_manifest(manifest_path)[category_id]
+    comparison = source_provenance.check_manifest(manifest_path, manifest)[category_id]
     physical_changes = (
         comparison["added"]
         + comparison["removed"]
@@ -750,6 +750,11 @@ def source_manifest_dependency(
                 category_id, ", ".join(physical_changes)
             )
         )
+    return registered_source_dependency(category, manifest_path, base_directory)
+
+
+def registered_source_dependency(category, manifest_path, base_directory):
+    """Describe a manifest revision after its required inputs have been verified."""
     fingerprints = {
         path: {
             "sha256": fingerprint["sha256"],
@@ -1144,7 +1149,8 @@ def update_manifest(
 class ManifestCheckContext:
     """Share filesystem and dependency checks across one audit operation."""
 
-    def __init__(self):
+    def __init__(self, requested_elections=None):
+        self.requested_elections = requested_elections
         self.manifests = {}
         self.manifest_bases = {}
         self.record_issues = {}
@@ -1516,8 +1522,9 @@ def check_record(
                 current_files = source_provenance.snapshot_category(
                     manifest_path, source_manifest, category
                 )
-                comparison = source_provenance.compare_snapshots(
-                    category["files"], current_files
+                comparison = source_provenance.compare_category_files(
+                    manifest_path.parent / source_manifest["folder"],
+                    category_id, category, current_files,
                 )
                 source_cache[cache_key] = (category, comparison)
             category, comparison = source_cache[cache_key]
@@ -1527,8 +1534,12 @@ def check_record(
             )
             continue
         if any(
-            comparison[field]
-            for field in ("added", "removed", "modified")
+            category_id != "raw_poll_data" or source_provenance.raw_poll_change_blocks(
+                record["stage"], target_scope["elections"], path,
+                path in comparison.get("recoverable_poll_files", ()),
+                check_context.requested_elections if check_context is not None else None,
+            )
+            for field in ("added", "removed", "modified") for path in comparison[field]
         ):
             issues.append(
                 "unrecorded source change {}".format(category_id)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LivePartialCount.h"
+#include "General.h"
 
 #include <algorithm>
 #include <cmath>
@@ -29,6 +30,43 @@ inline constexpr double PostalCoalitionLogOddsShift = -2.0/25;
 // itself into a strong source of movement for other districts.
 inline constexpr double IndependentPoolingHalfWeightShare = .05;
 enum class Category { General, AggregatedEarly };
+
+// These candidates have neither their own historical booth comparison nor
+// an individual pre-election forecast. The feed can still report each one's
+// district FP share separately, including a genuine zero.
+struct UnprofiledCandidate {
+    int projectionId;
+    std::optional<double> districtPercent;
+    double boothVariation; // On the same transformed share scale as other booth FP errors.
+};
+
+// The seat forecast describes Others collectively. Reserve the votes already
+// projected for members with booth history, then split what remains equally
+// among all the other members, including those already listed in a return.
+// The inherited 1% per candidate is the fallback when little or nothing is
+// available to divide. The caller fits all candidates to the booth turnout.
+inline void projectUnprofiledCandidates(std::map<int,double>& projectedVotes,
+    std::vector<UnprofiledCandidate> const& candidates, double boothTarget,
+    double othersMedianPercent, double accountedVotes, double observationWeight) {
+    if (candidates.empty() || boothTarget <= 0) return;
+    double const remaining = othersMedianPercent * boothTarget * .01 - accountedVotes;
+    double const pool = std::max(.01 * candidates.size() * boothTarget, remaining);
+    double const startingVotes = pool / candidates.size();
+    for (auto const& candidate : candidates) {
+        double votes = startingVotes;
+        if (candidate.districtPercent && observationWeight > 0) {
+            // Extrapolate the district result to this booth as evidence grows.
+            // Its possible booth-to-booth variation enters with that evidence.
+            // A missing entry keeps its starting allocation; a reported zero
+            // can pull it lower. Bound endpoints only for the log-odds calculation.
+            double const prior = transformVoteShare(std::clamp(100 * startingVotes / boothTarget, .1, 99.9));
+            double const observed = transformVoteShare(std::clamp(*candidate.districtPercent, .1, 99.9));
+            double const share = prior + observationWeight * (observed + candidate.boothVariation - prior);
+            votes = detransformVoteShare(share) * boothTarget * .01;
+        }
+        projectedVotes[candidate.projectionId] = votes;
+    }
+}
 
 // Physical WA early places can retain an Ordinary feed label while receiving
 // FP in batches; declaration early/pre-poll services use their own vote labels.

@@ -64,6 +64,10 @@ std::string calculationSettings(
 		{"start", model.getStartDate().formatIso()},
 		{"majorPartyCodes", StanModel::getMajorPartyCodes()}
 	};
+	// A saved baseline or odds calibration from the single-TPP calculation cannot
+	// be reused for a forecast with two distinct Coalition matchups.
+	if (project.parties().separateNationalsIndex() != PartyCollection::InvalidIndex && model.allPreferencesContinue())
+		result["coalitionMatchupVersion"] = 1;
 	result["others"] = {project.parties().getOthersPreferenceFlow(), project.parties().getOthersExhaustRate()};
 	result["parties"] = json::array();
 	for (auto const& [id, party] : project.parties()) {
@@ -135,11 +139,13 @@ std::shared_ptr<SimulationInputs const> SimulationInputs::capture(
 	// Record even a missing file. Changing the mode or the assumptions must
 	// invalidate both the betting-odds calibration and the pre-count baseline.
 	files[File::PreferenceModel] = "analysis/Preferences/" + term + ".json";
-	if (term == "2026vic") {
+	if (project.parties().separateNationalsIndex() != PartyCollection::InvalidIndex) {
 		// Historical scrutiny counts also affect the ordinary FP forecast and
 		// its supporting runs, independently of the preference model mode.
 		files[File::CoalitionPreferenceHistory] =
 			"analysis/Data/coalition-preference-history-" + previous + ".csv";
+	}
+	if (term == "2026vic") {
 		// The trial changes the district priors in every supporting run. Record
 		// absence too, so enabling or disabling it refreshes reusable results.
 		files[File::OneNationDistrictFp] =

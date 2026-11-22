@@ -1,0 +1,9 @@
+prior_candidate,split,mode,rule,districts,booths,formal,mae_pp,rmse_pp,gain_pp,gain_low,gain_high,districts_improved
+False,federal_area,ordinary,uniform,28,347,279528,2.4277,3.2849,0.0,0.0,0.0,0
+False,federal_area,ordinary,nearest,28,347,279528,1.8502,2.5328,0.5775,0.3522,0.8347,24
+False,federal_area,ordinary,three,28,347,279528,1.9364,2.6216,0.4913,0.2677,0.7102,22
+False,federal_area,ordinary,three-10km,28,347,279528,1.9347,2.619,0.493,0.2695,0.7105,22
+True,federal_area,ordinary,uniform,19,335,202398,3.5636,4.695,0.0,0.0,0.0,0
+True,federal_area,ordinary,nearest,19,335,202398,2.8383,3.7686,0.7254,0.4024,0.9305,17
+True,federal_area,ordinary,three,19,335,202398,2.9793,3.9432,0.5843,0.2073,0.8617,15
+True,federal_area,ordinary,three-10km,19,335,202398,2.9781,3.9414,0.5855,0.2073,0.8649,15

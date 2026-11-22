@@ -1,6 +1,7 @@
 // Small fictional feeds exercise orchestration, not election estimation. The
 // ordinary recovery/history functions remain the oracle for accepted counts.
 #include "../LiveAutomation.h"
+#include "../LiveBoothGeographyInput.h"
 #include "../LiveInputHistory.h"
 #include "../LiveHistoryScope.h"
 #include "../PreferenceModel.h"
@@ -410,6 +411,17 @@ void checkDowntimeBacklog(Path const& root) {
 }
 }
 int main() {
+    // Adding an opt-in experiment to the workspace must not add a revision
+    // key or a new source to an existing SA replay (including on restart).
+    using LiveBoothGeography::inputPath;
+    std::filesystem::path workspace = "workspace";
+    nlohmann::json settings = {{"election","2026sa"},{"kind","replay"},{"run_id","sa-control"}};
+    assert(!inputPath(workspace,"2026sa",settings));
+    assert(!inputPath(workspace,"2026sa",nullptr));
+    settings["one_nation_booth_geography"] = true;
+    settings["run_id"] = "sa-experiment";
+    assert(inputPath(workspace,"2026sa",settings) == workspace/"live_runs"/"sa-experiment"/"live-inputs"/"one-nation-booths.json");
+    assert(inputPath(workspace,"2026vic",nullptr) == workspace/"forecasts"/"2026vic"/"live-inputs"/"one-nation-booths.json");
     // A short workspace path also exercises installations without Windows long
     // path support; hosted temporary directories can themselves be very deep.
     auto root = std::filesystem::current_path()/"cli-build"/"automation-tests";

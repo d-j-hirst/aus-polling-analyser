@@ -83,6 +83,7 @@ CI_TEST_MODULES = (
     'test_turnout_sa_operational',
     'test_turnout_published_operational',
     'test_turnout_prepare_live',
+    'test_turnout_prepare_vic',
     'test_turnout_transfer',
     'test_turnout_routine_remainders',
     'test_prepare_qld_live',

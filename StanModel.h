@@ -106,6 +106,7 @@ public:
 	std::string getName() const { return name; }
 
 	std::string getTermCode() const { return termCode; }
+	bool allPreferencesContinue() const;
 
 	std::string getPartyCodes() const { return partyCodes; }
 	std::string getPreferenceDeviation() const { return preferenceDeviation; }

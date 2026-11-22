@@ -57,6 +57,7 @@ public:
 		std::map<int, double> tcpVoteCount; // map from party index -> number
 		int turnoutCount = 0;
 		double prevOthers = 0.0f; // Special variable for calculating emergence of independents
+		bool nationalTppReference = false; // Fixed before counting, including when the feed realigns.
 		bool useNamedCoalitionPreferenceHistory = false;
 		std::optional<MajorPartyFpMath::MinorPreferenceRange> minorPreferencesInCoalitionContest;
 	};
@@ -236,8 +237,18 @@ public:
 	struct ClassicTppSummary {
 		int eligible = 0, used = 0;
 		double primary = 0, measured = 0, learned = 0;
+		double broadPreference = 0; // Election and region component already included in learned.
 	};
 	auto const& getClassicTppSummaries() const { return classicTppSummaries; }
+	// Average conditional Labor TCP across every draw containing both partners,
+	// even if one seldom survives exclusion. Pair order is Liberal, National.
+	struct CoalitionMatchupSummary {
+		bool nationalReference = false;
+		int draws = 0;
+		std::array<double,2> laborSum{};
+		std::array<int,2> countedDraws{};
+	};
+	auto const& getCoalitionMatchupSummaries() const { return coalitionMatchupSummaries; }
 
 private:
 	// Only the main run opens this opt-in trace. Supporting baseline/calibration
@@ -312,6 +323,7 @@ private:
 	std::optional<PreferenceModel::Model> preferenceModel;
 	std::vector<PreferenceModel::Summary> preferenceCountSummaries;
 	std::vector<ClassicTppSummary> classicTppSummaries;
+	std::map<int,CoalitionMatchupSummary> coalitionMatchupSummaries;
 	std::map<std::array<int,3>,std::vector<double>> statewidePreferenceSamples;
 
 	mutable std::mutex warningMutex;
@@ -414,6 +426,7 @@ private:
 	// when there is no previous result, separately from all measured votes.
 	std::vector<std::optional<double>> missingGreensFpMedian;
 	bool useSeparateCoalitionPreferenceAccounting = false;
+	bool projectBothCoalitionMatchups = false;
 	std::vector<SeatType> seatTypes;
 	std::vector<float> seatPopulistModifiers;
 	std::vector<float> seatCentristModifiers;

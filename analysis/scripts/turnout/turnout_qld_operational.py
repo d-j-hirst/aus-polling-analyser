@@ -153,13 +153,21 @@ def _shared_strings(archive, label):
     ]
 
 
-def read_xlsx_rows(data, label):
-    """Return sheet-one values indexed by one-based row and column letters."""
+def read_xlsx_rows(data, label, sheet_name=None):
+    """Read the first or a named worksheet, indexed by row and column letters."""
     try:
         with ZipFile(BytesIO(data)) as archive:
             strings = _shared_strings(archive, label)
-            sheet = ET.fromstring(archive.read('xl/worksheets/sheet1.xml'))
-    except (BadZipFile, KeyError, ET.ParseError) as error:
+            path = 'xl/worksheets/sheet1.xml'
+            if sheet_name is not None:
+                sheets = ET.fromstring(archive.read('xl/workbook.xml')).findall('.//{*}sheet')
+                selected = next(sheet for sheet in sheets if sheet.get('name') == sheet_name)
+                link = selected.attrib['{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id']
+                links = ET.fromstring(archive.read('xl/_rels/workbook.xml.rels'))
+                target = next(r.attrib['Target'] for r in links if r.get('Id') == link)
+                path = target.lstrip('/') if target.startswith('/') else 'xl/' + target
+            sheet = ET.fromstring(archive.read(path))
+    except (BadZipFile, KeyError, StopIteration, ET.ParseError) as error:
         raise turnout_data.TurnoutDataError(
             '{} is not a readable XLSX workbook: {}'.format(label, error)
         )
