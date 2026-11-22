@@ -135,8 +135,17 @@ def election_headlines(packet, endpoints):
             change = ('held steady' if rounded == 0 else
                       f"{'rose' if rounded > 0 else 'fell'} **{abs(rounded):.1f} pp**")
             return f"{change} in {row['region']} (**{row['booths']} booths**)"
-        headlines.append(f"At matched election-day booths, the {{party:0}} {stronger['ledger']} share "
-                         f"{location(stronger)} and {location(weaker)} compared with the previous election.")
+        regional_text = (f"Using the forecast’s regional groupings, the {{party:0}} {stronger['ledger']} share "
+                         f"at matched election-day booths {location(stronger)} and {location(weaker)} "
+                         f"compared with the previous election.")
+        # Mention substantial variation once, alongside the regional swing.
+        # Three points is an editorial threshold for the average distance of
+        # district swings from their region's swing, weighted by counted votes.
+        varied = max(regional, key=lambda region: region.get('spread') or 0)
+        if (varied.get('spread') or 0) >= 3:
+            regional_text += (f" In {varied['region']}, swings in districts with substantial counts differed "
+                              f"from the regional swing by **{varied['spread']:.1f} pp** on average.")
+        headlines.append(regional_text)
     flows = packet['rule_context']['supported_flows']
     if flows:
         flow = flows[0]
@@ -624,7 +633,7 @@ def preference_sample_point(packet, seat, matchup=None):
     return text
 
 
-def district_story(packet, row, endpoints, concise=False):
+def district_story(packet, row, endpoints, concise=False, review_flags=None):
     seat = row['seat']
     subject = candidate(seat, row['party_id'])
     delta = row['change_pp']
@@ -711,6 +720,7 @@ def district_story(packet, row, endpoints, concise=False):
     if projection and not confidence and (local_activity or close_tcp or booth):
         projected_share = projection.point(row)
         if (booth and booth.count_type and booth.gap_pp is not None and projection.before is not None and
+                (booth.count_type == 'TCP' or rival in (None, projection.opponent)) and
                 abs(booth.gap_pp) >= 1 and abs(projection.after - projection.before) >= .1 and
                 booth.gap_pp * (projection.after - projection.before) < 0):
             # Be explicit when the measured booths and the district forecast
@@ -719,6 +729,25 @@ def district_story(packet, row, endpoints, concise=False):
             # other parties' transfers or broader movement across districts.
             projected_share = ('Despite that local '+booth.count_type+' result, '+
                                projected_share[0].lower()+projected_share[1:])
+            # A material win movement in the same direction as the district
+            # TCP revision warrants a closer look. The measured booth group
+            # cannot explain that revision on its own. Distinguish a change
+            # in the projected primary from a newly counted primary ballot.
+            # Only the complete local evidence can establish an unchanged FP.
+            if abs(delta) >= 5 and booth.gap_pp*delta < 0 and not packet.get('input_revision_changed'):
+                projected_share += ' The reported booth result alone does not explain that revision.' if booth.units == 1 else (
+                    ' Those booth results alone do not explain that revision.')
+                if endpoints and seat in packet['rule_context'].get('unchanged_fp', []):
+                    levels = [(s['seats'][seat].get('fp_percentiles', {}).get(row['party_id']) or {}).get('50')
+                              for s in endpoints]
+                    if None not in levels and abs(levels[1]-levels[0]) >= .5:
+                        projected_share += (f' The projected district FP share for {subject} also moved from '
+                                            f'**{levels[0]:.1f}%** to **{levels[1]:.1f}%**, '
+                                            'although the local FP counts were unchanged.')
+                if review_flags is not None:
+                    review_flags.append(dict(seat=seat, party=row['party_id'], opponent=projection.opponent,
+                        ledger=booth.count_type, booth_evidence=booth.point, win_change_pp=delta,
+                        district_tcp_before=projection.before, district_tcp_after=projection.after))
         if close_tcp.get('pair') and not counted_pair_relevant:
             chances = endpoints[1]['seats'][seat]['pairing_percent']
             projected_share += f' These candidates reach the TCP in **{max(chances.values()):.1f}%** of simulations.'
@@ -762,6 +791,22 @@ def comparison_context(group, packet):
     flows = (group.get('statewide_preference_changes') or {}).get('rows', [])
     noteworthy = [f for f in flows if abs(f['change_pp']) >= 2 and not packet.get('input_revision_changed')]
     context = rule_evidence.context(group, rows, noteworthy)
+    # Preserve the distinction between no net increase and no ballot
+    # reallocations. A changed party allocation at a fixed booth total
+    # is still fresh FP evidence. Use the full comparison for this check.
+    if (group.get('count_activity') or {}).get('known'):
+        fp_changes = {e.get('seat') for e in group['evidence'] if e['kind'] == 'booths' and
+                      activity.affected_ballots((e.get('before') or {}).get('fp_votes_current', {}),
+                                                (e.get('after') or {}).get('fp_votes_current', {}))}
+        context['unchanged_fp'] = sorted(selected - fp_changes)
+    context['major_moves'] = rule_evidence.major_district_moves(group['win_changes'])
+    # The full list is sorted by absolute win movement. Preserve the largest
+    # gain in each of the three leading districts for a one-line overview.
+    examples = {}
+    for row in group['win_changes']:
+        if row['seat'] in context['major_moves'][:3] and not row.get('identity_changed') and row['change_pp'] > 0:
+            examples.setdefault(row['seat'], row)
+    context['overview_gains'] = {s: [r['party_id'], r['change_pp']] for s, r in examples.items()}
     context['district_inputs'] = {'win_changes': rows}
     for key in ('close_tcp_counts', 'replacement_tcp_counts', 'ranked_tcp_groups', 'district_preference_evidence'):
         if key in group:
@@ -769,7 +814,21 @@ def comparison_context(group, packet):
     return context
 
 
-def write(packet, endpoints=None, rule_context=None):
+def district_detail_level(packet, context, window):
+    """Keep Previous Update focused on its individual step. For other windows
+    six major district changes earn an overview. A quieter long period with
+    five locally changing contests can still support two detailed stories."""
+    if window == 'previous':
+        return 'full'
+    if len(context.get('major_moves', [])) > 5:
+        return 'overview'
+    long_window = (packet.get('actual_seconds') or 0) >= 3600 or not packet.get('reference_source_time')
+    if long_window and len(context.get('large_local_moves', [])) >= 5:
+        return 'short'
+    return 'full'
+
+
+def write(packet, endpoints=None, rule_context=None, window=None, review_flags=None):
     """Return a summary and district bullets from the frozen window, together
     with the display identities needed by this edition. A change of model
     inputs can affect every movement, even in a seat with new counts."""
@@ -792,14 +851,30 @@ def write(packet, endpoints=None, rule_context=None):
     # the usual detail. Distinct seats are counted once regardless of how many
     # candidates gained or lost chances in each.
     busy_seats = len(rule_context.get('large_local_moves', []))
-    long_window = (packet.get('actual_seconds') or 0) >= 3600 or not packet.get('reference_source_time')
     order = district_order(packet, entities)
-    broad = long_window and busy_seats >= 5
-    if broad:
+    detail = district_detail_level(packet, rule_context, window)
+    broad = detail == 'short'
+    # Compare periods by how much the electoral outlook changed rather than
+    # their clock length. A busy 15 minutes can warrant an election overview,
+    # while the previous-update view always explains the individual step.
+    major = rule_context.get('major_moves', [])
+    overview = detail == 'overview'
+    if overview:
+        examples = []
+        for seat in major[:3]:
+            gain = rule_context.get('overview_gains', {}).get(seat)
+            if gain and candidate(seat, gain[0]) in entities:
+                examples.append(f'{candidate(seat, gain[0])} in {{seat:{seat}}} (**+{gain[1]:.1f} pp**)')
+        headline = f'Win prospects shifted substantially in **{len(major)} districts**'
+        if examples:
+            headline += '. Candidates gaining in the districts with the largest shifts included '+rule_evidence.joined(examples)
+        headlines.append(headline+'.')
+        order = []
+    elif broad:
         headlines.append(f'In **{busy_seats} districts** with local counting, at least one candidate’s win chance changed by **5 pp** or more.')
         order = order[:2]
     for index, row in enumerate(order):
-        headline, section = district_story(packet, row, endpoints, concise=broad and index > 0)
+        headline, section = district_story(packet, row, endpoints, concise=broad and index > 0, review_flags=review_flags)
         headlines.append(headline)
         sections.append(section)
     # A new sample can clarify the exclusion order even if the same person
@@ -809,7 +884,8 @@ def write(packet, endpoints=None, rule_context=None):
     for seat in sorted(packet.get('reported_preference_samples', {}).keys() - covered):
         point = preference_sample_point(packet, seat)
         headlines.append(f'In {{seat:{seat}}}, a preference sample was reported.')
-        sections.append({'seats': [seat], 'text': f'In {{seat:{seat}}}:\n- '+point})
+        if not overview:
+            sections.append({'seats': [seat], 'text': f'In {{seat:{seat}}}:\n- '+point})
     revision = count_revision_headline(packet)
     if revision and all(t in entities for t in display.TOKEN.findall(revision)):
         headlines.append(revision)
@@ -835,7 +911,7 @@ def write(packet, endpoints=None, rule_context=None):
     return summary, sections, {token: entities[token] for token in sorted(used)}
 
 
-def append_editions(results, requests, forecast_id, load_summary=None):
+def append_editions(results, requests, forecast_id, load_summary=None, review_flags=None):
     """At publication, append the independent report after the original
     developments. Preserve the AI status and receipt, even on timeout. Several
     windows can share a pair of forecasts and therefore both editions. A local
@@ -843,7 +919,9 @@ def append_editions(results, requests, forecast_id, load_summary=None):
     editions = {}
     combined = dict(results)
     for window, request in requests.items():
-        key = request['key']
+        # Distinct windows sharing an AI request may have different editorial
+        # scope. Reuse the paid response while preserving the previous view.
+        key = (request['key'], district_detail_level(request['packet'], request.get('rule_context') or {}, window))
         if key not in editions:
             try:
                 packet = request['packet']
@@ -858,7 +936,11 @@ def append_editions(results, requests, forecast_id, load_summary=None):
                         # A saved comparison can still supply the ordinary
                         # count stories if an older diagnostic is unavailable.
                         print(f'Simulation detail unavailable for {forecast_id}/{window}: {error}', flush=True)
-                editions[key] = write(packet, endpoints, request.get('rule_context'))
+                flags = []
+                editions[key] = write(packet, endpoints, request.get('rule_context'), window, flags)
+                if flags and review_flags is not None:
+                    previous_flags = review_flags.setdefault(packet['reference_forecast_id'], [])
+                    previous_flags.extend(flag for flag in flags if flag not in previous_flags)
             except Exception as error:
                 # A trial writer failure must leave an otherwise complete
                 # numerical publication and the primary commentary available.

@@ -228,17 +228,19 @@ class AutomationTests(unittest.TestCase):
         worker.close()
 
     def test_locked_gui_status_preserves_underlying_reporting_error(self):
-        status_file = self.root/'reporting-status.json'
         def fail_writes(path, value):
-            if path == status_file:
+            # The watcher resolves the run folder. Windows can give the same
+            # temp directory a different spelling, so match the two filenames.
+            if path.name == 'reporting-status.json':
                 raise PermissionError('status locked')
-            raise OSError('evidence storage unavailable')
+            if path.name == 'evidence.json.gz':
+                raise OSError('evidence storage unavailable')
+            return atomic(path, value)
         self.origin()
         with patch('live_pipeline.worker.atomic', side_effect=fail_writes), patch('sys.stdout', new_callable=io.StringIO) as log:
             with self.assertRaisesRegex(OSError, 'evidence storage unavailable'):
                 watch.run(self.root, [], once=True, prepare_only=True)
-        self.assertIn('status locked', log.getvalue())
-        self.assertIn('evidence storage unavailable', log.getvalue())
+        self.assertIn('status locked (reporting error: evidence storage unavailable)', log.getvalue())
         self.assertFalse((self.root/'packages/origin/ready-publication.json').exists())
 
     def test_named_replay_resolves_saved_inbox_and_commentary(self):
@@ -704,6 +706,64 @@ class AutomationTests(unittest.TestCase):
             e['before'] = dict(fp_votes_current=fp,tcp_votes_current={'0':139,'1':61})
         self.assertFalse(rule_evidence.supported_flows([first,second],[flow]))
 
+    def test_overview_counts_both_sides_of_six_district_moves_while_previous_keeps_detail(self):
+        old = comparisons.summary(numerical('earlier', chance=50))
+        new = comparisons.summary(numerical('later', chance=63))
+        for side in (old, new):
+            for seat in ('Five','Six'):
+                side['seats'][seat] = deepcopy(side['seats']['Light'])
+        group = comparisons.compare(new, old, [], observed({'0':400}), observed({'0':200}))
+        packet = comparisons.prompt_packet(new, group)
+        local = rule_commentary.comparison_context(group, packet)
+        self.assertEqual(len(local['major_moves']), 6)
+        one = {'key':'shared','packet':packet,'rule_context':local}
+        reports = rule_commentary.append_editions({w:{} for w in ('previous','15m')},
+                        {w:one for w in ('previous','15m')}, 'later', {'earlier':old,'later':new}.__getitem__)
+        self.assertGreater(len(reports['previous']['text']['developments']), 1)
+        overview, = reports['15m']['text']['developments']
+        self.assertIn('**6 districts**', overview['text'])
+        self.assertIn('**+13.0 pp**', overview['text'])
+        # At exactly 25 points a district does not qualify. Removing the sixth
+        # also restores detail; the number of party changes is immaterial.
+        rows = [dict(row, change_pp=12.5 if row['change_pp'] > 0 else -12.5)
+                if row['seat'] == 'Six' else row for row in group['win_changes']]
+        local['major_moves'] = rule_evidence.major_district_moves(rows)
+        self.assertEqual(len(local['major_moves']), 5)
+        self.assertTrue(rule_commentary.write(packet, (old,new), local, '1h')[1])
+
+    def test_local_tcp_discrepancy_checks_actual_fp_reallocations(self):
+        old = comparisons.summary(numerical('earlier', chance=50))
+        new = comparisons.summary(numerical('later', chance=66))
+        for side, fp, tcp in [(old,33.5,49), (new,34.8,51)]:
+            seat = side['seats']['Light']
+            seat['fp_percentiles']['0']['50'] = fp
+            seat['tcp_percentiles']['0/2']['50'] = tcp
+        previous = observed({'0':55,'2':45})
+        previous['booths']['Light/Hall']['tcp_votes_projected'] = {'0':55,'2':45}
+        for fp, unchanged in [({'0':55,'2':45}, True), ({'0':54,'2':46}, False)]:
+            current = observed(fp, {'0':50,'2':50})
+            group = comparisons.compare(new,old,[],current,previous)
+            packet = comparisons.prompt_packet(new,group)
+            local = rule_commentary.comparison_context(group,packet)
+            flags = []
+            _, sections, _ = rule_commentary.write(packet,(old,new),local,'previous',flags)
+            text = next(s['text'] for s in sections if s['seats']==['Light'])
+            self.assertTrue(any(f['seat']=='Light' for f in flags))
+            self.assertIn('alone does not explain',text)
+            self.assertEqual('local FP counts were unchanged' in text,unchanged)
+
+    def test_regional_spread_measures_distances_even_when_all_swings_favour_one_side(self):
+        seats, booths = [], []
+        for name, gain in [('A',1),('B',5),('C',13)]:
+            seats.append(dict(name=name,region_name='East'))
+            def tally(a):
+                return [dict(abbreviation='ALP',value=a),dict(abbreviation='LIB',value=400-a)]
+            unit = dict(seat_name=name, same_seat=True, booth_type='Normal', vote_type='Ordinary',
+                        node=dict(tcp_votes_previous=tally(200), tcp_votes_current=tally(200+4*gain)))
+            booths.extend([unit]*3)
+        row = rule_evidence.regional_counts(dict(seats=seats, booths=booths))['tcp']['East']
+        self.assertAlmostEqual(row['mean_absolute_deviation_pp'], 40/9)
+
     def test_firmer_tcp_lead_explains_quiet_win_gain_despite_weaker_primary(self):
         old = comparisons.summary(numerical('earlier', chance=99.36))
         new = comparisons.summary(numerical('later', chance=99.9575))
@@ -880,6 +940,23 @@ class AutomationTests(unittest.TestCase):
         # An inconsistent feed or a set of retained booths supplies no such claim.
         current['published_district_tcp']['Light']['candidates'] = {'100': 159, '200': 141}
         self.assertNotIn('continued_realigned_count', packet([original, earlier])['close_tcp_counts']['Light'])
+
+    def test_rules_explain_both_a_better_opponent_and_improvement_against_another(self):
+        old, new = [comparisons.summary(numerical(key)) for key in ('old','new')]
+        for side, frequency, strength in [(old,50,25),(new,60,35)]:
+            d = side['seats']['Light']
+            d['candidates']['1'] = {'name':'Liberal candidate','party':'LIB'}
+            d['pairing_percent'] = {'0/1':frequency,'1/2':100-frequency}
+            d['win_percent']['1'] = frequency*.8 + (100-frequency)*strength/100
+            side['conditional_wins'] = {'Light':{'0/1':20,'1/2':strength}}
+        def explain(a,b):
+            delta = b['seats']['Light']['win_percent']['1'] - a['seats']['Light']['win_percent']['1']
+            return pairing_commentary.explain(dict(seat='Light',party_id='1',change_pp=delta),(a,b))
+        self.assertIn('**50.0%** to **60.0%**',explain(old,new))
+        self.assertIn('**25.0%** to **35.0%**',explain(old,new))
+        self.assertIn('also fell',explain(new,old))
+        new['seats']['Light']['candidates']['2']['name'] = 'Replacement'
+        self.assertIsNone(explain(old,new))
 
     def test_rule_writer_explains_a_favoured_opponent_disappearing_from_the_final_two(self):
         def forecast(identity, frequency, strength, reverse=False):

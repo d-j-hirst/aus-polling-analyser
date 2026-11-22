@@ -141,6 +141,20 @@ def supported_flows(events, flows):
     return supported
 
 
+def major_district_moves(rows):
+    """Sum the absolute endpoint changes in each district's win chances, in
+    percentage points. Both sides of a transfer count: a 13-point gain paired
+    with a 13-point loss totals 26. Count changes for comparable identities."""
+    totals = defaultdict(float)
+    for row in rows:
+        if row.get('identity_changed'):
+            continue
+        seat, change = row['seat'], row['change_pp']
+        totals[seat] += abs(change)
+    return [seat for seat in sorted(totals, key=lambda s: (-totals[s], s))
+            if totals[seat] > 25]
+
+
 def context(comparison, win_rows, flows):
     """Save compact summaries for candidates the writer can discuss. Exclude
     transfers between declaration labels: those ballots were already counted."""
@@ -185,14 +199,29 @@ def regional_counts(analysis):
             labor = [next((r['value'] for r in rows if r.get('abbreviation') == 'ALP'), None) for rows in (old, new)]
             if None in labor:
                 continue
-            row = totals.setdefault(ledger, {}).setdefault(region, {'votes':0, 'gain':0, 'booths':0, 'seats':set()})
+            row = totals.setdefault(ledger, {}).setdefault(region, {'votes':0, 'gain':0, 'booths':0, 'districts':{}})
+            district = row['districts'].setdefault(seat, {'votes':0, 'gain':0, 'booths':0})
+            gain = labor[1] - new_n * labor[0]/old_n
             row['votes'] += new_n
-            row['gain'] += labor[1] - new_n * labor[0]/old_n
+            row['gain'] += gain
             row['booths'] += 1
-            row['seats'].add(seat)
+            district['votes'] += new_n
+            district['gain'] += gain
+            district['booths'] += 1
     for ledger in totals.values():
         for row in ledger.values():
-            row['seats'] = len(row['seats'])
+            districts = row.pop('districts')
+            row['seats'] = len(districts)
+            # A few early booths can give a misleading impression of diversity
+            # within a region. Use districts with three booths and 1,000 votes,
+            # covering at least half the regional ballots between them. Measure
+            # their distance from the regional average even when all swings
+            # are in the same direction. The weights match the regional swing.
+            measured = [d for d in districts.values() if d['booths'] >= 3 and d['votes'] >= 1000]
+            votes = sum(d['votes'] for d in measured)
+            if len(measured) >= 3 and votes >= row['votes']/2:
+                average = row['gain']/row['votes']
+                row['mean_absolute_deviation_pp'] = 100*sum(abs(d['gain']-average*d['votes']) for d in measured)/votes
     return totals
 
 
@@ -220,6 +249,7 @@ def regional_contrast(before, after):
         revised = any(r.get('votes') and abs(swing - 100*r['gain']/r['votes']) >= 1
                       for (swing, _), r in zip(selected, old_rows))
         if (newly_established or revised) and growth >= max(500, .1*sum(regions[name]['votes'] for _, name in selected)):
-            return [{'region':name, 'ledger':ledger.upper(), 'swing':swing, 'booths':regions[name]['booths']}
+            return [{'region':name, 'ledger':ledger.upper(), 'swing':swing, 'booths':regions[name]['booths'],
+                     'spread':regions[name].get('mean_absolute_deviation_pp')}
                     for swing, name in selected]
     return []

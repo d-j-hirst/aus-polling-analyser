@@ -386,7 +386,11 @@ class Processor:
         requests = read(folder/'requests.json')
         selected_evidence = {r['key']: r['packet']['evidence'] for r in requests.values()}
         if self.compare_writers:
-            results = rule_commentary.append_editions(results, requests, numerical['forecast_id'], self.load_summary)
+            review_flags = {}
+            results = rule_commentary.append_editions(results, requests, numerical['forecast_id'], self.load_summary,
+                                                     review_flags)
+            if review_flags:
+                atomic(folder/'rule-review.json', review_flags)
         results = self.vote_type_names.reports(results)
         # A call is a model decision every reader should see. Both writers
         # share this bulletin, including on quiet updates or an API timeout.
