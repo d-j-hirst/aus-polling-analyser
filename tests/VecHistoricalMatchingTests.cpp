@@ -1,6 +1,7 @@
 // Component checks for linking historical VEC counts to current polling-place
 // IDs. This optional reader test needs TinyXML, but no GUI or forecast run.
 #include "../ElectionData.h"
+#include "../LiveIndependentMapping.h"
 
 #include <cassert>
 #include <filesystem>
@@ -18,7 +19,10 @@ void preload(tinyxml2::XMLDocument& candidates, tinyxml2::XMLDocument& places)
     candidates.Parse(R"(<EML><CandidateList><EventIdentifier Id="99"/><Election>
       <Contest><PollingDistrictIdentifier Id="1"/><ContestIdentifier><ContestName>New District</ContestName></ContestIdentifier><Enrolment>1000</Enrolment>
       <Candidate><CandidateIdentifier Id="11"><CandidateName>Current One</CandidateName></CandidateIdentifier><Affiliation><AffiliationIdentifier Id="5"><RegisteredName>Australian Labor Party - Victorian Branch</RegisteredName></AffiliationIdentifier></Affiliation></Candidate>
-      <Candidate><CandidateIdentifier Id="12"><CandidateName>Current Two</CandidateName></CandidateIdentifier><Affiliation><AffiliationIdentifier Id="8"><RegisteredName>Liberal Party of Australia - Victorian Division</RegisteredName></AffiliationIdentifier></Affiliation></Candidate></Contest>
+      <Candidate><CandidateIdentifier Id="12"><CandidateName>Current Two</CandidateName></CandidateIdentifier><Affiliation><AffiliationIdentifier Id="8"><RegisteredName>Liberal Party of Australia - Victorian Division</RegisteredName></AffiliationIdentifier></Affiliation></Candidate>
+      <Candidate><CandidateIdentifier Id="13"><CandidateName>Returning Independent</CandidateName></CandidateIdentifier></Candidate>
+      <Candidate><CandidateIdentifier Id="14"><CandidateName>Now Independent</CandidateName></CandidateIdentifier></Candidate>
+      <Candidate><CandidateIdentifier Id="15"><CandidateName>Shared Name</CandidateName></CandidateIdentifier></Candidate></Contest>
       <Contest><PollingDistrictIdentifier Id="2"/><ContestIdentifier><ContestName>Other District</ContestName></ContestIdentifier><Enrolment>1000</Enrolment></Contest>
       </Election></CandidateList></EML>)");
     places.Parse(R"(<PollingDistrictList>
@@ -101,6 +105,24 @@ void checkFictionalLinks()
     assert(fpTotal(converging,8) == 100 && fpTotal(converging,9) == 100);
 }
 
+void checkHistoricalAffiliations()
+{
+    tinyxml2::XMLDocument candidates, places;
+    preload(candidates,places);
+    auto source = history();
+    auto& ballot = source["Old"]["candidates"];
+    ballot["0"] = {{"name","Current One"},{"party","INDEPENDENT"}};
+    ballot["1"] = {{"name","Now Independent"},{"party","LIBERAL"}};
+    ballot["2"] = {{"name","Returning Independent"},{"party","INDEPENDENT"}};
+    ballot["3"] = {{"name","Shared Name"},{"party","INDEPENDENT"}};
+    source["Other"]["candidates"]["0"]["name"] = "Shared Name";
+    source["Old"]["booths"]["Unique"]["fp"] = {{"0",10},{"1",20},{"2",30},{"3",40}};
+    auto previous = Election::createVec(source,candidates,places,"fictional");
+    auto const& fp = previous.booths.at(7).fpVotes;
+    assert(fp.at(13) == 30 && !fp.contains(11) && !fp.contains(14) && !fp.contains(15));
+    assert((byParty(previous,fp) == std::map<int,int>{{-1,80},{8,20}}));
+}
+
 // Optional local evidence check: compare the entire original/fixed historical
 // account using received preloads and configured predecessor names. These private
 // downloads are not required by the fictional fixtures or a public checkout.
@@ -122,6 +144,19 @@ void checkLocalArchive(std::filesystem::path const& root)
     auto before = Election::createVec(source,candidates,places,"2018vic");
     auto after = Election::createVec(source,candidates,places,"2018vic",aliases);
     auto roster = Election::createVec(candidates,places,"2022vic");
+    constexpr int offset = 100000, cupper = 18683;
+    auto returning = LiveIndependentMapping::returningBallotIds(after.candidates,roster.candidates,offset);
+    bool checkedWemen = false;
+    for (auto const& [id,booth] : roster.booths) {
+        if (booth.name != "Wemen" || roster.seats.at(booth.parentSeat).name != "Mildura") continue;
+        auto const& fp = after.booths.at(id).fpVotes;
+        assert(fpTotal(after,id) == 67);
+        assert((byParty(after,fp).at(9) == 42));
+        assert(LiveIndependentMapping::previousFpVotes({{offset+cupper,fp.at(cupper)}},
+            offset+cupper,offset,returning) == 15);
+        checkedWemen = true;
+    }
+    assert(checkedWemen);
     assert(seatTotals(before) == seatTotals(after));
     std::set<std::pair<std::string,std::string>> changed;
     for (auto const& [id, booth] : roster.booths) {
@@ -152,6 +187,7 @@ void checkLocalArchive(std::filesystem::path const& root)
 int main(int argc, char** argv)
 {
     checkFictionalLinks();
+    checkHistoricalAffiliations();
     if (argc == 2) checkLocalArchive(argv[1]);
     std::cout << "VEC historical matching checks passed.\n";
 }

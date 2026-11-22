@@ -866,9 +866,9 @@ void checkQecPartialRechecks() {
 void checkSyntheticCategoryProvenance() {
     tinyxml2::XMLDocument preload;
     std::string xml = "<HouseOfAssemblyDetail><districts><district><district_name>Example</district_name><district_id>1</district_id><first_preferences>";
-    for (int id : {1,2}) {
+    for (int id : {1,2,3}) {
         xml += "<candidate><candidate_name>Candidate " + std::to_string(id) + "</candidate_name><candidate_id>" + std::to_string(id)
-            + "</candidate_id><affiliation>" + (id == 1 ? std::string("ALP") : std::string("LIB")) + "</affiliation><polling_places>";
+            + "</candidate_id><affiliation>" + (id == 1 ? "ALP" : id == 2 ? "LIB" : "IND") + "</affiliation><polling_places>";
         for (auto const& [booth,name] : std::map<int,std::string>{{11,"School"},{12,"Example Early Voting Centre"}})
             xml += "<polling_place><polling_place_id>"+std::to_string(booth)+"</polling_place_id><polling_place_name>"+name+"</polling_place_name></polling_place>";
         xml += "</polling_places></candidate>";
@@ -885,6 +885,20 @@ void checkSyntheticCategoryProvenance() {
     assert(election.booths.at(12).syntheticBaseline);
     assert(election.seats.at(1).syntheticBaselineTypes.contains(Results2::VoteType::Postal));
     assert(!election.seats.at(1).syntheticBaselineTypes.contains(Results2::VoteType::Ordinary));
+
+    // The new sole independent has no claim on an earlier independent's FP,
+    // or a minor-party candidate's FP even if that person has the same name.
+    auto& old = history["Example"];
+    old["candidates"]["2"] = {{"name","Previous Independent"},{"party","IND"}};
+    old["candidates"]["3"] = {{"name","Candidate 3"},{"party","FFP"}};
+    old["booths"]["School"]["fp"]["2"] = 15;
+    old["booths"]["School"]["fp"]["3"] = 6;
+    auto separate = Results2::Election::createEcsa(history,preload,"fictional");
+    auto const& fp = separate.booths.at(11).fpVotes;
+    assert(!fp.contains(3) && separate.booths.at(11).totalVotesFp() == 221);
+    old["candidates"]["2"]["name"] = "Candidate 3";
+    auto returning = Results2::Election::createEcsa(history,preload,"fictional");
+    assert(returning.booths.at(11).fpVotes.at(3) == 15);
 }
 
 // Reporting progress follows accepted ballots and the current source pairing,

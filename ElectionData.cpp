@@ -41,6 +41,16 @@ namespace {
 
 using CandidateMatchKey = std::pair<std::string, std::string>;
 
+// Historical candidates without a current ballot match get private IDs.
+// Leave room for the 100000 offset added by LiveV2 for independents: even
+// after that addition an unmatched candidate must stay clear of party slots.
+constexpr int FirstHistoricalCandidateId = -200000;
+
+bool sameIndependentStatus(Results2::Candidate const& current, bool wasIndependent)
+{
+  return (current.party == Results2::Candidate::Independent) == wasIndependent;
+}
+
 Results2::VoteType qecVoteType(std::string const& name)
 {
   // Physical ordinary/early/mobile venues are booth records. Statewide service
@@ -482,8 +492,10 @@ std::vector<int> allocateVotes(int totalVotes, std::vector<double> weights, int 
 
 std::string ecsaCandidatePartyBucket(std::string const& partyCode)
 {
-  static std::set<std::string> const majorPartyCodes = { "ALP", "LIB", "GRN", "ONP" };
-  return majorPartyCodes.contains(partyCode) ? partyCode : "OTH";
+  // A named independent can carry a personal booth vote forward. A former
+  // minor-party candidacy under the same name is a separate historical result.
+  static std::set<std::string> const distinctCodes = { "ALP", "LIB", "GRN", "ONP", "IND" };
+  return distinctCodes.contains(partyCode) ? partyCode : "OTH";
 }
 
 CandidateMatchKey ecsaCandidateMatchKey(std::string const& candidateName, std::string const& partyCode)
@@ -516,13 +528,16 @@ int waecBoothId(int electionId, int seatId, std::string const& number)
   return hashName(std::to_string(electionId) + "/" + std::to_string(seatId) + "/" + number);
 }
 
-void registerEcsaCandidateMatch(std::map<CandidateMatchKey, int>& candidateMatchToId,
+using EcsaCandidateMatches = std::map<CandidateMatchKey, std::optional<int>>;
+
+void registerEcsaCandidateMatch(EcsaCandidateMatches& candidateMatchToId,
   Results2::Candidate const& candidate, Results2::Party const& party)
 {
-  candidateMatchToId[ecsaCandidateMatchKey(candidate.name, party.shortCode)] = candidate.id;
+  auto [entry, added] = candidateMatchToId.try_emplace(ecsaCandidateMatchKey(candidate.name, party.shortCode), candidate.id);
+  if (!added && entry->second != candidate.id) entry->second.reset();
 }
 
-std::optional<int> findEcsaCandidateMatch(std::map<CandidateMatchKey, int> const& candidateMatchToId,
+std::optional<int> findEcsaCandidateMatch(EcsaCandidateMatches const& candidateMatchToId,
   std::string const& candidateName, std::string const& partyCode)
 {
   auto found = candidateMatchToId.find(ecsaCandidateMatchKey(candidateName, partyCode));
@@ -774,12 +789,23 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
       seatNameToId[seat.name] = seatId;
     }
   }
-  for (auto [candidateId, candidate] : candidates) {
+  std::set<std::string> ambiguousCandidateNames;
+  for (auto const& [candidateId, candidate] : candidates) {
     if (candidateNameToId.contains(candidate.name)) {
+      ambiguousCandidateNames.insert(candidate.name);
       logger << "Warning: duplicate name for " << candidate.name << "!\n";
     }
     else {
       candidateNameToId[candidate.name] = candidateId;
+    }
+  }
+  // The historical file supplies names instead of current ballot IDs. Two
+  // different old entries must not both become the same returning independent.
+  std::set<std::string> historicalNames;
+  for (auto const& seat : results) {
+    for (auto const& candidate : seat.at("candidates")) {
+      auto const candidateName = candidate.at("name").get<std::string>();
+      if (!historicalNames.insert(candidateName).second) ambiguousCandidateNames.insert(candidateName);
     }
   }
   std::set<std::string> seenBooths;
@@ -812,7 +838,7 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
     }
   }
   //PA_LOG_VAR(boothNameToId);
-  int dummyCandidateId = -100000; // Low numbers that will never be mistaken for an official id
+  int dummyCandidateId = FirstHistoricalCandidateId;
   int dummyBoothId = -100000; // Low numbers that will never be mistaken for an official id
   // Not worth soft-coding this
   const std::map<std::string, int> partyIds = {
@@ -856,10 +882,20 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
     std::map<int, int> indexToId;
     for (auto const& [candIndex, candValue] : seatValue["candidates"].items()) {
       int candIndexI = std::stoi(candIndex);
-      auto candidateName = candValue["name"];
-      auto party = candValue["party"];
-      if (candidateNameToId.contains(candidateName)) {
-        indexToId[candIndexI] = candidateNameToId[candidateName];
+      auto candidateName = candValue.at("name").get<std::string>();
+      auto party = candValue.at("party").get<std::string>();
+      auto match = candidateNameToId.find(candidateName);
+      bool reuseBallot = match != candidateNameToId.end();
+      if (reuseBallot) {
+        // An independent's booth vote belongs to their campaign. A previous
+        // registered-party vote stays with that party even when the same
+        // person subsequently stands as an independent (and vice versa).
+        bool wasIndependent = party == "INDEPENDENT";
+        reuseBallot = sameIndependentStatus(candidates.at(match->second), wasIndependent)
+          && !(wasIndependent && ambiguousCandidateNames.contains(candidateName));
+      }
+      if (reuseBallot) {
+        indexToId[candIndexI] = match->second;
       }
       else {
         indexToId[candIndexI] = dummyCandidateId;
@@ -869,7 +905,7 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
         // Historical datasets can retain parties absent from the current
         // ballot. Keep their candidate votes using the existing unmapped
         // minor-candidate treatment rather than requiring a current party ID.
-        auto knownParty = partyIds.find(party.get<std::string>());
+        auto knownParty = partyIds.find(party);
         candidate.party = knownParty != partyIds.end() ? knownParty->second : Candidate::Independent;
         candidates[candidate.id] = candidate;
         --dummyCandidateId;
@@ -1160,7 +1196,7 @@ void Results2::Election::preloadNswec([[maybe_unused]] nlohmann::json const& res
     }
     //PA_LOG_VAR(boothNameToId);
     //PA_LOG_VAR(ambiguousBoothNameToId);
-    int dummyCandidateId = -100000; // Low numbers that will never be mistaken for an official id
+    int dummyCandidateId = FirstHistoricalCandidateId;
     int dummyBoothId = -100000; // Low numbers that will never be mistaken for an official id
     // Not worth soft-coding this
     const std::map<std::string, int> partyIds = {
@@ -1204,11 +1240,13 @@ void Results2::Election::preloadNswec([[maybe_unused]] nlohmann::json const& res
         // accommodate redistributions. Ambiguous/unmatched candidates receive
         // synthetic IDs below.
         auto const candidateKey = nswecCandidateKey(seatId, candidateNameText);
-        if (seatId > 0 && candidateNameToId.contains(candidateKey)) {
+        if (seatId > 0 && candidateNameToId.contains(candidateKey)
+          && sameIndependentStatus(candidates.at(candidateNameToId.at(candidateKey)), party == "IND")) {
           indexToId[candIndexI] = candidateNameToId[candidateKey];
         }
         else if (candidateIdsByName.contains(candidateNameText) &&
-          candidateIdsByName.at(candidateNameText).size() == 1) {
+          candidateIdsByName.at(candidateNameText).size() == 1 &&
+          sameIndependentStatus(candidates.at(candidateIdsByName.at(candidateNameText).front()), party == "IND")) {
           indexToId[candIndexI] = candidateIdsByName.at(candidateNameText).front();
         }
         else {
@@ -1494,7 +1532,7 @@ void Results2::Election::preloadQec([[maybe_unused]] nlohmann::json const& resul
         boothNameToId[booth.name] = boothId;
       }
     }
-    int dummyCandidateId = -100000; // Low numbers that will never be mistaken for an official id
+    int dummyCandidateId = FirstHistoricalCandidateId;
     int dummyBoothId = -100000; // Low numbers that will never be mistaken for an official id
     //PA_LOG_VAR(boothNameToId);
     //PA_LOG_VAR(ambiguousBoothNameToId);
@@ -1510,7 +1548,8 @@ void Results2::Election::preloadQec([[maybe_unused]] nlohmann::json const& resul
         auto candidateName = candValue["name"];
         auto party = candValue["party"];
         auto const candidateKey = qecCandidateKey(seatId, std::string(candidateName));
-        if (candidateNameToId.contains(candidateKey)) {
+        if (candidateNameToId.contains(candidateKey) &&
+          sameIndependentStatus(candidates.at(candidateNameToId.at(candidateKey)), party == "Independent")) {
           indexToId[candIndexI] = candidateNameToId[candidateKey];
         }
         else {
@@ -2178,7 +2217,8 @@ void Results2::Election::preloadEcsa([[maybe_unused]] nlohmann::json const& resu
 	int partyIdCounter = 1;
 	std::map<std::string, int> partyNameToPartyId;
   std::map<int, std::vector<int>> seatCandidateIds;
-  std::map<CandidateMatchKey, int> ecsaCandidateMatchToId;
+  // Only current ballot entries can establish a cross-election link.
+  EcsaCandidateMatches ecsaCandidateMatchToId;
 	partyNameToPartyId["IND"] = -1;
 	while (currentDistrict) {
 		Seat seat;
@@ -2312,7 +2352,7 @@ void Results2::Election::preloadEcsa([[maybe_unused]] nlohmann::json const& resu
         boothNameToId[booth.name] = boothId;
       }
     }
-    int dummyCandidateId = -100000; // Low numbers that will never be mistaken for an official id
+    int dummyCandidateId = FirstHistoricalCandidateId;
     int dummyBoothId = -100000; // Low numbers that will never be mistaken for an official id
 		std::set<int> matchedIds;
 		for (auto const& [seatName, seatValue] : results.items()) {
@@ -2330,7 +2370,9 @@ void Results2::Election::preloadEcsa([[maybe_unused]] nlohmann::json const& resu
 				if (auto matchedCandidateId = findEcsaCandidateMatch(ecsaCandidateMatchToId, candidateName, party)) {
 					indexToId[candIndexI] = matchedCandidateId.value();
 				}
-        else if (seatId > 0 && partyNameToPartyId.contains(party)) {
+        // Party history survives a change of nominee. Two successive sole
+        // independents in a district can have entirely different booth support.
+        else if (seatId > 0 && partyNameToPartyId.contains(party) && party != "IND") {
           std::vector<int> matchingCurrentCandidates;
           for (int currentCandidateId : seatCandidateIds[seatId]) {
             if (candidates[currentCandidateId].party == partyNameToPartyId[party]) {
@@ -2347,7 +2389,6 @@ void Results2::Election::preloadEcsa([[maybe_unused]] nlohmann::json const& resu
             candidate.name = candidateName;
             candidate.party = partyNameToPartyId[party];
             candidates[candidate.id] = candidate;
-            registerEcsaCandidateMatch(ecsaCandidateMatchToId, candidate, parties.at(candidate.party));
             --dummyCandidateId;
           }
         }
@@ -2363,9 +2404,6 @@ void Results2::Election::preloadEcsa([[maybe_unused]] nlohmann::json const& resu
             candidate.party = -1;
           }
           candidates[candidate.id] = candidate;
-          if (parties.contains(candidate.party)) {
-            registerEcsaCandidateMatch(ecsaCandidateMatchToId, candidate, parties.at(candidate.party));
-          }
           --dummyCandidateId;
         }
        }

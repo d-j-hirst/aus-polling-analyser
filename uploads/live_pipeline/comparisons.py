@@ -581,6 +581,11 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
                     event['fp_share_minus_previous_expectation_pp'] = {
                         p: 100*(measured[p]/sum(measured.values())-forecast[p]/sum(forecast.values()))
                         for p in measured.keys() & forecast.keys()}
+                    estimates = rule_evidence.booth_projection_after_preferences(
+                        original_before['booths'][key], original_after['booths'][key],
+                        event['seat'], previous, current, ranked_pairs)
+                    if estimates:
+                        event['rule_booth_tcp_estimates'] = estimates
             elif kind == 'booths':
                 # Newly introduced or removed units have no matching booth
                 # expectation, but their actual net count change is still known.
@@ -969,7 +974,8 @@ def _booth_story(event, candidates, replacement):
     if tcp_size:
         fields.append(tcp)
     detail = {k: v for k, v in event.items() if k not in (
-        'before', 'after', 'interpretation', 'fp_share_minus_previous_expectation_pp', 'pair_changed')}
+        'before', 'after', 'interpretation', 'fp_share_minus_previous_expectation_pp', 'pair_changed',
+        'rule_booth_tcp_estimates')}
     if not fp_size or incidental_fp:
         detail.pop('fp_vote_change', None)
     if not tcp_size:

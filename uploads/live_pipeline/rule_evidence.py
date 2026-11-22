@@ -5,12 +5,36 @@ the earlier forecast for those same places. The local writer can examine
 every booth before summarising them. The AI request has a separate size limit.
 """
 from collections import defaultdict
+import math
 
 from . import activity
 
 
 def joined(items):
     return ', '.join(items[:-1]) + ' and ' + items[-1] if len(items) > 1 else items[0]
+
+
+def early_returns(events):
+    """Select the three largest additions in a quiet early comparison. Both
+    first returns and additions to an existing count qualify. Rank by the
+    larger of FP and TCP additions since those counts can cover the same
+    ballots. A revised TCP pairing cannot be compared by subtracting totals
+    for different opponents; the separate realignment story covers that."""
+    units = []
+    for event in events:
+        if event['kind'] != 'booths' or not event.get('changed_votes'):
+            continue
+        before, after = event.get('before') or {}, event.get('after') or {}
+        fp, tcp = event['fp_vote_change'], event['tcp_vote_change']
+        if sum(before.get('tcp_votes_current', {}).values()) and activity.first_tcp_size(before, after) is not None:
+            tcp = 0
+        if max(fp, tcp) <= 0:
+            continue
+        units.append(dict(seat=event['seat'], name=after['name'], vote_type=after.get('vote_type'),
+                          fp_net_change=fp, tcp_net_change=tcp))
+    units.sort(key=lambda u: (-max(u['fp_net_change'], u['tcp_net_change']), u['seat'], u['name']))
+    return {'shown': units[:3], 'other_count': max(0, len(units)-3),
+            'other_categories': any(u['vote_type'] not in ('Ordinary', None) for u in units[3:])}
 
 
 def unit_names(units):
@@ -24,6 +48,55 @@ def unit_names(units):
     if extra:
         labels.append(f'{extra} other booth' + ('s' if extra != 1 else ''))
     return joined(labels)
+
+
+def booth_projection_after_preferences(old, new, seat, previous, current, ranked_pairs):
+    """Find two comparable forecasts for this booth after preferences. A booth
+    with FP only can still have a modelled TCP. Compare the same district
+    finalists at both dates and leave measured TCP to the counted-vote story."""
+    if previous['input_revision'] != current['input_revision'] or any(
+            any(b.get('tcp_votes_current', {}).values()) for b in (old, new)):
+        return None
+    earlier, later = (s['seats'].get(seat, {}) for s in (previous, current))
+    frequencies = later.get('pairing_percent', {})
+    if not frequencies:
+        return None
+    pair = max(frequencies, key=frequencies.get).split('/')
+    if len(set(pair)) != 2 or len(pair) != 2 or (seat, frozenset(pair)) in ranked_pairs:
+        # A ranked allocation for the whole category does not identify how
+        # its transfers split at this booth. The older booth TCP is a
+        # different calculation and cannot supply the missing ranked share.
+        return None
+    for party in pair:
+        candidate = later.get('candidates', {}).get(party) or {}
+        if not candidate.get('name') or candidate != earlier.get('candidates', {}).get(party):
+            return None
+
+    # The TPP export always labels the Coalition side as party 1, even
+    # when it represents a National. Use the ballot to establish the sole
+    # Coalition opponent before interpreting this as a named TCP. A direct
+    # booth TCP export already identifies its two candidates.
+    fields = [('tcp_votes_projected', pair)]
+    if '0' in pair:
+        opponent = next(p for p in pair if p != '0')
+        for summary, booth in ((previous, old), (current, new)):
+            coalition = {p for p in booth.get('fp_votes_projected', {})
+                         if summary.get('parties', {}).get(p) in ('LIB', 'LNP', 'NAT', 'CLP')}
+            if coalition != {opponent}:
+                break
+        else:
+            fields.insert(0, ('tpp_votes_projected', ['0' if p == '0' else '1' for p in pair]))
+    for field, ids in fields:
+        shares = []
+        for booth in (old, new):
+            votes = booth.get(field) or {}
+            if (votes.keys() != set(ids) or any(not math.isfinite(v) or v < 0 for v in votes.values())
+                    or sum(votes.values()) <= 0):
+                break
+            shares.append(100 * votes[ids[0]] / sum(votes.values()))
+        if len(shares) == 2:
+            return {pair[0]: shares, pair[1]: [100-v for v in shares]}
+    return None
 
 
 def booth_units(events):
@@ -76,7 +149,8 @@ def booth_units(events):
             # be named separately. It contributes no ballots to a pooled share.
             if rates or declaration:
                 by_seat[event['seat']].append(dict(name=label, declaration=declaration, ledger=ledger,
-                    category=category, pair=pair, first=first, ballots=ballots, changed=changed, rates=rates))
+                    category=category, pair=pair, first=first, ballots=ballots, changed=changed, rates=rates,
+                    tcp_estimates=event.get('rule_booth_tcp_estimates') if ledger == 'FP' else None))
     return by_seat
 
 
@@ -102,6 +176,13 @@ def pool(units, party):
         result.append(dict(ledger=ledger, pair=list(pair), first=first, locations=unit_names(batch), units=len(batch),
             declaration=batch[0]['declaration'] if len(batch) == 1 else False, ballots=ballots,
             changed=sum(u['changed'] for u in batch), rates=rates, other_categories=other_categories))
+        # Use every booth named in the FP sentence and its same ballot weight
+        # at both dates. A projection for only part of the group can tell a
+        # different story, particularly when a large centre is missing.
+        estimates = batch[0].get('tcp_estimates') or {}
+        if party in estimates and all((u.get('tcp_estimates') or {}).keys() == estimates.keys() for u in batch):
+            result[-1]['tcp_estimates'] = {p: [sum(u['tcp_estimates'][p][i] * u['ballots'] for u in batch)
+                                                / ballots for i in (0, 1)] for p in estimates}
     return result
 
 

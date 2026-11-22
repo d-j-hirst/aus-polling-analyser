@@ -6,6 +6,7 @@
 #include "SpecialPartyCodes.h"
 #include "LiveTurnoutMath.h"
 #include "LivePartyMapping.h"
+#include "LiveIndependentMapping.h"
 #include "LiveTppSensitivity.h"
 #include "LiveResultsInput.h"
 #include "LiveStatewidePreferences.h"
@@ -1773,6 +1774,8 @@ void Election::loadEstimatedPreferenceFlows() {
 void Election::initializePartyMappings(
   Results2::Election const& previousElection,
   Results2::Election const& currentElection) {
+  returningIndependentBallotIds = std::make_shared<const std::set<int>>(
+    LiveIndependentMapping::returningBallotIds(previousElection.candidates, currentElection.candidates, IndependentPartyIdOffset));
   // Configured official codes retain the project's party/group choices. Keep
   // numeric feed IDs separate by election; their numbers do not identify the
   // same party across independently prepared current and historical inputs.
@@ -2805,11 +2808,14 @@ void Election::includeSeatBaselineResults(
     for (auto const& [partyId, swing] : seat.node.fpSharesBaseline) {
       if (seat.node.totalVotesPrevious() > 0) {
         double thisVotesPrevious = 0.0;
-        if (seat.node.fpVotesPrevious.contains(partyId)) {
-          thisVotesPrevious = seat.node.fpVotesPrevious.at(partyId);
+        if (partyId == run.indPartyIndex && seat.independentPartyIndex != InvalidPartyIndex) {
+          // The expected swing for a named independent needs the same person's
+          // district FP at the last election, just as the booth projection does.
+          thisVotesPrevious = LiveIndependentMapping::previousFpVotes(seat.node.fpVotesPrevious,
+            seat.independentPartyIndex, IndependentPartyIdOffset, *returningIndependentBallotIds).value_or(0);
         }
-        else if (partyId == run.indPartyIndex && seat.node.fpVotesPrevious.contains(seat.independentPartyIndex)) {
-          thisVotesPrevious = seat.node.fpVotesPrevious.at(seat.independentPartyIndex);
+        else if (seat.node.fpVotesPrevious.contains(partyId)) {
+          thisVotesPrevious = seat.node.fpVotesPrevious.at(partyId);
         }
         if (thisVotesPrevious > 0.0) {
           seat.node.fpSwingsBaseline[partyId] = seat.node.fpSharesBaseline[partyId] - 
@@ -2900,7 +2906,7 @@ void Election::calculateDeviationsFromBaseline() {
           booth.node.fpDeviations[partyId] = booth.node.fpSwings.at(partyId) - baselineSwing;
         }
         else if (partyId == run.indPartyIndex && booth.node.fpSwings.contains(seat.liveIndependentPartyIndex)) {
-          if (seat.liveIndependentPartyIndex != InvalidPartyIndex) {
+          if (seat.liveIndependentPartyIndex == seat.independentPartyIndex && seat.liveIndependentPartyIndex != InvalidPartyIndex) {
             booth.node.fpDeviations[partyId] = booth.node.fpSwings.at(seat.liveIndependentPartyIndex) - baselineSwing;
           }
         }
@@ -4002,11 +4008,18 @@ std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int bo
       continue;
     }
     auto const baselineShareUntransformed = baselinePercent(effectivePartyId);
-    if (booth.node.fpVotesPrevious.contains(effectivePartyId) && booth.node.totalVotesPrevious()) {
-      // We have previous election data and some sort of a deviation estimate (even if it's just zero)
-      double prevVotes = booth.node.fpVotesPrevious.at(effectivePartyId);
-      double prevShare = transformVoteShare(std::clamp(double(prevVotes) / double(previousTotalVotes) * 100.0, 0.5, 99.5));
-      double baselineSwing = seat.node.fpSwingsBaseline.contains(effectivePartyId) ? seat.node.fpSwingsBaseline.at(effectivePartyId) : 0.0;
+    // Read the old count with the ballot identity. The projection identity
+    // instead selects the seat's expected swing and labels the output.
+    auto previousVotes = LiveIndependentMapping::previousFpVotes(booth.node.fpVotesPrevious,
+      partyId, IndependentPartyIdOffset, *returningIndependentBallotIds);
+    if (previousVotes && booth.node.totalVotesPrevious()) {
+      double prevShare = transformVoteShare(std::clamp(double(*previousVotes) / previousTotalVotes * 100.0, 0.5, 99.5));
+      // If the live IND slot changes hands, the incoming candidate may
+      // have their own booth history, but the outgoing candidate's
+      // expected district swing does not belong to them.
+      bool const sameBaselineCandidate = effectivePartyId != run.indPartyIndex || partyId == seat.independentPartyIndex;
+      double baselineSwing = sameBaselineCandidate && seat.node.fpSwingsBaseline.contains(effectivePartyId)
+        ? seat.node.fpSwingsBaseline.at(effectivePartyId) : 0.0;
       double newShare = prevShare + baselineSwing + deviation + randomFactor;
       double newVotes = detransformVoteShare(newShare) * currentVoteTarget * 0.01;
       tempFpVotesProjected[effectivePartyId] = newVotes;

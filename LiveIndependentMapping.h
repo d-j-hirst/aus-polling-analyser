@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cctype>
 #include <map>
+#include <optional>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -37,6 +39,36 @@ inline std::string canonicalName(std::string name) {
 }
 
 using NamesBySeat = std::map<std::string, std::vector<std::string>>;
+
+// The feed adapter may already have matched a historical candidate to this
+// year's ballot ID (Victoria does this by name). A number on its own is not
+// evidence that the person returned. Check the full name and independent
+// affiliation in both rosters once, before projecting any booths.
+template<class Candidates>
+std::set<int> returningBallotIds(Candidates const& previous, Candidates const& current, int independentOffset) {
+    std::set<int> returning;
+    for (auto const& [id, candidate] : current) {
+        if (candidate.party != candidate.Independent) continue;
+        auto old = previous.find(id);
+        if (old == previous.end() || old->second.party != candidate.Independent) continue;
+        auto name = canonicalName(candidate.name);
+        if (!name.empty() && name == canonicalName(old->second.name))
+            returning.insert(id + independentOffset);
+    }
+    return returning;
+}
+
+// In a booth or district account, registered parties carry their vote across elections
+// by party. An independent carries only their own votes, even when they
+// occupy the forecast's main IND slot. A recorded zero is a booth result;
+// an absent entry leaves the ordinary no-history estimate in place.
+inline std::optional<int> previousFpVotes(std::map<int, int> const& counts, int ballotId,
+    int independentOffset, std::set<int> const& returning) {
+    if (ballotId >= independentOffset && !returning.contains(ballotId)) return std::nullopt;
+    auto votes = counts.find(ballotId);
+    if (votes == counts.end()) return std::nullopt;
+    return votes->second;
+}
 
 // NamesBySeat contains only names explicitly assigned IND in sCandidateNames.
 // Each seat's candidate-count keys restrict the match to its own ballot, even

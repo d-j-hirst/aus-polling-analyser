@@ -993,6 +993,8 @@ private:
 
   LivePartyMapping::CommissionIds ecPartyToInternalParty;
   std::map<std::string, int> ecAbbreviationToInternalParty;
+  // Prepared once from both rosters and shared by every draw in the snapshot.
+  std::shared_ptr<const std::set<int>> returningIndependentBallotIds;
 
   std::map<int, double> preferenceFlowMap; // preference flows as a percentage
   std::map<int, double> preferenceExhaustMap;

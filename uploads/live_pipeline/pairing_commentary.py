@@ -35,6 +35,59 @@ def pair_win_rate(summary, seat, subject, opponent):
     return chance, inside
 
 
+def possible_opponent_change(endpoints, seat, beneficiary, rival):
+    """Explain how a growing pairing could move its median towards the
+    beneficiary even though the local FP gap moved towards the rival. Each
+    forecast summarises its own set of finals. We can compare frequencies
+    and winners across forecasts, but cannot follow individual simulations."""
+    if not endpoints or endpoints[0].get('input_revision') != endpoints[1].get('input_revision'):
+        return None
+    old, new = (s['seats'][seat] for s in endpoints)
+    names = old.get('candidates', {})
+    def same_candidate(party):
+        return (names.get(party, {}).get('name') and
+                names[party] == new.get('candidates', {}).get(party))
+
+    if not all(same_candidate(p) for p in (beneficiary, rival)):
+        return None
+    results = [pair_win_rate(s, seat, beneficiary, rival) for s in endpoints]
+    if None in results:
+        return None
+    (p0, w0), (p1, w1) = results
+    growth = p1 - p0
+    added_wins = (p1*w1 - p0*w0) / 100
+    # Use this explanation only for a material expansion (two percentage
+    # points of all simulations), where the candidate also wins this pairing
+    # more often and earns at least two thirds of its net increase in finals.
+    if growth < 2 or w1 <= w0 or added_wins < growth * 2/3:
+        return None
+
+    alternatives = []
+    for key in old.get('pairing_percent', {}):
+        members = key.split('/')
+        if beneficiary not in members or len(set(members)) != 2 or len(members) != 2:
+            continue
+        other = next(p for p in members if p != beneficiary)
+        if other == rival or not same_candidate(other):
+            continue
+        contests = [pair_win_rate(s, seat, beneficiary, other) for s in endpoints]
+        if None in contests:
+            continue
+        (before, old_win), (after, _) = contests
+        # Name a plausible displaced opponent only if their contest clearly
+        # favoured this candidate before and its decline is large enough to
+        # matter (at least one point and a quarter of the expanding pairing).
+        if old_win >= 60 and before - after >= max(1, growth / 4):
+            alternatives.append((before - after, other))
+    if not alternatives:
+        return None
+    person, challenger, displaced = ('{candidate:'+seat+':'+p+'}' for p in
+                                     (beneficiary, rival, max(alternatives)[1]))
+    return (f'This pairing rose from **{p0:.1f}%** to **{p1:.1f}%** of simulations. '
+            f'{challenger} may be edging out {displaced} for second place in some simulations '
+            f'that already favoured {person}, which could help explain the higher TCP share.')
+
+
 def matchup_outlook(summary, seat, subject, opponent):
     """Return pair frequency, wins within the pair and wins across the other
     simulations (including draws where the subject missed the final two)."""
@@ -55,6 +108,45 @@ def matchup_outlook(summary, seat, subject, opponent):
         return None
     outside = min(100, max(0, 100 * other_wins / (100-chance)))
     return chance, inside, outside
+
+
+def both_finalists_gain(row, opponent, endpoints, win_changes):
+    """Explain how both usual finalists can gain overall in a near-even seat.
+    Count wins in their shared matchup as a fraction of all simulations. The
+    losing candidate elsewhere and a more frequent matchup are observations
+    across the two forecasts. Neither establishes who received booth preferences."""
+    seat, subject = row['seat'], row['party_id']
+    results = [pair_win_rate(s, seat, subject, opponent) for s in endpoints]
+    if None in results:
+        return None
+    (p0, w0), (p1, w1) = results
+    districts = [s['seats'][seat] for s in endpoints]
+    gains = []
+    for party in (subject, opponent):
+        if districts[0]['candidates'].get(party) != districts[1]['candidates'].get(party):
+            return None
+        levels = [d['win_percent'].get(party) for d in districts]
+        if None in levels:
+            return None
+        gains.append(levels[1] - levels[0])
+    # Reserve the explanation for visible gains on both sides, with at least
+    # one additional final per hundred draws. Require the extra wins within
+    # the pair to account for at least half the subject's overall gain.
+    if (min(gains) < .1 or p1-p0 < 1 or (p1*w1-p0*w0)/100 < gains[0]/2):
+        return None
+    rivals = [r for r in win_changes if r['seat'] == seat and r['party_id'] not in (subject, opponent)
+              and not r.get('identity_changed') and -r['change_pp'] >= sum(gains)/2]
+    if not rivals:
+        return None
+    rival = min(rivals, key=lambda r: r['change_pp'])
+    text = (f"Both finalists gained as the win chance for {{candidate:{seat}:{rival['party_id']}}} "
+            f"fell from **{rival['before']:.1f}%** to **{rival['after']:.1f}%**. "
+            f"The chance of a {{candidate:{seat}:{subject}}}–{{candidate:{seat}:{opponent}}} final "
+            f"rose from **{p0:.1f}%** to **{p1:.1f}%**.")
+    if round(w1, 1) > round(w0, 1):
+        text += (f' {{candidate:{seat}:{subject}}} won **{w1:.1f}%** of those simulations, '
+                 f'up from **{w0:.1f}%**.')
+    return text
 
 
 def fewer_votes_favour_counted_leader(seat, count, previous, current):
