@@ -1159,7 +1159,7 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 					weights[party] = LiveFpIntegration::countWeight(
 						moments.baseline.logOddsVariance.at(party),variance,moments.evidenceGate);
 			seatJson["fp_integration"] = {
-				{"method","local_precision"},
+				{"method",moments.boothComparisons.empty() ? "local_precision" : "ordinary_vote_blend"},
 				{"evidence_gate",number(moments.evidenceGate)},
 				{"shared_deviation",parties.values(moments.sharedDeviation)},
 				{"baseline_log_odds_mean",parties.values(moments.baseline.logOddsMean)},
@@ -1168,6 +1168,29 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 				{"count_log_odds_variance",parties.values(moments.count.logOddsVariance)},
 				{"individual_count_weights",parties.values(weights)}
 			};
+			if (!moments.boothComparisons.empty()) {
+				// A later replay or commentary comparison can hold the earlier
+				// precision fixed and recompute the marginal centre from these
+				// small district summaries. No per-draw booth export is needed.
+				auto& inputs = seatJson["fp_integration"];
+				auto const& mean = turnout->mean(LiveData::CountKind::Fp,&seat-seats.data());
+				auto const& counted = turnout->counted(LiveData::CountKind::Fp,&seat-seats.data());
+				double const size = LiveFpEvidence::total(mean);
+				double const future = size-LiveFpEvidence::total(counted);
+				inputs["remaining_fraction"] = number(future/size);
+				auto rows = json::array();
+				for (auto const& [party,b] : moments.boothComparisons) {
+					double const fixed = LiveFpIntegration::value(counted,party);
+					rows.push_back({{"party_index",party},{"fixed_fraction",number(fixed/size)},
+						{"ordinary_fraction",number(b.ordinary/moments.reportedFormal)},
+						{"matched_fraction",number(b.matched/b.ordinary)},
+						{"breadth",number(b.matched > 0 ? 1-b.largestMatched/b.matched : 0)},
+						{"booth_remaining_share",number((LiveFpIntegration::value(mean,party)-fixed)/future)},
+						{"prior_remaining_log_odds",number(b.priorRemainingCentre)},
+						{"local_log_odds_change",number(b.localMovement)}});
+				}
+				inputs["ordinary_comparisons"] = std::move(rows);
+			}
 		}
 		// This optional legacy diagnostic is not the active joint TPP scale.
 		seatJson["tpp_all_booths_std_dev"] = optionalNumber(seat.tppAllBoothsStdDev);

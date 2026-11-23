@@ -854,7 +854,8 @@ private:
   void measureFpBoothTypeBiases();
   void measureTppBoothTypeBiases();
 
-  void recomposeVoteCounts();
+  using BlindFpProjections = std::vector<std::map<int,double>>;
+  BlindFpProjections recomposeVoteCounts();
   void refreshProjectedVoteAggregates();
   void prepareFpEvidence(LiveFederalDeclarations::Prior const& declarations);
   void prepareFederalDeclarations(Seat const& seat, std::vector<LiveFpEvidence::Unit> const& units,
@@ -867,7 +868,9 @@ private:
   int fpEvidenceCandidate(int seatIndex, int partyId) const;
   double fpEvidenceNormalStdDev(int seatIndex, int partyId, double localStdDev) const;
   double fpEvidenceDisagreement(int seatIndex, int partyId, double quantile) const;
-  void prepareFpIntegration();
+  void prepareFpIntegration(BlindFpProjections const& blind);
+  void prepareFpBoothComparisons(int seatIndex, BlindFpProjections const& blind,
+    LiveData::FpIntegrationInformation& information) const;
   std::vector<LiveData::FpIntegrationInformation> fpIntegrationCentres() const;
   std::vector<LiveData::FpDistributionMoments> measureFpCountMoments();
   void generateSharedFpVariability();

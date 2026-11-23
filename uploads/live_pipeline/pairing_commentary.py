@@ -294,9 +294,6 @@ def explain(row, endpoints):
         change = p1 - p0
         if change * row['change_pp'] * (1 if subject == favoured else -1) <= 0:
             continue
-        if not qualifying_shift(districts, favoured, change):
-            continue
-
         # Overall win chance is a weighted average of wins inside and outside
         # this matchup. Change the frequency while holding those two win rates
         # at their endpoint averages. The other two terms change the win rates
@@ -309,14 +306,22 @@ def explain(row, endpoints):
         if (frequency_effect * row['change_pp'] <= 0 or
                 abs(frequency_effect) < 2 * (abs(inside_effect) + abs(outside_effect))):
             continue  # At least two thirds of the absolute movement must come from frequency.
-        if best is None or abs(frequency_effect) > best[0]:
-            best = abs(frequency_effect), favoured, opponent, p0, p1
+        # Usually a contender gains or loses a place in the final. A candidate
+        # who already qualifies can also gain just by facing an easier opponent
+        # more often. The same frequency test establishes that distinction.
+        rank = (qualifying_shift(districts, favoured, change), abs(frequency_effect))
+        if best is None or rank > best[0]:
+            best = rank, favoured, opponent, p0, p1, win1
     if best is None:
         return mixed_matchup_explanation(row, endpoints)
-    _, favoured, opponent, p0, p1 = best
+    rank, favoured, opponent, p0, p1, win1 = best
     other = opponent if favoured == subject else subject
     verb = 'rose' if p1 > p0 else 'fell'
     outcome = 'gain' if row['change_pp'] > 0 else 'drop'
+    if not rank[0]:
+        return (f'The chance of {{candidate:{seat}:{subject}}} facing {{candidate:{seat}:{opponent}}} {verb} '
+                f'from **{p0:.1f}%** to **{p1:.1f}%**. {{candidate:{seat}:{subject}}} won **{win1:.1f}%** '
+                f'of those simulations. The change in opponent accounted for most of the {outcome} in win chance.')
     return (f'Both forecasts favoured {{candidate:{seat}:{favoured}}} in a final count against {{candidate:{seat}:{other}}}. '
             f'The chance of that pairing {verb} from **{display.decimal(p0)}%** '
             f'to **{display.decimal(p1)}%**, accounting for most of the {outcome} in win chance for '

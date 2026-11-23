@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import json
 import io
+import math
 from pathlib import Path
 import sys
 import tempfile
@@ -709,6 +710,54 @@ class AutomationTests(unittest.TestCase):
         self.assertIn('rose from **49.7%** to **50.4%**',report)
         self.assertNotIn('Despite that local',report)
 
+    def test_count_weight_explanation_requires_a_material_effect_on_the_fp_gap(self):
+        # The local estimate itself shifts against party 0. More weight on
+        # that estimate still widens its advantage over party 2. Holding the
+        # old weights distinguishes this from new figures alone doing so.
+        def model(weight, count):
+            def values(pair):
+                return [dict(party_index=p, value=v) for p, v in zip((0, 2), pair)]
+            return dict(method='local_precision', baseline_log_odds_mean=values((-.5, -1.0)),
+                        shared_deviation=values((0, 0)), count_log_odds_mean=values(count),
+                        individual_count_weights=values((weight, weight)))
+        event = {'before': {'fp_integration': model(.2, (-.4, -1.2))},
+                 'after': {'fp_integration': model(.7, (-.46, -1.2))}}
+        check = rule_evidence.primary_weight_check(event)
+        gap = lambda key: check['0'][key] - check['2'][key]
+        self.assertLess(gap('previous_weight'), gap('before'))
+        self.assertGreater(gap('after'), gap('before'))
+        old, new = [comparisons.summary(numerical(key)) for key in ('old', 'new')]
+        for side, primary in [(old, {'0':38, '2':28}), (new, {'0':37.5, '2':26.3})]:
+            side['seats']['Light']['fp_mean_percent'] = primary
+        packet = {'rule_context': {'primary_weight_checks': {'Light': check}}}
+        def explain():
+            return rule_commentary.district_primary_evidence(packet, {'seat':'Light','party_id':'0'},
+                rule_commentary.PairProjection('2', 51, 52), (old,new))[1]
+        self.assertIn('the forecast relied more on the results counted so far', explain())
+        self.assertIn('fell more for {candidate:Light:2} (**28.0%** to **26.3%**) than for '
+                      '{candidate:Light:0} (**38.0%** to **37.5%**)', explain())
+        check['0']['previous_weight'], check['2']['previous_weight'] = check['0']['after'], check['2']['after']
+        self.assertIsNone(explain())
+        packet['rule_context']['primary_weight_checks']['Light'] = rule_evidence.primary_weight_check(event)
+        new['seats']['Light']['fp_mean_percent']['2'] = 29
+        self.assertIsNone(explain())
+
+    def test_ordinary_fp_weight_check_keeps_the_booth_and_counted_endpoints(self):
+        def snapshot(weight):
+            field = lambda v: [{'party_index': 3, 'value': v}]
+            return {'fp_integration': dict(method='ordinary_vote_blend', remaining_fraction=.9,
+                baseline_log_odds_mean=field(0), count_log_odds_mean=field(0),
+                individual_count_weights=field(weight), ordinary_comparisons=[dict(party_index=3,
+                fixed_fraction=.04, ordinary_fraction=1, matched_fraction=.5, breadth=.5,
+                booth_remaining_share=.3, prior_remaining_log_odds=0, local_log_odds_change=1)])}
+        before, after = snapshot(.2), snapshot(.8)
+        result = rule_evidence.primary_weight_check({'before': before, 'after': after})['3']
+        self.assertAlmostEqual(result['before'], result['previous_weight'])
+        # With two equal booths, the tapered responses are .36 and .81.
+        for key, response in [('previous_weight', .36), ('after', .81)]:
+            expected = 100*(.04+.9*(.5*.3 + .5/(1+math.exp(-response))))
+            self.assertAlmostEqual(result[key], expected)
+
     def test_divergent_fp_can_reflect_a_different_opponent_reaching_second(self):
         old, new = [comparisons.summary(numerical(key)) for key in ('old', 'new')]
         for side, pair, other, win in [(old, 47.62, 38.99, 48.026), (new, 51.76, 37.37, 51.507)]:
@@ -816,6 +865,24 @@ class AutomationTests(unittest.TestCase):
         rows = rule_evidence.regional_contrast({}, regions)
         self.assertEqual([(r['region'],r['swing'],r['booths']) for r in rows], [('East',10,6),('West',-10,6)])
         self.assertEqual(rule_evidence.regional_contrast(regions, regions), [])
+        self.assertIsNone(rule_evidence.regional_update({}, regions))
+        later = deepcopy(regions)
+        east = later['tcp']['East']
+        east.update(votes=3000, gain=300, booths=10)
+        self.assertIsNone(rule_evidence.regional_update(regions, later))  # More booths, same swing.
+        east['gain'] = 180
+        change = rule_evidence.regional_update(regions, later)
+        self.assertEqual((change['region'], change['before'], change['after']), ('East', 10, 6))
+
+        old, new = [comparisons.summary(numerical(k)) for k in ('old', 'new')]
+        group = comparisons.compare(new, old, [], observed({'0':200}), observed({'0':100}))
+        group.update(rule_regional=rows, rule_regional_change=change)
+        packet = comparisons.prompt_packet(new, group)
+        request = dict(key='same endpoints', packet=packet, rule_context=rule_commentary.comparison_context(group, packet))
+        items = {w:{'status':'unavailable'} for w in ('previous','since_start')}
+        reports = rule_commentary.append_editions(items, dict.fromkeys(items,request), 'new')
+        for w, expected in [('previous','changed from **10.0 pp** towards'), ('since_start','compared with the previous election')]:
+            self.assertIn(expected, reports[w]['text']['developments'][0]['text'])
 
     def test_rules_shorten_crowded_long_window_but_keep_short_update_detail(self):
         old = comparisons.summary(numerical('earlier', chance=50))

@@ -184,8 +184,19 @@ struct FpDistributionMoments {
 	std::map<int, double> logOddsMean, logOddsVariance, shareMean;
 	std::map<std::pair<int, int>, double> shareCovariance;
 };
+// One named ballot candidate's ordinary FP comparison in this district.
+// Sizes count formal ballots, including those cast for other candidates.
+// Centres and the observed-minus-expected movement use natural log odds.
+struct FpBoothComparison {
+	double ordinary = 0, matched = 0, largestMatched = 0;
+	std::optional<double> priorCentre;
+	double priorRemainingCentre = 0, boothRemainingCentre = 0;
+	double localMovement = 0;
+};
 struct FpIntegrationInformation {
 	FpDistributionMoments baseline, count;
+	std::map<int,FpBoothComparison> boothComparisons;
+	double reportedFormal = 0;
 	// Registered parties on this ballot whose pre-election vote was carried
 	// in Others. Each receives the same fraction of a draw's available Others.
 	std::vector<int> partiesFromOthers;

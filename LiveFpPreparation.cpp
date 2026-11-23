@@ -268,11 +268,83 @@ std::vector<LiveData::FpDistributionMoments> LiveV2::Election::measureFpCountMom
     return moments;
 }
 
-void LiveV2::Election::prepareFpIntegration() {
+void LiveV2::Election::prepareFpBoothComparisons(int seatIndex, BlindFpProjections const& blind,
+    LiveData::FpIntegrationInformation& information) const {
+    // The blind pass used the same turnout units and ballot as this snapshot,
+    // before local counting replaced their expected shares. This also works
+    // on a cold start or after a skipped capture. A previous forecast file is
+    // never needed. Keep one small comparison per named candidate.
+    auto const& seat = seats.at(seatIndex);
+    information.reportedFormal = seat.node.totalFpVotesCurrent();
+    if (information.reportedFormal == 0 || seat.finalResult) return;
+    auto const isOrdinary = [](Booth const& booth) {
+        return booth.boothType == Results2::Booth::Type::Normal && !booth.receivesFpBatches();
+    };
+    if (std::none_of(seat.booths.begin(),seat.booths.end(),[&](int index) {
+        auto const& booth = readBooths().at(index);
+        return isOrdinary(booth) && booth.node.totalFpVotesCurrent() > 0;
+    })) return;
+
+    auto const& mean = turnout->mean(LiveData::CountKind::Fp,seatIndex);
+    auto const& counted = turnout->counted(LiveData::CountKind::Fp,seatIndex);
+    double const remaining = LiveFpEvidence::total(mean)-LiveFpEvidence::total(counted);
+    if (remaining <= 0) return;
+
+    // A named first-time candidate can have a pre-election forecast of their
+    // own. Using its uncertainty needs no previous election at this booth.
+    // Measuring a local swing below additionally requires comparable history.
+    auto const candidatePriors = LiveFpIntegration::ordinaryCandidatePriors(information, OthersIndex, run.indPartyIndex);
+    for (auto const& [party,votes] : mean) {
+        // Unrepresented voters stay in their existing group until the
+        // simulation allocates them. A named independent's counts are keyed
+        // by their ballot identity, while the district prior uses the IND slot.
+        if (party < 0 || party >= project.parties().count()) continue;
+        int const ballot = party == run.indPartyIndex ? seat.liveIndependentPartyIndex : party;
+        bool const samePerson = party != run.indPartyIndex ||
+            (seat.namedIndependentMatches && ballot == seat.independentPartyIndex &&
+             returningIndependentBallotIds->contains(ballot));
+        double const prior = LiveFpIntegration::value(information.baseline.shareMean,party);
+        std::vector<LiveFpIntegration::BoothReference> refs;
+        refs.reserve(seat.booths.size());
+        for (int index : seat.booths) {
+            auto const& booth = readBooths().at(index);
+            auto const& expected = blind.at(index);
+            double const size = LiveFpEvidence::total(expected);
+            if (size <= 0) continue;
+            double const formal = booth.node.totalFpVotesCurrent();
+            LiveFpIntegration::BoothReference ref{size,LiveFpIntegration::value(expected,party)/size,
+                formal,std::nullopt,false};
+            if (formal > 0 && isOrdinary(booth) && booth.node.fpVotesCurrent.contains(ballot)) {
+                ref.ordinaryCandidateVotes = booth.node.fpVotesCurrent.at(ballot);
+                // The federal geographic input already supplies this party's
+                // booth estimate. An old state result at that venue is not a
+                // second historical comparison to the chosen expectation.
+                bool const geographic = boothGeography && party == boothGeography->party &&
+                    boothGeography->units.at(index).has_value();
+                ref.matched = prior > 0 && prior < 1 && samePerson && !geographic &&
+                    booth.node.fpSwings.contains(ballot);
+            }
+            refs.push_back(ref);
+        }
+        double const shared = LiveFpIntegration::value(information.sharedDeviation,party)/25.;
+        double const candidatePrior = LiveFpIntegration::value(candidatePriors,party);
+        std::optional<double> conditionalPrior;
+        if (candidatePrior > 0 && candidatePrior < 1)
+            conditionalPrior = LiveFpIntegration::shareFromLogOdds(LiveFpIntegration::logOdds(candidatePrior)+shared);
+        double const boothRemaining = (votes-LiveFpIntegration::value(counted,party))/remaining;
+        auto comparison = LiveFpIntegration::compareBooths(refs,conditionalPrior,boothRemaining);
+        if (comparison.ordinary > 0) information.boothComparisons.emplace(party,comparison);
+    }
+}
+
+void LiveV2::Election::prepareFpIntegration(BlindFpProjections const& blind) {
     // Identify baseline moments and accepted shared movements, measure raw
     // local uncertainty, then freeze the small handoff shared by all scenarios.
     auto information = fpIntegrationCentres();
     auto moments = measureFpCountMoments();
-    for (std::size_t s = 0; s < information.size(); ++s) information[s].count = std::move(moments[s]);
+    for (std::size_t s = 0; s < information.size(); ++s) {
+        information[s].count = std::move(moments[s]);
+        prepareFpBoothComparisons(static_cast<int>(s),blind,information[s]);
+    }
     fpIntegration = std::make_shared<std::vector<LiveData::FpIntegrationInformation> const>(std::move(information));
 }

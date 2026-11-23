@@ -236,6 +236,64 @@ def major_district_moves(rows):
             if totals[seat] > 25]
 
 
+def primary_centre(prior, count, ordinary, weight):
+    """One candidate's central FP percentage before balancing the district."""
+    def share(log_odds):
+        odds = math.exp(-abs(log_odds))
+        return (1 if log_odds >= 0 else odds)/(1+odds)
+
+    legacy = share((1-weight)*prior + weight*count)
+    if ordinary is None:
+        return 100*legacy
+    # Keep counted ballots fixed when asking what a different precision
+    # would have done. Unmatched ordinary returns retain the booth estimate.
+    row, remaining = ordinary
+    response = weight + .5*row['breadth']*(1-weight)**2
+    matched = share(row['prior_remaining_log_odds'] + response*row['local_log_odds_change'])
+    booth = row['booth_remaining_share']
+    future = booth + row['matched_fraction']*(matched-booth)
+    fixed = row['fixed_fraction']
+    district = fixed + remaining*future
+    legacy = max(fixed, legacy)
+    return 100*(legacy + row['ordinary_fraction']*(district-legacy))
+
+
+def primary_weight_check(event):
+    """Compare the central local FP calculation at the two dates, then repeat
+    the later calculation holding only the count weights at the earlier values.
+    Each record holds three FP percentages for one individually matched party
+    and the change in its count weight (a fraction between -1 and 1).
+    These centres precede draw-by-draw normalisation and counted-vote floors.
+    The writer checks the published district means separately before using them."""
+    snapshots = []
+    for side in ('before', 'after'):
+        model = (event.get(side) or {}).get('fp_integration') or {}
+        if model.get('method') not in ('local_precision', 'ordinary_vote_blend'):
+            return {}
+        ordinary = {str(row['party_index']): (row, model['remaining_fraction'])
+                    for row in model.get('ordinary_comparisons', [])}
+        fields = {}
+        for key in ('baseline_log_odds_mean', 'count_log_odds_mean', 'individual_count_weights', 'shared_deviation'):
+            fields[key] = {str(r['party_index']): r['value'] for r in model.get(key, [])
+                           if isinstance(r.get('value'), (float, int)) and math.isfinite(r['value'])}
+        snapshot = {}
+        for party, weight in fields['individual_count_weights'].items():
+            prior = fields['baseline_log_odds_mean'].get(party)
+            count = fields['count_log_odds_mean'].get(party)
+            if prior is None or count is None or not 0 <= weight <= 1:
+                continue
+            # LiveFpIntegration uses natural log odds. The shared election
+            # and regional movement applied to the prior uses 25 times that scale.
+            shift = fields['shared_deviation'].get(party, 0) / 25
+            snapshot[party] = (prior + shift, count, ordinary.get(party), weight)
+        snapshots.append(snapshot)
+
+    before, after = snapshots
+    return {p: dict(before=primary_centre(*before[p]), previous_weight=primary_centre(*after[p][:-1], before[p][-1]),
+                    after=primary_centre(*after[p]), weight_change=after[p][-1] - before[p][-1])
+            for p in before.keys() & after.keys()}
+
+
 def context(comparison, win_rows, flows):
     """Save compact summaries for candidates the writer can discuss. Exclude
     transfers between declaration labels: those ballots were already counted."""
@@ -250,8 +308,18 @@ def context(comparison, win_rows, flows):
     counted = {e.get('seat') for e in events if e.get('changed_votes')}
     large = {r['seat'] for r in comparison['win_changes'] if not r.get('identity_changed') and
              r['seat'] in counted and abs(r['change_pp']) >= 5}
-    return {'pools': pools, 'large_local_moves': sorted(large), 'supported_flows': supported_flows(events, flows),
-            'regional': comparison.get('rule_regional', [])}
+    # Only a growing district count warrants a story about the accumulating
+    # evidence. Transfers between reporting categories were removed above.
+    net_fp = defaultdict(int)
+    for event in events:
+        if event['kind'] == 'booths':
+            net_fp[event.get('seat')] += event.get('fp_vote_change', 0)
+    weights = {e['seat']: primary_weight_check(e) for e in events if e['kind'] == 'seats'
+               and e.get('seat') in pools and net_fp[e['seat']] > 0}
+    return {'pools': pools, 'primary_weight_checks': weights,
+            'large_local_moves': sorted(large), 'supported_flows': supported_flows(events, flows),
+            'regional': comparison.get('rule_regional', []),
+            'regional_change': comparison.get('rule_regional_change')}
 
 
 def regional_counts(analysis):
@@ -334,3 +402,26 @@ def regional_contrast(before, after):
                      'spread':regions[name].get('mean_absolute_deviation_pp')}
                     for swing, name in selected]
     return []
+
+
+def regional_update(before, after):
+    """Find the largest revision to an already established regional swing.
+    Compare the cumulative matched-booth swing at the two forecast dates.
+    A region crossing the minimum coverage for the first time has no reliable
+    starting figure. Its historical comparison belongs in the counting overview."""
+    candidates = []
+    for ledger in ('tcp', 'fp'):
+        for region, current in after.get(ledger, {}).items():
+            earlier = before.get(ledger, {}).get(region)
+            if not earlier or any(r['votes'] < 1000 or r['booths'] < 5 or r['seats'] < 3
+                                  for r in (earlier, current)):
+                continue
+            # One percentage point and 500 additional matched votes (or 10%
+            # of the current sample) keep small, unstable shifts off the headline.
+            if current['votes'] - earlier['votes'] < max(500, .1*current['votes']):
+                continue
+            old, new = [100*r['gain']/r['votes'] for r in (earlier, current)]
+            if abs(new-old) >= 1:
+                candidates.append(dict(region=region, ledger=ledger.upper(), before=old,
+                                       after=new, booths=current['booths']))
+    return max(candidates, key=lambda r: abs(r['after']-r['before']), default=None)

@@ -2,15 +2,16 @@
 
 #include "LiveData.h"
 #include "LiveTurnoutMath.h"
+#include "LiveBoothGeography.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <set>
 
-// Combine a pre-election draw (including accepted movement shared across seats)
-// with an independently generated local count estimate. Precision is inverse
-// variance. All variances here use natural log odds, not percentages or the
-// analyser's log-odds-times-25 convention.
+// Combine a district's pre-election draw, shared regional movement and local
+// FP evidence. Ordinary returns can be compared with their own earlier booth
+// expectations. Candidates without that comparison use the booth projection.
+// Precision is inverse variance; variances here are measured on natural log odds.
 namespace LiveFpIntegration {
 inline constexpr double ShareFloor = 1e-7;
 // The tiny floor makes genuine zero shares finite for moment measurement. It
@@ -30,8 +31,8 @@ inline double value(std::map<int,double> const& values, int id) {
 // Divide the remaining anonymous vote once, after honouring named priors.
 // With four candidates in Others, two newly identified parties each receive
 // one quarter of the original pool. Splitting successively would make their
-// forecasts depend on which name came first. All amounts are percentages of
-// district first preferences in this simulation draw.
+// forecasts depend on which name came first. Use consistent units for every
+// share: percentages in a simulation draw, or vote fractions in preparation.
 inline void assignMissingPartyPriors(std::map<int,double>& prior, int others,
     std::vector<int> const& parties, int poolSize, double reservedIndependentShare) {
     if (parties.empty()) return;
@@ -46,6 +47,20 @@ inline void assignMissingPartyPriors(std::map<int,double>& prior, int others,
     }
     if (assigned > 0)
         prior[others] = reservedIndependentShare + std::max(0.0, available - assigned * perCandidate);
+}
+
+// Starting vote fractions whose variation can be used with ordinary-booth FP.
+// A registered party may already have a share assigned to it out of Others.
+// For an independent the pre-election draws must belong to the person on the
+// ballot. Draws for a possible emerging independent include elections where
+// nobody emerged. They cannot measure the spread for a person now receiving
+// votes. Without their own prior, that candidate keeps the booth model's draw.
+inline std::map<int,double> ordinaryCandidatePriors(LiveData::FpIntegrationInformation const& information,
+    int others, int independent) {
+    auto priors = information.baseline.shareMean;
+    assignMissingPartyPriors(priors, others, information.partiesFromOthers, information.othersPoolSize, 0.);
+    if (independent >= 0 && !information.namedIndependentMatches) priors.erase(independent);
+    return priors;
 }
 
 // Subdivide an already integrated group for the ranking count. Give the
@@ -165,6 +180,95 @@ inline double countWeight(double baselineVariance, double countVariance, double 
     return prior > 0 && sum > 0 ? prior/sum : 0;
 }
 
+// The blind composition pass supplies a size and candidate share for every
+// venue, including declarations. An ordinary return may give a recorded zero.
+// An absent candidate count cannot establish that zero or a historical swing.
+struct BoothReference {
+    double size, share, counted;
+    std::optional<double> ordinaryCandidateVotes;
+    bool matched;
+};
+
+inline LiveData::FpBoothComparison compareBooths(std::vector<BoothReference> const& booths,
+    std::optional<double> priorShare, double boothRemainingShare) {
+    LiveData::FpBoothComparison result;
+    double observed = 0;
+    for (auto const& b : booths) if (b.ordinaryCandidateVotes) {
+        observed += *b.ordinaryCandidateVotes;
+        result.ordinary += b.counted;
+        if (b.matched && priorShare) {
+            result.matched += b.counted;
+            result.largestMatched = std::max(result.largestMatched,b.counted);
+        }
+    }
+    // Both centres are needed to measure how far each simulated draw varies
+    // from its usual level, even when no reporting booth has a historical match.
+    if (priorShare) result.priorCentre = logOdds(*priorShare);
+    result.boothRemainingCentre = logOdds(boothRemainingShare);
+    if (result.matched == 0) return result;
+
+    // Compare with expectations for the actual reporting venues. First put
+    // all locations on the same district level as the pre-election forecast
+    // conditioned on shared movement. A common odds shift keeps strong and
+    // weak locations in order. With a 9% district forecast, a separately
+    // prepared set of booth estimates averaging 1% must not interpret a 3%
+    // return as a surge simply because it started on a different level.
+    std::vector<LiveBoothGeography::Point> geography;
+    for (auto const& b : booths) geography.push_back({logOdds(b.share),b.size});
+    double const shift = LiveBoothGeography::commonShift(geography,priorShare.value());
+    double expected = 0, futureVotes = 0, futureFormal = 0;
+    for (size_t i = 0; i < booths.size(); ++i) {
+        auto const& b = booths[i];
+        double share = shareFromLogOdds(geography[i].odds+shift);
+        if (b.ordinaryCandidateVotes) expected += b.counted*share;
+        double remaining = std::max(0.,b.size-b.counted);
+        futureVotes += remaining*share;
+        futureFormal += remaining;
+    }
+    // The half ballot on either side makes an actual 0% or 100% count usable
+    // on the log-odds scale. It never enters the counted ballot account.
+    result.localMovement = std::log((observed+.5)/(result.ordinary-observed+.5))
+        - std::log((expected+.5)/(result.ordinary-expected+.5));
+    result.priorRemainingCentre = logOdds(futureFormal > 0 ? futureVotes/futureFormal : priorShare.value());
+    return result;
+}
+
+inline double breadthResponse(LiveData::FpBoothComparison const& b, double precision) {
+    double const breadth = b.matched > 0 ? 1-b.largestMatched/b.matched : 0;
+    // Only ballots outside the largest comparable venue confirm that more
+    // than one place has reported. The trial allowance of one half tapers
+    // twice with the unused response: it has little effect once the ordinary
+    // precision update already follows most of the observed movement.
+    return precision + .5*breadth*(1-precision)*(1-precision);
+}
+
+inline double ordinaryRemainingShare(LiveData::FpBoothComparison const& b,
+    double prior, double boothRemaining, double precision) {
+    // A ballot candidate with no prior of their own or allocated from Others
+    // has only the booth distribution. Usually both sources supply a draw.
+    if (!b.priorCentre) return boothRemaining;
+    double const boothOdds = logOdds(boothRemaining);
+    double const drawDeviation = (1-precision)*(logOdds(prior)-*b.priorCentre)
+        + precision*(boothOdds-b.boothRemainingCentre);
+
+    // Historical coverage chooses the central estimate. Both estimates use
+    // the same precision-weighted variation. Only the central response to a
+    // matched result gains strength when several booths have reported.
+    double matchedShare = 0;
+    if (b.matched > 0) {
+        double const localCentre = b.priorRemainingCentre + breadthResponse(b,precision)*b.localMovement;
+        matchedShare = shareFromLogOdds(localCentre+drawDeviation);
+        if (b.matched == b.ordinary) return matchedShare;
+    }
+    // A single unmatched booth can set the expected vote without imposing
+    // its very wide range on the district. A genuinely empty or unanimous
+    // outstanding pool keeps its endpoint.
+    bool const fixedEndpoint = (boothRemaining == 0 || boothRemaining == 1) && boothOdds == b.boothRemainingCentre;
+    double const unmatchedShare = precision == 1 || fixedEndpoint ? boothRemaining
+        : shareFromLogOdds(b.boothRemainingCentre + drawDeviation);
+    return b.matched == 0 ? unmatchedShare : std::lerp(unmatchedShare,matchedShare,b.matched/b.ordinary);
+}
+
 inline std::map<int,double> constrainToCounted(
     LiveTurnoutMath::PartyAccount const& account, std::map<int,double> target) {
     double total = 0, counted = 0;
@@ -231,14 +335,45 @@ inline std::map<int,double> constrainToCounted(
     return result;
 }
 
+struct OrdinaryTarget {
+    double remainingShare, fractionReported;
+};
+
+inline std::map<int,double> allocateOutstanding(LiveTurnoutMath::PartyAccount const& account,
+    std::map<int,double> integrated, std::map<int,OrdinaryTarget> const& ordinaryTargets,
+    double total, double counted) {
+    if (ordinaryTargets.empty()) return integrated;
+    // The trial measures ordinary venues. As other modes report, give their
+    // established count integration its share of the evidence. Never treat
+    // successive postal batches as different corroborating polling places.
+    // Candidates can have different coverage, so balance the outstanding
+    // ballots together before adding back this draw's accepted counts.
+    double const future = total-counted;
+    double sum = 0;
+    for (auto& [id,percent] : integrated) {
+        double share = std::max(0.,(percent*.01*total-value(account.counted,id))/future);
+        if (auto o = ordinaryTargets.find(id); o != ordinaryTargets.end())
+            share = std::lerp(share,o->second.remainingShare,o->second.fractionReported);
+        percent = share;
+        sum += share;
+    }
+    for (auto& [id,percent] : integrated) {
+        // If the individually rounded targets leave no outstanding share,
+        // the turnout draw still accounts for every projected ballot.
+        double votes = sum > 0 ? value(account.counted,id) + future*percent/sum : value(account.projected,id);
+        percent = 100*votes/total;
+    }
+    return integrated;
+}
+
 template<class PriorClassify, class CountClassify>
 std::map<int,double> integrate(LiveTurnoutMath::PartyAccount const& account,
     std::map<int,double> const& prior, LiveData::FpIntegrationInformation const& information,
     PriorClassify priorClassify, CountClassify countClassify) {
     // The conditional prior has already received accepted election/regional
-    // movement, which is also present in the count estimate. Only their local
-    // difference is precision weighted: a broad local draw must not replace a
-    // narrow prior, or suppress a shared shift already supported across seats.
+    // movement. Prepare the established precision update for declarations and
+    // anonymous groups, and a comparison at the actual reporting locations
+    // for named ordinary FP. The counted ballots are common to both.
     if (information.evidenceGate == 0) {
         double counted = 0;
         for (auto const& [id,n] : account.counted) counted += n;
@@ -247,7 +382,10 @@ std::map<int,double> integrate(LiveTurnoutMath::PartyAccount const& account,
     }
     double total = 0;
     for (auto const& [id,n] : account.projected) total += n;
+    double counted = 0;
+    for (auto const& [id,n] : account.counted) counted += n;
     std::map<int,double> target;
+    std::map<int,OrdinaryTarget> ordinaryTargets;
     std::set<int> candidates;
     for (auto const& [id,p] : prior) candidates.insert(id);
     for (auto const& [id,n] : account.projected) candidates.insert(id);
@@ -274,7 +412,24 @@ std::map<int,double> integrate(LiveTurnoutMath::PartyAccount const& account,
         else {
             target[id] = 100*shareFromLogOdds((1-weight)*logOdds(p)+weight*logOdds(live));
         }
+        // Named candidates can use the direct comparison. Keep anonymous
+        // groups on their existing joint update; a different candidate in a
+        // shared slot cannot inherit the match or its booth coverage.
+        auto comparison = information.boothComparisons.find(id);
+        if (id < 0 && id != -1) {
+            // A single principal independent can occupy the emerging IND
+            // slot in this draw. Follow the same mapping as its count account.
+            comparison = std::find_if(information.boothComparisons.begin(), information.boothComparisons.end(),
+                [&](auto const& row) { return countClassify(row.first) == id; });
+        }
+        if (comparison != information.boothComparisons.end() && countClassify(comparison->first) == id
+            && total > counted && account.projected.contains(id)) {
+            double const boothRemaining = std::clamp((account.projected.at(id)-value(account.counted,id))
+                /(total-counted),0.,1.);
+            ordinaryTargets[id] = {ordinaryRemainingShare(comparison->second,p,boothRemaining,weight),
+                comparison->second.ordinary/information.reportedFormal};
+        }
     }
-    return constrainToCounted(account,std::move(target));
+    return allocateOutstanding(account,constrainToCounted(account,std::move(target)),ordinaryTargets,total,counted);
 }
 } // namespace LiveFpIntegration

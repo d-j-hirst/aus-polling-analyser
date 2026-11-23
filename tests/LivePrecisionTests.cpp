@@ -37,9 +37,130 @@ void testProjectedVoteShareEndpoints()
     assert(std::isnan(votesFromPercentage(std::numeric_limits<double>::quiet_NaN(),100.)));
 }
 
+void testOrdinaryFpBlend()
+{
+    using namespace LiveFpIntegration;
+    // Both ordinary booths were expected to be 30% after aligning the 10%
+    // blind venue estimates to the candidate's district prior. Agreement of
+    // signs is not required. Equal sized independent locations earn breadth.
+    std::vector<BoothReference> booths{
+        {400,.1,400,180.,true},{400,.1,400,100.,true},{9200,.1,0,std::nullopt,false}};
+    auto b = compareBooths(booths,.3,.34);
+    double const surprise = std::log((280.5/520.5)/(240.5/560.5));
+    assert(std::abs(b.localMovement-surprise) < 1e-10);
+    assert(std::abs(b.priorRemainingCentre-logOdds(.3)) < 1e-10);
+    assert(std::abs(breadthResponse(b,.2)-.36) < 1e-12);
+    auto unequal = b;
+    unequal.largestMatched = .9 * b.matched;
+    assert(std::abs(breadthResponse(unequal,.2)-.232) < 1e-12);
+    assert(breadthResponse(unequal,1) == 1);
+    double const centre = shareFromLogOdds(logOdds(.3)+.36*surprise);
+    assert(std::abs(ordinaryRemainingShare(b,.3,.34,.2)-centre) < 1e-10);
+    // The breadth bonus moves the centre. Reusing the same input draws
+    // retains both sources of uncertainty at their original precision weights.
+    assert(std::abs(logOdds(ordinaryRemainingShare(b,.4,.38,.2))-logOdds(centre)
+        -.8*(logOdds(.4)-logOdds(.3))-.2*(logOdds(.38)-logOdds(.34))) < 1e-10);
+    booths[1].matched = false;
+    b = compareBooths(booths,.3,.34);
+    assert(breadthResponse(b,.2) == .2);
+    assert(std::abs(ordinaryRemainingShare(b,.3,.34,.2)
+        - .5*(.34+shareFromLogOdds(logOdds(.3)+.2*surprise))) < 1e-10);
+    // In a mixed return both centres use the same deviations about the prior
+    // and booth forecasts. The ballot weights then combine their vote shares.
+    double const deviation = .8*(logOdds(.4)-logOdds(.3)) + .2*(logOdds(.47)-logOdds(.34));
+    double const variedBooth = shareFromLogOdds(logOdds(.34)+deviation);
+    double const variedDirect = shareFromLogOdds(logOdds(.3)+.2*surprise+deviation);
+    assert(std::abs(ordinaryRemainingShare(b,.4,.47,.2) - .5*(variedBooth+variedDirect)) < 1e-10);
+    booths[0].matched = false;
+    auto unmatched = compareBooths(booths,.3,.34);
+    assert(std::abs(ordinaryRemainingShare(unmatched,.4,.47,.2)-variedBooth) < 1e-10);
+    for (double w : {0.,.004,.2,.9,1.})
+        assert(std::abs(ordinaryRemainingShare(unmatched,.3,.34,w)-.34) < 1e-12);
+    assert(std::abs(ordinaryRemainingShare(unmatched,.3,.80,0)-.34) < 1e-12);
+    assert(ordinaryRemainingShare(unmatched,.3,.80,1) == .80);
+    auto noPrior = compareBooths(booths,std::nullopt,.34);
+    assert(ordinaryRemainingShare(noPrior,0,.47,.2) == .47);
+    for (double endpoint : {0.,1.})
+        assert(ordinaryRemainingShare(compareBooths(booths,.3,endpoint),.4,endpoint,.2) == endpoint);
+    booths[0].ordinaryCandidateVotes = 0;
+    booths[1].ordinaryCandidateVotes.reset();
+    booths[0].matched = true;
+    auto zero = compareBooths(booths,.3,.34);
+    assert(zero.ordinary == 400 && zero.matched == 400 && std::isfinite(zero.localMovement) && zero.localMovement < 0);
+
+    // Exercise the simulator entry point with a partially matched candidate,
+    // a differently matched opponent and a distinct turnout draw. Only the
+    // remaining ballots can be rebalanced across candidates.
+    LiveData::FpIntegrationInformation info;
+    info.evidenceGate = 1;
+    info.reportedFormal = 800;
+    info.baseline.shareMean = {{0,.3},{1,.7}};
+    info.baseline.logOddsMean = {{0,logOdds(.3)},{1,logOdds(.7)}};
+    info.baseline.logOddsVariance = {{0,.01},{1,.01}};
+    info.count = info.baseline;
+    info.count.logOddsVariance = {{0,.04},{1,.04}};
+    auto opponent = compareBooths({{800,.7,800,520.,false}},.7,.66);
+    info.boothComparisons = {{0,b},{1,opponent}};
+    LiveTurnoutMath::PartyAccount account{{{0,280},{1,520}},{{0,3680},{1,7120}}};
+    auto identity = [](int id) { return id; };
+    auto draws = integrate(account,{{0,30},{1,70}},info,identity,identity);
+    double a = ordinaryRemainingShare(b,.3,.34,.2);
+    double expected = 100*(280+10000*a/(a+.66))/10800;
+    assert(std::abs(draws.at(0)-expected) < 1e-9);
+    assert(std::abs(draws.at(0)+draws.at(1)-100) < 1e-10);
+    // The emerging IND alias must follow the same candidate. If the slot
+    // instead joins anonymous Others, that group's own update still applies.
+    auto alias = [](int id) { return id == 0 ? -2 : id; };
+    auto relabelled = LiveTurnoutMath::partitionAccount({&account.counted,&account.projected},alias);
+    auto namedAlias = integrate(relabelled,{{-2,30},{1,70}},info,alias,alias);
+    assert(std::abs(namedAlias.at(-2)-draws.at(0)) < 1e-10);
+    auto anonymous = [](int id) { return id == 0 ? -1 : id; };
+    auto pooled = LiveTurnoutMath::partitionAccount({&account.counted,&account.projected},anonymous);
+    auto pooledResult = integrate(pooled,{{-1,30},{1,70}},info,anonymous,anonymous);
+    auto withoutNamed = info;
+    withoutNamed.boothComparisons.erase(0);
+    assert(pooledResult == integrate(pooled,{{-1,30},{1,70}},withoutNamed,anonymous,anonymous));
+    // Grow the declaration account while holding the ordinary comparison
+    // fixed. Only the ordinary fraction gets its alternative future share.
+    auto mixed = allocateOutstanding(account,{{0,30},{1,70}},{{0,{.70,.4}}},10800,800);
+    double oldFuture = (.30*10800-280)/10000;
+    double mixedFuture = .4*.70 + .6*oldFuture;
+    assert(std::abs(mixed.at(0)-100*(280+10000*mixedFuture/(mixedFuture+1-oldFuture))/10800) < 1e-9);
+    auto finished = account;
+    finished.projected = finished.counted;
+    assert(integrate(finished,{{0,30},{1,70}},info,identity,identity).at(0) == 35);
+}
+
+void testOrdinaryIndependentPrior()
+{
+    using namespace LiveFpIntegration;
+    constexpr int independent = 3, emerging = -2, others = -1;
+    LiveData::FpIntegrationInformation info;
+    info.baseline.shareMean = {{0,.5},{others,.12},{emerging,.004}};
+    info.partiesFromOthers = {5};
+    info.othersPoolSize = 4;
+    auto candidatePriors = [&] { return ordinaryCandidatePriors(info,others,independent); };
+    // A name on the ballot, or the existence of an emerging IND distribution,
+    // does not give this candidate a prior. A named forecast for someone else
+    // cannot do so either. Ordinary parties keep their usual prior sources.
+    for (bool nameMatches : {false,true}) {
+        info.namedIndependentMatches = nameMatches;
+        auto priors = candidatePriors();
+        assert(!priors.contains(independent));
+        assert(priors.at(0) == .5 && priors.at(5) == .03);
+    }
+    info.baseline.shareMean[independent] = .35;
+    info.namedIndependentMatches = false;
+    assert(!candidatePriors().contains(independent));
+    info.namedIndependentMatches = true;
+    assert(candidatePriors().at(independent) == .35);
+}
+
 int main()
 {
     testProjectedVoteShareEndpoints();
+    testOrdinaryFpBlend();
+    testOrdinaryIndependentPrior();
     // The live ballot identifies two parties that pre-election draws included
     // in a four-candidate Others pool. A separate independent prior still
     // belongs to that candidate, including while both use a pooled account.

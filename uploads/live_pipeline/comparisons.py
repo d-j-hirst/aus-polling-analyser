@@ -645,6 +645,8 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
     if previous.get('origin') or 'matched_regional_counts' in original_before:
         result['rule_regional'] = rule_evidence.regional_contrast(
             original_before.get('matched_regional_counts', {}), original_after.get('matched_regional_counts', {}))
+        result['rule_regional_change'] = rule_evidence.regional_update(
+            original_before.get('matched_regional_counts', {}), original_after.get('matched_regional_counts', {}))
     calls = seat_alerts.call_changes(previous, current)
     if calls:
         result['seat_call_changes'] = calls

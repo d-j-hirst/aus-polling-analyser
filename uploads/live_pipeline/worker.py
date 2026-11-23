@@ -290,7 +290,8 @@ class Processor:
                 mechanical = {}
                 for window, group in groups.items():
                     mechanical[window] = {k: v for k, v in group.items()
-                                          if k not in ('evidence', 'seat_changes', 'ranked_tcp_groups', 'rule_regional')}
+                                          if k not in ('evidence', 'seat_changes', 'ranked_tcp_groups', 'rule_regional',
+                                                       'rule_regional_change')}
                     if not group['available']:
                         continue
                     mechanical[window]['seat_changes'] = [

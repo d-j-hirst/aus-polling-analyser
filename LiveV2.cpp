@@ -1010,7 +1010,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   prepareNewVoteContexts();
   prepareFinalResults(previousElection,currentElection);
   preparePreferenceCountObservations(previousElection,currentElection);
-  recomposeVoteCounts();
+  auto blindFp = recomposeVoteCounts();
   prepareFpEvidence(declarations);
   refreshFpEvidenceProjections();
   preparePreferenceLearning(previousElection,currentElection,pairPreferenceHistory);
@@ -1020,7 +1020,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   preparePreferenceCorrections(currentElection.liveCountStatus);
   prepareVariability();
   prepareTurnoutComposition();
-  prepareFpIntegration();
+  prepareFpIntegration(blindFp);
   prepareTppIntegration();
   prepareCoalitionTcpForecasts(previousElection,currentElection,pairPreferenceHistory,revisedCoalitionFlowHistory);
   try {
@@ -3637,11 +3637,12 @@ void Election::calculateTcpPreferenceFlows() {
   }
 }
 
-void Election::recomposeVoteCounts() {
+Election::BlindFpProjections Election::recomposeVoteCounts() {
   // Rebuild party composition at the turnout model's count means. Blind and
   // current passes share those sizes, isolating observed share changes from
   // differences in the mix of reporting units.
 
+  BlindFpProjections blind;
   if (!createRandomVariation) {
     // FP sensitivities are collected by this composition pass. TPP weights
     // are prepared separately after all FP-evidence projection refreshes.
@@ -3651,8 +3652,12 @@ void Election::recomposeVoteCounts() {
     }
     refreshTurnoutFpProgress();
 
+    blind.reserve(readBooths().size());
     for (int boothIndex : std::ranges::views::iota(0, int(readBooths().size()))) {
       recomposeBoothFpVotes(false, boothIndex);
+      // Keep this venue's expected composition before its received ballots
+      // replace it. Only the small district comparisons survive preparation.
+      blind.push_back(readBooths()[boothIndex].node.fpVotesProjected);
       recomposeBoothTppVotes(false, boothIndex);
     }
 
@@ -3692,6 +3697,7 @@ void Election::recomposeVoteCounts() {
   }
 
   refreshProjectedVoteAggregates();
+  return blind;
 }
 
 void Election::refreshProjectedVoteAggregates() {
