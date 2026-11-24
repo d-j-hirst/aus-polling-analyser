@@ -1,5 +1,6 @@
 #pragma once
 #include "LivePartialCount.h"
+#include "LiveIndependentFlow.h"
 #include "LiveNewVotes.h"
 #include "LiveFpEvidence.h"
 #include "LiveFederalDeclarations.h"
@@ -171,6 +172,9 @@ public:
   // Prepared once from compatible accepted counts. Main scenarios share this
   // frozen measurement, never retaining source documents or disk history.
   std::optional<LivePartialCount::Evidence> preferenceEvidence;
+  // Prepared preference percentage to the district's TCP focus party for
+  // this unreported booth, when the independent and opponent match history.
+  std::optional<double> returningIndependentFocusFlow;
   // A compatible Labor/Coalition count from before a pairing change. It can
   // constrain TPP while the currently published pair owns the TCP account.
   struct RetainedClassicCount {
@@ -759,7 +763,8 @@ private:
     Results2::Election const& previousElection,
     Results2::Election const& currentElection);
 
-  void createNodesFromElectionData(
+  using IndependentTcpMatches = std::map<int, LiveIndependentFlow::Match>; // keyed by live seat index
+  IndependentTcpMatches createNodesFromElectionData(
     Results2::Election const& previousElection,
     Results2::Election const& currentElection,
     LivePartyConversion::History const& history,
@@ -884,6 +889,7 @@ private:
   std::map<int, double> drawSeatFpChanges(int seatIndex) const;
 
   void calculateTcpPreferenceFlows();
+  void prepareReturningIndependentFlows(IndependentTcpMatches const& matches);
 
   void calculateNationalsProportions();
 

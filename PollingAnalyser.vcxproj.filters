@@ -897,6 +897,9 @@
     <ClInclude Include="LiveIndependentMapping.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
+    <ClInclude Include="LiveIndependentFlow.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
     <ClInclude Include="LiveInputAdapter.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>

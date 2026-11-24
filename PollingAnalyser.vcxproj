@@ -482,6 +482,7 @@
     <ClInclude Include="LiveNewVotes.h" />
     <ClInclude Include="LivePartyMapping.h" />
     <ClInclude Include="LiveIndependentMapping.h" />
+    <ClInclude Include="LiveIndependentFlow.h" />
     <ClInclude Include="LiveTurnout.h" />
     <ClInclude Include="LivePreferenceCorrections.h" />
     <ClInclude Include="LivePreferenceLearning.h" />

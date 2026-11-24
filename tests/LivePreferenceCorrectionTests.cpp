@@ -1,4 +1,5 @@
 #include "../LivePreferenceCorrections.h"
+#include "../LiveIndependentFlow.h"
 #include "../LiveTurnoutMath.h"
 
 #include <cassert>
@@ -8,6 +9,64 @@
 
 namespace {
 double logistic(double x) { return 1 / (1 + std::exp(-x)); }
+
+void checkReturningIndependentIdentity() {
+    // The independent and the opposing candidate both have new ballot IDs.
+    // A stale zero-valued candidate entry must not change the active pair.
+    struct Candidate { std::string name; int party; enum { Independent = -1 }; };
+    struct Party { std::string shortCode; };
+    struct Source { std::map<int, Candidate> candidates; std::map<int, Party> parties; };
+    struct Seat { std::map<int, std::map<int, int>> fpVotes, tcpVotesCandidate; };
+    Source previous{{{11, {"LE, Dai", -1}}, {12, {"Earlier Liberal", 1}}}, {{1, {"LP"}}}};
+    Source current{{{21, {"Dai Le", -1}}, {22, {"Current Liberal", 5}}, {23, {"National", 6}}},
+        {{5, {"LIB"}}, {6, {"NAT"}}}};
+    Seat before{}, now{};
+    before.fpVotes = before.tcpVotesCandidate = {{11, {{0, 30}}}, {12, {{0, 40}}}};
+    now.fpVotes = now.tcpVotesCandidate = {{21, {{0, 20}}}, {22, {{0, 45}}}};
+    now.tcpVotesCandidate[23][0] = 0;
+    // This fixture deliberately models both Coalition parties in one slot.
+    auto lookup = [](std::string const&) { return 1; };
+    auto match = [&] { return LiveIndependentFlow::match(previous, before, current, now, lookup, 100000); };
+    auto verified = match();
+    assert(verified && verified->independent == 100021 && verified->previousIndependent == 100011 && verified->opponent == 1);
+    now.fpVotes[23][0] = 15;
+    assert(!match()); // Grouped FP cannot distinguish Liberal from National.
+    now.fpVotes.erase(23);
+    now.tcpVotesCandidate[23][0] = 2;
+    assert(!match()); // Three positive candidates.
+    now.tcpVotesCandidate[22][0] = 0;
+    assert(!match()); // Different Coalition party.
+    current.candidates[11] = {"Someone Else", -1};
+    now.tcpVotesCandidate = {{11, {{0, 20}}}, {22, {{0, 45}}}};
+    assert(!match()); // Reuse of the historical independent's number.
+}
+
+void checkReturningIndependentFlows() {
+    using namespace LiveIndependentFlow;
+    Counts fp{{8, 30}, {1, 20}, {2, 50}};
+    auto counted = exactTransfer(fp, {{8, 55}, {1, 45}}, 8, 1);
+    assert(counted && counted->votes == 50 && counted->received == 25);
+    assert(!exactTransfer(fp, {{8, 56}, {1, 45}}, 8, 1));
+    assert(!exactTransfer(fp, {{9, 55}, {1, 45}}, 8, 1));
+    assert(!exactTransfer({{1, 50}, {2, 50}}, {{8, 25}, {1, 75}}, 8, 1));
+    assert(exactTransfer(fp, {{8, 30}, {1, 70}}, 8, 1)->received == 0);
+    // The low-flow booth still produces its historical 25% and the district
+    // historical average is 50%. After the 50-ballot allowance the two old
+    // rates are 30% and 70%. Fit the odds change from 30% to the observed
+    // 25% and apply it to the 70% booth before blending back to the pool.
+    PreferenceTransfer low{200, 50}, high{200, 150};
+    std::vector<BoothObservation> booths{
+        {0, low, low, false}, {1, high, {}, true}, {2, {}, {}, true},
+        {3, {}, PreferenceTransfer{100, 25}, false}, {4, {}, {}, false}};
+    auto rates = estimate(booths, .25);
+    double const adjusted = (7./3 * (1./3) / (3./7)) / (1 + 7./3 * (1./3) / (3./7));
+    assert(rates.size() == 1 && std::abs(rates.at(1) - (.25 + .25*(adjusted-.25))) < 1e-10);
+    booths[1].awaitingTcp = false; // A positive but unmatched TCP is also protected.
+    assert(estimate(booths, .25).empty());
+    booths[1].awaitingTcp = true;
+    booths[0].current.reset();
+    assert(estimate(booths, .25).empty()); // All current transfers now lack matched history.
+}
 
 std::vector<LivePreferenceCorrections::Observation> exampleSeat() {
     // Known primary/composition relationship with small genuine booth scatter.
@@ -130,6 +189,8 @@ void checkRetainedPairProtection() {
 
 int main() {
     using namespace LivePreferenceCorrections;
+    checkReturningIndependentIdentity();
+    checkReturningIndependentFlows();
     checkRetainedPairProtection();
     assert(prepare({}).empty());
     assert(draw(compress({}, 1), 2) == 0);

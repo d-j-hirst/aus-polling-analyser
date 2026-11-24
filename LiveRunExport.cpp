@@ -1254,6 +1254,13 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 				Results2::Booth::boothTypeName(booth.boothType);
 			boothJson["coords"] = optionalCoords(booth.coords);
 			boothJson["same_seat"] = booth.sameSeat;
+			if (booth.returningIndependentFocusFlow) {
+				// Export the percentage reaching the independent, whichever
+				// finalist the district uses internally as its focus party.
+				boothJson["returning_independent_flow_percent"] = number(
+					seat.tcpFocusPartyIndex == seat.liveIndependentPartyIndex ?
+					*booth.returningIndependentFocusFlow : 100 - *booth.returningIndependentFocusFlow);
+			}
 			if (!booth.sameSeat && !booth.syntheticPreviousCategory && !booth.previousPreferenceSeat.empty())
 				boothJson["previous_district"] = booth.previousPreferenceSeat;
 			if (booth.notionalPreferenceOffset) {

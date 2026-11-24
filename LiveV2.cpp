@@ -981,7 +981,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   // either account; this local preparation input is not retained by scenarios.
   auto partyFlowHistory = readPartyConversionHistory(previousElection,currentElection);
   auto notionalHistory = readNotionalPreferenceHistory(previousElection,currentElection);
-  createNodesFromElectionData(previousElection, currentElection, partyFlowHistory, notionalHistory);
+  auto const independentTcpMatches = createNodesFromElectionData(previousElection, currentElection, partyFlowHistory, notionalHistory);
   prepareTcpBases(previousElection,currentElection,preferenceHistory);
   preparePartyConversionPriors(partyFlowHistory, previousElection, currentElection);
   prepareNotionalPreferenceOffsets(partyFlowHistory);
@@ -1004,6 +1004,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   measureTppBoothTypeBiases();
   calculateNationalsProportions();
   calculateTcpPreferenceFlows();
+  prepareReturningIndependentFlows(independentTcpMatches);
   preparePreferenceCohorts(previousElection, currentElection, preferenceHistory);
   prepareTurnout(currentElection, std::move(turnoutInput));
   reportLimitedHistoricalPreferenceEvidence(currentElection.sourceTime);
@@ -1820,11 +1821,12 @@ void Election::initializePartyMappings(
   }
 }
 
-void Election::createNodesFromElectionData(
+Election::IndependentTcpMatches Election::createNodesFromElectionData(
   Results2::Election const& previousElection,
   Results2::Election const& currentElection,
   LivePartyConversion::History const& history,
   LiveHistoricalPreferences::History const& notionalHistory) {
+  IndependentTcpMatches independentTcpMatches;
   for (auto const& [regionId, region] : project.regions()) {
     largeRegions.push_back(LargeRegion(region));
   }
@@ -1958,6 +1960,15 @@ void Election::createNodesFromElectionData(
     }
     if (previousSeatPtr)
       prepareCategoryHistory(seatIndex, **previousSeatPtr, previousElection, currentElection, history, notionalHistory);
+    // Keep only the verified ballot identities for the later booth-flow fit.
+    // Use the same matched historical district as the declaration accounts,
+    // including renamed seats. Optional voting needs a separate exhaustion
+    // account to interpret the votes that did not reach either finalist.
+    if (previousSeatPtr && !optionalPreferential) {
+      auto pair = LiveIndependentFlow::match(previousElection, **previousSeatPtr, currentElection, seat,
+        [&](std::string const& code) { return project.parties().indexByShortCode(code); }, IndependentPartyIdOffset);
+      if (pair && pair->opponent != run.indPartyIndex) independentTcpMatches.emplace(seatIndex, *pair);
+    }
     std::set<Results2::VoteType> declarationVoteTypes;
     for (auto const& [candidateId, votesByType] : seat.fpVotes) {
       for (auto const& [voteType, votes] : votesByType) {
@@ -2012,6 +2023,7 @@ void Election::createNodesFromElectionData(
       liveSeat.booths.push_back(int(readBooths().size()) - 1);
     }
   }
+  return independentTcpMatches;
 }
 
 template<typename T>
@@ -3658,6 +3670,36 @@ void Election::calculateTcpPreferenceFlows() {
   }
 }
 
+// Refine the live district transfer rate for booths still awaiting TCP.
+// All draws for a capture share this central estimate. They retain the usual
+// turnout, preference variation and separate estimate from the TCP swing.
+void Election::prepareReturningIndependentFlows(IndependentTcpMatches const& matches) {
+  for (auto const& [seatIndex, pair] : matches) {
+    auto const& seat = seats.at(seatIndex);
+    if (seat.liveIndependentPartyIndex != pair.independent || seat.independentPartyIndex != pair.independent ||
+        !seat.tcpFocusPartyPrefFlow || !seat.tcpFocusPartyIndex ||
+        !seat.node.tcpVotesCurrent.contains(pair.independent) || !seat.node.tcpVotesCurrent.contains(pair.opponent)) continue;
+    std::vector<LiveIndependentFlow::BoothObservation> observations;
+    for (int index : seat.booths) {
+      auto const& booth = readBooths().at(index);
+      auto const& counts = booth.node;
+      // A reconstructed historical allocation is not a measured local flow.
+      // Current TCPs affected by a later FP recheck still describe the FP
+      // batch accepted with that count, as in calculateTcpPreferenceFlows.
+      auto const previous = booth.syntheticPreviousCategory ? std::nullopt : LiveIndependentFlow::exactTransfer(
+        counts.fpVotesPrevious, counts.tcpVotesPrevious, pair.previousIndependent, pair.opponent);
+      auto const& fp = booth.hasTcpRevision() ? booth.tcpBasis->fp : counts.fpVotesCurrent;
+      auto const current = LiveIndependentFlow::exactTransfer(fp, counts.tcpVotesCurrent, pair.independent, pair.opponent);
+      observations.push_back({index, previous, current, counts.totalTcpVotesCurrent() == 0});
+    }
+    bool const independentIsFocus = *seat.tcpFocusPartyIndex == pair.independent;
+    double const pooled = *seat.tcpFocusPartyPrefFlow * .01;
+    for (auto const& [index, rate] : LiveIndependentFlow::estimate(observations, independentIsFocus ? pooled : 1-pooled)) {
+      preparationBooths().at(index).returningIndependentFocusFlow = 100 * (independentIsFocus ? rate : 1-rate);
+    }
+  }
+}
+
 Election::BlindFpProjections Election::recomposeVoteCounts() {
   // Rebuild party composition at the turnout model's count means. Blind and
   // current passes share those sizes, isolating observed share changes from
@@ -4326,7 +4368,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
       double boothPrefs = useCurrentFp ?
         fpTotalCurrent - booth.node.fpVotesCurrent.at(focusParty) - booth.node.fpVotesCurrent.at(otherParty) :
         fpTotalProjected - projectedFp.at(convertPartyId(focusParty)) - projectedFp.at(convertPartyId(otherParty));
-      double preferenceFlow = seat.tcpFocusPartyPrefFlow.value();
+      double preferenceFlow = booth.returningIndependentFocusFlow.value_or(*seat.tcpFocusPartyPrefFlow);
       if (createRandomVariation) {
         // Vary the fraction of the non-finalist preference pool flowing to
         // the focus party, in percentage points before the bounded transform.
