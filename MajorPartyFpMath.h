@@ -8,6 +8,19 @@
 // Use classic counts to relate major-party first preferences to TPP in one
 // district, and find adjustments to match the overall primary-vote forecast.
 namespace MajorPartyFpMath {
+	// Assumed fraction of continuing ballots from the excluded Coalition
+	// partner that prefer Labor. Used when calibrating a historical Labor–Liberal
+	// count without a separate scrutiny of the partner's ballots.
+	inline constexpr double HistoricalPartnerToLabor = 0.15;
+
+	// Only a confirmed Labor–Liberal count with the other Coalition party
+	// excluded can identify the relevant transfer pool. A zero TCP placeholder
+	// for the partner is possible. A National or nonclassic final is different.
+	inline bool excludedPartnerInLaborLiberalCount(double laborTcp, double liberalTcp,
+		double partnerTcp, int partnerPrimary)
+	{
+		return laborTcp > 0 && liberalTcp > 0 && partnerTcp == 0 && partnerPrimary > 0;
+	}
 	// One historical compulsory-preferential count, with the actual Coalition
 	// finalist and all votes measured on the same formal ballots. The range
 	// for the excluded partner's votes reaching Labor can be exact, bounded

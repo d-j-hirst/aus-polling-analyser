@@ -7,6 +7,17 @@
 
 namespace {
 
+	void checkBendigoEastHistoricalPartner()
+	{
+		using namespace MajorPartyFpMath;
+		assert(excludedPartnerInLaborLiberalCount(26776, 16332, 0, 6864));
+		assert(!excludedPartnerInLaborLiberalCount(26776, 0, 16332, 6864));
+		assert(!excludedPartnerInLaborLiberalCount(0, 16332, 0, 6864));
+		assert(!excludedPartnerInLaborLiberalCount(26776, 16332, 0, 0));
+		double const expected = (6864 * HistoricalPartnerToLabor + 3465 * .8194 + 2079 * .4925) / 12408;
+		assert(std::abs(expected - .3943) < .0001);
+	}
+
 	// Fictional seat shares. Normalisation preserves the locally established
 	// candidate and redistributes the rest between major and other minor votes.
 	struct Seat {
@@ -207,6 +218,7 @@ namespace {
 
 int main()
 {
+	checkBendigoEastHistoricalPartner();
 	checkReachableTargets();
 	checkProtectedLocalSupport();
 	checkInvalidCalculations();

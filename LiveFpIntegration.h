@@ -251,6 +251,12 @@ inline double ordinaryRemainingShare(LiveData::FpBoothComparison const& b,
     double const drawDeviation = (1-precision)*(logOdds(prior)-*b.priorCentre)
         + precision*(boothOdds-b.boothRemainingCentre);
 
+    // The split fit already weights the opening estimate by vote type. Retain
+    // the existing correlated draw around this centre without applying a
+    // second precision or breadth multiplier to the measured movement.
+    if (b.fittedRemaining)
+        return shareFromLogOdds(logOdds(*b.fittedRemaining)+drawDeviation);
+
     // Historical coverage chooses the central estimate. Both estimates use
     // the same precision-weighted variation. Only the central response to a
     // matched result gains strength when several booths have reported.

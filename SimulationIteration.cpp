@@ -1152,6 +1152,8 @@ void SimulationIteration::determineSeatInitialResults()
 		}
 	}
 
+	redistributeGroupedPrimaries();
+
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineSeatTpp(seatIndex);
 
@@ -2005,6 +2007,43 @@ void SimulationIteration::determineSeatOthers(int seatIndex)
 	seatFpVoteShare[seatIndex][OthersIndex] = voteShare;
 }
 
+// Each seat now has a complete preliminary primary draw. Allocate its grouped
+// vote using the confirmed ballot before inferring major primaries from TPP.
+// Actual FP counts enter later, after statewide reconciliation. The adjustment
+// cannot move a counted ballot or take votes from the Greens or a named IND.
+void SimulationIteration::redistributeGroupedPrimaries()
+{
+	std::vector<GroupedOthersFp::Allocation> seats;
+	seats.reserve(run.groupedFpDistricts.size());
+	for (auto const& district : run.groupedFpDistricts) {
+		int const index = district.seatIndex;
+		auto const& fp = seatFpVoteShare[index];
+		double const grouped = getAt(fp, OthersIndex, 0.0);
+		double const major = getAt(fp, Mp::One, 0.0) + getAt(fp, Mp::Two, 0.0);
+		if (grouped <= 0.0 || major <= 0.0) continue;
+		bool const emerging = getAt(fp, EmergingPartyIndex, 0.0) > 0;
+		int const separateInds = int(getAt(fp, EmergingIndIndex, 0.0) > 0) + int(getAt(fp, run.indPartyIndex, 0.0) > 0);
+		IndependentCandidacy::OtherCandidateRoster const roster{run.othCount[index], run.indCount[index]};
+		int const remaining = roster.remaining(separateInds, emerging);
+		int const partySlots = std::max(0, roster.others - int(emerging));
+		if (!remaining || (!district.useFieldSize && !partySlots)) continue;
+		double const proposed = GroupedOthersFp::propose(district, grouped, major, remaining, roster.others, emerging);
+		seats.push_back({index, district.turnout, grouped, major, proposed});
+	}
+	GroupedOthersFp::preserveTotal(seats);
+	for (auto const& seat : seats) {
+		if (seat.proposed == seat.original) continue;
+		auto& fp = seatFpVoteShare[seat.seatIndex];
+		fp[OthersIndex] = seat.proposed;
+		// Hold the major parties' relative split until the subsequent TPP
+		// calculation. Preserve any structural zero in this district.
+		double const majorFraction = (seat.major + seat.original - seat.proposed) / seat.major;
+		for (int party : {Mp::One, Mp::Two}) {
+			if (auto it = fp.find(party); it != fp.end()) it->second *= majorFraction;
+		}
+	}
+}
+
 void SimulationIteration::adjustForFpCorrelations(int seatIndex)
 {
 	//Seat const& seat = run.seatLookup.seat(seatIndex);
@@ -2290,12 +2329,19 @@ SimulationIteration::allocateMajorPartyFp(
 			voteShare = 100.0 * previous.fpVoteCount.at(partyIndex) / previous.turnoutCount;
 		}
 		if (partyIndex == CoalitionPartnerIndex) {
-			previousPartyOnePrefEstimate += 0.15 * voteShare;
+			previousPartyOnePrefEstimate += MajorPartyFpMath::HistoricalPartnerToLabor * voteShare;
 			continue;
 		}
 		double exhaustRate = useNamedHistoricalPair ? 0.0 : calculateEffectiveExhaustRate(partyIndex, false);
-		// Use a special formula for IND-like preference flows that accounts for tactical voting
-		if (voteShare > 5.0 && usesTacticalPreferenceFlow(partyIndex)) {
+		if (partyIndex == run.natPartyIndex && previous.excludedNationalAgainstLiberal) {
+			// These votes are part of the observed transfer pool. Give them the
+			// partner rate in its numerator and keep their continuing votes in
+			// its denominator below. Treating them as generic minors can carry a
+			// spurious local preference correction into the following election.
+			previousPartyOnePrefEstimate += voteShare * MajorPartyFpMath::HistoricalPartnerToLabor * (1.0 - exhaustRate);
+		}
+		else if (voteShare > 5.0 && usesTacticalPreferenceFlow(partyIndex)) {
+			// Historical support for an independent can include tactical votes.
 			double effectivePreferenceFlow = calculateEffectivePreferenceFlow(partyIndex, voteShare, false);
 			double adjustedPreferenceFlow = std::clamp<double>(effectivePreferenceFlow + preferenceFlowDeviation, 1.0, 99.0);
 			previousPartyOnePrefEstimate += voteShare * adjustedPreferenceFlow * 0.01 * (1.0 - exhaustRate);
@@ -4731,6 +4777,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		}
 	}
 	integrateLiveTcpPair(seatIndex, topTwo, livePrincipalProxy);
+	applyTransferredNonClassicTcp(seatIndex,topTwo);
 	if (!validSeatFinalPair(topTwo)) throw InvalidIteration();
 	if (beforeLive) compareFinalPair(seatIndex, *beforeLive, topTwo, livePrincipalProxy, secondaryIndependent);
 	recordSeatFinalPair(seatIndex, topTwo);
@@ -4761,6 +4808,36 @@ void SimulationIteration::recordSeatFinalPair(int seatIndex, TcpPair const& pair
 	seatTcpVoteShare[seatIndex] = {{byParty.first.first, byParty.second.first}, byParty.first.second};
 
 	if (run.isLive()) applyLiveManualOverrides(seatIndex);
+}
+
+// Classic transfers are already allocated by source inside projectLiveClassicTpp.
+// For the tested non-classic matchup the ranking or legacy count first chooses
+// the finalists and integrates live TCP. Apply the geographic comparison once
+// to that result, within the remaining transferable ballots in this draw.
+void SimulationIteration::applyTransferredNonClassicTcp(int seatIndex,TcpPair& pair) const
+{
+	if (!run.isLiveAutomatic() || !liveElection || run.grnPartyIndex<0) return;
+	bool const laborFirst = pair.first.first==Mp::One;
+	if ((laborFirst ? pair.second.first : pair.first.first)!=run.grnPartyIndex ||
+		(!laborFirst && pair.second.first!=Mp::One)) return;
+	auto curve = liveElection->sourceSeatTcp(seatIndex,run.grnPartyIndex);
+	if (!curve) return;
+	auto const& name = run.seatLookup.seat(seatIndex).name;
+	auto account = liveElection->getSeatVoteCountAccount(name,LiveData::CountKind::Tcp);
+	if (!account || account->projected->size()!=2 || !account->projected->contains(Mp::One) ||
+		!account->projected->contains(run.grnPartyIndex)) return;
+	double const turnout = LiveFpTpp::total(*account->projected);
+	if (turnout<=0) return;
+	double const labor = laborFirst ? pair.first.second : pair.second.second;
+	auto floor = [&](int id) {
+		return std::max(getAt(seatFpVoteShare.at(seatIndex),id,0.),
+			100*getAt(*account->counted,id,0.)/turnout);
+	};
+	double const move = std::clamp(curve->change(labor),-std::max(0.,labor-floor(Mp::One)),
+		std::max(0.,100.-labor-floor(run.grnPartyIndex)));
+	if (move==0) return;
+	pair = {{Mp::One,labor+move},{run.grnPartyIndex,100.-(labor+move)}};
+	if (pair.first.second>pair.second.second) std::swap(pair.first,pair.second);
 }
 
 bool SimulationIteration::integrateLiveTcpPair(int seatIndex, TcpPair& topTwo, bool livePrincipalProxy,
@@ -5097,6 +5174,7 @@ std::optional<SimulationIteration::TcpPair> SimulationIteration::integrateRankin
 		}
 		comparison.modelLivePairMatched = integrateLiveTcpPair(seatIndex, modelPair, livePrincipalProxy,
 			secondaryIndependent, !comparison.model.jointThreeCandidateFlows.empty());
+		applyTransferredNonClassicTcp(seatIndex,modelPair);
 		if (!validSeatFinalPair(modelPair)) throw std::runtime_error("Invalid ranking TCP after live integration.");
 		return modelPair;
 	}

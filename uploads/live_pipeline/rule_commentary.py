@@ -229,14 +229,18 @@ class LocalCount(NamedTuple):
     gap_pp: Optional[float] = None
     count_type: Optional[str] = None
     units: int = 1
+    attribution: Optional[str] = None
+    contrast: Optional[str] = None
 
 
 class PairProjection(NamedTuple):
     """District median final share for the subject against one opponent, at
-    the two ends of the comparison. Both shares are percentages."""
+    the two ends of the comparison. Pairing frequency is the percentage of
+    current simulations in which those two candidates made the final pair."""
     opponent: str
     before: Optional[float]
     after: float
+    pairing_percent: Optional[float] = None
 
     def point(self, row):
         first = candidate(row['seat'], row['party_id'])
@@ -288,14 +292,22 @@ def local_pair_projection(packet, row, endpoints):
         median = count.get('projected_median_percent_for_first')
         if median is not None:
             after = median if count['pair'][0] == party else 100 - median
-    return PairProjection(opponent, before, after) if after is not None else None
+    chances = districts[1].get('pairing_percent', {}) if districts else {}
+    frequency = chances.get('/'.join(pair))
+    return PairProjection(opponent, before, after, frequency) if after is not None else None
 
 
-def other_opponent_primary(group, row, rival, endpoints, entities):
-    """A third candidate's pooled FP result can clarify a change of opponent.
-    Require their whole-seat primary and the frequency of their final against
-    the subject to move the same way. These checks establish agreement in
-    direction, without attributing the exclusion order to particular ballots."""
+def booth_difference(value):
+    if abs(value) < .05:
+        return 'matching the earlier estimate'
+    return f"**{abs(value):.1f} pp** {'above' if value > 0 else 'below'} the earlier estimate"
+
+
+def other_opponent_primary(group, row, rival, projected_opponent, endpoints, entities):
+    """Select one more FP comparison when it helps interpret the contest.
+    Give the likely opponent priority if the frequency of that final changed
+    materially. Their booth share is informative even if close to expectations.
+    Link other candidates to pairing movement only with supporting district FP."""
     if not endpoints or not group['first']:
         return ''
     seat, subject = row['seat'], row['party_id']
@@ -303,10 +315,16 @@ def other_opponent_primary(group, row, rival, endpoints, entities):
     options, local_gains = [], []
     subject_gap = group['rates'][subject][1]
     for party, (share, gap) in group['rates'].items():
-        if party in (subject, rival) or abs(gap) < 3 or candidate(seat, party) not in entities:
+        if party in (subject, rival) or candidate(seat, party) not in entities:
             continue
         info = districts[0].get('candidates', {}).get(party) or {}
         if not info.get('name') or info != districts[1].get('candidates', {}).get(party):
+            continue
+        pairs = [pairing_commentary.pair_win_rate(s, seat, subject, party) for s in endpoints]
+        change = pairs[1][0] - pairs[0][0] if None not in pairs else None
+        if party == projected_opponent and change is not None and abs(change) >= 2:
+            return f' {candidate(seat, party)} received **{share:.1f}%**, '+booth_difference(gap)+'.'
+        if abs(gap) < 3:
             continue
         # A large primary shortfall deserves its local counterpart even when
         # that third candidate did not become a more likely district finalist.
@@ -314,10 +332,8 @@ def other_opponent_primary(group, row, rival, endpoints, entities):
         if subject_gap <= -5 and gap >= -subject_gap/2:
             local_gains.append((gap, party, share))
         means = [d.get('fp_mean_percent', {}).get(party) for d in districts]
-        pairs = [pairing_commentary.pair_win_rate(s, seat, subject, party) for s in endpoints]
-        if None in means or None in pairs:
+        if None in means or change is None:
             continue
-        change = pairs[1][0] - pairs[0][0]
         # Mention one other opponent only for a visible (two-point) change
         # in pairing frequency backed by a district FP shift of at least 0.5 pp.
         if abs(change) >= 2 and abs(means[1]-means[0]) >= .5 and gap*change > 0 and gap*(means[1]-means[0]) > 0:
@@ -334,11 +350,122 @@ def other_opponent_primary(group, row, rival, endpoints, entities):
             f'{candidate(seat, subject)} {"more" if gap > 0 else "less"} often in the final two.')
 
 
+def attributed_count(packet, row, projection, rival, endpoints, candidates):
+    """Choose between concurrent FP and TCP returns using the simulated district
+    TPP account. First establish which component moved the district, then ask
+    whether the fresh comparable booths illustrate it. Choosing a booth just
+    because it points towards the winner would reverse that reasoning."""
+    seat, party = row['seat'], row['party_id']
+    parts = packet['rule_context'].get('tpp_components', {}).get(seat)
+    if (not parts or not endpoints or not projection or projection.before is None
+            or packet.get('input_revision_changed') or rival != projection.opponent or {party, rival} != {'0', '1'}):
+        return None
+    # The exported account is for Labor versus Coalition across every draw.
+    # Only relate it to a named TCP when those finalists dominate both reports.
+    districts = [s['seats'][seat] for s in endpoints]
+    if any(d.get('pairing_percent', {}).get('0/1', 0) < 90 for d in districts) or any(
+            not (districts[0].get('candidates', {}).get(p) or {}).get('name')
+            or districts[0]['candidates'][p] != districts[1].get('candidates', {}).get(p) for p in (party, rival)):
+        return None
+    shift = projection.after - projection.before
+    if abs(shift) < .1 or shift*row['change_pp'] <= 0:
+        return None
+    sign = 1 if party == '0' else -1
+    effects = {'FP': sign*parts['primary_change_pp'], 'TCP': sign*parts['measured_change_pp']}
+    lead = max(effects, key=lambda key: abs(effects[key]))
+    other = 'TCP' if lead == 'FP' else 'FP'
+    effect = effects[lead]
+    # Require a visible contribution, at least half the median revision,
+    # and larger than the other count and preference-learning terms together.
+    # The mean adjustment describes the vote projection, not a split of the
+    # change in win probability or a measured impact of a particular booth.
+    if (effect*shift <= 0 or abs(effect) < max(.2, .5*abs(shift))
+            or abs(effect) <= abs(effects[other])+abs(parts['learned_change_pp'])):
+        return None
+    groups = {}
+    for ledger in effects:
+        batches = [g for g in candidates if g['ledger'] == ledger]
+        if not batches:
+            return None
+        group = max(batches, key=lambda g: g['changed'])
+        if not group['first'] or rival not in group['rates']:
+            return None
+        groups[ledger] = group
+    def departure(group):
+        gap = group['rates'][party][1]
+        return gap-group['rates'][rival][1] if group['ledger'] == 'FP' else gap
+    if departure(groups[lead])*effect <= 0:
+        return None
+    beneficiary = candidate(seat, party if effect > 0 else rival)
+    source = 'The revised FP projection' if lead == 'FP' else 'The newly measured preferences'
+    attribution = f'{source} moved the district TPP estimate about **{abs(effect):.1f} pp** towards {beneficiary}.'
+    contrast = None
+    g = groups[other]
+    if departure(g)*shift < 0 and effects[other]*shift < 0:
+        who = party if departure(g) > 0 else rival
+        share, gap = g['rates'][who]
+        if other == 'FP':
+            contrast = (f'The FP returns at {g["locations"]} favoured {candidate(seat, who)} relative to '
+                        f'{candidate(seat, rival if who == party else party)} by **{abs(departure(g)):.1f} pp** '
+                        f'more than estimated across **{g["ballots"]:,}** ballots.')
+        else:
+            extra = round(g['ballots']*gap/100)
+            scale = f' (about **{extra:,}** extra votes)' if extra >= 1 else ''
+            contrast = (f'The TCP count at {g["locations"]} went the other way. {candidate(seat, who)} '
+                        f'received **{share:.1f}%** of **{g["ballots"]:,}** TCP votes, '+booth_difference(gap)+scale+'.')
+    return groups[lead], attribution, contrast
+
+
+def explanatory_booth_tcp_shift(group, projection, quoted_parties):
+    """For a less certain pairing, include TCP if it helps explain a sizeable
+    FP surprise or distinguishes a booth movement from the district movement."""
+    estimates = group['tcp_estimates']
+    for subject in quoted_parties:
+        if subject not in estimates:
+            continue
+        gap = group['rates'][subject][1]
+        if abs(gap) < 3:
+            continue
+        before, after = estimates[subject]
+        shift = after-before
+        # As in the FP comparison, differences of a couple of points are
+        # editorial thresholds. Compare shares in pp, never win probabilities.
+        muted = abs(gap-shift) >= 2 and (gap*shift <= 0 or abs(shift) <= abs(gap)/2)
+        localised = (projection.before is not None and abs(shift) >= 2 and
+                     abs(projection.after-projection.before) <= abs(shift)/2)
+        if muted or localised:
+            return True
+    return False
+
+
+def booth_tcp_context(seat, group, projection, party, quoted_parties):
+    """Show how the projected TCP changed at the places in the FP report.
+    Where the pair occurs in more than 65% of the current simulations, even
+    a small change helps readers interpret the FP count after preferences."""
+    estimates = group.get('tcp_estimates', {})
+    if not projection or group['ledger'] != 'FP' or set(estimates) != {party, projection.opponent}:
+        return ''
+    dominant = projection.pairing_percent is not None and projection.pairing_percent > 65
+    if not dominant and not explanatory_booth_tcp_shift(group, projection, quoted_parties):
+        return ''
+    # Either finalist can trigger the comparison. Quote the first FP
+    # candidate's share and direction to keep both sentences in order.
+    before, after = estimates[party]
+    shift = after-before
+    place = 'there' if group['units'] == 1 else 'across those counts'
+    text = (f' After preferences, the model projects **{after:.1f}%** TCP {place} '
+            f'for {candidate(seat, party)} against {candidate(seat, projection.opponent)}')
+    if round(before, 1) == round(after, 1):
+        return text + ', in line with its earlier estimate.'
+    amount = f'**{abs(shift):.1f} pp**' if round(abs(shift), 1) else 'less than **0.1 pp**'
+    return text + f', {amount} {"above" if shift > 0 else "below"} the earlier estimate.'
+
+
 def supporting_booth(packet, row, minimum_ballots=10, projection=None, rival=None, modal=(), endpoints=None):
     """Compare the combined result at all comparable reporting places with
-    their own earlier estimates. Prefer TCP for the projected finalists,
-    then FP. Choose the ledger by coverage and identity before examining
-    the direction of the movement. A contrary result is still informative."""
+    their own earlier estimates. Use the district TPP account when it can
+    distinguish simultaneous FP and TCP updates. Otherwise prefer a matched
+    TCP, then FP. A contrary booth return is still informative."""
     seat, party = row['seat'], row['party_id']
     pools = packet['rule_context']['pools'].get(seat, {}).get(party, [])
     candidates = [g for g in pools if g['changed'] >= minimum_ballots and
@@ -348,7 +475,9 @@ def supporting_booth(packet, row, minimum_ballots=10, projection=None, rival=Non
                     (not projection or projection.opponent in g['pair'])))]
     if not candidates:
         return None
-    group = max(candidates, key=lambda g: (bool(projection) and g['ledger'] == 'TCP', g['changed'], g['ledger'] == 'TCP'))
+    attributed = attributed_count(packet, row, projection, rival, endpoints, candidates)
+    group = attributed[0] if attributed else max(candidates, key=lambda g: (
+        bool(projection) and g['ledger'] == 'TCP', g['changed'], g['ledger'] == 'TCP'))
     share, gap = group['rates'][party]
     ledger = group['ledger']
     locations = group['locations']
@@ -358,58 +487,41 @@ def supporting_booth(packet, row, minimum_ballots=10, projection=None, rival=Non
     else:
         location = locations
         opening = 'Across '+locations
-    def difference(value):
-        if abs(value) < .05:
-            return 'matching the earlier estimate'
-        return f"**{abs(value):.1f} pp** {'above' if value > 0 else 'below'} the earlier estimate"
     # These totals are cumulative even when only part of a booth changed.
     point = (f"{opening}, {candidate(seat, party)} received **{share:.1f}%** of "
              f"**{group['ballots']:,}** {ledger} votes" + ('' if group['first'] else ' counted so far'))
     if ledger == 'TCP':
         opponent = next(p for p in group['pair'] if p != party)
         point += ' against '+candidate(seat, opponent)
-    point += ', '+difference(gap)+'.'
-    primary_gap = gap
+    point += ', '+booth_difference(gap)+'.'
+    quoted_parties = [party]
     if ledger == 'FP' and rival in group['rates']:
         rival_share, rival_gap = group['rates'][rival]
         # Usually omit small differences. If this candidate gained win chance
         # despite a substantial primary shortfall, even a rival polling close
         # to expectations helps readers judge the direction of the booth result.
         contrary_shortfall = gap <= -3 and row['change_pp'] >= .5
-        if contrary_shortfall or (abs(rival_gap) >= 1 and abs(gap-rival_gap) >= 1):
-            point += f' {candidate(seat, rival)} received **{rival_share:.1f}%**, '+difference(rival_gap)+'.'
+        # Two mild shortfalls can leave the FP lead almost as expected.
+        # Reporting just the winner's shortfall suggests a contrary result.
+        both_below = row['change_pp'] >= .5 and rival_gap <= gap <= -1
+        if contrary_shortfall or both_below or (abs(rival_gap) >= 1 and abs(gap-rival_gap) >= 1):
+            quoted_parties.append(rival)
+            point += f' {candidate(seat, rival)} received **{rival_share:.1f}%**, '+booth_difference(rival_gap)+'.'
             lead_gap = gap-rival_gap
             if gap*rival_gap > 0 and abs(lead_gap) >= 2:
                 ahead = party if lead_gap > 0 else rival
                 point += f' The FP gap was **{abs(lead_gap):.1f} pp** more favourable to {candidate(seat, ahead)} than estimated.'
         gap -= rival_gap
         if projection and not packet.get('input_revision_changed'):
-            point += other_opponent_primary(group, row, rival, endpoints, packet['entities'])
-    estimates = group.get('tcp_estimates', {})
-    if projection and set(estimates) == {party, projection.opponent} and abs(primary_gap) >= 3:
-        before, after = estimates[party]
-        shift = after - before
-        # Highlight a reversal or a shift at most half the FP surprise,
-        # separated by at least two points. These are editorial thresholds:
-        # a similar movement after preferences needs no extra explanation.
-        if abs(primary_gap-shift) >= 2 and (primary_gap*shift <= 0 or abs(shift) <= abs(primary_gap)/2):
-            subject = candidate(seat, party)
-            place = 'there' if group['units'] == 1 else 'across those counts'
-            point += (f' After preferences, the model projects **{after:.1f}%** TCP {place} '
-                      f'for {subject} against {candidate(seat, projection.opponent)}')
-            if round(before, 1) == round(after, 1):
-                point += ', in line with its earlier estimate.'
-            else:
-                only = 'only ' if primary_gap*shift > 0 and abs(shift) >= .05 else ''
-                amount = f'**{abs(shift):.1f} pp**' if round(abs(shift), 1) else 'less than **0.1 pp**'
-                point += (f', {only}{amount} {"above" if shift > 0 else "below"} '
-                          f'its earlier estimate of **{before:.1f}%**.')
+            point += other_opponent_primary(group, row, rival, projection.opponent, endpoints, packet['entities'])
+    point += booth_tcp_context(seat, group, projection, party, quoted_parties)
     if group.get('other_categories'):
         places = rule_evidence.joined(['the '+category+' count' for category in group['other_categories']])
         point += f' Separate {ledger} updates also came from {places}.'
     # When both sides reported below expectation, it is the difference between
     # their shortfalls that tells us which of these contenders gained ground.
-    return LocalCount(location, group['changed'], point, gap, count_type=ledger, units=group['units'])
+    return LocalCount(location, group['changed'], point, gap, count_type=ledger, units=group['units'],
+                      attribution=attributed[1] if attributed else None, contrast=attributed[2] if attributed else None)
 
 
 def firmer_lead(packet, row, endpoints):
@@ -759,6 +871,65 @@ def preference_sample_point(packet, seat, matchup=None):
     return text
 
 
+def accumulating_primary_point(seat, favoured, other, check, means):
+    """Explain the strongest supported candidate movement. Agreement means
+    that the fresh booths polled on the same side of their own estimates as
+    the earlier count. A larger or more geographically spread count alone
+    cannot establish agreement, and a projected fall is not a loss of ballots."""
+    contributions = [(direction*(check[p]['after']-check[p]['previous_weight']), direction, p)
+                     for direction, p in ((1, favoured), (-1, other))]
+    effect, direction, p = max(contributions)
+    result = check[p]
+    pattern = result.get('new_booths')
+    if (not pattern or effect < .5 or direction*(means[1][p]-means[0][p]) < .5
+            or direction*result['earlier_signal'] <= 0 or direction*result['current_signal'] <= 0):
+        return None
+    subject = candidate(seat, p)
+    where = ' at '+result['earlier_booth'] if result.get('earlier_booth') else ''
+    side = 'above' if direction > 0 else 'below'
+    low, high = sorted(direction*pattern[key] for key in ('low', 'high'))
+    if low >= .5:
+        # Booths can both fall short while the pooled shortfall shrinks.
+        # The forecast responds to the size and spread of the count; sharing
+        # a direction is not a test used to give the new votes extra weight.
+        if abs(result['current_signal']) < abs(result['earlier_signal']):
+            difference = 'shortfall' if direction < 0 else 'surplus'
+            text = f'The new result reduced the overall FP {difference} for {subject} across the counted booths.'
+            if result.get('dominant_earlier_count'):
+                return text + (f' With votes now spread across more booths, the forecast applied more of '
+                               f'that smaller {difference} to the votes still to come.')
+            return text + ' The forecast nevertheless gave the larger count more weight for the remaining votes.'
+        return (f'FP support for {subject} was {side} expectations both in the earlier count{where} '
+                'and in the new returns. The forecast gave the larger count more weight for the remaining votes.')
+    if low <= -.5 and high >= .5:
+        dominant = pattern.get('dominant')
+        strongest = ''
+        if dominant:
+            trend = 'shortfall' if pattern['dominant_gap'] < 0 else 'gain'
+            strongest = f', with the largest FP {trend} at {dominant}'
+        return (f'The new booths were mixed for {subject}{strongest}. Across the count so far, '
+                f'FP support remained {side} expectations, and the forecast gave that broader count more weight.')
+    if (direction*pattern['pooled'] <= -.5
+            and abs(result['current_signal']) < abs(result['earlier_signal'])):
+        earlier = result.get('dominant_earlier_count')
+        if earlier:
+            # A return can weaken the observed pattern while a less concentrated
+            # count makes it more informative about the booths still to report.
+            # Describe what happened to both candidates when their cumulative
+            # comparisons support it, even if just one led the district revision.
+            balance = f'{subject} remained {side} expectations'
+            if all(check[q].get('current_signal', 0)*d > 0 and check[q].get('earlier_signal', 0)*d > 0
+                   for q, d in ((favoured, 1), (other, -1))):
+                balance = f'{candidate(seat, favoured)} remained above expectations and {candidate(seat, other)} below'
+            return (f"Previously, **{earlier['largest']:,}** of **{earlier['total']:,}** local FP votes came from "
+                    f"{earlier['name']}. Across the booths counted so far, {balance}. With the count spread "
+                    'across more booths, the forecast put more weight on that pattern for the remaining votes.')
+        noun = 'gain' if direction > 0 else 'shortfall'
+        return (f'The new count softened the earlier FP {noun}{where} for {subject}. FP support across '
+                f'the count so far remained {side} expectations, and the forecast gave it more weight.')
+    return None
+
+
 def district_primary_evidence(packet, row, projection, endpoints):
     """Test whether the extra weight given to the local count helps explain
     the published FP gap between the two finalists. The diagnostic estimates
@@ -809,7 +980,8 @@ def district_primary_evidence(packet, row, projection, endpoints):
                   f'{candidate(seat, favoured)} (**{means[0][favoured]:.1f}%** to **{means[1][favoured]:.1f}%**).')
     else:
         detail = f'the projected FP share {movement_for(favoured)} and {movement_for(other)}.'
-    return gap, 'As more votes came in, the forecast relied more on the results counted so far. Across the seat, ' + detail
+    explanation = accumulating_primary_point(seat, favoured, other, check, means)
+    return gap, (explanation or 'As more votes came in, the forecast relied more on the results counted so far.') + ' Across the seat, ' + detail
 
 
 def narrower_matchup(row, projection, endpoints):
@@ -897,7 +1069,7 @@ def district_story(packet, row, endpoints, concise=False, review_flags=None):
         if rival is None and projection.before is not None:
             rival = projection.opponent
         booth = supporting_booth(packet, row, projection=projection, rival=rival, endpoints=endpoints)
-        if not booth or booth.count_type == 'FP':
+        if not booth or (booth.count_type == 'FP' and not booth.attribution):
             # If individual TCP estimates are unavailable, the ranked model
             # can still compare the same group of ballots at the two dates.
             # A matched transfer count is more direct evidence than FP alone.
@@ -1019,8 +1191,10 @@ def district_story(packet, row, endpoints, concise=False, review_flags=None):
             rates = [pairing_commentary.pair_win_rate(s, seat, row['party_id'], projection.opponent) for s in endpoints]
             if None not in rates and (min(r[1] for r in rates) >= 98 or max(r[1] for r in rates) <= 2):
                 projected_share = None
+    if booth and booth.attribution:
+        projected_share = ' '.join(p for p in (booth.attribution, projected_share) if p)
     observations = (sample, matchup, follow_up, count, retained, prefs, booth.point if booth else None,
-                    confidence, projected_share)
+                    confidence, projected_share, booth.contrast if booth else None)
     if concise:
         # In a long overview a second district needs its outcome and strongest
         # explanation. Keep any new preference sample ahead of other details.

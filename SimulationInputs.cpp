@@ -118,6 +118,7 @@ std::shared_ptr<SimulationInputs const> SimulationInputs::capture(
 		{File::TppSwingFactors, "analysis/Seat Statistics/tpp-swing-factors.csv"},
 		{File::GreensStatistics, "analysis/Seat Statistics/statistics_GRN.csv"},
 		{File::GreensFpPriors, "analysis/seats/" + term + "-greens-fp-priors.json"},
+		{File::GroupedFpPriors, "analysis/seats/" + term + "-grouped-fp-priors.json"},
 		{File::IndependentStatistics, "analysis/Seat Statistics/statistics_IND.csv"},
 		{File::OthersStatistics, "analysis/Seat Statistics/statistics_OTH.csv"},
 		{File::GreensIndependentCorrelation, "analysis/Seat Statistics/GRN_IND_correlation.csv"},

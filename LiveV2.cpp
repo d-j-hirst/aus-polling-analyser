@@ -1689,6 +1689,27 @@ std::optional<double> Election::getLearnedTcpShare(std::string const& seatName, 
       first += future * votes / futureWeight * weight * getRate(party,category.adjustment,variation);
     }
   }
+  // In a learned Labor-Greens contest the counts and unresolved primary
+  // pools above identify exactly how many votes can still change sides.
+  // Apply the source-seat evidence here so neither a counted preference
+  // nor a finalist's own FP is transferred by the geographic adjustment.
+  if (sourceSeatCurves && run.grnPartyIndex>0 && (pair==PreferenceModel::Pair{0,run.grnPartyIndex} ||
+      pair==PreferenceModel::Pair{run.grnPartyIndex,0})) {
+    if (auto curve = sourceSeatTcp(tppProjectSeatIndices.at(s),run.grnPartyIndex)) {
+      auto floor = [&](int party,double fixed) {
+        if (pendingWeight>0) for (auto const& [code,category] : account.categories)
+          fixed += pendingTarget*getAt(category.pending,party,0.)/pendingWeight;
+        if (futureWeight>0)
+          fixed += future*getAt(remainingPrimaries,party,0.)/futureWeight;
+        return fixed;
+      };
+      bool laborFirst = pair[0]==0;
+      double move = curve->change(100*(laborFirst ? first : total-first)/total)*total*.01;
+      first += std::clamp(laborFirst ? move : -move,
+        -std::max(0.,first-floor(pair[0],countedFirst)),
+        std::max(0.,total-first-floor(pair[1],countedSecond)));
+    }
+  }
   return std::clamp(first/total,0.0,1.0);
 }
 

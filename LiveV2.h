@@ -11,6 +11,7 @@
 #include "LivePartyMapping.h"
 #include "LiveVariability.h"
 #include "LivePreparedStorage.h"
+#include "LiveSourceSeatTcp.h"
 
 #include "ElectionData.h"
 #include "General.h"
@@ -582,6 +583,7 @@ public:
   std::optional<LiveData::CountProgress> getCountProgress() const override { return countProgress; }
   LiveStatewidePreferences::Election const* statewidePreferenceInputs() const override { return statewidePreferences.get(); }
   LiveFpTpp::District const* classicPreferenceAccount(int district) const override;
+  LiveSourceSeatTcp::Curve const* sourceSeatTcp(int district, int opponent) const override;
 
   Internals getInternals() const override {
     Internals internals;
@@ -717,6 +719,9 @@ private:
   std::shared_ptr<LivePartyConversion::Calibration const> tppTransferCalibration;
   std::shared_ptr<std::map<int,LiveFpTpp::District> const> classicPreferenceAccounts;
   void prepareClassicPreferenceAccounts();
+  void prepareSourceSeatTcp();
+  std::optional<LiveSourceSeatTcp::Curve> sourceAreaCurve(Seat const& seat, int opponent) const;
+  std::shared_ptr<std::map<std::pair<int,int>,LiveSourceSeatTcp::Curve> const> sourceSeatCurves;
   double tppCompositionBudgetScale = 1;
   LiveTppIntegration::ReportingProgress tppOrdinaryReportingProgress;
   template<typename T, typename U>
@@ -869,6 +874,8 @@ private:
   double fpEvidenceNormalStdDev(int seatIndex, int partyId, double localStdDev) const;
   double fpEvidenceDisagreement(int seatIndex, int partyId, double quantile) const;
   void prepareFpIntegration(BlindFpProjections const& blind);
+  void prepareOrdinaryFpFit(int seatIndex, BlindFpProjections const& blind,
+    LiveData::FpIntegrationInformation& information) const;
   void prepareFpBoothComparisons(int seatIndex, BlindFpProjections const& blind,
     LiveData::FpIntegrationInformation& information) const;
   std::vector<LiveData::FpIntegrationInformation> fpIntegrationCentres() const;

@@ -1,6 +1,7 @@
 // Exercise local minor-party FP estimates, including the Greens starting
 // distribution in seats with no previous result and centrist/populist viability.
 #include "../GreensFpPrior.h"
+#include "../GroupedOthersFp.h"
 #include "../MinorPartyFpMath.h"
 #include "../SeatFpPolls.h"
 
@@ -10,6 +11,34 @@
 #include <sstream>
 
 namespace {
+
+void checkGroupedBallotAdjustment()
+{
+	using namespace GroupedOthersFp;
+	assert(ballotGrowthOdds(0, 0) == 1.0);
+	assert(ballotGrowthOdds(2, 4) > 1.0 && ballotGrowthOdds(4, 2) < 1.0);
+	District local{0, 1000, 1., 1, 100. * 1188 / 19101, true};
+	double const single = 10.72 / 4;
+	double const expected = 10.72 + 0.5 * (local.knownShareSum - single);
+	assert(std::abs(propose(local, 10.72, 80., 4, 3, false) - expected) < 1e-10);
+	// A separate party already occupying the last party slot must not
+	// supply another allowance even if a generic independent remains.
+	assert(propose(local, 5., 80., 1, 1, true) == 5.);
+	assert(std::abs(propose(local, 10.72, 80., 3, 3, true)
+		- (10.72 + (local.knownShareSum - 10.72 / 3) / 3)) < 1e-10);
+	local.growthOdds = ballotGrowthOdds(2, 4);
+	assert(propose(local, 10.72, 80., 4, 3, false) > expected);
+	assert(propose(local, 1., 0.1, 1, 1, false) <= 1.1);
+
+	// Both upward and downward proposals preserve the turnout-weighted total
+	// even with unequal districts and a seat at its maximum possible FP.
+	for (double proposed : {0.1, 10., 45.}) {
+		std::vector<Allocation> districts{{0, 200, 5, 40, proposed}, {1, 100, 10, 2, 12}};
+		preserveTotal(districts);
+		assert(std::abs(200*districts[0].proposed + 100*districts[1].proposed - 2000) < 1e-8);
+		for (auto const& s : districts) assert(s.proposed >= 0 && s.proposed <= s.original + s.major);
+	}
+}
 
 void checkHistoricalOthersSupport()
 {
@@ -155,6 +184,7 @@ void checkPollEvidenceModeratesProfileAssessment()
 
 int main()
 {
+	checkGroupedBallotAdjustment();
 	checkHistoricalOthersSupport();
 	checkMissingGreensFpPrior();
 	checkZeroViabilityPreservesExistingResults();

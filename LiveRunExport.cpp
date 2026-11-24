@@ -1129,6 +1129,18 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 			optionalNumber(seat.offsetSpecificTppDeviation);
 		seatJson["fp_all_booths_std_dev"] = parties.values(seat.fpAllBoothsStdDev);
 		seatJson["independent_pooling_baseline_share"] = number(seat.independentPoolingBaselineShare);
+		if (sourceSeatCurves) {
+			int district = tppProjectSeatIndices.at(&seat-seats.data());
+			for (int opponent : {1,natPartyIndex,run.grnPartyIndex}) {
+				if (auto curve = sourceSeatTcp(district,opponent)) {
+					for (auto const& e : curve->evidence)
+						seatJson["transferred_tcp_areas"].push_back({{"labor_opponent",opponent},
+							{"source_district",e.source},{"reported_booths",e.in},{"pending_booths",e.pending},
+							{"counted_tcp_votes",number(e.votes)},{"pending_tcp_turnout",number(e.remaining)},
+							{"observed_labor_swing_pp",number(e.swing)}});
+				}
+			}
+		}
 		if (fpEvidence) {
 			auto const& evidence = fpEvidence->at(&seat-seats.data());
 			LiveFpEvidence::Shares extraVariance, normalVariance, disagreementGaps;
@@ -1159,7 +1171,9 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 					weights[party] = LiveFpIntegration::countWeight(
 						moments.baseline.logOddsVariance.at(party),variance,moments.evidenceGate);
 			seatJson["fp_integration"] = {
-				{"method",moments.boothComparisons.empty() ? "local_precision" : "ordinary_vote_blend"},
+				{"method",std::any_of(moments.boothComparisons.begin(),moments.boothComparisons.end(),
+					[](auto const& row) { return row.second.fittedRemaining.has_value(); })
+					? "split_ordinary_fit" : moments.boothComparisons.empty() ? "local_precision" : "ordinary_vote_blend"},
 				{"evidence_gate",number(moments.evidenceGate)},
 				{"shared_deviation",parties.values(moments.sharedDeviation)},
 				{"baseline_log_odds_mean",parties.values(moments.baseline.logOddsMean)},
@@ -1188,6 +1202,7 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 						{"booth_remaining_share",number((LiveFpIntegration::value(mean,party)-fixed)/future)},
 						{"prior_remaining_log_odds",number(b.priorRemainingCentre)},
 						{"local_log_odds_change",number(b.localMovement)}});
+					if (b.fittedRemaining) rows.back()["fitted_remaining_share"] = number(*b.fittedRemaining);
 				}
 				inputs["ordinary_comparisons"] = std::move(rows);
 			}
@@ -1239,6 +1254,8 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 				Results2::Booth::boothTypeName(booth.boothType);
 			boothJson["coords"] = optionalCoords(booth.coords);
 			boothJson["same_seat"] = booth.sameSeat;
+			if (!booth.sameSeat && !booth.syntheticPreviousCategory && !booth.previousPreferenceSeat.empty())
+				boothJson["previous_district"] = booth.previousPreferenceSeat;
 			if (booth.notionalPreferenceOffset) {
 				// Independent old TPP is a comparison/prior, never a current TCP
 				// count. Keep its provenance visible beside the unchanged raw maps.

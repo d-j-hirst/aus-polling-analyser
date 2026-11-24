@@ -50,7 +50,7 @@ def unit_names(units):
     return joined(labels)
 
 
-def booth_projection_after_preferences(old, new, seat, previous, current, ranked_pairs):
+def booth_projection_after_preferences(old, new, seat, previous, current, ranked_pairs, *, aligned, booth_key):
     """Find two comparable forecasts for this booth after preferences. A booth
     with FP only can still have a modelled TCP. Compare the same district
     finalists at both dates and leave measured TCP to the counted-vote story."""
@@ -72,30 +72,9 @@ def booth_projection_after_preferences(old, new, seat, previous, current, ranked
         if not candidate.get('name') or candidate != earlier.get('candidates', {}).get(party):
             return None
 
-    # The TPP export always labels the Coalition side as party 1, even
-    # when it represents a National. Use the ballot to establish the sole
-    # Coalition opponent before interpreting this as a named TCP. A direct
-    # booth TCP export already identifies its two candidates.
-    fields = [('tcp_votes_projected', pair)]
-    if '0' in pair:
-        opponent = next(p for p in pair if p != '0')
-        for summary, booth in ((previous, old), (current, new)):
-            coalition = {p for p in booth.get('fp_votes_projected', {})
-                         if summary.get('parties', {}).get(p) in ('LIB', 'LNP', 'NAT', 'CLP')}
-            if coalition != {opponent}:
-                break
-        else:
-            fields.insert(0, ('tpp_votes_projected', ['0' if p == '0' else '1' for p in pair]))
-    for field, ids in fields:
-        shares = []
-        for booth in (old, new):
-            votes = booth.get(field) or {}
-            if (votes.keys() != set(ids) or any(not math.isfinite(v) or v < 0 for v in votes.values())
-                    or sum(votes.values()) <= 0):
-                break
-            shares.append(100 * votes[ids[0]] / sum(votes.values()))
-        if len(shares) == 2:
-            return {pair[0]: shares, pair[1]: [100-v for v in shares]}
+    forecasts = [side.get((booth_key, frozenset(pair))) for side in aligned]
+    if all(v and sum(v.values()) > 0 for v in forecasts):
+        return {p: [100*v[p]/sum(v.values()) for v in forecasts] for p in pair}
     return None
 
 
@@ -236,7 +215,7 @@ def major_district_moves(rows):
             if totals[seat] > 25]
 
 
-def primary_centre(prior, count, ordinary, weight):
+def primary_centre(prior, count, ordinary, weight, earlier_breadth=None):
     """One candidate's central FP percentage before balancing the district."""
     def share(log_odds):
         odds = math.exp(-abs(log_odds))
@@ -248,10 +227,11 @@ def primary_centre(prior, count, ordinary, weight):
     # Keep counted ballots fixed when asking what a different precision
     # would have done. Unmatched ordinary returns retain the booth estimate.
     row, remaining = ordinary
-    response = weight + .5*row['breadth']*(1-weight)**2
+    breadth = row['breadth'] if earlier_breadth is None else earlier_breadth
+    response = weight + .5*breadth*(1-weight)**2
     matched = share(row['prior_remaining_log_odds'] + response*row['local_log_odds_change'])
     booth = row['booth_remaining_share']
-    future = booth + row['matched_fraction']*(matched-booth)
+    future = row.get('fitted_remaining_share', booth + row['matched_fraction']*(matched-booth))
     fixed = row['fixed_fraction']
     district = fixed + remaining*future
     legacy = max(fixed, legacy)
@@ -260,7 +240,10 @@ def primary_centre(prior, count, ordinary, weight):
 
 def primary_weight_check(event):
     """Compare the central local FP calculation at the two dates, then repeat
-    the later calculation holding only the count weights at the earlier values.
+    the later calculation with the earlier precision and spread of counted
+    ballots across matched booths. Hold the actual new ballots and the new
+    estimates for those places fixed. Breadth alone says nothing about
+    whether the booths agree on a particular candidate.
     Each record holds three FP percentages for one individually matched party
     and the change in its count weight (a fraction between -1 and 1).
     These centres precede draw-by-draw normalisation and counted-vote floors.
@@ -268,7 +251,7 @@ def primary_weight_check(event):
     snapshots = []
     for side in ('before', 'after'):
         model = (event.get(side) or {}).get('fp_integration') or {}
-        if model.get('method') not in ('local_precision', 'ordinary_vote_blend'):
+        if model.get('method') not in ('local_precision', 'ordinary_vote_blend', 'cautious_ordinary_fit', 'split_ordinary_fit'):
             return {}
         ordinary = {str(row['party_index']): (row, model['remaining_fraction'])
                     for row in model.get('ordinary_comparisons', [])}
@@ -289,9 +272,70 @@ def primary_weight_check(event):
         snapshots.append(snapshot)
 
     before, after = snapshots
-    return {p: dict(before=primary_centre(*before[p]), previous_weight=primary_centre(*after[p][:-1], before[p][-1]),
-                    after=primary_centre(*after[p]), weight_change=after[p][-1] - before[p][-1])
-            for p in before.keys() & after.keys()}
+    checks = {}
+    for p in before.keys() & after.keys():
+        earlier, later = before[p], after[p]
+        old_ordinary, new_ordinary = earlier[2], later[2]
+        if bool(old_ordinary) != bool(new_ordinary):
+            continue
+        breadth = old_ordinary[0]['breadth'] if old_ordinary else None
+        check = dict(before=primary_centre(*earlier), after=primary_centre(*later),
+                     previous_weight=primary_centre(*later[:-1], earlier[-1], earlier_breadth=breadth),
+                     weight_change=later[-1]-earlier[-1])
+        if old_ordinary and all('fitted_remaining_share' not in r[0] and
+                                r[0]['matched_fraction'] > 0 and r[0]['ordinary_fraction'] == 1
+                                for r in (old_ordinary, new_ordinary)):
+            check['earlier_signal'] = old_ordinary[0]['local_log_odds_change']
+            check['current_signal'] = new_ordinary[0]['local_log_odds_change']
+            if old_ordinary[0]['matched_fraction'] == new_ordinary[0]['matched_fraction'] == 1:
+                check['largest_fractions'] = [1-r[0]['breadth'] for r in (old_ordinary, new_ordinary)]
+        checks[p] = check
+    return checks
+
+
+def fresh_booth_pattern(events, party):
+    """Compare only genuinely new ordinary FP returns with each location's
+    earlier estimate. A correction to an existing booth or a missing benchmark
+    prevents claims about agreement across the newly counted booths."""
+    gaps = []
+    for event in events:
+        old, new = event.get('before') or {}, event.get('after') or {}
+        votes = sum(new.get('fp_votes_current', {}).values())
+        gap = (event.get('fp_share_minus_previous_expectation_pp') or {}).get(party)
+        if (not votes or sum(old.get('fp_votes_current', {}).values()) or gap is None
+                or new.get('booth_type') != 'Normal' or new.get('vote_type') != 'Ordinary'):
+            return None
+        gaps.append((gap, votes, new.get('name')))
+    if gaps:
+        # Attribute a mixed batch to a particular booth only when its
+        # surplus or shortfall outweighs all the others combined, in votes.
+        impact, ballots, name = max(gaps, key=lambda item: abs(item[0])*item[1])
+        largest = abs(impact)*ballots
+        dominant = name if 2*largest > sum(abs(g)*n for g, n, _ in gaps) else None
+        return dict(low=min(g for g, _, _ in gaps), high=max(g for g, _, _ in gaps),
+                    pooled=sum(g*n for g, n, _ in gaps)/sum(n for _, n, _ in gaps),
+                    dominant=dominant, dominant_gap=impact)
+
+
+def tpp_component_changes(previous, current, old_evidence, new_evidence):
+    """Compare the simulator's mean ALP TPP adjustments, in district pp.
+    Primary composition, directly counted preferences and estimated changes
+    in preference flows are separate contributions. The broad preference
+    component is already included in the last one. A pre-count origin has
+    zero live adjustments. Partial coverage could compare different draws."""
+    changes = {}
+    fields = ('primary_change_pp', 'measured_change_pp', 'learned_change_pp')
+    for seat, new in new_evidence.get('fp_based_tpp', {}).items():
+        old = old_evidence.get('fp_based_tpp', {}).get(seat, {})
+        if not current.get('iterations') or new.get('accounted_draws') != current['iterations']:
+            continue
+        if previous.get('origin'):
+            old = dict.fromkeys(fields, 0.)
+        elif not previous.get('iterations') or old.get('accounted_draws') != previous['iterations']:
+            continue
+        if all(isinstance(r.get(k), (int, float)) and math.isfinite(r[k]) for r in (old, new) for k in fields):
+            changes[seat] = {k: new[k]-old[k] for k in fields}
+    return changes
 
 
 def context(comparison, win_rows, flows):
@@ -316,7 +360,28 @@ def context(comparison, win_rows, flows):
             net_fp[event.get('seat')] += event.get('fp_vote_change', 0)
     weights = {e['seat']: primary_weight_check(e) for e in events if e['kind'] == 'seats'
                and e.get('seat') in pools and net_fp[e['seat']] > 0}
+    fp_events = defaultdict(list)
+    for e in comparison['evidence']:
+        if e['kind'] == 'booths' and e.get('seat') in weights and activity.affected_ballots(
+                (e.get('before') or {}).get('fp_votes_current', {}), (e.get('after') or {}).get('fp_votes_current', {})):
+            fp_events[e['seat']].append(e)
+    for seat, checks in weights.items():
+        for party, check in checks.items():
+            if 'earlier_signal' in check:
+                check['new_booths'] = fresh_booth_pattern(fp_events[seat], party)
+                earlier = comparison.get('rule_earlier_ordinary_count', {}).get(seat, {})
+                if earlier and earlier['largest'] == earlier['total']:
+                    check['earlier_booth'] = earlier['name']
+                fractions = check.get('largest_fractions')
+                # Reserve the concentration explanation for a count previously
+                # dominated by one booth (at least three quarters of ballots)
+                # whose share has fallen at least ten points. Check that the
+                # published count describes the same pool as the simulator.
+                if (earlier.get('name') and fractions and fractions[0] >= .75 and fractions[0]-fractions[1] >= .10
+                        and abs(earlier['largest']/earlier['total']-fractions[0]) < .0001):
+                    check['dominant_earlier_count'] = earlier
     return {'pools': pools, 'primary_weight_checks': weights,
+            'tpp_components': {s: v for s, v in comparison.get('rule_tpp_components', {}).items() if s in pools},
             'large_local_moves': sorted(large), 'supported_flows': supported_flows(events, flows),
             'regional': comparison.get('rule_regional', []),
             'regional_change': comparison.get('rule_regional_change')}
@@ -416,9 +481,12 @@ def regional_update(before, after):
             if not earlier or any(r['votes'] < 1000 or r['booths'] < 5 or r['seats'] < 3
                                   for r in (earlier, current)):
                 continue
-            # One percentage point and 500 additional matched votes (or 10%
-            # of the current sample) keep small, unstable shifts off the headline.
-            if current['votes'] - earlier['votes'] < max(500, .1*current['votes']):
+            # An update can add several small rural booths while still telling
+            # us little about a region. Require at least 2,500 additional
+            # matched ballots in this region and count type during the window,
+            # and at least 10% of its current matched count. These are editorial
+            # thresholds for reporting a revision to the swing.
+            if current['votes'] - earlier['votes'] < max(2500, .1*current['votes']):
                 continue
             old, new = [100*r['gain']/r['votes'] for r in (earlier, current)]
             if abs(new-old) >= 1:

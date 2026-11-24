@@ -1,0 +1,12 @@
+{
+  "source": "May 2022 federal House first preferences at mapped Victorian ordinary polling places. Count each (division, polling place) once, exclude informal votes and pre-poll centres, and select state districts with a nominated One Nation candidate on the November 2022 ballot. Narracan uses its original November nominations.",
+  "federal_results": "https://results.aec.gov.au/27966/Website/HouseDownloadsMenu-27966-Csv.htm",
+  "mapping": "analysis/Federal-State/booths-2022vic.txt",
+  "districts": {
+    "Bendigo East": {"ON": {"party_votes": 1188, "formal_votes": 19101}},
+    "Macedon": {"ON": {"party_votes": 1015, "formal_votes": 23070}},
+    "Morwell": {"ON": {"party_votes": 2020, "formal_votes": 15173}},
+    "Narracan": {"ON": {"party_votes": 1785, "formal_votes": 18653}},
+    "Pakenham": {"ON": {"party_votes": 800, "formal_votes": 14631}}
+  }
+}

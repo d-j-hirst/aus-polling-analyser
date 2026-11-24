@@ -567,6 +567,9 @@
     <ClInclude Include="GreensFpPrior.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
+    <ClInclude Include="GroupedOthersFp.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
     <ClInclude Include="WorkspacePaths.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
@@ -883,6 +886,12 @@
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
     <ClInclude Include="LiveFpIntegration.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveOrdinaryUpdate.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveSourceSeatTcp.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
     <ClInclude Include="LiveIndependentMapping.h">

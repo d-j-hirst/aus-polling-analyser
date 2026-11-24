@@ -6,6 +6,7 @@
 // the estimate for their own primary voters. The same allocation by source
 // is available to the exclusion count and statewide preference table.
 #include "LiveStatewidePreferences.h"
+#include "LiveSourceSeatTcp.h"
 
 namespace LiveFpTpp {
 using LiveStatewidePreferences::Category;
@@ -21,6 +22,7 @@ struct District {
 	Category measured; // Observed transfers in each matched or partially matched batch.
 	Shares rateChange; // Party-specific changes in the fraction going to Labor after accounting for the broad movement.
 	double transferOddsMultiplier = 1.; // Election and regional preference evidence. One leaves the draw unchanged.
+	std::optional<LiveSourceSeatTcp::Curve> sourceArea = std::nullopt;
 };
 
 // Freeze the primary mix of this reporting unit's measured TPP once per
@@ -192,6 +194,32 @@ inline std::optional<Result> project(District const& district, Shares const& pri
 	result.learnedChange = 100*learnedDifference/turnout;
 	result.broadPreferenceChange = 100*broadDifference/turnout;
 	result.laborPercent += result.measuredChange + result.learnedChange;
+	if (district.sourceArea && counted<turnout) {
+		// The transferred booths supply a change in TCP for this geography.
+		// On this draw the FP shares are already set. Honour the new estimate
+		// by moving only unresolved donor preferences, in proportion to those
+		// still available on the losing side. Both the ranked count and the
+		// statewide flow report then receive the same revised allocation.
+		double const change = district.sourceArea->change(result.laborPercent)*turnout*.01;
+		Shares room;
+		for (auto const& [party,n] : population) {
+			if (party==0 || party==1) continue;
+			double remaining = std::max(0.,n-covered->at(party));
+			double labor = result.sources.at(party).first-votesFor(first,party);
+			room[party] = std::clamp(change>0 ? remaining-labor : labor,0.,remaining);
+		}
+		double const available = total(room);
+		if (available>0 && change!=0) {
+			double fraction = std::clamp(change/available,-1.,1.);
+			for (auto const& [party,capacity] : room) {
+				auto& source = result.sources.at(party);
+				source.first += fraction*capacity;
+				if (population.at(party)>0) result.rates[party] = std::clamp(source.first/population.at(party),0.,1.);
+			}
+			result.laborPercent += 100*fraction*available/turnout;
+			result.learnedChange += 100*fraction*available/turnout;
+		}
+	}
 	if (counted == turnout) result.laborPercent = 100*laborVotes/turnout;
 	return result;
 }

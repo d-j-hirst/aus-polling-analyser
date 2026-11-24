@@ -15,6 +15,7 @@
 
 namespace LiveStatewidePreferences { struct Election; }
 namespace LiveFpTpp { struct District; }
+namespace LiveSourceSeatTcp { struct Curve; }
 
 // Portable boundary between the core simulation and a live-results analysis
 // implementation. These types deliberately have no dependency on electoral-
@@ -192,6 +193,9 @@ struct FpBoothComparison {
 	std::optional<double> priorCentre;
 	double priorRemainingCentre = 0, boothRemainingCentre = 0;
 	double localMovement = 0;
+	// Joint ordinary-booth fit for the remaining electorate, when the
+	// ballot and its opening geography support that comparison.
+	std::optional<double> fittedRemaining = std::nullopt;
 };
 struct FpIntegrationInformation {
 	FpDistributionMoments baseline, count;
@@ -318,6 +322,9 @@ public:
 	// The project district index also identifies a district with no local
 	// count yet: its updated FP draw may still reflect results elsewhere.
 	virtual LiveFpTpp::District const* classicPreferenceAccount(int) const { return nullptr; }
+	// Only an exact historical Labor/opponent contest in transferred ordinary
+	// booths can supply this curve. District indices are in project order.
+	virtual LiveSourceSeatTcp::Curve const* sourceSeatTcp(int, int) const { return nullptr; }
 
 	// Input/output are transformed TPP draws in project seat order. The automatic
 	// live analysis combines these with count evidence jointly across seats. An

@@ -135,6 +135,7 @@ void LiveV2::Election::prepareTppIntegration() {
     prepareTppCategoryAccounts();
     prepareTppReportingOrder();
     prepareMatchedConversion();
+    prepareSourceSeatTcp();
     prepareClassicPreferenceAccounts();
     auto prior = tppJointPrior();
     tppPriorExtension = std::make_shared<LiveTppComposition::Extension const>(
@@ -169,6 +170,8 @@ void LiveV2::Election::prepareClassicPreferenceAccounts() {
         if (observation && !observation->candidateTotals.empty() && run.preferenceModel &&
             run.preferenceModel->isActive() && run.preferenceModel->coversDistrict(projectIndex)) continue;
         auto& account = (*accounts)[projectIndex];
+        for (int opponent : {1,natPartyIndex})
+            if (auto curve = sourceSeatTcp(projectIndex,opponent)) account.sourceArea = *curve;
         // The booth hierarchy compares matched FP and Labor-Coalition counts
         // with their historical preference patterns. Its election-wide movement
         // is weighted by the evidence received. The regional term measures the
@@ -219,6 +222,88 @@ void LiveV2::Election::prepareClassicPreferenceAccounts() {
         }
     }
     classicPreferenceAccounts = std::move(accounts);
+}
+
+// Most booths stayed in their old district. Only ordinary venues with a
+// measured result for the identical pair in a known former district can
+// teach us about other venues transferred from that same district. Other
+// locations still enter the denominator and keep their own forecasts.
+std::optional<LiveSourceSeatTcp::Curve> LiveV2::Election::sourceAreaCurve(Seat const& seat,int opponent) const {
+    bool const classic = opponent==1 || opponent==natPartyIndex;
+    if ((classic && seat.splitCoalitionCandidates) || !seat.node.fpVotesProjected.contains(opponent)) return {};
+    auto hasPair = [&](auto const& counts) {
+        return counts.size()==2 && counts.contains(0) && counts.contains(opponent);
+    };
+    if (!classic && !hasPair(seat.node.tcpVotesCurrent)) return {};
+    std::vector<LiveSourceSeatTcp::Venue> venues;
+    for (int index : seat.booths) {
+        auto const& booth = readBooths().at(index);
+        auto const& n = booth.node;
+        auto const& projected = classic ? n.tppVotesProjected : n.tcpVotesProjected;
+        int const projectedOpponent = classic ? 1 : opponent;
+        if (projected.size()!=2 || !projected.contains(0) || !projected.contains(projectedOpponent)) {
+            if (n.totalFpVotesProjected()>0) return {};
+            continue;
+        }
+        double const size = projected.at(0)+projected.at(projectedOpponent);
+        if (size<=0) continue;
+        auto const& measured = classic ? booth.tppCount(natPartyIndex) : n.tcpVotesCurrent;
+        auto bounds = classic ? booth.tppLowerBounds(natPartyIndex) : booth.tcpLowerBounds();
+        double first = getAt(bounds,0,0.), second = getAt(bounds,opponent,0.);
+        if (first+second<size-.01) {
+            first = std::max(first,double(getAt(n.fpVotesCurrent,0,0)));
+            second = std::max(second,double(getAt(n.fpVotesCurrent,opponent,0)));
+        }
+        // Exact direct counts own their ballots. An inconsistent denominator
+        // supplies no usable extra comparison for this seat and pair.
+        if (first+second>size+.01) return {};
+        LiveSourceSeatTcp::Venue v{size,projected.at(0),std::min(size,first),
+            std::max(std::min(size,first),size-second),{}};
+        if (!booth.sameSeat && !booth.syntheticPreviousCategory && !booth.previousPreferenceSeat.empty()
+            && booth.boothType==Results2::Booth::Type::Normal && !booth.receivesFpBatches()
+            && hasPair(n.tcpVotesPrevious) && n.totalTcpVotesPrevious()>0) {
+            v.source = booth.previousPreferenceSeat;
+            v.previousShare = double(n.tcpVotesPrevious.at(0))/n.totalTcpVotesPrevious();
+            if (hasPair(measured) && !(classic ? booth.hasTppRevision() : booth.hasTcpRevision())) {
+                v.counted = LivePartialCount::total(measured);
+                v.countedFirst = measured.at(0);
+            }
+            v.pending = LivePartialCount::total(measured)==0 && n.totalTcpVotesCurrent()==0;
+        }
+        venues.push_back(std::move(v));
+    }
+    return LiveSourceSeatTcp::prepare(venues);
+}
+
+void LiveV2::Election::prepareSourceSeatTcp() {
+    // The tested matchups have identifiable continuing parties. OPV can
+    // exhaust primaries, and two Coalition candidates require separate TPP
+    // comparison geographies. Keep their existing accounts.
+    if (optionalPreferential) return;
+    auto curves = std::make_shared<std::map<std::pair<int,int>,LiveSourceSeatTcp::Curve>>();
+    for (size_t s=0; s<seats.size(); ++s) {
+        auto const& seat = seats[s];
+        if (seat.finalResult) continue;
+        std::set<int> opponents;
+        for (int index : seat.booths) {
+            auto const& b = readBooths().at(index);
+            if (b.sameSeat || b.previousPreferenceSeat.empty() || b.receivesFpBatches() ||
+                b.boothType!=Results2::Booth::Type::Normal || b.syntheticPreviousCategory) continue;
+            for (int opponent : {1,natPartyIndex,run.grnPartyIndex})
+                if (opponent>0 && b.node.tcpVotesPrevious.contains(0) && b.node.tcpVotesPrevious.contains(opponent))
+                    opponents.insert(opponent);
+        }
+        for (int opponent : opponents)
+            if (auto curve = sourceAreaCurve(seat,opponent))
+                curves->emplace(std::make_pair(tppProjectSeatIndices.at(s),opponent),*curve);
+    }
+    if (!curves->empty()) sourceSeatCurves = std::move(curves);
+}
+
+LiveSourceSeatTcp::Curve const* LiveV2::Election::sourceSeatTcp(int district,int opponent) const {
+    if (!sourceSeatCurves) return nullptr;
+    auto found = sourceSeatCurves->find({district,opponent});
+    return found==sourceSeatCurves->end() ? nullptr : &found->second;
 }
 
 LiveFpTpp::District const* LiveV2::Election::classicPreferenceAccount(int district) const {

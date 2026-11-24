@@ -2,6 +2,8 @@
 // but keep genuine small updates and enforce received-count constraints.
 #include "../General.h"
 #include "../LiveFpIntegration.h"
+#include "../LiveFpTpp.h"
+#include "../LiveOrdinaryUpdate.h"
 #include "../LiveNewVotes.h"
 #include "../SimulationAudit.h"
 
@@ -156,8 +158,110 @@ void testOrdinaryIndependentPrior()
     assert(candidatePriors().at(independent) == .35);
 }
 
+void testSplitOrdinaryUpdate()
+{
+    using namespace LiveOrdinaryUpdate;
+    std::vector<Venue> locations{
+        {{.5,.5},{150,100},250,true}, {{.5,.5},{0,0},350,true},
+        {{.5,.5},{0,0},3000,false}};
+    auto predict = [&] { return remaining(locations,{.5,.5},{1,1}); };
+    // All 250 votes are counted. For predicting other voters they contribute
+    // 166 2/3 effective ballots against the two different opening estimates.
+    auto first = predict().value();
+    double const strong = (125+150./1.5)/(250+250./1.5);
+    double const cautious = (500+150./1.5)/(1000+250./1.5);
+    double const expected = (350*strong+3000*cautious)/3350;
+    assert(std::abs(first[0]-expected)<1e-9 && std::abs(sum(first)-1)<1e-9);
+    locations[2].turnout = 0;
+    assert(std::abs(predict().value()[0]-strong)<1e-9);
+    locations[2].turnout = 3000;
+    locations[0].turnout = 500; // Only its remaining 250 receive the strong estimate.
+    assert(std::abs(predict().value()[0]-(600*strong+3000*cautious)/3600)<1e-9);
+    locations[0].turnout = 250;
+    locations[1].turnout = 0;
+    assert(std::abs(predict().value()[0]-cautious)<1e-9);
+    locations[1].turnout = 350;
+    locations[1].votes = {100,250};
+    auto second = predict().value();
+    assert(second[0]<.5);
+    std::reverse(locations.begin(),locations.end());
+    assert(std::abs(predict().value()[0]-second[0])<1e-10);
+    locations.front().votes = {250,0}; // A postal return has its own evidence path.
+    assert(std::abs(predict().value()[0]-second[0])<1e-10);
+    locations[1].votes = {0,350};
+    assert(predict().value()[0]<second[0]);
+    for (auto& location : locations) location.ordinary = false;
+    assert(!predict());
+    assert(!remaining({{{1,0},{30,1},31,true},{{1,0},{0,0},100,false}},{1,0},{1,1}));
+
+    // Cross-check the portable fit against the three-party Python prototype.
+    // The venues lean differently and the second booth contradicts the first.
+    std::vector<Venue> mixed{
+        {{.35,.45,.20},{77,54,50},181,true}, {{.25,.60,.15},{26,60,39},125,true},
+        {{.40,.39,.21},{0,0,0},10000,false}};
+    Mix prior(3);
+    for (auto const& v : mixed)
+        for (size_t j=0; j<prior.size(); ++j) prior[j] += v.turnout*v.opening[j]/10306.;
+    auto projected = remaining(mixed,prior,{1,1,1}).value();
+    assert(std::abs(projected[0]-.40414846)<1e-7 && std::abs(projected[1]-.36430216)<1e-7);
+    // Repeat with different opening shares and turnout for the outstanding
+    // ordinary and non-ordinary venues. These are the Python split-fit shares.
+    mixed[2].turnout = 7000;
+    mixed[2].ordinary = true;
+    mixed.push_back({{.30,.50,.20},{0,0,0},3000,false});
+    prior.assign(3,0.);
+    for (auto const& v : mixed)
+        for (size_t j=0; j<prior.size(); ++j) prior[j] += v.turnout*v.opening[j]/10306.;
+    projected = remaining(mixed,prior,{1,1,1}).value();
+    assert(std::abs(projected[0]-.37692399)<1e-7 && std::abs(projected[1]-.37093084)<1e-7);
+    assert(std::abs(sum(projected)-1)<1e-9);
+
+    auto comparison = LiveFpIntegration::compareBooths({{250,.5,250,150.,true}},.5,.6);
+    comparison.fittedRemaining = expected;
+    for (double precision : {0.,.25,1.})
+        assert(std::abs(LiveFpIntegration::ordinaryRemainingShare(comparison,.5,.6,precision)-expected)<1e-10);
+}
+
+void testTransferredArea()
+{
+    using namespace LiveSourceSeatTcp;
+    std::vector<Venue> booths{
+        {1000,600,600,600,"Old district",.5,1000,600},
+        {1000,500,0,1000,"Old district",.5,0,0,true}};
+    auto curve = prepare(booths).value();
+    assert(curve.evidence.size()==1 && curve.evidence[0].in==1 && curve.evidence[0].pending==1);
+    // A ten-point swing to Labor, weighted by .8 effective booths against
+    // one prior, applies to half the electorate. Already counted votes stay fixed.
+    assert(std::abs(curve.change(55)-5*.8/1.8)<1e-9);
+    booths[1].lower = 250;
+    booths[1].upper = 750;
+    assert(std::abs(prepare(booths)->change(55)-.5*curve.change(55))<1e-9);
+    booths[1].source = "Another district";
+    assert(!prepare(booths));
+    booths[1].source = booths[0].source;
+    booths[1].counted = 1000;
+    booths[1].countedFirst = 500;
+    assert(!prepare(booths));
+
+    using namespace LiveFpTpp;
+    District account;
+    account.sourceArea = curve;
+    account.sourceArea->points.fill(30.);
+    Shares primary{{0,40},{1,40},{2,20}}, rates{{2,.5}};
+    auto result = project(account,primary,50.,primary,rates,1000,0,0).value();
+    assert(std::abs(result.laborPercent-60)<1e-8);
+    assert(std::abs(result.sources.at(2).first-200)<1e-6);
+    account.covered = {{0,200},{1,200},{2,100}};
+    result = project(account,primary,50.,primary,rates,1000,240,260).value();
+    assert(std::abs(result.laborPercent-54)<1e-8 && std::abs(result.rates.at(2)-.7)<1e-8);
+    result = project(account,primary,50.,primary,rates,1000,480,520).value();
+    assert(result.laborPercent==48.);
+}
+
 int main()
 {
+    testSplitOrdinaryUpdate();
+    testTransferredArea();
     testProjectedVoteShareEndpoints();
     testOrdinaryFpBlend();
     testOrdinaryIndependentPrior();

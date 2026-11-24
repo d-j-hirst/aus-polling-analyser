@@ -64,6 +64,7 @@ private:
 	void correctSeatTppSwings();
 	void determineSeatTpp(int seatIndex);
 	void determineSeatInitialFp(int seatIndex);
+	void redistributeGroupedPrimaries();
 	void determineSpecificPartyFp(
 		int seatIndex,
 		int partyIndex,
@@ -124,6 +125,7 @@ private:
 	void restoreLiveFpGroups(int seatIndex, std::map<int,double> integrated, int independentGroup);
 	void determineSeatFinalResult(int seatIndex);
 	using TcpPair = std::pair<std::pair<int, double>, std::pair<int, double>>;
+	void applyTransferredNonClassicTcp(int seatIndex, TcpPair& pair) const;
 	bool integrateLiveTcpPair(int seatIndex, TcpPair& pair, bool livePrincipalProxy,
 		std::optional<int> secondaryIndependent = {}, bool observedThreeCandidateCount = false) const;
 	bool splitRankingIndependent(std::string const& seatName, int secondary, std::map<int,double>& shares,

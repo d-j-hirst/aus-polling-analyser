@@ -468,6 +468,7 @@ void SimulationPreparation::prepareForIterations()
 	prepareProminentMinors();
 	prepareIndependentLikePreferences();
 	prepareRunningParties();
+	prepareGroupedFpDistricts();
 	preparePreferenceModel();
 
 	// A live forecast incorporates votes reported so far. The automatic route
@@ -1343,7 +1344,7 @@ void SimulationPreparation::loadPreviousPreferenceFlows() {
 	run.previousPreferenceFlow[Mp::Two] = 0.0f;
 	run.previousExhaustRate[Mp::One] = 0.0f;
 	run.previousExhaustRate[Mp::Two] = 0.0f;
-	run.previousPreferenceFlow[CoalitionPartnerIndex] = 15.0f;
+	run.previousPreferenceFlow[CoalitionPartnerIndex] = float(100.0 * MajorPartyFpMath::HistoricalPartnerToLabor);
 	run.previousExhaustRate[CoalitionPartnerIndex] = 0.25f;
 
 	// Ensure any other named parties without a specified preference flow
@@ -1496,6 +1497,14 @@ void SimulationPreparation::loadPastSeatResults()
 			int partyIndex =
 				project.parties().indexByShortCode(shortCodeUsed);
 			if (fpMode) {
+				if (currentSeat < 0 && currentUnmatched.empty()) {
+					throw Exception(fileName + " contains a result before its first seat.");
+				}
+				auto& result = currentSeat < 0 ? unmatchedResults.at(currentUnmatched) : run.pastSeatResults[currentSeat];
+				// Count original nominees before merging their votes. A historical
+				// ballot with no grouped candidates is different from missing history.
+				bool const grouped = partyIndex == OthersIndex || partyIndex == run.indPartyIndex;
+				result.groupedCandidateCount = result.groupedCandidateCount.value_or(0) + int(grouped);
 				if (shortCodeUsed == "IND") {
 					if (indSeen) {
 						partyIndex = OthersIndex;
@@ -1504,18 +1513,8 @@ void SimulationPreparation::loadPastSeatResults()
 						indSeen = true;
 					}
 				}
-				if (currentSeat < 0) {
-					if (currentUnmatched.empty()) {
-						throw Exception(
-							fileName + " contains a result before its first seat.");
-					}
-					unmatchedResults.at(currentUnmatched).fpVoteCount[partyIndex] += voteCount;
-					unmatchedResults.at(currentUnmatched).fpVotePercent[partyIndex] += votePercent;
-				}
-				else {
-					run.pastSeatResults[currentSeat].fpVoteCount[partyIndex] += voteCount;
-					run.pastSeatResults[currentSeat].fpVotePercent[partyIndex] += votePercent;
-				}
+				result.fpVoteCount[partyIndex] += voteCount;
+				result.fpVotePercent[partyIndex] += votePercent;
 			}
 			else {
 				if (currentSeat < 0) {
@@ -1682,6 +1681,12 @@ void SimulationPreparation::loadPastSeatResults()
 	}
 	double const othersCap = detransformVoteShare(run.indEmergence.fpThreshold);
 	for (auto& results : run.pastSeatResults) {
+		// In a measured Labor–Liberal final the separately listed Nationals
+		// supplied transfers. A National finalist or a party outside the
+		// Coalition cannot supply that historical partner comparison.
+		results.excludedNationalAgainstLiberal = coalitionPartner && MajorPartyFpMath::excludedPartnerInLaborLiberalCount(
+			getAt(results.tcpVoteCount, Mp::One, 0.0), getAt(results.tcpVoteCount, Mp::Two, 0.0),
+			getAt(results.tcpVoteCount, *coalitionPartner, 0.0), getAt(results.fpVoteCount, *coalitionPartner, 0));
 		results.prevOthers = MinorPartyFpMath::historicalOthersSupport(results.fpVotePercent,
 			Mp::One, Mp::Two, run.grnPartyIndex, coalitionPartner, othersCap);
 		results.turnoutCount = 0;
@@ -2711,6 +2716,81 @@ void SimulationPreparation::prepareRunningParties()
 				<< " (" << party.abbreviation << ") in Parties but in no district's "
 				<< "sRunningParties. Check whether to list it in a seat or include it in Others.\n";
 		}
+	}
+}
+
+namespace {
+	// The optional election file identifies parties on the current ballot and
+	// gives their historical votes on comparable boundaries. Convert each
+	// observed party count to a percentage of all formal votes in that sample.
+	using GroupedFpPriors = std::map<std::string, std::map<std::string, double>>;
+	GroupedFpPriors readGroupedFpPriors(std::istream& input)
+	{
+		GroupedFpPriors priors;
+		if (!input) return priors;
+		auto const document = nlohmann::json::parse(input);
+		auto const& districts = document.at("districts");
+		if (!districts.is_object()) throw std::runtime_error("Expected a districts object.");
+		for (auto const& [district, parties] : districts.items()) {
+			if (!parties.is_object()) throw std::runtime_error("Expected grouped party codes in " + district);
+			for (auto const& [code, counts] : parties.items()) {
+				auto const& votes = counts.at("party_votes");
+				auto const& formal = counts.at("formal_votes");
+				if (code.empty() || !votes.is_number_integer() || !formal.is_number_integer() ||
+					formal.get<double>() <= 0 || votes.get<double>() < 0 || votes.get<double>() > formal.get<double>()) {
+					throw std::runtime_error("Invalid historical FP counts for " + code + " in " + district);
+				}
+				priors[district][code] = 100.0 * votes.get<double>() / formal.get<double>();
+			}
+		}
+		return priors;
+	}
+}
+
+// Resolve ballot sizes and optional evidence for identified parties still
+// included in Others. This runs for the main forecast and its calibration and
+// live baselines. Only original FP candidate rows establish a past field size.
+// Unknown current ballots retain the ordinary historical forecast.
+void SimulationPreparation::prepareGroupedFpDistricts()
+{
+	auto const& path = inputFile(SimulationInputs::File::GroupedFpPriors);
+	auto input = run.preparationInputs->open(path);
+	GroupedFpPriors priors;
+	try {
+		priors = readGroupedFpPriors(input);
+	}
+	catch (std::exception const& error) {
+		throw Exception("Invalid grouped FP prior in " + path + ": " + error.what());
+	}
+
+	run.groupedFpDistricts.clear();
+	for (int index = 0; index < project.seats().count(); ++index) {
+		auto const& seat = run.seatLookup.seat(index);
+		auto const& previous = run.pastSeatResults[index];
+		int const current = run.indCount[index] + run.othCount[index];
+		if (!current || previous.turnoutCount <= 0) continue;
+		// The field-size comparison was checked in seats without a known
+		// prominent independent. A personal campaign has separate evidence.
+		bool const ordinary = previous.groupedCandidateCount && !seat.confirmedProminentIndependent && !seat.previousIndRunning &&
+			project.parties().idToIndex(seat.incumbent) != run.indPartyIndex;
+		double const growth = ordinary ? GroupedOthersFp::ballotGrowthOdds(*previous.groupedCandidateCount, current) : 1.0;
+		GroupedOthersFp::District district{index, double(previous.turnoutCount), growth, 0, 0.0, ordinary};
+		if (auto it = priors.find(seat.name); it != priors.end()) {
+			for (auto const& [code, share] : it->second) {
+				// A party can be promoted out of Others in a later project.
+				// Its own ballot entry then supplies its only FP estimate.
+				auto const& roster = run.runningParties[index];
+				int const party = project.parties().indexByShortCode(code);
+				if (contains(roster, code) || (party >= 0 &&
+					contains(roster, project.parties().viewByIndex(party).abbreviation))) continue;
+				++district.knownParties;
+				district.knownShareSum += share;
+			}
+			if (district.knownParties > run.othCount[index]) {
+				throw Exception("More grouped party FP priors than party slots in " + seat.name + " (" + path + ")");
+			}
+		}
+		if (ordinary || district.knownParties) run.groupedFpDistricts.push_back(district);
 	}
 }
 

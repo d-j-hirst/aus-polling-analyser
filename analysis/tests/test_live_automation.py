@@ -20,7 +20,7 @@ sys.path.insert(0, str(ROOT/'live_scripts'))
 from live_pipeline import activity, benchmark, commentary, commentary_format, comparisons, prompt_layout, trial, reporting_days, rule_commentary, watch
 from live_pipeline.run_settings import load_run
 from live_pipeline.vote_type_names import VoteTypeNames
-from live_pipeline import pairing_commentary, rule_evidence, seat_alerts
+from live_pipeline import booth_fp, booth_tcp, pairing_commentary, rule_evidence, seat_alerts
 from live_pipeline.protocol import UploadQueue, Server
 from live_pipeline.storage import atomic, read, fingerprint, run_lock, RunLockBusy
 from live_pipeline.worker import Processor, utc
@@ -645,7 +645,7 @@ class AutomationTests(unittest.TestCase):
         old = comparisons.summary(numerical('earlier', chance=50))
         new = comparisons.summary(numerical('later', chance=60))
         new['seats']['Light']['tcp_percentiles'] = {'2/0': {'50':47}}
-        earlier = observed({'0':100, '2':100})
+        earlier = observed({'0':70, '2':70, '3':60})
         hall = earlier['booths']['Light/Hall']
         hall['tcp_votes_projected'] = {'0':100, '2':100}
         earlier['booths']['Light/Town'] = dict(hall, name='Town')
@@ -657,7 +657,7 @@ class AutomationTests(unittest.TestCase):
         text = next(section['text'] for section in details if section['seats'] == ['Light'])
         self.assertIn('Across Town and Hall,', text)
         self.assertIn('**46.7%** of **300** TCP votes', text)
-        self.assertIn('**3.3 pp** below the earlier estimate', text)
+        self.assertIn('**4.3 pp** below the earlier estimate', text)
         self.assertIn('from **51.0%** to **53.0%**', text)
         self.assertNotIn('Hall', summary)
         self.assertNotIn('still to come', text)
@@ -680,6 +680,8 @@ class AutomationTests(unittest.TestCase):
                 fp_votes_current={'0':first, '2':1000}, fp_votes_projected={'0':3000,'2':1000})
             evidence['booths']['Light/Absent'] = dict(record, name='Absent', vote_type='Absent',
                 fp_votes_current={'0':first, '2':1000}, fp_votes_projected={})
+        del earlier['booths']['Light/Absent']  # New category, no reference estimate.
+        old['seats']['Light']['fp_mean_percent'] = {p:100*n/4500 for p,n in [('0',3200),('2',1200),('3',100)]}
         group = comparisons.compare(new, old, [], later, earlier)
         packet = comparisons.prompt_packet(new, group)
         packet['evidence'] = []  # Deliberately remove every booth from the AI shortlist.
@@ -700,6 +702,7 @@ class AutomationTests(unittest.TestCase):
             side['seats']['Light']['tcp_percentiles']['0/2']['50'] = share
         before = observed({})
         before['booths']['Light/Hall']['fp_votes_projected'] = {'0':57,'2':27,'3':16}
+        old['seats']['Light']['fp_mean_percent'] = {'0':57,'2':27,'3':16}
         after = observed({'0':55,'2':22,'3':23})
         group = comparisons.compare(new,old,[],after,before)
         packet = comparisons.prompt_packet(new,group)
@@ -709,6 +712,60 @@ class AutomationTests(unittest.TestCase):
         self.assertIn('FP gap was **3.0 pp** more favourable to {candidate:Light:0}',report)
         self.assertIn('rose from **49.7%** to **50.4%**',report)
         self.assertNotIn('Despite that local',report)
+
+    def test_booth_fp_prefers_the_changing_likely_opponent_to_a_larger_minor_party_surprise(self):
+        seat = 'Mornington'
+        row = {'seat':seat, 'party_id':'1'}
+        rates = {'1':(39.2,-7.8), '3':(19.6,.2), '2':(9.8,4.2), '0':(25.5,1.7)}
+        group = {'first':True, 'rates':rates}
+        entities = {rule_commentary.candidate(seat,p) for p in rates}
+        def forecast(chance):
+            district = {'candidates':{p:{'name':p} for p in rates}, 'pairing_percent':{'0/1':chance}}
+            return {'iterations':10000, 'seats':{seat:district}, 'conditional_wins':{seat:{'0/1':5}}}
+        def extra(chance):
+            return rule_commentary.other_opponent_primary(group,row,'3','0',(forecast(54.3),forecast(chance)),entities)
+        self.assertIn('{candidate:Mornington:0} received **25.5%**, **1.7 pp** above',extra(58.3))
+        self.assertIn('{candidate:Mornington:2}',extra(54.3))
+
+    def test_choose_mixed_counts_using_the_district_account(self):
+        seat = 'Ripon'
+        row = dict(seat=seat, party_id='1', change_pp=-5)
+        parts = dict(primary_change_pp=.50, measured_change_pp=-.015, learned_change_pp=.004)
+        packet = {'rule_context': {'tpp_components': {seat:parts}}}
+        district = dict(candidates={p:{'name':p} for p in ('0','1')}, pairing_percent={'0/1':99})
+        endpoint = {'seats':{seat:district}}
+        groups = [dict(ledger='FP', first=True, changed=222, ballots=222, locations='East',
+                       rates={'1':(55.9,-4.7),'0':(25.2,.9)}),
+                  dict(ledger='TCP', first=True, changed=208, ballots=208, locations='West',
+                       rates={'1':(59.1,2.4),'0':(40.9,-2.4)})]
+        def select(after):
+            return rule_commentary.attributed_count(packet, row, rule_commentary.PairProjection('0',51.1,after),
+                                                    '0', (endpoint,endpoint), groups)
+        lead, _, contrast = select(50.6)
+        self.assertEqual(lead['ledger'], 'FP')
+        self.assertIn('5** extra votes', contrast)
+        parts.update(primary_change_pp=.015, measured_change_pp=-.50)
+        row['change_pp'] = 5
+        self.assertEqual(select(51.6)[0]['ledger'], 'TCP')
+        self.assertIn('FP returns at East', select(51.6)[2])
+        parts['learned_change_pp'] = -.8
+        self.assertIsNone(select(51.6))
+        parts['learned_change_pp'] = .004
+        district['pairing_percent'] = {'0/1':60}
+        self.assertIsNone(select(51.6))
+
+    def test_tpp_attribution_compares_complete_draw_accounts(self):
+        before, after = dict(iterations=100), dict(iterations=100)
+        row = dict(accounted_draws=100, primary_change_pp=1., measured_change_pp=.1, learned_change_pp=.2)
+        old = {'fp_based_tpp':{'Ripon':row}}
+        new = {'fp_based_tpp':{'Ripon':dict(row, primary_change_pp=1.5)}}
+        delta = rule_evidence.tpp_component_changes(before,after,old,new)
+        self.assertEqual(delta['Ripon'], dict(primary_change_pp=.5, measured_change_pp=0, learned_change_pp=0))
+        row['accounted_draws'] = 75
+        self.assertEqual(rule_evidence.tpp_component_changes(before,after,old,new), {})
+        self.assertEqual(rule_evidence.tpp_component_changes(before,after,{},new), {})
+        before['origin'] = True
+        self.assertEqual(rule_evidence.tpp_component_changes(before,after,{},new)['Ripon']['primary_change_pp'],1.5)
 
     def test_count_weight_explanation_requires_a_material_effect_on_the_fp_gap(self):
         # The local estimate itself shifts against party 0. More weight on
@@ -757,6 +814,64 @@ class AutomationTests(unittest.TestCase):
         for key, response in [('previous_weight', .36), ('after', .81)]:
             expected = 100*(.04+.9*(.5*.3 + .5/(1+math.exp(-response))))
             self.assertAlmostEqual(result[key], expected)
+        # The first booth had no breadth bonus. Keep the second booth's
+        # ballots but remove its breadth bonus as well as the extra precision.
+        before['fp_integration']['ordinary_comparisons'][0]['breadth'] = 0.
+        changed = rule_evidence.primary_weight_check({'before': before, 'after': after})['3']
+        self.assertAlmostEqual(changed['previous_weight'], changed['before'])
+        self.assertEqual(changed['after'], result['after'])
+
+        # New fitted centres and earlier cautious-fit archives already include
+        # the response to ordinary votes. Changing the precision alone must not
+        # create a second movement or an explanation about agreement among booths.
+        for method in ('cautious_ordinary_fit', 'split_ordinary_fit'):
+            for side, centre in [(before, .48), (after, .52)]:
+                side['fp_integration']['method'] = method
+                side['fp_integration']['ordinary_comparisons'][0]['fitted_remaining_share'] = centre
+            fitted = rule_evidence.primary_weight_check({'before': before, 'after': after})['3']
+            self.assertAlmostEqual(fitted['after'], 100*(.04+.9*.52))
+            self.assertAlmostEqual(fitted['previous_weight'], fitted['after'])
+            self.assertNotIn('earlier_signal', fitted)
+
+    def test_new_booths_can_reinforce_soften_or_disagree_on_a_primary_shortfall(self):
+        def booth(name, ballots, gap):
+            return dict(before={}, after=dict(name=name, booth_type='Normal', vote_type='Ordinary',
+                                               fp_votes_current={'0':ballots}),
+                        fp_share_minus_previous_expectation_pp={'0':gap})
+        def explanation(events, earlier_count=None):
+            check = {'0':dict(after=32, previous_weight=34, earlier_signal=-.5, current_signal=-.3,
+                              earlier_booth='Town Hall', new_booths=rule_evidence.fresh_booth_pattern(events,'0')),
+                     '1':dict(after=36, previous_weight=36)}
+            if earlier_count:
+                check['0']['dominant_earlier_count'] = earlier_count
+                check['1'].update(earlier_signal=.3, current_signal=.15)
+            return rule_commentary.accumulating_primary_point('Test', '1', '0', check,
+                                                              [{'0':34,'1':36}, {'0':32,'1':36}])
+        first, second = booth('East', 100, -5), booth('West', 150, 1)
+        self.assertIn('reduced the overall FP shortfall', explanation([first]))
+        self.assertIn('softened the earlier FP shortfall', explanation([second]))
+        concentrated = explanation([second], dict(largest=747, total=784, name='Town Hall'))
+        self.assertIn('**747** of **784** local FP votes came from Town Hall', concentrated)
+        self.assertIn('{candidate:Test:1} remained above expectations and {candidate:Test:0} below', concentrated)
+        self.assertIn('mixed for {candidate:Test:0}, with the largest FP shortfall at East', explanation([first,second]))
+        first['before'] = {'fp_votes_current':{'0':80}}
+        self.assertIsNone(explanation([first, second]))
+        second['fp_share_minus_previous_expectation_pp'] = {}
+        self.assertIsNone(explanation([second]))
+
+    def test_broader_count_can_give_more_weight_to_a_smaller_shortfall(self):
+        check = {'0':dict(after=34.6, previous_weight=34.3, earlier_signal=.32, current_signal=.06,
+                          earlier_booth='First Hall', new_booths={'low':-8.8,'high':-8.8}),
+                 '1':dict(after=35.6, previous_weight=38, earlier_signal=-.64, current_signal=-.46,
+                          earlier_booth='First Hall', new_booths={'low':-5.2,'high':-5.2},
+                          dominant_earlier_count=dict(name='First Hall', largest=181, total=181))}
+        def explain():
+            return rule_commentary.accumulating_primary_point('Test','0','1',check,
+                [{'0':34.7,'1':37.8}, {'0':34.9,'1':35.9}])
+        self.assertIn('reduced the overall FP shortfall for {candidate:Test:1}', explain())
+        self.assertIn('applied more of that smaller shortfall', explain())
+        check['1']['current_signal'] = -.7
+        self.assertNotIn('smaller shortfall', explain())
 
     def test_divergent_fp_can_reflect_a_different_opponent_reaching_second(self):
         old, new = [comparisons.summary(numerical(key)) for key in ('old', 'new')]
@@ -786,6 +901,7 @@ class AutomationTests(unittest.TestCase):
             side['conditional_wins'] = {'Light':{'0/2':strength}}
         before = observed({})
         before['booths']['Light/Hall']['fp_votes_projected'] = {'0':50,'2':33.2,'3':16.8}
+        old['seats']['Light']['fp_mean_percent'] = {'0':50,'2':33.2,'3':16.8}
         after = observed({'0':39,'2':34,'3':27})
         before['booths']['Light/Hall']['tcp_votes_projected'] = {'0':54.7,'2':45.3}
         after['booths']['Light/Hall']['tcp_votes_projected'] = {'0':53.4,'2':46.6}
@@ -794,8 +910,10 @@ class AutomationTests(unittest.TestCase):
         _, sections, _ = rule_commentary.write(packet,(old,new),rule_commentary.comparison_context(group,packet))
         text = next(s['text'] for s in sections if s['seats'] == ['Light'])
         self.assertIn('{candidate:Light:2} received **34.0%**, **0.8 pp** above', text)
-        self.assertIn('projects **53.4%** TCP there', text)
-        self.assertIn('only **1.3 pp** below its earlier estimate of **54.7%**', text)
+        # With only one booth the district-aligned estimate must reproduce
+        # its district's conditional TCP median at both endpoints.
+        self.assertIn('projects **50.0%** TCP there', text)
+        self.assertIn('in line with its earlier estimate', text)
         self.assertIn('held at **50.0%**', text)
         self.assertIn('win chance for {candidate:Light:3} fell', text)
         self.assertIn('**97.9%** to **99.2%**', text)
@@ -811,14 +929,49 @@ class AutomationTests(unittest.TestCase):
             d = s['seats']['Light']
             d['candidates']['4'] = {'party':'NAT','name':'Local National'}
             d['pairing_percent'] = {'0/4':95}
-        booth = dict(fp_votes_projected={'0':50, '4':40, '2':10},
+            d['tcp_percentiles'] = {'0/4':{'50':55}}
+        booth = dict(seat_name='Light', fp_votes_projected={'0':50, '4':40, '2':10},
                      tpp_votes_projected={'0':55, '1':45})
         def figures(later, ranked=()):
-            return rule_evidence.booth_projection_after_preferences(booth,later,'Light',old,new,ranked)
+            wanted = {'Light':{frozenset(('0','4'))}}
+            aligned = [booth_tcp.expectations(s, {'booths':{'Hall':row}}, wanted, ranked)
+                       for s, row in ((old, booth), (new, later))]
+            return rule_evidence.booth_projection_after_preferences(booth, later, 'Light', old, new, ranked,
+                                                                   aligned=aligned, booth_key='Hall')
         self.assertAlmostEqual(figures(booth)['4'][0],45)
         self.assertIsNone(figures(dict(booth,fp_votes_projected={'0':50,'1':10,'4':40})))
         self.assertIsNone(figures(booth,{('Light',frozenset(('0','4')))}))
         self.assertIsNone(figures(dict(booth,tcp_votes_current={'0':9,'4':4})))
+
+    def test_booth_tcp_context_keeps_fp_order_when_the_opponent_triggers_it(self):
+        group = dict(ledger='FP', units=1, rates={'1':[34.3,1.7], '0':[38.7,-11.8]},
+                     tcp_estimates={'1':[44.2,46.3], '0':[55.8,53.7]})
+        district = rule_commentary.PairProjection('0',50,50.1)
+        def point():
+            return rule_commentary.booth_tcp_context('Ripon', group, district, '1', ['1','0'])
+        self.assertEqual(point(), ' After preferences, the model projects **46.3%** TCP there '
+                         'for {candidate:Ripon:1} against {candidate:Ripon:0}, **2.1 pp** above the earlier estimate.')
+        self.assertIn('**2.1 pp** below the earlier estimate.', rule_commentary.booth_tcp_context(
+            'Ripon', group, rule_commentary.PairProjection('1',50,49.9), '0', ['0','1']))
+        # If the FP movement carries through locally, the booth TCP still
+        # provides context for a much smaller shift in the district.
+        group['tcp_estimates'] = {'1':[44.2,54.2], '0':[55.8,45.8]}
+        self.assertIn(', **10.0 pp** above', point())
+        district = rule_commentary.PairProjection('0',50,58)
+        self.assertEqual(point(),'')
+
+    def test_dominant_pair_adds_tcp_context_for_modest_pooled_fp_changes(self):
+        group = dict(ledger='FP', units=2, rates={'1':[44.3,-1.6], '0':[35.7,-2.0]},
+                     tcp_estimates={'1':[55.2,52.3], '0':[44.8,47.7]})
+        def point(chance):
+            district = rule_commentary.PairProjection('0',50.1,50.6,chance)
+            return rule_commentary.booth_tcp_context('Ripon', group, district, '1', ['1','0'])
+        for chance in (None, 55, 65):
+            self.assertEqual(point(chance), '')
+        self.assertIn('**52.3%** TCP across those counts for {candidate:Ripon:1} '
+                      'against {candidate:Ripon:0}, **2.9 pp** below the earlier estimate.', point(65.01))
+        group['tcp_estimates'] = {'1':[55.2,52.3], '2':[44.8,47.7]}
+        self.assertEqual(point(100), '')
 
     def test_booth_tcp_projection_uses_same_fp_ballots_and_requires_full_coverage(self):
         unit = dict(ledger='FP', pair=(), first=True, category='Ordinary', declaration=False,
@@ -829,6 +982,26 @@ class AutomationTests(unittest.TestCase):
         result = rule_evidence.pool([unit,large],'0')[0]
         self.assertEqual(result['tcp_estimates']['0'],[45,47.5])
         self.assertNotIn('tcp_estimates',rule_evidence.pool([unit,dict(large,tcp_estimates=None)],'0')[0])
+
+    def test_district_tcp_benchmark_preserves_measured_and_retained_votes(self):
+        def booth(projected, counted=None):
+            return dict(tcp_votes_projected=projected, tcp_votes_current=counted or {}, fp_votes_projected=projected)
+        booths = {'counted':booth({'0':60,'2':40}, {'0':60,'2':40}),
+                  'pending':booth({'0':35,'2':65}), 'realigned':booth({'0':30,'2':70}, {'0':35,'1':65})}
+        booths['pending']['fp_votes_current'] = {'0':30,'2':45,'3':25}
+        bounds = {'realigned':[{'0':27,'2':65}]}
+        def fitted(target):
+            return booth_tcp.fit(booths, {}, ['0','2'], target, set(), bounds)
+        result = fitted(45)
+        self.assertAlmostEqual(sum(row['0'] for row in result.values()), 135, delta=.01)
+        self.assertEqual(result['counted'], {'0':60,'2':40})
+        self.assertGreaterEqual(result['realigned']['2'],65)
+        self.assertGreaterEqual(result['pending']['0'],30)
+        for row in result.values():
+            self.assertAlmostEqual(sum(row.values()),100)
+        self.assertFalse(fitted(10))
+        booths['pending']['tcp_votes_projected'] = {'0':30,'1':70}
+        self.assertFalse(fitted(45))
 
     def test_rules_prefer_likely_pair_when_another_is_counted(self):
         old = comparisons.summary(numerical('earlier', chance=50))
@@ -868,9 +1041,11 @@ class AutomationTests(unittest.TestCase):
         self.assertIsNone(rule_evidence.regional_update({}, regions))
         later = deepcopy(regions)
         east = later['tcp']['East']
-        east.update(votes=3000, gain=300, booths=10)
+        east.update(votes=4300, gain=430, booths=12)
         self.assertIsNone(rule_evidence.regional_update(regions, later))  # More booths, same swing.
-        east['gain'] = 180
+        east.update(votes=4299, gain=258)
+        self.assertIsNone(rule_evidence.regional_update(regions, later))  # 2,499 additional matched ballots.
+        east['votes'] = 4300
         change = rule_evidence.regional_update(regions, later)
         self.assertEqual((change['region'], change['before'], change['after']), ('East', 10, 6))
 
@@ -952,8 +1127,11 @@ class AutomationTests(unittest.TestCase):
             seat['tcp_percentiles']['0/2']['50'] = tcp
         previous = observed({'0':55,'2':45})
         previous['booths']['Light/Hall']['tcp_votes_projected'] = {'0':55,'2':45}
+        previous['booths']['Light/Postal'] = dict(name='Postal', seat_name='Light', fp_votes_current={},
+            tcp_votes_current={}, fp_votes_projected={'0':43,'2':57}, tcp_votes_projected={'0':43,'2':57})
         for fp, unchanged in [({'0':55,'2':45}, True), ({'0':54,'2':46}, False)]:
             current = observed(fp, {'0':50,'2':50})
+            current['booths']['Light/Postal'] = previous['booths']['Light/Postal']
             group = comparisons.compare(new,old,[],current,previous)
             packet = comparisons.prompt_packet(new,group)
             local = rule_commentary.comparison_context(group,packet)
@@ -2357,6 +2535,11 @@ class AutomationTests(unittest.TestCase):
         before = observed({'0': 50, '2': 50}, {'0': 0, '2': 0})
         after = observed({'0': 65, '2': 35}, {'0': 70, '2': 30})
         before['booths']['Light/Hall']['tcp_votes_projected'] = {'0': 55, '2': 45}
+        # The partly counted Hall still has enough unallocated votes for
+        # the district median. Its projected FP mix is evenly divided.
+        before['booths']['Light/Hall'].update(fp_votes_projected={'0':100,'2':100}, tcp_votes_projected={'0':110,'2':90})
+        old['seats']['Light']['fp_mean_percent'] = {'0':50,'2':50}
+        old['seats']['Light']['tcp_percentiles']['0/2']['50'] = 55
         packet = commentary.prepare_packet(comparisons.prompt_packet(new, comparisons.compare(new, old, [], after, before)))
         outcome = 'In {seat:Light}, {candidate:Light:0} became more likely to win.'
         selected = {'outcome': outcome, 'booth_record': 'Light/Hall', 'candidate': '{candidate:Light:0}', 'count_type': 'TCP'}
@@ -3301,10 +3484,12 @@ class AutomationTests(unittest.TestCase):
         previous['booths']['Light/Hall']['tpp_votes_projected'] = {'0': 79.778938, '1': 55.221062}
         old, new = comparisons.summary(numerical('origin', None)), comparisons.summary(numerical())
         new['seats']['Light']['candidates']['1'] = {'party': 'LIB', 'name': 'Fictional Liberal candidate'}
+        old['seats']['Light']['candidates']['1'] = new['seats']['Light']['candidates']['1']
+        old['seats']['Light']['tcp_percentiles']['0/1'] = {'50':100*79.778938/135}
         group = comparisons.compare(new, old, [], current, previous)
         event = next(e for e in group['evidence'] if e['kind'] == 'booths')
         result = event['tcp_against_previous_forecast']
-        self.assertEqual(result['expectation_kind'], 'TPP')
+        self.assertEqual(result['expectation_kind'], 'district-aligned TCP')
         self.assertEqual(result['counted_votes'], 133)
         self.assertAlmostEqual(result['shares']['0']['difference_pp'], 3.31050540796436)
         self.assertAlmostEqual(result['shares']['0']['equivalent_vote_difference'], 4.4029721925926)
@@ -3765,7 +3950,7 @@ class AutomationTests(unittest.TestCase):
         after = observed({'0': 40, '2': 30}, {'0': 80, '2': 20})
         hall = 'Light/Hall'
         postal = 'Light/Postal'
-        before['booths'][hall]['tcp_votes_projected'] = {'0': 6, '2': 4}
+        before['booths'][hall]['tcp_votes_projected'] = {'0': 60, '2': 40}
         before['booths'][postal] = dict(before['booths'][hall], name='Postal', tcp_votes_projected={'0': 450, '2': 450})
         after['booths'][postal] = dict(after['booths'][hall], name='Postal', tcp_votes_current={'0': 160, '2': 140})
 
@@ -3777,7 +3962,7 @@ class AutomationTests(unittest.TestCase):
 
         # Today's ballots give Hall a quarter of the sample. Weight its earlier
         # 60% projection accordingly, even though the two projections used very
-        # different turnout totals (10 and 900).
+        # different turnout totals (100 and 900).
         current = request(commentary.PROMPT_VERSION)
         row = current['replacement_tcp']['by_district']['Light']
         self.assertEqual(row[3:6], ['400 votes', '60.0%', '52.5%'])
@@ -3844,10 +4029,36 @@ class AutomationTests(unittest.TestCase):
         self.assertEqual(booth['count_to_projection_ids'], {'100001': '6'})
         prior = deepcopy(evidence)
         next(iter(prior['booths'].values()))['fp_votes_current'] = {'100001': 0, '100002': 0}
-        group = comparisons.compare(comparisons.summary(raw), comparisons.summary(numerical('origin', None)), [], evidence, prior)
+        previous = comparisons.summary(numerical('origin', None))
+        previous['seats']['Light']['fp_mean_percent'] = {'6':60,'-1':40}
+        group = comparisons.compare(comparisons.summary(raw), previous, [], evidence, prior)
         event = next(e for e in group['evidence'] if e['kind'] == 'booths')
         self.assertAlmostEqual(event['fp_share_minus_previous_expectation_pp']['6'], 100*(10/30-30/50))
         self.assertIn('100002', event['fp_share_minus_previous_expectation_pp'])
+
+    def test_blended_fp_preserves_counts_turnout_and_geography(self):
+        booths = {
+            'Hall': dict(fp_votes_projected={'0':60, '2':40}, fp_votes_current={'0':60,'2':40}),
+            'East': dict(fp_votes_projected={'0':90,'2':100,'8':6,'9':4}),
+            'West': dict(fp_votes_projected={'0':45,'2':50,'8':3,'9':2}),
+            'Postal': dict(fp_votes_projected={'0':55,'2':35,'8':6,'9':4}, fp_votes_current={'0':45,'2':10})}
+        opening = {'East':{'0':40,'2':40,'8':15,'9':5}, 'West':{'0':20,'2':60,'8':15,'9':5}}
+        targets = {'0':45,'2':45,'-1':9,'-3':1}
+        fitted = booth_fp.district_expectations(booths, targets, opening)
+        self.assertEqual(fitted['Hall'], booths['Hall']['fp_votes_current'])
+        for key, row in fitted.items():
+            self.assertAlmostEqual(sum(row.values()), sum(booths[key]['fp_votes_projected'].values()))
+            for party, ballots in booths[key].get('fp_votes_current', {}).items():
+                self.assertGreaterEqual(row[party], ballots)
+        for party in ('0','2'):
+            self.assertAlmostEqual(sum(r.get(party,0) for r in fitted.values()), 225, delta=.01)
+        # The opening booths had different party mixes even though the later
+        # unblended estimates gave them identical shares. Both booth sizes
+        # and the local split within grouped Others survive the district fit.
+        self.assertGreater(fitted['East']['0']/200, fitted['West']['0']/100)
+        self.assertAlmostEqual(fitted['East']['8']/fitted['East']['9'], 3)
+        self.assertFalse(booth_fp.district_expectations(booths, {'0':10,'2':90}, opening))
+        self.assertFalse(booth_fp.district_expectations(booths, {}, opening))
 
     def test_finalist_totals_and_rare_pairing_selection(self):
         before, after = comparisons.summary(numerical('origin', None)), comparisons.summary(numerical())

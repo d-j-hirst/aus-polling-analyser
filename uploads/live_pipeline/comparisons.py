@@ -17,7 +17,7 @@ from .timezones import ZoneInfo
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'analysis'))
 from lib.live_analysis_archive import load_json, analysis_path_for_snapshot
 from .activity import affected_ballots, count_changes, first_tcp_size
-from . import count_context, pairing_commentary, preference_context, prompt_layout, ranked_tcp, rule_evidence, seat_alerts, tcp_reporting
+from . import booth_fp, booth_tcp, count_context, pairing_commentary, preference_context, prompt_layout, ranked_tcp, rule_evidence, seat_alerts, tcp_reporting
 from .storage import read
 
 
@@ -253,16 +253,58 @@ def archived_regional_counts(path):
     return rule_evidence.regional_counts(load_json(path))
 
 
+@lru_cache(maxsize=32)
+def archived_primary_accounts(path):
+    # Older packages can supply the same small per-seat account from the
+    # immutable sidecar. Cache only the accounts across comparison windows.
+    return {r['seat']: r for r in load_json(path).get('fp_based_tpp', [])}
+
+
+def booth_tcp_bounds(analysis):
+    """Keep the votes the simulator still treats as fixed after a pairing
+    change or primary recheck. These bounds are separate from the feed's
+    reported totals and do not generate a new count event."""
+    result = {}
+    for booth in analysis.get('booths', []):
+        retained = booth.get('retained_tpp', {})
+        revised = booth.get('tcp_fp_revision', {})
+        floors = [_party_values(v) for v in (retained.get('lower_bounds', retained.get('counts')),
+                                             revised.get('lower_bounds')) if v]
+        if floors:
+            key = '/'.join(str(booth.get(k, '')) for k in ('seat_name', 'booth_type', 'vote_type', 'name'))
+            result[key] = floors
+    return result
+
+
+@lru_cache(maxsize=32)
+def archived_tcp_bounds(path):
+    return booth_tcp_bounds(load_json(path))
+
+
 def comparison_evidence(package):
     """Recover evidence omitted by older packages from that capture's own
     diagnostic. The frozen report and the accepted vote history stay intact."""
     saved = read(package/'evidence.json.gz')
+    first = package.parent/'f00000001'
+    if (saved.get('booths') and package.name >= first.name and package.name != 'origin'
+            and (first/'summary.json').is_file() and (first/'evidence.json.gz').is_file()):
+        revision, source_time, shapes, tcp_shapes = booth_fp.opening_geography(first)
+        reference = read(package/'summary.json')
+        if revision == reference['input_revision'] and source_time and source_time <= (reference['source_time'] or ''):
+            saved['opening_fp_geography'] = shapes
+            saved['opening_tcp_geography'] = tcp_shapes
     records = saved.get('manual_count_observations', {})
     missing = [seat for seat, row in records.items() if 'flow_percent' not in row]
     need_regions = 'matched_regional_counts' not in saved and bool(saved.get('booths'))
-    if (missing or need_regions) and (package/'numerical.json').is_file():
+    need_accounts = 'fp_based_tpp' not in saved and bool(saved.get('booths'))
+    need_bounds = 'booth_tcp_bounds' not in saved and bool(saved.get('booths'))
+    if (missing or need_regions or need_accounts or need_bounds) and (package/'numerical.json').is_file():
         snapshot = diagnostic_path(read(package/'numerical.json'), package.parent.parent)
         path = analysis_path_for_snapshot(snapshot) if snapshot else None
+        if path and path.is_file() and need_bounds:
+            saved['booth_tcp_bounds'] = archived_tcp_bounds(path)
+        if path and path.is_file() and need_accounts:
+            saved['fp_based_tpp'] = archived_primary_accounts(path)
         if path and path.is_file() and need_regions:
             saved['matched_regional_counts'] = archived_regional_counts(path)
         if path and path.is_file() and missing:
@@ -289,6 +331,8 @@ def evidence(numerical, run_folder=None):
               'statewide': _shared_evidence(analysis.get('election', {})),
               'category_biases': _category_evidence(analysis.get('category_biases', {}))}
     result['regions'] = {r['name']: _shared_evidence(r) for r in analysis.get('regions', [])}
+    result['fp_based_tpp'] = {r['seat']: r for r in analysis.get('fp_based_tpp', [])}
+    result['booth_tcp_bounds'] = booth_tcp_bounds(analysis)
     result['matched_regional_counts'] = rule_evidence.regional_counts(analysis)
     result['manual_preferences'] = {r['seat']: r for r in analysis.get('manual_preference_evidence', [])}
     # These are published sample counts, whereas manual_preferences above
@@ -418,7 +462,8 @@ def booth_changes(events, known, minimum_revision=10):
             'by_seat': {s: groups([r for r in units if r['seat'] == s]) for s in sorted({r['seat'] for r in units})}}
 
 
-def tcp_against_previous_forecast(previous, current, *, ranked_pairs=(), ranked_estimates=None, booth_key=None):
+def tcp_against_previous_forecast(previous, current, *, ranked_pairs=(), ranked_estimates=None, booth_key=None,
+                                  blended_estimates=None):
     """Explain a changed booth TCP count using the reference forecast's estimate.
 
     The usual case is a new or revised count for the same two candidates that
@@ -461,6 +506,11 @@ def tcp_against_previous_forecast(previous, current, *, ranked_pairs=(), ranked_
         if ranked is None:
             return {'available': False, 'reason': 'The earlier ranked allocation does not identify a comparable booth estimate.'}
         forecasts = [(ranked, 'ranked TCP')]
+    elif blended_estimates is not None:
+        estimate = blended_estimates.get((booth_key, pair))
+        if estimate is None:
+            return {'available': False, 'reason': 'No district-aligned booth benchmark is available for these finalists.'}
+        forecasts = [(estimate, 'district-aligned TCP')]
     else:
         forecasts = [(previous.get('tcp_votes_projected'), 'TCP'), (previous.get('tpp_votes_projected'), 'TPP')]
     expectation = None
@@ -542,6 +592,12 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
     previous_evidence, current_evidence, retained = tcp_reporting.reporting_views(
         previous_evidence, current_evidence, tcp_reporting.zero_districts(previous), tcp_reporting.zero_districts(current))
     ranked_pairs, ranked_booths, ranked_groups = ranked_tcp.references(previous, current, previous_evidence, current_evidence)
+    old_booths, new_booths = previous_evidence.get('booths', {}), current_evidence.get('booths', {})
+    changed_fp = {new_booths[k].get('seat_name') for k in old_booths.keys() & new_booths.keys()
+                  if old_booths[k].get('fp_votes_current') != new_booths[k].get('fp_votes_current')}
+    reference_fp = booth_fp.expectations(previous, previous_evidence, changed_fp)
+    earlier_tcp, later_tcp = booth_tcp.comparison_estimates(
+        previous, current, original_before, original_after, changed_fp, ranked_pairs)
     events = []
     for kind in ('booths', 'seats', 'preferences', 'regions', 'manual_preferences', 'manual_count_observations', 'category_biases'):
         old, new = previous_evidence.get(kind, {}), current_evidence.get(kind, {})
@@ -570,7 +626,7 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
                 # Compare the new cumulative composition with what the previous
                 # forecast expected at that booth. This describes how the share
                 # differs from expectations, not its effect on the seat's win chance.
-                forecast = old[key]['fp_votes_projected']
+                forecast = reference_fp.get(key, {})
                 aliases = new[key].get('count_to_projection_ids', {})
                 measured = {}
                 for party, votes in new[key]['fp_votes_current'].items():
@@ -581,9 +637,11 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
                     event['fp_share_minus_previous_expectation_pp'] = {
                         p: 100*(measured[p]/sum(measured.values())-forecast[p]/sum(forecast.values()))
                         for p in measured.keys() & forecast.keys()}
+                if fp_changed and sum(measured.values()) > 0:
                     estimates = rule_evidence.booth_projection_after_preferences(
                         original_before['booths'][key], original_after['booths'][key],
-                        event['seat'], previous, current, ranked_pairs)
+                        event['seat'], previous, current, ranked_pairs,
+                        aligned=(earlier_tcp, later_tcp), booth_key=key)
                     if estimates:
                         event['rule_booth_tcp_estimates'] = estimates
             elif kind == 'booths':
@@ -594,7 +652,7 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
                 event['tcp_vote_change'] = sum(after.get('tcp_votes_current', {}).values())-sum(before.get('tcp_votes_current', {}).values())
             if kind == 'booths':
                 tcp_comparison = tcp_against_previous_forecast(old.get(key), new.get(key),
-                    ranked_pairs=ranked_pairs, ranked_estimates=ranked_booths, booth_key=key)
+                    ranked_pairs=ranked_pairs, ranked_estimates=ranked_booths, booth_key=key, blended_estimates=earlier_tcp)
                 if tcp_comparison is not None:
                     event['tcp_against_previous_forecast'] = tcp_comparison
             events.append(event)
@@ -640,6 +698,22 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
             'booth_changes': booth_changes(events, counts.get('known', False)),
             'statewide': {side: {k:v for k,v in item['statewide'].items() if k != 'preference_flow_medians'}
                           for side, item in [('before', previous), ('after', current)]}}
+    # The largest earlier booth can explain why a second substantial return
+    # changes how much the forecast relies on local counting. Include booths
+    # whose totals did not change in this particular update.
+    previous_places = defaultdict(list)
+    for booth in previous_evidence.get('booths', {}).values():
+        if booth.get('booth_type') == 'Normal' and booth.get('vote_type') == 'Ordinary':
+            ballots = sum(booth.get('fp_votes_current', {}).values())
+            if ballots:
+                previous_places[booth.get('seat_name')].append((ballots, booth.get('name')))
+    result['rule_earlier_ordinary_count'] = {}
+    for seat, places in previous_places.items():
+        size, name = max(places, key=lambda place: place[0])
+        result['rule_earlier_ordinary_count'][seat] = dict(largest=size, name=name, total=sum(n for n, _ in places))
+    if not result['input_revision_changed']:
+        result['rule_tpp_components'] = rule_evidence.tpp_component_changes(
+            previous, current, previous_evidence, current_evidence)
     # Older packages lack matched booth history. An absent reference does
     # not establish that all of today's matched booths are newly counted.
     if previous.get('origin') or 'matched_regional_counts' in original_before:

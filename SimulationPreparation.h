@@ -103,6 +103,7 @@ private:
 	void prepareProminentMinors();
 	void prepareIndependentLikePreferences();
 	void prepareRunningParties();
+	void prepareGroupedFpDistricts();
 	void preparePreferenceModel();
 	void calculateIndEmergenceModifier();
 	std::string const& inputFile(SimulationInputs::File file) const;

@@ -3,6 +3,7 @@
 #include "SimulationRun.h"
 #include "Simulation.h"
 #include "LiveFpIntegration.h"
+#include "LiveOrdinaryUpdate.h"
 
 LiveFpEvidence::Unit LiveV2::Election::fpEvidenceUnit(int boothIndex, bool varied) const {
     auto const& booth = readBooths().at(boothIndex);
@@ -345,6 +346,82 @@ void LiveV2::Election::prepareFpIntegration(BlindFpProjections const& blind) {
     for (std::size_t s = 0; s < information.size(); ++s) {
         information[s].count = std::move(moments[s]);
         prepareFpBoothComparisons(static_cast<int>(s),blind,information[s]);
+        prepareOrdinaryFpFit(static_cast<int>(s),blind,information[s]);
     }
     fpIntegration = std::make_shared<std::vector<LiveData::FpIntegrationInformation> const>(std::move(information));
+}
+
+void LiveV2::Election::prepareOrdinaryFpFit(int seatIndex, BlindFpProjections const& blind,
+    LiveData::FpIntegrationInformation& information) const {
+    if (information.boothComparisons.empty()) return;
+    auto const& seat = seats.at(seatIndex);
+    auto const priors = LiveFpIntegration::ordinaryCandidatePriors(information,OthersIndex,run.indPartyIndex);
+    std::vector<int> parties;
+    LiveOrdinaryUpdate::Mix prior, odds;
+    for (auto const& [id,b] : information.boothComparisons) {
+        if (!b.priorCentre || (id==run.indPartyIndex && information.poolIndependents)) continue;
+        parties.push_back(id);
+        prior.push_back(priors.at(id));
+        odds.push_back(std::exp(LiveFpIntegration::value(information.sharedDeviation,id)/25.));
+    }
+    if (parties.empty()) return;
+    // Treat candidates without individual opening forecasts together when
+    // measuring what named parties gained or lost. The simulation retains
+    // their candidate-specific counts and variation when dividing that pool.
+    double const residual = 1-LiveOrdinaryUpdate::sum(prior);
+    if (residual < -1e-8) return;
+    prior.push_back(std::max(0.,residual));
+    odds.push_back(1.);
+    std::vector<LiveOrdinaryUpdate::Venue> venues;
+    double ordinary = 0;
+    for (int index : seat.booths) {
+        auto const& booth = readBooths().at(index);
+        auto const& expected = blind.at(index);
+        double size = LiveFpEvidence::total(expected), n = booth.node.totalFpVotesCurrent();
+        if (size<=0) {
+            if (n>0) return;
+            continue;
+        }
+        bool const electionDay = booth.boothType==Results2::Booth::Type::Normal && !booth.receivesFpBatches();
+        LiveOrdinaryUpdate::Mix shape,counts;
+        for (int party : parties) {
+            int const ballot = party==run.indPartyIndex ? seat.liveIndependentPartyIndex : party;
+            auto found = booth.node.fpVotesCurrent.find(ballot);
+            // An explicitly reported zero is evidence. An omitted count has
+            // no observed candidate allocation for a joint fit at this venue.
+            if (electionDay && n>0 && found==booth.node.fpVotesCurrent.end()) return;
+            counts.push_back(found==booth.node.fpVotesCurrent.end() ? 0. : found->second);
+            shape.push_back(LiveFpIntegration::value(expected,party)/size);
+        }
+        shape.push_back(std::max(0.,1.-LiveOrdinaryUpdate::sum(shape)));
+        counts.push_back(std::max(0.,n-LiveOrdinaryUpdate::sum(counts)));
+        venues.push_back({std::move(shape),std::move(counts),size,electionDay});
+        if (electionDay) ordinary += n;
+    }
+    auto result = LiveOrdinaryUpdate::remaining(venues,prior,odds);
+    if (!result) return;
+    auto const conditioned = LiveOrdinaryUpdate::conditionedShares(prior,odds);
+    for (size_t j=0; j<parties.size(); ++j) {
+        auto& comparison = information.boothComparisons.at(parties[j]);
+        comparison.priorCentre = LiveFpIntegration::logOdds(conditioned[j]);
+        comparison.fittedRemaining = result->at(j);
+    }
+    // If the residual maps entirely to the simulator's Others pool it has
+    // a joint centre too. A separately modelled candidate without a named
+    // prior instead keeps the existing booth-based draw and uncertainty.
+    auto const& mean = turnout->mean(LiveData::CountKind::Fp,seatIndex);
+    auto const& counted = turnout->counted(LiveData::CountKind::Fp,seatIndex);
+    double residualVotes = 0.;
+    for (auto const& [id,n] : mean) {
+        if (std::find(parties.begin(),parties.end(),id)!=parties.end()) continue;
+        if (id>=0 && id<project.parties().count() && n>0) return;
+        residualVotes += n-LiveFpIntegration::value(counted,id);
+    }
+    double const future = LiveFpEvidence::total(mean)-LiveFpEvidence::total(counted);
+    if (residual<=0 || future<=0) return;
+    auto& other = information.boothComparisons[OthersIndex];
+    other.ordinary = ordinary;
+    other.priorCentre = LiveFpIntegration::logOdds(conditioned.back());
+    other.boothRemainingCentre = LiveFpIntegration::logOdds(residualVotes/future);
+    other.fittedRemaining = result->back();
 }

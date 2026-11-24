@@ -82,6 +82,30 @@ estimate supplies no historical votes to turnout, swing or live booth comparison
 Published intervals can differ from this initial range once these steps and
 live counting evidence have been applied.
 
+## Candidates grouped into Others
+
+Once nominations are known, the forecast also uses the size of the local field
+to distribute the election-wide Others vote. It counts grouped minor candidates
+and independents on both ballots. For example, an increase from two candidates
+to four multiplies the odds of an Others vote by `(5 / 3)^(1/4)`, about 1.14.
+The added one allows for a previously empty field. The quarter power allows
+for candidates competing for the same voters. Districts with a sitting,
+returning or confirmed prominent independent skip this field-size adjustment.
+
+An election may supply local evidence for a named party included in Others in
+`analysis/seats/<election>-grouped-fp-priors.json`. For each district and party,
+`party_votes` and `formal_votes` describe the same historical ballot sample.
+In Bendigo East, One Nation received 1,188 of 19,101 formal votes at matched
+ordinary polling places in the May 2022 federal election. The model moves one
+candidate's allowance halfway towards that 6.22% district estimate. The half
+weight is an assumption about how well support carries between elections.
+The same rule uses the remaining grouped candidates when a draw gives an
+independent or emerging party a separate share. [Victorian inputs and source](../analysis/seats/2022vic-grouped-fp-priors.json)
+
+Each draw balances the resulting district changes using historical turnout,
+preserving the combined Others vote at this step. The simulation then infers
+major-party first preferences and later incorporates live counts as usual.
+
 ## Polling, odds and the overall forecast
 
 The baseline profile adjustment precedes local FP-poll integration. Polls can

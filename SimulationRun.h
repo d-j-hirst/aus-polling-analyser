@@ -8,6 +8,7 @@
 #include "LiveResultsInput.h"
 #include "LiveInputRecovery.h"
 #include "MajorPartyFpMath.h"
+#include "GroupedOthersFp.h"
 #include <optional>
 #include "Party.h"
 #include "PreferenceModel.h"
@@ -57,6 +58,8 @@ public:
 		std::map<int, double> tcpVoteCount; // map from party index -> number
 		int turnoutCount = 0;
 		double prevOthers = 0.0f; // Special variable for calculating emergence of independents
+		std::optional<int> groupedCandidateCount; // Unknown until original FP candidate rows are read.
+		bool excludedNationalAgainstLiberal = false;
 		bool nationalTppReference = false; // Fixed before counting, including when the feed realigns.
 		bool useNamedCoalitionPreferenceHistory = false;
 		std::optional<MajorPartyFpMath::MinorPreferenceRange> minorPreferencesInCoalitionContest;
@@ -455,6 +458,7 @@ private:
 
 	std::vector<int> indCount;
 	std::vector<int> othCount;
+	std::vector<GroupedOthersFp::District> groupedFpDistricts;
 	std::vector<std::vector<std::string>> runningParties;
 
 	std::vector<std::map<int, float>> seatBettingOdds;
