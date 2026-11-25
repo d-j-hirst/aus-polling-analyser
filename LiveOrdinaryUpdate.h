@@ -9,6 +9,7 @@
 #include <optional>
 #include <utility>
 #include <vector>
+#include "LiveFpSupportGradient.h"
 
 namespace LiveOrdinaryUpdate {
 using Mix = std::vector<double>;
@@ -16,6 +17,7 @@ struct Venue {
     Mix opening, votes;
     double turnout;
     bool ordinary;
+    Mix historicalSupportTilts{};
 };
 
 inline double sum(Mix const& mix) { return std::accumulate(mix.begin(),mix.end(),0.); }
@@ -130,6 +132,7 @@ inline std::optional<Mix> remaining(std::vector<Venue> const& booths, Mix prior,
         if (!shift) return false;
         for (size_t b : pending) {
             auto shares = tilted(rows[b],*shift);
+            LiveFpSupportGradient::adjust(shares,booths[b].historicalSupportTilts);
             for (size_t j=0; j<shares.size(); ++j) result[j] += outstanding[b]*shares[j];
         }
         return true;

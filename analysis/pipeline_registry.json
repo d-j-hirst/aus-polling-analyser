@@ -54,10 +54,12 @@
       "scope": "global",
       "core": false,
       "paths": [
+        "Data/indicative-preference-history-2022vic.csv",
         "Preferences/*.json",
-        "Preferences/*.json.gz"
+        "Preferences/*.json.gz",
+        "Preferences/pairing/*.json"
       ],
-      "description": "Observed preference counts and explicitly recorded source/candidate contexts; no fitted forecast parameters or existing forecast consumer."
+      "description": "Observed preference counts, ranking assumptions and district preference evidence used to prepare forecasts."
     },
     "preference_evidence_tools": {
       "kind": "code",
@@ -1364,6 +1366,7 @@
         "forecast_seats",
         "seat_analysis_inputs",
         "preference_estimates",
+        "preference_evidence_inputs",
         "prior_result_inputs"
       ]
     },

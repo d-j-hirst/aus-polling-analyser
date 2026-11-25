@@ -331,6 +331,9 @@ def evidence(numerical, run_folder=None):
               'statewide': _shared_evidence(analysis.get('election', {})),
               'category_biases': _category_evidence(analysis.get('category_biases', {}))}
     result['regions'] = {r['name']: _shared_evidence(r) for r in analysis.get('regions', [])}
+    result['optional_preferential'] = analysis.get('optional_preferential')
+    result['classic_benchmark_labor_rates'] = {s['name']: s['classic_benchmark_labor_rates']
+        for s in analysis.get('seats', []) if s.get('classic_benchmark_labor_rates')}
     result['fp_based_tpp'] = {r['seat']: r for r in analysis.get('fp_based_tpp', [])}
     result['booth_tcp_bounds'] = booth_tcp_bounds(analysis)
     result['matched_regional_counts'] = rule_evidence.regional_counts(analysis)
@@ -381,7 +384,11 @@ def evidence(numerical, run_folder=None):
                 ('fp_completion', 'tcp_completion', 'tpp_completion')}
     for row in analysis.get('preference_learning', []):
         key = f"{row['seat']}/{row['category']}/{row['pair']}"
-        result['preferences'][key] = row
+        # Keep the source rates in local evidence. Only the comparison for
+        # an actual booth return needs to reach either commentary writer.
+        if 'pending_first_rates' in row:
+            result.setdefault('ranked_source_rates', {})[key] = row['pending_first_rates']
+        result['preferences'][key] = {k: v for k, v in row.items() if k != 'pending_first_rates'}
     return result
 
 
@@ -498,14 +505,27 @@ def tcp_against_previous_forecast(previous, current, *, ranked_pairs=(), ranked_
 
     pair = frozenset(measured)
     seat = current.get('seat_name')
+    counted_total = sum(measured.values())
+    ranked = (ranked_estimates or {}).get((booth_key, pair))
+    category = current.get('vote_type')
+    if (not ranked and category and category != 'Ordinary'
+            and (current.get('name') or '').casefold() == category.casefold()):
+        # A district-wide Early or Postal line can combine several venues
+        # or batches. A TCP for just one of them can have a very different
+        # FP mix. The full category's projected share cannot establish what
+        # was expected of that batch. Allow small rechecks using the model's
+        # two-percent FP/TCP comparability tolerance (LivePartialCount.h).
+        category_fp = sum(current.get('fp_votes_current', {}).values())
+        if counted_total < .98*category_fp:
+            return {'available': False, 'partial_category_fp_votes': category_fp,
+                    'reason': 'Partial category TCP with no earlier estimate for the counted batch.'}
     if (seat, pair) in ranked_pairs:
         # The usual booth TCP export predates the ranked live account. Even
         # identical opponents do not make it the expectation used for this
         # contest. The category comparison is supplied separately when usable.
-        ranked = (ranked_estimates or {}).get((booth_key, pair))
         if ranked is None:
             return {'available': False, 'reason': 'The earlier ranked allocation does not identify a comparable booth estimate.'}
-        forecasts = [(ranked, 'ranked TCP')]
+        forecasts = [ranked]
     elif blended_estimates is not None:
         estimate = blended_estimates.get((booth_key, pair))
         if estimate is None:
@@ -525,7 +545,6 @@ def tcp_against_previous_forecast(previous, current, *, ranked_pairs=(), ranked_
     if expectation is None:
         return {'available': False, 'reason': 'The reference forecast has no positive booth estimate for this exact pair.'}
 
-    counted_total = sum(measured.values())
     projected_total = sum(expectation.values())
     shares = {}
     for party in sorted(measured):
@@ -591,12 +610,12 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
     original_before, original_after = previous_evidence, current_evidence
     previous_evidence, current_evidence, retained = tcp_reporting.reporting_views(
         previous_evidence, current_evidence, tcp_reporting.zero_districts(previous), tcp_reporting.zero_districts(current))
-    ranked_pairs, ranked_booths, ranked_groups = ranked_tcp.references(previous, current, previous_evidence, current_evidence)
+    ranked_pairs, ranked_booths, ranked_groups, ranked_additions = ranked_tcp.references(
+        previous, current, previous_evidence, current_evidence)
     old_booths, new_booths = previous_evidence.get('booths', {}), current_evidence.get('booths', {})
     changed_fp = {new_booths[k].get('seat_name') for k in old_booths.keys() & new_booths.keys()
                   if old_booths[k].get('fp_votes_current') != new_booths[k].get('fp_votes_current')}
-    reference_fp = booth_fp.expectations(previous, previous_evidence, changed_fp)
-    earlier_tcp, later_tcp = booth_tcp.comparison_estimates(
+    reference_fp, earlier_tcp = booth_tcp.comparison_benchmarks(
         previous, current, original_before, original_after, changed_fp, ranked_pairs)
     events = []
     for kind in ('booths', 'seats', 'preferences', 'regions', 'manual_preferences', 'manual_count_observations', 'category_biases'):
@@ -641,7 +660,8 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
                     estimates = rule_evidence.booth_projection_after_preferences(
                         original_before['booths'][key], original_after['booths'][key],
                         event['seat'], previous, current, ranked_pairs,
-                        aligned=(earlier_tcp, later_tcp), booth_key=key)
+                        earlier_tcp=earlier_tcp, booth_key=key, expected_fp=forecast, measured_fp=measured,
+                        reference_evidence=original_before, current_evidence=original_after)
                     if estimates:
                         event['rule_booth_tcp_estimates'] = estimates
             elif kind == 'booths':
@@ -654,6 +674,21 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
                 tcp_comparison = tcp_against_previous_forecast(old.get(key), new.get(key),
                     ranked_pairs=ranked_pairs, ranked_estimates=ranked_booths, booth_key=key, blended_estimates=earlier_tcp)
                 if tcp_comparison is not None:
+                    # The feed can show zero for a count already retained by the
+                    # forecast, then publish both identical finalist totals again.
+                    # This is a change in the displayed count, with no fresh
+                    # preference split to compare against the earlier projection.
+                    prior_tcp = (old.get(key) or {}).get('tcp_votes_current') or {}
+                    reported = (new.get(key) or {}).get('tcp_votes_current') or {}
+                    if (not any(prior_tcp.values()) and len(reported) == 2 and sum(reported.values()) > 0
+                            and reported in original_before.get('booth_tcp_bounds', {}).get(key, ())):
+                        tcp_comparison = {'available': False, 'already_in_forecast': True,
+                                          'reason': 'Both reported TCP tallies were already included in the earlier forecast.'}
+                    elif not tcp_comparison.get('available') and ranked_additions:
+                        mapped = count_context.mapped_tcp(new[key]) if key in new else None
+                        addition = ranked_additions.get((key, frozenset(mapped or ())))
+                        if addition:
+                            event['rule_ranked_tcp_addition'] = addition
                     event['tcp_against_previous_forecast'] = tcp_comparison
             events.append(event)
     old_issues = previous_evidence.get('issues', [])
@@ -719,7 +754,7 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
     if previous.get('origin') or 'matched_regional_counts' in original_before:
         result['rule_regional'] = rule_evidence.regional_contrast(
             original_before.get('matched_regional_counts', {}), original_after.get('matched_regional_counts', {}))
-        result['rule_regional_change'] = rule_evidence.regional_update(
+        result['rule_regional_changes'] = rule_evidence.regional_updates(
             original_before.get('matched_regional_counts', {}), original_after.get('matched_regional_counts', {}))
     calls = seat_alerts.call_changes(previous, current)
     if calls:
@@ -1051,7 +1086,7 @@ def _booth_story(event, candidates, replacement):
         fields.append(tcp)
     detail = {k: v for k, v in event.items() if k not in (
         'before', 'after', 'interpretation', 'fp_share_minus_previous_expectation_pp', 'pair_changed',
-        'rule_booth_tcp_estimates')}
+        'rule_booth_tcp_estimates', 'rule_ranked_tcp_addition')}
     if not fp_size or incidental_fp:
         detail.pop('fp_vote_change', None)
     if not tcp_size:
@@ -1318,7 +1353,7 @@ def prompt_packet(current, comparison):
     # when its reporting booths belong to a district already selected. Keep
     # tiny rechecks and the complete archive of other categories off the wire.
     groups = {seat: [row for row in comparison.get('ranked_tcp_groups', {}).get(seat, [])
-                     if row['newly_counted'] >= 10] for seat in selection_order}
+                     if row['newly_counted'] == row['ballots'] >= 10] for seat in selection_order}
     if any(groups.values()):
         packet['ranked_tcp_groups'] = {seat: rows for seat, rows in groups.items() if rows}
     sources = comparison.get('district_preference_evidence', {})

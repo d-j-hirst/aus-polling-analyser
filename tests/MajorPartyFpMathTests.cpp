@@ -1,4 +1,6 @@
 #include "../MajorPartyFpMath.h"
+#include "../SpecialPartyCodes.h"
+#include "../SoftPairing.h"
 
 #include <array>
 #include <cassert>
@@ -6,6 +8,30 @@
 #include <limits>
 
 namespace {
+
+	void checkVictorianPairingCentres()
+	{
+		using namespace SoftPairing;
+		assert(weight(.2999) == 0. && weight(.30) == 0.);
+		assert(std::abs(weight(.65) - .5) < 1e-12 && weight(1.) == 1.);
+		// Richmond, 2022. The independent Python trial uses a different
+		// optimizer and supplies the expected adjustments in district points.
+		Centre c{32.5310567, 7.77154857, 43.7218034, 72.977, 10.59960294,
+			8.16883654, 8.30321598, 10.28572470, 2.554576789, .444174098, .25};
+		auto const shift = fit(c, .926);
+		assert(std::abs(shift.labor + 2.51421) < .001);
+		assert(std::abs(-shift.labor - shift.greens - 7.48782) < .001);
+		assert(std::abs(shift.tpp - 1.64207) < .001);
+		auto const inactive = fit(c, .3);
+		assert(inactive.labor == 0. && inactive.greens == 0. && inactive.tpp == 0.);
+		auto const justEligible = fit(c, .300001);
+		assert(std::abs(justEligible.labor) + std::abs(justEligible.greens) + std::abs(justEligible.tpp) < .0001);
+		// If the major-pair preference account already gives the reference
+		// TPP, even a certain Labor–Greens finish requires no primary change.
+		c.tpp = c.labor + c.greens * probability(c.greenIntercept + c.greenSlope * logOdds(.01 * c.greens)) + c.otherToLabor;
+		auto const consistent = fit(c, 1.);
+		assert(std::abs(consistent.labor) + std::abs(consistent.greens) + std::abs(consistent.tpp) < 1e-8);
+	}
 
 	void checkBendigoEastHistoricalPartner()
 	{
@@ -145,6 +171,23 @@ namespace {
 		assert(euroa->supportedDifference(0.50) == 0.0);
 		assert(close(euroa->supportedDifference(0.65), euroa->upper - 0.65));
 
+		// The separate 2018 TPP counts used in the 2022 replay. Morwell's
+		// Liberal exclusion bounds the original Liberal ballots reaching Labor.
+		// Mildura had only one Coalition candidate. For Shepparton only the
+		// total National primary bounds that party's contribution to Labor.
+		auto const morwell2018 = MajorPartyFpMath::historicalMinorPreferenceRange({
+			40142, 13725, 4283, 4955, 21037, 0, 1963});
+		assert(morwell2018 && close(morwell2018->lower, 5349.0 / 17179) &&
+			close(morwell2018->upper, 7312.0 / 17179));
+		auto const mildura2018 = MajorPartyFpMath::historicalMinorPreferenceRange({
+			37207, 6404, 14654, 0, 16515, 0, 0});
+		assert(mildura2018 && mildura2018->lower == mildura2018->upper &&
+			close(mildura2018->upper, 10111.0 / 16149));
+		auto const shepparton2018 = MajorPartyFpMath::historicalMinorPreferenceRange({
+			41290, 4772, 10967, 5382, 15806, 0, 5382});
+		assert(shepparton2018 && close(shepparton2018->lower, 5652.0 / 20169) &&
+			close(shepparton2018->upper, 11034.0 / 20169));
+
 		// Bass reverses the roles. The 5,506 National primaries are the
 		// excluded partner's original votes in its Labor/Liberal count.
 		auto const bass = MajorPartyFpMath::historicalMinorPreferenceRange({
@@ -218,6 +261,12 @@ namespace {
 
 int main()
 {
+	checkVictorianPairingCentres();
+	assert(!canAttractTacticalPreferences(OthersIndex, 2));
+	assert(!canAttractTacticalPreferences(EmergingPartyIndex, 2));
+	assert(canAttractTacticalPreferences(EmergingIndIndex, 2));
+	assert(canAttractTacticalPreferences(5, 2));
+	assert(!canAttractTacticalPreferences(5, 3));
 	checkBendigoEastHistoricalPartner();
 	checkReachableTargets();
 	checkProtectedLocalSupport();

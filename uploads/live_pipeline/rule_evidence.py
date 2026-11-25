@@ -7,7 +7,7 @@ every booth before summarising them. The AI request has a separate size limit.
 from collections import defaultdict
 import math
 
-from . import activity
+from . import activity, booth_tcp, ranked_tcp
 
 
 def joined(items):
@@ -50,18 +50,26 @@ def unit_names(units):
     return joined(labels)
 
 
-def booth_projection_after_preferences(old, new, seat, previous, current, ranked_pairs, *, aligned, booth_key):
-    """Find two comparable forecasts for this booth after preferences. A booth
-    with FP only can still have a modelled TCP. Compare the same district
-    finalists at both dates and leave measured TCP to the counted-vote story."""
+def booth_projection_after_preferences(old, new, seat, previous, current, ranked_pairs, *, booth_key,
+                                       earlier_tcp, expected_fp, measured_fp, reference_evidence, current_evidence):
+    """Separate the news in the local FP mix from changes in the district
+    outlook. A retained count or a ranked category allocation cannot establish
+    a preference estimate for this booth's FP-only ballots."""
     if previous['input_revision'] != current['input_revision'] or any(
             any(b.get('tcp_votes_current', {}).values()) for b in (old, new)):
+        return None
+    if any(e.get('booth_tcp_bounds', {}).get(booth_key) for e in (reference_evidence, current_evidence)):
+        return None
+    # Older captures can establish compulsory preferences through the simulator's
+    # FP-based TPP account, which is only prepared in a full-preference election.
+    optional = reference_evidence.get('optional_preferential')
+    if optional or (optional is None and not reference_evidence.get('fp_based_tpp')):
         return None
     earlier, later = (s['seats'].get(seat, {}) for s in (previous, current))
     frequencies = later.get('pairing_percent', {})
     if not frequencies:
         return None
-    pair = max(frequencies, key=frequencies.get).split('/')
+    pair = sorted(max(frequencies, key=frequencies.get).split('/'))
     if len(set(pair)) != 2 or len(pair) != 2 or (seat, frozenset(pair)) in ranked_pairs:
         # A ranked allocation for the whole category does not identify how
         # its transfers split at this booth. The older booth TCP is a
@@ -72,10 +80,15 @@ def booth_projection_after_preferences(old, new, seat, previous, current, ranked
         if not candidate.get('name') or candidate != earlier.get('candidates', {}).get(party):
             return None
 
-    forecasts = [side.get((booth_key, frozenset(pair))) for side in aligned]
-    if all(v and sum(v.values()) > 0 for v in forecasts):
-        return {p: [100*v[p]/sum(v.values()) for v in forecasts] for p in pair}
-    return None
+    benchmark = earlier_tcp.get((booth_key, frozenset(pair)))
+    if not benchmark or not sum(benchmark.values()):
+        return None
+    coalition = {p for p in new.get('fp_votes_projected', {})
+                 if current.get('parties', {}).get(p) in ('LIB', 'LNP', 'LNQ', 'CLP', 'NAT')}
+    if not booth_tcp.split(new, pair, coalition):
+        return None
+    rates = reference_evidence.get('classic_benchmark_labor_rates', {}).get(seat, {}).get('/'.join(pair))
+    return booth_tcp.fixed_flow_shares(pair, benchmark, expected_fp, measured_fp, rates)
 
 
 def booth_units(events):
@@ -107,6 +120,8 @@ def booth_units(events):
                 changed = first_size or changed
             if not changed or not ballots:
                 continue
+            approximate_tcp = False
+            partial_category_fp = None
             if ledger == 'FP':
                 aliases = new.get('count_to_projection_ids', {})
                 mapped = defaultdict(int)
@@ -118,17 +133,35 @@ def booth_units(events):
             else:
                 compare = event.get('tcp_against_previous_forecast') or {}
                 if compare.get('available'):
+                    approximate_tcp = compare.get('expectation_kind') == ranked_tcp.ARCHIVED_BASIS
                     pair = tuple(sorted(compare['pair']))
                     rates = {p: (r['observed_percent'], r['difference_pp']) for p, r in compare['shares'].items()}
                 else:
+                    partial_category_fp = compare.get('partial_category_fp_votes')
                     aliases = new.get('count_to_projection_ids', {})
                     pair = tuple(sorted({aliases.get(p, p) for p in measured}))
                     rates = {}
             # An updated declaration with no comparable estimate can still
             # be named separately. It contributes no ballots to a pooled share.
-            if rates or declaration:
+            # A missing same-pair estimate prevents a claim about performance,
+            # but both published totals can still establish where counting grew.
+            # Don't subtract ballots for a different pair, or describe a
+            # reallocation between candidates as a batch of additional votes.
+            addition = 0
+            restored = False
+            if ledger == 'TCP':
+                prior = old.get(field) or {}
+                if (len(measured) == len(pair) == 2 and (not any(prior.values()) or prior.keys() == measured.keys())
+                        and all(v >= prior.get(p, 0) for p, v in measured.items())):
+                    addition = ballots - sum(prior.values())
+                    restored = bool(compare.get('already_in_forecast'))
+            if rates or declaration or addition:
                 by_seat[event['seat']].append(dict(name=label, declaration=declaration, ledger=ledger,
                     category=category, pair=pair, first=first, ballots=ballots, changed=changed, rates=rates,
+                    approximate_tcp=ranked_tcp.category(new) if approximate_tcp else None,
+                    partial_category_fp=partial_category_fp,
+                    tcp_addition=addition, restored=restored,
+                    batch_shares=event.get('rule_ranked_tcp_addition') if addition else None,
                     tcp_estimates=event.get('rule_booth_tcp_estimates') if ledger == 'FP' else None))
     return by_seat
 
@@ -150,16 +183,28 @@ def pool(units, party):
         parties = set.intersection(*(set(u['rates']) for u in batch))
         rates = {p: [sum(u['rates'][p][i]*u['ballots'] for u in batch)/ballots for i in (0, 1)]
                  for p in sorted(parties)}
-        categories = {u['category'] for u in units if u['declaration'] and (u['ledger'], u['pair']) == (ledger, pair)}
+        categories = {u['category'] for u in units if u['declaration'] and not u.get('restored')
+                      and (u['ledger'], u['pair']) == (ledger, pair)}
         other_categories = sorted(categories - {u['category'] for u in batch if u['declaration']})
         result.append(dict(ledger=ledger, pair=list(pair), first=first, locations=unit_names(batch), units=len(batch),
             declaration=batch[0]['declaration'] if len(batch) == 1 else False, ballots=ballots,
             changed=sum(u['changed'] for u in batch), rates=rates, other_categories=other_categories))
+        # A category with a partial TCP still contributed real counting. Give
+        # its progress separately from booths with a comparable benchmark.
+        partial = {u['category']: (u['ballots'], u['partial_category_fp']) for u in units
+                   if u.get('partial_category_fp') and u['category'] in other_categories
+                   and (u['ledger'], u['pair']) == (ledger, pair)}
+        if partial:
+            result[-1]['partial_categories'] = partial
+        approximate = {u.get('approximate_tcp') for u in batch}
+        if any(approximate):
+            result[-1]['approximate_tcp'] = approximate.pop() if len(approximate) == 1 else 'mixed'
         # Use every booth named in the FP sentence and its same ballot weight
         # at both dates. A projection for only part of the group can tell a
         # different story, particularly when a large centre is missing.
         estimates = batch[0].get('tcp_estimates') or {}
         if party in estimates and all((u.get('tcp_estimates') or {}).keys() == estimates.keys() for u in batch):
+            result[-1]['all_booths'] = all(not u['declaration'] for u in batch)
             result[-1]['tcp_estimates'] = {p: [sum(u['tcp_estimates'][p][i] * u['ballots'] for u in batch)
                                                 / ballots for i in (0, 1)] for p in estimates}
     return result
@@ -380,11 +425,28 @@ def context(comparison, win_rows, flows):
                 if (earlier.get('name') and fractions and fractions[0] >= .75 and fractions[0]-fractions[1] >= .10
                         and abs(earlier['largest']/earlier['total']-fractions[0]) < .0001):
                     check['dominant_earlier_count'] = earlier
-    return {'pools': pools, 'primary_weight_checks': weights,
+    # Retain the locations independently of the comparison pools. A named
+    # Coalition partner may have a district projection without its own booth
+    # benchmark. The public text can still give the sizes of these updates.
+    tcp_sources = {}
+    for seat in pools:
+        by_pair = defaultdict(list)
+        for unit in units[seat]:
+            if unit.get('tcp_addition', 0) >= 10 and not unit['rates']:
+                source = {
+                    'name': unit['name'], 'declaration': unit['declaration'],
+                    'changed': unit['tcp_addition'], 'restored': unit['restored']}
+                if unit.get('batch_shares'):
+                    source['batch_shares'] = unit['batch_shares']
+                by_pair['/'.join(unit['pair'])].append(source)
+        if by_pair:
+            tcp_sources[seat] = dict(by_pair)
+    return {'pools': pools, 'tcp_sources': tcp_sources, 'primary_weight_checks': weights,
             'tpp_components': {s: v for s, v in comparison.get('rule_tpp_components', {}).items() if s in pools},
             'large_local_moves': sorted(large), 'supported_flows': supported_flows(events, flows),
             'regional': comparison.get('rule_regional', []),
-            'regional_change': comparison.get('rule_regional_change')}
+            'regional_change': comparison.get('rule_regional_changes', {}).get('period'),
+            'previous_regional_change': comparison.get('rule_regional_changes', {}).get('previous')}
 
 
 def regional_counts(analysis):
@@ -469,12 +531,12 @@ def regional_contrast(before, after):
     return []
 
 
-def regional_update(before, after):
-    """Find the largest revision to an already established regional swing.
+def regional_updates(before, after):
+    """Find the largest reportable regional swing revision for each kind of update.
     Compare the cumulative matched-booth swing at the two forecast dates.
     A region crossing the minimum coverage for the first time has no reliable
     starting figure. Its historical comparison belongs in the counting overview."""
-    candidates = []
+    best = {}
     for ledger in ('tcp', 'fp'):
         for region, current in after.get(ledger, {}).items():
             earlier = before.get(ledger, {}).get(region)
@@ -486,10 +548,25 @@ def regional_update(before, after):
             # matched ballots in this region and count type during the window,
             # and at least 10% of its current matched count. These are editorial
             # thresholds for reporting a revision to the swing.
-            if current['votes'] - earlier['votes'] < max(2500, .1*current['votes']):
+            added_votes = current['votes'] - earlier['votes']
+            if added_votes < max(2500, .1*current['votes']):
                 continue
             old, new = [100*r['gain']/r['votes'] for r in (earlier, current)]
-            if abs(new-old) >= 1:
-                candidates.append(dict(region=region, ledger=ledger.upper(), before=old,
-                                       after=new, booths=current['booths']))
-    return max(candidates, key=lambda r: abs(r['after']-r['before']), default=None)
+            movement = abs(new-old)
+            if movement < 1:
+                continue
+            added_booths = current['booths'] - earlier['booths']
+            row = dict(region=region, ledger=ledger.upper(), before=old, after=new, booths=current['booths'],
+                       added_booths=added_booths, added_votes=added_votes)
+            # A rolling report can describe a developing pattern. For a single
+            # update, reserve a headline for a substantial revision with broad
+            # fresh counting and an earlier sample large enough to compare.
+            # Select independently so a larger swing on two booths cannot hide
+            # a well-supported swing elsewhere. The cutoffs are editorial.
+            windows = ['period']
+            if movement >= 2.5 and earlier['votes'] >= 2500 and added_votes >= 5000 and added_booths >= 5:
+                windows.append('previous')
+            for window in windows:
+                if window not in best or movement > abs(best[window]['after'] - best[window]['before']):
+                    best[window] = row
+    return best

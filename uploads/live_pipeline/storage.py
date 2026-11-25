@@ -25,6 +25,14 @@ def atomic(path, value):
         stream.flush()
         os.fsync(stream.fileno())
     os.replace(temporary, path)
+    if os.name == 'posix' and (path.name in ('publication.json', 'ready-publication.json') or path.parent.name == 'receipts'):
+        # Persist the new directory entry as well as the file contents before
+        # treating a release or a server acknowledgement as complete on disk.
+        directory = os.open(str(path.parent), os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
 
 
 def fingerprint(value):
@@ -33,41 +41,61 @@ def fingerprint(value):
 
 
 class RunLockBusy(BlockingIOError):
-    """Another process already owns this folder's publisher lock."""
+    """Another process already owns this worker's lock in the run folder."""
 
 
 @contextlib.contextmanager
-def run_lock(folder):
-    """OS-released lock: a stale filename after a crash never prevents recovery."""
-    path = Path(folder) / 'publisher.lock'
+def _windows_exclusive_open(path):
+    # Windows and WSL can both grant their own locks on a byte in the same
+    # file. An exclusive *open* is checked by Windows even when the other
+    # process opens the file through /mnt/c, whichever process starts first.
+    import ctypes
+    from ctypes import wintypes
+
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    create = kernel.CreateFileW
+    create.argtypes = (wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID,
+                       wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE)
+    create.restype = wintypes.HANDLE
+    close = kernel.CloseHandle
+    close.argtypes = (wintypes.HANDLE,)
+    close.restype = wintypes.BOOL
+
+    read_write, no_sharing, open_always, normal_file = 0xC0000000, 0, 4, 0x80
+    handle = create(str(path), read_write, no_sharing, None, open_always, normal_file, None)
+    if handle == ctypes.c_void_p(-1).value:
+        code = ctypes.get_last_error()
+        if code in (32, 33):  # Sharing or lock violation.
+            raise RunLockBusy(f'Another process holds {path}')
+        raise ctypes.WinError(code)
+    try:
+        yield
+    finally:
+        close(handle)
+
+
+@contextlib.contextmanager
+def run_lock(folder, filename='publisher.lock'):
+    """Hold a named worker's OS lock. Exiting releases it even after a crash."""
+    path = Path(folder) / filename
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open('a+b') as stream:
-        if stream.tell() == 0:
-            stream.write(b'0')
-            stream.flush()
-        stream.seek(0)
-        if os.name == 'nt':
-            import msvcrt
-            try:
-                msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
-            except OSError as error:
-                # Normalise Windows' occupied byte-range lock to the same
-                # exception used by the non-blocking POSIX lock below. File
-                # permission failures from open() remain ordinary errors.
-                if error.errno in (13, 11) or getattr(error, 'winerror', None) == 33:
-                    raise RunLockBusy(f'Another process holds {path}') from error
-                raise
-        else:
-            import fcntl
-            try:
-                fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError as error:
-                raise RunLockBusy(f'Another process holds {path}') from error
-        try:
+    if os.name == 'nt':
+        with _windows_exclusive_open(path):
             yield
-        finally:
-            stream.seek(0)
-            if os.name == 'nt':
-                msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                fcntl.flock(stream, fcntl.LOCK_UN)
+        return
+
+    import fcntl
+    try:
+        stream = path.open('a+b')
+    except PermissionError as error:
+        if 'microsoft' in os.uname().release.lower():
+            # WSL reports the same error for a Windows exclusive open and an
+            # actual permission failure. Either prevents safe publication.
+            raise RunLockBusy(f'Cannot open {path}. Check for another Windows worker or missing write permission.') from error
+        raise
+    with stream:
+        try:
+            fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            raise RunLockBusy(f'Another process holds {path}') from error
+        yield

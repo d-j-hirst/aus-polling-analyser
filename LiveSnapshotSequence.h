@@ -30,6 +30,8 @@ struct Settings {
     std::string election;
     std::string folder; // Empty uses forecasts/<election>/live-snapshots/feeds.
     std::vector<std::string> codes;
+    // Session-only experiment. Reopening a project restores its codes and folder.
+    bool jointFpTrial = false;
 };
 
 void saveSettings(SaveFileOutput& output, Settings const& settings);

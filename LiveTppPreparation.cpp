@@ -208,16 +208,15 @@ void LiveV2::Election::prepareClassicPreferenceAccounts() {
             auto const& original = booth.tppCount(natPartyIndex);
             auto const* basis = booth.retainedClassic ? &booth.retainedClassic->basis :
                 (booth.tcpBasis ? &*booth.tcpBasis : nullptr);
-            bool const exact = basis && basis->tcp == original && !booth.hasTppRevision()
-                && LivePartialCount::validBasis(*basis);
-            // Use the original matched primaries even after another pairing
-            // replaces this one. A recheck only guarantees the exported lower
-            // bounds, and its remaining ballots stay available for estimation.
-            auto const& fp = exact ? basis->fp : booth.tppPreferencePrimaries();
+            // A retained count describes its own FP batch. Use current primaries
+            // only when the guaranteed totals have also been revised to cover them.
+            bool const revised = booth.hasTppRevision();
+            auto const& fp = revised ? booth.node.fpVotesCurrent : booth.tppPreferencePrimaries();
+            auto const origins = LiveFpTpp::boothOrigins(fp,original,basis,revised,bounds,booth.tppPreferenceEvidence());
             LivePartialCount::Transfers transfers;
-            if (exact) for (auto const& [source,received] : basis->transfers)
+            for (auto const& [source,received] : origins.transfers)
                 for (auto const& [side,n] : received) transfers[partyGroup(source)][partyGroup(side)] += n;
-            LiveFpTpp::addBooth(account,grouped(fp),grouped(booth.node.fpVotesProjected),
+            LiveFpTpp::addBooth(account,grouped(origins.fp),grouped(booth.node.fpVotesProjected),
                 grouped(bounds),transfers);
         }
     }

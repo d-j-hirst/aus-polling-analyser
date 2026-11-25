@@ -271,6 +271,7 @@ void Simulation::checkPreparationInputs(std::shared_ptr<SimulationInputs const> 
 	if (!unchanged) {
 		liveBaselineReport.reset();
 		cachedOddsFinalMeans.clear();
+		cachedPairingShifts.reset();
 		cachedOddsInputs.clear();
 		cachedOddsIterations = 0;
 	}
@@ -324,6 +325,7 @@ Simulation Simulation::copyForLiveRun() const
 	copy.latestReport = latestReport;
 	copy.previousLiveSeats = previousLiveSeats;
 	copy.cachedOddsFinalMeans = cachedOddsFinalMeans;
+	copy.cachedPairingShifts = cachedPairingShifts;
 	copy.cachedOddsInputs = cachedOddsInputs;
 	copy.cachedOddsIterations = cachedOddsIterations;
 	copy.cachedPreparationInputs = cachedPreparationInputs;
@@ -336,7 +338,7 @@ Simulation::PublishedLiveState Simulation::completedLiveState() const
 	return {latestReport, liveBaselineReport, previousLiveSeats,
 		cachedOddsFinalMeans, cachedOddsInputs, cachedOddsIterations, lastUpdated,
 		getLiveBoothSnapshots(), liveInputDiagnostic, liveInputDetails,
-		cachedPreparationInputs};
+		cachedPreparationInputs, cachedPairingShifts};
 }
 
 std::shared_ptr<SimulationRun> Simulation::detachRetainedLiveRun()
@@ -354,6 +356,7 @@ void Simulation::publishLiveState(PublishedLiveState state)
 	liveBaselineReport = std::move(state.baseline);
 	previousLiveSeats = std::move(state.previousSeats);
 	cachedOddsFinalMeans = std::move(state.oddsMeans);
+	cachedPairingShifts = std::move(state.pairingShifts);
 	cachedOddsInputs = std::move(state.oddsInputs);
 	cachedOddsIterations = state.oddsIterations;
 	cachedPreparationInputs = std::move(state.preparationInputs);

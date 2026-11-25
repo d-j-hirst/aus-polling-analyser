@@ -9,6 +9,7 @@
 #include "LivePreparationBridge.h"
 #include "LiveRunExport.h"
 #include "Log.h"
+#include "MajorPartyFpMath.h"
 #include "PollingProject.h"
 #include "Simulation.h"
 #include "SimulationCompletion.h"
@@ -269,6 +270,8 @@ bool SimulationRun::run(
 	// reusable calibration/baseline information or files written during the run.
 	RetainedLiveState reportTransaction(sim.latestReport);
 	RetainedLiveState outcomesTransaction(project.outcomes());
+
+	if (!prepareSoftPairing(feedback, thisProjection.getBaseModel(project.models()).getTermCode())) return false;
 
 	// Where seat betting odds have been supplied, supporting simulations estimate
 	// vote-share adjustments that bring simulated winning chances towards the
@@ -1025,6 +1028,7 @@ bool SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 		std::max(10, sim.settings.numIterations / CycleIterationsDivisor);
 	for (int revision = 0; revision < NumRevisionRounds; ++revision) {
 		SimulationRun newRun(project, sim, true);
+		newRun.softPairingShifts = softPairingShifts;
 		newRun.nowcastDate = nowcastDate;
 		newRun.preparationInputs = preparationInputs;
 		SimulationPreparation preparations(project, sim, newRun);
@@ -1096,12 +1100,124 @@ bool SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 	return true;
 }
 
+// Use the present projection and odds to measure the unadjusted pairing. An
+// earlier published report may have different polls or already include this
+// correction. A private pre-count run avoids either dependency, including on
+// replay restart. 4,096 draws give at most about 0.8 pp sampling error (one
+// standard deviation) in a pairing frequency. The taper is continuous there.
+bool SimulationRun::prepareSoftPairing(FeedbackFunc feedback, std::string const& term)
+{
+	if (term != "2022vic" && term != "2026vic") return true;
+	if (sim.isLive() && sim.cachedPairingShifts) {
+		softPairingShifts = *sim.cachedPairingShifts;
+		return true;
+	}
+	try {
+		auto config = preparationInputs->open(preparationInputs->path(SimulationInputs::File::PreferenceModel));
+		if (!config || nlohmann::json::parse(config).at("mode") != "active") return true;
+		auto const& evidenceFile = preparationInputs->path(SimulationInputs::File::SoftPairingEvidence);
+		if (!preparationInputs->open(evidenceFile))
+			throw std::runtime_error("Missing district preference evidence: " + evidenceFile);
+		reportProgress("Estimating pre-count Labor-Greens pairing frequencies...");
+		auto settings = sim.settings;
+		settings.numIterations = std::min(settings.numIterations,4096);
+		Simulation referenceSimulation(settings);
+		SimulationRun reference(project, referenceSimulation, false, true);
+		reference.nowcastDate = nowcastDate;
+		reference.preparationInputs = preparationInputs;
+		// Fit odds once on this small reference. The normal calibration runs
+		// afterwards with the shifts in place and its usual iteration budget.
+		if (!reference.runBettingOddsCalibrations(feedback)) return false;
+		SimulationPreparation prep(project,referenceSimulation,reference);
+		prep.prepareForIterations();
+		if (!reference.runIterations(reference,settings.numIterations,0,"pre-count pairing reference",feedback)) return false;
+		SimulationCompletion completion(project,referenceSimulation,reference,settings.numIterations);
+		completion.completeRun(feedback);
+		fitSoftPairing(reference);
+		if (sim.isLive()) sim.cachedPairingShifts = softPairingShifts;
+		return true;
+	}
+	catch (std::exception const& error) {
+		feedback("Could not prepare Victorian soft-pairing adjustment: " + std::string(error.what()));
+		return false;
+	}
+}
+
+// From the unadjusted district forecast, obtain the average primaries, their
+// middle-half ranges, and the frequency of the Labor–Greens matchup. Combine
+// these with the historical district evidence and local Liberal ticket once.
+// Store district percentage-point shifts for the later calibrated simulations.
+void SimulationRun::fitSoftPairing(SimulationRun const& reference)
+{
+	using Mp = Simulation::MajorParty;
+	auto const& model = reference.preferenceModel;
+	if (!model || !model->isActive()) throw std::runtime_error("Missing ranked pre-count reference");
+	auto input = preparationInputs->open(preparationInputs->path(SimulationInputs::File::SoftPairingEvidence));
+	auto data = nlohmann::json::parse(input);
+	if (data.at("election") != reference.getTermCode() || sim.settings.prevTermCodes.empty() ||
+		data.at("previous_election") != sim.settings.prevTermCodes.front())
+		throw std::runtime_error("Pairing evidence belongs to a different election or comparison year");
+	auto fraction = [](nlohmann::json const& value) {
+		double const n = value.get<double>();
+		if (!(n > 0. && n < 1.)) throw std::runtime_error("Expected a preference rate between zero and one");
+		return n;
+	};
+	double const slope = data.at("greens_strength_slope").get<double>();
+	double const intercept = SoftPairing::logOdds(fraction(data.at("greens_rate"))) -
+		slope*data.at("greens_reference_log_odds").get<double>();
+	double const ordinaryOther = fraction(data.at("other_rate")), on = fraction(data.at("one_nation_rate"));
+	auto const& report = reference.sim.latestReport;
+	softPairingShifts.assign(report.seatName.size(), {});
+	int const green = reference.grnPartyIndex;
+	auto const& roles = model->partyRoles();
+	for (int s=0; s<int(report.seatName.size()); ++s) {
+		auto const& seat = reference.seatLookup.seat(s);
+		auto const& pairs = report.seatTcpScenarioPercent.at(s);
+		auto const pair = pairs.find({Mp::One,green});
+		if (pair == pairs.end() || !SoftPairing::weight(pair->second)) continue;
+		auto const& shares = report.seatPartyMeanFpShare.at(s);
+		if (!shares.contains(Mp::One) || !shares.contains(Mp::Two) || !shares.contains(green) ||
+			(reference.natPartyIndex >= 0 && shares.contains(reference.natPartyIndex))) continue;
+		auto const& districts = data.at("districts");
+		if (!districts.contains(seat.name)) continue; // nominations can include a second Coalition candidate
+		auto const& row = districts.at(seat.name);
+		double const offset = row.at("history_log_odds").get<double>();
+		auto adjusted = [&](double rate) { return SoftPairing::probability(SoftPairing::logOdds(rate)+offset); };
+		double const groupRate = fraction(row.at("grouped_rate"));
+		double const laborTpp = 50.+report.seatPartyOneMarginAverage.at(s);
+		double otherToLabor = 0.;
+		for (auto [id, share] : shares) {
+			if (id==Mp::One || id==Mp::Two || id==green) continue;
+			double rate = groupRate;
+			if (roles.oneNation && id==*roles.oneNation) rate = adjusted(on);
+			else if (id==reference.indPartyIndex && row.at("named_independent").get<bool>())
+				rate = adjusted(.01*MajorPartyFpMath::tacticalFlow(share,laborTpp,
+					seat.tppMargin-.5*seat.previousSwing,100.*ordinaryOther));
+			otherToLabor += share*rate;
+		}
+		auto spread = [&](int party) {
+			// The saved 25th and 75th percentiles span 1.349 standard deviations
+			// for a bell-shaped distribution. Use the same 0.5 pp floor as the trial.
+			auto const& band = report.seatFpProbabilityBand.at(s).at(party);
+			return std::max(.5,(band.at(8)-band.at(6))/1.349);
+		};
+		auto& shift = softPairingShifts[s];
+		shift = SoftPairing::fit({shares.at(Mp::One),shares.at(Mp::Two),shares.at(green),laborTpp,
+			spread(Mp::One),spread(Mp::Two),spread(green),otherToLabor,intercept+offset,slope,
+			model->referenceLiberalToLaborOverGreens(s)},pair->second);
+		logger << "Soft pairing " << seat.name << ": reference ALP-GRN " << 100.*pair->second
+			<< "%, starting shifts (pp) ALP " << shift.labor << ", LIB " << -shift.labor-shift.greens
+			<< ", GRN " << shift.greens << ", ALP TPP " << shift.tpp << "\n";
+	}
+}
+
 bool SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
 	ScopedBooleanState baselineState(doingLiveBaselineSimulation, true);
 
 	logger << "*** Doing live baseline simulation ***\n";
 
 	SimulationRun newRun(project, sim, false, true);
+	newRun.softPairingShifts = softPairingShifts;
 	newRun.nowcastDate = nowcastDate;
 	newRun.preparationInputs = preparationInputs;
 	SimulationPreparation preparations(project, sim, newRun);

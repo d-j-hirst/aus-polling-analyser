@@ -3,6 +3,7 @@
 #include "LiveData.h"
 #include "LiveTurnoutMath.h"
 #include "LiveBoothGeography.h"
+#include "SpecialPartyCodes.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -96,6 +97,44 @@ double splitCountedCandidate(LiveData::VoteCountAccount const& account, double g
         if (isPooled(id)) groupCounted += votes;
     return splitCountedCandidate(groupShare, totalProjected, groupCounted, groupProjected,
         value(*account.counted, candidate), value(*account.projected, candidate));
+}
+
+// The live forecast estimates the combined Others FP before deciding how much
+// of it a single emerging party or independent could hold. The pre-election
+// draw supplies that split for outstanding votes and returns with no candidate
+// breakdown. For counted votes with identities, each emerging slot can at most
+// represent the best-polling single remaining candidate of its own kind.
+// A named or separately integrated independent has already received their own
+// ballots and is excluded by isGroupedCandidate.
+template<class IsGroupedCandidate>
+void restoreAnonymousFpShares(std::map<int,double>& integrated, std::map<int,double> const& prior,
+    LiveData::VoteCountAccount const& raw, bool groupEmergingIndependent, IsGroupedCandidate isGroupedCandidate) {
+    if (!integrated.contains(OthersIndex)) return;
+    double const partyPrior = value(prior, EmergingPartyIndex);
+    double const indPrior = groupEmergingIndependent ? value(prior, EmergingIndIndex) : 0.;
+    if (partyPrior <= 0 && indPrior <= 0) return;
+    double const totalPrior = value(prior, OthersIndex) + partyPrior + indPrior;
+    double turnout = 0., identified = 0., largestParty = 0., largestIndependent = 0.;
+    for (auto const& [id, votes] : *raw.projected) turnout += votes;
+    for (auto const& [id, votes] : *raw.counted) {
+        if (id < 0 || !isGroupedCandidate(id)) continue;
+        identified += votes;
+        auto& largest = id >= LiveData::IndependentPartyIdOffset ? largestIndependent : largestParty;
+        largest = std::max(largest, votes);
+    }
+    double const pool = integrated.at(OthersIndex);
+    double const pctPerVote = turnout > 0. ? 100. / turnout : 0.;
+    double const identifiedShare = std::min(pool, identified * pctPerVote);
+    auto singleCandidateShare = [&](double candidatePrior, double largestCount) {
+        double fraction = candidatePrior / totalPrior;
+        return (pool - identifiedShare) * fraction
+            + std::min(identifiedShare * fraction, largestCount * pctPerVote);
+    };
+    double const emergingParty = singleCandidateShare(partyPrior, largestParty);
+    double const emergingInd = singleCandidateShare(indPrior, largestIndependent);
+    if (partyPrior > 0.) integrated[EmergingPartyIndex] = emergingParty;
+    if (indPrior > 0.) integrated[EmergingIndIndex] = emergingInd;
+    integrated[OthersIndex] = std::max(0., pool - emergingParty - emergingInd);
 }
 
 // Missing candidates in an iteration are genuine zeros. Keep their implicit

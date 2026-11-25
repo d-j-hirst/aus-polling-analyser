@@ -13,11 +13,17 @@ import time
 
 from . import activity, commentary, comparisons, reporting_days, rule_commentary, seat_alerts, tcp_reporting
 from .storage import atomic, fingerprint, read
+from .run_settings import check_trial_options
 from .vote_type_names import VoteTypeNames
 
 
 def utc(seconds=None):
     return datetime.fromtimestamp(time.time() if seconds is None else seconds, timezone.utc).isoformat()
+
+
+def ready_forecasts(folder):
+    return sorted((folder/'packages').glob('*/ready-numerical.json'),
+                  key=lambda path: (path.parent.name != 'origin', path.parent.name))
 
 
 def public_run(config):
@@ -31,6 +37,8 @@ class Processor:
     def __init__(self, folder, settings=None, client=None):
         self.folder = Path(folder)
         self.config = read(self.folder / 'run.json')
+        check_trial_options(self.config, commentary=settings)
+        self.local_trial = self.config.get('local_trial', False)
         self.vote_type_names = VoteTypeNames(self.config['election'])
         reporting_days.schedule(self.config)  # Reject invalid reporting hours before any API call.
         self.settings = dict(settings or {'enabled': False})
@@ -39,6 +47,9 @@ class Processor:
         self.compare_writers = self.settings.pop('compare_writers', False)
         if not isinstance(self.compare_writers, bool):
             raise ValueError('compare_writers must be true or false')
+        self.rules_only = self.settings.pop('rules_only', False)
+        if not isinstance(self.rules_only, bool) or (self.rules_only and (self.compare_writers or self.settings.get('enabled'))):
+            raise ValueError('rules_only must be a boolean and cannot be combined with AI or compare_writers')
         self.minimum_count_change = self.settings.get('minimum_count_change', 10)
         if not isinstance(self.minimum_count_change, int) or self.minimum_count_change < 1:
             raise ValueError('minimum_count_change must be a positive number of votes')
@@ -59,6 +70,7 @@ class Processor:
         self.closing = False
         self.summary_index = {}
         self.released = set()
+        self.acknowledged_digests = None
         self.load_summary = lru_cache(maxsize=16)(lambda identity: comparisons.comparison_summary(self.folder/'packages'/identity))
 
     def close(self):
@@ -251,15 +263,57 @@ class Processor:
         self.status_written_at = now
         self.status_write_error = None
 
-    def tick(self):
+    def saved_acknowledgements(self):
+        """A server receipt identifies the exact report that must survive restart."""
+        digests = {}
+        for path in (self.folder/'receipts').glob('*.json'):
+            for identity, record in read(path).get('forecasts', {}).items():
+                if not record.get('accepted'):
+                    continue
+                package = self.folder/'packages'/identity
+                if not (package/'publication.json').is_file():
+                    raise ValueError(f'Restore the already uploaded publication in {package} before resuming.')
+                digest = record.get('receipt', {}).get('sha256')
+                if not isinstance(digest, str) or not digest:
+                    raise ValueError(f'The acknowledgement for {identity} in {path} has no publication digest.')
+                if identity in digests and digest != digests[identity]:
+                    raise ValueError(f'Destination receipts disagree about {identity}. Check the saved publications.')
+                digests[identity] = digest
+        return digests
+
+    def recover_publication(self, folder, numerical):
+        """Finish a release interrupted between the frozen body and its marker."""
+        path = folder/'publication.json'
+        if not path.exists():
+            return False
+        body = read(path)
+        forecast = body['forecast']
+        source_time = numerical['source_time']
+        if source_time:
+            source_time = comparisons.instant(source_time, self.config['timezone']).isoformat()
+        if (body.get('frozen') is not True or body.get('schema_version') != 1 or
+                body['run'] != public_run(self.config) or forecast['forecast_id'] != folder.name or
+                forecast['source_time'] != source_time or forecast.get('source_fingerprint') != numerical.get('source_fingerprint') or
+                any(forecast[key] != numerical[key] for key in ('input_revision', 'input_fingerprint', 'iterations', 'completed_at'))):
+            raise ValueError(f'Frozen publication does not match its numerical handoff at {path}.')
+        digest = fingerprint(body)
+        if digest != self.acknowledged_digests.get(folder.name, digest):
+            raise ValueError(f'The frozen publication at {path} differs from the acknowledged upload.')
+        atomic(folder/'ready-publication.json', {'schema_version': 1, 'forecast_id': folder.name, 'sha256': digest})
+        return True
+
+    def tick(self, paths=None):
         self.collect()
         updated = read(self.folder/'run.json')
-        if public_run(updated) != public_run(self.config):
+        if public_run(updated) != public_run(self.config) or updated.get('local_trial', False) != self.local_trial:
             raise ValueError('Registered run identity changed; create a new run instead')
+        check_trial_options(updated)
         reporting_days.schedule(updated)
         self.config = updated
-        paths = sorted((self.folder/'packages').glob('*/ready-numerical.json'),
-                       key=lambda p: (p.parent.name != 'origin', p.parent.name))
+        if self.acknowledged_digests is None:
+            self.acknowledged_digests = self.saved_acknowledgements()
+        if paths is None:
+            paths = ready_forecasts(self.folder)
         summaries = self.prepare(paths)
         packages = {}
         for path in paths:
@@ -269,6 +323,10 @@ class Processor:
                 packages[package.name] = 'released'
                 continue
             numerical = read(package/'numerical.json')
+            if self.recover_publication(package, numerical):
+                self.released.add(package.name)
+                packages[package.name] = 'released'
+                continue
             if package.name == 'origin':
                 atomic(package/'requests.json', {})
                 self.release(package, numerical, {}, {})
@@ -291,19 +349,24 @@ class Processor:
                 for window, group in groups.items():
                     mechanical[window] = {k: v for k, v in group.items()
                                           if k not in ('evidence', 'seat_changes', 'ranked_tcp_groups', 'rule_regional',
-                                                       'rule_regional_change', 'rule_earlier_ordinary_count', 'rule_tpp_components')}
+                                                       'rule_regional_changes', 'rule_earlier_ordinary_count', 'rule_tpp_components')}
                     if not group['available']:
                         continue
                     mechanical[window]['seat_changes'] = [
                         {'seat': row['seat'], 'changes': row['changes']} for row in group['seat_changes']]
+                    if self.local_trial:
+                        mechanical[window]['commentary_decision'] = 'disabled'
+                        continue
                     mechanical[window]['commentary_decision'] = activity.decision(group, self.minimum_count_change)
                     if mechanical[window]['commentary_decision'] != 'request':
                         continue
+                    if self.rules_only:
+                        mechanical[window]['commentary_decision'] = 'rules_based'
                     packet = comparisons.prompt_packet(current, group)
                     packet['source_timezone'] = self.config['timezone']
                     key = fingerprint({'packet': packet, 'settings': self.settings, 'prompt': self.prompt_version})
                     requests[window] = {'key': key, 'packet': packet}
-                    if self.compare_writers:
+                    if self.compare_writers or self.rules_only:
                         # Summarise all comparable booths locally. AI requests,
                         # cache identities and public evidence retain their normal size.
                         if key not in rule_contexts:
@@ -312,6 +375,14 @@ class Processor:
                 atomic(package/'requests.json', requests)
                 atomic(prepared, mechanical)
             mechanical, requests = read(prepared), read(package/'requests.json')
+            if self.local_trial:
+                # Keep the normal numerical forecast and comparison tables. A
+                # deliberately unrealistic trial needs no prose, even on a
+                # quiet update, and no private counts in a commentary request.
+                self.release(package, numerical, mechanical, {})
+                self.released.add(package.name)
+                packages[package.name] = 'released'
+                continue
             results = {}
             for window, group in mechanical.items():
                 local_text = activity.notice(group, window)
@@ -319,9 +390,10 @@ class Processor:
                     results[window] = local_text
             # Several windows can use the same reference and therefore the
             # same request. Only distinct comparisons can reuse this overview.
-            cache_overview = len({request['key'] for request in requests.values()}) > 1
+            ai_requests = {} if self.rules_only else requests
+            cache_overview = len({request['key'] for request in ai_requests.values()}) > 1
             preset_changed = set()
-            for window, request in requests.items():
+            for window, request in ai_requests.items():
                 result_path = package/'commentary'/f"{request['key']}.json"
                 if result_path.exists():
                     result = read(result_path)
@@ -342,12 +414,12 @@ class Processor:
                                            'reason': 'Commentary settings changed after this forecast was prepared.'}
                         preset_changed.add(window)
             ready = all(w in results and (results[w]['status'] == 'complete' or w in preset_changed
-                                         or not self.settings.get('enabled')) for w in requests)
+                                         or not self.settings.get('enabled')) for w in ai_requests)
             if ready or time.time() >= deadline:
                 for window in mechanical:
                     if not mechanical[window]['available']:
                         results[window] = {'status': 'unavailable', 'reason': mechanical[window]['reason']}
-                    elif window not in results:
+                    elif window not in results and not self.rules_only:
                         results[window] = {'status': 'unavailable', 'reason': 'Commentary publication deadline reached.'}
                 self.release(package, numerical, mechanical, results)
                 if self.settings.get('enabled'):
@@ -384,19 +456,22 @@ class Processor:
                     flow_reference['reference_source_time'], self.config['timezone']).isoformat()
         # Numerical units and labels are part of the public contract. The complete
         # diagnostics stay local; cited evidence is included only in compact form.
-        requests = read(folder/'requests.json')
-        selected_evidence = {r['key']: r['packet']['evidence'] for r in requests.values()}
-        if self.compare_writers:
+        requests = {} if self.local_trial else read(folder/'requests.json')
+        # The rules writer uses the local evidence and embeds its figures in
+        # the text. Only the AI edition can reference separate evidence IDs.
+        cited_requests = {} if self.rules_only else requests
+        selected_evidence = {r['key']: r['packet']['evidence'] for r in cited_requests.values()}
+        if self.compare_writers or self.rules_only:
             review_flags = {}
             results = rule_commentary.append_editions(results, requests, numerical['forecast_id'], self.load_summary,
-                                                     review_flags)
+                                                     review_flags, rules_only=self.rules_only)
             if review_flags:
                 atomic(folder/'rule-review.json', review_flags)
         results = self.vote_type_names.reports(results)
         # A call is a model decision every reader should see. Both writers
         # share this bulletin, including on quiet updates or an API timeout.
         for window, group in mechanical.items():
-            if group.get('seat_call_changes'):
+            if window in results and group.get('seat_call_changes'):
                 results[window] = dict(results[window], seat_call_changes=group['seat_call_changes'])
         summary = self.load_summary(numerical['forecast_id'])
         report = dict(numerical['report'])
@@ -407,7 +482,7 @@ class Processor:
         payload = {'schema_version': 1, 'run': public_run(self.config), 'forecast': metadata,
                    'report': report, 'comparisons': mechanical, 'commentary': results,
                    'commentary_evidence': selected_evidence,
-                   'commentary_requests': {w: r['key'] for w, r in requests.items()},
+                   'commentary_requests': {w: r['key'] for w, r in cited_requests.items()},
                    'released_at': utc(), 'frozen': True}
         payload['reporting_schedule'] = reporting_days.schedule(self.config)
         if not numerical.get('origin'):

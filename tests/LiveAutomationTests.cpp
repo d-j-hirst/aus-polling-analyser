@@ -317,29 +317,112 @@ void checkCrashAndProcessingErrors(Path const& root) {
         assert(pending["captures"].begin().value().at("state") == "discovered");
         auto capture = session.ingest(readFeed);
         auto id = session.reserveForecast(*capture);
-        LiveAutomation::atomicJson(directory/"packages"/id/"numerical.json",{
-            {"run_id",settings["run_id"]},{"forecast_id",id}});
-        LiveAutomation::atomicJson(directory/"packages"/id/"ready-numerical.json",{{"forecast_id",id}});
+        LiveAutomation::publishNumerical(directory, {{"run_id",settings["run_id"]},{"forecast_id",id},
+            {"source_time",capture->sourceTime},{"source_fingerprint",capture->hash}});
         // Crash here: the numerical marker is durable, the ledger has not yet
         // acknowledged success. Restart must keep this immutable identity.
     }
+    // A pre-fix ledger could have saved a request to repeat the latest feed.
+    auto old = LiveAutomation::readJson(directory/"state.json");
+    old["needs_forecast"] = true;
+    LiveAutomation::atomicJson(directory/"state.json",old);
     LiveAutomation::Session restarted(root,settings);
-    restarted.arm("inputs-one",false,false);
+    restarted.arm(std::nullopt,false,false); // Generated model not in memory on reopen.
     assert(!restarted.ingest(readFeed));
     assert(restarted.status().at("latest_forecast") == "2026-03-21T18:00:00");
+    assert(restarted.revision() == "inputs-one" && restarted.status().at("revisions").size() == 1);
     restarted.setState("paused");
     restarted.arm("inputs-two",true,false);
-    auto recalculation = restarted.ingest(readFeed);
-    assert(recalculation && restarted.reserveForecast(*recalculation) == "f00000002");
-    restarted.finishForecast(*recalculation,true,"");
+    assert(!restarted.ingest(readFeed));
+    assert(restarted.status().at("next_forecast") == 2 && restarted.revision() == "inputs-two");
+    assert(restarted.status().at("revisions").size() == 2);
     // Redelivery under another name and an unchanged observation with a NEW
     // source clock are different cases: only the latter advances counting time.
+    restarted.setState("paused");
+    restarted.arm(std::nullopt,true,false);
     std::filesystem::copy_file(source/"first.xml",source/"identical.xml");
+    restarted.scanArrivals(); restarted.scanArrivals();
+    assert(!restarted.ingest(readFeed));
     put(source/"quiet-later.xml","2026-03-21T18:01:30");
     restarted.scanArrivals(); restarted.scanArrivals();
     auto later = restarted.ingest(readFeed);
     assert(later && later->sourceTime == "2026-03-21T18:01:30");
     assert(restarted.status()["captures"].size() == 2);
+    // A missing prerequisite pauses before reservation. Resume after preparing
+    // the model must still select this capture and use the next unused ID.
+    restarted.setState("paused");
+    restarted.arm("inputs-three",true,false);
+    auto pending = restarted.ingest(readFeed);
+    assert(pending && pending->hash == later->hash && restarted.reserveForecast(*pending) == "f00000002");
+    restarted.finishForecast(*pending,true,"");
+    assert(!restarted.ingest(readFeed));
+}
+
+void checkRestoredCheckpoint(Path const& root) {
+    auto inbox = root/"inbox";
+    std::filesystem::create_directories(inbox);
+    auto settings = config(inbox,"2026sa-checkpoint");
+    auto folder = root/"live_runs"/"2026sa-checkpoint";
+    json ready;
+    {
+        LiveAutomation::Session original(root,settings);
+        original.arm("inputs-one",true,false);
+        assert(original.needsOrigin());
+        LiveAutomation::publishNumerical(folder, {{"forecast_id","origin"},{"run_id",settings.at("run_id")}});
+        assert(!original.needsOrigin());
+        put(inbox/"first.xml","2026-03-21T18:00:00");
+        original.scanArrivals(); original.scanArrivals();
+        auto first = original.ingest(readFeed).value();
+        ready = {{"run_id",settings["run_id"]},{"forecast_id",original.reserveForecast(first)},
+            {"source_time",first.sourceTime},{"source_fingerprint",first.hash}};
+        LiveAutomation::publishNumerical(folder,ready);
+        // The publisher can finish before the GUI records completion. The
+        // original project and last checkpoint both predate this delivery.
+        auto package = folder/"packages"/"f00000001";
+        LiveAutomation::atomicJson(package/"publication.json",{{"frozen",true}});
+        LiveAutomation::atomicJson(package/"ready-publication.json",{{"forecast_id","f00000001"}});
+        LiveAutomation::atomicJson(folder/"receipts"/"local.json",{
+            {"forecasts",{{"f00000001",{{"accepted",true}}}}}});
+    }
+    auto path = folder/"packages"/"f00000001"/"numerical.json";
+    auto before = fingerprint(path);
+    std::ofstream(folder/"state.json") << "{interrupted";
+    {
+        LiveAutomation::Session resumed(root,settings);
+        assert(resumed.status().at("state") == "armed");
+        resumed.arm(std::nullopt,false,false);
+        assert(!resumed.ingest(readFeed));
+        bool refused = false;
+        try { LiveAutomation::publishNumerical(folder,ready); }
+        catch (std::runtime_error const&) { refused = true; }
+        assert(refused && fingerprint(path) == before);
+        assert(resumed.status().at("next_forecast") == 2);
+        resumed.setState("paused");
+    }
+    std::filesystem::remove(folder/"state.json");
+    {
+        LiveAutomation::Session reopened(root,settings);
+        assert(reopened.status().at("state") == "paused");
+        reopened.arm("rebuilt-projection",true,false);
+        assert(!reopened.ingest(readFeed));
+        put(inbox/"second.xml","2026-03-21T18:05:00");
+        reopened.scanArrivals(); reopened.scanArrivals();
+        auto next = reopened.ingest(readFeed).value();
+        assert(reopened.reserveForecast(next) == "f00000002");
+        reopened.setState("paused");
+    }
+    // Losing an already acknowledged package must not reissue its ID.
+    std::filesystem::remove(folder/"packages"/"f00000001"/"publication.json");
+    bool paused = false;
+    LiveAutomation::Session damaged(root,settings);
+    try { damaged.arm("rebuilt-projection",true,false); }
+    catch (std::runtime_error const& error) { paused = std::string(error.what()).find("already uploaded") != std::string::npos; }
+    assert(paused && fingerprint(path) == before);
+    std::filesystem::remove(folder/"packages"/"origin"/"ready-numerical.json");
+    bool missingOrigin = false;
+    try { damaged.needsOrigin(); }
+    catch (std::runtime_error const& error) { missingOrigin = std::string(error.what()).find("original start-of-counting") != std::string::npos; }
+    assert(missingOrigin);
 }
 
 void checkCollectionDuringForecast(Path const& root) {
@@ -434,6 +517,7 @@ int main() {
         checkFinnissPreferenceCutoff(root/"finniss");
         check(root);
         checkCrashAndProcessingErrors(root/"crash");
+        checkRestoredCheckpoint(root/"restored");
         checkCollectionDuringForecast(root/"background");
         checkDowntimeBacklog(root/"backlog");
     }

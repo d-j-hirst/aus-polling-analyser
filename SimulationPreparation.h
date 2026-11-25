@@ -75,6 +75,7 @@ private:
 	void loadPastSeatResults();
 	void prepareMissingGreensFpMedians();
 	void prepareCoalitionPreferenceHistory(std::vector<std::string> const& historicalSeats);
+	void loadIndicativePreferenceHistory(std::vector<std::string> const& historicalSeats);
 	void loadSeatTypes();
 	void calculateRegionalProportion();
 	void loadGreensSeatStatistics();

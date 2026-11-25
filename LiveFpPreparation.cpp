@@ -61,6 +61,120 @@ void LiveV2::Election::prepareFpEvidence(LiveFederalDeclarations::Prior const& d
     fpEvidence = std::make_shared<std::vector<LiveFpEvidence::Prepared> const>(std::move(prepared));
 }
 
+namespace {
+bool comparableSupportHistory(LiveV2::Booth const& booth) {
+    // A reconstructed breakdown of last election's declarations does not tell
+    // us how this candidate polled in this particular voting category.
+    return booth.sameSeat && (!booth.syntheticPreviousCategory || booth.measuredFpInSyntheticCategory);
+}
+
+bool ordinarySupportReturn(LiveV2::Booth const& booth) {
+    return booth.boothType == Results2::Booth::Type::Normal && !booth.receivesFpBatches() &&
+        comparableSupportHistory(booth) && booth.node.totalFpVotesCurrent() > 0;
+}
+
+// Put the pre-election district means onto their expected booth geography.
+// The last column holds everyone outside the named comparisons. Include early
+// and declaration voters in the district total even though only election-day
+// booths will supply observations for the slope. Zero-size venues contribute
+// no population to this balance (and have no usable opening expectation).
+std::vector<LiveOrdinaryUpdate::Mix> openingSupportShares(std::vector<int> const& booths,
+    std::vector<std::map<int,double>> const& blind, std::vector<int> const& parties,
+    LiveOrdinaryUpdate::Mix targets) {
+    using namespace LiveOrdinaryUpdate;
+    double named = sum(targets);
+    if (named > 1.+1e-8) return {};
+    targets.push_back(std::max(0.,1.-named));
+    std::vector<Mix> rows;
+    Mix sizes;
+    for (int index : booths) {
+        auto const& projection = blind.at(index);
+        double size = LiveFpEvidence::total(projection);
+        Mix row;
+        for (int party : parties)
+            row.push_back(size > 0 ? LiveFpIntegration::value(projection,party)/size : 0.);
+        row.push_back(std::max(0.,1.-sum(row)));
+        sizes.push_back(size);
+        rows.push_back(std::move(row));
+    }
+    double total = sum(sizes);
+    if (total <= 0.) return {};
+    for (double& t : targets) t *= total;
+    // fit() checks every row has some supported candidate. A place without
+    // expected turnout can use the district mix as a placeholder of weight zero.
+    for (size_t i=0; i<rows.size(); ++i) if (sizes[i]==0.) rows[i] = targets;
+    auto balance = fit(rows,sizes,targets);
+    if (!balance) return {};
+    for (size_t i=0; i<rows.size(); ++i)
+        rows[i] = sizes[i]>0. ? tilted(rows[i],*balance) : Mix(targets.size(),0.);
+    return rows;
+}
+}
+
+// Prepare once per capture, entirely from this election's accepted returns,
+// previous FP counts and the count-blind booth projections. An ordinary
+// district swing affects all places already. Here a candidate needs several
+// ordinary booths showing a *systematic difference* between places where
+// they previously polled strongly and weakly. Only the slope is carried to
+// outstanding ballots with their own comparable history.
+void LiveV2::Election::prepareFpSupportGradients(BlindFpProjections const& blind) {
+    auto const& baseline = sim.getLiveBaselineReport().value();
+    std::set<int> const trialParties{0,1,run.grnPartyIndex,run.natPartyIndex,run.indPartyIndex,
+        project.parties().indexByShortCode("ON"),project.parties().indexByShortCode("ONP")};
+    for (int s=0; s<static_cast<int>(seats.size()); ++s) {
+        auto& seat = seats[s];
+        if (seat.finalResult || std::count_if(seat.booths.begin(),seat.booths.end(),[&](int i) {
+            return ordinarySupportReturn(readBooths().at(i));
+        }) < LiveFpSupportGradient::MinimumBooths) continue;
+        std::vector<int> parties;
+        LiveOrdinaryUpdate::Mix priors;
+        auto district = std::find(baseline.seatName.begin(),baseline.seatName.end(),seat.name);
+        if (district == baseline.seatName.end()) continue;
+        auto const& openingMeans = baseline.liveBaselineFpMoments.at(district-baseline.seatName.begin()).shareMean;
+        for (auto const& [party,p] : openingMeans) {
+            if (party < 0 || !(p>0. && p<1.) || !trialParties.contains(party)) continue;
+            if (!seat.node.fpVotesCurrent.contains(fpEvidenceCandidate(s,party))) continue;
+            // A new independent at an old polling place is a different
+            // candidate. Their projection still shares any movement in rivals.
+            if (party == run.indPartyIndex && (!seat.namedIndependentMatches ||
+                seat.independentPartyIndex != seat.liveIndependentPartyIndex ||
+                !returningIndependentBallotIds->contains(seat.independentPartyIndex))) continue;
+            parties.push_back(party);
+            priors.push_back(p);
+        }
+        if (parties.empty()) continue;
+        auto opening = openingSupportShares(seat.booths,blind,parties,priors);
+        if (opening.empty()) continue;
+        for (size_t j=0; j<parties.size(); ++j) {
+            int ballot = fpEvidenceCandidate(s,parties[j]);
+            std::vector<LiveFpSupportGradient::Observation> returns;
+            for (size_t b=0; b<seat.booths.size(); ++b) {
+                auto const& booth = readBooths().at(seat.booths[b]);
+                auto const& boothNode = booth.node;
+                if (!ordinarySupportReturn(booth) || !boothNode.fpVotesPrevious.contains(ballot) ||
+                    !boothNode.fpVotesCurrent.contains(ballot) || !(opening[b][j]>0. && opening[b][j]<1.)) continue;
+                int pastFormal = boothNode.totalVotesPrevious();
+                if (pastFormal <= 0) continue;
+                returns.push_back({boothNode.fpVotesPrevious.at(ballot),pastFormal,
+                    boothNode.fpVotesCurrent.at(ballot),boothNode.totalFpVotesCurrent(),opening[b][j]});
+            }
+            if (returns.size() < LiveFpSupportGradient::MinimumBooths) continue;
+            auto fit = LiveFpSupportGradient::fit(returns);
+            seat.historicalSupportFits.emplace(parties[j],
+                Seat::SupportFit{static_cast<int>(returns.size()),fit ? fit->slope : 0.});
+            if (!fit) continue;
+            for (int index : seat.booths) {
+                auto& booth = preparationBooths()[index];
+                auto const& boothNode = booth.node;
+                if (!comparableSupportHistory(booth) || !boothNode.fpVotesPrevious.contains(ballot)) continue;
+                int pastFormal = boothNode.totalVotesPrevious();
+                if (pastFormal > 0)
+                    booth.historicalSupportTilts.emplace(ballot,fit->tilt(boothNode.fpVotesPrevious.at(ballot),pastFormal));
+            }
+        }
+    }
+}
+
 // Measure the district's in-person result after the ordinary FP evidence has
 // been balanced across booths. The common reference covers exactly the same
 // population as the federal ordinary vote. It includes the projected remainder
@@ -117,7 +231,7 @@ void LiveV2::Election::applyFpEvidence(int boothIndex) {
     if (!fpEvidence) return; // The initial historical composition is prepared first.
     auto& booth = preparationBooths().at(boothIndex);
     auto const& factors = fpEvidence->at(booth.parentSeatId).factors;
-    if (factors.empty() && !booth.federalDeclaration) return;
+    if (factors.empty() && !booth.federalDeclaration && booth.historicalSupportTilts.empty()) return;
     auto unit = fpEvidenceUnit(boothIndex,createRandomVariation);
     auto adjusted = LiveFpEvidence::adjusted(unit,factors);
     unit.projected = adjusted;
@@ -127,6 +241,18 @@ void LiveV2::Election::applyFpEvidence(int boothIndex) {
         if (booth.federalDeclaration) {
             LiveFederalDeclarations::allocate(future, pool, *booth.federalDeclaration,
                 booth.node.fpVotesCurrent, createRandomVariation);
+        }
+        if (!booth.historicalSupportTilts.empty()) {
+            LiveOrdinaryUpdate::Mix votes, tilts;
+            for (auto const& [id,v] : future) {
+                votes.push_back(v);
+                tilts.push_back(LiveFpIntegration::value(booth.historicalSupportTilts,id));
+            }
+            LiveFpSupportGradient::adjust(votes,tilts);
+            size_t j = 0;
+            for (auto& entry : future) entry.second = votes[j++];
+        }
+        if (booth.federalDeclaration || !booth.historicalSupportTilts.empty()) {
             for (auto const& [id, votes] : future) adjusted[id] = LiveFpEvidence::value(unit.counted, id) + votes;
         }
         // Preferences for the same outstanding voters and the turnout scenarios
@@ -396,6 +522,15 @@ void LiveV2::Election::prepareOrdinaryFpFit(int seatIndex, BlindFpProjections co
         shape.push_back(std::max(0.,1.-LiveOrdinaryUpdate::sum(shape)));
         counts.push_back(std::max(0.,n-LiveOrdinaryUpdate::sum(counts)));
         venues.push_back({std::move(shape),std::move(counts),size,electionDay});
+        // This independent district fit starts from the blind geography.
+        // Give its outstanding ballots the same once-only adjustment as the
+        // booth account, which separately supplies preference and turnout draws.
+        if (!booth.historicalSupportTilts.empty()) {
+            auto& tilts = venues.back().historicalSupportTilts;
+            for (int party : parties)
+                tilts.push_back(LiveFpIntegration::value(booth.historicalSupportTilts,fpEvidenceCandidate(seatIndex,party)));
+            tilts.push_back(0.); // The unnamed residual has no historical slope.
+        }
         if (electionDay) ordinary += n;
     }
     auto result = LiveOrdinaryUpdate::remaining(venues,prior,odds);

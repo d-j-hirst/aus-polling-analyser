@@ -39,6 +39,8 @@ X-Content-SHA256: <sha256 of the exact request bytes>
 
 Hash the received bytes before parsing. No cross-language JSON reserialization is necessary. The Python client produces the same bytes on retry. Store both the immutable identity and digest. Accept an identical duplicate without creating a second report; reject a different digest for the same identity with HTTP 409.
 
+Within one run, a feed observation with the same source time and nonempty source fingerprint can have only one new forecast ID. If a restarted publisher assigns it another ID, the server returns HTTP 409 with `existing_forecast_id`. The upload manager records the conflict for that destination and stops retrying that duplicate. A later source time can represent a new observation even if vote totals are identical. Older packages without a fingerprint retain their existing ID and digest checks.
+
 `forecast_id` is `origin` for the saved pre-count reference, or `f` followed by eight digits for calculations within the run. Failed calculations may leave gaps. The origin is a reference, **never a candidate for the latest live result**. It may have no observation timestamp. The reference is uploaded before numbered forecasts where possible; references can otherwise be resolved after arrival without altering the referring package.
 
 | Package field | Meaning |
@@ -72,6 +74,16 @@ Do not infer publication time from completion or release. The destination suppli
 ```
 
 `latest_forecast_id` and `latest_source_time` may be null if only the origin exists. Preserve the original `published_at` on duplicate acknowledgement. The example deliberately acknowledges an older forecast: accepting it must not move the latest pointer backwards.
+
+## Mark a replay complete
+
+Authenticated uploaders can `POST /forecast-api/live/v1/runs/<run-id>/complete`
+with the election code in `election` and a `publications` object mapping each
+released forecast ID (including the origin if present) to its SHA-256 digest.
+The server verifies the exact inventory atomically. A mismatch returns 409.
+A successful response contains `run_id`, `replay_complete: true`,
+`completed_at` and `snapshot_count` (excluding the origin). A retry returns the
+same completion time. Accepting another distinct publication reopens the run.
 
 ## Latest selection and public routes
 
@@ -151,6 +163,8 @@ Unavailable commentary includes a reason. It is permanent for that publication e
 Unchanged or insignificant counts instead receive completed local text: `status: "complete"`, `source: "local"`, and `kind: "no_new_counting"` or `"minor_changes"`. These use the inline text structure with an empty entities map and no model/request metadata. They have no entry in `commentary_requests`; the frontend must not require an API request for every completed window. Mechanical comparisons remain available even when the local notice replaces paid commentary. `count_activity` and `commentary_decision` explain the filter. The activity measure is a conservative count of changed allocations, including manual preference samples, not a change in formal turnout.
 
 ### Optional comparison of commentary writers
+
+A run with `rules_only: true` and `enabled: false` publishes rule-written commentary in the main text field. Its completed reports use `source: "local"`, `kind: "rules_based"` and `format: "seat-bullets-v1"`. Render the summary, seat sections and entities directly. These reports need no commentary request or provider metadata. Quiet updates retain their normal local notices.
 
 A trial publication can carry two editions in the existing `text.developments` list. The original summary and its developments come first. The separator is a development with `"seats": []` whose text starts with the exact line `[[AEF_RULE_BASED_COMMENTARY_V1]]`, a literal newline and a nonempty rule-written summary. The remaining developments are the rule-written district sections. Both editions use the same entity dictionary. A marker mentioned inside a district's prose has no special meaning.
 

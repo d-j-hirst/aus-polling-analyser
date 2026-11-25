@@ -7,6 +7,7 @@
 #include "LiveInputHistory.h"
 #include <algorithm>
 #include <chrono>
+#include <cstdio>
 #include <fstream>
 #include <iomanip>
 #include <condition_variable>
@@ -20,6 +21,7 @@
 #ifdef _WIN32
 #define NOMINMAX
 #include <Windows.h>
+#include <io.h>
 #else
 #include <sys/file.h>
 #include <fcntl.h>
@@ -30,9 +32,24 @@ namespace LiveAutomation {
 void atomicJson(std::filesystem::path const& path, json const& value) {
     std::filesystem::create_directories(path.parent_path());
     auto temporary = path; temporary += ".tmp";
-    { std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
-      out << value.dump(2); out.close();
-      if (!out) throw std::runtime_error("Cannot write automation state: " + path.string()); }
+    // Finish writing the file to storage before replacing the last good
+    // copy. Closing an ordinary stream can leave its contents in the OS cache.
+    auto contents = value.dump(2);
+    std::FILE* stream = nullptr;
+#ifdef _WIN32
+    _wfopen_s(&stream, temporary.c_str(), L"wb");
+#else
+    stream = std::fopen(temporary.c_str(), "wb");
+#endif
+    if (!stream) throw std::runtime_error("Cannot open automation output: " + temporary.string());
+    bool flushed = std::fwrite(contents.data(), 1, contents.size(), stream) == contents.size() &&
+        std::fflush(stream) == 0;
+#ifdef _WIN32
+    flushed = flushed && _commit(_fileno(stream)) == 0;
+#else
+    flushed = flushed && ::fsync(::fileno(stream)) == 0;
+#endif
+    if (std::fclose(stream) || !flushed) throw std::runtime_error("Cannot write automation state: " + path.string());
 #ifdef _WIN32
     // Publish a complete replacement while keeping the previous state readable.
     // Windows readers can briefly prevent replacement even though neither file
@@ -55,6 +72,10 @@ void atomicJson(std::filesystem::path const& path, json const& value) {
     }
 #else
     std::filesystem::rename(temporary, path);
+    int directory = ::open(path.parent_path().c_str(), O_RDONLY | O_DIRECTORY);
+    bool synced = directory >= 0 && ::fsync(directory) == 0;
+    if (directory >= 0) ::close(directory);
+    if (!synced) throw std::runtime_error("Cannot persist automation directory: " + path.parent_path().string());
 #endif
 }
 json readJson(std::filesystem::path const& path) {
@@ -74,6 +95,16 @@ std::string digest(std::string const& text) {
     std::ostringstream out; out << std::hex << std::setw(16) << std::setfill('0') << value;
     return out.str();
 }
+void publishNumerical(std::filesystem::path const& run, json const& numerical) {
+    auto id = numerical.at("forecast_id").get<std::string>();
+    auto package = run/"packages"/id;
+    for (auto marker : {"ready-numerical.json", "publication.json", "ready-publication.json"}) {
+        if (std::filesystem::exists(package/marker))
+            throw std::runtime_error("Forecast already handed off. Its files were preserved: " + package.string());
+    }
+    atomicJson(package/"numerical.json", numerical);
+    atomicJson(package/"ready-numerical.json", {{"version",1},{"forecast_id",id}});
+}
 void validateRunId(std::string const& id) {
     static std::regex const slug("[a-z0-9][a-z0-9-]*");
     static std::regex const deviceName("con|prn|aux|nul|com[1-9]|lpt[1-9]");
@@ -91,7 +122,7 @@ std::optional<std::filesystem::path> newRunConflict(std::filesystem::path const&
     // partial run may still contain counted votes or upload receipts even if
     // its run.json is missing. The inbox and captures.txt are operator inputs.
     static const std::set<std::string> runFiles = {
-        "run.json", "state.json", "status.json", "discovery.json", "arrival-status.json",
+        "run.json", "state.json", "state-checkpoint.json", "status.json", "discovery.json", "arrival-status.json",
         "forecast.lock", "publisher.lock", "reporting-status.json", "trial-status.json",
         "commentary-budget.sqlite", "commentary-budget.sqlite-journal",
         "commentary-budget.sqlite-wal", "commentary-budget.sqlite-shm"
@@ -301,14 +332,47 @@ private:
 Session::Session(std::filesystem::path workspace, json config) : root(std::move(workspace)), settings(std::move(config)) {
     validateSettings(settings);
     folder = root/"live_runs"/settings.at("run_id").get<std::string>();
-    if (std::filesystem::exists(folder/"state.json")) ledger = readJson(folder/"state.json");
-    else ledger = {{"version",1},{"run_id",settings["run_id"]},{"state","paused"},
-                   {"captures",json::object()},{"seen",json::object()},{"next_forecast",1}};
-    if (ledger.value("version",0) != 1 || ledger.at("run_id") != settings.at("run_id"))
-        throw std::runtime_error("Automation state belongs to a different run.");
     checkRunIdentity(folder/"run.json", settings);
+    loadState();
 }
 Session::~Session() = default;
+void Session::loadState() {
+    // The project file supplies the run identity. Progress is always read
+    // from this run's disk records, even if the open project predates counting.
+    auto primary = folder/"state.json";
+    auto checkpoint = folder/"state-checkpoint.json";
+    auto load = [&](std::filesystem::path const& path) {
+        auto state = readJson(path);
+        if (state.at("version") != 1 || !state.at("run_id").is_string() || !state.at("captures").is_object() ||
+            !state.at("next_forecast").is_number_integer() ||
+            state.at("next_forecast").get<int>() < 1 || !state.at("state").is_string())
+            throw std::runtime_error("Invalid forecasting state: " + path.string());
+        return state;
+    };
+    if (std::filesystem::exists(primary)) {
+        try { ledger = load(primary); }
+        catch (std::exception const&) {
+            if (!std::filesystem::exists(checkpoint)) throw;
+            ledger = load(checkpoint);
+        }
+    } else if (std::filesystem::exists(checkpoint)) {
+        ledger = load(checkpoint);
+    } else {
+        // An empty prepared folder is a normal new run. Evidence of previous
+        // operation requires recovery, never a fresh forecast sequence at 1.
+        for (auto name : {"arrivals", "feeds", "packages", "receipts", "history"}) {
+            if (!std::filesystem::exists(folder/name)) continue;
+            for (auto const& item : std::filesystem::recursive_directory_iterator(folder/name)) {
+                if (item.is_regular_file())
+                    throw std::runtime_error("Missing forecasting state. Restore state.json or state-checkpoint.json in " + folder.string());
+            }
+        }
+        ledger = {{"version",1},{"run_id",settings.at("run_id")},{"state","paused"},
+            {"captures",json::object()},{"seen",json::object()},{"next_forecast",1}};
+    }
+    if (ledger.at("run_id") != settings.at("run_id"))
+        throw std::runtime_error("Automation state belongs to a different run.");
+}
 void Session::saveConfiguration(bool newRun) {
     auto source = sourceFolder(root, settings);
     bool const defaultInbox = source.lexically_normal() == (folder/"inbox").lexically_normal();
@@ -328,22 +392,25 @@ void Session::saveConfiguration(bool newRun) {
     checkRunIdentity(manifest, settings);
     if (defaultInbox)
         std::filesystem::create_directories(source);
-    if (std::filesystem::exists(folder/"state.json")) {
-        ledger = readJson(folder/"state.json");
+    if (!newRun) {
+        loadState();
         if (ledger.value("state", "paused") == "armed") {
             // The local lease still protects both files. An interrupted run
             // needs an explicit Resume after its configuration has changed.
             ledger["state"] = "paused";
             ledger["message"] = "";
-            save();
+            save(true);
         }
     }
     settings.erase("input_revision");
     if (ledger.contains("input_revision")) settings["input_revision"] = ledger.at("input_revision");
     atomicJson(manifest, settings);
 }
-void Session::save() {
+void Session::save(bool checkpoint) {
     atomicJson(folder/"state.json",ledger);
+    // One additional ledger covers the last completed attempt and explicit
+    // arm/pause decisions. Feed observations and forecast payloads stay single-copy.
+    if (checkpoint) atomicJson(folder/"state-checkpoint.json",ledger);
     json counts = json::object();
     int awaitingForecast = 0;
     for (auto const& [hash,record] : ledger["captures"].items()) {
@@ -362,13 +429,117 @@ void Session::save() {
         {"error",ledger.value("message","")}};
     atomicJson(folder/"status.json",summary);
 }
-void Session::arm(std::string const& revision, bool acknowledgeChange, bool monitor) {
+namespace {
+void checkUploadedPackages(std::filesystem::path const& folder) {
+    auto packages = folder/"packages";
+    // A destination can already have accepted a package the operator's local
+    // copy has lost. Recreating it would produce a different immutable report.
+    if (std::filesystem::is_directory(folder/"receipts")) {
+        for (auto const& item : std::filesystem::directory_iterator(folder/"receipts")) {
+            if (item.path().extension() != ".json") continue;
+            auto receipts = readJson(item.path());
+            if (!receipts.contains("forecasts")) continue;
+            for (auto const& [id, receipt] : receipts.at("forecasts").items())
+                if (receipt.value("accepted", false) && !std::filesystem::is_regular_file(packages/id/"publication.json"))
+                    throw std::runtime_error("Restore the locally missing, already uploaded forecast " + id + " in " + packages.string());
+        }
+    }
+}
+}
+std::string Session::restoreReadyForecast(std::filesystem::path const& package) {
+    auto id = package.filename().string();
+    auto report = readJson(package/"numerical.json");
+    if (report.at("forecast_id") != id || report.at("run_id") != settings.at("run_id") ||
+        readJson(package/"ready-numerical.json").at("forecast_id") != id)
+        throw std::runtime_error("Inconsistent forecast identity at " + package.string());
+    auto hash = report.at("source_fingerprint").get<std::string>();
+    auto time = report.at("source_time").get<std::string>();
+    if (hash.empty() || time.empty() || std::filesystem::path(hash).filename() != hash || hash == "." || hash == "..")
+        throw std::runtime_error("Missing or invalid source identity at " + package.string());
+    auto& records = ledger.at("captures");
+    if (!records.contains(hash)) {
+        // The capture arrived after the backup. Ingestion will
+        // revalidate its original delivery and retain its count history.
+        auto arrival = readJson(folder/"arrivals"/(hash+".json"));
+        if (arrival.at("hash") != hash) throw std::runtime_error("Forecast and original delivery disagree: " + id);
+        records[hash] = std::move(arrival);
+    }
+    auto& record = records.at(hash);
+    if (record.value("source_time", time) != time ||
+        (ledger.contains("in_flight") && ledger["in_flight"].at("id") == id && ledger["in_flight"].at("hash") != hash))
+        throw std::runtime_error("Forecast and retained feed disagree at " + package.string());
+    record["source_time"] = time;
+    // Older runs could deliberately recalculate one feed after an edit.
+    // Preserve both archived IDs and remember the last successful one.
+    if (record.value("forecast", "") != "completed" || record.value("forecast_id", "") < id)
+        record["forecast_id"] = id;
+    record["forecast"] = "completed";
+    record["forecast_message"] = "Recovered completed numerical handoff after restart.";
+    return time;
+}
+void Session::recoverHandoffs() {
+    // Usually the ledger already records every completion. A power loss can
+    // leave a finished package ahead of the ledger, or a partial directory
+    // whose number must remain reserved. Examine the large numerical report
+    // only when its completion is missing from the ledger.
+    std::set<std::string> completed;
+    int next = ledger.at("next_forecast").get<int>();
+    static const std::regex numbered("f[0-9]{8}");
+    auto attempted = ledger.value("last_attempt_source", "");
+    auto latest = ledger.value("latest_forecast", "");
+    for (auto const& record : ledger.at("captures")) {
+        auto id = record.value("forecast_id", "");
+        if (std::regex_match(id, numbered)) next = std::max(next, std::stoi(id.substr(1)) + 1);
+        auto outcome = record.value("forecast", "");
+        if (outcome != "completed" && outcome != "failed") continue;
+        auto time = record.at("source_time").get<std::string>();
+        attempted = std::max(attempted, time);
+        if (outcome == "completed") {
+            completed.insert(record.at("forecast_id").get<std::string>());
+            latest = std::max(latest, time);
+        }
+    }
+    auto packages = folder/"packages";
+    if (std::filesystem::is_directory(packages)) {
+        for (auto const& item : std::filesystem::directory_iterator(packages)) {
+            auto package = item.path();
+            auto id = package.filename().string();
+            if (!item.is_directory() || (id != "origin" && !std::regex_match(id, numbered))) continue;
+            if (id != "origin") next = std::max(next, std::stoi(id.substr(1)) + 1);
+            if (!std::filesystem::exists(package/"ready-numerical.json")) {
+                if (std::filesystem::exists(package/"publication.json") || std::filesystem::exists(package/"ready-publication.json"))
+                    throw std::runtime_error("Published forecast is missing its numerical handoff. Restore the package at " + package.string());
+                continue;
+            }
+            if (!std::filesystem::is_regular_file(package/"numerical.json"))
+                throw std::runtime_error("Ready forecast is missing numerical.json at " + package.string());
+            if (id == "origin" || completed.contains(id)) continue;
+            auto time = restoreReadyForecast(package);
+            completed.insert(id);
+            attempted = std::max(attempted, time);
+            latest = std::max(latest, time);
+        }
+    }
+    if (ledger.contains("in_flight")) {
+        auto const& attempt = ledger.at("in_flight");
+        auto const& source = ledger.at("captures").at(attempt.at("hash").get<std::string>());
+        if (completed.contains(attempt.at("id").get<std::string>()) || source.value("forecast", "") == "completed")
+            ledger.erase("in_flight");
+    }
+    checkUploadedPackages(folder);
+    ledger["next_forecast"] = next;
+    if (!latest.empty()) ledger["latest_forecast"] = latest;
+    if (!attempted.empty()) ledger["last_attempt_source"] = attempted;
+    if (!latest.empty() && latest == attempted) ledger["last_forecast_error"] = "";
+}
+void Session::arm(std::optional<std::string> revision, bool acknowledgeChange, bool monitor) {
     // Acquire ownership before recovering a completion or changing the ledger.
     // Another GUI process may already be operating on the same saved project.
     bool startMonitor = !inbox;
     if (!inbox) {
         inbox = std::make_unique<ArrivalInbox>(sourceFolder(root, settings),folder,settings.at("election"));
-        if (std::filesystem::exists(folder/"state.json")) ledger = readJson(folder/"state.json");
+        try { loadState(); }
+        catch (...) { inbox.reset(); throw; }
     }
     if (!acknowledgeChange && std::filesystem::exists(folder/"run.json")) {
         auto previous = readJson(folder/"run.json");
@@ -377,43 +548,38 @@ void Session::arm(std::string const& revision, bool acknowledgeChange, bool moni
         if (previous != current)
             throw std::runtime_error("Watcher settings changed since this run stopped. Review them and explicitly Resume.");
     }
-    // If a crash followed the numerical readiness marker but preceded the
-    // queue acknowledgement, that completed immutable forecast already exists.
-    // Acknowledge it here; never calculate or publish a second copy accidentally.
-    if (ledger.contains("in_flight")) {
-        auto const attempt = ledger.at("in_flight");
-        std::string id = attempt.at("id");
-        auto package = folder/"packages"/id;
-        if (std::filesystem::exists(package/"ready-numerical.json")) {
-            auto numerical = readJson(package/"numerical.json");
-            if (numerical.at("forecast_id") != id || numerical.at("run_id") != settings.at("run_id"))
-                throw std::runtime_error("Interrupted forecast handoff has inconsistent identity.");
-            std::string hash = attempt.at("hash");
-            auto const& record = ledger["captures"].at(hash);
-            Capture completed{{LiveResultsInput::pathFromUtf8(record.at("file").get<std::string>()),{}},
-                hash,record.at("delivered_at"),record.at("source_time")};
-            finishForecast(completed,true,"Recovered completed numerical handoff after restart.");
-        }
-    }
-    if (ledger.contains("input_revision") && ledger["input_revision"] != revision && !acknowledgeChange)
+    try { recoverHandoffs(); }
+    catch (...) { inbox.reset(); throw; } // Preserve both copies for recovery.
+    if (revision && ledger.contains("input_revision") && ledger["input_revision"] != *revision && !acknowledgeChange)
         throw std::runtime_error("Forecast inputs changed since this run stopped. Review them and explicitly Resume.");
-    if (ledger.value("input_revision", "") != revision) {
-        ledger["needs_forecast"] = true;
+    if (revision && ledger.value("input_revision", "") != *revision) {
         if (!ledger.contains("revisions")) ledger["revisions"] = json::array();
-        ledger["revisions"].push_back({{"revision",revision},{"at",Timestamp::now().formatIsoUtc()}});
+        ledger["revisions"].push_back({{"revision",*revision},{"at",Timestamp::now().formatIsoUtc()}});
+        ledger["input_revision"] = *revision;
     }
-    ledger["input_revision"] = revision;
-    settings["input_revision"] = revision;
+    // Older sessions used this flag to repeat the latest forecast after an
+    // input edit. A revision applies from the next distinct feed observation.
+    ledger.erase("needs_forecast");
+    settings.erase("input_revision");
+    if (ledger.contains("input_revision")) settings["input_revision"] = ledger.at("input_revision");
     atomicJson(folder/"run.json",settings);
     setState("armed");
     if (monitor && startMonitor) inbox->start();
 }
 void Session::setState(std::string const& state, std::string const& message) {
     if (!inbox) throw std::runtime_error("This process does not own the forecasting run; its state was not changed.");
-    ledger["state"] = state; ledger["message"] = message; save();
+    ledger["state"] = state; ledger["message"] = message; save(true);
     if (state != "armed") inbox.reset();
 }
 void Session::scanArrivals() { if (inbox) inbox->scan(); }
+bool Session::needsOrigin() const {
+    if (std::filesystem::is_regular_file(folder/"packages"/"origin"/"ready-numerical.json")) return false;
+    // Every counting forecast is compared to the same pre-count result. A
+    // rebuilt projection must never supply a new origin halfway through a run.
+    if (ledger.contains("in_flight") || !ledger.value("last_attempt_source", "").empty())
+        throw std::runtime_error("Restore the original start-of-counting forecast in " + (folder/"packages"/"origin").string());
+    return true;
+}
 json Session::status() const {
     auto result = ledger;
     if (inbox) result.update(inbox->status());
@@ -507,7 +673,7 @@ std::optional<Capture> Session::ingest(Reader const& reader,
     for (auto const& [hash,record] : ledger["captures"].items()) {
         if (record.value("state", "") != "accepted") continue;
         std::string time = record.at("source_time");
-        if (!ledger.value("needs_forecast",false) && time <= ledger.value("last_attempt_source", "")) continue;
+        if (time <= ledger.value("last_attempt_source", "") || record.value("forecast", "") == "completed") continue;
         if (!newest || time > newest->sourceTime)
             newest = Capture{{LiveResultsInput::pathFromUtf8(record.at("file").get<std::string>()),{}},hash,record.at("delivered_at"),time};
     }
@@ -520,6 +686,9 @@ std::optional<Capture> Session::ingest(Reader const& reader,
     return newest;
 }
 std::string Session::reserveForecast(Capture const& capture) {
+    if (capture.sourceTime <= ledger.value("last_attempt_source", "") ||
+        ledger.at("captures").at(capture.hash).value("forecast", "") == "completed")
+        throw std::runtime_error("This feed observation has already been attempted in this run: " + capture.sourceTime);
     if (ledger.contains("in_flight") && ledger["in_flight"].at("hash") == capture.hash &&
         ledger["in_flight"].value("input_revision", "") == revision())
         return ledger["in_flight"].at("id"); // An unfinished attempt retains its identity after a crash.
@@ -539,13 +708,12 @@ std::string Session::reserveForecast(Capture const& capture) {
     save(); return id.str();
 }
 void Session::finishForecast(Capture const& capture,bool success,std::string const& message) {
-    ledger["needs_forecast"] = false;
     ledger["last_attempt_source"] = capture.sourceTime;
     auto& record = ledger["captures"][capture.hash];
     record["forecast"] = success ? "completed" : "failed";
     record["forecast_message"] = message;
     ledger["last_forecast_error"] = success ? "" : message;
     if (success) ledger["latest_forecast"] = capture.sourceTime;
-    ledger.erase("in_flight"); save();
+    ledger.erase("in_flight"); save(true);
 }
 }

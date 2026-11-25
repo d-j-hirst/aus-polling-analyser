@@ -1874,6 +1874,33 @@ void checkStatewidePreferenceDraws()
 	assert(close(S::estimate(inputs,ranking,draw,{{Greens,80}},calculated).at(greensRow),83));
 }
 
+void checkPartialTcpSourceMix() {
+	namespace F = LiveFpTpp;
+	// A tenth of this count has reported TCP. When the finalists' measured
+	// totals permit it, a tenth of *each* FP source should be covered.
+	F::Shares fp{{Labor,300},{Liberal,500},{Greens,200}};
+	F::District partial;
+	F::addBooth(partial,fp,fp,{{Labor,45},{Liberal,55}});
+	assert(close(partial.covered.at(Labor),30) && close(partial.covered.at(Liberal),50));
+	assert(close(partial.covered.at(Greens),20));
+	assert(close(partial.measured.batches.front().first,15));
+	F::Shares const percentages{{Labor,30},{Liberal,50},{Greens,20}};
+	auto unchanged = F::project(partial,percentages,45,percentages,{{Greens,.75}},1000,45,55);
+	assert(unchanged && close(unchanged->measuredChange,0) && close(unchanged->laborPercent,45));
+
+	// Caulfield's early return at 21:40. Scaling 14,038 primaries to
+	// 2,471 ballots suggests 1,209 Liberal primaries, but Liberal has
+	// only 1,173 TCP votes. Preserve that limit and the relative mix
+	// of the remaining sources rather than inflating minor-party votes.
+	F::Shares early{{Labor,3858},{Liberal,6868},{Greens,1803},{Others,1509}};
+	F::District caulfield;
+	F::addBooth(caulfield,early,early,{{Labor,1298},{Liberal,1173}});
+	assert(close(caulfield.covered.at(Liberal),1173));
+	assert(close(caulfield.covered.at(Labor),1298.*3858/(14038-6868)));
+	assert(close(caulfield.covered.at(Greens),1298.*1803/(14038-6868)));
+	assert(close(F::total(caulfield.covered),2471));
+}
+
 void checkLivePrimaryToTpp() {
 	namespace F = LiveFpTpp;
 	F::Shares const prior{{0,40},{1,20},{2,20},{3,20}};
@@ -1920,6 +1947,125 @@ void checkLivePrimaryToTpp() {
 	auto final = F::project(official,prior,60,prior,rates,100,64,36);
 	assert(final && final->laborPercent == 64. && final->sources.at(2).first == 17.);
 	assert(final->sources.at(3).first == 7.);
+}
+
+void checkWarrandyteEarlyCount() {
+	namespace F = LiveFpTpp;
+	using LivePartialCount::Counts;
+	using LivePartialCount::TcpBasis;
+	// The first TCP matched the earlier batch. Meanwhile the FP count grew
+	// from 5,766 to 14,064. Only 1,262 of the additional ballots needed a transfer.
+	Counts const firstFp{{0,1665},{1,2797},{2,939},{3,130},{4,178},{5,57}};
+	Counts const laterFp{{0,4731},{1,6767},{2,1648},{3,278},{4,450},{5,190}};
+	TcpBasis const first{firstFp,{{0,2601},{1,3165}},{}};
+	TcpBasis const final{laterFp,{{0,6441},{1,7623}},{}};
+	auto const bounds = LivePartialCount::revisedLowerBounds(laterFp,first.tcp,first);
+	assert(bounds.at(0) == 5667 && bounds.at(1) == 7135);
+	F::Shares population(laterFp.begin(),laterFp.end());
+	auto account = [&](TcpBasis const& batch, bool revised, F::Shares const& counted) {
+		auto origins = F::boothOrigins(laterFp,batch.tcp,&batch,revised,counted);
+		F::District district;
+		F::addBooth(district,origins.fp,population,counted,origins.transfers);
+		return district;
+	};
+	F::Shares const oldTcp(first.tcp.begin(),first.tcp.end()), newTcp(final.tcp.begin(),final.tcp.end());
+	auto original = account(first,false,oldTcp);
+	auto waiting = account(first,true,bounds);
+	auto completed = account(final,false,newTcp);
+	assert(waiting.covered.at(0) == 4731 && waiting.covered.at(1) == 6767);
+	for (auto const& [source,count] : firstFp)
+		if (source > 1) assert(waiting.covered.at(source) == count);
+	auto const& donors = waiting.measured.batches.at(0);
+	assert(F::total(donors.donors) == 1304 && donors.first == 936);
+
+	// Hold the district FP and turnout fixed and give outstanding transfers
+	// an illustrative 50/50 split. Adding finalist primaries cannot change the
+	// measured flow. The completed count then replaces the estimate for precisely
+	// the outstanding transfers: 774 went to Labor against 631 expected.
+	constexpr double turnout = 14064.;
+	auto shares = population;
+	for (auto& [party,n] : shares) n *= 100./turnout;
+	double const startingTpp = 100.*(4731.+2566.*.5)/turnout;
+	auto project = [&](F::District const& district, F::Shares const& counted) {
+		auto projected = F::project(district,shares,startingTpp,shares,
+			{{2,.5},{3,.5},{4,.5},{5,.5}},turnout,counted.at(0),counted.at(1));
+		assert(projected);
+		return *projected;
+	};
+	auto before = project(original,oldTcp), pending = project(waiting,bounds), after = project(completed,newTcp);
+	assert(close(before.measuredChange,pending.measuredChange));
+	assert(close(pending.laborPercent,100.*(5667.+631.)/turnout));
+	assert(close(after.laborPercent-pending.laborPercent,100.*(774.-631.)/turnout));
+	assert(close(after.laborPercent,100.*6441./turnout));
+}
+
+void checkRestoredCroydonTppOrigins() {
+	using namespace LivePartialCount;
+	Counts const first{{0,1843},{1,2396},{2,455},{5,174},{6,206},{14,257}};
+	Counts const later{{0,6453},{1,8267},{2,1663},{5,502},{6,698},{14,716}};
+	Counts const tcp{{0,2497},{1,2825}};
+	auto evidence = measure(first,tcp,{{0,1},{1,0},{2,.8},{5,.5},{6,.5},{14,.5}},0,1);
+	assert(evidence && !evidence->matchingCurrentTcp);
+	LiveFpTpp::Shares const counted(tcp.begin(),tcp.end()), projected(later.begin(),later.end());
+	auto account = [&](Counts const& fp, TcpBasis const* basis) {
+		LiveFpTpp::District district;
+		auto origins = LiveFpTpp::boothOrigins(fp,tcp,basis,false,counted,evidence);
+		LiveFpTpp::addBooth(district,origins.fp,projected,counted,origins.transfers);
+		return district;
+	};
+	// The same 5,322 TCP votes were retained at 23:25 and republished at 23:30.
+	// Nine of the original FP ballots have no TCP, so keep the same estimated
+	// slice of the original batch on both sides of that change in the feed.
+	TcpBasis retained{first,tcp,{}};
+	auto before = account(first,&retained), after = account(later,nullptr);
+	assert(before.covered == after.covered && close(LiveFpTpp::total(after.covered),5322));
+	assert(close(after.covered.at(2),455.*5322./5331.));
+	assert(close(before.measured.batches.at(0).first,after.measured.batches.at(0).first));
+
+	// A tally correction, different opponent, or loss of the original FP voters
+	// breaks this identification even when the overall TCP total is the same.
+	for (Counts other : {Counts{{0,2498},{1,2824}},Counts{{0,2497},{7,2825}}}) {
+		auto origins = LiveFpTpp::boothOrigins(later,other,nullptr,false,{other.begin(),other.end()},evidence);
+		assert(origins.fp == projected);
+	}
+	auto removed = later;
+	removed.at(2) = 450;
+	auto origins = LiveFpTpp::boothOrigins(removed,tcp,nullptr,false,counted,evidence);
+	assert(origins.fp.at(2) == 450);
+}
+
+void checkRecheckedTppOrigins() {
+	using namespace LivePartialCount;
+	// A recheck removes ten ballots from one donor, while another donor
+	// and a finalist gain votes. With an official table, keep the guaranteed
+	// minimum from each source to each finalist, before grouping parties.
+	TcpBasis basis{{{0,40},{7,30},{2,20},{3,10}},{{0,61},{7,39}},
+		{{2,{{0,18},{7,2}}},{3,{{0,3},{7,7}}}}};
+	Counts fp{{0,50},{7,30},{2,10},{3,25}};
+	auto bounds = revisedLowerBounds(fp,basis.tcp,basis);
+	auto origins = LiveFpTpp::boothOrigins(fp,basis.tcp,&basis,true,bounds);
+	assert((origins.transfers == Transfers{{2,{{0,8},{7,0}}},{3,{{0,3},{7,7}}}}));
+	assert((origins.fp == LiveFpTpp::Shares{{0,50},{7,30},{2,8},{3,10}}));
+	assert(LiveFpTpp::total(origins.fp) == LiveFpTpp::total(bounds));
+
+	// Without the table, the lower bounds are wider. Finalist primaries are
+	// still known exactly; the guaranteed transfers use only the surviving old donors.
+	basis.transfers.clear();
+	bounds = revisedLowerBounds(fp,basis.tcp,basis);
+	origins = LiveFpTpp::boothOrigins(fp,basis.tcp,&basis,true,bounds);
+	assert(origins.transfers.empty() && origins.fp.at(0) == 50 && origins.fp.at(7) == 30);
+	assert(origins.fp.at(2) == origins.fp.at(3));
+	assert(LiveFpTpp::total(origins.fp) == LiveFpTpp::total(bounds));
+
+	// An unfinished TCP retained after a pairing change supplies only its
+	// guaranteed votes. The missing transfer still has no identified source.
+	basis.tcp.at(7) -= 1;
+	auto retained = reviseRetainedTcp(fp,basis,{{0,1},{7,0},{2,.5},{3,.5}},0,0,7);
+	assert(retained);
+	bounds = {{0,retained->lower},{7,retained->votes-retained->upper}};
+	origins = LiveFpTpp::boothOrigins(fp,basis.tcp,&basis,true,bounds);
+	assert(origins.fp.at(0) == 50 && origins.fp.at(7) == 30 && origins.transfers.empty());
+	assert(LiveFpTpp::total(origins.fp) == LiveFpTpp::total(bounds));
 }
 
 void checkBroadPreferenceMovement() {
@@ -1981,6 +2127,10 @@ int main()
 {
 	checkIndependentsReceivingGroupedOthers();
 	checkLivePrimaryToTpp();
+	checkPartialTcpSourceMix();
+	checkWarrandyteEarlyCount();
+	checkRestoredCroydonTppOrigins();
+	checkRecheckedTppOrigins();
 	checkBroadPreferenceMovement();
 	checkLiberalProxyForNationals();
 	checkConfiguration();

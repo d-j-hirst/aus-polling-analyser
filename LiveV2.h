@@ -38,7 +38,7 @@ namespace LiveV2 {
 
 // Raw independent candidates occupy their own range, distinct from configured
 // parties and other registered parties created by the feed adapter.
-inline constexpr int IndependentPartyIdOffset = 100000;
+using LiveData::IndependentPartyIdOffset;
 
 class Election;
 
@@ -218,6 +218,8 @@ public:
   // Fixed centre for an SA declaration category, prepared from this snapshot's
   // in-person estimate and its own accepted count. Variability draws reuse it.
   std::optional<LiveFederalDeclarations::Estimate> federalDeclaration;
+  // Trial shifts in log odds for this place's outstanding FP, keyed by ballot ID.
+  std::map<int,double> historicalSupportTilts;
 
   // Booths from a different seat are much less reliable for extrapolation
   // so we use this to make sure they're treated differently
@@ -249,6 +251,8 @@ public:
   double independentPoolingBaselineShare = 0;
   std::map<int, LiveTppComposition::CategoryHistory> categoryHistory;
   std::map<int, double> partyPreferenceFlows; // Prepared district priors, fractions.
+  struct SupportFit { int ordinaryBooths; double slope; };
+  std::map<int,SupportFit> historicalSupportFits; // Trial diagnostic by modelling party.
   Seat(Results2::Seat const& seat, int parentRegionIndex);
 
   void log(Election const& election, bool includeBooths = false) const;
@@ -868,6 +872,7 @@ private:
   BlindFpProjections recomposeVoteCounts();
   void refreshProjectedVoteAggregates();
   void prepareFpEvidence(LiveFederalDeclarations::Prior const& declarations);
+  void prepareFpSupportGradients(BlindFpProjections const& blind);
   void prepareFederalDeclarations(Seat const& seat, std::vector<LiveFpEvidence::Unit> const& units,
     LiveFpEvidence::Shares const& factors, LiveFederalDeclarations::Prior const& prior, int party);
   LiveFpEvidence::Unit fpEvidenceUnit(int boothIndex, bool varied = false) const;

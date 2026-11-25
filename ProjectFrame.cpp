@@ -728,6 +728,10 @@ namespace {
 // The reporting worker reads these settings from the run when it starts.
 // Copy the preset so edits to the source JSON do not affect an existing run.
 bool selectLiveCommentary(wxWindow* parent, std::filesystem::path const& root, nlohmann::json& config) {
+    if (config.value("local_trial", false)) {
+        config["commentary"] = {{"enabled", false}, {"compare_writers", false}};
+        return true;
+    }
     auto const current = config.value("commentary", nlohmann::json::object());
     bool const hasPreset = current.value("enabled", false);
     wxArrayString choices;
@@ -737,6 +741,7 @@ bool selectLiveCommentary(wxWindow* parent, std::filesystem::path const& root, n
             ", US$" + current.at("spending_limit_usd").dump() + " per run)";
         choices.Add(wxString::FromUTF8(label));
     }
+    int const rulesIndex = static_cast<int>(choices.Add("Rules-based commentary (no AI calls)"));
     auto const presetDirectory = root/"uploads";
     std::map<int,std::filesystem::path> bundledPresets;
     if (config.at("election") == "2026sa") {
@@ -754,7 +759,8 @@ bool selectLiveCommentary(wxWindow* parent, std::filesystem::path const& root, n
     choices.Add("Choose a commentary preset JSON file...");
     wxSingleChoiceDialog dialog(parent, "Choose commentary for this run. Restart the upload manager after changing this setting.",
         "Forecast commentary", choices);
-    dialog.SetSelection(hasPreset ? 1 : 0);
+    int const savedSelection = current.value("rules_only", false) ? rulesIndex : 0;
+    dialog.SetSelection(hasPreset ? 1 : savedSelection);
     if (dialog.ShowModal() != wxID_OK) return false;
     auto const selected = dialog.GetSelection();
     if (selected == 0) {
@@ -762,6 +768,11 @@ bool selectLiveCommentary(wxWindow* parent, std::filesystem::path const& root, n
         return true;
     }
     if (hasPreset && selected == 1) return true;
+    if (selected == rulesIndex) {
+        if (!current.value("rules_only", false))
+            config["commentary"] = {{"enabled", false}, {"rules_only", true}};
+        return true;
+    }
 
     std::filesystem::path path;
     if (selected == fileIndex) {

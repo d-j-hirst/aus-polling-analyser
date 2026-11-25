@@ -202,9 +202,7 @@ void LiveSimulationJob::writeAutomaticReport(Simulation const& simulation,
     // Diagnostic paths are local worker inputs, removed from the public package.
     if (diagnostic)
         numerical["diagnostic_file"] = LiveResultsInput::pathToUtf8(std::filesystem::absolute(*diagnostic));
-    auto folder = automation->directory()/"packages"/forecastId;
-    LiveAutomation::atomicJson(folder/"numerical.json",numerical);
-    LiveAutomation::atomicJson(folder/"ready-numerical.json",{{"version",1},{"forecast_id",forecastId}});
+    LiveAutomation::publishNumerical(automation->directory(), numerical);
 }
 
 std::string LiveSimulationJob::automaticInputRevision(Simulation const& simulation) {
@@ -272,21 +270,31 @@ LiveSimulationUpdate LiveSimulationJob::calculateAutomatic() {
         if (ids.size() != 1) throw std::runtime_error("Folder watching requires exactly one automatic live simulation.");
         auto& simulation = context->simulations().access(ids.front());
         LivePreparationBridge::validateAutomaticSetup(*context,simulation,{},true);
+        // A saved project supplies the election configuration needed to read
+        // counts, even when the generated model or projection is not in memory.
+        // Only a new forecast (or this run's first origin) needs both.
+        auto const& projection = context->projections().view(simulation.getSettings().baseProjection);
+        bool const ready = projection.getBaseModel(context->models()).isReadyForProjection() &&
+            projection.getProjectionLength() > 0;
+        auto requirePreparedForecast = [&] {
+            if (!ready) throw std::runtime_error(
+                "Run the base model and projection, then choose Watch / Resume to calculate the pending forecast.");
+        };
         if (!automation) {
             automation = std::make_unique<LiveAutomation::Session>(context->paths().root(),automationSettings);
             // Validate required support files outside per-capture error handling:
             // missing configuration must pause, rather than reject every feed.
-            auto revision = automaticInputRevision(simulation);
+            auto revision = ready ? std::make_optional(automaticInputRevision(simulation)) : std::nullopt;
             automation->arm(revision,acknowledgeInputChange);
             auto settings = simulation.getSettings();
             settings.liveOutputFolder = automationSettings.at("run_id");
             simulation.replaceSettings(settings);
         }
-        if (automaticInputRevision(simulation) != automation->revision())
+        if (ready && automaticInputRevision(simulation) != automation->revision())
             throw std::runtime_error("Simulation inputs changed while watching. Pause, review the change, then explicitly Resume.");
         LiveHistoryScope::Scope history(automation->directory()/"history");
-        auto origin = automation->directory()/"packages"/"origin"/"ready-numerical.json";
-        if (!std::filesystem::exists(origin)) {
+        if (automation->needsOrigin()) {
+            requirePreparedForecast();
             // This is a separate ordinary pre-count forecast with the SAME
             // iteration count and projection. It is not the smaller internal
             // calibration baseline, and does not bypass the live forecast path.
@@ -341,6 +349,7 @@ LiveSimulationUpdate LiveSimulationJob::calculateAutomatic() {
                 accepted.sourceTime,observation,TurnoutModelIO::observationMapping(prior.prior));
         });
         if (capture) {
+            requirePreparedForecast();
             LivePreparationBridge::validateAutomaticSetup(*context,simulation,capture->file);
             if (automaticInputRevision(simulation) != automation->revision())
                 throw std::runtime_error("Simulation inputs changed while watching. Pause, review the change, then explicitly Resume.");

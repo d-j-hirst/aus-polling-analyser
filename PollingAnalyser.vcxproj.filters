@@ -561,6 +561,9 @@
     <ClInclude Include="MajorPartyFpMath.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
+    <ClInclude Include="SoftPairing.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
     <ClInclude Include="MinorPartyFpMath.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
@@ -889,6 +892,9 @@
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
     <ClInclude Include="LiveOrdinaryUpdate.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveFpSupportGradient.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
     <ClInclude Include="LiveSourceSeatTcp.h">

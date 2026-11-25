@@ -104,8 +104,11 @@ int main() {
     // Exercise the actual appended .pol2 field encoding, including an older
     // version that must leave its existing bytes untouched.
     auto saved = root / "selection.pol2";
+    assert(!settings.jointFpTrial && !available.front().jointFpTrial);
+    settings.jointFpTrial = true;
     { SaveFileOutput output(saved.string()); saveSettings(output, settings); }
     { SaveFileInput input(saved.string()); auto loaded = loadSettings(input, 67);
+      assert(!loaded.jointFpTrial);
       assert(loaded.election == settings.election && loaded.folder == settings.folder && loaded.codes == settings.codes); }
     { SaveFileInput input(saved.string()); auto loaded = loadSettings(input, 66);
       assert(loaded.election.empty() && loaded.folder.empty() && loaded.codes.empty());

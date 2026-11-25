@@ -23,6 +23,7 @@
 #include <cctype>
 #include <cmath>
 #include <limits>
+#include <set>
 
 using Mp = Simulation::MajorParty;
 
@@ -1280,8 +1281,8 @@ void SimulationPreparation::determineSpecificPartyIndices()
 	// existing continuing-vote calculation.
 	auto const& model = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models());
 	run.projectBothCoalitionMatchups = run.natPartyIndex >= 0 && model.allPreferencesContinue();
-	run.useSeparateCoalitionPreferenceAccounting =
-		run.getTermCode() == "2026vic" && run.natPartyIndex >= 0;
+	run.useSeparateCoalitionPreferenceAccounting = run.projectBothCoalitionMatchups &&
+		(run.getTermCode() == "2022vic" || run.getTermCode() == "2026vic");
 }
 
 void SimulationPreparation::loadPreviousPreferenceFlows() {
@@ -1695,8 +1696,10 @@ void SimulationPreparation::loadPastSeatResults()
 		}
 		run.totalPreviousTurnout += results.turnoutCount;
 	}
-	if (run.projectBothCoalitionMatchups || run.useSeparateCoalitionPreferenceAccounting) {
+	if (run.projectBothCoalitionMatchups) {
 		prepareCoalitionPreferenceHistory(historicalSeats);
+		if (run.getTermCode() == "2026vic" && sim.settings.prevTermCodes.front() == "2022vic")
+			loadIndicativePreferenceHistory(historicalSeats);
 	}
 }
 
@@ -1729,7 +1732,8 @@ void SimulationPreparation::prepareMissingGreensFpMedians()
 // separately counted Labor/Coalition TPP and published limits on how many of
 // the excluded partner's original voters went to Labor. Match the source seat
 // and its FP counts so a renamed or substituted seat uses the same ballots in
-// both accounts. Only the resulting range is needed in simulation iterations.
+// both accounts. Save the donor mix with the measured range so that each
+// iteration can compare its assumed rates with the same historical count.
 void SimulationPreparation::prepareCoalitionPreferenceHistory(std::vector<std::string> const& historicalSeats)
 {
 	struct PublishedCount {
@@ -1789,7 +1793,7 @@ void SimulationPreparation::prepareCoalitionPreferenceHistory(std::vector<std::s
 		results.nationalTppReference = CoalitionPreference::historicalNational(
 			getAt(results.tcpVoteCount,Mp::One,0.) > 0, getAt(results.tcpVoteCount,Mp::Two,0.) > 0,
 			getAt(results.tcpVoteCount,run.natPartyIndex,0.) > 0,liberalPrimary,nationalPrimary,configuredNational);
-		results.useNamedCoalitionPreferenceHistory = run.useSeparateCoalitionPreferenceAccounting && nationalPrimary > 0;
+		results.hadNationalPrimary = nationalPrimary > 0;
 		if (nationalPrimary <= 0 || laborPrimary <= 0) continue;
 
 		// Prefer a complete real Labor/Coalition TCP. With a different final
@@ -1803,6 +1807,7 @@ void SimulationPreparation::prepareCoalitionPreferenceHistory(std::vector<std::s
 		bool const completeClassicCount = results.tcpVoteCount.size() == 2 &&
 			finalistPrimary > 0 && countedLabor >= laborPrimary && countedCoalition >= finalistPrimary &&
 			countedLabor + countedCoalition == results.turnoutCount;
+		std::optional<MajorPartyFpMath::MinorPreferenceRange> laborFlow;
 		auto const extra = published.find(historicalSeats[index]);
 		if (extra != published.end()) {
 			auto const& record = extra->second;
@@ -1813,16 +1818,77 @@ void SimulationPreparation::prepareCoalitionPreferenceHistory(std::vector<std::s
 				(record.coalitionFinalist == countedFinalist && record.votes.laborTpp == countedLabor);
 			if (matchedPrimaries && agreesWithClassic) {
 				results.nationalTppReference = record.coalitionFinalist == run.natPartyIndex;
-				results.minorPreferencesInCoalitionContest = MajorPartyFpMath::historicalMinorPreferenceRange(record.votes);
-				continue;
+				laborFlow = MajorPartyFpMath::historicalMinorPreferenceRange(record.votes);
 			}
 		}
-		if (completeClassicCount) {
-			results.minorPreferencesInCoalitionContest = MajorPartyFpMath::historicalMinorPreferenceRange({
+		if (!laborFlow && completeClassicCount) {
+			laborFlow = MajorPartyFpMath::historicalMinorPreferenceRange({
 				results.turnoutCount, laborPrimary, finalistPrimary, excludedPartnerPrimary,
 				int(countedLabor), 0, excludedPartnerPrimary});
 		}
+		if (laborFlow && run.useSeparateCoalitionPreferenceAccounting) {
+			SimulationRun::HistoricalCoalitionPreferences comparison{*laborFlow, {}, std::nullopt};
+			for (auto const& [party, count] : results.fpVoteCount) {
+				if (party == Mp::One || party == Mp::Two || party == run.natPartyIndex || party == CoalitionPartnerIndex) continue;
+				comparison.donorFpPercent[party] = 100.0 * count / results.turnoutCount;
+			}
+			results.coalitionPreferences = std::move(comparison);
+		}
 	}
+}
+
+// In five Nationals districts the VEC later sorted the 2022 ballots through
+// to a Labor–National final. Its opening counts differ slightly from the
+// official recheck. Use this self-contained count only to measure the local
+// preference discrepancy. Turnout, primary swings and candidate strength
+// continue to use the ordinary historical results above.
+void SimulationPreparation::loadIndicativePreferenceHistory(std::vector<std::string> const& historicalSeats)
+{
+	auto const& path = inputFile(SimulationInputs::File::IndicativePreferenceHistory);
+	auto input = run.preparationInputs->open(path);
+	std::string line;
+	if (!std::getline(input, line)) throw Exception("Missing or empty indicative preference history: " + path);
+	if (!line.empty() && line.back() == '\r') line.pop_back();
+	if (line != "seat,formal,labor_fp,national_fp,greens_fp,independent_fp,others_fp,labor_final,national_final")
+		throw Exception("Unrecognised indicative preference history header in " + path);
+
+	int oneNation = project.parties().indexByShortCode("ONP");
+	if (oneNation < 0) oneNation = project.parties().indexByShortCode("ON");
+	std::set<std::string> districts;
+	while (std::getline(input, line)) {
+		if (!line.empty() && line.back() == '\r') line.pop_back();
+		if (line.empty()) continue;
+		auto const fields = splitString(line, ",");
+		if (fields.size() != 9 || fields.front().empty()) throw Exception("Invalid indicative preference row in " + path);
+		auto const& district = fields.front();
+		if (!districts.insert(district).second) throw Exception("Duplicate indicative preference count for " + district);
+		auto count = [&](int column) {
+			int const value = parseInt(fields[column], path, district + " vote count");
+			if (value < 0) throw Exception("Negative indicative vote count for " + district);
+			return value;
+		};
+		int const formal = count(1), labor = count(2), national = count(3);
+		int const greens = count(4), independent = count(5), others = count(6);
+		int const laborFinal = count(7), nationalFinal = count(8);
+		auto const donorVotes = int64_t(greens) + independent + others;
+		if (!labor || !national || !donorVotes || labor + donorVotes + national != formal ||
+			int64_t(laborFinal) + nationalFinal != formal || laborFinal < labor || nationalFinal < national)
+			throw Exception("Opening and final indicative votes do not reconcile for " + district + " in " + path);
+
+		// With no Liberal standing, subtracting Labor primaries gives an exact
+		// total of transfers to Labor. Individual source flows remain estimated.
+		double const rate = double(laborFinal - labor) / double(donorVotes);
+		SimulationRun::HistoricalCoalitionPreferences comparison{{rate, rate}, {}, std::nullopt};
+		comparison.donorFpPercent[OthersIndex] = 100.0 * others / formal;
+		comparison.donorFpPercent[run.grnPartyIndex >= 0 ? run.grnPartyIndex : OthersIndex] += 100.0 * greens / formal;
+		comparison.donorFpPercent[run.indPartyIndex >= 0 ? run.indPartyIndex : OthersIndex] += 100.0 * independent / formal;
+		if (oneNation >= 0) comparison.partyOutsideHistoricalCorrection = oneNation;
+		for (size_t i = 0; i < historicalSeats.size(); ++i) {
+			if (historicalSeats[i] == district && run.seatLookup.seat(int(i)).name == district)
+				run.pastSeatResults[i].coalitionPreferences = comparison;
+		}
+	}
+	if (districts.empty()) throw Exception("No district counts in indicative preference history: " + path);
 }
 
 void SimulationPreparation::loadSeatTypes()

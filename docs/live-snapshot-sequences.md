@@ -4,6 +4,14 @@ Snapshot sequences let you compare a live forecast at several points in an elect
 
 Each completed snapshot produces a retained result that the Live Booths tab can display, including its forecast tables and graphs. Feeds and diagnostic results remain private files; the project stores the selection and folder settings, without embedding the feeds.
 
+### Compare the historical booth support adjustment
+
+In **Configure snapshot sequence**, select **Trial joint FP adjustment by historical booth support (this session)** to test whether a candidate's swing differs between former strongholds and weaker booths. The option starts off when opening a project and applies only to manually run snapshot sequences. For a comparison, run the same codes with the same simulation settings in separate diagnostic output folders, once with the box clear and once selected.
+
+The trial learns from at least four matched election-day booths per candidate. It removes each booth in turn to check whether a single return drives the pattern. A relationship that survives the uncertainty allowance changes how the candidates share outstanding FP at places with comparable history, including matched early or declaration votes. Returning independents need a match to the same candidate. The simulation uses that revised FP mix when estimating preferences and finalist pairings.
+
+The main diagnostic records the setting in `run.joint_fp_support_trial`. In the analysis sidecar, `historical_support_fits` gives the number of matched ordinary booths and the slope for each candidate with at least four usable returns. A zero slope means the evidence was too weak or depended too much on one booth. A negative slope means the candidate underperformed their opening booth estimates more in previous strongholds. Its size is the change in natural log odds per unit of previous FP share, where one unit spans 0% to 100%.
+
 ## Prepare the inputs
 
 Set up and run the election's automatic live simulation normally first, including its previous-election results, preload data, base projection and turnout inputs. A sequence uses those same settings and iteration count. All participating live simulations must use the same election. Manual live simulations are not supported by the current live pipeline.

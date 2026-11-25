@@ -250,6 +250,7 @@ public:
 	District::NamedIncumbent const* incumbentForPairHistory(int district) const;
 	bool learnsPair(Pair pair) const;
 	SensitivityTests const& sensitivityTests(int district) const;
+	double referenceLiberalToLaborOverGreens(int district) const;
 	bool isActive() const { return active; }
 	bool isLiveTrial() const { return liveTrial; }
 	bool coversDistrict(int district) const { return !liveTrial || contexts.at(static_cast<std::size_t>(district)).liveTrial; }

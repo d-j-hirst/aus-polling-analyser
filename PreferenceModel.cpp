@@ -1180,6 +1180,19 @@ std::optional<Model> Model::load(std::istream& input, Roles roles,
 	return model;
 }
 
+// The starting FP reconciliation needs the expected Liberal split for this
+// specific contest. Use the same known ticket, open ticket or election-wide
+// uncertainty about advice as the ranked count, before drawing voter variation.
+double Model::referenceLiberalToLaborOverGreens(int district) const
+{
+	auto const advice = contexts.at(district).advice;
+	if (advice == Advice::Open) return priors[LiberalOpen].referenceMeans.front();
+	double const laborWeight = advice == Advice::Unknown ? unknownLiberalLaborFirst :
+		(advice == Advice::LaborFirst ? 1. : 0.);
+	return laborWeight*priors[LiberalLaborFirst].referenceMeans.front() +
+		(1.-laborWeight)*priors[LiberalGreensFirst].referenceMeans.front();
+}
+
 SensitivityTests const& Model::sensitivityTests(int district) const
 {
 	return contexts.at(static_cast<std::size_t>(district)).sensitivity;

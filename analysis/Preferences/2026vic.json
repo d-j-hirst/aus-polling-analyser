@@ -210,6 +210,7 @@
     "Frankston": {"liberal_advice": "labor_first"},
     "Geelong": {"liberal_advice": "labor_first"},
     "Glen Waverley": {"liberal_advice": "labor_first"},
+    "Greenvale": {"liberal_advice": "labor_first", "liberal_one_nation_last_weight": 0.5},
     "Hastings": {"liberal_advice": "labor_first"},
     "Hawthorn": {"liberal_advice": "labor_first"},
     "Ivanhoe": {"liberal_advice": "labor_first"},
@@ -295,6 +296,12 @@
       ],
       "glen_waverley": "Cards 542 and 694 put One Nation fourth, Labor fifth and the Greens sixth.",
       "glen_waverley_source": "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=478ac3c3-5093-462c-b7f8-b80a5a149fb8%2Fliberal_combined_nemr%20glen%20waverley_1.pdf&settingsItemId=%7B001D8F7A-28BA-45B7-897A-F0A24F37AEC3%7D",
+      "greenvale": "VEC Liberal cards 835, 836 and 1645 rank Iwan Walters (Labor) fifth, Declan McGinness (Greens) eighth and Chris Moore (One Nation) tenth and last in the Legislative Assembly. As in Preston, the 0.5 weight centres the adjustment on moving half of the Liberal ballots that would otherwise rank One Nation above Labor or the Greens to an order with One Nation below both. The cards give the direction of the adjustment. The weight is a modelling assumption.",
+      "greenvale_sources": [
+        "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=a82aa77a-d830-49d5-9ccd-a54c7f6ce929%2Fliberal_combined_nmr+greenvale_1.pdf&settingsItemId=%7BDD5CA75F-3AE2-48B7-93B9-65C6A7A40604%7D",
+        "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=28ff2521-7a9d-4d73-b168-9708be820dab%2Fliberal_combined_nmr+greenvale_2.pdf&settingsItemId=%7BDD5CA75F-3AE2-48B7-93B9-65C6A7A40604%7D",
+        "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=1308e8e5-13d8-45e2-917c-63d11abcf82b%2Fliberal_combined_nmr+greenvale_6.pdf&settingsItemId=%7BDD5CA75F-3AE2-48B7-93B9-65C6A7A40604%7D"
+      ],
       "brunswick": "VEC card 828 recommends a Liberal first preference and leaves the remaining Legislative Assembly rankings open.",
       "brunswick_source": "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=d6c9d374-9928-46d9-a9f9-987d8dd7c9ef%2Fliberal_combined_nmr+brunswick_1.pdf&settingsItemId=%7BDD5CA75F-3AE2-48B7-93B9-65C6A7A40604%7D",
       "footscray": "VEC card 829 recommends a Liberal first preference and leaves the remaining Legislative Assembly rankings open.",

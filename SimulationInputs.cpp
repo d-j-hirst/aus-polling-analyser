@@ -140,6 +140,8 @@ std::shared_ptr<SimulationInputs const> SimulationInputs::capture(
 	// Record even a missing file. Changing the mode or the assumptions must
 	// invalidate both the betting-odds calibration and the pre-count baseline.
 	files[File::PreferenceModel] = "analysis/Preferences/" + term + ".json";
+	if (term == "2022vic" || term == "2026vic")
+		files[File::SoftPairingEvidence] = "analysis/Preferences/pairing/" + term + ".json";
 	if (project.parties().separateNationalsIndex() != PartyCollection::InvalidIndex) {
 		// Historical scrutiny counts also affect the ordinary FP forecast and
 		// its supporting runs, independently of the preference model mode.
@@ -147,6 +149,8 @@ std::shared_ptr<SimulationInputs const> SimulationInputs::capture(
 			"analysis/Data/coalition-preference-history-" + previous + ".csv";
 	}
 	if (term == "2026vic") {
+		if (previous == "2022vic")
+			files[File::IndicativePreferenceHistory] = "analysis/Data/indicative-preference-history-2022vic.csv";
 		// The trial changes the district priors in every supporting run. Record
 		// absence too, so enabling or disabling it refreshes reusable results.
 		files[File::OneNationDistrictFp] =

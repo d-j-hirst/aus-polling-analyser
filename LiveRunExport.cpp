@@ -1164,6 +1164,9 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 			};
 		}
 		if (fpIntegration) {
+			for (auto const& [party,fit] : seat.historicalSupportFits)
+				seatJson["historical_support_fits"].push_back({{"party",party},
+					{"matched_ordinary_booths",fit.ordinaryBooths},{"guarded_slope",fit.slope}});
 			auto const& moments = fpIntegration->at(&seat-seats.data());
 			std::map<int,double> weights;
 			for (auto const& [party,variance] : moments.count.logOddsVariance)
@@ -1241,11 +1244,25 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 			seat.fpBoothTypeSensitivity, parties, &boothTypeCategoryName);
 		seatJson["nationals_proportion"] = optionalNumber(seat.nationalsProportion);
 		seatJson["node"] = serializeNode(seat.node, parties);
-		seatsJson.push_back(std::move(seatJson));
-
 		for (int boothIndex : seat.booths) {
 			if (boothIndex < 0 || boothIndex >= int(readBooths().size())) continue;
 			auto const& booth = readBooths()[boothIndex];
+			// The FP-only commentary holds the earlier booth preference assumptions
+			// fixed while changing the primary mix. Store relative donor rates once
+			// per district and opponent. The reporting worker fits their overall
+			// level to the earlier booth TCP. Exhausting ballots need a separate
+			// denominator, so this benchmark only covers full preferential counts.
+			if (!optionalPreferential && !preferenceFlowMap.empty()) {
+				int const opponent = coalitionFinalist(booth);
+				auto& rates = seatJson["classic_benchmark_labor_rates"]["0/" + std::to_string(opponent)];
+				for (auto const& [party, rate] : classicPreferenceFlows(booth, opponent)) {
+					if (party == 0 || party == opponent) continue;
+					int const id = party == seat.liveIndependentPartyIndex ? run.indPartyIndex : party;
+					if (id == run.indPartyIndex && party != seat.liveIndependentPartyIndex &&
+						rates.contains(std::to_string(id))) continue;
+					rates[std::to_string(id)] = rate;
+				}
+			}
 			json boothJson;
 			boothJson["name"] = booth.name;
 			boothJson["seat_name"] = seat.name;
@@ -1337,9 +1354,11 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 			}
 			boothsJson.push_back(std::move(boothJson));
 		}
+		seatsJson.push_back(std::move(seatJson));
 	}
 
 	json liveAnalysis;
+	liveAnalysis["optional_preferential"] = optionalPreferential;
 	liveAnalysis["tpp_integration"] = tppIntegrationDiagnostic();
 	liveAnalysis["election"] = std::move(electionJson);
 	liveAnalysis["regions"] = std::move(regions);
@@ -1469,6 +1488,7 @@ std::optional<std::filesystem::path> LiveRunExport::exportCompletedAutomaticLive
 			{"output_set", folder}
 		};
 		if (run.getSnapshotInput()) {
+			document["run"]["joint_fp_support_trial"] = run.getSnapshotInput()->jointFpTrial;
 			document["run"]["input_snapshot_code"] = run.getSnapshotInput()->timestamp.value_or("");
 			document["run"]["input_snapshot_file"] = LiveResultsInput::pathToUtf8(run.getSnapshotInput()->path.filename());
 		}

@@ -4,7 +4,9 @@ This catalogue preserves the counts and contexts available for studying lower-ho
 preferences. It follows original first-preference ballots where the published
 tables allow that, and retains complete exclusion sequences where only mixed
 piles are observed. The catalogue supplies evidence for preparing models.
-The application reads only the small optional comparison settings described below.
+The application reads the election's ranking settings and, for the Victorian
+2022 and 2026 elections, the prepared district evidence for reconciling the
+Labor–Liberal and Labor–Greens starting forecasts. [Victorian pre-count pairings](../../docs/victorian-precount-pairings.md)
 
 ## Coverage and interpretation
 

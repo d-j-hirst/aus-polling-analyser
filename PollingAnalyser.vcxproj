@@ -478,6 +478,7 @@
     <ClInclude Include="LiveTppSensitivity.h" />
     <ClInclude Include="LiveFpIntegration.h" />
     <ClInclude Include="LiveOrdinaryUpdate.h" />
+    <ClInclude Include="LiveFpSupportGradient.h" />
     <ClInclude Include="LiveSourceSeatTcp.h" />
     <ClInclude Include="LiveNewVotes.h" />
     <ClInclude Include="LivePartyMapping.h" />
@@ -566,6 +567,7 @@
 	<ClInclude Include="CoalitionPairing.h" />
 	<ClInclude Include="SeatFpPolls.h" />
 	<ClInclude Include="MajorPartyFpMath.h" />
+	<ClInclude Include="SoftPairing.h" />
 	<ClInclude Include="MinorPartyFpMath.h" />
 	<ClInclude Include="GreensFpPrior.h" />
 	<ClInclude Include="GroupedOthersFp.h" />

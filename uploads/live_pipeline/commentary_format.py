@@ -10,11 +10,13 @@ import html
 import math
 import re
 from collections import Counter
-from . import commentary_counts
+from . import commentary_counts, ranked_tcp
 
 
 TOKEN = re.compile(r'\{(?:seat|candidate|party):[^{}]+\}')
 BOLD = re.compile(r'\*\*([^*]+)\*\*')
+APPROXIMATE_TCP_SHARE = ('observed TCP share versus approximate booth estimate from its FP count '
+                         'and the earlier average preference split for the vote type')
 
 
 def decimal(value, signed=False):
@@ -78,8 +80,11 @@ def tcp_comparison_figures(event):
              'pair': ['{candidate:'+seat+':'+p+'}' for p in comparison['pair']],
              'value': format(round(comparison['counted_votes']), ',')+' votes'}]
     for party, share in sorted(comparison['shares'].items()):
+        quantity = 'observed TCP share versus reference forecast for the same pair'
+        if comparison.get('expectation_kind') == ranked_tcp.ARCHIVED_BASIS:
+            quantity = APPROXIMATE_TCP_SHARE
         rows.append({'seat': seat, 'booth': event['record'],
-                     'quantity': 'observed TCP share versus reference forecast for the same pair',
+                     'quantity': quantity,
                      'candidate': '{candidate:'+seat+':'+party+'}',
                      'expected_share': decimal(share['expected_percent'])+'%',
                      'observed_share': decimal(share['observed_percent'])+'%',
@@ -372,7 +377,9 @@ def figures(packet, *, use_median_seats=True, match_tcp_coverage=True, contextua
         for group in groups:
             opponents = ['{candidate:'+seat+':'+p+'}' for p in group['pair']]
             scope = group['category']+' ballots in this district awaiting TCP at the earlier forecast'
-            add(seat, 'estimated final share for FIRST candidate on '+scope,
+            quantity = ('earlier estimate and newly counted TCP share for FIRST candidate on '
+                        if group['newly_counted'] == group['ballots'] else 'estimated final share for FIRST candidate on ')
+            add(seat, quantity+scope,
                 group['first_share_before'], group['first_share_after'], pair=opponents)
             for label, field in [('size of that group', 'ballots'), ('newly counted TCP within it', 'newly_counted')]:
                 rows.append({'seat': seat, 'quantity': scope+' — '+label, 'pair': opponents,
@@ -774,7 +781,7 @@ def headline_booth_comparison(packet, seat, record, candidate, count_type):
         total = rows.get('reported cumulative FP total')
         count = 'first preferences'
     else:
-        share = gap = rows.get('observed TCP share versus reference forecast for the same pair')
+        share = gap = rows.get('observed TCP share versus reference forecast for the same pair') or rows.get(APPROXIMATE_TCP_SHARE)
         total = rows.get('reported cumulative TCP total for this pairing')
         if not total or candidate not in total['pair']:
             return None
@@ -787,6 +794,8 @@ def headline_booth_comparison(packet, seat, record, candidate, count_type):
     if gap['direction'] != 'at expectations':
         direction = gap['direction'].split()[0]
         comparison = f"**{gap['magnitude']}** {direction} the earlier estimate"
+    if gap['quantity'] == APPROXIMATE_TCP_SHARE:
+        comparison += ' based on the booth FP count and average preferences for this vote type'
     location, opening = booth_location(event)
     point = f"{opening}, {candidate} received **{share['observed_share']}** of **{number}** {count}, {comparison}."
     return location, point

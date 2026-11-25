@@ -306,11 +306,9 @@ def input_messages(packet, instructions, settings, *, include_local_win_order=Fa
             {k: group[k] for k in ('category', 'pair', 'units', 'largest_reporting_booths')}
             for group in groups] for seat, groups in packet['ranked_tcp_groups'].items()}
         comparison['ranked_tcp_reading'] = (
-            'The two estimates follow exactly the same district ballots whose first preferences were known '
-            'but whose TCP was outstanding at the earlier forecast. The later figure combines new counts '
-            'with the ranked estimate for the remainder. Give the group comparison in seat_changes. '
-            'Name the reporting booth separately. Neither figure is an earlier estimate for an individual booth '
-            'or the district as a whole. This can help explain the direction of a forecast change.')
+            'When the newly counted TCP covers the entire earlier group, compare its actual share with '
+            'the earlier estimate for those ballots and name the reporting places. Skip groups still '
+            'partly estimated. Give the projected final district TCP separately.')
     if include_local_win_order and 'observed_count_changes_by_seat' in packet:
         # The win table is already ordered by absolute percentage-point change.
         # List each district once if its counts also changed during this window.

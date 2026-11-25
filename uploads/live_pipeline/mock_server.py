@@ -13,12 +13,14 @@ import threading
 from .storage import fingerprint
 from .worker import utc
 from .comparisons import instant
+from .protocol import source_observation
 
 
 class MockServer:
     def __init__(self):
         self.runs, self.packages, self.latest, self.receipts = {}, {}, {}, {}
         self.mutex = threading.Lock()
+        self.completed = {}
         owner = self
         class Handler(BaseHTTPRequestHandler):
             def log_message(self, *_): pass
@@ -72,6 +74,17 @@ class MockServer:
                 return 409, {'error': 'Run metadata conflict'}
             self.runs[identity] = value
             return 200, {'run_id': identity, 'public_route': f"/{value['election']}/replays/{identity}" if value['kind'] == 'replay' else f"/{value['election']}/live"}
+        complete = re.fullmatch(r'/forecast-api/live/v1/runs/([a-z0-9-]+)/complete', path)
+        if complete:
+            run = complete[1]
+            config = self.runs.get(run, {})
+            if config.get('kind') != 'replay' or config['election'] != value['election']:
+                return 404, {}
+            stored = {id_: receipt['sha256'] for (r, id_), receipt in self.receipts.items() if r == run}
+            if stored != value['publications'] or not self.latest.get(run):
+                return 409, {'detail': 'Publication manifest mismatch'}
+            return 200, {'run_id': run, 'completed_at': self.completed.setdefault(run, utc()),
+                         'replay_complete': True, 'snapshot_count': len(stored) - int('origin' in stored)}
         match = re.fullmatch(r'/forecast-api/live/v1/runs/([a-z0-9-]+)/forecasts/(f\d{8}|origin)', path)
         if not match:
             return 404, {}
@@ -86,11 +99,17 @@ class MockServer:
             if fingerprint(self.packages[key]) != sha:
                 return 409, {'error': 'Forecast identity is already immutable'}
         else:
+            source = source_observation(payload['forecast'])
+            if source:
+                for (stored_run, stored_id), previous in self.packages.items():
+                    if stored_run == run and source_observation(previous['forecast']) == source:
+                        return 409, {'detail': 'Feed observation already published.', 'existing_forecast_id': stored_id}
+            self.completed.pop(run, None)
             self.packages[key] = payload
             self.receipts[key] = {'run_id': run, 'forecast_id': forecast, 'sha256': sha, 'published_at': utc()}
         newest = self.latest.get(run)
         # Source observations advance monotonically within a run. The forecast
-        # sequence resolves same-time recalculations following an input revision.
+        # sequence resolves distinct observations sharing the same source time.
         if not payload['forecast'].get('origin') and (newest is None or (instant(payload['forecast']['source_time'], payload['run']['timezone']), forecast) > (
                 instant(self.packages[run, newest]['forecast']['source_time'], payload['run']['timezone']), newest)):
             self.latest[run] = forecast

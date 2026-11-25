@@ -8,6 +8,7 @@
 #include "LiveResultsInput.h"
 #include "LiveInputRecovery.h"
 #include "MajorPartyFpMath.h"
+#include "SoftPairing.h"
 #include "GroupedOthersFp.h"
 #include <optional>
 #include "Party.h"
@@ -51,6 +52,15 @@ public:
 	friend class LivePreparation;
 	friend class LiveV2::Election;
 
+	// The measured Labor share of minor-party transfers and the primary votes
+	// which supplied that measurement must describe the same ballots. Each
+	// donor's primary is a percentage of all formal ballots in that count.
+	struct HistoricalCoalitionPreferences {
+		MajorPartyFpMath::MinorPreferenceRange laborFlow;
+		std::map<int, double> donorFpPercent;
+		std::optional<int> partyOutsideHistoricalCorrection;
+	};
+
 	struct PastSeatResult {
 		std::map<int, double> fpVotePercent; // map from party index -> percentage
 		std::map<int, int> fpVoteCount; // map from party index -> number
@@ -61,8 +71,8 @@ public:
 		std::optional<int> groupedCandidateCount; // Unknown until original FP candidate rows are read.
 		bool excludedNationalAgainstLiberal = false;
 		bool nationalTppReference = false; // Fixed before counting, including when the feed realigns.
-		bool useNamedCoalitionPreferenceHistory = false;
-		std::optional<MajorPartyFpMath::MinorPreferenceRange> minorPreferencesInCoalitionContest;
+		bool hadNationalPrimary = false; // Current primary accounting can use this even without a matched historical TPP.
+		std::optional<HistoricalCoalitionPreferences> coalitionPreferences;
 	};
 
 	struct SeatStatistics {
@@ -279,6 +289,9 @@ private:
 		FeedbackFunc feedback);
 
 	bool runBettingOddsCalibrations(FeedbackFunc feedback = [](std::string) {});
+	bool prepareSoftPairing(FeedbackFunc feedback, std::string const& term);
+	void fitSoftPairing(SimulationRun const& reference);
+	std::vector<SoftPairing::Shift> softPairingShifts;
 
 	bool runLiveBaselineSimulation(FeedbackFunc feedback = [](std::string) {});
 
@@ -428,6 +441,9 @@ private:
 	// Optional starting Greens FP percentage, conditional on standing. Set only
 	// when there is no previous result, separately from all measured votes.
 	std::vector<std::optional<double>> missingGreensFpMedian;
+	// The Victorian forecasts can reconstruct major-party primaries from a
+	// named historic TPP. Where the old counts do not match, the current
+	// Coalition split and the historical preference estimate are handled separately.
 	bool useSeparateCoalitionPreferenceAccounting = false;
 	bool projectBothCoalitionMatchups = false;
 	std::vector<SeatType> seatTypes;

@@ -50,6 +50,9 @@ LiveSnapshotSequenceDialog::LiveSnapshotSequenceDialog(wxWindow* parent,
     outer->Add(new wxStaticText(this, wxID_ANY, "Resolved sequence:"), 0, wxLEFT | wxRIGHT, 10);
     previewText = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 100), wxTE_MULTILINE | wxTE_READONLY);
     outer->Add(previewText, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+    jointFpTrial = new wxCheckBox(this, wxID_ANY, "Trial joint FP adjustment by historical booth support (this session)");
+    jointFpTrial->SetValue(this->settings.jointFpTrial);
+    outer->Add(jointFpTrial, 0, wxLEFT | wxRIGHT | wxTOP, 10);
     status = new wxStaticText(this, wxID_ANY, "");
     outer->Add(status, 0, wxEXPAND | wxALL, 10);
     auto buttons = new wxStdDialogButtonSizer;
@@ -78,6 +81,7 @@ LiveSnapshotSequenceDialog::LiveSnapshotSequenceDialog(wxWindow* parent,
 
 LiveSnapshotSequence::Settings LiveSnapshotSequenceDialog::selection() const {
     auto selected = settings;
+    selected.jointFpTrial = jointFpTrial->GetValue();
     // Keep a custom folder portable in the project file. Convert the native
     // control text explicitly to UTF-8 so non-ASCII Windows paths survive save.
     auto path = LiveResultsInput::pathFromUtf8(folderInput->GetValue().ToStdString(wxConvUTF8));

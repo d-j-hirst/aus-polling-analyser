@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-11-22T11:25:20Z",
+  "updated_at_utc": "2026-11-25T02:57:46Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -5653,9 +5653,9 @@
           "recorded_mtime_utc": "2026-11-22T11:22:18.022521Z"
         },
         "pipeline_registry.json": {
-          "sha256": "ed3688041e42d84b46526528fc59f75a1b710728e7f26dd5e44b2d4241c0a9e1",
-          "size_bytes": 48376,
-          "recorded_mtime_utc": "2026-11-20T12:06:15.286267Z"
+          "sha256": "ba538a559e338c1899d2b782d42f40ec84737c39f90da9e957ecaee5ac63f680",
+          "size_bytes": 48479,
+          "recorded_mtime_utc": "2026-11-25T02:56:23.155651Z"
         },
         "scripts/__init__.py": {
           "sha256": "d30f97119ad0e36b9f1fd52fcae6097b1b207747d0c17933368fd996ce1f7b8f",
@@ -7888,6 +7888,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261125T025746Z-coverage_extension-pipeline-orchestration-tools-3e23f15d",
+          "recorded_at_utc": "2026-11-25T02:57:46Z",
+          "change_type": "coverage_extension",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Track Victorian indicative-count and district-pairing inputs as seat-simulation dependencies. This registry entry describes the inputs and has no effect on calculated votes.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2022vic",
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": [
+              "cpp_seat_simulation"
+            ]
+          }
         }
       ]
     },
@@ -10066,14 +10090,21 @@
       "provenance_revision": 1
     },
     "preference_evidence_inputs": {
-      "description": "Observed original-source preference counts, full exclusion sequences and explicitly recorded source/candidate contexts; not fitted forecast parameters.",
+      "description": "Observed preference counts, ranking assumptions and district preference evidence used to prepare forecasts.",
       "file_patterns": [
+        "Data/indicative-preference-history-2022vic.csv",
         "Preferences/*.json",
-        "Preferences/*.json.gz"
+        "Preferences/*.json.gz",
+        "Preferences/pairing/*.json"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 16,
+      "semantic_revision": 19,
       "files": {
+        "Data/indicative-preference-history-2022vic.csv": {
+          "sha256": "73798e3b014d3d512dfa35236ce90157e5dfe7d63de770b2c99890767e0d4bb1",
+          "size_bytes": 373,
+          "recorded_mtime_utc": "2026-11-25T02:50:53.806590Z"
+        },
         "Preferences/2022vic.json": {
           "sha256": "2ccd8eaca4441e7f4b942ae7d231d05f0a6c7d137fdb87ee81136181937d1cee",
           "size_bytes": 1849,
@@ -10090,9 +10121,9 @@
           "recorded_mtime_utc": "2026-11-13T22:22:38.435841Z"
         },
         "Preferences/2026vic.json": {
-          "sha256": "84f940cdd0fd00c9433db8408815c24626494bc18fa9cf8942bcda4477408b6b",
-          "size_bytes": 13674,
-          "recorded_mtime_utc": "2026-11-20T00:33:21.802645Z"
+          "sha256": "3d651bd4996882afaf560bbf33b513d3ac2fb7c1fd5e26cebb27d72042b7fbdd",
+          "size_bytes": 14924,
+          "recorded_mtime_utc": "2026-11-24T21:59:35.121484Z"
         },
         "Preferences/2028fed.json": {
           "sha256": "3152bc1d47a9fda8371eb6948f460f5761f71fe08fe2b80545ebb25252989155",
@@ -10108,6 +10139,16 @@
           "sha256": "6e9dd5bf9a9ba59d82774f073208548cf4fa63d47759d2f9d1fd1e2b61463394",
           "size_bytes": 742188,
           "recorded_mtime_utc": "2026-11-10T14:01:37.743273Z"
+        },
+        "Preferences/pairing/2022vic.json": {
+          "sha256": "32f60cadcec9045eaead06cd9da75d05c74360654cc120efccd814a046266e28",
+          "size_bytes": 10287,
+          "recorded_mtime_utc": "2026-11-25T01:55:22.491133Z"
+        },
+        "Preferences/pairing/2026vic.json": {
+          "sha256": "65de48d18e90ff5d8a74c63cf529a70a5a1f84b81e6671791f0ae6f9123472d7",
+          "size_bytes": 10188,
+          "recorded_mtime_utc": "2026-11-25T01:55:22.497694Z"
         },
         "Preferences/sources.json": {
           "sha256": "6a5718218269f0d07b2db8bf630a764823d37534bcc09dda5d5a6a1cc844e9ab",
@@ -10511,9 +10552,76 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261124T232101Z-other-preference-evidence-inputs-5201d143",
+          "recorded_at_utc": "2026-11-24T23:21:01Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 17,
+          "provenance_revision": 17,
+          "summary": "Seat odds + HTV card evidence",
+          "files": [
+            "Preferences/2026vic.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261125T020545Z-methodology-preference-evidence-inputs-07c1a26d",
+          "recorded_at_utc": "2026-11-25T02:05:45Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 18,
+          "provenance_revision": 18,
+          "summary": "Add pre-election Victorian district preference evidence for the tapered Labor\u2013Greens and Labor\u2013Liberal primary vote reconciliation.",
+          "files": [
+            "Preferences/pairing/2022vic.json",
+            "Preferences/pairing/2026vic.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2022vic",
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20261125T025542Z-coverage_extension-preference-evidence-inputs-5ecabc68",
+          "recorded_at_utc": "2026-11-25T02:55:42Z",
+          "change_type": "coverage_extension",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 19,
+          "provenance_revision": 19,
+          "summary": "Use five VEC 2022 indicative Labor-National counts with their own first preferences for the 2026 Victorian seat simulation. Exclude One Nation from the size of the historical correction.",
+          "files": [
+            "Data/indicative-preference-history-2022vic.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": [
+              "cpp_seat_simulation"
+            ]
+          }
         }
       ],
-      "provenance_revision": 16
+      "provenance_revision": 19
     },
     "preference_evidence_tools": {
       "description": "Cache-only extraction and population/provenance validation of observed preference evidence.",

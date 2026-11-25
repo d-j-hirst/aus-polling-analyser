@@ -127,21 +127,46 @@ inline void addCounted(Category& category, Pair pair, Shares const& fp,
 	Shares used;
 	double left = counted;
 	auto take = [&](Shares const& population) {
-		Shares capacity;
-		double total = 0;
+		// A partial TCP may cover only a small part of the reported FP.
+		// Start with a representative slice of the available FP voters.
+		// Limiting each finalist to their TCP count *before* taking the
+		// slice would exaggerate the share with a minor-party primary.
+		Shares weights;
 		for (auto const& [party,votes] : population) {
-			double amount = std::min(votes,votesFor(available,party));
-			if (party == pair[0]) amount = std::min(amount,firstTotal - votesFor(used,party));
-			if (party == pair[1]) amount = std::min(amount,secondTotal - votesFor(used,party));
-			if (amount > 0) { capacity.emplace(party,amount); total += amount; }
+			double const weight = std::min(votes,votesFor(available,party));
+			if (weight > 0) weights.emplace(party,weight);
 		}
-		if (total == 0) return;
-		double const fraction = std::min(left/total,1.0);
-		for (auto const& [party,amount] : capacity) {
-			used[party] += fraction*amount;
-			available.at(party) -= fraction*amount;
+		auto assign = [&](int party, double amount) {
+			used[party] += amount;
+			available.at(party) -= amount;
+		};
+		while (!weights.empty() && left > 0) {
+			double total = 0.;
+			for (auto const& entry : weights) total += entry.second;
+			double const fraction = std::min(1.,left/total);
+			// Each finalist keeps their own primaries. If the proposed
+			// slice would give them more primaries than their entire TCP,
+			// fix that side at its observed limit and share the remaining
+			// places proportionally among the other sources. At most two
+			// finalists can hit a limit; a fully matching count needs no refit.
+			bool limited = false;
+			for (int finalist : pair) {
+				auto found = weights.find(finalist);
+				if (found == weights.end()) continue;
+				double const room = std::max(0.,votesFor(tcp,finalist)-votesFor(used,finalist));
+				if (fraction*found->second > room) {
+					assign(finalist,room);
+					left = std::max(0.,left-room);
+					weights.erase(found);
+					limited = true;
+				}
+			}
+			if (!limited) {
+				for (auto const& [party,weight] : weights) assign(party,fraction*weight);
+				left = std::max(0.,left-total);
+				break;
+			}
 		}
-		left = std::max(0.0,left - fraction*total);
 	};
 	take(fp);
 	if (left > 1e-9) take(available);

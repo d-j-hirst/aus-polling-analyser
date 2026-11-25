@@ -25,6 +25,8 @@ struct CurrentFile {
 	// The watcher keeps the commission's observation time alongside the compact
 	// code used to name reports. A manually selected archive has only its capture code.
 	std::optional<std::string> sourceObservationTime = std::nullopt;
+	// Only an explicitly configured snapshot sequence requests the experimental FP fit.
+	bool jointFpTrial = false;
 };
 
 struct PreferenceCountCutoff {

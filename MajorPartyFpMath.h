@@ -8,6 +8,23 @@
 // Use classic counts to relate major-party first preferences to TPP in one
 // district, and find adjustments to match the overall primary-vote forecast.
 namespace MajorPartyFpMath {
+
+	// Estimate the percent of one prominent centrist candidate's voters who
+	// rank Labor above the Coalition. The first five FP points use the usual
+	// party flow. The next ten gradually introduce the historically estimated
+	// tactical flow, and the remainder receive that rate. The cap depends on
+	// the candidate's FP, the current Labor TPP and the average previous Labor
+	// margin. Several small candidates grouped as Others are ineligible.
+	inline double tacticalFlow(double voteShare, double laborTpp, double previousAverage, double base) {
+		if (voteShare <= 5.) return base;
+		double const cap = std::clamp(laborTpp <= 50. ? 4.503 - .268 * voteShare + 1.344 * laborTpp :
+			100. - (24.318 - .788 * voteShare + 1.0781 * (100. - laborTpp)), 5., 95.);
+		double const upper = previousAverage > 0. ? std::max(50. - 6. * previousAverage, 100. - cap) :
+			std::min(50. - 6. * previousAverage, cap);
+		double const transition = std::min(voteShare - 5., 10.);
+		double const middle = base + (upper - base) * transition * .05;
+		return std::clamp((base * 5. + middle * transition + upper * std::max(0., voteShare - 15.)) / voteShare, 1., 99.);
+	}
 	// Assumed fraction of continuing ballots from the excluded Coalition
 	// partner that prefer Labor. Used when calibrating a historical Labor–Liberal
 	// count without a separate scrutiny of the partner's ballots.

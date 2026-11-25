@@ -202,6 +202,73 @@ def qualifying_shift(districts, favoured, change):
     return max(abs(low-change), abs(high-change)) <= abs(change) / 4
 
 
+def contest_for_second(row, opponent, endpoints):
+    """Explain an apparently contrary FP return when the candidate's main
+    route to winning was to qualify ahead of a third candidate. The booth
+    comparison is against the likely opponent. The simulation summaries
+    show who competed to face that opponent across the district."""
+    seat, subject, delta = row['seat'], row['party_id'], row['change_pp']
+    if not endpoints or endpoints[0].get('input_revision') != endpoints[1].get('input_revision'):
+        return None
+    districts = [s['seats'][seat] for s in endpoints]
+    def same_candidate(party):
+        earlier = districts[0]['candidates'].get(party) or {}
+        return earlier.get('name') and earlier == districts[1]['candidates'].get(party)
+
+    if not all(same_candidate(p) for p in (subject, opponent)):
+        return None
+    outcomes = [matchup_outlook(s, seat, subject, opponent) for s in endpoints]
+    if None in outcomes:
+        return None
+    (p0, w0, outside0), (p1, w1, outside1) = outcomes
+    change = p1-p0
+    # Hold the win rates inside and outside this matchup at their averages.
+    # Only use the story if making the final changed by at least one point
+    # and that change accounts for at least half the overall win movement.
+    contribution = change * ((w0-outside0) + (w1-outside1)) / 200
+    if (abs(change) < 1 or delta*change <= 0 or contribution*delta <= 0
+            or abs(contribution) < abs(delta)/2 or not qualifying_shift(districts, subject, change)):
+        return None
+
+    # Name the rival for second only when these two alternatives account
+    # for virtually every final at both dates. Even if all the remaining
+    # draws involved someone else, they could explain at most a quarter of
+    # the pairing change at either date, capped at one point of all draws.
+    allowance = min(1, abs(change)/4)
+    challengers = []
+    for district, frequency in zip(districts, (p0, p1)):
+        rivals = {}
+        for key, chance in district['pairing_percent'].items():
+            pair = key.split('/')
+            if len(pair) == 2 and opponent in pair and subject not in pair:
+                rivals[pair[1] if pair[0] == opponent else pair[0]] = chance
+        third = max(rivals, key=rivals.get, default=None)
+        if third is None or 100-frequency-rivals[third] > min(allowance, (100-frequency)/4):
+            return None
+        challengers.append(third)
+    third = challengers[0]
+    if third != challengers[1] or not same_candidate(third):
+        return None
+
+    person, finalist, competitor = ('{candidate:'+seat+':'+p+'}' for p in (subject, opponent, third))
+    verb = 'rose' if change > 0 else 'fell'
+    more_likely = person if change > 0 else competitor
+    less_likely = competitor if change > 0 else person
+    text = ''
+    means = [d.get('fp_mean_percent', {}) for d in districts]
+    if all(m.get(p) is not None for m in means for p in (subject, third)):
+        gap_shift = (means[1][subject]-means[1][third]) - (means[0][subject]-means[0][third])
+        if gap_shift*change > 0 and abs(gap_shift) >= .1:
+            text = (f'Across the seat, the projected FP gap shifted **{abs(gap_shift):.1f} pp** '
+                    f'towards {more_likely} relative to {less_likely}. ')
+    text += (f'The chance of {person} getting past {competitor} to face {finalist} {verb} '
+             f'from **{p0:.1f}%** to **{p1:.1f}%**.')
+    if round(w0, 1) != round(w1, 1):
+        return text + (f' Against {finalist}, the win chance for {person} {"rose" if w1 > w0 else "fell"} '
+                       f'from **{w0:.1f}%** to **{w1:.1f}%**.')
+    return text + f' {person} won **{w1:.1f}%** of those matchups at both updates.'
+
+
 def mixed_matchup_explanation(row, endpoints):
     """Look for two simultaneous changes: which opponent the candidate faces,
     and how often they win a specified contest. Compare the same people in
@@ -322,7 +389,8 @@ def explain(row, endpoints):
         return (f'The chance of {{candidate:{seat}:{subject}}} facing {{candidate:{seat}:{opponent}}} {verb} '
                 f'from **{p0:.1f}%** to **{p1:.1f}%**. {{candidate:{seat}:{subject}}} won **{win1:.1f}%** '
                 f'of those simulations. The change in opponent accounted for most of the {outcome} in win chance.')
-    return (f'Both forecasts favoured {{candidate:{seat}:{favoured}}} in a final count against {{candidate:{seat}:{other}}}. '
+    return (f'The latest forecast still favours {{candidate:{seat}:{favoured}}} to beat '
+            f'{{candidate:{seat}:{other}}} if they reach the final two. '
             f'The chance of that pairing {verb} from **{display.decimal(p0)}%** '
             f'to **{display.decimal(p1)}%**, accounting for most of the {outcome} in win chance for '
             f'{{candidate:{seat}:{subject}}}.')

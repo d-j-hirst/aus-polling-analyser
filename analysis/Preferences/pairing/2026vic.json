@@ -1,0 +1,391 @@
+{
+  "election": "2026vic",
+  "previous_election": "2022vic",
+  "greens_strength_slope": 0.44417409801822616,
+  "greens_reference_log_odds": -2.2783422198838528,
+  "greens_rate": 0.8194,
+  "other_rate": 0.4925,
+  "one_nation_rate": 0.255,
+  "districts": {
+    "Albert Park": {
+      "grouped_rate": 0.60584125,
+      "history_log_odds": -0.00309696,
+      "named_independent": false
+    },
+    "Ashwood": {
+      "grouped_rate": 0.55989857,
+      "history_log_odds": -0.09706305,
+      "named_independent": false
+    },
+    "Bass": {
+      "grouped_rate": 0.63777907,
+      "history_log_odds": 0.07115723,
+      "named_independent": false
+    },
+    "Bayswater": {
+      "grouped_rate": 0.55912367,
+      "history_log_odds": -0.10420179,
+      "named_independent": false
+    },
+    "Bellarine": {
+      "grouped_rate": 0.54810113,
+      "history_log_odds": -0.04673306,
+      "named_independent": false
+    },
+    "Benambra": {
+      "grouped_rate": 0.56423127,
+      "history_log_odds": 0.09220648,
+      "named_independent": true
+    },
+    "Bentleigh": {
+      "grouped_rate": 0.6526161,
+      "history_log_odds": -0.05574747,
+      "named_independent": false
+    },
+    "Berwick": {
+      "grouped_rate": 0.4123994,
+      "history_log_odds": -0.41312811,
+      "named_independent": false
+    },
+    "Box Hill": {
+      "grouped_rate": 0.55250874,
+      "history_log_odds": -0.13422031,
+      "named_independent": false
+    },
+    "Brighton": {
+      "grouped_rate": 0.52399111,
+      "history_log_odds": 0.10950012,
+      "named_independent": false
+    },
+    "Broadmeadows": {
+      "grouped_rate": 0.52981374,
+      "history_log_odds": -0.16050636,
+      "named_independent": false
+    },
+    "Brunswick": {
+      "grouped_rate": 0.67864888,
+      "history_log_odds": 0.26899617,
+      "named_independent": false
+    },
+    "Bulleen": {
+      "grouped_rate": 0.50387938,
+      "history_log_odds": -0.24709938,
+      "named_independent": false
+    },
+    "Bundoora": {
+      "grouped_rate": 0.55564648,
+      "history_log_odds": -0.21946384,
+      "named_independent": false
+    },
+    "Carrum": {
+      "grouped_rate": 0.51166416,
+      "history_log_odds": -0.26581716,
+      "named_independent": false
+    },
+    "Caulfield": {
+      "grouped_rate": 0.59926236,
+      "history_log_odds": 0.09022754,
+      "named_independent": false
+    },
+    "Clarinda": {
+      "grouped_rate": 0.54002599,
+      "history_log_odds": -0.05637285,
+      "named_independent": true
+    },
+    "Cranbourne": {
+      "grouped_rate": 0.46247232,
+      "history_log_odds": -0.18977263,
+      "named_independent": false
+    },
+    "Croydon": {
+      "grouped_rate": 0.48171745,
+      "history_log_odds": -0.11833964,
+      "named_independent": true
+    },
+    "Dandenong": {
+      "grouped_rate": 0.5151034,
+      "history_log_odds": 0.0665681,
+      "named_independent": false
+    },
+    "Eildon": {
+      "grouped_rate": 0.5625479,
+      "history_log_odds": -0.18774855,
+      "named_independent": false
+    },
+    "Eltham": {
+      "grouped_rate": 0.57914326,
+      "history_log_odds": -0.05790774,
+      "named_independent": false
+    },
+    "Essendon": {
+      "grouped_rate": 0.57806928,
+      "history_log_odds": -0.13265514,
+      "named_independent": true
+    },
+    "Eureka": {
+      "grouped_rate": 0.54802879,
+      "history_log_odds": -0.14814782,
+      "named_independent": false
+    },
+    "Evelyn": {
+      "grouped_rate": 0.60514727,
+      "history_log_odds": -0.17000629,
+      "named_independent": false
+    },
+    "Footscray": {
+      "grouped_rate": 0.54158411,
+      "history_log_odds": 0.09557437,
+      "named_independent": true
+    },
+    "Frankston": {
+      "grouped_rate": 0.53132507,
+      "history_log_odds": -0.10593144,
+      "named_independent": false
+    },
+    "Geelong": {
+      "grouped_rate": 0.59357324,
+      "history_log_odds": -0.04403095,
+      "named_independent": false
+    },
+    "Glen Waverley": {
+      "grouped_rate": 0.5986147,
+      "history_log_odds": -0.06318862,
+      "named_independent": false
+    },
+    "Greenvale": {
+      "grouped_rate": 0.48697569,
+      "history_log_odds": -0.34915174,
+      "named_independent": false
+    },
+    "Hastings": {
+      "grouped_rate": 0.63802308,
+      "history_log_odds": -0.13517476,
+      "named_independent": false
+    },
+    "Hawthorn": {
+      "grouped_rate": 0.68310252,
+      "history_log_odds": 0.31680107,
+      "named_independent": true
+    },
+    "Ivanhoe": {
+      "grouped_rate": 0.57162162,
+      "history_log_odds": -0.04153832,
+      "named_independent": true
+    },
+    "Kalkallo": {
+      "grouped_rate": 0.55430251,
+      "history_log_odds": -0.22563183,
+      "named_independent": false
+    },
+    "Kew": {
+      "grouped_rate": 0.62924967,
+      "history_log_odds": 0.22292378,
+      "named_independent": true
+    },
+    "Kororoit": {
+      "grouped_rate": 0.58073946,
+      "history_log_odds": -0.00063794,
+      "named_independent": false
+    },
+    "Lara": {
+      "grouped_rate": 0.58444503,
+      "history_log_odds": -0.08654394,
+      "named_independent": false
+    },
+    "Laverton": {
+      "grouped_rate": 0.59391367,
+      "history_log_odds": 0.05936893,
+      "named_independent": false
+    },
+    "Macedon": {
+      "grouped_rate": 0.59760796,
+      "history_log_odds": -0.02516746,
+      "named_independent": true
+    },
+    "Malvern": {
+      "grouped_rate": 0.53111103,
+      "history_log_odds": -0.10998197,
+      "named_independent": true
+    },
+    "Melbourne": {
+      "grouped_rate": 0.55401579,
+      "history_log_odds": 0.01470329,
+      "named_independent": false
+    },
+    "Melton": {
+      "grouped_rate": 0.51501867,
+      "history_log_odds": -0.17681496,
+      "named_independent": false
+    },
+    "Mill Park": {
+      "grouped_rate": 0.5402638,
+      "history_log_odds": -0.28992857,
+      "named_independent": false
+    },
+    "Monbulk": {
+      "grouped_rate": 0.61921086,
+      "history_log_odds": -0.10164273,
+      "named_independent": false
+    },
+    "Mordialloc": {
+      "grouped_rate": 0.46748459,
+      "history_log_odds": -0.16512674,
+      "named_independent": false
+    },
+    "Mornington": {
+      "grouped_rate": 0.65740209,
+      "history_log_odds": -0.0313175,
+      "named_independent": true
+    },
+    "Mulgrave": {
+      "grouped_rate": 0.39628149,
+      "history_log_odds": -0.58107881,
+      "named_independent": true
+    },
+    "Narracan": {
+      "grouped_rate": 0.6243,
+      "history_log_odds": 0.0,
+      "named_independent": false
+    },
+    "Narre Warren North": {
+      "grouped_rate": 0.467347,
+      "history_log_odds": -0.16580243,
+      "named_independent": false
+    },
+    "Narre Warren South": {
+      "grouped_rate": 0.45404002,
+      "history_log_odds": -0.2313864,
+      "named_independent": false
+    },
+    "Nepean": {
+      "grouped_rate": 0.55195177,
+      "history_log_odds": -0.23641436,
+      "named_independent": true
+    },
+    "Niddrie": {
+      "grouped_rate": 0.52951088,
+      "history_log_odds": -0.1727503,
+      "named_independent": false
+    },
+    "Northcote": {
+      "grouped_rate": 0.55060849,
+      "history_log_odds": 0.23614666,
+      "named_independent": false
+    },
+    "Oakleigh": {
+      "grouped_rate": 0.6123447,
+      "history_log_odds": -0.06255053,
+      "named_independent": false
+    },
+    "Pakenham": {
+      "grouped_rate": 0.4977773,
+      "history_log_odds": -0.13310932,
+      "named_independent": false
+    },
+    "Pascoe Vale": {
+      "grouped_rate": 0.57800567,
+      "history_log_odds": 0.18153324,
+      "named_independent": false
+    },
+    "Point Cook": {
+      "grouped_rate": 0.52352534,
+      "history_log_odds": -0.17970957,
+      "named_independent": false
+    },
+    "Polwarth": {
+      "grouped_rate": 0.55119026,
+      "history_log_odds": -0.13822225,
+      "named_independent": false
+    },
+    "Prahran": {
+      "grouped_rate": 0.5059036,
+      "history_log_odds": -0.18884216,
+      "named_independent": false
+    },
+    "Preston": {
+      "grouped_rate": 0.5512328,
+      "history_log_odds": 0.09061865,
+      "named_independent": false
+    },
+    "Richmond": {
+      "grouped_rate": 0.51229132,
+      "history_log_odds": -0.01371467,
+      "named_independent": false
+    },
+    "Ringwood": {
+      "grouped_rate": 0.60306333,
+      "history_log_odds": -0.11017069,
+      "named_independent": true
+    },
+    "Rowville": {
+      "grouped_rate": 0.46865403,
+      "history_log_odds": -0.18738676,
+      "named_independent": false
+    },
+    "Sandringham": {
+      "grouped_rate": 0.8292902,
+      "history_log_odds": -0.03725646,
+      "named_independent": false
+    },
+    "South Barwon": {
+      "grouped_rate": 0.55815569,
+      "history_log_odds": -0.10530563,
+      "named_independent": true
+    },
+    "South-West Coast": {
+      "grouped_rate": 0.63609379,
+      "history_log_odds": 0.06222044,
+      "named_independent": false
+    },
+    "St Albans": {
+      "grouped_rate": 0.48287324,
+      "history_log_odds": -0.2758152,
+      "named_independent": false
+    },
+    "Sunbury": {
+      "grouped_rate": 0.50758693,
+      "history_log_odds": -0.26793051,
+      "named_independent": false
+    },
+    "Sydenham": {
+      "grouped_rate": 0.52214191,
+      "history_log_odds": -0.16141147,
+      "named_independent": false
+    },
+    "Tarneit": {
+      "grouped_rate": 0.52100118,
+      "history_log_odds": -0.11525952,
+      "named_independent": false
+    },
+    "Thomastown": {
+      "grouped_rate": 0.57638967,
+      "history_log_odds": -0.24814678,
+      "named_independent": false
+    },
+    "Warrandyte": {
+      "grouped_rate": 0.5259081,
+      "history_log_odds": -0.14126873,
+      "named_independent": false
+    },
+    "Wendouree": {
+      "grouped_rate": 0.65202414,
+      "history_log_odds": 0.06136729,
+      "named_independent": false
+    },
+    "Werribee": {
+      "grouped_rate": 0.49917152,
+      "history_log_odds": -0.2307816,
+      "named_independent": false
+    },
+    "Williamstown": {
+      "grouped_rate": 0.54330606,
+      "history_log_odds": -0.06846604,
+      "named_independent": true
+    },
+    "Yan Yean": {
+      "grouped_rate": 0.5198323,
+      "history_log_odds": -0.130837,
+      "named_independent": false
+    }
+  }
+}

@@ -158,6 +158,46 @@ void testOrdinaryIndependentPrior()
     assert(candidatePriors().at(independent) == .35);
 }
 
+void testJointHistoricalSupport()
+{
+    using namespace LiveFpSupportGradient;
+    std::vector<Observation> returns{
+        {100,1000,320,1000,.16},{250,1000,380,1000,.28},{400,1000,430,1000,.4},
+        {550,1000,450,1000,.53},{700,1000,480,1000,.65},{850,1000,520,1000,.79}};
+    auto fitResult = fit(returns).value();
+    // Independent Python prototype on these six returns. A loss concentrated
+    // in strongholds leaves the weakest and strongest future places with
+    // adjustments of opposite sign. Beyond those places the effect is capped.
+    assert(std::abs(fitResult.slope + 1.8349504219924582) < 1e-10);
+    assert(fitResult.tilt(0,1000) == fitResult.tilt(100,1000) && fitResult.tilt(0,1000)>0);
+    assert(fitResult.tilt(1000,1000) == fitResult.tilt(850,1000) && fitResult.tilt(1000,1000)<0);
+    std::reverse(returns.begin(),returns.end());
+    assert(std::abs(fit(returns)->slope-fitResult.slope)<1e-10);
+    returns.resize(3);
+    assert(!fit(returns));
+    returns = {{100,1000,950,1000,.5},{500,1000,500,1000,.5},{500,1000,500,1000,.5},{500,1000,500,1000,.5}};
+    assert(!fit(returns)); // One unusual booth provides all the historical contrast.
+
+    Mix votes{40,30,20,10,0};
+    adjust(votes,{-.7,.4,0,0,0});
+    assert(std::abs(votes[0]-24.7377568870772)<1e-10 && std::abs(votes[1]-42.1253047447687)<1e-10);
+    assert(votes[4]==0 && votes[2]==2*votes[3]);
+    assert(std::abs(LiveOrdinaryUpdate::sum(votes)-100)<1e-10);
+    Mix two{50,50};
+    adjust(two,{-.6,.6});
+    assert(std::abs(std::log(two[1]/two[0])-.6)<1e-10);
+
+    // The district integration independently fits its ordinary swing. A trial
+    // tilt on the counted location cannot change the result; a historical
+    // match on its remaining postal ballots can. Neither changes turnout.
+    using LiveOrdinaryUpdate::Venue;
+    std::vector<Venue> booths{{{.5,.5},{50,50},100,true,{-1.,1.}},{{.5,.5},{0,0},300,false}};
+    auto predict = [&] { return LiveOrdinaryUpdate::remaining(booths,{.5,.5},{1,1}).value(); };
+    assert(std::abs(predict()[0]-.5)<1e-10);
+    booths[1].historicalSupportTilts = {-.6,.6};
+    assert(std::abs(predict()[1]-two[1]/100.)<1e-10);
+}
+
 void testSplitOrdinaryUpdate()
 {
     using namespace LiveOrdinaryUpdate;
@@ -258,8 +298,66 @@ void testTransferredArea()
     assert(result.laborPercent==48.);
 }
 
+void testAnonymousLiveFpAllocation()
+{
+    using Shares = std::map<int,double>;
+    int const secondInd = LiveData::IndependentPartyIdOffset + 9;
+    Shares counted, projected{{0,750},{3,60},{12,60},{15,50},{18,35},{secondInd,45}};
+    LiveData::VoteCountAccount account{&counted,&projected};
+    // The named IND already has its own share. The remaining parties and
+    // independent share a 20% pool across a projected 1,000 formal votes.
+    auto grouped = [](int id) { return id != 0 && id != 3; };
+    Shares prior{{OthersIndex,2},{EmergingPartyIndex,12},{EmergingIndIndex,6}};
+    auto split = [&]() {
+        Shares result{{0,74},{3,6},{OthersIndex,20}};
+        LiveFpIntegration::restoreAnonymousFpShares(result,prior,account,true,grouped);
+        assert(std::abs(result.at(OthersIndex) + result.at(EmergingPartyIndex)
+            + result.at(EmergingIndIndex) - 20.) < 1e-10);
+        assert(result.at(3) == 6);
+        return result;
+    };
+    auto early = split();
+    assert(early.at(EmergingPartyIndex) == 12 && early.at(EmergingIndIndex) == 6);
+    counted = {{0,500},{3,60},{12,40},{15,30},{18,20},{secondInd,10}};
+    // 10 percentage points have identities. For those ballots the largest
+    // eligible party has 4 points and the additional independent has one.
+    // The remaining 10 points still use the 60% / 30% pre-count allocation.
+    auto partial = split();
+    assert(partial.at(EmergingPartyIndex) == 10 && partial.at(EmergingIndIndex) == 4);
+    // A provider reporting 50 of the group's votes without a candidate
+    // breakdown supplies no additional limit on any one ballot line.
+    counted[OthersIndex] = 50;
+    projected[OthersIndex] = 50;
+    projected.at(0) -= 50;
+    assert(split() == partial);
+    projected.erase(OthersIndex);
+    projected.at(0) += 50;
+    counted = projected;
+    // The projected group contains 190 identified votes. Use its exact share
+    // now the count is complete; the best candidates have 60 and 45 votes.
+    Shares complete{{0,75},{3,6},{OthersIndex,19}};
+    LiveFpIntegration::restoreAnonymousFpShares(complete,prior,account,true,grouped);
+    assert(complete.at(EmergingPartyIndex) == 6 && complete.at(EmergingIndIndex) == 4.5);
+    assert(complete.at(OthersIndex) == 8.5);
+    // In other seats the emerging IND slot carries the identified principal
+    // independent. The separate six points must survive splitting Others.
+    Shares proxy{{0,75},{EmergingIndIndex,6},{OthersIndex,19}};
+    LiveFpIntegration::restoreAnonymousFpShares(proxy,prior,account,false,grouped);
+    assert(proxy.at(EmergingIndIndex) == 6 && proxy.at(OthersIndex) == 13);
+    // A genuine strong party can still support a large share even after all
+    // ballots have been counted. Here it actually received 12% on one line.
+    projected.at(12) += 60;
+    projected.at(0) -= 60;
+    counted = projected;
+    Shares strongParty{{0,69},{3,6},{OthersIndex,25}};
+    LiveFpIntegration::restoreAnonymousFpShares(strongParty,prior,account,true,grouped);
+    assert(strongParty.at(EmergingPartyIndex) == 12);
+}
+
 int main()
 {
+    testAnonymousLiveFpAllocation();
+    testJointHistoricalSupport();
     testSplitOrdinaryUpdate();
     testTransferredArea();
     testProjectedVoteShareEndpoints();

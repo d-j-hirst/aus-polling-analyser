@@ -122,7 +122,6 @@ private:
 	void recombineLiveCoalition(int seatIndex);
 	void integrateLiveFpAccount(int seatIndex, LiveData::VoteCountAccount const& account,
 		LiveData::FpIntegrationInformation const& information);
-	void restoreLiveFpGroups(int seatIndex, std::map<int,double> integrated, int independentGroup);
 	void determineSeatFinalResult(int seatIndex);
 	using TcpPair = std::pair<std::pair<int, double>, std::pair<int, double>>;
 	void applyTransferredNonClassicTcp(int seatIndex, TcpPair& pair) const;
@@ -195,6 +194,7 @@ private:
 	std::map<int, int> partyWins;
 	std::vector<double> regionSwing;
 	std::vector<double> partyOneNewTppMargin;
+	std::vector<double> pairingShiftFraction;
 	std::vector<Party::Id> seatWinner;
 	std::vector<ShareByPartyIndex> seatFpVoteShare;
 	std::vector<std::pair<std::pair<int, int>, double>> seatTcpVoteShare;

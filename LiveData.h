@@ -31,6 +31,10 @@ namespace LiveSourceSeatTcp { struct Curve; }
 // integer votes and the existing saved-report representation remain separate.
 namespace LiveData {
 
+// In candidate-level live accounts, a separately identified independent has
+// their ballot ID added to this offset. Registered parties use the lower IDs.
+inline constexpr int IndependentPartyIdOffset = 100000;
+
 // Election-wide reporting coverage, separate from the model's confidence in
 // the count. Both numerators are accepted, published candidate counts; TCP
 // includes classic TPP but excludes FP-derived estimates and retained counts

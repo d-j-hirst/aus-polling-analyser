@@ -125,7 +125,7 @@ actual classic counts where available. Unmeasured booths infer the Coalition
 opponent from their own FP. The estimates work with the existing seat
 configuration and project files.
 
-## Classic TPP and primary votes in the 2026 Victorian forecast
+## Classic TPP and primary votes in the 2022 and 2026 Victorian forecasts
 
 The forecast uses historical preferences to infer the major-party primaries
 that go with a simulated Labor TPP. When a National contested the previous
@@ -135,6 +135,21 @@ count and the separate published TPP when available for another final pair.
 The counts must cover the same formal votes as the historical first preferences.
 The seat setting for the previous margin supplies the swing projection. The
 counted historical TPP supplies the preference comparison.
+
+For the 2022 replay, the 2018 Labor TPP was counted against the Nationals
+in Morwell and Mildura and against the Liberals in Shepparton. Morwell's
+redistributed starting margin remains 4 points to Labor. The old-boundary
+Labor–National count identifies which opponent that margin refers to, while
+either Coalition candidate can reach the final two in a simulation. In the
+2018 Morwell distribution, the Nationals received 3,905 votes when the Liberal
+was excluded. At most 913 were inherited votes, so at least 2,992 of the
+4,955 original Liberal ballots preferred National to Labor. That leaves at
+most 1,963 available to Labor. Mildura had no Liberal candidate, while
+Shepparton's distribution leaves the National contribution to Labor uncertain.
+Districts without a reconciled count use the ordinary historical preference
+estimate, including the allowance for National voters reaching Labor where
+the previous final pair was Labor–Liberal, as in Bendigo East.
+[2018 forecast input](../analysis/Data/coalition-preference-history-2018vic.csv) · [2018 VEC district TPP totals](https://itsitecoreblobvecprd01.blob.core.windows.net/public-files/historical-results/state2018/summary.html) · [Morwell distribution](https://itsitecoreblobvecprd01.blob.core.windows.net/public-files/historical-results/state2018/distributionmorwelldistrict.html)
 
 In a classic count, the excluded Coalition partner can send some of its original
 first preferences to Labor. Remove this contribution before estimating how many
@@ -156,14 +171,33 @@ excluded Liberal primary, subject to the arithmetic of those totals. The
 optional table is captured with the other simulation inputs so a change also
 refreshes betting-odds calibration and the pre-count baseline. [Bass distribution](https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/bass-district-results/bass-results-distribution) · [Morwell distribution](https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/morwell-district-results/morwell-results-distribution) · [Mildura results](https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/mildura-district-results) · [Shepparton results](https://www.vec.vic.gov.au/results/state-election-results/2022-state-election-results/results-by-district/shepparton-district-results)
 
+In Gippsland East, Gippsland South, Lowan, Murray Plains and Ovens Valley, the
+2026 forecast uses the VEC's later indicative distributions of the 2022
+ballots. Each workbook supplies both the opening primaries and the final
+Labor–National totals for its district. For example, in Lowan, Labor started
+with 8,560 votes and finished with 12,299. Of the 9,193 voters who gave their
+first preference to a minor party or independent, 3,739 (40.7%) therefore
+preferred Labor to National. The official recheck still supplies turnout and
+the starting point for primary-vote swings.
+
+The forecast compares each measured flow with its expected flow for that
+workbook's mix of Greens, independent and grouped Others primaries. It carries
+the difference forward in proportion to the current non-major vote **excluding
+One Nation**, which stood in none of the five historical contests. For example,
+if non-major candidates together have 45% of the projected vote, including 30%
+for One Nation, the historical correction applies to 15% of the district's
+vote. The forecast still includes the estimated preferences of all 45% when
+calculating the result. [Five district counts](../analysis/Data/indicative-preference-history-2022vic.csv) · [VEC full preference distributions](https://www.vec.vic.gov.au/results/electoral-statistics/state-election-statistics/full-preference-distributions)
+
 For current scenarios involving a historical National candidate or two current
 Coalition candidates, Labor's own primary, the minor and independent preferences
 to Labor and the excluded partner's contribution must add to Labor TPP. One
-current Coalition candidate gives zero partner contribution. With two, the
-primary solver and the preference comparison share an assumption of 15.4% of
-the smaller partner's primary, measured as a share of the formal vote. This
-keeps both hypothetical classic counts on the same simulated TPP. The primary
-solver includes that quantity once. During statewide FP reconciliation, the
+current Coalition candidate gives zero partner contribution. With both parties
+standing, the model draws a separate rate for each partner's voters reaching
+Labor, centred on 20%. The primary calculation uses the excluded partner's
+rate and vote share for the fixed reference opponent. The same simulated
+primaries can then be used to estimate Labor's TPP against the other partner.
+During statewide FP reconciliation, the
 terminal adjustment keeps the split between Labor and the Coalition within the
 range that still permits the district TPP, where their combined primary allows
 it. Live votes are applied after this forecast calculation.

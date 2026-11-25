@@ -143,6 +143,9 @@ struct Evidence {
     double offset = 0, preferenceVotes = 0;
     bool matchingCurrentTcp = false;
     std::string fpSourceTime, tcpSourceTime;
+    // Keep the two original tallies as well as the measured flow. An identical
+    // TCP can reappear after a withdrawal beside a much larger FP return.
+    int firstTcpVotes = 0, secondTcpVotes = 0;
 };
 
 inline double evidenceOffset(double prior, std::optional<Evidence> const& evidence, int first, int second) {
@@ -339,7 +342,8 @@ inline std::optional<Evidence> measure(Counts const& fp, Counts const& tcp,
     // Half a vote keeps genuine all-one-way tiny batches finite. It becomes
     // negligible for the large batches which can meaningfully train a flow.
     double actual = (transfer->received+.5)/(transfer->votes+1);
-    return Evidence{fp,first,second,logOdds(actual)-logOdds(expected),transfer->votes,matchingCurrentTcp,{},{}};
+    return Evidence{fp,first,second,logOdds(actual)-logOdds(expected),transfer->votes,matchingCurrentTcp,
+        {},{},tcp.at(first),tcp.at(second)};
 }
 
 inline std::optional<Counts> remainingCohort(Counts const& fp, Evidence const& evidence) {

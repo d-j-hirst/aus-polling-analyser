@@ -1013,6 +1013,8 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   preparePreferenceCountObservations(previousElection,currentElection);
   auto blindFp = recomposeVoteCounts();
   prepareFpEvidence(declarations);
+  if (run.getSnapshotInput() && run.getSnapshotInput()->jointFpTrial)
+    prepareFpSupportGradients(blindFp);
   refreshFpEvidenceProjections();
   preparePreferenceLearning(previousElection,currentElection,pairPreferenceHistory);
   prepareTppProjectionSensitivities();
@@ -1310,6 +1312,10 @@ void Election::preparePreferenceLearning(Results2::Election const& previousElect
     for (auto& [pair,account] : prepared[s]) {
       auto pool = evidence.find(pair);
       if (pool == evidence.end()) continue;
+      // Booth FP exports retain the original candidate IDs. Preserve their
+      // link to the ranked model's parties so a later TCP return can be
+      // compared with the rates in force before that booth reported.
+      std::map<int,std::map<int,int>> pendingSources;
       for (int index : seat.booths) {
         auto const& booth = readBooths().at(index);
         auto const& n = booth.node;
@@ -1330,7 +1336,11 @@ void Election::preparePreferenceLearning(Results2::Election const& previousElect
           account.reportedFp[preferenceModelParty(party,seat)] += votes;
         auto const pending = pendingPrimaries(n.fpVotesCurrent,booth.preferenceEvidence,
           pair,counted,matchingTcp && booth.hasTcpRevision());
-        for (auto const& [party,votes] : pending) projection.pending[preferenceModelParty(party,seat)] += votes;
+        for (auto const& [party,votes] : pending) {
+          int const source = preferenceModelParty(party,seat);
+          projection.pending[source] += votes;
+          pendingSources[category][party] = source;
+        }
         double const newVotes = std::max(0.0,n.totalFpVotesProjected()-n.totalFpVotesCurrent());
         if (booth.receivesFpBatches()) {
           for (auto const& [party,share] : booth.futureFpShares)
@@ -1355,13 +1365,20 @@ void Election::preparePreferenceLearning(Results2::Election const& previousElect
           {"retained_prior_spread",fit.retainedPriorSpread},{"counted_first",account.countedFirst},
           {"counted_second",account.countedSecond}};
         double pending = 0, referenceFirst = 0, adjustedFirst = 0;
+        std::map<int,double> firstRates;
         for (auto const& [party,votes] : projection.pending) {
           auto found = account.referenceRates.find(party);
           double const rate = found == account.referenceRates.end() ? .5 : found->second;
           pending += votes;
           referenceFirst += votes * rate;
-          adjustedFirst += votes * transferRate(rate,rate,fit,0);
+          firstRates[party] = transferRate(rate,rate,fit,0);
+          adjustedFirst += votes * firstRates.at(party);
         }
+        // One fraction per source in the category supplies every booth's
+        // benchmark. Finalists keep their own FP votes. Other sources use
+        // the same learned transfers as the category allocation above.
+        for (auto const& [party,source] : pendingSources[code])
+          row["pending_first_rates"][std::to_string(party)] = firstRates.at(source);
         row["fp_awaiting_tcp"] = pending;
         row["prior_first_votes_from_pending_fp"] = referenceFirst;
         row["adjusted_first_votes_from_pending_fp"] = adjustedFirst;

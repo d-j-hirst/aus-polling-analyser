@@ -7,6 +7,23 @@ import subprocess
 from .storage import read
 
 
+def check_trial_options(config, destinations=(), commentary=None):
+    """A commission's local trial may exercise publication only on the local replay server."""
+    if 'local_trial' not in config:
+        return
+    if not isinstance(config['local_trial'], bool):
+        raise ValueError('local_trial must be true or false.')
+    if not config['local_trial']:
+        return
+    if config.get('kind') != 'replay' or config.get('visibility') != 'private':
+        raise ValueError('Local trial data requires a private replay.')
+    if any(name != 'local' for name in destinations):
+        raise ValueError('This trial may only be uploaded to --local.')
+    for settings in (config.get('commentary'), commentary):
+        if settings and (settings.get('enabled') or settings.get('compare_writers') or settings.get('rules_only')):
+            raise ValueError('Commentary must stay off for this local trial.')
+
+
 def load_run(workspace, name, *, allow_path=False):
     is_id = re.fullmatch('[a-z0-9][a-z0-9-]*', name) is not None
     if is_id:

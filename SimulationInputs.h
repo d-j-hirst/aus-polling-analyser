@@ -29,7 +29,8 @@ public:
 		IndividualSeats, NationalsParameters, NationalsSeats,
 		RegionBase, RegionPolls, RegionMix, RegionMixParameters,
 		RegionTppDeviations, RegionOnDeviations, RegionOnDeviationsLowercase,
-		PreferenceModel, CoalitionPreferenceHistory, OneNationDistrictFp, GroupedFpPriors
+		PreferenceModel, CoalitionPreferenceHistory, OneNationDistrictFp, GroupedFpPriors, SoftPairingEvidence,
+		IndicativePreferenceHistory
 	};
 
 	// seatContents is the text already consumed by seat import, not another read.

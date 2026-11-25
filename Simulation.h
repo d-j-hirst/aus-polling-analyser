@@ -430,6 +430,7 @@ public:
 		std::vector<LiveData::BoothSnapshot> booths;
 		nlohmann::json diagnostic, details;
 		std::shared_ptr<SimulationInputs const> preparationInputs;
+		std::optional<std::vector<SoftPairing::Shift>> pairingShifts;
 	};
 	Simulation copyForLiveRun() const;
 	PublishedLiveState completedLiveState() const;
@@ -471,6 +472,7 @@ private:
 	// These belong to Simulation, which outlives an individual SimulationRun,
 	// and are copied into/out of background live jobs. They are not saved to .pol2.
 	std::map<std::pair<int, int>, float> cachedOddsFinalMeans;
+	std::optional<std::vector<SoftPairing::Shift>> cachedPairingShifts;
 	std::map<std::pair<int, int>, float> cachedOddsInputs;
 	int cachedOddsIterations = 0;
 	// Immutable record of files and settings used for the retained calculations.

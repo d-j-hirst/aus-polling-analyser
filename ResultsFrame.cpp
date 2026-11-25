@@ -368,7 +368,10 @@ void ResultsFrame::OnRunSnapshotSequence(wxCommandEvent&)
                 throw LiveSnapshotSequence::ConfigurationError(*error);
         }
         std::vector<LiveSimulationJob::Input> inputs;
-        for (auto& file : files) inputs.push_back(std::move(file));
+        for (auto& file : files) {
+            file.jointFpTrial = settings.jointFpTrial;
+            inputs.push_back(std::move(file));
+        }
         refresher.startLiveRun(std::move(inputs));
     } catch (std::exception const& error) {
         wxMessageBox(wxString::FromUTF8(error.what()), "Cannot run snapshot sequence", wxOK | wxICON_ERROR, this);

@@ -18,12 +18,83 @@ using LiveStatewidePreferences::allocateMeasured;
 using LiveStatewidePreferences::votesFor;
 
 struct District {
-	Shares covered; // Original FP voters already counted for Labor versus Coalition.
+	Shares covered; // FP voters whose Labor–Coalition destination is already accounted for.
 	Category measured; // Observed transfers in each matched or partially matched batch.
 	Shares rateChange; // Party-specific changes in the fraction going to Labor after accounting for the broad movement.
 	double transferOddsMultiplier = 1.; // Election and regional preference evidence. One leaves the draw unchanged.
 	std::optional<LiveSourceSeatTcp::Curve> sourceArea = std::nullopt;
 };
+
+struct BoothOrigins {
+	Shares fp; // Number of ballots from each FP candidate represented in the guaranteed TCP totals.
+	LivePartialCount::Transfers transfers; // Only transfers guaranteed by an official source-by-source count.
+};
+
+// Identify the primary voters behind this booth's two guaranteed finalist totals.
+// Normally the published TCP belongs to a single FP batch. If those batches do
+// not match, addBooth estimates the covered slice. After an FP revision the totals
+// can instead include newer ballots: each finalist's own primaries already have
+// a known destination, even while the commission is still distributing preferences.
+// Keep candidate identities here until the caller groups them into model parties.
+inline BoothOrigins boothOrigins(LivePartialCount::Counts const& fp, LivePartialCount::Counts const& tcp,
+	LivePartialCount::TcpBasis const* basis, bool revised, Shares const& guaranteed,
+	std::optional<LivePartialCount::Evidence> const& earlier = {}) {
+	if (!basis || basis->tcp != tcp) {
+		// Usually the current FP count is the closest guide. When the exact
+		// same two tallies return beside a larger FP count, use the FP batch
+		// originally observed with them if it still fits inside today's count.
+		// That batch may differ by a few ballots: addBooth still estimates
+		// the covered slice and receives no exact candidate transfer table.
+		if (!revised && earlier && tcp.size() == 2 && tcp.contains(earlier->first) && tcp.contains(earlier->second)
+			&& tcp.at(earlier->first) == earlier->firstTcpVotes && tcp.at(earlier->second) == earlier->secondTcpVotes
+			&& LivePartialCount::total(fp) > std::max(LivePartialCount::total(earlier->fp),LivePartialCount::total(tcp))
+			&& LivePartialCount::remainingCohort(fp,*earlier))
+			return {{earlier->fp.begin(),earlier->fp.end()},{}};
+		return {{fp.begin(),fp.end()},{}};
+	}
+	bool const matched = LivePartialCount::validBasis(*basis);
+	if (!revised) {
+		if (matched) return {{basis->fp.begin(),basis->fp.end()},basis->transfers};
+		return {{fp.begin(),fp.end()},{}};
+	}
+
+	BoothOrigins result;
+	double guaranteedTransfers = 0.;
+	for (auto const& [finalist,ballots] : guaranteed) {
+		double const own = LivePartialCount::value(fp,finalist);
+		result.fp[finalist] = own;
+		guaranteedTransfers += ballots - own;
+	}
+	double survivingDonors = 0.;
+	for (auto const& [source,oldVotes] : basis->fp) {
+		if (tcp.contains(source)) continue;
+		int const surviving = std::min(oldVotes,fp.at(source));
+		if (matched && !basis->transfers.empty()) {
+			// A recheck can remove at most this many ballots from either
+			// destination. Only the guaranteed remainder of each official
+			// transfer enters the count. New donor ballots remain outstanding.
+			int const removed = oldVotes - surviving;
+			for (auto const& [side,count] : basis->transfers.at(source)) {
+				int const known = std::max(0,count-removed);
+				result.transfers[source][side] = known;
+				result.fp[source] += known;
+			}
+		} else {
+			result.fp[source] = surviving;
+			survivingDonors += surviving;
+		}
+	}
+	// When primaries only increased, the entire original matched donor pool
+	// is still covered. With an incomplete count or removals we may know only
+	// the total guaranteed transfers: assume the surviving old donor mix for
+	// that portion. Neither new donor votes nor the booth forecast supply it.
+	if (survivingDonors > 0 && guaranteedTransfers < survivingDonors) {
+		double const fraction = guaranteedTransfers / survivingDonors;
+		for (auto& [source,count] : result.fp)
+			if (!tcp.contains(source)) count *= fraction;
+	}
+	return result;
+}
 
 // Freeze the primary mix of this reporting unit's measured TPP once per
 // snapshot. A partial or TCP-first batch uses the booth mix where known,

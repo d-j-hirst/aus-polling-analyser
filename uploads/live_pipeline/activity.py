@@ -77,26 +77,30 @@ def decision(group, threshold=10):
     return 'minor_changes' if votes < threshold else 'request'
 
 
+QUIET_RESULTS = 'There were no significant changes to the results'
+
+
+def comparison_period(window, seconds):
+    # Rolling comparisons can span longer than their nominal window. The text
+    # uses the actual interval; reference IDs/times remain in the comparison.
+    if window == 'previous':
+        return 'since the previous forecast'
+    if window == 'since_start':
+        return 'since counting began'
+    if window == 'today':
+        return "since the forecast used as today's starting point"
+    if seconds is None:
+        return 'over this comparison period'
+    return f'over the {seconds / 60:g}-minute comparison period'
+
+
 def notice(group, window):
     kind = group.get('commentary_decision')
     if kind not in ('no_new_counting', 'minor_changes', 'call_update'):
         return None
-    # Rolling comparisons can span longer than their nominal window. The text
-    # uses the actual interval; reference IDs/times remain in the comparison.
-    seconds = group.get('actual_seconds')
-    if window == 'previous':
-        period = 'since the previous forecast'
-    elif window == 'since_start':
-        period = 'since counting began'
-    elif window == 'today':
-        period = 'since the forecast used as today\'s starting point'
-    elif seconds is None:
-        period = 'over this comparison period'
-    else:
-        minutes = seconds / 60
-        period = f'over the {minutes:g}-minute comparison period'
+    period = comparison_period(window, group.get('actual_seconds'))
     text = (f'No new counting occurred {period}.' if kind == 'no_new_counting' else
-            f'There were no significant changes to the results {period}.')
+            f'{QUIET_RESULTS} {period}.')
     if kind == 'call_update':
         text = f'There was a small count update {period}.'
     if group.get('input_revision_changed'):
