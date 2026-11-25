@@ -103,7 +103,7 @@ The selection is frozen locally at the first next-day release, with `selected_by
 
 `win_changes` uses percentages for `before`/`after`, percentage points for `change_pp`, and includes within-window minimum/maximum. It is ordered by absolute change. Party IDs are simulation indexes within the run; candidate name/party metadata accompany them. `identity_changed` prevents silently treating a newly named candidate as an unchanged person. Pairing probabilities are percentages. TCP percentile entries are conditional on their explicit pair, and the first party in the pair supplies the share. Do not compare different TCP pairs as a single continuous margin.
 
-`seat_changes` lists matched numerical quantities with their before, after and difference. A missing quantity remains missing rather than becoming a zero. `statewide` includes vote/seat summaries, parliamentary outcomes and measured FP/TCP counting progress against estimated formal turnout. Percentile thresholds are explicit. The complete `report` provides the current distributions; references provide previous full reports.
+The current and reference forecasts each supply their seat distributions. Match the seat, candidate or pairing, and percentile across those reports to calculate the change. A quantity missing from either forecast has no comparable change. Older packages may also include these differences in `seat_changes`. The writers use the detailed differences when preparing Highlights. New packages omit this duplicate list. `statewide` includes vote and seat summaries, parliamentary outcomes and measured FP/TCP counting progress against estimated formal turnout.
 
 ### Statewide preference flows
 

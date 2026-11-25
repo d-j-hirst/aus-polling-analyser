@@ -70,7 +70,8 @@ private:
 		int partyIndex,
 		double& voteShare,
 		SimulationRun::SeatStatistics const& seatStatistics,
-		std::optional<double> missingGreensMedian = std::nullopt);
+		std::optional<double> missingGreensMedian = std::nullopt,
+		std::optional<double> comparisonStateFp = std::nullopt);
 	double specificPartyFpWithLocalEvidence(int seatIndex, int partyIndex,
 		double transformedFp, double localVariation, double minorVoteMod) const;
 	double applySeatFpPolls(
@@ -91,12 +92,19 @@ private:
 		double directPartyTwoFp = 0.0;
 		double coalitionLeakageFraction = 0.0;
 	};
+	struct OneNationFlowContext {
+		int party;
+		double transformedTppCentre;
+	};
+	std::optional<OneNationFlowContext> oneNationFlowContext() const;
 	MajorPartyFpAllocation allocateMajorPartyFp(
-		int seatIndex,
+		int seatIndex, std::optional<OneNationFlowContext> const& localFlow,
 		double preferenceFlowDeviation = 0.0);
 	void allocateMajorPartyFpsWithCompatibleTpp();
 	void normaliseSeatFp(int seatIndex, int fixedParty = -10000, double fixedVote = 0.0);
 	void reconcileSeatAndOverallFp();
+	void reconcileLowMajorPrimaries();
+	std::optional<LiveStatewidePreferences::Shares> fittedOpeningFlows(int seatIndex) const;
 	void calculateNewFpVoteTotals(
 		bool finalCheckpoint = false,
 		std::map<int, double> const* preTerminalFp = nullptr,
@@ -199,9 +207,15 @@ private:
 	std::vector<ShareByPartyIndex> seatFpVoteShare;
 	std::vector<std::pair<std::pair<int, int>, double>> seatTcpVoteShare;
 	std::vector<double> nationalsShare; // Nationals' share of the LIB/NAT vote
-	// Preference rates from the accepted FP pass, plus private comparison
-	// observations for this attempt. Supporting runs need neither.
+	// Preference rates from the accepted FP pass. The low-primary safeguard
+	// also needs the centres before district-specific noise, including during
+	// odds calibration and generation of the live baseline.
 	std::vector<std::vector<std::pair<int, double>>> preferenceSourceRates;
+	std::array<int,3> safeguardSources{};
+	std::vector<std::array<double,3>> preferenceFlowCentres;
+	// Local opening rates for the live table where a simulated classic
+	// source count is unavailable. Actual source accounts take precedence.
+	std::vector<LiveStatewidePreferences::Shares> reportOpeningRates;
 	LiveStatewidePreferences::DistrictClassicTotals liveClassicSources;
 	std::vector<SimulationRun::ClassicTppSummary> classicTppContributions;
 	std::vector<PreferenceModel::Comparison> preferenceComparisons;

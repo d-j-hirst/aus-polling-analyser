@@ -4,6 +4,7 @@
 
 #include "SimulationInputs.h"
 #include "LiveAutomation.h"
+#include "MajorPrimarySafeguard.h"
 
 #include "PollingProject.h"
 #include "Simulation.h"
@@ -68,6 +69,9 @@ std::string calculationSettings(
 	// be reused for a forecast with two distinct Coalition matchups.
 	if (project.parties().separateNationalsIndex() != PartyCollection::InvalidIndex && model.allPreferencesContinue())
 		result["coalitionMatchupVersion"] = 1;
+	// A baseline and odds calibration must start from the same primary
+	// and preference assumptions as the live election draws that use them.
+	if (MajorPrimarySafeguard::enabled(model.getTermCode())) result["majorPrimarySafeguardVersion"] = 1;
 	result["others"] = {project.parties().getOthersPreferenceFlow(), project.parties().getOthersExhaustRate()};
 	result["parties"] = json::array();
 	for (auto const& [id, party] : project.parties()) {

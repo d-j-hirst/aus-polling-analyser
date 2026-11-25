@@ -561,6 +561,9 @@
     <ClInclude Include="MajorPartyFpMath.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
+    <ClInclude Include="MajorPrimarySafeguard.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
     <ClInclude Include="SoftPairing.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
@@ -886,6 +889,12 @@
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
     <ClInclude Include="LiveBoothGeographyInput.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveVecCentreGeography.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveNarracanPrimaries.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
     <ClInclude Include="LiveFpIntegration.h">

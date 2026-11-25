@@ -3,10 +3,12 @@
 // adds a durable queue and isolated history around the same calculation path,
 // then hands numerical reports to the separate reporting/upload process.
 #include "LiveSimulationJob.h"
+#include "LiveSnapshotData.h"
 #include "Log.h"
 #include "LivePreparationBridge.h"
 #include "LiveHistoryScope.h"
 #include "LiveBoothGeographyInput.h"
+#include "LiveNarracanPrimaries.h"
 #include "LiveFederalDeclarations.h"
 #include "SimulationInputs.h"
 #include "ReportUploader.h"
@@ -223,6 +225,8 @@ std::string LiveSimulationJob::automaticInputRevision(Simulation const& simulati
         support[key] = cached.second;
     };
     fingerprintFile(TurnoutModelIO::priorPath(context->paths().root(),term));
+    if (term == "2026vic") fingerprintFile(TurnoutModelIO::priorPath(context->paths().root(),term).parent_path()/"evc-centres.json");
+    if (term == "2026vic") fingerprintFile(LiveNarracanPrimaries::historyPath(context->paths().root()));
     if (auto path = LiveFederalDeclarations::inputPath(context->paths().root(), term))
         fingerprintFile(*path);
     // Victoria uses both inputs for rehearsal and election night. SA shares
@@ -322,7 +326,7 @@ LiveSimulationUpdate LiveSimulationJob::calculateAutomatic() {
             }
             writeAutomaticReport(initial,"origin",nullptr);
         }
-        recordProgress("Checking deliveries and retaining every valid count...");
+        recordProgress("Checking for feed updates...");
         auto prior = TurnoutModelIO::loadForElection(context->paths().root(),automationSettings.at("election"));
         auto capture = automation->ingest([&](auto const& file) {
             return LivePreparationBridge::readSnapshot(*context,simulation,file);
@@ -354,7 +358,8 @@ LiveSimulationUpdate LiveSimulationJob::calculateAutomatic() {
             if (automaticInputRevision(simulation) != automation->revision())
                 throw std::runtime_error("Simulation inputs changed while watching. Pause, review the change, then explicitly Resume.");
             auto id = automation->reserveForecast(*capture);
-            recordProgress("Forecasting newest accepted feed: "+capture->sourceTime);
+            recordProgress("Forecasting newest accepted feed: "+LiveSnapshot::formatCommissionTime(
+                capture->sourceTime, automationSettings.value("timezone",std::string())));
             calculateSimulation(ids.front(),capture->file,output);
             if (automaticInputRevision(simulation) != automation->revision()) {
                 output.simulations.clear(); output.outcomes.clear(); output.seats.reset();

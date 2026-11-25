@@ -203,9 +203,13 @@ CountUpdateWorkspace classifyCountUnits(Prior const& prior, std::vector<Unit> co
         work.unitsByGroup[group].push_back(j);
         work.groupCounted[group] += unit.counted;
         result.counted[unit.seat] += unit.counted;
-        result.complete[j] = unit.closed || unit.acceptedComplete.value_or(
+        bool unlocatedEvc = unit.kind == "declaration" && unit.category == "EVC early" && unit.weight == 0;
+        result.complete[j] = unlocatedEvc || unit.closed || unit.acceptedComplete.value_or(
             (unit.kind != "declaration" && !unit.incremental && unit.counted > 0) || finalised[unit.seat]);
-        work.hasBooths[group] = work.hasBooths[group] || unit.kind != "declaration";
+        // Named Victorian EVCs partition a previously pooled early-vote
+        // account. Its joint volume still bounds outstanding ballots when
+        // only the district total, or part of its venue breakdown, arrives.
+        work.hasBooths[group] = work.hasBooths[group] || !unit.categoryTurnout();
         work.openGroups[group] = work.openGroups[group] || !result.complete[j];
         for (std::size_t r = 0; r < samples; ++r)
             work.adjustedExpected[r][j] = prior.counts[r][group]*unit.weight;
@@ -321,7 +325,7 @@ void conditionUnitAdditions(Prior const& prior, std::vector<Unit> const& units,
     for (std::size_t j = 0; j < units.size(); ++j) {
         auto const& unit = units[j];
         double shift = work.result.compensation[j];
-        if (unit.kind == "ppvc" && !work.result.complete[j] && !eav(unit)) shift += std::log(ppvcFactor);
+        if (unit.kind == "ppvc" && !unit.categoryTurnout() && !work.result.complete[j] && !eav(unit)) shift += std::log(ppvcFactor);
         for (std::size_t r = 0; r < samples; ++r) {
             if (shift != 0) work.adjustedExpected[r][j] = prior.enrolment[unit.seat]
                 *logistic(odds(work.adjustedExpected[r][j]/prior.enrolment[unit.seat])+shift);
@@ -358,6 +362,45 @@ void conditionGroupAdditions(Prior const& prior, CountUpdateWorkspace& work) {
         auto conditioned = condition(shares,lower);
         for (std::size_t r = 0; r < samples; ++r)
             work.groupAdditions[r][k] = work.result.totals[r][seat]*conditioned[r]-work.groupCounted[k];
+    }
+}
+
+// The commission can publish the same home early votes with or without a
+// venue breakdown. Condition the original home EVC size on all those voters
+// once. Learning *where* they were counted changes where future voters are
+// expected, without by itself moving voters into mobile or other early voting.
+void distributeHomeCentreAdditions(Prior const& prior, std::vector<Unit> const& units, CountUpdateWorkspace& work) {
+    if (prior.election != "2026vic") return;
+    for (auto const& districtGroup : work.unitsByGroup) {
+        std::vector<std::size_t> venues;
+        double counted = 0;
+        for (auto j : districtGroup) if (units[j].category == "EVC early") {
+            counted += units[j].counted;
+            if (units[j].kind == "ppvc" && !work.result.complete[j]) venues.push_back(j);
+        }
+        if (venues.empty() || counted <= 0) continue;
+        auto seat = units[venues.front()].seat;
+        auto samples = prior.totals.size();
+        std::vector<double> original(samples), lower(samples);
+        for (size_t r=0; r<samples; ++r) {
+            for (auto j : districtGroup) if (units[j].category == "EVC early")
+                original[r] += work.adjustedExpected[r][j]/prior.totals[r][seat];
+            lower[r] = counted/work.result.totals[r][seat];
+        }
+        auto conditioned = condition(original,lower);
+        for (size_t r=0; r<samples; ++r) {
+            double remaining = std::max(0.,conditioned[r]*work.result.totals[r][seat]-counted);
+            double total = 0, weights = 0;
+            for (auto j : venues) { total += work.ownAdditions[r][j]; weights += units[j].weight; }
+            for (auto j : venues) {
+                // An original home share of zero provides no relative sizes.
+                // If actual voters have nevertheless appeared, share any
+                // otherwise unallocated remainder across the open venues.
+                double fraction = total>0 ? work.ownAdditions[r][j]/total :
+                    weights>0 ? units[j].weight/weights : 1./venues.size();
+                work.ownAdditions[r][j] = remaining*fraction;
+            }
+        }
     }
 }
 
@@ -408,7 +451,7 @@ void constrainAdditionsToEnrolment(Prior const& prior, CountUpdateWorkspace& wor
 // those services becoming interchangeable. Splitting one physical category
 // into more booths must not give it more transfer capacity or more weight.
 std::string transferCategory(Unit const& unit) {
-    return unit.kind == "declaration" ? "service/"+unit.category
+    return unit.categoryTurnout() ? "service/"+unit.category
         : unit.kind+"/"+std::to_string(unit.group);
 }
 struct TransferCategory {
@@ -551,6 +594,7 @@ Broad update(Prior const& prior, std::vector<Unit> const& units, std::vector<boo
     replaceUnmatchedEavSizes(units,work.adjustedExpected);
     calculatePpvcCompensation(prior,units,work);
     conditionUnitAdditions(prior,units,ppvcFactor,work);
+    distributeHomeCentreAdditions(prior,units,work);
     conditionGroupAdditions(prior,work);
     assembleServiceAdditions(prior,units,work);
     constrainAdditionsToEnrolment(prior,work);
@@ -656,7 +700,7 @@ ProgressRows measureAvailableProgress(Prior const& prior, std::vector<Unit> cons
     // unstarted open category supplies useful zero evidence; a known closure
     // supplies none, because that service was never expected to receive votes.
     std::set<ProgressIdentity> available;
-    for (auto const& unit : units) if (unit.kind == "declaration" && !unit.closed)
+    for (auto const& unit : units) if (unit.categoryTurnout() && !unit.closed)
         available.emplace(prior.seats[unit.seat], unit.category);
     ProgressRows rows;
     for (auto const& [key, value] : ordered.rbegin()->second->counts) {
@@ -702,11 +746,11 @@ std::vector<Evidence> attachProgressEvidence(Prior const& p, std::vector<Unit> c
     // value means more reason to reduce usual remaining-vote expectations.
     std::vector<Evidence> result(units.size());
     std::map<std::pair<std::string,std::string>,double> currentUnits;
-    for (auto const& u : units) if (u.kind == "declaration") currentUnits[{p.seats[u.seat],u.category}] += u.counted;
+    for (auto const& u : units) if (u.categoryTurnout()) currentUnits[{p.seats[u.seat],u.category}] += u.counted;
     for (std::size_t j = 0; j < units.size(); ++j) {
         auto const& u = units[j]; auto key = std::make_pair(p.seats[u.seat],u.category);
         auto local = rows.find(key);
-        if (u.kind != "declaration" || u.closed || local == rows.end()) continue;
+        if (!u.categoryTurnout() || u.closed || local == rows.end()) continue;
         auto const& row = local->second;
         if (currentUnits.at(key) != row.current) throw std::runtime_error("Turnout history and current category counts differ.");
         std::vector<ProgressRow const*> national, regional;
@@ -792,7 +836,7 @@ std::vector<double> boothCompletion(Prior const& p, std::vector<Unit> const& uni
             references.push_back(p.counts[r][u.seat*p.groups.size()+u.group]*u.weight);
         std::sort(references.begin(),references.end()); auto z = references.size();
         double replacement = z ? (references[(z-1)/2]+references[z/2])/2 : 25;
-        for (auto const& u : units) if (u.kind != "declaration" && !u.closed) {
+        for (auto const& u : units) if (!u.categoryTurnout() && !u.closed) {
             double expected = eav(u) && !u.matched ? replacement : p.counts[r][u.seat*p.groups.size()+u.group]*u.weight;
             total[u.seat] += expected/p.counts.size();
             // For a mixed place, a first batch is only partial progress toward
@@ -893,7 +937,7 @@ std::vector<Unit> makeAllocationGroups(Prior const& p, std::vector<Unit> const& 
 // a change in another declaration cannot quietly inflate these services again.
 std::set<std::pair<std::size_t,std::size_t>> groupsWithBooths(std::vector<Unit> const& units) {
     std::set<std::pair<std::size_t,std::size_t>> groups;
-    for (auto const& unit : units) if (unit.kind != "declaration") groups.emplace(unit.seat,unit.group);
+    for (auto const& unit : units) if (!unit.categoryTurnout()) groups.emplace(unit.seat,unit.group);
     return groups;
 }
 
@@ -911,7 +955,7 @@ bool measureAllocationWeights(Prior const& p, std::vector<Unit> const& units,
     bool active = false;
     for (std::size_t j = 0; j < units.size(); ++j) {
         for (auto const& row : broad.remaining) result.balancedRemainingMeans[j] += row[j]/m;
-        if (units[j].kind != "declaration" || broad.complete[j] || directGroups.count({units[j].seat,units[j].group})) continue;
+        if (!units[j].categoryTurnout() || broad.complete[j] || directGroups.count({units[j].seat,units[j].group})) continue;
         double strength = evidence[units[j].seat*g+units[j].group].strength;
         double weight = -std::expm1(-std::pow(strength/AllocationProgressScale,2));
         if (!completed.empty()) {
@@ -920,7 +964,7 @@ bool measureAllocationWeights(Prior const& p, std::vector<Unit> const& units,
             // category. Mixed groups already use their own sizes.
             auto const& unit = units[j]; bool compatible = true; double counted = 0, own = 0;
             for (std::size_t k = 0; k < units.size(); ++k) if (units[k].seat == unit.seat && units[k].group == unit.group) {
-                compatible = compatible && units[k].kind == "declaration" && units[k].category == unit.category;
+                compatible = compatible && units[k].categoryTurnout() && units[k].category == unit.category;
                 counted += units[k].counted;
                 for (auto const& row : broad.ownRemaining) own += row[k]/m;
             }
@@ -946,7 +990,7 @@ void releaseDistrictAllowances(Prior const& p, std::vector<Unit> const& units, R
     for (std::size_t s = 0; s < n; ++s) {
         std::vector<std::size_t> columns;
         bool localActive = false;
-        for (std::size_t j = 0; j < units.size(); ++j) if (units[j].seat == s && units[j].kind == "declaration" && !broad.complete[j]
+        for (std::size_t j = 0; j < units.size(); ++j) if (units[j].seat == s && units[j].categoryTurnout() && !broad.complete[j]
             && !directGroups.count({units[j].seat,units[j].group})) {
             columns.push_back(j); localActive = localActive || result.allocationWeight[j] != 0;
         }
@@ -1017,7 +1061,7 @@ namespace {
 // or unsupported categories have no time-based suppression; their observed
 // counting activity and original-size evidence still apply normally.
 void prepareProcessingTimetables(std::vector<Unit> const& units, Options const& options, Result& result) {
-    for (auto const& unit : units) if (unit.kind == "declaration") {
+    for (auto const& unit : units) if (unit.categoryTurnout()) {
         auto timing = processingTimetable(options,unit.category);
         if (timing) result.processingTimetables[unit.category] = *timing;
     }
@@ -1160,7 +1204,7 @@ void buildLateCountComponents(Prior const& prior, std::vector<Unit> const& units
     for (std::size_t k = 0; k < options.countDraws; ++k)
         normalQuantiles.push_back(inverseLogCdf(std::log((k+.5)/options.countDraws)));
     for (std::size_t j = 0; j < units.size(); ++j) {
-        if (units[j].kind != "declaration" || broad.complete[j]) continue;
+        if (!units[j].categoryTurnout() || broad.complete[j]) continue;
         Component component;
         component.unit = j;
         measureLocalCompletion(prior,units[j],component);
@@ -1175,7 +1219,7 @@ void buildLateCountComponents(Prior const& prior, std::vector<Unit> const& units
         if (sourceHour && timing != result.processingTimetables.end()) {
             double currentCategory = 0;
             for (auto const& unit : units)
-                if (unit.seat == units[j].seat && unit.kind == "declaration" && unit.category == units[j].category)
+                if (unit.seat == units[j].seat && unit.categoryTurnout() && unit.category == units[j].category)
                     currentCategory += unit.counted;
             // Recent volume/current count supplies up to 24 extra processing
             // hours (half at 2%) and retains half the routine amount at 5%.

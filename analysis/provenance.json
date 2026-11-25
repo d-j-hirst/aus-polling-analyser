@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-11-25T02:57:46Z",
+  "updated_at_utc": "2026-11-25T10:12:24Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -10098,7 +10098,7 @@
         "Preferences/pairing/*.json"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 19,
+      "semantic_revision": 20,
       "files": {
         "Data/indicative-preference-history-2022vic.csv": {
           "sha256": "73798e3b014d3d512dfa35236ce90157e5dfe7d63de770b2c99890767e0d4bb1",
@@ -10121,9 +10121,9 @@
           "recorded_mtime_utc": "2026-11-13T22:22:38.435841Z"
         },
         "Preferences/2026vic.json": {
-          "sha256": "3d651bd4996882afaf560bbf33b513d3ac2fb7c1fd5e26cebb27d72042b7fbdd",
-          "size_bytes": 14924,
-          "recorded_mtime_utc": "2026-11-24T21:59:35.121484Z"
+          "sha256": "f0eb429aadf95f6362a36c27b251ae31af57630e29de48e7b5f812975233337e",
+          "size_bytes": 15654,
+          "recorded_mtime_utc": "2026-11-25T10:10:54.817936Z"
         },
         "Preferences/2028fed.json": {
           "sha256": "3152bc1d47a9fda8371eb6948f460f5761f71fe08fe2b80545ebb25252989155",
@@ -10619,9 +10619,30 @@
               "cpp_seat_simulation"
             ]
           }
+        },
+        {
+          "id": "20261125T101224Z-correction-preference-evidence-inputs-1bda9d6e",
+          "recorded_at_utc": "2026-11-25T10:12:24Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 20,
+          "provenance_revision": 20,
+          "summary": "Record the South-West Coast Liberal recommendation of Labor over Greens on both registered cards.",
+          "files": [
+            "Preferences/2026vic.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 19
+      "provenance_revision": 20
     },
     "preference_evidence_tools": {
       "description": "Cache-only extraction and population/provenance validation of observed preference evidence.",

@@ -33,6 +33,7 @@ struct Unit {
     // Expected absolute share at this destination after interpreting the
     // ordinary returns at their actual locations. Empty in other forecasts.
     std::optional<std::pair<int,double>> geographicShare;
+    bool namedEarlyEstimate = false;
 };
 struct Evidence {
     // Historical/absolute contain *remaining vote counts*. The confidence
@@ -97,6 +98,15 @@ inline Evidence collect(std::vector<Unit> const& units, double seatConfidence) {
         squaredSizes += size*size;
         if (unit.ordinary) add(ordinary,unit.counted);
         for (int id : unit.comparable) evidence.historicalConfidence[id] += size*unit.relevance;
+        // These future voters already have an early-centre comparison adjusted
+        // for where the counted ballots came from. Carry that same account
+        // into both district estimates. Pooling the raw shares again would
+        // treat the first centre to report as geographically typical.
+        if (unit.namedEarlyEstimate) {
+            add(evidence.absolute,future);
+            if (unit.geographicShare) evidence.geographicParty = unit.geographicShare->first;
+            continue;
+        }
         auto& group = groups[unit.group];
         add(group.counted,unit.counted);
         double pool = total(future);

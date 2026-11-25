@@ -269,6 +269,52 @@ def contest_for_second(row, opponent, endpoints):
     return text + f' {person} won **{w1:.1f}%** of those matchups at both updates.'
 
 
+def reaching_final_more_often(row, opponent, endpoints):
+    """Separate qualifying for the final count from winning it. A candidate
+    can gain overall even after a weak local primary if they are excluded
+    less often. The published pairing table can omit very rare finals, so
+    use whole percentages and require nearly complete coverage in both tables."""
+    seat, party = row['seat'], row['party_id']
+    districts = [s['seats'][seat] for s in endpoints]
+    if (not districts[0].get('candidates', {}).get(party) or
+            districts[0]['candidates'][party] != districts[1].get('candidates', {}).get(party)):
+        return None
+    chances = []
+    for district in districts:
+        pairs = district.get('pairing_percent', {})
+        if not 99.8 <= sum(pairs.values()) <= 100.01:
+            return None
+        chances.append(sum(v for key, v in pairs.items() if party in key.split('/')))
+    before, after = chances
+    if min(chances) <= 0 or (after-before)*row['change_pp'] <= 0 or abs(after-before) < 3:
+        return None
+    wins = [d.get('win_percent', {}).get(party, 0) for d in districts]
+    # Hold the average chance of winning once qualified fixed. Require the
+    # changing frequency of qualification to explain at least half the gain
+    # or loss in overall win probability before singling it out.
+    effect = (after-before)*(wins[0]/before+wins[1]/after)/2
+    if abs(effect) < abs(row['change_pp'])/2:
+        return None
+    person = '{candidate:'+seat+':'+party+'}'
+    point = (f'{person} reached the final two in about **{after:.0f}%** of simulations, '
+             f'{"up" if after > before else "down"} from **{before:.0f}%**.')
+    # The typical district primary can cross a rival even when the latest
+    # booth goes the other way. Marginal medians show the shift in outlook;
+    # they cannot establish the exclusion order within any particular draw.
+    if districts[0]['candidates'].get(opponent) != districts[1]['candidates'].get(opponent):
+        return point
+    levels = [[d.get('fp_percentiles', {}).get(p, {}).get('50') for p in (party, opponent)] for d in districts]
+    if any(v is None for level in levels for v in level):
+        return point
+    (p0, r0), (p1, r1) = levels
+    if (p1-r1)*(after-before) > 0 and (p0-r0)*(p1-r1) < 0 and abs(p1-r1) >= .2:
+        position = 'ahead of' if p1 > r1 else 'behind'
+        other = '{candidate:'+seat+':'+opponent+'}'
+        point += (f' On projected median FP across the seat, {person} moved {position} {other}, '
+                  f'**{p1:.1f}%** to **{r1:.1f}%**.')
+    return point
+
+
 def mixed_matchup_explanation(row, endpoints):
     """Look for two simultaneous changes: which opponent the candidate faces,
     and how often they win a specified contest. Compare the same people in

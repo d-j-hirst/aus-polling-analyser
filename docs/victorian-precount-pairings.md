@@ -29,6 +29,22 @@ contest and the overall revision. Normal statewide balancing, calibration to
 betting odds, and live count updates follow. The log reports the starting
 changes under `Soft pairing` for each eligible district.
 
+In the 2022 replay, the reference uses the original range of major-party
+primaries. The forecast then applies a safeguard for unusually low Labor or
+combined Coalition primaries during the main betting-odds calibration and in
+the pre-count draws. This order matters in seats such as Richmond. Narrowing
+the Liberal primary range before estimating the Labor–Greens adjustment would
+give the original Liberal estimate more influence in that calculation. The
+2026 Victorian forecast also applies its low-primary safeguard when building
+the preliminary reference.
+
+The safeguard first checks whether plausible changes in local preference
+flows can support more major-party primary votes at the same TPP. Where
+needed, some Greens or grouped Others primaries can also move, with offsetting
+changes elsewhere in Victoria. A strong independent or a low primary at the
+previous election reduces the adjustment. Incoming counts can subsequently
+take a major party below its pre-count estimate.
+
 ## Evidence available before polling day
 
 The previous Victorian election supplies district primaries, a Greens support

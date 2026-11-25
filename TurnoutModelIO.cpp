@@ -18,11 +18,65 @@ std::filesystem::path historyDirectory(std::filesystem::path const& root, std::s
     if (!LiveHistoryScope::active.empty()) return LiveHistoryScope::active/"turnout";
     return root/"forecasts"/election/"live-snapshots"/"turnout";
 }
+// Split the existing home early-vote population, leaving the mobile and
+// other early allocations intact. The declaration service can still receive
+// measured votes whose location the VEC has not supplied. Before counting
+// all of its expected ballots belong to the named roster.
+static void addEarlyCentres(Artifact& artifact, std::filesystem::path const& path) {
+    std::ifstream stream(path);
+    if (!stream) throw std::runtime_error("Missing VEC early-centre input: "+path.string()+". Run vec_2026.ps1 prepare.");
+    auto data = json::parse(stream);
+    auto const& districts = data.at("districts");
+    auto& prior = artifact.prior;
+    if (data.at("schema_version") != 1 || data.at("election") != prior.election ||
+        !districts.is_object() || districts.size() != prior.seats.size())
+        throw std::runtime_error("VEC early-centre input and turnout districts differ.");
+    std::vector<TurnoutModel::Unit> centres;
+    for (auto& parent : prior.units) {
+        if (parent.kind != "declaration" || parent.name != "EVC early") continue;
+        auto const& district = prior.seats.at(parent.seat);
+        auto const& rows = districts.at(district);
+        if (!rows.is_object() || rows.empty()) throw std::runtime_error("No VEC early centres in "+district);
+        auto& evidence = artifact.earlyCentres[district];
+        double total = 0;
+        for (auto const& [name,row] : rows.items()) {
+            EarlyCentre centre{row.at("id").get<int>(),row.at("weight").get<double>(),{},{},row.at("label").get<std::string>()};
+            if (centre.sourceId <= 0 || !std::isfinite(centre.volume) || centre.volume <= 0)
+                throw std::runtime_error("Invalid VEC centre identity or volume in "+district+"/"+name);
+            if (row.contains("fp")) centre.fp = row.at("fp").get<std::array<int,3>>();
+            if (row.contains("tpp")) centre.tpp = row.at("tpp").get<std::array<int,2>>();
+            centre.oneNationContrast = row.value("one_nation_contrast",0.);
+            if (!std::isfinite(centre.oneNationContrast) || std::abs(centre.oneNationContrast)>1.)
+                throw std::runtime_error("Invalid One Nation early-centre contrast in "+district+"/"+name);
+            auto invalid = [](auto const& counts) {
+                return counts && std::any_of(counts->begin(),counts->end(),[](int n){ return n < 0; });
+            };
+            if (invalid(centre.fp) || invalid(centre.tpp)) throw std::runtime_error("Negative VEC neighbourhood votes in "+district+"/"+name);
+            total += centre.volume;
+            evidence.emplace(name,centre);
+        }
+        for (auto const& [name,centre] : evidence) {
+            auto unit = parent;
+            unit.name = name; unit.kind = "ppvc"; unit.incremental = true; unit.returnConfirmed = true;
+            unit.weight = parent.weight * centre.volume / total;
+            centres.push_back(std::move(unit));
+        }
+        double weightedContrast = 0.;
+        for (auto const& entry : evidence) weightedContrast += entry.second.volume * entry.second.oneNationContrast;
+        if (std::abs(weightedContrast) > 1e-9 * total)
+            throw std::runtime_error("Early-centre contrasts would change the district vote in "+district);
+        parent.weight = 0;
+    }
+    if (artifact.earlyCentres.size() != districts.size()) throw std::runtime_error("Missing EVC early turnout account.");
+    prior.units.insert(prior.units.end(),centres.begin(),centres.end());
+    TurnoutModel::validate(prior);
+}
 Artifact loadForElection(std::filesystem::path const& root, std::string const& election) {
     auto path = priorPath(root, election);
     auto input = load(path);
     if (input.prior.election != election)
         throw std::runtime_error("Turnout prior is for " + input.prior.election + ", but the live run is " + election + ". File: " + path.string());
+    if (election == "2026vic") addEarlyCentres(input,path.parent_path()/"evc-centres.json");
     return input;
 }
 

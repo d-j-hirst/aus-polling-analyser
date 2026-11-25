@@ -51,8 +51,10 @@ def call_changes(previous, current):
     announced.sort(key=lambda row: row[0], reverse=True)
     groups = defaultdict(list)
     omitted = defaultdict(int)
-    for i, (identity, seat, party) in enumerate(announced):
-        if i < 5 or identity == current['forecast_id']:
+    for identity, seat, party in announced:
+        # Name every call in the latest update. Fill any remaining places
+        # from that party's earlier calls, most recent first.
+        if len(groups[('called', party)]) < 5 or identity == current['forecast_id']:
             groups[('called', party)].append(seat)
         else:
             omitted[('called', party)] += 1

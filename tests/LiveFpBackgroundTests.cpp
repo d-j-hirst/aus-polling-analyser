@@ -4,6 +4,8 @@
 #include "../LiveSimulationMath.h"
 #include "../LiveFpEvidence.h"
 #include "../LiveFederalDeclarations.h"
+#include "../LiveVecCentreGeography.h"
+#include "../LiveNarracanPrimaries.h"
 
 #include <cassert>
 #include <iostream>
@@ -390,6 +392,78 @@ void checkVictorianDeclarationMedian()
     auto weight = 200./(200 + 4*800 + 300);
     assert(std::abs(residual.future - ((1-weight)*.2 + weight*90.5/201.)) < 1e-12);
 }
+void checkVictorianNamedEarlyCentres() {
+    namespace V = LiveVecCentreGeography;
+    std::vector<V::Centre> sites{
+        {10,30,std::array{100,80,40},std::array{604,396}},
+        {20,60,std::array{50,140,10},std::array{350,650}},
+        {30,10,{},{}}};
+    Shares district{{0,.33},{1,.25},{2,.1},{3,.1},{4,.22}};
+    LivePartialCount::Flows flows{{0,1},{1,0},{2,.18},{3,.84},{4,.4}};
+    auto factors=V::primaryFactors(sites,district,2,3);
+    std::vector<Shares> local;
+    for (auto const& f : factors) local.push_back(V::allocate(district,f,2,3));
+    assert(local[0].at(0)>local[1].at(0) && local[0].at(3)>local[1].at(3));
+    assert(local[2]==district);
+    for (auto const& [id,share] : district) {
+        double sum=0;
+        for (size_t i=0; i<sites.size(); ++i) {
+            assert(local[i].at(4)==district.at(4));
+            assert(std::abs(local[i].at(1)/local[i].at(2)-2.5)<1e-12);
+            sum+=sites[i].volume*local[i].at(id);
+        }
+        assert(std::abs(sum/100-share)<1e-8);
+    }
+    auto offsets=V::preferenceOffsets(sites,local,flows,.1);
+    assert(offsets.back()==.1);
+    double totalTpp=0;
+    std::vector<double> tpp;
+    for (size_t i=0; i<sites.size(); ++i) {
+        tpp.push_back(firstShare(local[i],flows,offsets[i]));
+        assert(tpp.back()>=local[i].at(0) && tpp.back()<=1-local[i].at(1));
+        totalTpp+=sites[i].volume*tpp.back();
+    }
+    assert(tpp[0]>tpp[1]);
+    assert(std::abs(totalTpp/100-firstShare(district,flows,.1))<1e-8);
+    Shares expected{{0,100},{1,20},{2,10},{3,10},{4,10}};
+    assert(V::fromOtherCentres(district,expected,expected,500)==district);
+    auto measured=expected;
+    measured[0]+=20; measured[1]-=20;
+    assert(V::fromOtherCentres(district,measured,expected,500).at(0)>district.at(0));
+}
+// The comparison-year ballot IDs need not match the present ballot. Two
+// matched sites can move differently, while a new site uses only the common
+// adjustment. All three retain their own turnout after setting aside ON.
+void checkOlderNarracanOrdinaryPrimaries()
+{
+    namespace H = LiveNarracanPrimaries;
+    auto roster = nlohmann::json::parse(R"({
+        "candidates":{"8":{"party":"AUSTRALIAN GREENS"},"2":{"party":"LIBERAL"},
+                      "4":{"party":"AUSTRALIAN LABOR PARTY"}},
+        "booths":{"East":{"fp":{"2":45,"4":45,"8":10}},
+                  "West":{"fp":{"2":75,"4":23,"8":2}}}
+    })");
+    auto history = H::readHistory(roster);
+    std::vector<H::Venue> sites{
+        {{2.,12.,66.},history.at("East")}, {{3.,18.,99.},history.at("West")},
+        {{1.,6.,33.},std::nullopt}
+    };
+    H::Mix targets{35.,15.,190.};
+    auto fit = H::fit(sites,targets);
+    assert(fit && fit->local.back()==fit->common);
+    H::Mix total(3);
+    std::vector<H::Mix> shares;
+    for (size_t i=0;i<sites.size();++i) {
+        auto local = LiveOrdinaryUpdate::tilted(sites[i].opening,fit->local[i]);
+        assert(std::abs(LiveOrdinaryUpdate::sum(local)-1.)<1e-12);
+        for (size_t j=0;j<3;++j) total[j]+=LiveOrdinaryUpdate::sum(sites[i].opening)*local[j];
+        shares.push_back(std::move(local));
+    }
+    for (size_t j=0;j<3;++j) assert(std::abs(total[j]-targets[j])<1e-5);
+    assert(shares[0][0]>shares[1][0] && shares[0][1]>shares[1][1]);
+    for (auto& site : sites) site.history.reset();
+    assert(!H::fit(sites,targets));
+}
 } // namespace
 
 int main()
@@ -404,5 +478,7 @@ int main()
     checkEveryCandidateAndBoothTotalAtZeroCount();
     checkSaFederalDeclarationPrior();
     checkVictorianDeclarationMedian();
+    checkVictorianNamedEarlyCentres();
+    checkOlderNarracanOrdinaryPrimaries();
     std::cout << "Live FP background tests passed\n";
 }

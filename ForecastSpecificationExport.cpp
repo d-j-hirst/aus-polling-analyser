@@ -479,6 +479,42 @@ namespace {
 		return specification;
 	}
 
+	// A normal GUI save updates the election package as well as the .pol2.
+	// Keep the package's draw counts for command-line runs, even when the
+	// operator saves a much faster replay. A newly added simulation starts
+	// at the portable default. Explicit package exports can set new defaults.
+	void keepPackageDrawDefaults(ForecastSpecification& specification,
+		std::filesystem::path const& directory, std::vector<Diagnostic>& diagnostics)
+	{
+		std::map<std::string, int> byId, byName;
+		auto const manifest = directory / "forecast.json";
+		try {
+			if (std::filesystem::exists(manifest)) {
+				// Other package tables are about to be regenerated. Only the
+				// existing manifest owns the counts we need to carry forward.
+				std::ifstream input(manifest);
+				auto const previous = Json::parse(input);
+				for (auto const& entry : previous.at("simulations")) {
+					auto count = entry.at("num_iterations").get<int>();
+					byId.emplace(entry.at("id").get<std::string>(), count);
+					byName.emplace(entry.at("name").get<std::string>(), count);
+				}
+			}
+		}
+		catch (std::exception const& error) {
+			addError(diagnostics, manifest.generic_string(),
+				std::string("could not read existing simulation draw defaults: ") + error.what());
+			return;
+		}
+		for (auto& simulation : specification.simulations) {
+			auto const id = byId.find(simulation.id);
+			auto const name = byName.find(simulation.name);
+			if (id != byId.end()) simulation.numIterations = id->second;
+			else if (name != byName.end()) simulation.numIterations = name->second;
+			else simulation.numIterations = ForecastSpecification::Simulation{}.numIterations;
+		}
+	}
+
 	Json manifestJson(ForecastSpecification const& specification)
 	{
 		Json root = {
@@ -664,10 +700,14 @@ std::string ForecastSpecificationExportResult::errorMessage() const
 
 ForecastSpecificationExportResult exportForecastSpecification(
 	PollingProject const& project,
-	std::filesystem::path const& packageDirectory)
+	std::filesystem::path const& packageDirectory,
+	SimulationDrawDefaults drawDefaults)
 {
 	ForecastSpecificationExportResult result;
 	result.specification = buildSpecification(project, result.diagnostics);
+	if (drawDefaults == SimulationDrawDefaults::KeepPackageDefaults) {
+		keepPackageDrawDefaults(result.specification, packageDirectory, result.diagnostics);
+	}
 	if (hasErrors(result.diagnostics)) return result;
 
 	// Validate the complete DTO before creating package files. Package-relative

@@ -325,6 +325,7 @@ private:
 	std::unique_ptr<LiveData::Provider> liveElection;
 
 	bool doingBettingOddsCalibrations = false;
+	bool estimatingPairingReference = false; // Includes the odds calibration used only to establish that reference.
 	std::map<std::pair<int, int>, float> oddsCalibrationMeans; // transformed
 	std::map<std::pair<int, int>, float> oddsFinalMeans; // transformed
 

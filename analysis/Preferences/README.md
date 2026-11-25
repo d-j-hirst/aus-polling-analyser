@@ -357,6 +357,23 @@ in the ranking count. The fitted profiles include final 2026 South Australian
 preference evidence. The replay checks how the model behaves as results arrive
 and how much further the live data can inform it.
 
+The SA replay uses the Victorian opening forecast method for very low major-party
+primaries and for One Nation preferences. A One Nation voter is estimated to
+prefer Labor over Liberal more often in a stronger Labor district and less often
+in a weaker one. Each district is compared with a statewide Labor TPP reference
+weighted by the projected number of One Nation voters in each district.
+The strength of this adjustment comes from the Victorian implementation,
+using federal counts already available before the SA election.
+
+If a draw gives Labor or Liberal an unusually low primary, the forecast first
+checks whether moving local preference flows towards their expected values can
+make room for more major-party primaries at the same district TPP. It can also
+redistribute Greens, One Nation and grouped Others primaries, with offsetting
+changes elsewhere in SA to preserve the statewide primary totals. Past weak
+support or a strong independent reduces the adjustment. This shapes the opening
+forecast and its betting-odds calibration. Incoming counts can take a party below
+its opening estimate. [Geographic flow and safeguard details](../../forecasts/2026vic/README.md#what-the-forecast-counts)
+
 One observation is one district in one successful simulation iteration. The
 comparison log gives paired counts of how often the final pair or winner changes, the
 largest changes in classic source rates and a few examples. A source rate is

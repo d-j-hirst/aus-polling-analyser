@@ -5,6 +5,7 @@
 #include "../LiveInputAdapter.h"
 #include "../LiveBoothGeographyInput.h"
 #include "../LiveFederalDeclarations.h"
+#include "../LiveVecCentreGeography.h"
 
 #include <cassert>
 #include <fstream>
@@ -53,10 +54,51 @@ void checkCapture(Election& election, Document const& capture, std::set<int> con
         auto const& seat = election.seats.at(c->FirstChildElement("PollingDistrictIdentifier")->IntAttribute("Id"));
         checkCounts(*c->FirstChildElement("FirstPreferences"), seat.fpVotes);
         if (auto tcp = c->FirstChildElement("TwoCandidatePreferred")) checkCounts(*tcp, seat.tcpVotesCandidate);
-        for (int id : seat.booths) assert(ordinary.contains(id));
+        for (int id : seat.booths) {
+            auto const& booth = election.booths.at(id);
+            if (booth.incrementalFp) assert(booth.type == Results2::Booth::Type::Ppvc && booth.parentSeat == seat.id);
+            else assert(ordinary.contains(id));
+        }
     }
-    assert(election.booths.size() == ordinary.size());
+    assert(std::count_if(election.booths.begin(),election.booths.end(),
+        [](auto const& row) { return !row.second.incrementalFp; }) == static_cast<int>(ordinary.size()));
     assert(election.invalidLiveCounts.empty());
+}
+
+// Exercise every real district's centre allocation with the saved seat FP
+// medians as inputs. The sample preference rates check conservation, without
+// needing the GUI or pretending these are its election-night preference rates.
+void checkCentreMix(std::map<std::string,TurnoutModelIO::EarlyCentre> const& roster,
+    nlohmann::json const& bands, size_t mid, int nationals, int greens, int on) {
+    namespace Evc = LiveVecCentreGeography;
+    Evc::Shares district;
+    for (auto const& band : bands) district[band[0].get<int>()]=band[1].at(mid).get<double>()/100;
+    district=LiveNewVotes::normalize(std::move(district));
+    LivePartialCount::Flows rates;
+    for (auto [id,n] : district) rates[id]=id==0 ? 1. : id==1 ? 0. : id==nationals ? .2 : id==greens ? .85 : .5;
+    std::vector<Evc::Centre> centres;
+    std::set<std::string> labels;
+    double volume=0;
+    for (auto const& [name,site] : roster) {
+        assert(!site.displayName.empty() && labels.insert(site.displayName).second);
+        centres.push_back(site); volume+=site.volume;
+    }
+    std::vector<Evc::Shares> local;
+    auto factors = Evc::primaryFactors(centres,district,nationals,greens);
+    for (size_t j = 0; j < centres.size(); ++j) {
+        local.push_back(Evc::allocate(district,factors[j],nationals,greens,on,centres[j].oneNationContrast));
+        if (centres[j].oneNationContrast != 0.)
+            assert((local.back().at(on)-district.at(on))*centres[j].oneNationContrast > 0.);
+    }
+    auto offsets=Evc::preferenceOffsets(centres,local,rates,0.);
+    Evc::Shares fp;
+    double tpp=0;
+    for (size_t i=0; i<centres.size(); ++i) {
+        for (auto [id,share] : local[i]) fp[id]+=centres[i].volume/volume*share;
+        tpp+=centres[i].volume/volume*LiveNewVotes::firstShare(local[i],rates,offsets[i]);
+    }
+    for (auto [id,share] : district) assert(std::abs(fp.at(id)-share)<1e-7);
+    assert(std::abs(tpp-LiveNewVotes::firstShare(district,rates,0.))<1e-7);
 }
 
 // Exercise the same private support material the GUI watcher will load. The
@@ -102,7 +144,9 @@ void checkPrepared(std::filesystem::path const& root, std::filesystem::path cons
         std::set<std::string> earlyTypes;
         for (auto const& u : prior.units) if (prior.seats.at(u.seat) == name && prior.groups.at(u.group) == "early") {
             earlyWeight += u.weight;
-            earlyTypes.insert(u.name);
+            earlyTypes.insert(u.category);
+            if (u.name=="EVC early") assert(u.weight==0);
+            else if (u.category=="EVC early") assert(u.weight>0 && u.kind=="ppvc" && u.incremental);
         }
         assert((earlyTypes == std::set<std::string>{"EVC early","Mobile early","Other early"}));
         assert(std::abs(earlyWeight - 1) < 1e-12);
@@ -115,9 +159,13 @@ void checkPrepared(std::filesystem::path const& root, std::filesystem::path cons
     assert(report.at("termCode") == "2026vic");
     auto const& bands = report.at("probabilityBands");
     auto mid = std::find(bands.begin(),bands.end(),50) - bands.begin();
-    int on = -1;
-    for (auto const& abbr : report.at("partyAbbr")) if (abbr[1] == "ONP") on = abbr[0];
-    assert(on >= 0 && mid < int(bands.size()));
+    int on = -1, nationals = -1, greens = -1;
+    for (auto const& abbr : report.at("partyAbbr")) {
+        if (abbr[1] == "ONP") on = abbr[0];
+        if (abbr[1] == "NAT") nationals = abbr[0];
+        if (abbr[1] == "GRN") greens = abbr[0];
+    }
+    assert(on >= 0 && nationals >= 0 && greens >= 0 && mid < int(bands.size()));
     auto roster = Geo::readRoster(load(root/"forecasts/2026vic/live-inputs/one-nation-booths.json"),prior);
     Geo::ModeShifts shifts;
     for (auto [mode,shift] : LiveFederalDeclarations::readPrior(*LiveFederalDeclarations::inputPath(root,"2026vic"),"2026vic"))
@@ -128,6 +176,7 @@ void checkPrepared(std::filesystem::path const& root, std::filesystem::path cons
     int verified = 0, returning = 0;
     for (size_t i = 0; i < report.at("seatNames").size(); ++i) {
         std::string name = report.at("seatNames").at(i);
+        checkCentreMix(artifact.earlyCentres.at(name),report.at("seatFpBands").at(i),mid,nationals,greens,on);
         double target = 0;
         for (auto const& row : report.at("seatFpBands").at(i)) if (row[0] == on) target = row[1].at(mid).get<double>()/100;
         assert(target > 0 && target < 1);
@@ -140,7 +189,7 @@ void checkPrepared(std::filesystem::path const& root, std::filesystem::path cons
         for (auto const& [key,r] : roster) if (key.first == name) {
             Geo::Place place{r.mode,r.size,r.federal};
             std::string oldName = r.mode == "ordinary" ? key.second : historicalTypes.at(r.mode);
-            if (!previousCandidate.empty() && old.at("booths").contains(oldName)) {
+            if (!previousCandidate.empty() && (r.mode!="EVC early" || key.second=="EVC early") && old.at("booths").contains(oldName)) {
                 auto const& b = old.at("booths").at(oldName);
                 if (!b.value("synthetic",false) || b.value("measured_fp",false)) {
                     place.previousOn = b.at("fp").at(previousCandidate);
@@ -170,9 +219,170 @@ void checkPrepared(std::filesystem::path const& root, std::filesystem::path cons
     std::cout << "Reproduced all " << verified << " published district medians with the prepared turnout and geography.\n";
 }
 
+// Keep both representations of the same batch in the source. Check the
+// effective records, including a later district-only delivery where ordinary
+// recovery of the older venue would otherwise double count those ballots.
+void checkVenuePartition(Election election) {
+    using namespace LiveInputRecovery;
+    TurnoutModelIO::Artifact input;
+    auto& p=input.prior;
+    p.election="2026vic"; p.seats={"Example"}; p.groups={"early"}; p.enrolment={1000}; p.counts={{500}};
+    for (auto const& [name,role] : std::vector<std::pair<std::string,std::string>>{
+            {"EVC early","declaration"},{"Early venue","ppvc"},{"School","ordinary"}}) {
+        TurnoutModel::Unit u;
+        u.name=name; u.kind=role; u.category=role=="ordinary" ? role : "EVC early";
+        u.incremental=role=="ppvc"; u.weight=role=="ppvc" ? 1 : 0;
+        p.units.push_back(u);
+    }
+    input.earlyCentres["Example"]["Early venue"]={4,100,{},{}};
+    auto& seat=election.seats.at(2);
+    auto& venue=election.booths.at(seat.booths.back());
+    assert(venue.incrementalFp && venue.name=="Early venue");
+    seat.fpVotes.clear(); seat.tcpVotesCandidate.clear();
+    election.liveCountsRead=false;
+    election.invalidLiveCounts.clear();
+    election.sourceTime="2026-11-25T18:00:00";
+    seat.fpVotes[11][Type::EvcEarly]=50; seat.fpVotes[12][Type::EvcEarly]=50;
+    seat.tcpVotesCandidate=seat.fpVotes;
+    venue.fpVotes={{11,20},{12,30}}; venue.tcpVotesCandidate=venue.fpVotes;
+    auto read=[&]() { return LiveInputAdapter::identify(election,input,"test"); };
+    auto identified=read();
+    assert((identified.records[0].fp.votes==Counts{{11,30},{12,20}}));
+    assert((identified.records[1].tcp.votes==Counts{{11,20},{12,30}}));
+    auto first=recover(std::move(identified),{}).snapshot;
+    election.sourceTime="2026-11-25T18:05:00";
+    venue.fpVotes.clear(); venue.tcpVotesCandidate.clear();
+    auto districtOnly=recover(read(),first).snapshot;
+    assert(!districtOnly.records[1].fp.votes && !districtOnly.records[1].tcp.votes);
+    assert(total(districtOnly.records[0].fp.votes)==100 && total(districtOnly.records[0].tcp.votes)==100);
+    venue.fpVotes={{11,20},{12,30}};
+    // The FP location is known but the whole TCP is unlocated. A split would
+    // leave 100 TCP against 50 residual FP. Use the coherent district account.
+    auto mixed=read();
+    assert(!mixed.records[1].fp.votes && total(mixed.records[0].fp.votes)==100);
+    seat.tcpVotesCandidate[11][Type::EvcEarly]=45;
+    seat.tcpVotesCandidate[12][Type::EvcEarly]=35;
+    venue.tcpVotesCandidate={{11,15},{12,15}};
+    auto partial=recover(read(),first).snapshot;
+    assert(total(partial.records[1].tcp.votes)==30 && total(partial.records[1].fp.votes)==50);
+    venue.fpVotes={{11,75},{12,0}};
+    auto contradictory=recover(read(),first).snapshot;
+    assert(!contradictory.records[1].fp.votes && total(contradictory.records[0].fp.votes)==100);
+    seat.fpVotes.clear(); seat.tcpVotesCandidate.clear();
+    venue.fpVotes={{11,20},{12,30}};
+    auto detailOnly=recover(read(),first).snapshot;
+    assert(!detailOnly.records[0].fp.votes && total(detailOnly.records[1].fp.votes)==50);
+    venue.fpVotes.clear(); venue.tcpVotesCandidate.clear();
+    auto missing=recover(read(),first).snapshot;
+    assert(missing.records[0].identity==first.records[0].identity);
+    assert(total(missing.records[0].fp.votes)==50 && total(missing.records[1].fp.votes)==50);
+    assert(missing.records[1].fp.status==Status::Restored && missing.records[1].fp.observedAt==first.sourceTime);
+    assert(!sameRecordIdentity(first.records[0],districtOnly.records[0]));
+    // An unusable inclusive FP total cannot suppress a valid, located
+    // count, even when the district TCP is positive.
+    seat.fpVotes[11][Type::EvcEarly]=1200; seat.fpVotes[12][Type::EvcEarly]=0;
+    seat.tcpVotesCandidate[11][Type::EvcEarly]=300; seat.tcpVotesCandidate[12][Type::EvcEarly]=20;
+    venue.fpVotes={{11,20},{12,30}}; venue.tcpVotesCandidate=venue.fpVotes;
+    auto invalidTotal=recover(read(),first).snapshot;
+    assert(total(invalidTotal.records[1].fp.votes)==50 && total(invalidTotal.records[1].tcp.votes)==50);
+}
+
+void checkCentreTurnout() {
+    // A district-only delivery and a fully located delivery of the same
+    // ballots imply the same total home, mobile and other early turnout.
+    TurnoutModel::Prior prior;
+    prior.election="2026vic"; prior.seats={"Example"}; prior.subdivisions={"Vic"};
+    prior.groups={"early","ordinary"}; prior.enrolment={2000};
+    prior.totals={{1000},{1100},{1200}}; prior.counts={{500,500},{600,500},{700,500}};
+    auto unit=[](std::string name, std::string kind, std::string category, double weight) {
+        TurnoutModel::Unit u; u.name=name; u.kind=kind; u.category=category; u.weight=weight;
+        u.group=kind=="ordinary" ? 1 : 0; u.incremental=kind=="ppvc"; return u;
+    };
+    prior.units={unit("EVC early","declaration","EVC early",0),
+        unit("Town","ppvc","EVC early",.30),unit("City","ppvc","EVC early",.45),
+        unit("Mobile early","declaration","Mobile early",.05),unit("Other early","declaration","Other early",.20),
+        unit("School","ordinary","Ordinary",1.)};
+    auto pooled=prior.units;
+    pooled.erase(pooled.begin()+1,pooled.begin()+3);
+    pooled[0].weight=.75; pooled[0].counted=260;
+    auto reference=TurnoutModel::update(prior,pooled,{false});
+    for (double located : {0.,130.,260.}) {
+        auto split=prior.units;
+        split[0].counted=260-located; split[1].counted=located;
+        auto result=TurnoutModel::update(prior,split,{false});
+        for (size_t r=0; r<prior.totals.size(); ++r) {
+            assert(result.remaining[r][0]==0 && result.unitCounts[r][0]==260-located);
+            assert(std::abs(result.unitCounts[r][1]+result.unitCounts[r][2]+260-located-reference.unitCounts[r][0])<1e-7);
+            assert(std::abs(result.unitCounts[r][3]-reference.unitCounts[r][1])<1e-7);
+            assert(std::abs(result.unitCounts[r][4]-reference.unitCounts[r][2])<1e-7);
+        }
+    }
+    auto units=prior.units;
+    units[0].counted=120;
+    auto time="2026-11-25T19:00:00";
+    LiveInputRecovery::RecordStatuses states;
+    for (auto const& u : units) if (u.kind!="ppvc") {
+        auto& fp=states["Example/"+u.kind+"/"+u.name].first;
+        fp.status=LiveInputRecovery::Status::Current; fp.available=true; fp.observedAt=time;
+    }
+    auto activity=LiveInputRecovery::freshObservation(prior,units,states,time);
+    assert(activity.counts.at({"Example","EVC early"})==120);
+    assert(activity.counts.at({"Example","allocation:early"})==120);
+}
+
+// Operator-only capture check. Compare the candidate sums after normal
+// recovery with the XML district total, and verify a repeated source updates
+// the same centre roster. This runs no forecast and writes no count history.
+void checkPreparedCaptures(std::filesystem::path const& root, int n, char** files) {
+    Document candidates,places;
+    assert(candidates.LoadFile((root/"downloads/2026vic_candidates.xml").string().c_str())==tinyxml2::XML_SUCCESS);
+    assert(places.LoadFile((root/"downloads/2026vic_booths.xml").string().c_str())==tinyxml2::XML_SUCCESS);
+    auto election=Election::createVec(candidates,places,"2026vic");
+    auto input=TurnoutModelIO::loadForElection(root,"2026vic");
+    std::optional<LiveInputRecovery::Snapshot> previous;
+    size_t positive=0, disclosed=0;
+    for (int i=0; i<n; ++i) {
+        Document capture;
+        assert(capture.LoadFile(files[i])==tinyxml2::XML_SUCCESS);
+        election.updateLive(capture,Election::Format::VEC);
+        auto identified=LiveInputAdapter::identify(election,input,"capture-check");
+        auto effective=LiveInputRecovery::recover(std::move(identified),previous).snapshot;
+        for (auto const& [id,seat] : election.seats) for (bool tcp : {false,true}) {
+            LiveInputRecovery::Counts combined;
+            for (auto const& r : effective.records) if (r.district==seat.name &&
+                (r.name=="EVC early" || input.earlyCentres.at(seat.name).contains(r.name))) {
+                auto const& count=tcp ? r.tcp : r.fp;
+                if (r.role=="ppvc") {
+                    auto found=std::find_if(seat.booths.begin(),seat.booths.end(),[&](int key){ return election.booths.at(key).name==r.name; });
+                    assert(found!=seat.booths.end());
+                    auto const& raw=election.booths.at(*found);
+                    auto const& votes=tcp ? raw.tcpVotesCandidate : raw.fpVotes;
+                    if (std::any_of(votes.begin(),votes.end(),[](auto row){ return row.second>0; })) ++disclosed;
+                    if (LiveInputRecovery::total(count.votes)>0) {
+                        if (count.fresh()) assert((LiveInputRecovery::Counts(votes.begin(),votes.end())==*count.votes));
+                        ++positive;
+                    }
+                }
+                if (count.votes) for (auto [candidate,v] : *count.votes) combined[candidate]+=v;
+            }
+            auto const& district=tcp ? seat.tcpVotesCandidate : seat.fpVotes;
+            for (auto const& [candidate,categories] : district) if (categories.contains(Type::EvcEarly))
+                assert(combined[candidate]==categories.at(Type::EvcEarly));
+        }
+        LiveInputAdapter::apply(election,effective,{});
+        previous=std::move(effective);
+    }
+    std::cout << "Reconciled FP and TCP in " << n << " captures. Positive venue records: " << disclosed
+        << " in the feed, " << positive << " after recovery.\n";
+}
+
 int main(int argc, char** argv) try
 {
     Document candidates, places;
+    if (argc>=4 && std::string(argv[1])=="--captures") {
+        checkPreparedCaptures(argv[2],argc-3,argv+3);
+        return 0;
+    }
     if ((argc == 3 || argc == 4) && std::string(argv[1]) == "--prepared") {
         checkPrepared(argv[2],argc == 4 ? argv[3] : "");
         return 0;
@@ -195,6 +405,7 @@ int main(int argc, char** argv) try
         assert(candidates.LoadFile(argv[1]) == tinyxml2::XML_SUCCESS && places.LoadFile(argv[2]) == tinyxml2::XML_SUCCESS);
     }
     auto election = Election::createVec(candidates, places, "2026vic");
+    if (argc==1) { checkVenuePartition(election); checkCentreTurnout(); }
     if (argc == 1) assert(election.parties.at(99).shortCode == "ONP");
     std::set<int> ordinary;
     for (auto d = places.RootElement()->FirstChildElement("PollingDistrict"); d; d = d->NextSiblingElement("PollingDistrict"))

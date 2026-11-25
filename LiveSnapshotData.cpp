@@ -1,4 +1,5 @@
 #include "LiveSnapshotData.h"
+#include "Date.h"
 
 #include "LiveResultsInput.h"
 #include "LiveRunExport.h"
@@ -1195,6 +1196,29 @@ std::string formatCompletedAt(std::string_view completedAt)
 	return formatYmdHms(
 		parts->year, parts->month, parts->day,
 		parts->hour, parts->minute, parts->second);
+}
+
+std::string formatWatcherLocalTime(std::string_view instant)
+{
+	if (instant.empty()) return "none";
+	auto const seconds = completedAtSortKey(instant);
+	if (!seconds) return std::string(instant) + " (unrecognised time)";
+	auto local = Timestamp::fromUnixMilliseconds(*seconds * 1000).formatIsoLocalOffset();
+	if (local.empty()) return std::string(instant) + " (local conversion unavailable)";
+	local[10] = ' ';
+	local.insert(19, " ");
+	return local + " (computer local)";
+}
+
+std::string formatCommissionTime(std::string_view source, std::string_view electionZone)
+{
+	if (source.empty()) return "none";
+	auto const parts = parseIsoDateTime(source);
+	if (!parts) return std::string(source) + " (EC timestamp)";
+	std::string display(source);
+	display[10] = ' ';
+	if (parts->hasOffset || electionZone.empty()) return display + " (EC timestamp)";
+	return display + " (EC, " + std::string(electionZone) + ")";
 }
 
 std::string formatRunSelectorLabel(SnapshotRecord const& record)

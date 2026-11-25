@@ -469,7 +469,9 @@ ForecastSpecificationProjectAdapter::apply(
 		settings.name = configured.name;
 		settings.prevTermCodes =
 			specification.electionSettings.previousTermCodes;
-		settings.numIterations = configured.numIterations;
+		// A saved project's draw count controls the precision and running time
+		// of this simulation. A rehearsal and a short replay of the same
+		// election can therefore use different counts when opened together.
 		settings.live = simulationMode(configured.mode);
 		settings.reportMode = reportMode(configured.reportMode);
 		settings.baseProjection =
@@ -534,9 +536,12 @@ ForecastSpecificationProjectAdapter::construct(
 			index < specification.projections.size(); ++index) {
 			project->projections().add(Projection());
 		}
-		for (std::size_t index = 0;
-			index < specification.simulations.size(); ++index) {
-			project->simulations().add(Simulation());
+		for (auto const& configured : specification.simulations) {
+			// A project created directly from the package has no saved draw
+			// counts. Seed each simulation with its own command-line default.
+			Simulation::Settings settings;
+			settings.numIterations = configured.numIterations;
+			project->simulations().add(Simulation(std::move(settings)));
 		}
 
 		auto applied = apply(*project, specification);

@@ -1,13 +1,41 @@
 #pragma once
 
+#include "General.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 
 // Use classic counts to relate major-party first preferences to TPP in one
 // district, and find adjustments to match the overall primary-vote forecast.
 namespace MajorPartyFpMath {
+
+	// These state forecasts share a district-level estimate of how One Nation
+	// ballots divide between Labor and the Coalition before local counting.
+	inline constexpr bool usesLocalOneNationFlow(std::string_view election)
+	{
+		return election == "2026sa" || election == "2026vic";
+	}
+
+	// Evidence from the 2019, 2022 and 2025 AEC counts:
+	// doubling Labor's district TPP odds multiplies the odds that an ON voter
+	// ranks Labor above the Coalition by about 2^0.20 (1.15). The within-state
+	// slope was 0.23, or 0.16 comparing like Coalition opponents. Using 0.20
+	// for both state elections is an assumption about transferring that
+	// federal evidence. See forecasts/2026vic/README.md and analysis/Preferences/README.md.
+	//
+	// The base flow and Labor TPP are percentages. The centre is on the same transformed
+	// scale as the district TPP and represents where this draw's ON voters
+	// live. A district at the centre keeps the original flow. At the extremes
+	// the share can continue to change while remaining between 0% and 100%.
+	inline double localOneNationToLabor(double baseFlow, double laborTpp, double transformedCentre)
+	{
+		if (baseFlow == 0. || baseFlow == 100.) return baseFlow;
+		constexpr double Slope = .20;
+		double const districtDifference = transformVoteShare(laborTpp) - transformedCentre;
+		return detransformVoteShare(transformVoteShare(baseFlow) + Slope * districtDifference);
+	}
 
 	// Estimate the percent of one prominent centrist candidate's voters who
 	// rank Labor above the Coalition. The first five FP points use the usual

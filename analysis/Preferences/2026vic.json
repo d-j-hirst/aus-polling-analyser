@@ -247,6 +247,7 @@
     "Rowville": {"liberal_advice": "labor_first"},
     "Sandringham": {"liberal_advice": "labor_first"},
     "South Barwon": {"liberal_advice": "labor_first"},
+    "South-West Coast": {"liberal_advice": "labor_first"},
     "St Albans": {"liberal_advice": "labor_first"},
     "Sunbury": {"liberal_advice": "labor_first"},
     "Sydenham": {"liberal_advice": "labor_first"},
@@ -286,6 +287,11 @@
     },
     "liberal_card_evidence": {
       "checked_date": "2026-11-12",
+      "south_west_coast": "Both South-West Coast Liberal lower-house cards checked on 25 November put Hughes (One Nation) third, Govanstone (Labor) fourth and Watts (Greens) fifth.",
+      "south_west_coast_sources": [
+        "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=4832b6d2-9aea-4851-94bd-7cb153278b19%2Fliberal_combined_wvr+south-west+coast_1.pdf&settingsItemId=%7BD753655F-845A-4BD0-B3DA-B772208E0B6B%7D",
+        "https://www.vec.vic.gov.au/api/sitecore/HtvcResults/ViewCard?blobPath=6447d799-9ce1-48e8-93ba-5d6010859b71%2Fliberal_combined_wvr+south-west+coast_2.pdf&settingsItemId=%7BDD5CA75F-3AE2-48B7-93B9-65C6A7A40604%7D"
+      ],
       "cards_checked": 142,
       "districts_checked": 72,
       "source": "https://www.vec.vic.gov.au/voting/2026-state-election/how-to-vote-cards",

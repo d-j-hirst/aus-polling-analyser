@@ -747,16 +747,28 @@ void Results2::Election::preload2022Vic(tinyxml2::XMLDocument const& input_candi
         districtContext + "/PollingPlaces/PollingPlace/PollingPlaceIdentifier", 0);
       booth.name = requiredAttribute(boothIdentifier, "Name",
         districtContext + "/PollingPlaces/PollingPlace/PollingPlaceIdentifier");
-      // Ordinary locations have their own forecast and historical comparison.
-      // VEC V2 also identifies early centres and mobile teams. Their counts
-      // already appear in the district's separate centre and mobile totals.
-      // Retain the IDs so their detailed rows cannot count the ballots twice.
+      // Each V2 early centre can report several batches. Shared venues
+      // count separate ballots for each district. Keep these IDs outside
+      // the ordinary booth range so a reused number cannot acquire a
+      // historical ordinary-booth comparison. Mobile remains a pooled count.
       std::string_view classification = boothIdentifier.Attribute("Classification") ?
         boothIdentifier.Attribute("Classification") : "";
       if (classification == "EarlyVotingCentre" || classification == "MobileVoting") {
-        vecEarlyLocationIds.insert(booth.id);
-        currentBooth = currentBooth->NextSiblingElement("PollingPlace");
-        continue;
+        auto key = std::pair{seatId,booth.id};
+        if (includeSeatBooths && termCode == "2026vic" && classification == "EarlyVotingCentre") {
+          if (seatId <= 0 || seatId > 32767 || booth.id > 65535)
+            throwInvalidXml(districtContext,"VEC centre identity outside the district/location ID range");
+          booth.vecCentreSourceId = booth.id;
+          booth.id = seatId * 65536 + booth.id;
+          if (!vecNamedCentres.emplace(key,booth.id).second)
+            throwInvalidXml(districtContext,"duplicate VEC centre identity");
+          booth.type = Booth::Type::Ppvc;
+          booth.incrementalFp = true;
+        } else {
+          vecPooledLocations.insert(key);
+          currentBooth = currentBooth->NextSiblingElement("PollingPlace");
+          continue;
+        }
       }
       booth.parentSeat = seatId;
       booths[booth.id] = booth;
@@ -2781,7 +2793,7 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
     if (format == Format::VEC) {
       if (name == "EVCEarly") return VoteType::EvcEarly;
       if (name == "MobileVotingEarly") return VoteType::MobileEarly;
-      if (name == "Early" && (termCode == "2026vic" || !vecEarlyLocationIds.empty())) return VoteType::OtherEarly;
+      if (name == "Early" && (termCode == "2026vic" || !vecPooledLocations.empty())) return VoteType::OtherEarly;
     }
     auto found = typeNameToVoteType.find(name);
     return found == typeNameToVoteType.end() ? VoteType::Invalid : found->second;
@@ -2987,9 +2999,19 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
       }
       booth.id = requiredIntAttribute(boothIdEl, "Id",
         seatContext + "/PollingPlaces/PollingPlace/PollingPlaceIdentifier", 0);
-      if (format == Format::VEC && vecEarlyLocationIds.contains(booth.id)) {
-        currentBooth = currentBooth->NextSiblingElement("PollingPlace");
-        continue; // Already counted in the district centre or mobile account.
+      bool namedCentre = false;
+      if (format == Format::VEC) {
+        auto key = std::pair{seat.id,booth.id};
+        if (vecPooledLocations.contains(key)) {
+          currentBooth = currentBooth->NextSiblingElement("PollingPlace");
+          continue;
+        }
+        if (auto centre = vecNamedCentres.find(key); centre != vecNamedCentres.end()) {
+          booth.id = centre->second;
+          namedCentre = true;
+        } else if (boothIdEl.Attribute("Classification","EarlyVotingCentre") && termCode=="2026vic") {
+          throwInvalidXml(seatContext,"unrecognised early voting centre; refresh the VEC polling-location setup");
+        }
       }
       if (format == Format::NSWEC) booth.id += seat.id * 100000; // create unique booth ID for booths with the same name in different seats
       boothIdsPresent.emplace(booth.id);
@@ -3019,9 +3041,9 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
         }
       }
 
-      auto const& fps = requiredChild(*currentBooth, "FirstPreferences",
-        seatContext + "/PollingPlaces/PollingPlace");
-      currentCandidate = fps.FirstChildElement("Candidate");
+      auto fps = namedCentre ? currentBooth->FirstChildElement("FirstPreferences") :
+        &requiredChild(*currentBooth, "FirstPreferences", seatContext + "/PollingPlaces/PollingPlace");
+      currentCandidate = fps ? fps->FirstChildElement("Candidate") : nullptr;
       while (currentCandidate) {
         int candidateId = candidateIdFinder();
         int votes = readCount(currentCandidate->FirstChildElement("Votes"),

@@ -134,6 +134,13 @@ outputs under `cli-build/`.
 
 ### CLI Options
 
+Each saved GUI project keeps its simulation iteration counts in its own
+`.pol2` file. For example, the same election can have a 10,000-iteration
+replay and a 50,000-iteration live forecast. Opening the project restores
+its counts, and an ordinary save preserves the election package's defaults.
+The CLI uses the simulation counts in `forecast.json`. An explicit forecast
+configuration export sets those defaults from the project being exported.
+
 Use `--forecast path/to/forecast.json` instead of `--term` to load a manifest
 from a non-default location. `--no-log` suppresses `PALog.log` pipeline output
 while retaining terminal progress, warnings, and result summaries. Run

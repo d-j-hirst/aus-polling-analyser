@@ -230,6 +230,15 @@ public:
   bool syntheticPreviousCategory = false;
   bool measuredFpInSyntheticCategory = false;
   bool incrementalFp = false;
+  // Named VEC venues inherit this district EVC account and apply their own
+  // geographic contrast. The parent holds actual historical aggregate votes.
+  int evcDistrictAccount = -1;
+    std::string evcDisplayName;
+  std::array<double,3> evcPrimaryFactors{1.,1.,1.};
+  double evcOneNationContrast = 0.;
+  double evcPreferenceOffset = 0;
+  double evcSiblingPreferenceShift = 0;
+  double evcOpeningTpp = 0;
   bool receivesFpBatches() const { return incrementalFp || voteType != Results2::VoteType::Ordinary; }
   std::string previousPreferenceSeat;
   // Independent old Labor/Coalition scrutiny, separate from the old contest's
@@ -836,8 +845,15 @@ private:
 
   void extrapolateBaselineSwings();
   void prepareBoothGeography(TurnoutModel::Prior const& prior, LiveFederalDeclarations::Prior const& declarations);
+  void linkVecCentres(TurnoutModelIO::Artifact const& input);
+  void prepareVecCentreEstimates(TurnoutModelIO::Artifact const& input);
+  void shareVecCentreReturns(std::vector<LiveNewVotes::Shares>& contexts);
   void balanceGeographicOpponents(std::vector<int> const& indexes,
     std::vector<LiveBoothGeography::Place> const& places, LiveBoothGeography::Prepared& geography);
+  void prepareNarracanPrimaryPattern(std::vector<int> const& active,
+    std::vector<LiveFpEvidence::GeographicRow> const& rows, LiveBoothGeography::Prepared& geography);
+  std::optional<std::pair<int,int>> primarySupportHistory(int booth, int candidate) const;
+  bool hasComparableFpReturn(int booth, int candidate) const;
 
   void calculateDeviationsFromBaseline();
 

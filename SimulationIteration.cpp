@@ -17,6 +17,7 @@
 #include "LiveStatewidePreferences.h"
 #include "LiveFpTpp.h"
 #include "MajorPartyFpMath.h"
+#include "MajorPrimarySafeguard.h"
 #include "MinorPartyFpMath.h"
 #include "GreensFpPrior.h"
 #include "SpecialPartyCodes.h"
@@ -164,6 +165,7 @@ enum class VariabilityTag : std::uint32_t {
 	CoalitionCandidateParticipation = 48,
 	// A separate key preserves all existing primary and preference draws.
 	CoalitionIncomingPreferenceSplit = 1001,
+	MajorPrimarySafeguard = 0x736f6674u,
 };
 
 bool isMajor(int partyIndex, int natPartyIndex = -100) {
@@ -213,6 +215,8 @@ void SimulationIteration::reset()
 	seatTcpVoteShare.clear();
 	coalitionScenarios.clear();
 	for (auto& rates : preferenceSourceRates) rates.clear();
+	preferenceFlowCentres.clear();
+	reportOpeningRates.clear();
 	liveClassicSources.clear();
 	classicTppContributions.clear();
 	preferenceComparisons.clear();
@@ -496,6 +500,9 @@ int SimulationIteration::runIteration()
 			// candidates. These constraints can leave a mismatch, which may be
 			// retained and reported as a warning.
 			reconcileSeatAndOverallFp();
+			// Protect the pre-count draw once. Official FP and preference
+			// counts are incorporated below and can supersede this prior.
+			if (!preferenceFlowCentres.empty()) reconcileLowMajorPrimaries();
 
 			if (hasInvalidValues("After reconciling")) {
 				retryOrThrow();
@@ -593,7 +600,7 @@ int SimulationIteration::runIteration()
 			try {
 				if (!preferenceElection) throw std::runtime_error(preferenceDrawIssue);
 				statewidePreferences = LiveStatewidePreferences::estimate(*inputs,
-					*run.preferenceModel,*preferenceElection,overallPreferenceFlow,liveClassicSources);
+					*run.preferenceModel,*preferenceElection,overallPreferenceFlow,liveClassicSources,reportOpeningRates);
 			}
 			catch (std::exception const& error) {
 				recordedRun.recordWarning(SimulationRun::WarningCategory::StatewidePreferenceReport,
@@ -660,7 +667,13 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	seatThirdPartyExhaustEffect = std::vector<double>(project.seats().count(), 0.0);
 	seatPollEffect = std::vector<double>(project.seats().count(), 0.0);
 	seatMrpPollEffect = std::vector<double>(project.seats().count(), 0.0);
-	if (run.preferenceModel || run.isLiveAutomatic() || run.projectBothCoalitionMatchups)
+	if (MajorPrimarySafeguard::enabled(run.getTermCode(), run.estimatingPairingReference)) {
+		int on = project.parties().indexByShortCode("ONP");
+		if (on < 0) on = project.parties().indexByShortCode("ON");
+		safeguardSources = {run.grnPartyIndex,on < 0 ? InvalidPartyIndex : on,OthersIndex};
+		preferenceFlowCentres.resize(project.seats().count());
+	}
+	if (!preferenceFlowCentres.empty() || run.preferenceModel || run.isLiveAutomatic() || run.projectBothCoalitionMatchups)
 		preferenceSourceRates.resize(project.seats().count());
 	if (run.preferenceModel) {
 		preferenceComparisons.resize(project.seats().count());
@@ -1391,6 +1404,19 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		}
 	}
 	auto tempPastResults = pastSeatResults[seatIndex].fpVotePercent;
+	// Ordinarily all starting primaries come from the preceding election.
+	// Labor skipped Narracan's supplementary election, so that ballot is
+	// a poor guide to the major/Greens mix once Labor returns. Seed these
+	// three candidates with the 2018 results on the current boundaries
+	// (ABC Victorian redistribution, 2021, p. 59). Keep the supplementary
+	// count for other candidates, turnout and historical preference evidence.
+	// These seeds are balanced later and never become reported vote counts.
+	bool const use2018Primaries = seat.name == "Narracan" && run.getTermCode() == "2026vic";
+	if (use2018Primaries) {
+		tempPastResults[Mp::One] = 31.9;
+		tempPastResults[Mp::Two] = 55.6;
+		if (run.grnPartyIndex >= 0) tempPastResults[run.grnPartyIndex] = 6.0;
+	}
 
 	for (auto [partyIndex, voteShare] : tempPastResults) {
 		// Carry a historical independent forward only when that campaign could
@@ -1435,8 +1461,11 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		bool effectivePopulist = partyIndex >= Mp::Others && !effectiveGreen && !effectiveIndependent &&
 			(overallFpSwing.contains(partyIndex) || contains(run.seatProminentMinors[seatIndex], partyIndex));
 		if (effectiveGreen) {
+			// Compare the statewide Greens primary with the same election as
+			// their local starting share (10.71% statewide in Victoria in 2018).
+			auto const comparisonStateFp = use2018Primaries ? std::optional<double>(10.71) : std::nullopt;
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.greensSeatStatistics,
-				run.missingGreensFpMedian[seatIndex]);
+				run.missingGreensFpMedian[seatIndex], comparisonStateFp);
 		}
 		// Independents use the continuing-candidate model when incumbent,
 		// confirmed, or sampled as a possible recontest before the ballot is
@@ -1486,7 +1515,7 @@ void SimulationIteration::determineSpecificPartyFp(
 	int partyIndex,
 	double& voteShare,
 	SimulationRun::SeatStatistics const& seatStatistics,
-	std::optional<double> missingGreensMedian)
+	std::optional<double> missingGreensMedian, std::optional<double> comparisonStateFp)
 {
 	Seat const& seat = run.seatLookup.seat(seatIndex);
 	int const incumbentPartyIndex = project.parties().idToIndex(seat.incumbent);
@@ -1613,7 +1642,9 @@ void SimulationIteration::determineSpecificPartyFp(
 	double lowerKurtosisMixed = getMixedStat(StatType::LowerKurtosis);
 	double upperKurtosisMixed = getMixedStat(StatType::UpperKurtosis);
 	if (overallFpSwing.contains(partyIndex)) {
-		transformedFp += swingMultiplierMixed * overallFpSwing[partyIndex];
+		double const swing = comparisonStateFp
+			? overallFpTarget.at(partyIndex) - *comparisonStateFp : overallFpSwing[partyIndex];
+		transformedFp += swingMultiplierMixed * swing;
 	}
 
 	transformedFp += offsetMixed;
@@ -2276,7 +2307,7 @@ void SimulationIteration::constrainCoalitionPrimariesToTpp(int seatIndex)
 // and any current Coalition partner contributes its own preferences.
 SimulationIteration::MajorPartyFpAllocation
 SimulationIteration::allocateMajorPartyFp(
-	int seatIndex,
+	int seatIndex, std::optional<OneNationFlowContext> const& localFlow,
 	double preferenceFlowDeviation)
 {
 	Seat const& seat = run.seatLookup.seat(seatIndex);
@@ -2455,7 +2486,7 @@ SimulationIteration::allocateMajorPartyFp(
 	double currentExhaustDenominator = 0.0;
 	std::map<int, double> preferenceVariation; // in minor -> major preferences, after transformation
 	std::map<int, double> exhaustVariation;
-	bool const saveClassicRates = coalitionScenarios.contains(seatIndex) || (run.preferenceModel && run.preferenceModel->coversDistrict(seatIndex)) ||
+	bool const saveClassicRates = !preferenceFlowCentres.empty() || coalitionScenarios.contains(seatIndex) || (run.preferenceModel && run.preferenceModel->coversDistrict(seatIndex)) ||
 		(run.isLiveAutomatic() && liveElection && liveElection->classicPreferenceAccount(seatIndex));
 	auto* comparisonRates = saveClassicRates
 		? &preferenceSourceRates[seatIndex] : nullptr;
@@ -2480,9 +2511,20 @@ SimulationIteration::allocateMajorPartyFp(
 				uint32_t(VariabilityTag::SeatExhaustVariation));
 		}
 		double randomisedExhaustRate = exhaustRate ? basicTransformedSwing(exhaustRate, exhaustVariation[partyIndex]) : 0.0;
-		double const sourcePreferenceFlow = voteShare > 5.0 && usesTacticalPreferenceFlow(partyIndex) ?
+		double sourcePreferenceFlow = voteShare > 5.0 && usesTacticalPreferenceFlow(partyIndex) ?
 			calculateEffectivePreferenceFlow(partyIndex, voteShare, true) : overallPreferenceFlow[partyIndex];
+		// Adjust the opening rate before the usual preference uncertainty.
+		// This same draw then supplies the major FP calculation and the
+		// relative source rates for the ranked count and live TPP estimates.
+		if (localFlow && partyIndex == localFlow->party) {
+			sourcePreferenceFlow = MajorPartyFpMath::localOneNationToLabor(
+				sourcePreferenceFlow, partyOneCurrentTpp, localFlow->transformedTppCentre);
+		}
 		double const adjustedPreferenceFlow = basicTransformedSwing(sourcePreferenceFlow, preferenceFlowDeviation);
+		if (!preferenceFlowCentres.empty()) {
+			for (size_t j = 0; j < safeguardSources.size(); ++j)
+				if (partyIndex == safeguardSources[j]) preferenceFlowCentres[seatIndex][j] = .01*adjustedPreferenceFlow;
+		}
 		double const randomisedPreferenceFlow = basicTransformedSwing(adjustedPreferenceFlow, preferenceVariation[partyIndex]);
 		if (partyIndex == run.grnPartyIndex) greenRateInDraw = .01*randomisedPreferenceFlow;
 		currentPartyOnePrefs += voteShare * randomisedPreferenceFlow * 0.01 * (1.0 - randomisedExhaustRate);
@@ -2742,10 +2784,39 @@ SimulationIteration::allocateMajorPartyFp(
 	return allocation;
 }
 
+// Centre the local preference adjustment on the districts where One Nation
+// is expected to receive votes. Previous formal turnout times the current ON
+// primary share gives the relative number of ON voters in each district.
+// A uniform movement on the transformed TPP scale cancels in the district
+// comparison when the distribution of ON voters is held fixed. The weighted
+// average of the resulting percentages can still differ slightly from the
+// original statewide rate. Recompute when statewide FP reconciliation
+// changes the primary mix, then keep that reference through the checks
+// that each district TPP is possible with its simulated primaries.
+std::optional<SimulationIteration::OneNationFlowContext> SimulationIteration::oneNationFlowContext() const
+{
+	if (!MajorPartyFpMath::usesLocalOneNationFlow(run.getTermCode())) return {};
+	int party = project.parties().indexByShortCode("ONP");
+	if (party < 0) party = project.parties().indexByShortCode("ON");
+	if (party < 0) return {};
+	double weightedTpp = 0., weight = 0.;
+	for (int s = 0; s < project.seats().count(); ++s) {
+		double const voters = run.pastSeatResults[s].turnoutCount * .01 * getAt(seatFpVoteShare[s], party, 0.);
+		if (voters <= 0.) continue;
+		double const tpp = 50. + partyOneNewTppMargin[s];
+		if (!(tpp > 0. && tpp < 100.)) throw InvalidIteration();
+		weightedTpp += voters * transformVoteShare(tpp);
+		weight += voters;
+	}
+	if (weight <= 0.) return {};
+	return OneNationFlowContext{party, weightedTpp / weight};
+}
+
 void SimulationIteration::allocateMajorPartyFpsWithCompatibleTpp()
 {
 	int const seatCount = project.seats().count();
 	if (!seatCount) return;
+	auto const localFlow = oneNationFlowContext();
 
 	// Preference flows and seat TPP are generated separately. Extreme minor-
 	// party draws can therefore imply a negative FP for one major party. Move
@@ -2776,7 +2847,7 @@ void SimulationIteration::allocateMajorPartyFpsWithCompatibleTpp()
 		seatFpVoteShare = baseSeatFp;
 		bool allSeatsCompatible = true;
 		for (int seatIndex = 0; seatIndex < seatCount; ++seatIndex) {
-			allocations[seatIndex] = allocateMajorPartyFp(seatIndex);
+			allocations[seatIndex] = allocateMajorPartyFp(seatIndex, localFlow);
 			auto const& allocation = allocations[seatIndex];
 			allSeatsCompatible = allSeatsCompatible &&
 				allocation.directPartyOneFp >= MinMajorPartyFp &&
@@ -2797,7 +2868,7 @@ void SimulationIteration::allocateMajorPartyFpsWithCompatibleTpp()
 			partyOneNewTppMargin = originalTppMargins;
 			seatFpVoteShare = baseSeatFp;
 			for (int seatIndex = 0; seatIndex < seatCount; ++seatIndex) {
-				allocateMajorPartyFp(seatIndex);
+				allocateMajorPartyFp(seatIndex, localFlow);
 			}
 			return;
 		}
@@ -3093,6 +3164,7 @@ void SimulationIteration::solveTerminalFpReconciliation()
 	// An earlier reconciliation trial can supply the final FP and TPP.
 	// Retain that trial's preference rates with its vote shares.
 	auto bestPreferenceSourceRates = preferenceSourceRates;
+	auto bestFlowCentres = preferenceFlowCentres;
 	// The incoming aggregate correction has not yet been reconstructed against
 	// seat TPPs, so compare only complete candidate solutions with one another.
 	double bestError = std::numeric_limits<double>::infinity();
@@ -3196,6 +3268,7 @@ void SimulationIteration::solveTerminalFpReconciliation()
 			bestSeatFp = seatFpVoteShare;
 			bestSeatTppMargins = partyOneNewTppMargin;
 			bestPreferenceSourceRates = preferenceSourceRates;
+			bestFlowCentres = preferenceFlowCentres;
 			stagnantCycles = 0;
 		}
 		else {
@@ -3210,6 +3283,7 @@ void SimulationIteration::solveTerminalFpReconciliation()
 	seatFpVoteShare = std::move(bestSeatFp);
 	partyOneNewTppMargin = std::move(bestSeatTppMargins);
 	preferenceSourceRates = std::move(bestPreferenceSourceRates);
+	preferenceFlowCentres = std::move(bestFlowCentres);
 	calculateNewFpVoteTotals();
 }
 
@@ -3776,6 +3850,104 @@ void SimulationIteration::correctMajorPartyFpBias(
 		// used by the search above and leaves any separate FP error visible.
 		if (accountForSeatNormalisation && usesSeparateCoalitionPreferenceAccounting(seatIndex)) {
 			constrainCoalitionPrimariesToTpp(seatIndex);
+		}
+	}
+}
+
+// Fit the accepted district source rates to the opening Labor TPP, including
+// votes that reach Labor from an excluded Coalition partner. The seat FP map
+// still holds the combined Coalition primary here. Its separate aliases do
+// not supply extra ballots. An infeasible draw offers no basis for a trade.
+std::optional<LiveStatewidePreferences::Shares> SimulationIteration::fittedOpeningFlows(int s) const
+{
+	auto donors = seatFpVoteShare[s];
+	donors.erase(CoalitionPartnerIndex);
+	donors.erase(run.natPartyIndex);
+	auto const& saved = preferenceSourceRates[s];
+	LiveStatewidePreferences::Shares rates(saved.begin(),saved.end());
+	for (auto const& [party,primary] : donors)
+		rates.try_emplace(party,std::clamp(getAt(overallPreferenceFlow,party,50.)*.01,0.,1.));
+	double const excludedPartnerVotes = referenceLeakageFraction(s)*donors.at(Mp::Two);
+	if (!LiveFpTpp::anchorRates(donors,50.+partyOneNewTppMargin[s]-excludedPartnerVotes,rates)) return {};
+	return rates;
+}
+
+// Start from the completed statewide FP reconciliation. Keep each district's
+// TPP, and balance changes across districts using the same past turnout
+// weights. The ranked count and later live updates inherit both the revised
+// primaries and the corresponding preference rates from this draw.
+void SimulationIteration::reconcileLowMajorPrimaries()
+{
+	std::vector<MajorPrimarySafeguard::District> districts;
+	std::vector<int> seatIndices;
+	districts.reserve(seatFpVoteShare.size());
+	if (run.isLiveAutomatic() && LiveStatewidePreferences::includeDraw(iterationIndex,sim.getSettings().numIterations))
+		reportOpeningRates.resize(seatFpVoteShare.size());
+	auto const& laborCode = project.parties().viewByIndex(Mp::One).abbreviation;
+	auto const& liberalCode = project.parties().viewByIndex(Mp::Two).abbreviation;
+	for (int s = 0; s < project.seats().count(); ++s) {
+		auto const& fp = seatFpVoteShare[s];
+		int const on = safeguardSources[1];
+		if (!reportOpeningRates.empty() && fp.contains(on))
+			reportOpeningRates[s][on] = preferenceFlowCentres[s][1];
+		// Absence from a known ballot is a structural zero. An unknown roster
+		// uses the simulated contest. A seat without a turnout weight cannot
+		// participate in an exchange with the rest of the state.
+		auto const& roster = run.runningParties[s];
+		auto const& past = run.pastSeatResults[s];
+		if (past.turnoutCount <= 0 || (!roster.empty() && (!contains(roster,laborCode) ||
+			(!contains(roster,liberalCode) && !contains(roster,std::string("NAT")))))) continue;
+		auto const fitted = fittedOpeningFlows(s);
+		if (!fitted) continue;
+		seatIndices.push_back(s);
+		auto& district = districts.emplace_back();
+		district.turnout = past.turnoutCount;
+		district.labor = fp.at(Mp::One);
+		district.coalition = fp.at(Mp::Two);
+		district.leakage = referenceLeakageFraction(s);
+		district.laborTpp = 50.+partyOneNewTppMargin[s];
+		district.shoulder = 1.5*(4.+4.*variabilityUniform(0.,1.,s,0,uint32_t(VariabilityTag::MajorPrimarySafeguard)));
+		double const independent = std::max(getAt(fp,run.indPartyIndex,0.),getAt(fp,EmergingIndIndex,0.));
+		auto const& previous = past.fpVotePercent;
+		district.laborNeed = MajorPrimarySafeguard::requestedIncrease(district.labor,
+			getAt(previous,Mp::One,0.),independent,district.shoulder);
+		district.coalitionNeed = MajorPrimarySafeguard::requestedIncrease(district.coalition,
+			getAt(previous,Mp::Two,0.)+getAt(previous,run.natPartyIndex,0.),independent,district.shoulder);
+		for (auto const& [party,rate] : preferenceSourceRates[s]) {
+			for (size_t j = 0; j < safeguardSources.size(); ++j) {
+				if (party != safeguardSources[j]) continue;
+				district.sources[j] = {getAt(fp,party,0.),rate,preferenceFlowCentres[s][j],fitted->at(party)};
+			}
+		}
+	}
+
+	MajorPrimarySafeguard::adjustPreferences(districts);
+	MajorPrimarySafeguard::adjustPrimaries(districts);
+
+	for (size_t i = 0; i < districts.size(); ++i) {
+		int const s = seatIndices[i];
+		auto const& district = districts[i];
+		auto& fp = seatFpVoteShare[s];
+		bool revised = fp.at(Mp::One) != district.labor || fp.at(Mp::Two) != district.coalition;
+		fp.at(Mp::One) = district.labor;
+		fp.at(Mp::Two) = district.coalition;
+		for (auto& [party,rate] : preferenceSourceRates[s]) {
+			for (size_t j = 0; j < safeguardSources.size(); ++j) {
+				if (party != safeguardSources[j]) continue;
+				auto const& source = district.sources[j];
+				revised = revised || source.rate != rate || getAt(fp,party,0.) != source.primary;
+				rate = source.rate;
+				if (auto entry = fp.find(party); entry != fp.end()) entry->second = source.primary;
+			}
+		}
+		// The ranked and live counts fit these relative rates to the final FP
+		// mix themselves. Give the reporting fallback those same fitted rates
+		// where the safeguard acted, until a live source count supersedes it.
+		if (revised && !reportOpeningRates.empty()) {
+			if (auto fitted = fittedOpeningFlows(s)) {
+				for (int party : safeguardSources)
+					if (getAt(fp,party,0.) > 0.) reportOpeningRates[s][party] = fitted->at(party);
+			}
 		}
 	}
 }

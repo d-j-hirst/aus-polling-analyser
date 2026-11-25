@@ -3,6 +3,7 @@
 #include "LivePartialCount.h"
 #include "LiveData.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <optional>
 #include <stdexcept>
@@ -32,6 +33,20 @@ struct District {
     std::vector<Point> located; // Pre-count mix represented by a remote ordinary booth.
     double locatedSize = 0;
     std::optional<double> ordinaryMovement; // Log-odds shift fitted to accepted ordinary returns.
+    struct OlderPrimaries {
+        int greens;
+        std::map<int,std::array<int,3>> counts; // Historical ALP, GRN and remaining FP at a matched ordinary site.
+        std::map<int,Shares> factors;
+        bool covers(int party) const { return party==0 || party==greens; }
+    };
+    std::optional<OlderPrimaries> olderPrimaries;
+    Shares const& factorsFor(int booth) const {
+        if (olderPrimaries) {
+            auto it=olderPrimaries->factors.find(booth);
+            if (it!=olderPrimaries->factors.end()) return it->second;
+        }
+        return opponentFactors;
+    }
 };
 struct Prepared {
     int party = -1;

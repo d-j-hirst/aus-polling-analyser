@@ -1,4 +1,5 @@
 #include "LiveV2.h"
+#include "LiveVecCentreGeography.h"
 
 #include "General.h"
 #include "PollingProject.h"
@@ -332,7 +333,8 @@ Booth::Booth(
   int natPartyIndex,
   bool sameSeat
 )
-  : name(currentBooth.name), parentSeatId(parentSeatId), sourceId(currentBooth.id), voteType(Results2::VoteType::Ordinary), boothType(currentBooth.type),
+  : name(currentBooth.name), parentSeatId(parentSeatId), sourceId(currentBooth.vecCentreSourceId >= 0 ? currentBooth.vecCentreSourceId : currentBooth.id),
+  voteType(Results2::VoteType::Ordinary), boothType(currentBooth.type),
   coords(currentBooth.coords), sameSeat(sameSeat)
 {
 
@@ -681,7 +683,7 @@ void Election::prepareRetainedClassicCounts(Results2::Election const& previousEl
       // Train from the original measurements. A later allocation estimated
       // from these flows supplies no additional evidence about those flows.
       retained.preferenceEvidence = LivePartialCount::measure(fp,tcp,flows,0,coalition,true);
-      if (retained.preferenceEvidence && booth.notionalPreferenceOffset) {
+      if (retained.preferenceEvidence && (booth.notionalPreferenceOffset || booth.evcDistrictAccount >= 0)) {
         auto exact = LiveHistoricalPreferences::fitOffset(fp,tcp,flows,0,coalition);
         if (exact) retained.preferenceEvidence->offset = *exact;
       }
@@ -957,7 +959,7 @@ std::vector<LiveV2::Election::BoothSnapshot> LiveV2::Election::getBoothSnapshots
     if (booth.parentSeatId >= 0 && booth.parentSeatId < int(seats.size())) {
       snapshot.seatName = seats[booth.parentSeatId].name;
     }
-    snapshot.boothName = booth.name;
+    snapshot.boothName = booth.evcDisplayName.empty() ? booth.name : booth.evcDisplayName;
     snapshot.boothType = booth.boothType;
     snapshot.voteType = booth.voteType;
     snapshot.sameSeat = booth.sameSeat;
@@ -982,6 +984,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   auto partyFlowHistory = readPartyConversionHistory(previousElection,currentElection);
   auto notionalHistory = readNotionalPreferenceHistory(previousElection,currentElection);
   auto const independentTcpMatches = createNodesFromElectionData(previousElection, currentElection, partyFlowHistory, notionalHistory);
+  linkVecCentres(turnoutInput);
   prepareTcpBases(previousElection,currentElection,preferenceHistory);
   preparePartyConversionPriors(partyFlowHistory, previousElection, currentElection);
   prepareNotionalPreferenceOffsets(partyFlowHistory);
@@ -997,6 +1000,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   if (auto path = LiveFederalDeclarations::inputPath(project.paths().root(),run.getTermCode()))
     declarations = LiveFederalDeclarations::readPrior(*path,run.getTermCode());
   prepareBoothGeography(turnoutInput.prior,declarations);
+  prepareVecCentreEstimates(turnoutInput);
   calculateDeviationsFromBaseline();
   aggregate();
   determineSpecificDeviations();
@@ -2401,7 +2405,8 @@ double Election::preferencePriorOffset(Booth const& booth, bool includeLocal) co
   // Retain the normal historical and pooled preference assumptions when this
   // service has no suitable same-election cohort. Local cohort evidence then
   // displaces that prior in proportion to its non-finalist sample size.
-  double offset = preferenceRateOffset(booth,false).value_or(0);
+  double offset = booth.evcDistrictAccount >= 0 ? 25*(booth.evcPreferenceOffset+booth.evcSiblingPreferenceShift)
+    : preferenceRateOffset(booth,false).value_or(0);
   for (auto parent : getThisAndParents(booth)) {
     // Pending preferences retain the normal local prior. For new voters, the
     // same measured category flow enters once through the cohort weight below.
@@ -2529,10 +2534,10 @@ void Election::preparePreferenceCohort(Booth& booth, Results2::Election const& p
   auto flows = pairPreferenceFlows(booth,first,second);
   if (std::any_of(fp.begin(),fp.end(),[&](auto const& row) { return !flows.contains(row.first); })) return;
   booth.preferenceEvidence = LivePartialCount::measure(fp,tcp,flows,first,second,history.matchingCurrentTcp.has_value());
-  if (booth.notionalPreferenceOffset && booth.preferenceEvidence && first == 0
+  if ((booth.notionalPreferenceOffset || booth.evcDistrictAccount >= 0) && booth.preferenceEvidence && first == 0
     && (second == 1 || second == natPartyIndex)) {
-    // On the added historical path an aligned current cohort must use the same
-    // mixture calculation as current preference movement. Otherwise a precise
+    // Historical notional TPP and named Victorian EVCs use party-specific
+    // preference rates. Measure an aligned batch on that same scale or a precise
     // cohort could pull the estimate back towards the pooled approximation.
     // Other pairings and existing historical-TCP paths keep their usual rule.
     auto exact = LiveHistoricalPreferences::fitOffset(fp,tcp,flows,first,second);
@@ -3935,7 +3940,9 @@ void Election::prepareNewVoteContexts() {
   auto hierarchy = collectOrdinaryFpEvidence();
   aggregateOrdinaryFpEvidence(hierarchy);
   conditionOrdinaryFpEvidence(hierarchy);
-  newVoteContexts = std::make_shared<std::vector<LiveNewVotes::Shares> const>(declarationFpContexts(hierarchy));
+  auto contexts = declarationFpContexts(hierarchy);
+  shareVecCentreReturns(contexts);
+  newVoteContexts = std::make_shared<std::vector<LiveNewVotes::Shares> const>(std::move(contexts));
 }
 
 std::vector<LiveNewVotes::Shares> Election::declarationFpContexts(OrdinaryFpHierarchy const& hierarchy) const {
@@ -4021,12 +4028,20 @@ std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int bo
   auto const& booth = readBooths().at(boothIndex);
   auto const& seat = seats.at(booth.parentSeatId);
   int projectSeatIndex = project.seats().indexByName(seat.name);
+  if (booth.evcDistrictAccount >= 0) {
+    auto district = projectUnreportedFp(allowCurrentData,booth.evcDistrictAccount,currentVoteTarget,hierarchy);
+    return LiveVecCentreGeography::allocate(std::move(district),booth.evcPrimaryFactors,natPartyIndex,run.grnPartyIndex,
+      boothGeography ? boothGeography->party : -1,booth.evcOneNationContrast);
+  }
   const double votesGuess = booth.boothType == Results2::Booth::Type::Hospital ? HospitalBoothVotesGuess : PreviousTotalVotesGuess;
   double previousTotalVotes = booth.node.totalVotesPrevious() ? booth.node.totalVotesPrevious() : votesGuess;
   // Preparation also calls this with a fixed size before turnout is updated,
   // to obtain the existing relative composition of the other candidates.
   auto const* geographic = boothGeography && boothGeography->units.at(boothIndex)
     ? &*boothGeography->units.at(boothIndex) : nullptr;
+  auto const* districtGeography = geographic ? &boothGeography->districts.at(booth.parentSeatId) : nullptr;
+  auto const* olderPrimaries = districtGeography && districtGeography->olderPrimaries
+    ? &*districtGeography->olderPrimaries : nullptr;
   std::optional<double> geographicShare;
   std::map<int, double> tempFpVotesProjected;
   double accountedOthersVotes = 0.0;
@@ -4055,7 +4070,9 @@ std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int bo
     int indIndex = allowCurrentData ? seat.liveIndependentPartyIndex : seat.independentPartyIndex;
     int effectivePartyId = partyId == indIndex ? run.indPartyIndex : partyId;
     bool const useGeography = geographic && effectivePartyId == boothGeography->party;
-    if (allowCurrentData && (booth.node.totalVotesPrevious() || useGeography)) {
+    bool const useOlderHistory = olderPrimaries && olderPrimaries->covers(effectivePartyId) &&
+      olderPrimaries->counts.contains(boothIndex);
+    if (allowCurrentData && (booth.node.totalVotesPrevious() || useGeography || useOlderHistory)) {
       if (hierarchy) {
         // Declaration services inherit movement measured in ordinary booths.
         // Their own partial batch enters later, once, through the FP blend.
@@ -4122,7 +4139,7 @@ std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int bo
       }
       unprofiled.push_back({effectivePartyId, districtPercent, randomFactor});
     } else if (
-      allowCurrentData &&
+      allowCurrentData && !useOlderHistory &&
       currentSeatTotal > 0 &&
       currentSeatFp.contains(partyId)
      ) {
@@ -4173,7 +4190,7 @@ std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int bo
   if (geographicShare) {
     auto const& district = boothGeography->districts.at(booth.parentSeatId);
     LiveBoothGeography::allocate(tempFpVotesProjected,boothGeography->party,*geographicShare,
-      currentVoteTarget,district.opponentFactors);
+      currentVoteTarget,district.factorsFor(boothIndex));
     return tempFpVotesProjected;
   }
   for (auto& [partyId, votes] : tempFpVotesProjected) {
@@ -4716,6 +4733,7 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
       ? prevAlpShare.value() + booth.node.tppSwingBaseline.value_or(0.0)
       : seatBaselineAlpShare.value_or(0.0) // this already has the baseline swing factored in
     );
+  if (booth.evcDistrictAccount >= 0) baselineAlpShare = 25*LivePartialCount::logOdds(booth.evcOpeningTpp);
   double deviation = 0.0;
   if (allowCurrentData) {
     if (dataExists) {

@@ -106,7 +106,7 @@
       "id": "live-simulation",
       "mode": "live_automatic",
       "name": "Live Simulation",
-      "num_iterations": 10000,
+      "num_iterations": 50000,
       "report_mode": "live_forecast"
     }
   ]

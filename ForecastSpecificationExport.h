@@ -7,6 +7,8 @@
 
 class PollingProject;
 
+enum class SimulationDrawDefaults { FromProject, KeepPackageDefaults };
+
 struct ForecastSpecificationExportResult {
 	ForecastSpecification specification;
 	std::vector<ForecastSpecificationDiagnostic> diagnostics;
@@ -20,4 +22,5 @@ struct ForecastSpecificationExportResult {
 // the .pol2 project or their existing canonical analysis files.
 ForecastSpecificationExportResult exportForecastSpecification(
 	PollingProject const& project,
-	std::filesystem::path const& packageDirectory);
+	std::filesystem::path const& packageDirectory,
+	SimulationDrawDefaults drawDefaults = SimulationDrawDefaults::FromProject);

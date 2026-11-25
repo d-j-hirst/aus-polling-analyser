@@ -116,7 +116,8 @@ PollingProject::SaveResult PollingProject::save(std::string filename)
 	}
 	if (forecastDirectoryExists) {
 		auto forecastExport =
-			exportForecastSpecification(*this, forecastDirectory);
+			exportForecastSpecification(*this, forecastDirectory,
+				SimulationDrawDefaults::KeepPackageDefaults);
 		if (!forecastExport.valid()) {
 			throw std::runtime_error(
 				"Portable forecast configuration validation failed:\n" +

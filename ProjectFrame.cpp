@@ -1,4 +1,5 @@
 #include "LiveAutomation.h"
+#include "LiveSnapshotData.h"
 #include <wx/dirdlg.h>
 #include <wx/choicdlg.h>
 #include <wx/filedlg.h>
@@ -585,8 +586,10 @@ void ProjectFrame::onLiveProgress(wxTimerEvent&) {
                 auto status = std::filesystem::exists(directory/"status.json") ? LiveAutomation::readJson(directory/"status.json") : nlohmann::json::object();
                 auto arrival = std::filesystem::exists(directory/"arrival-status.json") ? LiveAutomation::readJson(directory/"arrival-status.json") : nlohmann::json::object();
                 auto reporting = std::filesystem::exists(directory/"reporting-status.json") ? LiveAutomation::readJson(directory/"reporting-status.json") : nlohmann::json::object();
-                liveWatchSummary = "Received: "+arrival.value("latest_received",std::string("none"))+"\nAccepted: "+status.value("latest_accepted",std::string("none"))+
-                    "\nForecasted: "+status.value("latest_forecast",std::string("none"));
+                auto const zone = project->automationSettings().value("timezone",std::string());
+                liveWatchSummary = "Feed received: "+LiveSnapshot::formatWatcherLocalTime(arrival.value("latest_received",std::string()))+
+                    "\nLatest accepted snapshot: "+LiveSnapshot::formatCommissionTime(status.value("latest_accepted",std::string()),zone)+
+                    "\nLatest forecast snapshot: "+LiveSnapshot::formatCommissionTime(status.value("latest_forecast",std::string()),zone);
                 auto counts = status.value("counts",nlohmann::json::object());
                 int notYetAccepted = std::max(0,arrival.value("collected",0)-status.value("known_arrivals",0)) + counts.value("discovered",0);
                 liveWatchSummary += "\nAwaiting acceptance: "+std::to_string(notYetAccepted)+
@@ -611,10 +614,14 @@ void ProjectFrame::onLiveProgress(wxTimerEvent&) {
                         auto receipt = LiveAutomation::readJson(entry.path());
                         std::string published = "none";
                         if (receipt.contains("latest_source_time") && receipt["latest_source_time"].is_string())
-                            published = receipt["latest_source_time"].get<std::string>();
+                            published = LiveSnapshot::formatWatcherLocalTime(receipt["latest_source_time"].get<std::string>());
                         else if (receipt.contains("latest_forecast_id") && receipt["latest_forecast_id"].is_string())
                             published = receipt["latest_forecast_id"].get<std::string>();
-                        liveWatchSummary += "\nPublished ("+entry.path().stem().string()+"): "+published;
+                        auto const destination = entry.path().stem().string();
+                        liveWatchSummary += "\nLatest snapshot on "+destination+" server: "+published;
+                        if (receipt.contains("last_receipt_at") && receipt["last_receipt_at"].is_string())
+                            liveWatchSummary += "\nLast upload acknowledged by "+destination+" server: "+
+                                LiveSnapshot::formatWatcherLocalTime(receipt["last_receipt_at"].get<std::string>());
                         if (receipt.contains("forecasts")) for (auto const& [id,record] : receipt["forecasts"].items())
                             if (!record.value("accepted",false)) { liveWatchSummary += " - "+record.value("error",std::string("pending")); break; }
                     }

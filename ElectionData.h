@@ -147,7 +147,8 @@ namespace Results2 {
 		int32_t parentSeat;
 		bool syntheticBaseline = false; // Reconstructed category allocation, not observed historical counts.
 		std::string comparisonSeat; // Original district of a prepared historical venue; empty for ordinary inputs.
-		bool incrementalFp = false; // Mixed early/day location reports multiple primary batches (WA 2025).
+		bool incrementalFp = false; // A named location reporting multiple FP batches.
+		int vecCentreSourceId = -1; // VEC location number within the reporting district.
 		bool confirmedPresent; // "Phantom booths" can appear in the preload but not in the live data, this 
 
 		// Unset when the feed has no lat/lon (typical for ECSA and declaration booths).
@@ -370,9 +371,10 @@ namespace Results2 {
 
 		void applyResultOverrides();
 	private:
-		// VEC supplies each of these centres both as a location and inside the
-		// district's early totals. The current forecast uses the district account.
-		std::set<int> vecEarlyLocationIds;
+		// The district is part of a joint venue's identity. A mobile team is
+		// represented by its district account; a named EVC has its own booth.
+		std::set<std::pair<int,int>> vecPooledLocations;
+		std::map<std::pair<int,int>,int> vecNamedCentres;
 		void beginLiveCountRead();
 		void captureLiveCandidateRosters();
 		void clearLiveCountRecords();

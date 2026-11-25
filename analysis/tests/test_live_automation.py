@@ -134,6 +134,10 @@ class AutomationTests(unittest.TestCase):
             for key in ('commentary', 'commentary_requests', 'commentary_evidence'):
                 self.assertEqual(pub[key], {})
             self.assertTrue(pub['comparisons']['previous']['available'])
+            prepared = read(self.root/'packages/f00000002/comparisons.json')
+            for windows in (prepared, pub['comparisons']):
+                self.assertNotIn('seat_changes', windows['previous'])
+                self.assertIn('win_changes', windows['previous'])
             self.assertEqual(pub['report']['countProgress']['fp_votes'], 60000)
         self.assertFalse((self.root/'commentary-budget.sqlite').exists())
 
@@ -247,15 +251,16 @@ class AutomationTests(unittest.TestCase):
         current = {'forecast_id': 'f00000009', 'seat_calls': calls}
         groups = seat_alerts.call_changes(old, current)
         by_party = {(row['action'], row['party']): row for row in groups}
-        self.assertEqual(by_party['called', '0']['seats'], ['New', 'Older 8', 'Older 6'])
-        self.assertEqual(by_party['called', '1']['seats'], ['Older 7', 'Older 5'])
-        self.assertEqual([by_party['called', party]['others'] for party in ('0', '1')], [1, 1])
+        self.assertEqual(by_party['called', '0']['seats'], ['New', 'Older 8', 'Older 6', 'Older 4'])
+        self.assertEqual(by_party['called', '1']['seats'], ['Older 7', 'Older 5', 'Older 3'])
+        self.assertEqual([by_party['called', party]['others'] for party in ('0', '1')], [0, 0])
         self.assertEqual(by_party['withdrawn', '2']['seats'], ['Withdrawn'])
         calls.update({f'New {i}': record('1', 9) for i in range(6)})
         groups = seat_alerts.call_changes(old, current)
         newly_named = [seat for row in groups if row['action'] == 'called' for seat in row['seats']]
-        self.assertEqual(len(newly_named), 7)
-        self.assertTrue(all(seat.startswith('New') for seat in newly_named))
+        self.assertEqual(len(newly_named), 10)
+        self.assertEqual(next(g for g in groups if g['party'] == '1')['others'], 3)
+        self.assertEqual(sum(s.startswith('New') for s in newly_named), 7)
 
     def test_call_can_reopen_for_the_same_party_or_switch_on_a_tcp_only_count(self):
         before = {'Light': {'party': '0', 'since': 'f00000001'}}
@@ -808,7 +813,7 @@ class AutomationTests(unittest.TestCase):
         self.assertIn('Across Town and Hall,', text)
         self.assertIn('**46.7%** of **300** TCP votes', text)
         self.assertIn('**4.3 pp** below the earlier estimate', text)
-        self.assertIn('from **51.0%** to **53.0%**', text)
+        self.assertIn('rose to **53.0% (+2.0 pp)**', text)
         self.assertNotIn('Hall', summary)
         self.assertNotIn('still to come', text)
 
@@ -920,7 +925,7 @@ class AutomationTests(unittest.TestCase):
         report = next(s['text'] for s in sections if s['seats'] == ['Light'])
         self.assertIn('{candidate:Light:2} received **22.0%**, **5.0 pp** below',report)
         self.assertIn('FP gap was **3.0 pp** more favourable to {candidate:Light:0}',report)
-        self.assertIn('rose from **49.7%** to **50.4%**',report)
+        self.assertIn('rose to **50.4% (+0.7 pp)**',report)
         self.assertNotIn('Despite that local',report)
 
     def test_headline_rivals_get_both_fp_shares_and_distinctive_fresh_booths(self):
@@ -1391,7 +1396,7 @@ class AutomationTests(unittest.TestCase):
                                               'lead_before':20, 'lead_after':25}
         _, sections, _ = rule_commentary.write(packet, (old, new))
         text = next(s['text'] for s in sections if s['seats'] == ['Light'])
-        self.assertIn('against {candidate:Light:1} rose from **53.0%** to **55.0%**', text)
+        self.assertIn('against {candidate:Light:1} rose to **55.0% (+2.0 pp)**', text)
         self.assertIn('**98.0%** of simulations', text)
         self.assertNotIn('votes projected to remain', text)
 
@@ -1583,13 +1588,13 @@ class AutomationTests(unittest.TestCase):
         self.assertNotIn('**30** to **34** votes', detail)
         self.assertNotIn('TCP votes still to come', detail)
         self.assertIn('At Hall,', detail)
-        self.assertIn('**51.4%** to **51.3%**', detail)
-        self.assertIn('**50.5–52.2%** to **50.8–51.7%**', detail)
+        self.assertIn('**51.3% (-0.1 pp)**', detail)
+        self.assertIn('range of likely results narrowed', detail)
         # A close race can also reach the ordinary district-story threshold.
         packet['win_changes'][0].update(before=98.5, change_pp=1.4575)
         self.assertIn('more confident', write()[1][0]['text'])
         bands['50'] = 48.5
-        self.assertIn('rose from **51.4%** to **51.5%**, and the middle 90%', write()[1][0]['text'])
+        self.assertIn('rose to **51.5% (+0.1 pp)**, and the range of likely results narrowed', write()[1][0]['text'])
         bands['50'] = 48.7
         packet['win_changes'][0].update(before=99.36, change_pp=.5975)
 
@@ -1631,16 +1636,16 @@ class AutomationTests(unittest.TestCase):
             sections = rule_commentary.write(packet, (old,new), rule_commentary.comparison_context(group,packet))[1]
             return next(s['text'] for s in sections if s['seats'] == ['Light'])
         text = report()
-        self.assertIn('**53.4%** to **52.3%**', text)
-        self.assertIn('**48.1–58.5%** to **50.2–54.2%**', text)
-        self.assertIn('lower end now favours {candidate:Light:1}', text)
+        self.assertIn('**52.3% (-1.1 pp)**', text)
+        self.assertIn('range of likely results narrowed', text)
+        self.assertIn('more confident that {candidate:Light:1} will hold the lead', text)
         self.assertIn('**85.8%** to **96.7%**', text)
         # A narrower interval alone does not establish how this contestant's
         # conditional win rate contributed to the movement across all draws.
         new['conditional_wins']['Light']['2/1'] = 12
-        self.assertNotIn('middle 90%', report())
+        self.assertNotIn('range of likely results narrowed', report())
         new['conditional_wins']['Light'].clear()
-        self.assertNotIn('middle 90%', report())
+        self.assertNotIn('range of likely results narrowed', report())
 
     def test_win_outlook_distinguishes_rare_results_from_simulation_endpoints(self):
         def text(after, change=.6):
@@ -1754,6 +1759,51 @@ class AutomationTests(unittest.TestCase):
         self.assertEqual(rivals({'4':17.26,'3':-7.15,'1':-10.11}, changed_identity='3'), ['1'])
         self.assertEqual(rivals({'4':17,'3':-2,'1':-15}), ['1'])
         self.assertEqual(rivals({'4':24,'3':-4,'1':-20}), ['1'])
+
+    def test_quiet_third_contender_and_extra_local_stories_on_a_busy_step(self):
+        rows = [dict(seat=str(i), party_id='0', after=50, change_pp=change,
+                     minimum_within_window=50-change, maximum_within_window=50)
+                for i, change in enumerate([25, 18, 16, 12, 10, 9, 7])]
+        entities = {rule_commentary.candidate(r['seat'], '0') for r in rows}
+        packet = dict(win_changes=rows, entities=entities, all_seats={r['seat']:{'0':50} for r in rows},
+                      observed_count_changes_by_seat={r['seat']:{'affected_votes':100} for r in rows})
+        self.assertEqual(len(rule_commentary.district_order(packet, entities)), 3)
+        def extended():
+            return [r['seat'] for r in rule_commentary.district_order(packet, entities, single_update=True)]
+        self.assertEqual(extended(), ['0','1','2','3','4'])
+        del packet['observed_count_changes_by_seat']['3'], packet['observed_count_changes_by_seat']['4']
+        self.assertEqual(extended(), ['0','1','2','5'])
+        for party in ('1','4'):
+            entities.add(rule_commentary.candidate('0', party))
+        packet['all_seats']['0'] = {'0':50, '1':33, '4':17}
+        text = rule_commentary.other_contenders(packet, rows[0], [dict(party_id='1')])
+        self.assertIn('{candidate:0:4} also has a win chance of **17.0%**', text)
+        packet['all_seats']['0']['4'] = 17.05
+        rows.append(dict(seat='0', party_id='4', after=17.049))
+        self.assertIn('**17.0%**', rule_commentary.other_contenders(packet, rows[0], [dict(party_id='1')]))
+        rows.pop()
+        packet['all_seats']['0']['4'] = 3
+        self.assertEqual(rule_commentary.other_contenders(packet, rows[0], [dict(party_id='1')]), '')
+
+    def test_broader_preferences_explain_only_a_matching_classic_district_revision(self):
+        endpoints = [comparisons.summary(numerical(key)) for key in ('old', 'new')]
+        for side in endpoints:
+            side['seats']['Light']['pairing_percent'] = {'0/1':83}
+            side['conditional_wins'] = {'Light':{'0/1':55}}
+        parts = dict(primary_change_pp=.02, measured_change_pp=.06, learned_change_pp=-.53,
+                     broad_preference_change_pp=-.54)
+        packet = {'rule_context':{'tpp_components':{'Light':parts}}}
+        row = dict(seat='Light', party_id='0')
+        projection = rule_commentary.PairProjection('1', 50.9, 50.4)
+        def explanation():
+            return rule_commentary.preference_offset(packet, row, projection, endpoints)
+        self.assertIn('broader counting trends', explanation())
+        del parts['broad_preference_change_pp']
+        self.assertNotIn('broader', explanation())
+        parts['measured_change_pp'] = .8
+        self.assertIsNone(explanation())
+        parts['measured_change_pp'] = .06
+        self.assertIsNone(rule_commentary.preference_offset(packet, row, projection._replace(opponent='2'), endpoints))
 
     def test_further_published_count_for_an_earlier_realignment(self):
         from live_pipeline import tcp_reporting
@@ -4059,7 +4109,7 @@ class AutomationTests(unittest.TestCase):
         text = report(after)
         self.assertIn('**53.7%** of **15,762** additional TCP votes', text)
         self.assertIn('earlier estimate for those votes was **52.4%**', text)
-        self.assertIn('middle 90% of outcomes narrowed', text)
+        self.assertIn('range of likely results narrowed', text)
         # The later preference estimate is immaterial. A larger unfinished
         # batch, changing FP voters or incompatible bounds prevent identification.
         after['preferences']['early']['adjusted_first_votes_from_pending_fp'] = 0

@@ -100,6 +100,9 @@ struct Unit {
     // preload identity alone is insufficient; historical matching supplies
     // confirmation for established centres without this additional flag.
     bool returnConfirmed = false;
+    // A named VEC early centre is a physical location for party estimates.
+    // Its ballots still arrive in batches on the district early-category clock.
+    bool categoryTurnout() const { return kind == "declaration" || (kind == "ppvc" && category == "EVC early"); }
     // Empty normally. An explicit category-transfer exclusion (for example a
     // newly introduced service with no comparable size baseline) leaves its
     // own estimate and counted votes intact. Unmatched booth names alone do

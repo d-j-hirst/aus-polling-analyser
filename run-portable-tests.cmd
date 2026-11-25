@@ -28,8 +28,9 @@ if exist "%TEST_DIRECTORY%" rmdir /s /q "%TEST_DIRECTORY%"
 mkdir "%OBJECT_DIRECTORY%"
 if errorlevel 1 goto :failure
 
-set "SOURCES="
-set "OBJECTS="
+rem Exercise GUI configuration export in the portable adapter tests.
+set "SOURCES=ForecastSpecificationExport.cpp"
+set OBJECTS="%OBJECT_DIRECTORY%\ForecastSpecificationExport.obj"
 for /f "usebackq eol=# delims=" %%F in ("cli-sources.txt") do (
 	set "SOURCES=!SOURCES! %%F"
 	set OBJECTS=!OBJECTS! "%OBJECT_DIRECTORY%\%%~nF.obj"

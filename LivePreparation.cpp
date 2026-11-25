@@ -208,6 +208,8 @@ void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simu
 	// setup validation, before downloading feeds or constructing the live model.
 	requireLiveInputFile(TurnoutModelIO::priorPath(project.paths().root(), termCode), missingFiles);
 	if (regionCode == "vic") {
+		if (termCode == "2026vic")
+			requireLiveInputFile(TurnoutModelIO::priorPath(project.paths().root(),termCode).parent_path()/"evc-centres.json", missingFiles);
 		requireLiveInputFile("downloads/" + termCode + "_candidates.xml", missingFiles);
 		requireLiveInputFile("downloads/" + termCode + "_booths.xml", missingFiles);
 		requireLiveInputFile(victorianHistoryPath(termCode, previousTermCode), missingFiles);

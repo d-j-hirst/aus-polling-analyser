@@ -1,4 +1,5 @@
 #include "ForecastSpecificationIO.h"
+#include "ForecastSpecificationExport.h"
 #include "ForecastSpecificationProjectAdapter.h"
 #include "General.h"
 #include "LivePartyMapping.h"
@@ -12,6 +13,33 @@
 #include <string>
 
 namespace {
+	bool checkProjectDrawCounts(ForecastSpecification const& package, WorkspacePaths const& paths)
+	{
+		// The command line starts from the package. The GUI starts from its
+		// saved simulation, both before and after another copy saves a replay.
+		auto saved = ForecastSpecificationProjectAdapter::construct(package, paths);
+		if (!saved.valid()) return false;
+		auto const folder = paths.root() / "cli-build" / "project-draw-count-test";
+		auto& project = *saved.project;
+		auto const initial = exportForecastSpecification(project, folder);
+		if (!initial.valid()) return false;
+		auto const index = project.simulations().count() - 1;
+		auto& simulation = project.simulations().access(project.simulations().indexToId(index));
+		auto const packageDraws = package.simulations.at(index).numIterations;
+		if (simulation.getSettings().numIterations != packageDraws) return false;
+		auto settings = simulation.getSettings();
+		settings.numIterations = packageDraws + 40000;
+		simulation.replaceSettings(settings);
+
+		auto const autosave = exportForecastSpecification(project, folder,
+			SimulationDrawDefaults::KeepPackageDefaults);
+		auto const reloaded = loadForecastSpecification(folder / "forecast.json", paths.root());
+		if (!autosave.valid() || !reloaded.valid() ||
+			reloaded.specification.simulations.at(index).numIterations != packageDraws) return false;
+		auto const overlay = ForecastSpecificationProjectAdapter::apply(project, reloaded.specification);
+		return overlay.valid() && simulation.getSettings().numIterations == settings.numIterations;
+	}
+
 	bool checkSaPartyMigration(ForecastSpecification const& current, WorkspacePaths const& paths)
 	{
 		auto old = current;
@@ -294,6 +322,10 @@ int main(int argc, char const* argv[])
 		}
 
 		auto const& specification = loaded.specification;
+		if (specification.electionCode == "2026vic" && !checkProjectDrawCounts(specification, paths)) {
+			std::cerr << "Saving or opening a project mixed up local and portable iteration counts\n";
+			valid = false;
+		}
 		auto const& project = *constructed.project;
 		if (specification.electionCode == "2026sa" && !checkSaPartyMigration(specification, paths)) {
 			std::cerr << "2026sa party migration or historical poll import failed\n";

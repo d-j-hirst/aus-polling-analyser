@@ -82,7 +82,23 @@ struct Record {
     // Source-only publication status, never inherited from cached counts.
     // ECQ withdraws indicative TCP while official rechecking is in progress.
     bool expectedTcpWithdrawal = false;
+    // Source-only flags. A district total with a venue breakdown already
+    // covers any omitted centres. Restoring one of those counts separately
+    // would put its ballots into both the venue and the district remainder.
+    bool fpCoveredByTotal = false, tcpCoveredByTotal = false;
+    bool earlyAccountAbsent = false, earlyBreakdownConflict = false;
 };
+// For a missing whole early-vote account the last coherent observation also
+// supplies the identity of the unlocated ballots. Otherwise require exactly
+// the same set of excluded venues before reusing old preferences.
+inline bool sameRecordIdentity(Record const& current, Record const& previous) {
+    bool samePopulation = current.identity == previous.identity ||
+        (current.earlyAccountAbsent && current.role == "declaration" &&
+            previous.identity.starts_with(current.identity+"/outside:"));
+    return samePopulation && current.district == previous.district && current.role == previous.role &&
+        current.candidates == previous.candidates && current.closed == previous.closed &&
+        current.incremental == previous.incremental;
+}
 inline bool hasCurrentTcpBasis(Record const& record) {
     if (!record.tcpBasis || !record.fp.votes || !record.tcp.votes || record.closed ||
         LivePartialCount::total(*record.fp.votes) <= 0) return false;

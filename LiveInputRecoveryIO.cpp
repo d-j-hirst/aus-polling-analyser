@@ -165,12 +165,6 @@ std::vector<std::filesystem::path> earlierFiles(std::filesystem::path const& fol
     return result;
 }
 
-bool sameRecord(Record const& current, Record const& previous) {
-    return current.identity == previous.identity && current.district == previous.district &&
-        current.role == previous.role && current.candidates == previous.candidates && current.closed == previous.closed
-        && current.incremental == previous.incremental;
-}
-
 bool comparablePreferenceAccount(Counts const& fp, Counts const& tcp) {
     double ft = double(total(fp)), tt = double(total(tcp));
     if (ft <= 0 || tt <= 0 || tcp.size() != 2 ||
@@ -274,6 +268,8 @@ RecordIndex recordsNeedingEarlierHistory(Snapshot const& effective,
     // only for affected records: a corrected FP parent may fit an older TCP, or
     // the nearest source may lack preferences needed for a joint recount hold.
     for (auto const& record : effective.records) {
+        if ((account != HistoryAccount::TwoCandidatePreferred && record.fpCoveredByTotal) ||
+            (account != HistoryAccount::FirstPreferences && record.tcpCoveredByTotal)) continue;
         if (account == HistoryAccount::Reconciled) {
             if (!reconciliationNeeded(record,effective.optionalPreferential)) continue;
         } else {
@@ -283,7 +279,7 @@ RecordIndex recordsNeedingEarlierHistory(Snapshot const& effective,
                 (!record.fp.votes || total(record.fp.votes) == 0)) continue;
         }
         auto found = nearest.find(record.key);
-        if (found == nearest.end() || !sameRecord(record,*found->second)) continue;
+        if (found == nearest.end() || !sameRecordIdentity(record,*found->second)) continue;
         // A reconciled downward revision supersedes older, larger FP totals.
         // Do not resurrect those totals merely because a later TCP is wrong,
         // or scan the full history for a persistent TCP error with stable FP.
@@ -329,7 +325,7 @@ std::optional<Snapshot> readEarlierCountRecords(std::filesystem::path const& fol
                         old.optionalPreferential != effective.optionalPreferential) return true;
                     auto const& record = old.records.front();
                     auto current = needed.at(record.key);
-                    if (!sameRecord(*current, record) || !earlierRecordFits(*current, record, effective, account)) return true;
+                    if (!sameRecordIdentity(*current, record) || !earlierRecordFits(*current, record, effective, account)) return true;
                     matches.emplace(Location{source, position}, record);
                     return false;
                 }, account == HistoryAccount::Reconciled ? LiveInputHistory::RequiredCount::Both :
@@ -353,7 +349,7 @@ std::optional<Snapshot> readEarlierCountRecords(std::filesystem::path const& fol
             old.optionalPreferential != effective.optionalPreferential) continue;
         for (auto const& record : old.records) {
             auto requested = needed.find(record.key);
-            if (requested == needed.end() || !sameRecord(*requested->second,record)) continue;
+            if (requested == needed.end() || !sameRecordIdentity(*requested->second,record)) continue;
             if (!earlierRecordFits(*requested->second,record,effective,account)) continue;
             result.records.push_back(record);
             needed.erase(requested);
@@ -430,7 +426,7 @@ static std::optional<Snapshot> compatiblePrevious(std::filesystem::path const& f
                 auto found = oldRecords.find(record->key);
                 if (found == oldRecords.end()) { compatible = false; continue; }
                 auto previous = found->second;
-                if (!sameRecord(*record,*previous)) {
+                if (!sameRecordIdentity(*record,*previous)) {
                     compatible = false; continue;
                 }
                 matches.push_back(previous);
@@ -492,7 +488,7 @@ std::optional<Snapshot> loadAcceptedCompatiblePrevious(std::filesystem::path con
 
 namespace {
 bool considerPreferenceRecord(Record const& record, Record const& current, PreferenceHistory& history) {
-    if (!sameRecord(current, record) || !record.fp.votes) return false;
+    if (!sameRecordIdentity(current, record) || !record.fp.votes) return false;
     // Source-identified pairs outrank coincidentally equal totals. This restores
     // withdrawn indicative TCP without associating it with corrected primaries.
     if (hasCurrentTcpBasis(record) && current.tcp.votes && record.tcpBasis->tcp == *current.tcp.votes &&
@@ -768,7 +764,7 @@ PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& fol
                 snapshot.sourceTime >= effective.sourceTime) return;
             auto const& record = snapshot.records.front();
             auto const& now = *current.at(record.key);
-            if (sameRecord(now,record)) consider(record,now);
+            if (sameRecordIdentity(now,record)) consider(record,now);
         });
     for (auto const& [key,record] : current) consider(*record,*record);
     std::erase_if(result,[](auto const& item) { return item.second.empty(); });
@@ -805,7 +801,7 @@ std::map<std::string,Record> loadTcpHandoverCounts(std::filesystem::path const& 
                 snapshot.optionalPreferential != effective.optionalPreferential) return;
             auto& old = snapshot.records.front();
             auto const& now = *current.at(old.key);
-            if (!sameRecord(now,old) || !old.tcp.fresh() || old.tcp.votes->size() != 2 ||
+            if (!sameRecordIdentity(now,old) || !old.tcp.fresh() || old.tcp.votes->size() != 2 ||
                 total(old.tcp.votes) <= 0 || old.tcp.observedAt.empty()) return;
             CandidatePair const pair{old.tcp.votes->begin()->first,old.tcp.votes->rbegin()->first};
             auto& district = lastPair[old.district];

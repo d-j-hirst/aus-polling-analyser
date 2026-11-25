@@ -349,6 +349,8 @@ def evidence(numerical, run_folder=None):
         node = booth.get('node', {})
         key = '/'.join(str(booth.get(k, '')) for k in ('seat_name', 'booth_type', 'vote_type', 'name'))
         result['booths'][key] = {k: booth.get(k) for k in ('seat_name', 'name', 'booth_type', 'vote_type')}
+        if booth.get('display_name'):
+            result['booths'][key]['name'] = booth['display_name']
         result['booths'][key].update({k: _party_values(node.get(k)) for k in
             ('fp_votes_current', 'tcp_votes_current', 'fp_votes_projected', 'tpp_votes_projected', 'tcp_votes_projected')})
         counts = result['booths'][key]

@@ -1,4 +1,5 @@
 #include "../MajorPartyFpMath.h"
+#include "../MajorPrimarySafeguard.h"
 #include "../SpecialPartyCodes.h"
 #include "../SoftPairing.h"
 
@@ -8,6 +9,113 @@
 #include <limits>
 
 namespace {
+
+	void checkJointMajorPrimarySafeguard()
+	{
+		namespace Guard = MajorPrimarySafeguard;
+		static_assert(Guard::enabled("2022vic") && !Guard::enabled("2022vic", true));
+		static_assert(Guard::enabled("2026vic") && Guard::enabled("2026vic", true));
+		static_assert(Guard::enabled("2026sa") && Guard::enabled("2026sa", true));
+		static_assert(!Guard::enabled("2028fed"));
+		auto near = [](double a, double b) { return std::abs(a-b) < 1e-9; };
+		assert(near(Guard::requestedIncrease(0.,30.,0.,9.),5.98695652173913));
+		assert(Guard::requestedIncrease(10.,30.,0.,9.) == 0.);
+		assert(Guard::requestedIncrease(2.,30.,50.,9.) == 0.);
+		assert(Guard::requestedIncrease(2.,4.,0.,9.) < Guard::requestedIncrease(2.,30.,0.,9.));
+
+		// A 20%-primary donor can explain two extra points of Labor FP
+		// at the same TPP. The second seat has twice the turnout and
+		// compensates with one point in the opposite direction.
+		Guard::District weak, strong;
+		weak.turnout = 1000.;
+		weak.labor = 4.; weak.coalition = 76.; weak.shoulder = 9.; weak.laborNeed = 2.;
+		weak.sources[1] = {20.,.4,.2,.4};
+		strong.turnout = 2000.;
+		strong.labor = 40.; strong.coalition = 40.; strong.shoulder = 9.;
+		strong.sources[1] = {20.,.2,.4,.2};
+		std::vector districts{weak,strong};
+		Guard::adjustPreferences(districts);
+		Guard::adjustPrimaries(districts);
+		assert(near(districts[0].labor,6.) && near(districts[1].labor,39.));
+		assert(near(districts[0].sources[1].rate,.3) && near(districts[1].sources[1].rate,.25));
+		assert(near(districts[0].sources[1].primary,20.) && near(districts[0].laborNeed,0.));
+
+		// Without a compensating preference draw, leave the original rates
+		// alone. Transfer some donor FP instead, retaining its statewide
+		// vote and the total FP available in each district.
+		strong.sources[1].centre = strong.sources[1].rate;
+		districts = {weak,strong};
+		Guard::adjustPreferences(districts);
+		assert(near(districts[0].labor,4.) && near(districts[0].sources[1].rate,.4));
+		Guard::adjustPrimaries(districts);
+		assert(near(districts[0].labor,6.) && near(districts[0].sources[1].primary,15.));
+		assert(near(districts[1].sources[1].primary,22.5));
+		assert(near(districts[0].labor+districts[0].coalition+districts[0].sources[1].primary,100.));
+		assert(near(districts[0].labor+2.*districts[1].labor,84.));
+
+		// Only one district has the Greens donor in this example. Its
+		// FP stays put while part of the separate ON transfer still fits.
+		weak.sources[0] = {10.,.8,.8,.8};
+		weak.coalition -= 10.;
+		districts = {weak,strong};
+		Guard::adjustPreferences(districts);
+		Guard::adjustPrimaries(districts);
+		assert(districts[0].labor > 4. && districts[0].sources[1].primary < 20.);
+		assert(near(districts[0].sources[0].primary,10.) && districts[1].sources[0].primary == 0.);
+		weak.sources[0] = {};
+
+		// A weak Coalition primary works in the opposite direction. The
+		// flow after matching TPP differs from the raw rate. Both must
+		// retain their common odds adjustment and allow for partner leakage.
+		weak.labor = 76.; weak.coalition = 4.; weak.laborNeed = 0.; weak.coalitionNeed = 2.;
+		weak.leakage = .1;
+		weak.sources[1] = {20.,.2,.5,.3};
+		strong.sources[1] = {20.,.6,.3,.6};
+		districts = {weak,strong};
+		Guard::adjustPreferences(districts);
+		auto const& updated = districts[0];
+		assert(near(updated.coalition,6.) && near(updated.sources[1].fitted,.39));
+		assert(near(updated.labor + .1*updated.coalition + 20.*updated.sources[1].fitted,82.4));
+		assert(near(Guard::shiftOdds(updated.sources[1].rate,.2,.3),.39));
+		assert(near(updated.coalitionNeed,0.));
+		districts = {weak};
+		Guard::adjustPreferences(districts);
+		Guard::adjustPrimaries(districts);
+		assert(near(districts[0].coalition,4.) && near(districts[0].sources[1].rate,.2));
+
+		// All available Labor TPP already comes from majors. Moving more
+		// voters from a zero-flow minor to a leaking Coalition partner is
+		// incompatible even though another district could accept the FP.
+		weak.labor = 60.; weak.coalition = 4.; weak.laborTpp = 60.4;
+		weak.sources[1] = {36.,0.,0.,0.};
+		districts = {weak,strong};
+		Guard::adjustPreferences(districts);
+		Guard::adjustPrimaries(districts);
+		assert(near(districts[0].coalition,4.) && near(districts[0].sources[1].primary,36.));
+	}
+
+	void checkLocalOneNationPreferences()
+	{
+		using MajorPartyFpMath::localOneNationToLabor;
+		using MajorPartyFpMath::usesLocalOneNationFlow;
+		static_assert(usesLocalOneNationFlow("2026sa") && usesLocalOneNationFlow("2026vic"));
+		static_assert(!usesLocalOneNationFlow("2022vic") && !usesLocalOneNationFlow("2028fed"));
+		double const centre = transformVoteShare(40.);
+		assert(std::abs(localOneNationToLabor(25., 40., centre) - 25.) < 1e-12);
+		// From 40% to 25% Labor TPP, Labor's odds halve. Starting with
+		// one in four ON ballots going to Labor, reduce their 1:3 odds too.
+		double const expectedOdds = std::pow(.5, .20) / 3.;
+		assert(std::abs(localOneNationToLabor(25., 25., centre) -
+			100. * expectedOdds / (1. + expectedOdds)) < 1e-12);
+		double previous = 0.;
+		for (double tpp : {.000001, 1., 10., 20., 27., 28., 40., 75., 85., 99.999999}) {
+			double const flow = localOneNationToLabor(25., tpp, centre);
+			assert(previous < flow && flow < 100.);
+			previous = flow;
+		}
+		assert(localOneNationToLabor(0., 85., centre) == 0.);
+		assert(localOneNationToLabor(100., 10., centre) == 100.);
+	}
 
 	void checkVictorianPairingCentres()
 	{
@@ -261,6 +369,8 @@ namespace {
 
 int main()
 {
+	checkJointMajorPrimarySafeguard();
+	checkLocalOneNationPreferences();
 	checkVictorianPairingCentres();
 	assert(!canAttractTacticalPreferences(OthersIndex, 2));
 	assert(!canAttractTacticalPreferences(EmergingPartyIndex, 2));

@@ -194,7 +194,8 @@ Required durable files:
 - `analysis/Booth Results/<previous-term>.json`
 
 For `2026vic`, the preparation command downloads the current VEC rosters,
-builds the 2022 booth comparison if missing, generates the turnout prior and
+builds the 2022 booth comparison if missing, prepares the turnout prior and
+per-centre size and historical neighbourhood inputs, and
 sets up the two run folders. The Python collector delivers timestamped Lower
 House V2 ZIPs directly to the selected inbox. See the [Victorian rehearsal and
 election-night instructions](../forecasts/2026vic/README.md).

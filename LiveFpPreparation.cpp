@@ -5,6 +5,38 @@
 #include "LiveFpIntegration.h"
 #include "LiveOrdinaryUpdate.h"
 
+// Standard swing comparisons and support gradients use the preceding state
+// result. In Narracan the older, comparable election supplies ALP/GRN only
+// at a matched ordinary site. A missing match supplies no measured support
+// there, even when a Greens result exists on the supplementary ballot.
+std::optional<std::pair<int,int>> LiveV2::Election::primarySupportHistory(int index, int ballot) const {
+    auto const& booth=readBooths().at(index);
+    if (boothGeography) {
+        auto const& older=boothGeography->districts.at(booth.parentSeatId).olderPrimaries;
+        if (older && older->covers(ballot)) {
+            auto found=older->counts.find(index);
+            if (found==older->counts.end()) return {};
+            auto const& counts=found->second;
+            return std::pair{counts[ballot==0 ? 0 : 1],counts[0]+counts[1]+counts[2]};
+        }
+    }
+    // A reconstructed declaration split or a booth inherited from a
+    // different electorate supplies no same-district support comparison.
+    if (!booth.sameSeat || (booth.syntheticPreviousCategory && !booth.measuredFpInSyntheticCategory) ||
+        !booth.node.fpVotesPrevious.contains(ballot)) return {};
+    return std::pair{booth.node.fpVotesPrevious.at(ballot),booth.node.totalVotesPrevious()};
+}
+
+bool LiveV2::Election::hasComparableFpReturn(int index, int ballot) const {
+    auto const& booth=readBooths().at(index);
+    if (boothGeography) {
+        auto const& older=boothGeography->districts.at(booth.parentSeatId).olderPrimaries;
+        if (older && older->covers(ballot))
+            return booth.node.totalFpVotesCurrent()>0 && booth.node.fpVotesCurrent.contains(ballot) && older->counts.contains(index);
+    }
+    return booth.node.fpSwings.contains(ballot);
+}
+
 LiveFpEvidence::Unit LiveV2::Election::fpEvidenceUnit(int boothIndex, bool varied) const {
     auto const& booth = readBooths().at(boothIndex);
     auto const& seat = seats.at(booth.parentSeatId);
@@ -15,10 +47,18 @@ LiveFpEvidence::Unit LiveV2::Election::fpEvidenceUnit(int boothIndex, bool varie
         unit.projected[id == run.indPartyIndex && seat.liveIndependentPartyIndex != InvalidPartyIndex
             ? seat.liveIndependentPartyIndex : id] += votes;
     for (auto const& [id,swing] : booth.node.fpSwings) unit.comparable.insert(id);
+    if (boothGeography) {
+        auto const& older=boothGeography->districts.at(booth.parentSeatId).olderPrimaries;
+        if (older) for (int id : {0,older->greens}) {
+            if (hasComparableFpReturn(boothIndex,id)) unit.comparable.insert(id);
+            else unit.comparable.erase(id);
+        }
+    }
     unit.relevance = booth.node.relevanceModifier;
     unit.group = int(booth.voteType)*100+int(booth.boothType);
     unit.ordinary = booth.voteType == Results2::VoteType::Ordinary && booth.boothType != Results2::Booth::Type::Ppvc;
     unit.aggregatedEarly = booth.incrementalFp || LiveData::aggregatedEarly(booth.voteType);
+    unit.namedEarlyEstimate = booth.evcDistrictAccount >= 0;
     if (boothGeography && boothGeography->units.at(boothIndex)) {
         auto const& reference = *boothGeography->units[boothIndex];
         int party = boothGeography->party;
@@ -62,15 +102,9 @@ void LiveV2::Election::prepareFpEvidence(LiveFederalDeclarations::Prior const& d
 }
 
 namespace {
-bool comparableSupportHistory(LiveV2::Booth const& booth) {
-    // A reconstructed breakdown of last election's declarations does not tell
-    // us how this candidate polled in this particular voting category.
-    return booth.sameSeat && (!booth.syntheticPreviousCategory || booth.measuredFpInSyntheticCategory);
-}
-
 bool ordinarySupportReturn(LiveV2::Booth const& booth) {
     return booth.boothType == Results2::Booth::Type::Normal && !booth.receivesFpBatches() &&
-        comparableSupportHistory(booth) && booth.node.totalFpVotesCurrent() > 0;
+        booth.node.totalFpVotesCurrent() > 0;
 }
 
 // Put the pre-election district means onto their expected booth geography.
@@ -151,11 +185,11 @@ void LiveV2::Election::prepareFpSupportGradients(BlindFpProjections const& blind
             for (size_t b=0; b<seat.booths.size(); ++b) {
                 auto const& booth = readBooths().at(seat.booths[b]);
                 auto const& boothNode = booth.node;
-                if (!ordinarySupportReturn(booth) || !boothNode.fpVotesPrevious.contains(ballot) ||
+                if (!ordinarySupportReturn(booth) ||
                     !boothNode.fpVotesCurrent.contains(ballot) || !(opening[b][j]>0. && opening[b][j]<1.)) continue;
-                int pastFormal = boothNode.totalVotesPrevious();
-                if (pastFormal <= 0) continue;
-                returns.push_back({boothNode.fpVotesPrevious.at(ballot),pastFormal,
+                auto past=primarySupportHistory(seat.booths[b],ballot);
+                if (!past || past->second<=0) continue;
+                returns.push_back({past->first,past->second,
                     boothNode.fpVotesCurrent.at(ballot),boothNode.totalFpVotesCurrent(),opening[b][j]});
             }
             if (returns.size() < LiveFpSupportGradient::MinimumBooths) continue;
@@ -165,11 +199,9 @@ void LiveV2::Election::prepareFpSupportGradients(BlindFpProjections const& blind
             if (!fit) continue;
             for (int index : seat.booths) {
                 auto& booth = preparationBooths()[index];
-                auto const& boothNode = booth.node;
-                if (!comparableSupportHistory(booth) || !boothNode.fpVotesPrevious.contains(ballot)) continue;
-                int pastFormal = boothNode.totalVotesPrevious();
-                if (pastFormal > 0)
-                    booth.historicalSupportTilts.emplace(ballot,fit->tilt(boothNode.fpVotesPrevious.at(ballot),pastFormal));
+                auto past=primarySupportHistory(index,ballot);
+                if (past && past->second>0)
+                    booth.historicalSupportTilts.emplace(ballot,fit->tilt(past->first,past->second));
             }
         }
     }
@@ -449,7 +481,7 @@ void LiveV2::Election::prepareFpBoothComparisons(int seatIndex, BlindFpProjectio
                 bool const geographic = boothGeography && party == boothGeography->party &&
                     boothGeography->units.at(index).has_value();
                 ref.matched = prior > 0 && prior < 1 && samePerson && !geographic &&
-                    booth.node.fpSwings.contains(ballot);
+                    hasComparableFpReturn(index,ballot);
             }
             refs.push_back(ref);
         }

@@ -1834,6 +1834,12 @@ void checkStatewidePreferenceDraws()
 	inputs.districts.push_back(district);
 	auto unchanged = S::estimate(inputs,ranking,draw,{{OneNation,27}});
 	assert(close(before.at(laborRow),unchanged.at(laborRow)));
+	// The two districts each supply 100 ON ballots. Use each local rate
+	// until a simulated source count supersedes it in that district.
+	std::array<S::Shares,2> const localOn{S::Shares{{OneNation,.18}},S::Shares{{OneNation,.30}}};
+	assert(close(S::estimate(inputs,ranking,draw,{{OneNation,27}},{},localOn).at(onRow),24));
+	S::DistrictClassicTotals const countedOn{{0,{{OneNation,{22,100}}}}};
+	assert(close(S::estimate(inputs,ranking,draw,{{OneNation,27}},countedOn,localOn).at(onRow),26));
 	auto& second = inputs.districts.back().contests[1];
 	second.learned = true;
 	second.reference[Labor] = before.at(laborRow)*.01;
@@ -1867,11 +1873,14 @@ void checkStatewidePreferenceDraws()
 	inputs.districts.front().contests = {greensClassic};
 	inputs.classicErrorMean[0] = .04;
 	assert(close(S::estimate(inputs,ranking,draw,{{Greens,80}}).at(greensRow),78));
+	std::array<S::Shares,1> const revisedOpening{S::Shares{{Greens,.70}}};
+	assert(close(S::estimate(inputs,ranking,draw,{{Greens,80}},{},revisedOpening).at(greensRow),68));
 	// A classic district calculated from its simulated FP supplies actual
 	// source totals. Applying the earlier four-point error a second time here
 	// would produce a different public flow from the one used for its TPP.
 	S::DistrictClassicTotals calculated{{inputs.districts.front().index,{{Greens,{83,100}}}}};
 	assert(close(S::estimate(inputs,ranking,draw,{{Greens,80}},calculated).at(greensRow),83));
+	assert(close(S::estimate(inputs,ranking,draw,{{Greens,80}},calculated,revisedOpening).at(greensRow),83));
 }
 
 void checkPartialTcpSourceMix() {

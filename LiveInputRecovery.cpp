@@ -39,6 +39,7 @@ json describe(Issue const& issue) {
         {"record_exceeds_enrolment","Service FP reaches enrolment"},{"district_exceeds_enrolment","District FP reaches enrolment"},
         {"tcp_district_exceeds_enrolment","District TCP reaches enrolment"},
         {"invalid_summary","Unreadable district summary"},
+        {"early_centre_breakdown","Early-centre breakdown does not reconcile"},
         {"incomplete_tcp","Incomplete booth preference count"},{"preferences_pending","Preferences still reporting"},
         {"history_write_failed","Count history could not be saved"}};
     auto label = labels.find(issue.type);
@@ -127,7 +128,8 @@ std::string invalidTcp(Record const& record, bool opv, bool& routine) {
     if (!opv && hasCurrentTcpBasis(record)) return {};
     if (!opv && tcpExceedsFp(record))
         return "TCP exceeds FP beyond the allowance for small count differences.";
-    if (!opv && record.role != "declaration" && tcp < OrdinaryTcpComparableFraction*fp) {
+    if (!opv && record.role != "declaration" && !record.identity.ends_with("/vec-evc") &&
+        tcp < OrdinaryTcpComparableFraction*fp) {
         routine = true; return "The ordinary/PPVC TCP count is not yet comparable with its FP count.";
     }
     if (!opv) if (auto conflict = primaryConflict(record,record.tcp))
@@ -155,9 +157,7 @@ Record const* compatiblePrevious(Record const& record, RecordIndex const& previo
     auto found = previous.find(record.key);
     if (found == previous.end()) return nullptr;
     auto const* old = found->second;
-    return old->identity == record.identity && old->district == record.district && old->role == record.role &&
-        old->candidates == record.candidates && old->closed == record.closed &&
-        old->incremental == record.incremental ? old : nullptr;
+    return sameRecordIdentity(record,*old) ? old : nullptr;
 }
 
 void attachTcpBasis(Record& record, Record const* old) {
@@ -221,6 +221,33 @@ void recordRecovery(Registry& registry, Record const& record, std::string type,
         std::move(action),effective.observedAt,impact,routine,rejected.votes,effective.votes});
 }
 
+// If the entire early account disappears, use the latest compatible snapshot
+// as a unit. An older named count and a newer district-only return can cover
+// the same people; independently restoring the two would count them twice.
+void recoverEarlyAccounts(Result& result, Snapshot const* previous, RecordIndex const& indexed) {
+    for (auto& record : result.snapshot.records) {
+        if (record.earlyBreakdownConflict)
+            result.issues.add({"early_centre_breakdown",record.key,record.district,record.name,
+                "The venue breakdown and the district totals do not reconcile for the same ballots.",
+                "Used the counts that reconcile. Inspect the district total and venue breakdown in the source.",
+                result.snapshot.sourceTime,double(std::max(total(record.fp.votes),total(record.tcp.votes))),false,{},{}});
+        if (!record.earlyAccountAbsent) continue;
+        if (!previous) { record.earlyAccountAbsent = false; continue; }
+        Record const* old = nullptr;
+        if (auto whole = previous->wholeDistricts.find(record.district); whole != previous->wholeDistricts.end()) {
+            for (auto const& row : whole->second.records) if (row.key == record.key && sameRecordIdentity(record,row)) { old = &row; break; }
+        } else if (previous->districts.contains(record.district) && previous->districts.at(record.district).wholeAccount)
+            old = compatiblePrevious(record,indexed);
+        if (old) {
+            record.identity = old->identity;
+            replaceCount(record.fp,&old->fp,result.snapshot.sourceTime);
+            replaceCount(record.tcp,&old->tcp,result.snapshot.sourceTime);
+            record.tcpBasis = old->tcpBasis;
+        }
+        record.earlyAccountAbsent = false;
+    }
+}
+
 void holdUnreconciledCounts(Result& result, RecordIndex const& previous) {
     // Normally a valid current account replaces the previous one, including
     // genuine downward corrections. A recount can instead reset FP while TCP
@@ -228,6 +255,7 @@ void holdUnreconciledCounts(Result& result, RecordIndex const& previous) {
     // until the new pair reconciles, rather than accepting the reset and then
     // losing its previously counted preferences. Other records still update.
     for (auto& record : result.snapshot.records) {
+        if (record.fpCoveredByTotal || record.tcpCoveredByTotal) continue;
         auto old = compatiblePrevious(record,previous);
         double enrolment = result.snapshot.districts.at(record.district).enrolment;
         if (!old || !reconciliationFits(record,*old,enrolment,result.snapshot.optionalPreferential)) continue;
@@ -267,7 +295,7 @@ void recoverFpRecords(Result& result, RecordIndex const& previous) {
         if (parentViolation) reason = "This service's FP count alone reaches or exceeds district enrolment.";
         if (reason.empty() && record.fp.votes) continue;
         auto rejected = record.fp;
-        auto old = compatiblePrevious(record,previous);
+        auto old = record.fpCoveredByTotal ? nullptr : compatiblePrevious(record,previous);
         replaceCount(record.fp,old && invalidFp(*old).empty() && total(old->fp.votes) < enrolment ? &old->fp : nullptr,result.snapshot.sourceTime);
         if (!parentViolation && (!reason.empty() || record.fp.status == Status::Restored))
             recordRecovery(result.issues,record,"invalid_fp",rejected,record.fp,
@@ -276,7 +304,10 @@ void recoverFpRecords(Result& result, RecordIndex const& previous) {
             result.issues.add({"record_exceeds_enrolment",record.key,record.district,record.name,reason,
                 record.fp.status == Status::Restored ? "Restored the previous service count; inspect its source figures." : "The service count is unreported; inspect its source figures.",
                 record.fp.observedAt,double(total(rejected.votes))-enrolment,false,rejected.votes,record.fp.votes});
-        if (!record.closed) result.snapshot.districts.at(record.district).finalised = false;
+        // A valid inclusive district count already contains an omitted
+        // centre. Missing location detail alone cannot reopen a final count.
+        if (!record.closed && !(record.role == "ppvc" && record.fpCoveredByTotal))
+            result.snapshot.districts.at(record.district).finalised = false;
     }
 }
 
@@ -337,7 +368,7 @@ void recoverTcpRecords(Result& result, RecordIndex const& previous) {
             continue;
         }
         auto rejected = record.tcp;
-        auto old = compatiblePrevious(record,previous);
+        auto old = record.tcpCoveredByTotal ? nullptr : compatiblePrevious(record,previous);
         replaceCount(record.tcp,old ? &old->tcp : nullptr,result.snapshot.sourceTime);
         attachTcpBasis(record,old);
         // A previously valid TCP may be incompatible with newly corrected FP.
@@ -530,6 +561,7 @@ Result recover(Snapshot current, std::optional<Snapshot> const& previous,
         canonicalTime(previous->sourceTime) < current.sourceTime ? &*previous : nullptr;
     auto records = indexPrevious(old);
     Result result{std::move(current),{}};
+    recoverEarlyAccounts(result,old,records);
     if (!result.snapshot.optionalPreferential) for (auto& record : result.snapshot.records)
         attachTcpBasis(record,compatiblePrevious(record,records));
     auto reconciledHistory = selectEarlierCounts(result.snapshot,old,records,history,HistoryAccount::Reconciled);
@@ -566,20 +598,33 @@ TurnoutModel::Observation freshObservation(TurnoutModel::Prior const& prior,
     TurnoutModel::Observation observation;
     observation.hour = TurnoutModel::sourceHour(sourceTime);
     std::set<std::pair<std::string,std::string>> unavailableGroups;
+    std::set<std::string> incompleteCentreTotals;
     for (auto const& unit : units) {
         auto const& district = prior.seats.at(unit.seat);
         auto status = statuses.find(district + "/" + unit.kind + "/" + unit.name);
         bool fresh = status != statuses.end() && status->second.first.fresh() &&
             status->second.first.observedAt == sourceTime;
         auto group = std::make_pair(district,"allocation:" + prior.groups.at(unit.group));
+        if (unit.category == "EVC early" && !fresh && (unit.kind == "declaration" || unit.counted > 0))
+            incompleteCentreTotals.insert(district);
         // Restored counts retain their lower bound in the model, but cannot
         // create new activity, a current zero, or a newly observed pause.
-        if (!unit.closed && !fresh) unavailableGroups.insert(group);
+        if (!unit.closed && !fresh) {
+            bool coveredCentre = false;
+            if (unit.kind == "ppvc" && unit.category == "EVC early" && unit.counted == 0) {
+                auto parent = statuses.find(district+"/declaration/EVC early");
+                coveredCentre = parent != statuses.end() && parent->second.first.fresh() &&
+                    parent->second.first.observedAt == sourceTime;
+            }
+            if (!coveredCentre) unavailableGroups.insert(group);
+        }
         if (unit.closed || !fresh) continue;
-        if (unit.kind == "declaration") observation.counts[{district,unit.category}] += unit.counted;
+        if (unit.categoryTurnout())
+            observation.counts[{district,unit.category}] += unit.counted;
         if (prior.groups[unit.group] != "postal") observation.counts[group] += unit.counted;
     }
     for (auto const& key : unavailableGroups) observation.counts.erase(key);
+    for (auto const& district : incompleteCentreTotals) observation.counts.erase({district,"EVC early"});
     return observation;
 }
 }

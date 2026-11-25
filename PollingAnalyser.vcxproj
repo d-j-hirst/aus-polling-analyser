@@ -466,6 +466,8 @@
     <ClInclude Include="LiveFederalDeclarations.h" />
     <ClInclude Include="LiveBoothGeography.h" />
     <ClInclude Include="LiveBoothGeographyInput.h" />
+    <ClInclude Include="LiveVecCentreGeography.h" />
+    <ClInclude Include="LiveNarracanPrimaries.h" />
     <ClInclude Include="LiveEstimatedTpp.h" />
     <ClInclude Include="LiveTppIntegration.h" />
     <ClInclude Include="LiveTppDiagnostics.h" />
@@ -567,6 +569,7 @@
 	<ClInclude Include="CoalitionPairing.h" />
 	<ClInclude Include="SeatFpPolls.h" />
 	<ClInclude Include="MajorPartyFpMath.h" />
+	<ClInclude Include="MajorPrimarySafeguard.h" />
 	<ClInclude Include="SoftPairing.h" />
 	<ClInclude Include="MinorPartyFpMath.h" />
 	<ClInclude Include="GreensFpPrior.h" />

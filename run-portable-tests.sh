@@ -46,6 +46,10 @@ while IFS= read -r SOURCE || [ -n "$SOURCE" ]; do
 		-c "$ROOT_DIRECTORY/$SOURCE" -o "$OBJECT"
 done < cli-sources.txt
 
+# The GUI's package writer is also exercised by the portable adapter tests.
+"$CXX" "$STANDARD_FLAG" -O1 -I"$ROOT_DIRECTORY" \
+	-c "$ROOT_DIRECTORY/ForecastSpecificationExport.cpp" -o "$OBJECT_DIRECTORY/ForecastSpecificationExport.o"
+
 while IFS= read -r TEST || [ -n "$TEST" ]; do
 	TEST=${TEST%"$CARRIAGE_RETURN"}
 	case "$TEST" in

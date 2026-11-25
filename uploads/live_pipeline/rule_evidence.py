@@ -380,6 +380,12 @@ def tpp_component_changes(previous, current, old_evidence, new_evidence):
             continue
         if all(isinstance(r.get(k), (int, float)) and math.isfinite(r[k]) for r in (old, new) for k in fields):
             changes[seat] = {k: new[k]-old[k] for k in fields}
+            # Recent exports identify the part of preference learning shared
+            # across districts. It is already included in learned_change_pp.
+            key = 'broad_preference_change_pp'
+            baseline = 0. if previous.get('origin') else old.get(key)
+            if all(isinstance(v, (int, float)) and math.isfinite(v) for v in (baseline, new.get(key))):
+                changes[seat][key] = new[key] - baseline
     return changes
 
 

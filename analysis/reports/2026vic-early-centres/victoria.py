@@ -27,10 +27,12 @@ BOOKS = {
 }
 
 
-def workbooks(fetch, sources):
+def workbooks(fetch, sources, labels=None):
     """Retain the official spreadsheets and identify the exact source bytes used."""
     books = {}
     for label, name in BOOKS.items():
+        if labels is not None and label not in labels:
+            continue
         url, path = MEDIA + name, HERE / 'raw' / name
         if not path.exists():
             if not fetch:
@@ -191,7 +193,7 @@ def venue_weights(book):
     return result
 
 
-def current_cases(geo22, history, centres22, weights, private_sources):
+def current_cases(geo22, history, centres22, weights, private_sources, *, source_ids=False):
     """Join prepared 2026 locations to the public VEC estimates and prior booth votes.
 
     The turnout audit identifies ordinary booths matched to the predecessor
@@ -217,7 +219,9 @@ def current_cases(geo22, history, centres22, weights, private_sources):
             point = position(site.findtext('{*}Address/{*}AddressLatitude'),
                              site.findtext('{*}Address/{*}AddressLongitude'))
             if kind == 'EarlyVotingCentre':
-                early.append(Booth(seat, name, name, point, None))
+                # The recorded study keys venues by name. The live roster also
+                # checks the commission's ID when a results file arrives.
+                early.append(Booth(seat, name, ident.get('Id') if source_ids else name, point, None))
             elif kind == 'VotingCentre' and point:
                 match = audited[seat][name]
                 if not match['same_predecessor_match'] or not match['historical_match']:

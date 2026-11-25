@@ -13,6 +13,7 @@
 #include <cmath>
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <set>
 #include <span>
 #include <stdexcept>
@@ -356,7 +357,8 @@ inline void addContest(Contest const& contest, Shares const& sampled, std::uint6
 
 inline Draw estimate(Election const& inputs, PreferenceModel::Model const& model,
 	PreferenceModel::Model::ElectionDraw const& election, Shares const& classicPercent,
-	DistrictClassicTotals const& simulatedClassic = {}) {
+	DistrictClassicTotals const& simulatedClassic = {},
+	std::span<Shares const> districtOpeningRates = {}) {
 	Accounts sums;
 	auto const& roles = model.partyRoles();
 	// The TPP model has two separately measured common errors for converting
@@ -381,6 +383,16 @@ inline Draw estimate(Election const& inputs, PreferenceModel::Model const& model
 				auto actual = account->second.find(source.id);
 				if (actual != account->second.end() && actual->second.donors > 0) {
 					source.classicRate = std::clamp(actual->second.first/actual->second.donors,0.,1.);
+					continue;
+				}
+			}
+			// A split Coalition contest, for example, can have a district
+			// opening flow without a simulated source count for this pair.
+			// Use the same local tendency as the accepted FP calculation.
+			if (size_t(district.index) < districtOpeningRates.size()) {
+				auto const& opening = districtOpeningRates[district.index];
+				if (auto local = opening.find(source.id); local != opening.end()) {
+					source.classicRate = local->second;
 					continue;
 				}
 			}

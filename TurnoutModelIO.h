@@ -2,11 +2,22 @@
 #include "TurnoutModel.h"
 #include "json.h"
 #include <filesystem>
+#include <array>
 
 namespace TurnoutModelIO {
 inline constexpr int SchemaVersion = 1;
 struct InactiveContest {
     std::string status, reason;
+};
+struct EarlyCentre {
+    int sourceId;
+    double volume;
+    // Prior ordinary-booth ballots near this centre in its reporting district.
+    // The two-party denominator exists only for a historical classic count.
+    std::optional<std::array<int,3>> fp;
+    std::optional<std::array<int,2>> tpp;
+    std::string displayName;
+    double oneNationContrast = 0.;
 };
 struct Artifact {
     TurnoutModel::Prior prior;
@@ -21,6 +32,7 @@ struct Artifact {
     // A postponed contest remains in the forecast, but has no count account
     // for this election's active counting period.
     std::map<std::string, InactiveContest> inactiveContests;
+    std::map<std::string,std::map<std::string,EarlyCentre>> earlyCentres;
 };
 // Every live election has an explicit count prior. Missing inputs are an input
 // error, rather than a request to select a different vote-size model.

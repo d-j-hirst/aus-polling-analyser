@@ -209,6 +209,119 @@ void requireMappedCategories(Results2::Election const& election, Snapshot const&
     }
 }
 
+// VEC gives both a district total and the location of some or all of those
+// ballots. Subtract the *candidate vectors*, not just their sizes. A TCP
+// for a different pair cannot be subtracted from the district's count.
+// A malformed venue is left to normal recovery; its votes are still covered
+// by the valid district account. Without a district total, named rows alone
+// supply the observations and there is no identifiable residual to restore.
+bool separateEarlyAccount(Record& parent, std::vector<Record*> const& venues, bool tcp, double enrolment) {
+    auto field = tcp ? &Record::tcp : &Record::fp;
+    auto covered = tcp ? &Record::tcpCoveredByTotal : &Record::fpCoveredByTotal;
+    parent.*covered = true;
+    auto& aggregate = parent.*field;
+    if (!aggregate.votes || !aggregate.error.empty()) return true;
+    auto valid = [&](Record const& record) {
+        auto const& count = record.*field;
+        if (!count.votes || !count.error.empty()) return false;
+        if (!tcp) return fpFits(record,count,enrolment);
+        return count.votes->size() == 2 && std::all_of(count.votes->begin(),count.votes->end(),
+            [&](auto const& c) { return c.second >= 0 && std::find(record.candidates.begin(),record.candidates.end(),c.first) != record.candidates.end(); });
+    };
+    if (!valid(parent)) return true;
+    auto remainder = *aggregate.votes;
+    for (auto* venue : venues) {
+        venue->*covered = true;
+        if (!valid(*venue)) continue;
+        for (auto [candidate,n] : *(venue->*field).votes) {
+            auto it = remainder.find(candidate);
+            if (it == remainder.end() || it->second < n) return false;
+            it->second -= n;
+        }
+    }
+    aggregate.votes = std::move(remainder);
+    return true;
+}
+
+void partitionEarlyCentres(Results2::Election const& source, TurnoutModelIO::Artifact const& artifact, Snapshot& result) {
+    if (artifact.earlyCentres.empty()) return;
+    std::map<std::string,Record*> parents;
+    std::map<std::string,std::vector<Record*>> venues;
+    for (auto& r : result.records) {
+        if (r.role == "declaration" && r.name == "EVC early") {
+            r.identity += "/unlocated";
+            parents.emplace(r.district,&r);
+        } else if (r.role == "ppvc" && artifact.earlyCentres.at(r.district).contains(r.name)) {
+            r.identity += "/vec-evc";
+            venues[r.district].push_back(&r);
+        }
+    }
+    for (auto const& [district,support] : artifact.earlyCentres) {
+        auto const& seat = districtByName(source,district);
+        auto& parent = *parents.at(district);
+        auto& centres = venues.at(district);
+        size_t mapped = 0;
+        for (int id : seat.booths) {
+            auto const& booth = source.booths.at(id);
+            if (!booth.incrementalFp || booth.type != Results2::Booth::Type::Ppvc) continue;
+            if (!support.contains(booth.name) || booth.vecCentreSourceId != support.at(booth.name).sourceId)
+                throw std::runtime_error("Refresh VEC early-centre inputs for "+district+"/"+booth.name);
+            ++mapped;
+        }
+        if (mapped != support.size()) throw std::runtime_error("VEC early-centre roster changed in "+district);
+        // Complete absence differs from a reported zero. Preserve the last
+        // coherent venue breakdown only when *no* current part is supplied.
+        auto absent = [](Record const& record) {
+            return !record.fp.votes && record.fp.error.empty() && !record.tcp.votes && record.tcp.error.empty();
+        };
+        if (absent(parent) && std::all_of(centres.begin(),centres.end(),[&](auto r){ return absent(*r); })) {
+            parent.earlyAccountAbsent = parent.fpCoveredByTotal = parent.tcpCoveredByTotal = true;
+            for (auto* r : centres) r->earlyAccountAbsent = r->fpCoveredByTotal = r->tcpCoveredByTotal = true;
+            continue;
+        }
+        auto inclusiveFp = parent.fp, inclusiveTcp = parent.tcp;
+        bool coherentDistrict = fpFits(parent,inclusiveFp,seat.enrolment) && tcpFits(parent,inclusiveTcp,false);
+        bool fpFitsTotal = separateEarlyAccount(parent,centres,false,seat.enrolment);
+        bool tcpFitsTotal = separateEarlyAccount(parent,centres,true,seat.enrolment);
+        // With district-only TCP, some preferences can belong to already
+        // located FP ballots. Keep both accounts together when their separate
+        // remainders cannot describe a possible batch; never guess its venue.
+        auto incompatibleBatch = [&](Record const& batch) {
+            return total(batch.tcp.votes)>0 &&
+                (!fpFits(batch,batch.fp,seat.enrolment) || !tcpFits(batch,batch.tcp,false));
+        };
+        bool poolBoth = coherentDistrict &&
+            (!fpFitsTotal || !tcpFitsTotal || incompatibleBatch(parent) ||
+                std::any_of(centres.begin(),centres.end(),[&](auto venue){ return incompatibleBatch(*venue); }));
+        parent.earlyBreakdownConflict = poolBoth || !fpFitsTotal || !tcpFitsTotal;
+        if (!tcpFitsTotal && !coherentDistrict) {
+            // A district TCP that contradicts its venues and lacks a usable
+            // joint FP/TCP account cannot displace a valid preference batch
+            // at a known centre. Let recovery validate the venue itself.
+            parent.tcp.votes.reset();
+            parent.tcp.error = "District early-centre TCP cannot be reconciled with the located counts and district FP.";
+            tcpFitsTotal = true;
+        }
+        for (bool tcp : {false,true}) {
+            if (!poolBoth && (tcp ? tcpFitsTotal : fpFitsTotal)) continue;
+            auto field = tcp ? &Record::tcp : &Record::fp;
+            parent.*field = tcp ? inclusiveTcp : inclusiveFp;
+            for (auto* venue : centres) {
+                (venue->*field).votes.reset();
+                (tcp ? venue->tcpCoveredByTotal : venue->fpCoveredByTotal) = true;
+            }
+        }
+        // The residual can change population even if the district and candidate
+        // IDs stay the same. Compare past preference evidence only when the
+        // same named centres have been removed at the respective count stages.
+        for (auto venue : centres) {
+            bool fp = total(venue->fp.votes)>0, tcp = total(venue->tcp.votes)>0;
+            if (fp || tcp) parent.identity += "/outside:"+std::to_string(support.at(venue->name).sourceId)
+                +(fp ? "f" : "")+(tcp ? "t" : "");
+        }
+    }
+}
+
 void recordUnreadableSummaries(Results2::Election const& election, Result& result) {
     // Service vectors own the effective account. A malformed ordinary district
     // summary can therefore be rebuilt rather than replacing valid booth counts,
@@ -242,6 +355,7 @@ LiveInputRecovery::Snapshot identify(Results2::Election const& election,
         result.districts.emplace(seat.name,District{artifact.prior.enrolment[s],seat.fpFinalised});
     }
     for (auto const& unit : artifact.prior.units) result.records.push_back(identifyUnit(election,artifact.prior,unit));
+    partitionEarlyCentres(election,artifact,result);
     requireMappedCategories(election,result);
     return result;
 }

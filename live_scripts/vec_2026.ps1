@@ -43,7 +43,10 @@ if ($Mode -eq 'prepare') {
         }
         & $python -B -m scripts.turnout.turnout_prepare_vic 2026vic
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        # This also populates the federal booth cache used for Narracan's EVCs.
         & $python -B (Join-Path $PSScriptRoot 'prepare_one_nation_booths.py') 2026vic
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        & $python -B 'reports/2026vic-early-centres/prepare_live.py' --fetch
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         $projectArguments = @((Join-Path $PSScriptRoot 'prepare_vec_2026_runs.py'))
         if ($PrepareFor) { $projectArguments += @('--only', $PrepareFor) }

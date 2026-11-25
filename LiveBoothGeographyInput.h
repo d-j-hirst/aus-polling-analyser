@@ -31,6 +31,7 @@ inline std::map<Key,RosterPlace> readRoster(nlohmann::json const& file, TurnoutM
         auto const& seat = prior.seats.at(u.seat);
         RosterPlace p{u.kind == "declaration" ? u.name : u.kind,
             u.closed ? 0. : u.weight*means.at(u.seat*prior.groups.size()+u.group)};
+        if (u.kind == "ppvc" && u.category == "EVC early") p.mode = u.category;
         if (u.kind == "ordinary") {
             ++ordinary;
             auto const& district = districts.at(seat);

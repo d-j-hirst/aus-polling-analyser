@@ -356,6 +356,10 @@ SeatWinCellStyle seatWinCellStyle(
 std::string formatSnapshotTimestamp(std::string_view snapshotCode);
 std::optional<std::int64_t> snapshotCodeTimeSeconds(std::string_view snapshotCode);
 std::string formatCompletedAt(std::string_view completedAt);
+// Watcher deliveries and server receipts are absolute times; older deliveries
+// omit the UTC suffix. Feed timestamps without a suffix use the election clock.
+std::string formatWatcherLocalTime(std::string_view instant);
+std::string formatCommissionTime(std::string_view source, std::string_view electionZone);
 std::string formatRunSelectorLabel(SnapshotRecord const& record);
 std::string formatStatusLine(LoadResult const& result);
 std::string formatPercent(double value);

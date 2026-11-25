@@ -1028,6 +1028,7 @@ bool SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 		std::max(10, sim.settings.numIterations / CycleIterationsDivisor);
 	for (int revision = 0; revision < NumRevisionRounds; ++revision) {
 		SimulationRun newRun(project, sim, true);
+		newRun.estimatingPairingReference = estimatingPairingReference;
 		newRun.softPairingShifts = softPairingShifts;
 		newRun.nowcastDate = nowcastDate;
 		newRun.preparationInputs = preparationInputs;
@@ -1123,6 +1124,7 @@ bool SimulationRun::prepareSoftPairing(FeedbackFunc feedback, std::string const&
 		settings.numIterations = std::min(settings.numIterations,4096);
 		Simulation referenceSimulation(settings);
 		SimulationRun reference(project, referenceSimulation, false, true);
+		reference.estimatingPairingReference = true;
 		reference.nowcastDate = nowcastDate;
 		reference.preparationInputs = preparationInputs;
 		// Fit odds once on this small reference. The normal calibration runs

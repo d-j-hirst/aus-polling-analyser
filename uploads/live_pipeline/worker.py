@@ -347,13 +347,14 @@ class Processor:
                 rule_contexts = {}
                 mechanical = {}
                 for window, group in groups.items():
+                    # The writers still see the full group. Each seat's FP and TCP
+                    # distributions are saved with both endpoint forecasts, so their
+                    # individual percentile differences need no extra copy per window.
                     mechanical[window] = {k: v for k, v in group.items()
                                           if k not in ('evidence', 'seat_changes', 'ranked_tcp_groups', 'rule_regional',
                                                        'rule_regional_changes', 'rule_earlier_ordinary_count', 'rule_tpp_components')}
                     if not group['available']:
                         continue
-                    mechanical[window]['seat_changes'] = [
-                        {'seat': row['seat'], 'changes': row['changes']} for row in group['seat_changes']]
                     if self.local_trial:
                         mechanical[window]['commentary_decision'] = 'disabled'
                         continue
@@ -448,6 +449,8 @@ class Processor:
         metadata['simulation'] = numerical.get('simulation')
         metadata['model_revision'] = numerical.get('model_revision', numerical['input_revision'])
         for group in mechanical.values():
+            # A restart can resume a comparison prepared by an older worker.
+            group.pop('seat_changes', None)
             if group.get('reference_source_time'):
                 group['reference_source_time'] = comparisons.instant(group['reference_source_time'], self.config['timezone']).isoformat()
             flow_reference = group.get('statewide_preference_changes')

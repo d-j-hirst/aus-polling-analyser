@@ -142,6 +142,15 @@ int main()
 
 	assert(formatSnapshotTimestamp("20260402143211") == "26-04-02 14:32:11");
 	assert(formatCompletedAt("2026-09-04T19:48:52+10:00") == "04-09-26 19:48:52");
+	auto const local = formatWatcherLocalTime("2026-11-25T06:45:01Z");
+	assert(local == formatWatcherLocalTime("2026-11-25T06:45:01"));
+	assert(local == formatWatcherLocalTime("2026-11-25T17:45:01.200+11:00"));
+	assert(local.ends_with("(computer local)"));
+	assert(formatWatcherLocalTime("") == "none");
+	assert(formatCommissionTime("2026-11-25T17:45:01", "Australia/Melbourne") ==
+		"2026-11-25 17:45:01 (EC, Australia/Melbourne)");
+	assert(formatCommissionTime("2026-11-25T06:45:01Z", "Australia/Melbourne") ==
+		"2026-11-25 06:45:01Z (EC timestamp)");
 	assert(formatPercent(34.019) == "34.02%");
 	assert(formatNonFiniteMarker("nan") == "nan");
 	assert(formatNonFiniteMarker("positive_infinity") == "+inf");

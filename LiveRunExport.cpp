@@ -1271,6 +1271,13 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 				Results2::Booth::boothTypeName(booth.boothType);
 			boothJson["coords"] = optionalCoords(booth.coords);
 			boothJson["same_seat"] = booth.sameSeat;
+			if (booth.evcDistrictAccount >= 0) {
+				// The opening TPP and raw VEC location ID let a local replay
+				// compare the actual return with the estimate for this venue.
+				boothJson["display_name"] = booth.evcDisplayName;
+				boothJson["early_centre_reference"] = {{"vec_location_id",booth.sourceId},
+					{"opening_labor_tpp_percent",number(100*booth.evcOpeningTpp)}};
+			}
 			if (booth.returningIndependentFocusFlow) {
 				// Export the percentage reaching the independent, whichever
 				// finalist the district uses internally as its focus party.
