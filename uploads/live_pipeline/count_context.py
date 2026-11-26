@@ -70,6 +70,24 @@ def mapped_tcp(booth):
     return None
 
 
+def matched_transfers(booth, pair):
+    """Reconstruct transfers from other candidates when FP and TCP cover
+    equal totals and each finalist has exactly one identifiable FP tally.
+    Equal totals support the comparison but cannot verify individual ballots."""
+    tcp = mapped_tcp(booth)
+    fp = booth.get('fp_votes_current', {})
+    if not tcp or tcp.keys() != set(pair) or sum(fp.values()) != sum(tcp.values()) or any(v < 0 for v in fp.values()):
+        return None
+    aliases = booth.get('count_to_projection_ids', {})
+    transfers = {}
+    for party in pair:
+        entries = [v for p, v in fp.items() if aliases.get(p, p) == party]
+        if len(entries) != 1 or tcp[party] < entries[0]:
+            return None
+        transfers[party] = tcp[party] - entries[0]
+    return transfers
+
+
 def _tcp_account(booths):
     """Sum measured votes for one identifiable pair across an entire district.
 
@@ -129,15 +147,15 @@ def district_tcp_median(endpoint, first, second):
     return None
 
 
-def _replacement_count(booths, before, after, seat):
-    """Describe the first measured district count for a different pair. All
+def _new_pair_count(booths, before, after, seat):
+    """Describe the measured district count for a newly reported pair. All
     reporting units for the new pair contribute, even if only a few will be
     individually described. A previous district forecast for these opponents
     gives context, although the first booths need not represent the district.
 
-    Only identify transfers when every contributing unit has matching FP and
-    TCP totals and identifiable first preferences for both finalists. The
-    difference then estimates preferences from all other candidates combined.
+    In each unit with matching FP and TCP totals and identifiable FP votes
+    for both finalists, subtraction gives the split from all other candidates
+    combined. Keep a partial sample separate from a complete district account.
     Equal totals are evidence of matching coverage, not a ballot-level link.
     """
     first, second = sorted(after, key=lambda p: (-after[p], p))
@@ -151,20 +169,74 @@ def _replacement_count(booths, before, after, seat):
     if median is not None:
         result['previous_district_median_first_percent'] = median
     transfers = {first: 0, second: 0}
+    matched_units = 0
+    matched_name = None
     for booth in units:
-        aliases = booth.get('count_to_projection_ids', {})
-        tcp = mapped_tcp(booth)
-        raw_fp = booth.get('fp_votes_current', {})
-        if sum(raw_fp.values()) != sum(tcp.values()) or any(v < 0 for v in raw_fp.values()):
-            return result
-        for party in transfers:
-            entries = [v for p, v in raw_fp.items() if aliases.get(p, p) == party]
-            if len(entries) != 1 or tcp[party] < entries[0]:
-                return result
-            transfers[party] += tcp[party] - entries[0]
-    if sum(transfers.values()):
-        result['transfers_from_other_first_preferences'] = transfers
+        unit_transfers = matched_transfers(booth, transfers)
+        if unit_transfers is not None:
+            matched_units += 1
+            matched_name = booth.get('name') if booth.get('vote_type') == 'Ordinary' else None
+            for party, amount in unit_transfers.items():
+                transfers[party] += amount
+    if matched_units:
+        if matched_units == len(units) and sum(transfers.values()):
+            result['transfers_from_other_first_preferences'] = transfers
+        else:
+            result['matched_transfer_sample'] = {'units': matched_units, 'transfers': transfers}
+            if matched_units == 1 and matched_name:
+                result['matched_transfer_sample']['unit_name'] = matched_name
     return result
+
+
+def named_party_pair(pair, parties):
+    """Only pool district counts when each finalist represents the same
+    identifiable party everywhere. An IND badge can name a different person
+    in every seat."""
+    labels = [(parties.get(p) or '').upper() for p in pair]
+    return len(set(labels)) == 2 and all(s and not s.startswith(('IND', 'OTH', '???')) for s in labels)
+
+
+def early_party_pair_counts(previous, current, seats, parties):
+    """Identify the first substantial observed sample for a non-classic party
+    matchup in this window, even when it arrives in a single safe district.
+    The 500-ballot threshold is an editorial choice. Compare cumulative totals
+    on both dates so several small deliveries can cross it together."""
+    if not all(view.get('observed_counts_available') for view in (previous, current)):
+        return []
+    previous_totals = defaultdict(int)
+    current_units = defaultdict(lambda: defaultdict(list))
+    for is_reference, view in ((True, previous), (False, current)):
+        for booth in view.get('booths', {}).values():
+            counts = mapped_tcp(booth)
+            if not counts or not sum(counts.values()):
+                continue
+            pair = tuple(sorted(counts))
+            if is_reference:
+                previous_totals[pair] += sum(counts.values())
+            elif previous_totals[pair] < 500:
+                current_units[pair][booth['seat_name']].append(booth)
+    seat_rows = {s['seat']: s for s in seats}
+    samples = []
+    for pair, districts in current_units.items():
+        # Routine Labor–Coalition counts already have statewide TPP coverage.
+        # Candidates sharing the independent or Others label in different
+        # districts do not represent a common party preference flow.
+        if not named_party_pair(pair, parties):
+            continue
+        labels = {parties[p].upper() for p in pair}
+        if 'ALP' in labels and labels & {'LIB', 'LNP', 'NAT', 'CLP'}:
+            continue
+        rows = {}
+        for district, units in districts.items():
+            seat = seat_rows.get(district)
+            if not seat or any(p not in seat['after']['candidates'] or
+                    seat['after']['candidates'][p] != seat['before']['candidates'].get(p) for p in pair):
+                continue
+            totals = {p: sum(mapped_tcp(b)[p] for b in units) for p in pair}
+            rows[district] = _new_pair_count(units, {}, totals, seat)
+        if sum(row['counted_votes'] for row in rows.values()) >= 500:
+            samples.append(rows)
+    return samples
 
 
 def _new_pair_booths(booths, old_pair):
@@ -291,7 +363,7 @@ def district_tcp_changes(previous, current, seats, continuing_pairs=None, transf
             continue
         if before.keys() != after.keys():
             # Blank announcements and withdrawals give no measured split.
-            replacements[district] = _replacement_count(new_booths, before, after, seat)
+            replacements[district] = _new_pair_count(new_booths, before, after, seat)
             continue
         first, second = sorted(after, key=lambda p: (-after[p], p))
         counted_share = 100 * after[first] / sum(after.values())

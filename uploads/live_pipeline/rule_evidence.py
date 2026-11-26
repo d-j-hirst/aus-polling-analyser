@@ -8,6 +8,7 @@ from collections import defaultdict
 import math
 
 from . import activity, booth_tcp, ranked_tcp
+from .count_context import mapped_tcp, matched_transfers
 
 
 def joined(items):
@@ -85,10 +86,40 @@ def booth_projection_after_preferences(old, new, seat, previous, current, ranked
         return None
     coalition = {p for p in new.get('fp_votes_projected', {})
                  if current.get('parties', {}).get(p) in ('LIB', 'LNP', 'LNQ', 'CLP', 'NAT')}
+    coalition = booth_tcp.coalition_opponents(current_evidence, seat, coalition)
     if not booth_tcp.split(new, pair, coalition):
         return None
     rates = reference_evidence.get('classic_benchmark_labor_rates', {}).get(seat, {}).get('/'.join(pair))
     return booth_tcp.fixed_flow_shares(pair, benchmark, expected_fp, measured_fp, rates)
+
+
+def additional_return(old, new, ledger, forecast):
+    """Isolate a delivery to an existing count and its earlier benchmark.
+    Both endpoints must identify the same voters' candidates. The comparison
+    is with the share forecast for all outstanding ballots at this location.
+    The feed need not identify which venue supplied an Early or Postal batch."""
+    field = ledger.lower() + '_votes_current'
+    prior, current = old.get(field, {}), new.get(field, {})
+    previous = sum(prior.values())
+    added = sum(current.values()) - previous
+    if not previous or added <= 0 or prior.keys() != current.keys():
+        return None
+    before_alias = old.get('count_to_projection_ids', {})
+    after_alias = new.get('count_to_projection_ids', {})
+    counted, increments = defaultdict(int), defaultdict(int)
+    for p, n in current.items():
+        party = after_alias.get(p, p)
+        if before_alias.get(p, p) != party or n < prior[p]:
+            return None
+        counted[party] += prior[p]
+        increments[party] += n-prior[p]
+    if ledger == 'TCP' and len(increments) != 2:
+        return None
+    result = dict(previous=previous, added=added, shares={p:100*n/added for p,n in increments.items()})
+    remaining = sum(forecast.values()) - previous
+    if remaining > .01 and all(forecast.get(p, 0) >= n-1e-5 for p,n in counted.items()):
+        result['remaining_shares'] = {p:100*max(0.,n-counted[p])/remaining for p,n in forecast.items()}
+    return result
 
 
 def booth_units(events):
@@ -108,6 +139,7 @@ def booth_units(events):
         if declaration:
             label = ('the '+category+' count' if name.casefold() == category.casefold()
                      else name+' ('+category+' count)')
+        aliases = new.get('count_to_projection_ids', {})
         for ledger in ('FP', 'TCP'):
             field = ledger.lower() + '_votes_current'
             measured = new.get(field, {})
@@ -123,7 +155,6 @@ def booth_units(events):
             approximate_tcp = False
             partial_category_fp = None
             if ledger == 'FP':
-                aliases = new.get('count_to_projection_ids', {})
                 mapped = defaultdict(int)
                 for party, votes in measured.items():
                     mapped[aliases.get(party, party)] += votes
@@ -138,7 +169,6 @@ def booth_units(events):
                     rates = {p: (r['observed_percent'], r['difference_pp']) for p, r in compare['shares'].items()}
                 else:
                     partial_category_fp = compare.get('partial_category_fp_votes')
-                    aliases = new.get('count_to_projection_ids', {})
                     pair = tuple(sorted({aliases.get(p, p) for p in measured}))
                     rates = {}
             # An updated declaration with no comparable estimate can still
@@ -156,12 +186,24 @@ def booth_units(events):
                     addition = ballots - sum(prior.values())
                     restored = bool(compare.get('already_in_forecast'))
             if rates or declaration or addition:
+                prior = old.get(field) or {}
+                comparable = (first or prior.keys() == measured.keys()) and all(
+                    votes >= prior.get(p, 0) for p, votes in measured.items())
                 by_seat[event['seat']].append(dict(name=label, declaration=declaration, ledger=ledger,
                     category=category, pair=pair, first=first, ballots=ballots, changed=changed, rates=rates,
+                    revised_total=sum(prior.values()) if not comparable and (ledger == 'FP' or prior.keys() == measured.keys()) else None,
                     approximate_tcp=ranked_tcp.category(new) if approximate_tcp else None,
+                    prior_votes=sum(prior.values()) if comparable and not first else None,
+                    prior_shares={aliases.get(p,p):100*v/sum(prior.values()) for p,v in prior.items()}
+                        if ledger == 'TCP' and comparable and not first and sum(prior.values()) else {},
                     partial_category_fp=partial_category_fp,
                     tcp_addition=addition, restored=restored,
+                    increment=event.get('rule_increment', {}).get(ledger),
                     batch_shares=event.get('rule_ranked_tcp_addition') if addition else None,
+                    added_votes={aliases.get(p,p):v-prior.get(p,0) for p,v in measured.items()} if addition else None,
+                    after_fp_revision=bool(addition and event.get('rule_updated_tcp_after_fp_revision')),
+                    counted_tcp={aliases.get(p,p):v for p,v in measured.items()} if addition else None,
+                    rechecked=ledger == 'TCP' and compare.get('expectation_kind') == ranked_tcp.RECHECK_BASIS,
                     tcp_estimates=event.get('rule_booth_tcp_estimates') if ledger == 'FP' else None))
     return by_seat
 
@@ -176,9 +218,10 @@ def pool(units, party):
         if party in unit['rates']:
             # A one-vote correction to an old 2,000-vote count must not
             # outweigh 300 genuinely new votes in a neighbouring booth.
-            groups[(unit['ledger'], unit['pair'], unit['first'])].append(unit)
+            is_addition = bool(unit.get('increment') and not unit.get('rechecked') and not unit.get('approximate_tcp'))
+            groups[(unit['ledger'], unit['pair'], unit['first'], is_addition)].append(unit)
     result = []
-    for (ledger, pair, first), batch in groups.items():
+    for (ledger, pair, first, is_addition), batch in groups.items():
         ballots = sum(u['ballots'] for u in batch)
         parties = set.intersection(*(set(u['rates']) for u in batch))
         rates = {p: [sum(u['rates'][p][i]*u['ballots'] for u in batch)/ballots for i in (0, 1)]
@@ -189,6 +232,16 @@ def pool(units, party):
         result.append(dict(ledger=ledger, pair=list(pair), first=first, locations=unit_names(batch), units=len(batch),
             declaration=batch[0]['declaration'] if len(batch) == 1 else False, ballots=ballots,
             changed=sum(u['changed'] for u in batch), rates=rates, other_categories=other_categories))
+        if len(batch) == 1 and batch[0].get('revised_total'):
+            result[-1]['revised_total'] = batch[0]['revised_total']
+        if not first and all(u.get('prior_votes') is not None for u in batch):
+            result[-1]['prior_votes'] = sum(u['prior_votes'] for u in batch)
+            if is_addition:
+                result[-1]['increment'] = pooled_increment(batch)
+            if len(batch) == 1 and batch[0].get('prior_shares'):
+                result[-1]['prior_shares'] = batch[0]['prior_shares']
+        if any(u.get('rechecked') for u in batch):
+            result[-1]['rechecked'] = True
         # A category with a partial TCP still contributed real counting. Give
         # its progress separately from booths with a comparable benchmark.
         partial = {u['category']: (u['ballots'], u['partial_category_fp']) for u in units
@@ -207,6 +260,23 @@ def pool(units, party):
             result[-1]['all_booths'] = all(not u['declaration'] for u in batch)
             result[-1]['tcp_estimates'] = {p: [sum(u['tcp_estimates'][p][i] * u['ballots'] for u in batch)
                                                 / ballots for i in (0, 1)] for p in estimates}
+    return result
+
+
+def pooled_increment(units):
+    """Compare only the new ballots. Weight each location's earlier expected
+    share by the number actually added there during this comparison window.
+    A missing party benchmark at one location precludes a combined benchmark
+    for that party, even when its actual share can still be reported."""
+    increments = [u['increment'] for u in units]
+    if len(increments) == 1:
+        return increments[0]
+    total = sum(i['added'] for i in increments)
+    result = dict(added=total, previous=sum(i['previous'] for i in increments),
+                  additions=[(u['name'],u['increment']['added']) for u in sorted(units,key=lambda u:-u['increment']['added'])])
+    for field in ('shares','remaining_shares'):
+        common = set.intersection(*(set(i.get(field, {})) for i in increments))
+        result[field] = {p:sum(i['added']*i[field][p] for i in increments)/total for p in common}
     return result
 
 
@@ -327,6 +397,8 @@ def primary_weight_check(event):
         check = dict(before=primary_centre(*earlier), after=primary_centre(*later),
                      previous_weight=primary_centre(*later[:-1], earlier[-1], earlier_breadth=breadth),
                      weight_change=later[-1]-earlier[-1])
+        if old_ordinary and new_ordinary and all('fitted_remaining_share' in r[0] for r in (old_ordinary,new_ordinary)):
+            check['remaining_fp'] = [100*r[0]['fitted_remaining_share'] for r in (old_ordinary,new_ordinary)]
         if old_ordinary and all('fitted_remaining_share' not in r[0] and
                                 r[0]['matched_fraction'] > 0 and r[0]['ordinary_fraction'] == 1
                                 for r in (old_ordinary, new_ordinary)):
@@ -389,6 +461,141 @@ def tpp_component_changes(previous, current, old_evidence, new_evidence):
     return changes
 
 
+def ordinary_transfer_comparison(earlier, current, locations, changed, pair, comparisons):
+    """Compare transfers in first TCP returns with ordinary booths already
+    counted for this pair. Use only matched full-preference counts. An older,
+    larger retained tally may have already informed the forecast, so it
+    cannot be treated as a fresh preference sample."""
+    if current.get('optional_preferential') is not False:
+        return None
+    earlier_transfers, new_transfers = (dict.fromkeys(pair, 0) for _ in range(2))
+    earlier_places = 0
+    expected = dict.fromkeys(pair, 0.)
+    matched_expected = True
+    coalition_fit = True
+    for key in locations:
+        before = earlier['booths'].get(key, {})
+        after = current['booths'].get(key, {})
+        updated = key in changed
+        if ranked_tcp.category(after) != 'Ordinary' or (updated and any(before.get('tcp_votes_current', {}).values())):
+            continue
+        # A floor records the minimum votes already known for each finalist,
+        # including counts temporarily absent from the public feed.
+        retained = False
+        for evidence, booth in ((earlier, before), (current, after)):
+            reported = sum(booth.get('tcp_votes_current', {}).values())
+            aliases = booth.get('count_to_projection_ids', {})
+            for floor in evidence.get('booth_tcp_bounds', {}).get(key, ()):
+                if {aliases.get(p, p) for p in floor} == set(pair) and sum(floor.values()) > reported:
+                    retained = True
+        if retained:
+            continue
+        donors = matched_transfers(after, pair)
+        if donors and sum(donors.values()):
+            totals = new_transfers if updated else earlier_transfers
+            for p in pair:
+                totals[p] += donors[p]
+            if updated:
+                # The known finalist primaries cannot transfer. Subtract
+                # them from the earlier benchmark for these very ballots.
+                shares = comparisons.get(key, {}).get('shares', {})
+                coalition_fit &= comparisons.get(key, {}).get('expectation_kind') == 'local Coalition preference fit'
+                counted = mapped_tcp(after)
+                if (before.get('fp_votes_current') != after.get('fp_votes_current') or shares.keys() != set(pair)):
+                    matched_expected = False
+                else:
+                    for p in pair:
+                        own = counted[p]-donors[p]
+                        predicted = shares[p]['expected_percent']*sum(counted.values())/100-own
+                        if not 0 <= predicted <= sum(donors.values()):
+                            matched_expected = False
+                        expected[p] += predicted
+            if not updated:
+                earlier_places += 1
+    # These editorial minima keep a handful of transfers, or a single
+    # earlier booth, from being described as an established district rate.
+    if earlier_places >= 2 and min(sum(earlier_transfers.values()), sum(new_transfers.values())) >= 50:
+        result = {'transfers': [earlier_transfers, new_transfers]}
+        if matched_expected:
+            result['expected_transfers'] = expected
+            result['used_coalition_fit'] = coalition_fit
+        return result
+    return None
+
+
+def tcp_shares_at_other_locations(earlier, current, other_places, pair):
+    """Pool vote counts across precisely the same places at both dates.
+    Only directly identified booth projections qualify. Missing estimates
+    at a place with votes would change the meaning of the comparison."""
+    shares = []
+    for evidence in (earlier, current):
+        totals = dict.fromkeys(pair, 0.)
+        for key in other_places:
+            booth = evidence.get('booths', {}).get(key, {})
+            projected = booth.get('tcp_votes_projected', {})
+            if set(pair) == projected.keys() and all(math.isfinite(v) and v >= 0 for v in projected.values()) and any(projected.values()):
+                for p in pair:
+                    totals[p] += projected[p]
+            elif any(booth.get('fp_votes_projected', {}).values()) or any(projected.values()):
+                return None
+        size = sum(totals.values())
+        if not size:
+            return None
+        shares.append({p: 100*v/size for p, v in totals.items()})
+    return shares
+
+
+def tcp_update_context(earlier, current, events, ranked_pairs):
+    """Compare the newly counted places with earlier matched preference counts
+    and track where else the same pair's estimated vote changed. Neither
+    comparison isolates the effect of an individual booth on the forecast."""
+    changed = defaultdict(set)
+    tcp_pairs = defaultdict(set)
+    benchmarks = {}
+    for event in events:
+        if event['kind'] != 'booths' or not event.get('changed_votes'):
+            continue
+        seat = event['seat']
+        changed[seat].add(event['record'])
+        benchmarks[event['record']] = event.get('tcp_against_previous_forecast') or {}
+        pair = mapped_tcp(event.get('after') or {})
+        if event.get('tcp_vote_change', 0) > 0 and pair:
+            tcp_pairs[seat].add(tuple(sorted(pair)))
+    old = earlier.get('booths', {})
+    new = current.get('booths', {})
+    locations = defaultdict(list)
+    for key in sorted(old.keys() | new.keys()):
+        seat = (new.get(key) or old[key]).get('seat_name')
+        if seat in tcp_pairs:
+            locations[seat].append(key)
+    result = {}
+    for seat, pairs in tcp_pairs.items():
+        if len(pairs) != 1:
+            continue
+        pair = next(iter(pairs))
+        row = ordinary_transfer_comparison(earlier, current, locations[seat], changed[seat], pair, benchmarks) or {}
+        if row.get('expected_transfers'):
+            # The local FP ledger can stand still while wider election and
+            # regional counting changes the district's primary projection.
+            # Record only the direction of that shared input, on its native
+            # log-odds scale. Its size is not a TCP percentage-point effect.
+            adjustments = [{str(r['party_index']):r['value'] for r in
+                            (e.get('seats', {}).get(seat, {}).get('fp_integration') or {}).get('shared_deviation', [])}
+                           for e in (earlier, current)]
+            if all(p in m for p in pair for m in adjustments):
+                row['shared_fp_change'] = {p:adjustments[1][p]-adjustments[0][p] for p in pair}
+        # A ranked matchup uses its own allocation, which can differ from
+        # the separately exported booth TCP projections.
+        if (seat, frozenset(pair)) not in ranked_pairs:
+            other_places = [key for key in locations[seat] if key not in changed[seat]]
+            elsewhere = tcp_shares_at_other_locations(earlier, current, other_places, pair)
+            if elsewhere:
+                row['elsewhere'] = elsewhere
+        if row:
+            result[seat] = row
+    return result
+
+
 def context(comparison, win_rows, flows):
     """Save compact summaries for candidates the writer can discuss. Exclude
     transfers between declaration labels: those ballots were already counted."""
@@ -438,16 +645,40 @@ def context(comparison, win_rows, flows):
     for seat in pools:
         by_pair = defaultdict(list)
         for unit in units[seat]:
-            if unit.get('tcp_addition', 0) >= 10 and not unit['rates']:
+            if unit.get('tcp_addition', 0) >= 10 and (not unit['rates'] or unit.get('after_fp_revision')):
                 source = {
                     'name': unit['name'], 'declaration': unit['declaration'],
-                    'changed': unit['tcp_addition'], 'restored': unit['restored']}
+                    'changed': unit['tcp_addition'], 'restored': unit['restored'],
+                    'previous': unit['prior_votes']}
                 if unit.get('batch_shares'):
                     source['batch_shares'] = unit['batch_shares']
+                if unit.get('increment'):
+                    source['increment'] = unit['increment']
+                if unit.get('after_fp_revision'):
+                    source.update(after_fp_revision=True, counted_tcp=unit['counted_tcp'],
+                                  added_votes=unit['added_votes'])
                 by_pair['/'.join(unit['pair'])].append(source)
         if by_pair:
             tcp_sources[seat] = dict(by_pair)
+    # Even when a booth has no earlier benchmark or its result points the
+    # other way, we can say where votes were reported in this period.
+    locations = defaultdict(list)
+    for event in events:
+        if event['kind'] != 'booths' or not event.get('changed_votes'):
+            continue
+        booth = event.get('after') or {}
+        name = booth.get('name')
+        if not name:
+            continue
+        category = booth.get('vote_type')
+        declaration = category not in (None, 'Ordinary')
+        if declaration and name.casefold() == category.casefold():
+            name = 'the '+name+' count'
+        locations[event['seat']].append(dict(name=name, declaration=declaration, changed=event['changed_votes']))
     return {'pools': pools, 'tcp_sources': tcp_sources, 'primary_weight_checks': weights,
+            'tcp_context': comparison.get('rule_tcp_context', {}),
+            'count_locations': {s: (unit_names(units), sum(u['changed'] for u in units))
+                                for s, units in locations.items() if s in pools or s in counted},
             'tpp_components': {s: v for s, v in comparison.get('rule_tpp_components', {}).items() if s in pools},
             'large_local_moves': sorted(large), 'supported_flows': supported_flows(events, flows),
             'regional': comparison.get('rule_regional', []),

@@ -10,6 +10,7 @@ import math
 from .count_context import mapped_tcp
 
 ARCHIVED_BASIS = 'booth FP with category-average ranked transfers'
+RECHECK_BASIS = 'rechecked booth FP with earlier ranked transfers'
 
 
 def category(booth):
@@ -79,7 +80,8 @@ def new_booth_references(pair, booths, rates, average, bounds):
     """Compare the first TCP return with the very same ballots' earlier FP.
     Party-specific rates are keyed by the original booth candidate IDs. The
     archive approximation uses the two named finalists and a single rate for
-    everyone else. Never apply either to a partial or revised FP batch."""
+    everyone else. A tiny FP recheck can still support a comparison with
+    the earlier party-specific rates when the entire revised booth is counted."""
     result = {}
     for key, old, new in booths:
         if not old or not new or key in bounds or counted(old, pair) != (0, 0):
@@ -87,13 +89,24 @@ def new_booth_references(pair, booths, rates, average, bounds):
         fp = old['fp_votes_current']
         tcp = counted(new, pair)
         size = sum(fp.values())
-        if not size or tcp is None or sum(tcp) != size or fp != new['fp_votes_current']:
+        revised = new['fp_votes_current']
+        if not size or tcp is None or not sum(tcp) or sum(tcp) != sum(revised.values()):
             continue
+        rechecked = fp != revised
+        if rechecked:
+            # Count additions and removals separately so a transfer between
+            # candidates cannot disappear in the net total. At most one in
+            # a thousand ballots may differ, bounding its effect at 0.1 pp.
+            differences = [revised.get(p,0)-fp.get(p,0) for p in fp.keys() | revised.keys()]
+            affected = max(sum(max(0,n) for n in differences), sum(max(0,-n) for n in differences))
+            if rates is None or affected*1000 > min(size, sum(tcp)):
+                continue
+            fp, size = revised, sum(tcp)
         if rates is not None:
             if any(not 0 <= rates.get(p, -1) <= 1 for p, v in fp.items() if v):
                 continue
             first = sum(v * rates[p] for p, v in fp.items() if v)
-            basis = 'ranked TCP'
+            basis = RECHECK_BASIS if rechecked else 'ranked TCP'
         elif average is not None:
             aliases = old.get('count_to_projection_ids', {})
             splits = {pair[0]: 1, pair[1]: 0}

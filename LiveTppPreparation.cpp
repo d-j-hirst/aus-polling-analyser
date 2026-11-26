@@ -960,6 +960,7 @@ void LiveV2::Election::prepareCoalitionTcpForecasts(Results2::Election const& pr
             }
             LiveCoalitionTcp::Booth account{categoryCode(booth),{},{}};
             account.sourceId = booth.sourceId;
+            account.liveBoothIndex = index;
             auto const flows = classicPreferenceFlows(booth,1);
             std::map<int,double> future;
             for (auto const& [party,votes] : n.fpVotesProjected)

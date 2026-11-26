@@ -352,7 +352,8 @@ class Processor:
                     # individual percentile differences need no extra copy per window.
                     mechanical[window] = {k: v for k, v in group.items()
                                           if k not in ('evidence', 'seat_changes', 'ranked_tcp_groups', 'rule_regional',
-                                                       'rule_regional_changes', 'rule_earlier_ordinary_count', 'rule_tpp_components')}
+                                                       'rule_regional_changes', 'rule_earlier_ordinary_count', 'rule_tpp_components',
+                                                       'rule_early_party_counts', 'rule_tcp_context')}
                     if not group['available']:
                         continue
                     if self.local_trial:

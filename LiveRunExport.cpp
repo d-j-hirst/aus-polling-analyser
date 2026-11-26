@@ -1244,6 +1244,23 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 			seat.fpBoothTypeSensitivity, parties, &boothTypeCategoryName);
 		seatJson["nationals_proportion"] = optionalNumber(seat.nationalsProportion);
 		seatJson["node"] = serializeNode(seat.node, parties);
+		std::map<int,json> coalitionBenchmarks;
+		if (coalitionTcpDistricts) {
+			auto found = coalitionTcpDistricts->find(tppProjectSeatIndices.at(&seat-seats.data()));
+			if (found != coalitionTcpDistricts->end()) {
+				auto const& accounts = found->second.accounts;
+				for (size_t i = 0; i < accounts.booths.size(); ++i) {
+					for (size_t pair = 0; pair < 2; ++pair) {
+						auto expected = LiveCoalitionTcp::pendingBenchmark(accounts,i,pair);
+						if (expected && expected->total > 0) {
+							auto& entry = coalitionBenchmarks[accounts.booths[i].liveBoothIndex];
+							entry[std::to_string(pair ? natPartyIndex : 1)] = {
+								{"votes",number(expected->total)}, {"labor",number(expected->labor)}};
+						}
+					}
+				}
+			}
+		}
 		for (int boothIndex : seat.booths) {
 			if (boothIndex < 0 || boothIndex >= int(readBooths().size())) continue;
 			auto const& booth = readBooths()[boothIndex];
@@ -1264,6 +1281,15 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 				}
 			}
 			json boothJson;
+			if (auto found = coalitionBenchmarks.find(boothIndex); found != coalitionBenchmarks.end())
+				boothJson["pending_coalition_tcp"] = found->second;
+			if (fpIntegration) {
+				auto const& fit = fpIntegration->at(&seat-seats.data()).venueFitShares;
+				if (auto found = fit.find(boothIndex); found != fit.end()) {
+					for (auto const& [party, share] : found->second)
+						boothJson["fit_remaining_fp_percent"][std::to_string(party)] = number(100*share);
+				}
+			}
 			boothJson["name"] = booth.name;
 			boothJson["seat_name"] = seat.name;
 			boothJson["vote_type"] = Results2::voteTypeName(booth.voteType);

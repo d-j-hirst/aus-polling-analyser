@@ -31,6 +31,14 @@ inline constexpr double PostalCoalitionLogOddsShift = -2.0/25;
 inline constexpr double IndependentPoolingHalfWeightShare = .05;
 enum class Category { General, AggregatedEarly };
 
+// Spread of the remaining declaration FP share on the model's log-odds
+// scale. The inherited opening allowance is larger where previous turnout
+// was small. Use it throughout the count: each newly counted ballot leaves
+// fewer voters exposed to that uncertainty.
+inline double declarationFpLogOddsSd(int previousTurnout) {
+    return (6 + 10 * std::exp(-double(previousTurnout) * .0001)) / 25;
+}
+
 // These candidates have neither their own historical booth comparison nor
 // an individual pre-election forecast. The feed can still report each one's
 // district FP share separately, including a genuine zero.

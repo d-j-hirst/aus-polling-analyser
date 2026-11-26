@@ -73,7 +73,10 @@ inline std::optional<Mix> fit(std::vector<Mix> const& rows, Mix const& weights, 
 // the same regional and statewide movements used by the simulation draw.
 // A booth's FP return supplies local evidence once. Unchanged records, a
 // skipped snapshot and a different delivery order all give the same fit.
-inline std::optional<Mix> remaining(std::vector<Venue> const& booths, Mix prior, Mix const& sharedOdds) {
+// Reporting can also request the mix for each location's remaining voters.
+// These shares underlie the district result before its final blend.
+inline std::optional<Mix> remaining(std::vector<Venue> const& booths, Mix prior, Mix const& sharedOdds,
+    std::vector<Mix>* venueShares = nullptr) {
     constexpr double BoothCap = 500.;
     std::vector<Mix> rows;
     Mix sizes;
@@ -115,6 +118,9 @@ inline std::optional<Mix> remaining(std::vector<Venue> const& booths, Mix prior,
     }
     double const future = sum(outstanding);
     if (weights.size()==1 || future<=0) return {};
+    // Keep the exact local comparison when requested for reporting. Once
+    // counted, a ballot no longer belongs to these outstanding shares.
+    if (venueShares) venueShares->assign(booths.size(), {});
 
     // The same ordinary returns tell us more about other election-day booths
     // than about early centres, postal voters or other categories. The replay
@@ -133,6 +139,7 @@ inline std::optional<Mix> remaining(std::vector<Venue> const& booths, Mix prior,
         for (size_t b : pending) {
             auto shares = tilted(rows[b],*shift);
             LiveFpSupportGradient::adjust(shares,booths[b].historicalSupportTilts);
+            if (venueShares) venueShares->at(b) = shares;
             for (size_t j=0; j<shares.size(); ++j) result[j] += outstanding[b]*shares[j];
         }
         return true;

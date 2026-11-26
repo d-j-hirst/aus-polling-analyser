@@ -354,6 +354,13 @@ def evidence(numerical, run_folder=None):
         result['booths'][key].update({k: _party_values(node.get(k)) for k in
             ('fp_votes_current', 'tcp_votes_current', 'fp_votes_projected', 'tpp_votes_projected', 'tcp_votes_projected')})
         counts = result['booths'][key]
+        # Keep each capture's estimates separate from its published tallies.
+        # The comparison picks these up from the start of its own window,
+        # including any learning since this location last reported votes.
+        if booth.get('fit_remaining_fp_percent'):
+            result.setdefault('fit_remaining_fp_percent', {})[key] = booth['fit_remaining_fp_percent']
+        if booth.get('pending_coalition_tcp'):
+            result.setdefault('pending_coalition_tcp', {})[key] = booth['pending_coalition_tcp']
         counts['expected_remaining_fp'] = sum(counts['fp_votes_projected'].values())-sum(counts['fp_votes_current'].values())
         # Ordinary party IDs already agree. A prominent independent can instead
         # be counted under the commission's candidate ID and projected under the
@@ -472,7 +479,7 @@ def booth_changes(events, known, minimum_revision=10):
 
 
 def tcp_against_previous_forecast(previous, current, *, ranked_pairs=(), ranked_estimates=None, booth_key=None,
-                                  blended_estimates=None):
+                                  blended_estimates=None, pending_coalition=None):
     """Explain a changed booth TCP count using the reference forecast's estimate.
 
     The usual case is a new or revised count for the same two candidates that
@@ -521,7 +528,19 @@ def tcp_against_previous_forecast(previous, current, *, ranked_pairs=(), ranked_
         if counted_total < .98*category_fp:
             return {'available': False, 'partial_category_fp_votes': category_fp,
                     'reason': 'Partial category TCP with no earlier estimate for the counted batch.'}
-    if (seat, pair) in ranked_pairs:
+    # In a three-cornered Coalition district, the parallel matchup fits
+    # transfers to the parties supplying them. A previously known FP cohort
+    # can now report its first TCP. Check all denominators and identities
+    # before comparing those ballots with that fit's central estimate.
+    other = next((p for p in pair if p != '0'), None)
+    pending = (pending_coalition or {}).get(other, {})
+    if ('0' in pair and category == 'Ordinary' and pending.get('votes') == counted_total
+            and not any((previous.get('tcp_votes_current') or {}).values())
+            and previous.get('fp_votes_current') == current.get('fp_votes_current')
+            and count_context.matched_transfers(current, pair) is not None):
+        labor = pending['labor']
+        forecasts = [({'0':labor, other:counted_total-labor}, 'local Coalition preference fit')]
+    elif (seat, pair) in ranked_pairs:
         # The usual booth TCP export predates the ranked live account. Even
         # identical opponents do not make it the expectation used for this
         # contest. The category comparison is supplied separately when usable.
@@ -610,6 +629,14 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
                         'before': previous['seats'][seat], 'after': current['seats'][seat]})
     reporting = tcp_reporting.changes(previous, current, previous_evidence, current_evidence)
     original_before, original_after = previous_evidence, current_evidence
+    # Match the recovery diagnostic as well as the booth's vote bounds. A
+    # bound can include new first preferences guaranteed to stay with their
+    # finalist. It is not evidence that those ballots had a published TCP.
+    corrected_places = [
+        {(i.get('district'), i.get('record')) for i in evidence.get('issues', []) if i.get('type') == 'tcp_fp_revision'}
+        for evidence in (original_before, original_after)]
+    revision_counts = {(i.get('district'), i.get('record')): i.get('effective_total')
+                       for i in original_before.get('issues', []) if i.get('type') == 'tcp_fp_revision'}
     previous_evidence, current_evidence, retained = tcp_reporting.reporting_views(
         previous_evidence, current_evidence, tcp_reporting.zero_districts(previous), tcp_reporting.zero_districts(current))
     ranked_pairs, ranked_booths, ranked_groups, ranked_additions = ranked_tcp.references(
@@ -674,7 +701,8 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
                 event['tcp_vote_change'] = sum(after.get('tcp_votes_current', {}).values())-sum(before.get('tcp_votes_current', {}).values())
             if kind == 'booths':
                 tcp_comparison = tcp_against_previous_forecast(old.get(key), new.get(key),
-                    ranked_pairs=ranked_pairs, ranked_estimates=ranked_booths, booth_key=key, blended_estimates=earlier_tcp)
+                    ranked_pairs=ranked_pairs, ranked_estimates=ranked_booths, booth_key=key, blended_estimates=earlier_tcp,
+                    pending_coalition=original_before.get('pending_coalition_tcp', {}).get(key))
                 if tcp_comparison is not None:
                     # The feed can show zero for a count already retained by the
                     # forecast, then publish both identical finalist totals again.
@@ -691,7 +719,41 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
                         addition = ranked_additions.get((key, frozenset(mapped or ())))
                         if addition:
                             event['rule_ranked_tcp_addition'] = addition
+                    # If preferences catch up after an FP revision the new
+                    # published partial tally replaces the temporary estimate.
+                    # Both reports may contain valid but quite different-sized
+                    # sets of ballots. Do not describe the bound as a count.
+                    floors = [v for v in original_before.get('booth_tcp_bounds', {}).get(key, ())
+                              if v.keys() == reported.keys() and len(v) == 2]
+                    place = event['seat'], (new.get(key) or {}).get('name')
+                    if (place in corrected_places[0] and place not in corrected_places[1]
+                            and len(floors) == 1 and prior_tcp.keys() == reported.keys()
+                            and all(floors[0][p] >= prior_tcp[p] and reported[p] >= prior_tcp[p] for p in reported)
+                            and sum(prior_tcp.values()) < sum(reported.values()) < sum(floors[0].values())
+                            and not original_after.get('booth_tcp_bounds', {}).get(key)):
+                        event['rule_updated_tcp_after_fp_revision'] = True
                     event['tcp_against_previous_forecast'] = tcp_comparison
+                before, after = old.get(key) or {}, new.get(key) or {}
+                if after.get('vote_type') not in (None, 'Ordinary'):
+                    pair = frozenset(count_context.mapped_tcp(after) or ())
+                    expected_tcp = earlier_tcp.get((key, pair), {})
+                    # A retained tally can cover more votes than the feed
+                    # displayed. Subtracting the displayed total would then
+                    # mix previously counted ballots into the benchmark.
+                    # FP revisions also produce bounds: votes already known
+                    # to belong to a finalist are *estimated* TCP until the
+                    # feed catches up. Only subtract the published count if
+                    # the retained measured batch agrees with its size.
+                    place = event['seat'], after.get('name')
+                    bounds = original_before.get('booth_tcp_bounds', {}).get(key, ())
+                    prior_tcp = before.get('tcp_votes_current', {})
+                    if bounds and not (len(bounds) == 1 and bounds[0].keys() == prior_tcp.keys()
+                                       and revision_counts.get(place) == sum(prior_tcp.values())):
+                        expected_tcp = {}
+                    for ledger, forecast in [('FP', reference_fp.get(key, {})), ('TCP', expected_tcp)]:
+                        increment = rule_evidence.additional_return(before, after, ledger, forecast)
+                        if increment:
+                            event.setdefault('rule_increment', {})[ledger] = increment
             events.append(event)
     old_issues = previous_evidence.get('issues', [])
     for issue in current_evidence.get('issues', []):
@@ -732,6 +794,8 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
             'win_changes': rows, 'seat_changes': details, 'evidence': events,
             'category_transfers': transfers,
             'close_tcp_counts': leads, 'replacement_tcp_counts': replacements,
+            'rule_early_party_counts': count_context.early_party_pair_counts(
+                original_before, current_evidence, details, current['parties']),
             'booth_changes': booth_changes(events, counts.get('known', False)),
             'statewide': {side: {k:v for k,v in item['statewide'].items() if k != 'preference_flow_medians'}
                           for side, item in [('before', previous), ('after', current)]}}
@@ -749,6 +813,8 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
         size, name = max(places, key=lambda place: place[0])
         result['rule_earlier_ordinary_count'][seat] = dict(largest=size, name=name, total=sum(n for n, _ in places))
     if not result['input_revision_changed']:
+        result['rule_tcp_context'] = rule_evidence.tcp_update_context(
+            original_before, original_after, events, ranked_pairs)
         result['rule_tpp_components'] = rule_evidence.tpp_component_changes(
             previous, current, previous_evidence, current_evidence)
     # Older packages lack matched booth history. An absent reference does
@@ -1088,7 +1154,7 @@ def _booth_story(event, candidates, replacement):
         fields.append(tcp)
     detail = {k: v for k, v in event.items() if k not in (
         'before', 'after', 'interpretation', 'fp_share_minus_previous_expectation_pp', 'pair_changed',
-        'rule_booth_tcp_estimates', 'rule_ranked_tcp_addition')}
+        'rule_booth_tcp_estimates', 'rule_ranked_tcp_addition', 'rule_updated_tcp_after_fp_revision', 'rule_increment')}
     if not fp_size or incidental_fp:
         detail.pop('fp_vote_change', None)
     if not tcp_size:

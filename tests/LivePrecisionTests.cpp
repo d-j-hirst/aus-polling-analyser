@@ -212,6 +212,10 @@ void testSplitOrdinaryUpdate()
     double const cautious = (500+150./1.5)/(1000+250./1.5);
     double const expected = (350*strong+3000*cautious)/3350;
     assert(std::abs(first[0]-expected)<1e-9 && std::abs(sum(first)-1)<1e-9);
+    std::vector<Mix> venueShares;
+    assert(remaining(locations,{.5,.5},{1,1},&venueShares) == first);
+    assert(venueShares.size()==3 && venueShares.front().empty());
+    assert(std::abs(venueShares[1][0]-strong)<1e-9 && std::abs(venueShares[2][0]-cautious)<1e-9);
     locations[2].turnout = 0;
     assert(std::abs(predict().value()[0]-strong)<1e-9);
     locations[2].turnout = 3000;

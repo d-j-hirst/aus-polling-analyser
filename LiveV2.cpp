@@ -229,7 +229,6 @@ double variabilityProgressWeight(double completion) {
 }
 
 enum class VariabilityTag : std::uint32_t {
-  NonOrdinaryFp = 1,
   BoothProjectionFp = 2,
   NonOrdinaryTcp = 3,
   PreferenceFlow = 4,
@@ -3993,16 +3992,16 @@ LiveNewVotes::Shares Election::composeDeclarationFp(int boothIndex) const {
   double target = turnoutFpTarget(boothIndex);
   auto const& context = newVoteContexts->at(boothIndex);
   LiveNewVotes::Shares shifts,variation;
+  double const fpVariation = createRandomVariation ? LiveNewVotes::declarationFpLogOddsSd(booth.node.totalVotesPrevious()) : 0;
   for (auto const& [candidate,share] : context) {
     int effective = candidate == seat.liveIndependentPartyIndex ? run.indPartyIndex : candidate;
     if (booth.voteType == Results2::VoteType::Postal && (candidate == 1 || candidate == natPartyIndex))
       shifts[candidate] = LiveNewVotes::PostalCoalitionLogOddsShift;
     if (createRandomVariation) {
-      bool reported = booth.node.totalFpVotesCurrent() > 0;
-      double scale = std::exp(-double(booth.node.totalVotesPrevious())*.0001);
-      double stdDev = reported ? 7+12*scale : 6+10*scale;
-      auto tag = reported ? VariabilityTag::NonOrdinaryFp : VariabilityTag::BoothProjectionFp;
-      variation[candidate] = variabilityNormal(0,stdDev,boothIndex,effective,uint32_t(tag))/25;
+      // The same simulated election keeps its draw when the first FP batch
+      // arrives. The new ballots change the expected composition and volume
+      // outstanding without switching to a second, wider distribution.
+      variation[candidate] = variabilityNormal(0,fpVariation,boothIndex,effective,uint32_t(VariabilityTag::BoothProjectionFp));
     }
   }
   return LiveNewVotes::composition(booth.node.fpVotesCurrent,context,target,category,shifts,variation);

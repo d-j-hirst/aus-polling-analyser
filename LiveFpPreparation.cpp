@@ -531,6 +531,7 @@ void LiveV2::Election::prepareOrdinaryFpFit(int seatIndex, BlindFpProjections co
     prior.push_back(std::max(0.,residual));
     odds.push_back(1.);
     std::vector<LiveOrdinaryUpdate::Venue> venues;
+    std::vector<int> venueIds;
     double ordinary = 0;
     for (int index : seat.booths) {
         auto const& booth = readBooths().at(index);
@@ -554,6 +555,7 @@ void LiveV2::Election::prepareOrdinaryFpFit(int seatIndex, BlindFpProjections co
         shape.push_back(std::max(0.,1.-LiveOrdinaryUpdate::sum(shape)));
         counts.push_back(std::max(0.,n-LiveOrdinaryUpdate::sum(counts)));
         venues.push_back({std::move(shape),std::move(counts),size,electionDay});
+        venueIds.push_back(index);
         // This independent district fit starts from the blind geography.
         // Give its outstanding ballots the same once-only adjustment as the
         // booth account, which separately supplies preference and turnout draws.
@@ -565,8 +567,14 @@ void LiveV2::Election::prepareOrdinaryFpFit(int seatIndex, BlindFpProjections co
         }
         if (electionDay) ordinary += n;
     }
-    auto result = LiveOrdinaryUpdate::remaining(venues,prior,odds);
+    std::vector<LiveOrdinaryUpdate::Mix> venueShares;
+    auto result = LiveOrdinaryUpdate::remaining(venues,prior,odds,&venueShares);
     if (!result) return;
+    for (size_t i=0; i<venueShares.size(); ++i) {
+        if (venueShares[i].empty()) continue;
+        for (size_t j=0; j<parties.size(); ++j)
+            information.venueFitShares[venueIds[i]][parties[j]] = venueShares[i][j];
+    }
     auto const conditioned = LiveOrdinaryUpdate::conditionedShares(prior,odds);
     for (size_t j=0; j<parties.size(); ++j) {
         auto& comparison = information.boothComparisons.at(parties[j]);

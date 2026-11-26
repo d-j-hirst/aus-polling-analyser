@@ -7,6 +7,7 @@ They make editorial choices only. They neither recalculate a forecast nor use
 the other writer's selections, prose or subsequent counting.
 """
 import re
+from collections import defaultdict
 from typing import NamedTuple, Optional
 from . import activity, commentary_format as display, count_context, pairing_commentary, rule_evidence
 from .comparisons import headline_candidate_priority
@@ -79,6 +80,104 @@ def seat_total_headline(old, new, parties, endpoints):
     if phrases:
         return 'The median seat total '+', and the median '.join(phrases)+'.'
     return None
+
+
+def new_pair_headlines(group, packet, selected):
+    """Highlight the first substantial non-classic party count or several
+    districts realigning together, even when their winners remain clear.
+    Compare like opponents and count only ballots for the new pairing."""
+    groups = defaultdict(dict)
+    for seat, count in group.get('replacement_tcp_counts', {}).items():
+        pair = tuple(sorted(count['pair']))
+        # Different independents and unnamed candidates do not make up a
+        # statewide party. Their counts belong in their own district stories.
+        if seat in packet['all_seats'] and count_context.named_party_pair(pair, packet['parties']):
+            groups[pair][seat] = count
+
+    # Two districts changing pairs establish a shared development. The first
+    # substantial set of returns statewide for a non-classic pairing can
+    # come from a single district. Report the largest qualifying sample.
+    eligible = [(sum(c['counted_votes'] for c in rows.values()), pair, True, rows)
+                for pair, rows in groups.items() if len(rows) >= 2]
+    for rows in group.get('rule_early_party_counts', []):
+        pair = tuple(sorted(next(iter(rows.values()))['pair']))
+        eligible.append((sum(c['counted_votes'] for c in rows.values()), pair, False, rows))
+    if not eligible:
+        return []
+    total, pair, replacement, rows = max(eligible, key=lambda item: item[:3])
+    if total < 500:
+        return []
+
+    ordered = sorted(rows, key=lambda s: (-rows[s]['counted_votes'], s))
+    shown = sorted(ordered if len(ordered) <= 3 else ordered[:2])
+    labels = ['{seat:'+s+'}' for s in shown]
+    if len(ordered) > len(shown):
+        labels.append(f'{len(ordered)-len(shown)} other districts')
+    districts = rule_evidence.joined(labels)
+    first, second = pair
+    matchup = f'{{party:{first}}}–{{party:{second}}}'
+    if replacement:
+        text = f'{districts} reported **{total:,}** TCP votes for their new {matchup} pairing.'
+    else:
+        text = f'In {districts}, the {matchup} TCP count reached **{total:,}** votes.'
+    # Count transfers only where both ledgers cover the same number of votes.
+    # Use ballot totals so a small booth has proportionately less influence.
+    # Fifty transfers is an editorial minimum for quoting the local split.
+    # Giving the sample size keeps early booth results in perspective.
+    units = sum(c['units'] for c in rows.values())
+    matched_units = preferences = to_first = 0
+    matched_name = None
+    for count in rows.values():
+        if 'transfers_from_other_first_preferences' in count:
+            split = count['transfers_from_other_first_preferences']
+            matched_units += count['units']
+        elif 'matched_transfer_sample' in count:
+            sample = count['matched_transfer_sample']
+            split = sample['transfers']
+            matched_units += sample['units']
+            if sample.get('unit_name'):
+                matched_name = sample['unit_name']
+        else:
+            continue
+        preferences += sum(split.values())
+        to_first += split[first]
+    if preferences >= 50:
+        share = 100 * to_first / preferences
+        scope = ('Across those counts' if matched_units == units else
+                 f'Where FP and TCP totals matched (**{matched_units} of {units}** reporting units)')
+        if matched_units == 1 and matched_name and units > 1:
+            scope = f'At {matched_name}, the only reporting unit with matching FP and TCP totals'
+        text += (f' {scope}, **{share:.1f}%** of the **{preferences:,}** ballots first cast '
+                 f'for other candidates went to {{party:{first}}}.')
+    headlines = [text]
+
+    # Give one example outside the reporting districts when the ordinary
+    # preference diagnostics trace a change to a named source and the
+    # chance of winning that particular matchup moved in the same direction.
+    # A district already selected for its own story has access to this detail.
+    effects = []
+    for seat, effect in group.get('district_preference_evidence', {}).items():
+        donor = effect['strongest_supporting_district']
+        if (seat in selected or seat in rows or seat not in packet['all_seats']
+                or donor not in rows or set(effect['pair']) != set(pair)):
+            continue
+        favoured = effect['ordinary_preference_shift_favours']
+        before, after = effect['first_candidate_conditional_win_percent']
+        if favoured != effect['pair'][0]:
+            before, after = 100-before, 100-after
+        # A second headline about another district needs a material change.
+        # Use two points of conditional win chance and require a competitive
+        # outlook at one endpoint, allowing for movement to near certainty.
+        if after-before < 2 or min(before, after) > 95 or max(before, after) < 5:
+            continue
+        effects.append((after-before, seat, donor, favoured, after))
+    if effects and not packet.get('input_revision_changed'):
+        change, seat, donor, favoured, after = max(effects)
+        other = second if favoured == first else first
+        headlines.append(f'Counting in {{seat:{donor}}} led the forecast to expect stronger preferences '
+                         f'for {{party:{favoured}}} in {{seat:{seat}}}. The chance of {{party:{favoured}}} '
+                         f'winning a final count against {{party:{other}}} there '+movement(after, change)+'.')
+    return headlines
 
 
 def election_headlines(packet, endpoints, window=None):
@@ -157,6 +256,7 @@ def election_headlines(packet, endpoints, window=None):
                     if window == 'previous' else f"as the count reached **{r['booths']} booths**")
         headlines.append(f"In the forecast’s {r['region']} region, the {r['ledger']} swing at matched "
                          f"election-day booths changed from {swing(r['before'])} to {swing(r['after'])} {coverage}.")
+    headlines.extend(packet['rule_context'].get('new_pair_headlines', []))
     flows = packet['rule_context']['supported_flows']
     if flows:
         flow = flows[0]
@@ -351,15 +451,17 @@ def mixed_pair_returns(packet, row, projection, rival, endpoints, groups):
     tcp_votes = tcp['ballots'] * difference / 100
     # Ordinarily lead with the measured TCP. Lead with FP when the projected
     # same-pair difference at its booths is at least ten ballots and twice the
-    # contrary measured difference. The district FP gap must corroborate it.
-    if (fp_votes*shift <= 0 or tcp_votes*shift >= 0 or abs(fp_votes) < max(10, 2*abs(tcp_votes))
+    # measured difference, even if both point the same way. The district FP
+    # gap must corroborate it.
+    if (fp_votes*shift <= 0 or abs(fp_votes) < max(10, 2*abs(tcp_votes))
             or (fp['rates'][party][1]-fp['rates'][rival][1])*shift <= 0):
         return None
     district_gap, _ = district_primary_evidence(packet, row, projection, endpoints)
     if not district_gap:
         return None
     where = ('In ' if tcp['declaration'] else 'At ') if tcp['units'] == 1 else 'Across '
-    contrast = (f'{where}{tcp["locations"]}, the TCP count went the other way. {candidate(seat, party)} '
+    direction = 'the TCP count went the other way. ' if tcp_votes*shift < 0 else ''
+    contrast = (f'{where}{tcp["locations"]}, '+direction+f'{candidate(seat, party)} '
                 f'received **{share:.1f}%** of **{tcp["ballots"]:,}** TCP votes against {candidate(seat, rival)}, '
                 + booth_difference(difference) + '.')
     return fp, district_gap, contrast
@@ -459,8 +561,8 @@ def attributed_count(packet, row, projection, rival, endpoints, candidates):
     if departure(groups[lead])*effect <= 0:
         return None
     beneficiary = candidate(seat, party if effect > 0 else rival)
-    source = 'The revised FP projection' if lead == 'FP' else 'The newly measured preferences'
-    attribution = f'{source} moved the district TPP estimate about **{abs(effect):.1f} pp** towards {beneficiary}.'
+    attribution = (f'The newly measured preferences moved the projected final share about **{abs(effect):.1f} pp** '
+                   f'towards {beneficiary}.' if lead == 'TCP' else None)
     contrast = None
     g = groups[other]
     if departure(g)*shift < 0 and effects[other]*shift < 0:
@@ -528,20 +630,48 @@ def booth_tcp_context(seat, group, projection, party, quoted_parties):
     return text + f', {amount} {"above" if shift > 0 else "below"} the earlier estimate.'
 
 
+def additional_count_point(increment, location, seat, party, ledger, opponent=None, other_parties=(), declaration=True):
+    """Establish the change in the tally, then give the composition of that
+    addition. All candidates in the sentence share the same denominator."""
+    added, prior = increment['added'], increment['previous']
+    additions = increment.get('additions')
+    if additions:
+        counts = [f'{name} added **{n:,}**' for name,n in additions]
+        tally = rule_evidence.joined(counts)
+        tally = tally[:1].upper()+tally[1:]+f', taking their combined {ledger} tally from **{prior:,}** to **{prior+added:,}**.'
+    else:
+        where = 'In' if declaration else 'At'
+        tally = f'{where} {location}, the {ledger} tally rose from **{prior:,}** to **{prior+added:,}**.'
+    clauses, gaps = [], {}
+    for p in dict.fromkeys((party,*other_parties)):
+        if p not in increment['shares']:
+            continue
+        share = increment['shares'][p]
+        clause = f'{candidate(seat,p)} received **{share:.1f}%**'
+        if ledger == 'TCP' and opponent is not None:
+            clause += ' against '+candidate(seat,opponent)
+        if p in increment.get('remaining_shares', {}):
+            gaps[p] = share-increment['remaining_shares'][p]
+            clause += ', '+booth_difference(gaps[p])
+        clauses.append(clause)
+    composition = ', while '.join(clauses) if len(clauses) == 2 else rule_evidence.joined(clauses)
+    return f'{tally} Of the **{added:,}** additional {ledger} votes, {composition}.', gaps.get(party)
+
+
 def booth_result_opening(group, seat, party):
     """Name the places and denominator for a result. A first return consists
     of new ballots, while a revised count quotes the cumulative share."""
     locations = group['locations']
     if group['units'] == 1:
-        location = locations if group['declaration'] else 'the result at '+locations
+        if not group['declaration'] and locations == seat:
+            locations = 'the '+locations+' booth'
         opening = ('In ' if group['declaration'] else 'At ')+locations
     else:
-        location = locations
         opening = 'Across '+locations
     share = group['rates'][party][0]
     point = (f"{opening}, {candidate(seat, party)} received **{share:.1f}%** of "
              f"**{group['ballots']:,}** {group['ledger']} votes" + ('' if group['first'] else ' counted so far'))
-    return location, point
+    return point
 
 
 def fresh_fp_comparison(groups, selected, seat, party, rival):
@@ -551,7 +681,14 @@ def fresh_fp_comparison(groups, selected, seat, party, rival):
     they favour. Keep their ballot total separate from the ongoing tally."""
     if selected['ledger'] != 'FP' or selected['first'] or rival not in selected['rates']:
         return None
-    primary_gap, rival_gap = (selected['rates'][p][1] for p in (party, rival))
+    increment = selected.get('increment')
+    if increment:
+        expectations = increment.get('remaining_shares', {})
+        if any(p not in expectations or p not in increment['shares'] for p in (party, rival)):
+            return None
+        primary_gap, rival_gap = (increment['shares'][p]-expectations[p] for p in (party,rival))
+    else:
+        primary_gap, rival_gap = (selected['rates'][p][1] for p in (party, rival))
     if max(abs(primary_gap), abs(rival_gap), abs(primary_gap-rival_gap)) >= 1:
         return None
     for group in groups:
@@ -564,55 +701,38 @@ def fresh_fp_comparison(groups, selected, seat, party, rival):
         # the whole fresh count. These are editorial cutoffs.
         lead_difference = abs(gap-rival_gap)
         if lead_difference >= 3 and group['ballots']*lead_difference/100 >= 10:
-            _, point = booth_result_opening(group, seat, party)
+            point = booth_result_opening(group, seat, party)
             return (point+', '+booth_difference(gap)+'. '
                     +f'{candidate(seat, rival)} received **{share:.1f}%**, '+booth_difference(rival_gap)+'.')
     return None
 
 
-def supporting_booth(packet, row, minimum_ballots=10, projection=None, rival=None, modal=(), endpoints=None,
-                     headline_rival=False, tcp_only=False):
-    """Compare the combined result at all comparable reporting places with
-    their own earlier estimates. Use the district TPP account when it can
-    distinguish simultaneous FP and TCP updates. For other pairs, compare
-    the sizes of contrary local results where both have a same-pair benchmark.
-    Otherwise prefer a matched TCP, then FP."""
+def cumulative_count_point(group, packet, row, rival, projection, endpoints, headline_rival):
+    """Describe a first return or a revision to a tally, including any earlier
+    same-pair comparison. An identifiable addition to an existing count gets
+    its own comparison for just the newly reported ballots instead."""
     seat, party = row['seat'], row['party_id']
-    pools = packet['rule_context']['pools'].get(seat, {}).get(party, [])
-    candidates = [g for g in pools if g['changed'] >= minimum_ballots and (not tcp_only or g['ledger'] == 'TCP') and
-                  (g['ledger'] == 'FP' or
-                   (seat not in packet.get('retained_tcp_only_published_zero_at_both_ends', ()) and
-                    (not modal or set(modal) == set(g['pair'])) and
-                    (not projection or projection.opponent in g['pair'])))]
-    if not candidates:
-        return None
-    attributed = (attributed_count(packet, row, projection, rival, endpoints, candidates) or
-                  mixed_pair_returns(packet, row, projection, rival, endpoints, candidates))
-    group = attributed[0] if attributed else max(candidates, key=lambda g: (
-        bool(projection) and g['ledger'] == 'TCP', g['changed'], g['ledger'] == 'TCP'))
     gap = group['rates'][party][1]
     ledger = group['ledger']
-    location, point = booth_result_opening(group, seat, party)
-    if ledger == 'FP' and not group['first']:
-        # A revised booth total can be the reason it features in Key changes.
-        # Match the booth by name in the same seat before describing a fall.
-        for event in packet['evidence']:
-            if event.get('seat') != seat or event['kind'] != 'booths' or group['units'] != 1:
-                continue
-            after = event.get('after') or {}
-            if (after.get('name') or event['record'].rsplit('/', 1)[-1]) != group['locations']:
-                continue
-            before_total = sum(((event.get('before') or {}).get('fp_votes_current') or {}).values())
-            new_total = sum((after.get('fp_votes_current') or {}).values())
-            if before_total-new_total >= 100 and new_total == group['ballots']:
-                point = (f"The reported FP total at {group['locations']} fell by **{before_total-new_total:,}** "
-                         f"votes to **{new_total:,}**. Of the revised total, {candidate(seat, party)} "
-                         f"received **{group['rates'][party][0]:.1f}%**")
-            break
+    point = booth_result_opening(group, seat, party)
+    revised = group.get('revised_total')
+    if revised:
+        # When a candidate loses votes the update is a revision. Only its
+        # net size is known, so quote shares against the whole revised tally.
+        diff = group['ballots']-revised
+        where = ('in ' if group['declaration'] else 'at ') + group['locations']
+        change = (f"{'rose' if diff > 0 else 'fell'} by **{abs(diff):,}** votes to **{group['ballots']:,}**"
+                  if diff else f"remained at **{revised:,}** as votes moved between candidates")
+        point = (f"The reported {ledger} total {where} {change}. Of the revised total, {candidate(seat, party)} "
+                 f"received **{group['rates'][party][0]:.1f}%**")
     if ledger == 'TCP':
         opponent = next(p for p in group['pair'] if p != party)
         point += ' against '+candidate(seat, opponent)
-    if group.get('approximate_tcp'):
+    if group.get('rechecked') and not group.get('approximate_tcp'):
+        point += (f", **{abs(gap):.1f} pp** {'above' if gap > 0 else 'below'} the share implied "
+                  'by the earlier preference rates on the rechecked FP tally.' if abs(gap) >= .05 else
+                  ', in line with the earlier preference rates on the rechecked FP tally.')
+    elif group.get('approximate_tcp'):
         basis = {'Ordinary': 'at ordinary booths', 'Early': 'for early votes'}.get(
             group['approximate_tcp'], 'for the same type of vote')
         expected = group['rates'][party][0] - gap
@@ -623,6 +743,17 @@ def supporting_booth(packet, row, minimum_ballots=10, projection=None, rival=Non
             point += f", about **{abs(gap):.1f} pp** {'above' if gap > 0 else 'below'} "+estimate+'.'
     else:
         point += ', '+booth_difference(gap)+'.'
+    prior_votes = group.get('prior_votes')
+    if prior_votes and group['ballots'] > prior_votes:
+        added = group['ballots']-prior_votes
+        prior_share = group.get('prior_shares', {}).get(party)
+        if prior_share is not None and group['units'] == 1 and added >= 10:
+            observed = group['rates'][party][0]
+            batch_share = (observed*group['ballots']-prior_share*prior_votes)/added
+            point += (f' {candidate(seat, party)} received **{batch_share:.1f}%** of the **{added:,}** '
+                      f'additional votes, compared with **{prior_share:.1f}%** of the first **{prior_votes:,}**.')
+        elif added >= 10:
+            point += f' This update added **{added:,}** to the **{prior_votes:,}** {ledger} votes previously reported.'
     quoted_parties = [party]
     if ledger == 'FP' and rival in group['rates']:
         rival_share, rival_gap = group['rates'][rival]
@@ -646,6 +777,65 @@ def supporting_booth(packet, row, minimum_ballots=10, projection=None, rival=Non
         if projection and not packet.get('input_revision_changed'):
             point += other_opponent_primary(group, row, rival, projection.opponent, endpoints, packet['entities'])
     point += booth_tcp_context(seat, group, projection, party, quoted_parties)
+    return point, gap
+
+
+def supporting_booth(packet, row, minimum_ballots=10, projection=None, rival=None, modal=(), endpoints=None,
+                     headline_rival=False, tcp_only=False):
+    """Compare the combined result at all comparable reporting places with
+    their own earlier estimates. Use the district TPP account when it can
+    distinguish simultaneous FP and TCP updates. For other pairs, compare
+    the sizes of contrary local results where both have a same-pair benchmark.
+    Otherwise prefer a matched TCP, then FP."""
+    seat, party = row['seat'], row['party_id']
+    pools = packet['rule_context']['pools'].get(seat, {}).get(party, [])
+    candidates = [g for g in pools if g['changed'] >= minimum_ballots and (not tcp_only or g['ledger'] == 'TCP') and
+                  (g['ledger'] == 'FP' or
+                   (seat not in packet.get('retained_tcp_only_published_zero_at_both_ends', ()) and
+                    (not modal or set(modal) == set(g['pair'])) and
+                    (not projection or projection.opponent in g['pair'])))]
+    if not candidates:
+        return None
+    attributed = (attributed_count(packet, row, projection, rival, endpoints, candidates) or
+                  mixed_pair_returns(packet, row, projection, rival, endpoints, candidates))
+    group = attributed[0] if attributed else max(candidates, key=lambda g: (
+        bool(projection) and g['ledger'] == 'TCP', g['changed'], g['ledger'] == 'TCP'))
+    # A measured TCP between two finalists cannot say whether a third party
+    # will displace one of them. A substantial fresh FP return can speak
+    # directly to that question when it agrees with the changing opponent.
+    if (not attributed and endpoints and projection and rival and rival != projection.opponent
+            and not packet.get('input_revision_changed')):
+        chances = [pairing_commentary.pair_win_rate(s, seat, party, projection.opponent) for s in endpoints]
+        if None not in chances:
+            shift = chances[1][0]-chances[0][0]
+            choices = [g for g in candidates if g['ledger'] == 'FP' and g['first'] and
+                       rival in g['rates'] and projection.opponent in g['rates'] and
+                       abs(shift) >= 5 and g['ballots'] >= group['changed'] and
+                       (g['rates'][projection.opponent][1]-g['rates'][rival][1])*(1 if shift>0 else -1) >= 3]
+            if choices:
+                group = max(choices, key=lambda g: g['changed'])
+    ledger = group['ledger']
+    location = group['locations']
+    if group['units'] == 1 and not group['declaration']:
+        location = 'the result at '+('the '+location+' booth' if location == seat else location)
+    increment = group.get('increment')
+    if increment and party in increment['shares'] and not (group.get('approximate_tcp') or group.get('rechecked')):
+        opponent = next((p for p in group['pair'] if p != party), None)
+        others = []
+        if ledger == 'FP':
+            others.extend(p for p in (rival, projection.opponent if projection else None)
+                          if p and candidate(seat,p) in packet['entities'])
+            # Other contenders can explain a change in the likely finalists.
+            # Only include another candidate for a material win-chance move.
+            others.extend(r['party_id'] for r in packet.get('win_changes', [])
+                          if r['seat'] == seat and abs(r['change_pp']) >= 2 and max(r['before'],r['after']) >= 5
+                          and candidate(seat,r['party_id']) in packet['entities'])
+        point, gap = additional_count_point(increment, group['locations'], seat, party, ledger, opponent, others)
+        if (gap is not None and rival in others and rival in increment['shares']
+                and rival in increment.get('remaining_shares', {})):
+            gap -= increment['shares'][rival]-increment['remaining_shares'][rival]
+    else:
+        point, gap = cumulative_count_point(group, packet, row, rival, projection, endpoints, headline_rival)
     partial = group.get('partial_categories', {})
     for category, (tcp_total, fp_total) in sorted(partial.items()):
         point += (f' The {category} count also has TCP results for **{tcp_total:,}** of **{fp_total:,}** FP votes. '
@@ -791,25 +981,24 @@ def quiet_count_story(packet, endpoints):
                 return win_outlook(row, name_seat=True), {
                     'seats': [seat], 'text': '\n- '.join([f'In {{seat:{seat}}}:', *filter(None, points)])}
         booth = supporting_booth(packet, row, minimum_ballots=100, projection=projection, modal=modal)
-        neutral_only = projection and not booth
-        if neutral_only:
+        if projection and not booth:
             # A quiet update can still name the reporting location if a
             # comparison exists but it does not explain the district trend.
             booth = supporting_booth(packet, row, minimum_ballots=100, modal=modal)
         if not booth or any(token not in packet['entities'] for token in display.TOKEN.findall(booth.point)):
             continue
         headline = win_outlook(row, name_seat=True)
+        if booth.count_type == 'FP' and booth.gap_pp is not None and booth.gap_pp <= -1:
+            swap = pairing_commentary.changed_opponents_after_weak_primary(row, endpoints)
+            if swap and all(t in packet['entities'] for t in display.TOKEN.findall(swap[1])):
+                rival, explanation = swap
+                counts = supporting_booth(packet, row, minimum_ballots=100, rival=rival,
+                                          modal=modal, endpoints=endpoints, headline_rival=True)
+                if counts and counts.location == booth.location and counts.count_type == 'FP':
+                    return headline, {'seats':[seat], 'text':f'In {{seat:{seat}}}:\n- {counts.point}\n- {explanation}'}
         multiple = booth.units == 1 and display.other_local_counts_changed(packet, seat)
-        # Without a comparable district explanation, a primary result on the
-        # opposite side of expectations is only evidence that counting took
-        # place. Identify the update without presenting it as support for the
-        # win chance movement, or searching for a more convenient booth.
-        if neutral_only or (booth.gap_pp is not None and booth.gap_pp * row['change_pp'] < 0):
-            elsewhere = ' and other local counts' if multiple else ''
-            headline += f' Counting updates included {booth.location}{elsewhere}.'
-            if projection:
-                headline += ' '+projection.point(row)
-            return headline, None
+        # Separate sentences allow a contrary booth to be quoted as a
+        # measured result without claiming it caused the district movement.
         headline += ' '+booth.point
         if projection:
             headline += ' '+projection.point(row)
@@ -1120,12 +1309,19 @@ def district_primary_evidence(packet, row, projection, endpoints):
     sign = 1 if projection.after > projection.before else -1
     published = [sign*(m[party]-m[rival]) for m in means]
     change = published[1] - published[0]
-    if change < .2:
-        return None, None
     favoured, other = (party, rival) if sign > 0 else (rival, party)
-    gap = (f'Across the seat, the projected mean FP gap shifted **{change:.1f} pp** '
-           f'towards {candidate(seat, favoured)} relative to {candidate(seat, other)}.')
+    gap = ((f'Across the seat, the projected mean FP gap shifted **{change:.1f} pp** '
+            f'towards {candidate(seat, favoured)} relative to {candidate(seat, other)}.') if change >= .2 else None)
     check = packet['rule_context'].get('primary_weight_checks', {}).get(seat, {})
+    remaining = [check.get(p, {}).get('remaining_fp') for p in (favoured, other)]
+    if all(remaining) and change > 0:
+        fav, opp = remaining
+        if (fav[1]-opp[1])-(fav[0]-opp[0]) >= .3:
+            return gap, (f'For the FP votes still to come, the estimate based on booth results moved from '
+                         f'**{fav[0]:.1f}%** to **{fav[1]:.1f}%** for {candidate(seat, favoured)} and from '
+                         f'**{opp[0]:.1f}%** to **{opp[1]:.1f}%** for {candidate(seat, other)}.')
+    if not gap:
+        return None, None
     if any(p not in check or check[p]['weight_change'] < 0 for p in (party, rival)):
         return gap, None
     old, held, new = [sign*(check[party][key]-check[rival][key]) for key in ('before', 'previous_weight', 'after')]
@@ -1152,6 +1348,27 @@ def district_primary_evidence(packet, row, projection, endpoints):
         detail = f'the projected FP share {movement_for(favoured)} and {movement_for(other)}.'
     explanation = accumulating_primary_point(seat, favoured, other, check, means)
     return gap, (explanation or 'As more votes came in, the forecast relied more on the results counted so far.') + ' Across the seat, ' + detail
+
+
+def wider_lead(row, projection, endpoints):
+    """A stable median can coexist with more losing draws. Check that the
+    same final is effectively certain and that both tails actually widened."""
+    if (not endpoints or projection.before is None or row['change_pp'] > -1 or projection.after <= 50
+            or round(projection.before,1) != round(projection.after,1)):
+        return None
+    seat, party = row['seat'], row['party_id']
+    pair = '/'.join(sorted((party,projection.opponent)))
+    sides = [s['seats'][seat] for s in endpoints]
+    if any(s.get('pairing_percent',{}).get(pair,0) < 99 for s in sides):
+        return None
+    ranges = [s.get('tcp_percentiles',{}).get(pair,{}) for s in sides]
+    if any('5' not in r or '95' not in r for r in ranges):
+        return None
+    old, new = ranges
+    if old['5']-new['5'] >= .2 and new['95']-old['95'] >= .2:
+        return (f'The range of likely results widened around that lead, with more simulations ending in a win '
+                f'for {candidate(seat, projection.opponent)}.')
+    return None
 
 
 def narrower_matchup(row, projection, endpoints):
@@ -1326,9 +1543,9 @@ def preference_offset(packet, row, projection, endpoints):
     target = candidate(seat, '0' if learned > 0 else '1')
     broad = parts.get('broad_preference_change_pp', 0)
     if broad*learned > 0 and abs(learned-broad) < abs(learned)/3:
-        return (f'For votes still awaiting preferences, broader counting trends shifted the district TPP estimate '
+        return (f'For votes still awaiting preferences, broader counting trends shifted the projected final share '
                 f'about **{abs(broad):.1f} pp** towards {target}.')
-    return (f'Revised preferences on votes still awaiting a count shifted the district TPP estimate '
+    return (f'Revised preferences on votes still awaiting a count shifted the projected final share '
             f'about **{abs(learned):.1f} pp** towards {target}.')
 
 
@@ -1340,15 +1557,19 @@ def tcp_source_point(packet, seat, pair, party, *, include_additions):
     added = sorted((u for u in sources if not u['restored']), key=lambda u: (-u['changed'], u['name']))
     restored = [u for u in sources if u['restored']]
     points = []
-    if added and include_additions:
+    revision_reported = len(added) == 1 and added[0].get('after_fp_revision') and party in added[0]['counted_tcp']
+    if added and include_additions and not revision_reported:
         batch = added[0]
         if len(added) == 1 and party in batch.get('batch_shares', {}):
             observed, expected = batch['batch_shares'][party]
             opponent = next(p for p in pair if p != party)
-            where = ('In ' if batch['declaration'] else 'At ') + batch['name']
-            points.append(f"{where}, {candidate(seat, party)} received **{observed:.1f}%** of "
-                          f"**{batch['changed']:,}** additional TCP votes against {candidate(seat, opponent)}. "
-                          f"The earlier estimate for those votes was **{expected:.1f}%**.")
+            increment = dict(previous=batch['previous'], added=batch['changed'],
+                             shares={party:observed}, remaining_shares={party:expected})
+            points.append(additional_count_point(increment, batch['name'], seat, party, 'TCP', opponent,
+                                                 declaration=batch['declaration'])[0])
+        elif len(added) == 1 and party in batch.get('increment', {}).get('shares', {}):
+            opponent = next((p for p in pair if p != party), None)
+            points.append(additional_count_point(batch['increment'], batch['name'], seat, party, 'TCP', opponent)[0])
         elif len(added) <= 3:
             parts = [f"**{u['changed']:,}** " + ('votes ' if i == 0 else '')
                      + ('in ' if u['declaration'] else 'at ') + u['name'] for i, u in enumerate(added)]
@@ -1361,7 +1582,61 @@ def tcp_source_point(packet, seat, pair, party, *, include_additions):
         places = rule_evidence.unit_names(restored)
         points.append(f'The **{votes:,}** TCP votes from {places} reappeared in the feed. '
                       'The earlier forecast already included them.')
+    for unit in added:
+        current = unit.get('counted_tcp', {})
+        if unit.get('after_fp_revision') and party in current:
+            new_total = sum(current.values())
+            added_share = 100*unit['added_votes'][party]/unit['changed']
+            increment = dict(previous=new_total-unit['changed'], added=unit['changed'], shares={party:added_share})
+            opponent = next(p for p in pair if p != party)
+            point, _ = additional_count_point(increment, unit['name'], seat, party, 'TCP', opponent,
+                                              declaration=unit['declaration'])
+            points.append(point+' While FP counting was ahead, the forecast had combined the earlier TCP '
+                          'with the revised first preferences. It now uses the updated TCP tally.')
+    if set(pair) == {'0', '1'} and any(u.get('after_fp_revision') for u in added):
+        parts = packet['rule_context'].get('tpp_components', {}).get(seat, {})
+        effect = parts.get('measured_change_pp', 0)
+        if abs(effect) >= max(.5, abs(parts.get('primary_change_pp', 0)) + abs(parts.get('learned_change_pp', 0))):
+            beneficiary = candidate(seat, '0' if effect > 0 else '1')
+            points.append(f'Across the seat, the change in how counted preferences entered the forecast '
+                          f'moved the projected final share about **{abs(effect):.1f} pp** towards {beneficiary}.')
     return ' '.join(points) or None
+
+
+def ordinary_transfer_point(packet, row, projection, booth, endpoints):
+    """A TCP share near the booth benchmark can hide a change in the split
+    of transferable votes. Compare measured transfers in ordinary booths,
+    where both ledgers cover the same ballots, if the district also moved."""
+    if (not projection or projection.before is None or not booth or booth.count_type != 'TCP'
+            or booth.gap_pp is None or abs(row['change_pp']) < 5):
+        return None
+    seat, party = row['seat'], row['party_id']
+    context = packet['rule_context'].get('tcp_context', {}).get(seat, {})
+    totals, expected = context.get('transfers'), context.get('expected_transfers')
+    if (not totals or not expected or set(totals[0]) != {party, projection.opponent}
+            or context.get('used_coalition_fit') or abs(booth.gap_pp) > 2):
+        return None
+    before, after = [100*t[party]/sum(t.values()) for t in totals]
+    predicted = 100*expected[party]/sum(totals[1].values())
+    if abs(after-before) < 5 or (after-before)*(projection.after-projection.before) <= 0:
+        return None
+    point = (f'Of the **{sum(totals[1].values()):,}** preferences from other candidates in the newly counted '
+             f'ordinary booths, **{after:.1f}%** went to {candidate(seat, party)}. ')
+    point += f'The earlier district-aligned booth estimates implied **{predicted:.1f}%** given the FP mix there.'
+    if endpoints and seat in packet['rule_context'].get('unchanged_fp', []):
+        other = projection.opponent
+        means = [s['seats'][seat].get('fp_mean_percent', {}) for s in endpoints]
+        if all(p in m for p in (party, other) for m in means):
+            point += (f' No local FP totals changed. Across the seat the projected FP share moved from '
+                      f'**{means[0][party]:.1f}%** to **{means[1][party]:.1f}%** for {candidate(seat, party)} and '
+                      f'from **{means[0][other]:.1f}%** to **{means[1][other]:.1f}%** for {candidate(seat, other)}.')
+            shared = context.get('shared_fp_change', {})
+            if (all(p in shared for p in (party,other)) and shared[party]*shared[other] < 0
+                    and all((means[1][p]-means[0][p])*shared[p] > 0 for p in (party,other))):
+                target = party if shared[party] > 0 else other
+                point += (f' Regional and statewide counting moved the FP outlook towards {candidate(seat,target)}. '
+                          'The figures do not isolate how much of the district TCP change came from that shift.')
+    return point
 
 
 def district_story(packet, row, endpoints, concise=False, review_flags=None):
@@ -1444,6 +1719,10 @@ def district_story(packet, row, endpoints, concise=False, review_flags=None):
             headline += ' after a preference sample was reported'
         elif close_tcp.get('fewer_votes_favour_counted_leader') and count:
             headline += ' with fewer TCP votes projected to remain'
+        elif not packet.get('input_revision_changed'):
+            places, votes = packet['rule_context'].get('count_locations', {}).get(seat, ('', 0))
+            if places and votes >= .25 * local_ballots:
+                headline += '. Counting was updated '+('in ' if places.startswith('the ') else 'at ')+places
         headline += '.'
     else:
         headline = win_outlook(row, name_seat=True)
@@ -1464,6 +1743,9 @@ def district_story(packet, row, endpoints, concise=False, review_flags=None):
     local_activity = seat in packet.get('observed_count_changes_by_seat', {})
     if projection and not confidence and (local_activity or close_tcp or booth):
         projected_share = projection.point(row)
+        widening = wider_lead(row, projection, endpoints) if not packet.get('input_revision_changed') else None
+        if widening:
+            projected_share += ' '+widening
         if alternate and endpoints and seat in packet['rule_context'].get('unchanged_fp', ()) and projection.before is not None:
             projected_share += unchanged_primary_outlook(row, projection, endpoints)
         # A disappointing primary and a nearly unchanged TCP median can
@@ -1491,6 +1773,14 @@ def district_story(packet, row, endpoints, concise=False, review_flags=None):
             selection = None
             if booth.count_type == 'TCP':
                 selection = preference_offset(packet, row, projection, endpoints)
+                elsewhere = packet['rule_context'].get('tcp_context', {}).get(seat, {}).get('elsewhere')
+                party = row['party_id']
+                if not selection and elsewhere and set(elsewhere[0]) == {party, projection.opponent}:
+                    prior, now = [s[party] for s in elsewhere]
+                    if abs(now-prior) >= .5 and (now-prior)*(projection.after-projection.before) > 0:
+                        selection = (f'Across the other counting locations, the projected TCP share for {subject} '
+                                     f'against {candidate(seat, projection.opponent)} moved from **{prior:.1f}%** '
+                                     f'to **{now:.1f}%**.')
                 if selection:
                     projected_share += ' ' + selection
             if booth.count_type == 'FP' and not packet.get('input_revision_changed') and not (sample or prefs):
@@ -1538,14 +1828,25 @@ def district_story(packet, row, endpoints, concise=False, review_flags=None):
                 projected_share = narrowing
         # A minor margin revision adds little in an effectively decided
         # matchup. Keep it when the sentence also explains another movement.
-        if (endpoints and projection.before is not None and abs(projection.after-projection.before) < 1
+        if (endpoints and projection.before is not None and abs(projection.after-projection.before) < .5
                 and projected_share == projection.point(row)):
             rates = [pairing_commentary.pair_win_rate(s, seat, row['party_id'], projection.opponent) for s in endpoints]
             if None not in rates and (min(r[1] for r in rates) >= 98 or max(r[1] for r in rates) <= 2):
                 projected_share = None
     if booth and booth.attribution:
         projected_share = ' '.join(p for p in (booth.attribution, projected_share) if p)
-    observations = (sample, matchup, follow_up, count, retained, prefs, booth.point if booth else alternate, sources,
+    transfers = ordinary_transfer_point(packet, row, projection, booth, endpoints)
+    replacement = packet.get('replacement_tcp_counts', {}).get(seat)
+    realignment = None
+    if replacement and replacement.get('previous_pair') and len(replacement.get('pair', ())) == 2:
+        def names(pair):
+            return ' vs '.join(candidate(seat, p) if candidate(seat, p) in packet['entities'] else '{party:'+p+'}'
+                                for p in pair)
+        realignment = (f'The reported TCP pairing changed from {names(replacement["previous_pair"])} '
+                       f'to {names(replacement["pair"])}. The new pairing has **{replacement["counted_votes"]:,}** TCP votes.')
+        if any(t not in packet['entities'] for t in display.TOKEN.findall(realignment)):
+            realignment = f'The TCP count was realigned. **{replacement["counted_votes"]:,}** votes have been counted for the new pairing.'
+    observations = (sample, matchup, realignment, follow_up, count, retained, prefs, booth.point if booth else alternate, sources, transfers,
                     booth.fresh_fp if booth else None, qualification, confidence, projected_share,
                     booth.contrast if booth else None)
     if concise:
@@ -1586,6 +1887,7 @@ def comparison_context(group, packet):
     flows = (group.get('statewide_preference_changes') or {}).get('rows', [])
     noteworthy = [f for f in flows if abs(f['change_pp']) >= 2 and not packet.get('input_revision_changed')]
     context = rule_evidence.context(group, rows, noteworthy)
+    context['new_pair_headlines'] = new_pair_headlines(group, packet, selected)
     # The seat shortlist can be empty precisely when the only movement is in
     # another district. Check every candidate and the full range during this
     # period before describing the election as quiet.

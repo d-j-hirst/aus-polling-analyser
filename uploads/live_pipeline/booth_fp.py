@@ -1,9 +1,9 @@
 """Estimate FP shares for individual reporting places from a published seat forecast.
 
-The seat forecast fixes the expected share for each modelled party. It does
-not uniquely determine where those voters live. Use the relative strength
-of candidates across booths to allocate only the votes still outstanding.
-These estimates are for comparing results with the earlier forecast.
+Use the local forecast for voters still to report at each booth when the
+reference snapshot recorded it. Older forecasts can supply a booth estimate
+by distributing the projected district FP across its reporting locations.
+Both methods keep votes already counted at the reference time fixed.
 """
 from collections import Counter, defaultdict
 from functools import lru_cache
@@ -17,7 +17,8 @@ def opening_geography(package):
     """Keep just the initial booth composition for districts with no local
     returns. This prevents a large early booth from determining both the
     district trend and the relative strength of other uncounted booths."""
-    opening = read(package/'evidence.json.gz')['booths']
+    evidence = read(package/'evidence.json.gz')
+    opening = evidence['booths']
     counted = {b.get('seat_name') for b in opening.values()
                if any(sum(b.get(field, {}).values()) for field in ('fp_votes_current', 'tcp_votes_current'))}
     shapes = {key: b['fp_votes_projected'] for key, b in opening.items()
@@ -25,6 +26,10 @@ def opening_geography(package):
     summary = read(package/'summary.json')
     tcp_shapes = {key: {field: b[field] for field in ('tcp_votes_projected', 'tpp_votes_projected', 'fp_votes_projected')
                         if field in b} for key, b in opening.items() if key in shapes}
+    for key, shape in tcp_shapes.items():
+        pairs = evidence.get('classic_benchmark_labor_rates', {}).get(opening[key].get('seat_name'), {})
+        if len(pairs) == 1:
+            shape['classic_pair'] = next(iter(pairs))
     return summary['input_revision'], summary['source_time'], shapes, tcp_shapes
 
 
@@ -117,6 +122,33 @@ def district_expectations(booths, means, opening):
     return counted
 
 
+def local_expectation(booth, shares, fallback):
+    """Convert the local fit at the reference time into a whole-place tally.
+    Keep every counted FP fixed. The fit names individual parties but can
+    combine several minor candidates into one remainder. For those candidates
+    preserve the earlier forecast's relative split of the outstanding votes."""
+    counted = Counter()
+    aliases = booth.get('count_to_projection_ids', {})
+    for party, n in booth.get('fp_votes_current', {}).items():
+        counted[aliases.get(party,party)] += n
+    remaining = sum(booth.get('fp_votes_projected', {}).values()) - sum(counted.values())
+    if remaining <= 0 or not shares or any(not math.isfinite(n) or n < 0 for n in shares.values()):
+        return None
+    remainder = 100-sum(shares.values())
+    if remainder < -.001:
+        return None
+    other = {p:max(0.,n-counted[p]) for p,n in fallback.items() if p not in shares}
+    mass = sum(other.values())
+    if remainder > .001 and not mass:
+        return None
+    for p,share in shares.items():
+        counted[p] += remaining*share/100
+    if mass:
+        for p,n in other.items():
+            counted[p] += remaining*max(0.,remainder)/100*n/mass
+    return counted
+
+
 def expectations(summary, evidence, wanted):
     """Only fit seats with changed FP counts, using the reference endpoint
     for every number in the fit. All its booths enter, including declarations."""
@@ -140,5 +172,12 @@ def expectations(summary, evidence, wanted):
                     actual[aliases.get(p, p)] += n
                 if actual and dict(actual) == booth.get('fp_votes_projected'):
                     fitted[key] = actual
+        for key, booth in booths.items():
+            shares = evidence.get('fit_remaining_fp_percent', {}).get(key)
+            if shares:
+                basis = fitted.get(key) or booth.get('fp_votes_projected', {})
+                votes = local_expectation(booth, shares, basis)
+                if votes is not None:
+                    fitted[key] = votes
         result.update(fitted)
     return result

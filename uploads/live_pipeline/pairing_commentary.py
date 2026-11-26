@@ -315,6 +315,43 @@ def reaching_final_more_often(row, opponent, endpoints):
     return point
 
 
+def changed_opponents_after_weak_primary(row, endpoints):
+    """A leader can lose primaries but gain win chance when a harder opponent
+    also loses ground. Check that both were credible finals, that the easier
+    one became more likely, and that the swap is large enough to matter."""
+    if not endpoints or row['change_pp'] <= 0 or endpoints[0]['input_revision'] != endpoints[1]['input_revision']:
+        return None
+    seat, party = row['seat'], row['party_id']
+    districts = [s['seats'][seat] for s in endpoints]
+    identity = districts[0].get('candidates', {}).get(party)
+    if not identity or identity != districts[1].get('candidates', {}).get(party):
+        return None
+    contests = {}
+    for p, identity in districts[0].get('candidates', {}).items():
+        if p == party or identity != districts[1].get('candidates', {}).get(p):
+            continue
+        rates = [pair_win_rate(s, seat, party, p) for s in endpoints]
+        if None not in rates:
+            contests[p] = rates
+    swaps = []
+    for hard, ((old_h,win0),(new_h,win1)) in contests.items():
+        for easy, ((old_e,better0),(new_e,better1)) in contests.items():
+            exchanged = min(old_h-new_h, new_e-old_e)
+            # At most the smaller frequency change can represent a switch.
+            # Require both comparisons to establish the same advantage and
+            # at least half the overall win gain at those observed win rates.
+            advantage = min(better0-win0,better1-win1)
+            if exchanged >= 5 and advantage >= 3 and exchanged*advantage/100 >= row['change_pp']/2:
+                swaps.append((exchanged*advantage,hard,easy,old_h,new_h,win1,better1))
+    if not swaps:
+        return None
+    _,hard,easy,old,new,win,better = max(swaps)
+    subject, difficult, easier = ('{candidate:'+seat+':'+p+'}' for p in (party,hard,easy))
+    return hard, (f'The chance of {subject} facing {difficult} fell from **{old:.1f}%** to **{new:.1f}%**. '
+                  f'A final against {easier} became more likely. {subject} won **{better:.1f}%** of those '
+                  f'simulations, compared with **{win:.1f}%** against {difficult}.')
+
+
 def mixed_matchup_explanation(row, endpoints):
     """Look for two simultaneous changes: which opponent the candidate faces,
     and how often they win a specified contest. Compare the same people in

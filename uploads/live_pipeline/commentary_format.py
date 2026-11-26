@@ -17,6 +17,7 @@ TOKEN = re.compile(r'\{(?:seat|candidate|party):[^{}]+\}')
 BOLD = re.compile(r'\*\*([^*]+)\*\*')
 APPROXIMATE_TCP_SHARE = ('observed TCP share versus approximate booth estimate from its FP count '
                          'and the earlier average preference split for the vote type')
+RECHECKED_TCP_SHARE = 'observed TCP share versus the earlier preference rates applied to the rechecked FP tally'
 
 
 def decimal(value, signed=False):
@@ -83,6 +84,8 @@ def tcp_comparison_figures(event):
         quantity = 'observed TCP share versus reference forecast for the same pair'
         if comparison.get('expectation_kind') == ranked_tcp.ARCHIVED_BASIS:
             quantity = APPROXIMATE_TCP_SHARE
+        elif comparison.get('expectation_kind') == ranked_tcp.RECHECK_BASIS:
+            quantity = RECHECKED_TCP_SHARE
         rows.append({'seat': seat, 'booth': event['record'],
                      'quantity': quantity,
                      'candidate': '{candidate:'+seat+':'+party+'}',
@@ -781,7 +784,8 @@ def headline_booth_comparison(packet, seat, record, candidate, count_type):
         total = rows.get('reported cumulative FP total')
         count = 'first preferences'
     else:
-        share = gap = rows.get('observed TCP share versus reference forecast for the same pair') or rows.get(APPROXIMATE_TCP_SHARE)
+        share = gap = (rows.get('observed TCP share versus reference forecast for the same pair')
+                       or rows.get(APPROXIMATE_TCP_SHARE) or rows.get(RECHECKED_TCP_SHARE))
         total = rows.get('reported cumulative TCP total for this pairing')
         if not total or candidate not in total['pair']:
             return None
@@ -796,6 +800,8 @@ def headline_booth_comparison(packet, seat, record, candidate, count_type):
         comparison = f"**{gap['magnitude']}** {direction} the earlier estimate"
     if gap['quantity'] == APPROXIMATE_TCP_SHARE:
         comparison += ' based on the booth FP count and average preferences for this vote type'
+    elif gap['quantity'] == RECHECKED_TCP_SHARE:
+        comparison += ' using the rechecked FP tally and earlier preference rates'
     location, opening = booth_location(event)
     point = f"{opening}, {candidate} received **{share['observed_share']}** of **{number}** {count}, {comparison}."
     return location, point

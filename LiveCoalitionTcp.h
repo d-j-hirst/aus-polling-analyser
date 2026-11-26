@@ -48,6 +48,7 @@ struct Booth {
     std::array<PairAccount,2> pairs;
     int sourceId = -1;
     CoalitionPreference::Shares minorPrimaries; // Received plus projected remaining FP, counted once per party.
+    int liveBoothIndex = -1; // Identifies this location in the diagnostic export.
 };
 struct Observation {
     std::size_t booth, pair; // Pair 0 is Labor–Liberal, pair 1 is Labor–National.
@@ -137,6 +138,24 @@ inline double allocate(std::vector<Source> const& sources, std::size_t pair,
 inline std::size_t categoryIndex(Prepared const& model, Booth const& booth) {
     return std::size_t(std::lower_bound(model.categories.begin(),model.categories.end(),booth.category)
         - model.categories.begin());
+}
+
+// Estimate how many of this booth's known primaries will finish with Labor
+// against the specified Coalition partner. Use the local preference fit
+// from the counts available at this forecast. The diagnostic describes its
+// central rates before the individual simulations vary those rates.
+// A partly or fully measured TCP would describe a different set of ballots.
+inline std::optional<Estimate> pendingBenchmark(Prepared const& model, std::size_t index, std::size_t pair) {
+    auto const& booth = model.booths.at(index);
+    auto const& account = booth.pairs.at(pair);
+    if (account.counted > 0 || account.pending.empty() || model.centre.empty()) return {};
+    auto const district = model.booths.size();
+    auto const& fit = model.centre;
+    double const other = fit[index]+fit[district+2]+(double(pair)-model.referenceCoordinate)*fit[district+3]
+        +fit[district+4+categoryIndex(model,booth)];
+    double votes = 0;
+    for (auto const& source : account.pending) votes += source.votes;
+    return Estimate{allocate(account.pending,pair,fit[district+1-pair],other),votes,0.};
 }
 
 // Fit the uncertain rates once per district. A matched TCP measures the

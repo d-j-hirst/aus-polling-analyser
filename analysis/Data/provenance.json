@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-11-25T00:36:11Z",
+  "updated_at_utc": "2026-11-26T02:50:59Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -88,7 +88,7 @@
         "poll-data-*.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 108,
+      "semantic_revision": 109,
       "files": {
         "poll-data-fed.csv": {
           "sha256": "7b3190c6f541379ac21c2b75aa4ec2915b23c8902bbda2d0ad0f15727b97035d",
@@ -111,9 +111,9 @@
           "recorded_mtime_utc": "2026-09-03T06:19:32.111274Z"
         },
         "poll-data-vic.csv": {
-          "sha256": "ee9973babae3c6b8a9a8dab218d43f0cd0a5606b865111581c210015575ff275",
-          "size_bytes": 38984,
-          "recorded_mtime_utc": "2026-11-25T00:35:45.800454Z"
+          "sha256": "d21f57648a77b182143857b7f1b72854d377fee0345cf11d2b75d50e86ab1343",
+          "size_bytes": 39037,
+          "recorded_mtime_utc": "2026-11-26T02:49:44.734833Z"
         },
         "poll-data-wa.csv": {
           "sha256": "8bd03e93c1e0671a0a9c0485e5979e5af2b6a95d4eb5ab0f341db090a9bb3d0e",
@@ -2620,9 +2620,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20261126T025059Z-new_polling-raw-poll-data-6f4ae89e",
+          "recorded_at_utc": "2026-11-26T02:50:59Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 109,
+          "provenance_revision": 109,
+          "summary": "DemosAU poll",
+          "files": [
+            "poll-data-vic.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 108
+      "provenance_revision": 109
     },
     "poll_model_configuration": {
       "description": "Party coverage, discontinuities and sampling settings used by fp_model.py.",

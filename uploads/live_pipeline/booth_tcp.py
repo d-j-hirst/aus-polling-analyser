@@ -15,7 +15,7 @@ from .count_context import mapped_tcp
 def split(booth, pair, coalition):
     """A direct projection names its opponents. A TPP projection labels the
     Coalition side '1' even for Nationals. Only use it when the district
-    ballot identifies a single Coalition partner facing Labor."""
+    evidence identifies a single Coalition partner facing Labor."""
     direct = booth.get('tcp_votes_projected') or {}
     if direct.keys() == set(pair) and sum(direct.values()) > 0:
         return direct
@@ -24,6 +24,19 @@ def split(booth, pair, coalition):
             and sum(classic.values()) > 0):
         return {p: classic['0' if p == '0' else '1'] for p in pair}
     return None
+
+
+def coalition_opponents(evidence, seat, ballot):
+    """When both Coalition partners stand, the simulator exports the actual
+    opponent used to calculate each booth's classic preference rates. A
+    single shared opponent identifies the otherwise anonymous Coalition
+    side of the TPP. Mixed or older accounts still need a direct named TCP."""
+    pairs = evidence.get('classic_benchmark_labor_rates', {}).get(seat, {})
+    if len(pairs) == 1:
+        sides = next(iter(pairs)).split('/')
+        if len(sides) == 2 and sides[0] == '0' and sides[1] in ballot:
+            return {sides[1]}
+    return ballot
 
 
 @dataclass
@@ -105,7 +118,7 @@ def reconcile_preferences(pools, pair, target):
     return result
 
 
-def fit(booths, opening, pair, target, coalition, bounds, aligned_fp=None, rates=None):
+def fit(booths, opening, pair, target, coalition, bounds, aligned_fp=None, rates=None, dual_coalition=False):
     """Reconcile all booths to the district median for the first finalist.
     With district-aligned primaries and compulsory preferences, only transfers
     are adjustable. For optional preferences the FP and TCP turnout can differ,
@@ -179,6 +192,10 @@ def fit(booths, opening, pair, target, coalition, bounds, aligned_fp=None, rates
             use_opening = not positive_tcp and saved_floor is None and not any(fp.values())
         if use_opening:
             first = opening.get(key, {})
+            # An unnamed opening TPP may belong to the other Coalition party.
+            # A named direct TCP is still usable when the opening TPP is ambiguous.
+            if dual_coalition and first.get('classic_pair') != '/'.join(pair):
+                first = {k:v for k,v in first.items() if k != 'tpp_votes_projected'}
             if (first.get('fp_votes_projected', {}).keys() == booth.get('fp_votes_projected', {}).keys()
                     and split(first, pair, coalition)):
                 source = first
@@ -224,6 +241,8 @@ def expectations(summary, evidence, wanted, ranked, reference_fp=None):
     for seat, booths in by_seat.items():
         coalition = {p for b in booths.values() for p in b.get('fp_votes_projected', {})
                      if summary.get('parties', {}).get(p) in ('LIB', 'LNP', 'LNQ', 'CLP', 'NAT')}
+        dual_coalition = len(coalition) > 1
+        coalition = coalition_opponents(evidence, seat, coalition)
         bands = summary['seats'].get(seat, {}).get('tcp_percentiles', {})
         for label, levels in bands.items():
             pair = label.split('/')
@@ -234,7 +253,7 @@ def expectations(summary, evidence, wanted, ranked, reference_fp=None):
             aligned = reference_fp if full_preferences else None
             rates = evidence.get('classic_benchmark_labor_rates', {}).get(seat, {}).get(label)
             fitted = fit(booths, evidence.get('opening_tcp_geography', {}), pair, levels['50'], coalition,
-                         evidence.get('booth_tcp_bounds', {}), aligned, rates)
+                         evidence.get('booth_tcp_bounds', {}), aligned, rates, dual_coalition)
             result.update(((key, ids), votes) for key, votes in fitted.items())
     return result
 

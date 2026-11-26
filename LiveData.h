@@ -204,6 +204,9 @@ struct FpBoothComparison {
 struct FpIntegrationInformation {
 	FpDistributionMoments baseline, count;
 	std::map<int,FpBoothComparison> boothComparisons;
+	// Fractions of outstanding FP at each venue in the ordinary-booth fit,
+	// before blending paths and reconciling the published district forecast.
+	std::map<int,std::map<int,double>> venueFitShares;
 	double reportedFormal = 0;
 	// Registered parties on this ballot whose pre-election vote was carried
 	// in Others. Each receives the same fraction of a draw's available Others.

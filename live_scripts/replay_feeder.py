@@ -73,8 +73,8 @@ def deliver(source, destination):
     return digest
 
 
-def next_delivery(records, inbox):
-    """Use the watched folder as the position for single-step delivery.
+def next_delivery(records, inbox, count=1):
+    """Select up to count new captures after the last one in the watched folder.
 
     This also recognises files copied manually before the feeder was started.
     An empty inbox selects the first capture; a present final capture stops.
@@ -88,7 +88,7 @@ def next_delivery(records, inbox):
                 raise ValueError('Inbox contains a conflicting immutable capture: '+target.name)
             present.append(index)
     index = max(present)+1 if present else 0
-    return records[index:index+1]
+    return records[index:index+count]
 
 
 def wait_for_local_upload(folder, code=None):
@@ -136,7 +136,8 @@ def main(argv=None):
     parser.add_argument('--source', type=Path)
     parser.add_argument('--inbox', type=Path)
     pacing = parser.add_mutually_exclusive_group()
-    pacing.add_argument('--step', action='store_true', help='Deliver just the next capture')
+    pacing.add_argument('--step', nargs='?', type=int, const=1, metavar='COUNT',
+                        help='Deliver one capture, or the next COUNT captures paced by local upload receipts')
     pacing.add_argument('--after-local-upload', action='store_true',
                         help='Deliver each capture after the previous local website receipt, including the pre-count reference')
     pacing.add_argument('--interval-seconds', type=float, metavar='SECONDS',
@@ -163,8 +164,12 @@ def main(argv=None):
             args.source = WORKSPACE/'forecasts'/args.election/'live-snapshots'/'feeds'
     elif not all((args.election, args.source, args.inbox)):
         parser.error('Specify --run-id or all of --election, --source and --inbox.')
-    if args.after_local_upload and (not args.run_id or args.speed != 1):
-        parser.error('--after-local-upload requires a saved --run-id and uses receipt-based pacing instead of --speed.')
+    if args.step is not None and args.step < 1:
+        parser.error('--step requires a positive number of captures.')
+    batch = args.step is not None and args.step > 1
+    wait_for_receipts = args.after_local_upload or batch
+    if wait_for_receipts and (not args.run_id or args.speed != 1):
+        parser.error('Local-upload pacing requires a saved --run-id and cannot be combined with --speed.')
     if args.interval_seconds is not None:
         if not math.isfinite(args.interval_seconds) or args.interval_seconds <= 0 or args.speed != 1:
             parser.error('--interval-seconds requires a positive finite interval and cannot be combined with a speed multiplier.')
@@ -181,8 +186,13 @@ def main(argv=None):
         records = [r for r in records if r[0] in selected]
     if args.limit:
         records = records[:args.limit]
-    print(f'{len(records)} captures; {sum(p.stat().st_size for _, _, p in records)/1024**2:.1f} MiB of inbox copies (plus retained run copies).')
+    def describe_selection(selected):
+        label = 'capture' if len(selected) == 1 else 'captures'
+        size = sum(p.stat().st_size for _, _, p in selected) / 1024**2
+        print(f'{len(selected)} {label}; {size:.1f} MiB of inbox copies (plus retained run copies).')
+
     if args.dry_run:
+        describe_selection(next_delivery(records, args.inbox, args.step) if args.step else records)
         return
     args.inbox.mkdir(parents=True, exist_ok=True)
     state_path = args.inbox/'feeder-state.json'
@@ -190,12 +200,20 @@ def main(argv=None):
         state = read(state_path) if state_path.exists() else {'election': args.election, 'delivered': {}}
         if state['election'] != args.election:
             raise ValueError('Inbox feeder state belongs to a different election')
+        previous_capture = None
         if args.step:
-            records = next_delivery(records, args.inbox)
-            if not records:
+            selected = next_delivery(records, args.inbox, args.step)
+            if not selected:
                 print('The final selected capture is already in the inbox.')
-        if args.after_local_upload:
-            wait_for_local_upload(run_folder)
+                return
+            # A preceding manual step or interrupted batch can still be uploading.
+            # For an empty inbox the opening forecast supplies the first receipt.
+            first = records.index(selected[0])
+            previous_capture = records[first-1][0] if first else None
+            records = selected
+        describe_selection(records)
+        if wait_for_receipts:
+            wait_for_local_upload(run_folder, previous_capture)
         # A fixed-rate rehearsal uses real elapsed time between deliveries, even
         # when the archived captures cover several days. On restart, honour
         # the remaining interval and then resume normal pacing without a burst.
@@ -221,13 +239,11 @@ def main(argv=None):
                 state['delivered'][code] = {'sha256': digest, 'delivered_at_unix': time.time()}
                 atomic(state_path, state)
                 print(code, path.name, flush=True)
-            if args.after_local_upload:
+            if wait_for_receipts:
                 wait_for_local_upload(run_folder, code)
             previous = clock
-            if args.step:
-                break
-        if args.after_local_upload:
-            print(f'Local website acknowledged all {len(records)} selected captures.', flush=True)
+        if wait_for_receipts:
+            print(f'Local website acknowledged the selected captures ({len(records)}).', flush=True)
 
 
 if __name__ == '__main__':

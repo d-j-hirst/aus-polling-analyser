@@ -1488,6 +1488,10 @@ void testParallelCoalitionTcpAccounts() {
     checkClose(liberal.labor,62);
     checkClose(liberal.counted,100);
     auto national = trained.draw(1,100,shares,centre);
+    assert(!pendingBenchmark(trained,0,0));
+    auto benchmark = pendingBenchmark(trained,0,1).value();
+    checkClose(benchmark.total,100);
+    checkClose(benchmark.labor,national.labor);
     checkClose(national.counted,0);
     assert(national.labor > prior.draw(1,100,shares,centre).labor);
     assert(national.labor < liberal.labor);

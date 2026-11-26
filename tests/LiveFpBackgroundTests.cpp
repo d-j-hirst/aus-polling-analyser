@@ -166,6 +166,23 @@ void checkSharedOthersAtFirstDistrictReturn()
     }
 }
 
+void checkFirstDeclarationBatchUncertainty()
+{
+    constexpr int target = 21598;
+    Shares const context{{0,.307},{1,.450},{2,.243}};
+    LivePartialCount::Counts const firstBatch{{0,112},{1,182},{2,32}};
+    auto projectedLaborVotes = [&](LivePartialCount::Counts const& counted, double draw) {
+        Shares variation{{0,draw * declarationFpLogOddsSd(20000)}};
+        return project(counted,composition(counted,context,target,Category::AggregatedEarly,{},variation),target).at(0);
+    };
+    double const before = projectedLaborVotes({},1) - projectedLaborVotes({},-1);
+    double const after = projectedLaborVotes(firstBatch,1) - projectedLaborVotes(firstBatch,-1);
+    assert(after < before && after > .95 * before);
+    assert(std::abs(projectedLaborVotes(firstBatch,0) - projectedLaborVotes({},0)) < .002 * target);
+    LivePartialCount::Counts const complete{{0,7300},{1,9200},{2,target-16500}};
+    assert(projectedLaborVotes(complete,1) == projectedLaborVotes(complete,-1));
+}
+
 void checkFederalReferenceAcrossDistrictLevels()
 {
     namespace Geo = LiveBoothGeography;
@@ -473,6 +490,7 @@ int main()
     checkMissingCandidateFallbackUsesTheSameSources();
     checkSharedOthersAtFirstDistrictReturn();
     checkCompositionClassificationAndNoCountIdentity();
+    checkFirstDeclarationBatchUncertainty();
     checkFederalReferenceAcrossDistrictLevels();
     checkOutstandingVoteUsesReportingLocations();
     checkEveryCandidateAndBoothTotalAtZeroCount();
