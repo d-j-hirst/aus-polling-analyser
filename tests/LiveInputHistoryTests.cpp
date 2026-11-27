@@ -1,5 +1,6 @@
 #include "../LiveInputHistory.h"
 #include "../LiveInputRecovery.h"
+#include "../LivePreferenceCorrections.h"
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -547,6 +548,60 @@ void checkAcceptedDeferredReplacement(Path const& folder) {
     assert(LiveInputHistory::statistics().sourceReads==0);
 }
 
+void checkDirectionalRevision(Path const& folder) {
+    // The two endpoints are measured against the same earlier accounts.
+    // These figures are the Pakenham Early count, with a single combined
+    // entry for primaries cast for candidates other than the two finalists.
+    auto before = accepted(0, {{1,6457},{2,6995},{3,6113}}, Counts{{1,9359},{2,10172}});
+    auto revised = accepted(5, {{1,6731},{2,6906},{3,6283}}, Counts{{1,9588},{2,10426}});
+    auto later = accepted(10, {{1,6934},{2,7222},{3,6570}}, Counts{{1,9944},{2,10876}});
+    auto endpoint = [&](Snapshot const& source) {
+        PreferenceHistories history;
+        loadPairPreferenceHistory(folder,source,[](Record const&){return false;},nullptr,&history);
+        auto revision = history[source.records.front().key].directionalRecheck;
+        return revision ? revision->votesToFirst : 0.;
+    };
+    commit(folder,before);
+    assert(endpoint(before)==0 && endpoint(revised)==194);
+    commit(folder,revised);
+    assert(endpoint(later)==184.5 && endpoint(before)==0);
+    auto corrected = later;
+    corrected.records[0].tcp.votes = Counts{{1,10129},{2,10691}};
+    assert(endpoint(corrected)==0);
+    auto switched = later;
+    switched.records[0].tcp.votes = Counts{{1,9950},{3,10870}};
+    assert(endpoint(switched)==0);
+    later.records[0].tcp.stage = CountStage::Rechecked;
+    assert(endpoint(later)==0);
+    assert(endpoint(revised)==194); // Future and duplicate observations do not accumulate.
+    revised.districts.at("North").finalised = true;
+    assert(endpoint(revised)==0);
+
+    auto essendon = folder/"essendon";
+    commit(essendon,accepted(0,{{1,6230},{2,3698},{3,4364}},Counts{{1,9659},{2,4630}}));
+    auto fixedTcp = accepted(5,{{1,6134},{2,3799},{3,4361}},Counts{{1,9659},{2,4630}});
+    PreferenceHistories history;
+    loadPairPreferenceHistory(essendon,fixedTcp,{},nullptr,&history);
+    assert(!history[fixedTcp.records.front().key].directionalRecheck);
+    int unchanged=0, full=0;
+    double sum=0;
+    for (int i=0; i<3000; ++i) {
+        double const share=LiveDirectionalRecheck::fraction((i+.5)/3000);
+        unchanged += share==0;
+        full += share==1;
+        sum += share;
+    }
+    assert(unchanged==1000 && full==1000 && std::abs(sum-1500)<1e-8);
+    // Both the counted and final-pair forecasts receive the sampled movement
+    // exactly once, even when the turnout model expects no further ballots.
+    std::map<int,double> counted{{1,9588},{2,10426}}, projected{{1,9600},{2,10426}};
+    assert(LivePreferenceCorrections::transferWithinPair(counted,projected,1,2,194)==194);
+    assert(counted.at(1)==9782 && projected.at(1)==9794 && projected.at(2)==10232);
+    assert(LivePreferenceCorrections::transferWithinPair(counted,projected,1,3,194)==0);
+    assert(LivePreferenceCorrections::transferWithinPair(counted,projected,2,1,194)==194);
+    assert(counted.at(2)==10426 && projected.at(1)==9600);
+}
+
 void checkAcceptedCompatibleRecovery(Path const& folder) {
     auto first=accepted(0,{{1,100},{2,80},{3,20}},Counts{{1,110},{2,90}});
     auto hall=first.records[0];hall.name="Hall";hall.key="North/ordinary/Hall";
@@ -608,6 +663,7 @@ int main() {
     checkAcceptedProductionRecovery(root/"accepted-recovery");
     checkAcceptedDeferredReplacement(root/"accepted-replacement");
     checkAcceptedCompatibleRecovery(root/"accepted-compatible");
+    checkDirectionalRevision(root/"directional-revision");
     LiveInputHistory::clearMemoryCache();
     std::filesystem::remove_all(root);
     std::cout << "Live input history checks passed.\n";

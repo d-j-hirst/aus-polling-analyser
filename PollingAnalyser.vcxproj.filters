@@ -900,6 +900,9 @@
     <ClInclude Include="LiveFpIntegration.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
+    <ClInclude Include="LiveTransferredCoalition.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
     <ClInclude Include="LiveOrdinaryUpdate.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
@@ -919,6 +922,9 @@
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
     <ClInclude Include="LiveInputHistory.h">
+      <Filter>Header Files\Process Objects\Live</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveDirectionalRecheck.h">
       <Filter>Header Files\Process Objects\Live</Filter>
     </ClInclude>
     <ClInclude Include="LiveInputRecovery.h">

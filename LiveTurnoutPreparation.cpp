@@ -566,6 +566,35 @@ void LiveV2::Election::refreshTurnoutScenarioProgress() {
     aggregateScenarioProgress(node, seats, largeRegions);
 }
 
+void LiveV2::Election::applyDirectionalRechecks(int iterationIndex,
+    std::vector<LiveTurnout::Projection>& projected, LiveTurnout::ScenarioCounts& counted) {
+    scenarioCoalitionRecheckVotes.clear();
+    if (directionalCountRevisions.empty()) return;
+    // Move already counted ballots between their two finalists. The very
+    // same draw revises the measured and projected accounts, leaving turnout
+    // and the allocation of still outstanding votes intact. The live feed
+    // and the raw lead shown to readers always retain their published values.
+    auto seed = RandomGenerator::mixKey(variabilityBaseSeed ^ 0x4670546370526576ULL,std::uint64_t(iterationIndex));
+    for (auto const& unit : directionalCountRevisions) {
+        auto const& seat = seats.at(unit.seat);
+        if (seat.finalResult) continue;
+        double const quantile = RandomGenerator::uniform01_from_key(RandomGenerator::mixKey(seed,unit.booth));
+        double const shift = unit.votesToFirst * LiveDirectionalRecheck::fraction(quantile);
+        if (shift == 0) continue;
+        using LivePreferenceCorrections::transferWithinPair;
+        auto mapParty = [&](int p) { return p==seat.liveIndependentPartyIndex ? run.indPartyIndex : p; };
+        auto& account = projected.at(unit.seat);
+        transferWithinPair(counted.tcp.at(unit.seat),account.tcp,mapParty(unit.first),mapParty(unit.second),shift);
+        if (unit.first!=0 && unit.second!=0) continue;
+        int const opponent = unit.first==0 ? unit.second : unit.first;
+        if (opponent!=1 && !(natPartyIndex>1 && opponent==natPartyIndex)) continue;
+        double const toLabor = unit.first==0 ? shift : -shift;
+        double const actual = transferWithinPair(counted.tpp.at(unit.seat),account.tpp,0,1,toLabor);
+        if (seat.splitCoalitionCandidates)
+            scenarioCoalitionRecheckVotes[{unit.seat,opponent}] += actual;
+    }
+}
+
 void LiveV2::Election::applyCountRevisions(int iterationIndex) {
     if (node.totalFpVotesCurrent() == 0) return;
     // Finish the scenario's account after ordinary share variation and existing
@@ -579,6 +608,7 @@ void LiveV2::Election::applyCountRevisions(int iterationIndex) {
         std::move(seat.node.tppVotesProjected),std::move(seat.node.tcpVotesProjected)});
     auto seed = RandomGenerator::mixKey(variabilityBaseSeed ^ 0x436f756e74526576ULL,std::uint64_t(iterationIndex));
     turnout->revise(seed,projected,*adjusted);
+    applyDirectionalRechecks(iterationIndex,projected,*adjusted);
     applyTurnoutProjections(seats,projected);
     scenarioCountedVotes = std::move(adjusted);
 }

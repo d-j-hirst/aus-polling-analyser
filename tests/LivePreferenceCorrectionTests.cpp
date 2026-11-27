@@ -61,6 +61,11 @@ void checkReturningIndependentFlows() {
     auto rates = estimate(booths, .25);
     double const adjusted = (7./3 * (1./3) / (3./7)) / (1 + 7./3 * (1./3) / (3./7));
     assert(rates.size() == 1 && std::abs(rates.at(1) - (.25 + .25*(adjusted-.25))) < 1e-10);
+    // A small matched PPVC still measures the same local transfer fraction.
+    // Giving its 200 transfer ballots quarter weight leaves 50 effective
+    // comparisons alongside 100 unmatched ballots and the 100-ballot allowance.
+    booths[0].transferWeight = .25;
+    assert(std::abs(estimate(booths,.25).at(1) - (.25 + .1*(adjusted-.25))) < 1e-10);
     booths[1].awaitingTcp = false; // A positive but unmatched TCP is also protected.
     assert(estimate(booths, .25).empty());
     booths[1].awaitingTcp = true;

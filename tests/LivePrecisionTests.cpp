@@ -4,6 +4,7 @@
 #include "../LiveFpIntegration.h"
 #include "../LiveFpTpp.h"
 #include "../LiveOrdinaryUpdate.h"
+#include "../LiveTransferredCoalition.h"
 #include "../LiveNewVotes.h"
 #include "../SimulationAudit.h"
 
@@ -198,6 +199,56 @@ void testJointHistoricalSupport()
     assert(std::abs(predict()[1]-two[1]/100.)<1e-10);
 }
 
+void testTransferredCoalitionSplit()
+{
+    using namespace LiveOrdinaryUpdate;
+    using LiveTransferredCoalition::FormerBallot;
+    FormerBallot const both{3000, 1000};
+    auto const lean = both.reference(100, 100).value();
+    assert(!lean.useLiveDistrictSplit && lean.nationalOddsFactor == 3.);
+    assert(std::abs(lean.nationalFraction(30., 10.) - .5) < 1e-12);
+    assert(both.reference(50, 0)->nationalFraction(30., 10.) > 0.);
+    assert(!both.reference(0, 0));
+    FormerBallot const single{3000, {}}, districtZero{3000, 0}, unknown{};
+    assert(single.reference(50, 0)->useLiveDistrictSplit);
+    assert(single.reference(50, 0)->nationalFraction(30., 10.) == .25);
+    assert(!districtZero.reference(50, 0) && !unknown.reference(50, 0));
+    // A counted booth favoured NAT. Two transferred places have the same
+    // combined support as in the control but can no longer inherit the
+    // identity of the sole candidate on their old ballots.
+    std::vector<Venue> places{
+        {{.40,.10,.50},{10,60,30},100,true},
+        {{.45,.05,.50},{0,0,0},400,true},
+        {{.10,.30,.60},{0,0,0},200,true},
+        {{.20,.40,.40},{10,20,20},300,false}};
+    places[1].useDistrictCoalitionSplit = places[2].useDistrictCoalitionSplit = true;
+    Mix const prior{.32,.21,.47}, odds{1,1,1};
+    std::vector<Mix> control, trial;
+    auto original = remaining(places,prior,odds,&control).value();
+    auto revised = remaining(places,prior,odds,&trial,nullptr,nullptr,{{0,1}}).value();
+    assert(trial[0].empty() && trial[3]==control[3]);
+    double const districtLib = 20+850*original[0], districtNat = 80+850*original[1];
+    double const fraction = districtNat/(districtLib+districtNat);
+    for (size_t b : {1,2}) {
+        assert(std::abs(trial[b][1]/(trial[b][0]+trial[b][1])-fraction)<1e-12);
+        assert(trial[b][2]==control[b][2] && std::abs(sum(trial[b])-1)<1e-12);
+    }
+    assert(revised[2]==original[2] && std::abs(revised[1]-original[1])>.001);
+    for (size_t j=0; j<3; ++j)
+        assert(std::abs(850*revised[j]-400*trial[1][j]-200*trial[2][j]-250*trial[3][j])<1e-8);
+    assert(revised==remaining(places,prior,odds,nullptr,nullptr,nullptr,{{0,1}}).value());
+    // With no independent anchor the fitted aggregate supplies the split.
+    places.resize(2);
+    for (auto& place : places) { place.votes={0,0,0}; place.useDistrictCoalitionSplit=true; }
+    trial={{.4,.2,.4},{.2,.1,.7}};
+    Mix totals{120,60,320};
+    shareDistrictCoalitionSplit(places,{100,400},0,1,totals,trial);
+    assert(std::abs(trial[1][1]-.1)<1e-12 && std::abs(totals[1]-60)<1e-12);
+    places[0].votes={0,1,0};
+    shareDistrictCoalitionSplit(places,{100,400},0,1,totals,trial);
+    assert(std::abs(trial[1][1]/(trial[1][0]+trial[1][1])-61./181)<1e-12);
+}
+
 void testSplitOrdinaryUpdate()
 {
     using namespace LiveOrdinaryUpdate;
@@ -264,6 +315,36 @@ void testSplitOrdinaryUpdate()
     comparison.fittedRemaining = expected;
     for (double precision : {0.,.25,1.})
         assert(std::abs(LiveFpIntegration::ordinaryRemainingShare(comparison,.5,.6,precision)-expected)<1e-10);
+
+    // The same 111 pre-poll ballots teach us equally cautiously about both
+    // outstanding modes, regardless of the direction of the result. The
+    // completed centre itself has no ballots left to project.
+    locations = {{{.5,.5},{27,84},111,false,{},111./500},
+                 {{.5,.5},{0,0},400,true}, {{.5,.5},{0,0},600,false}};
+    double effective = 0, day = 0;
+    auto small = remaining(locations,{.5,.5},{1,1},&venueShares,&effective,&day).value();
+    assert(std::abs(effective - 111*(111./500)/(1+111./500))<1e-10 && day==0);
+    double const response = effective/(1000+effective);
+    assert(std::abs(small[0]-std::lerp(.5,27./111,response))<1e-9);
+    assert(venueShares[0].empty() && std::abs(venueShares[1][0]-venueShares[2][0])<1e-10);
+    comparison.fittedRemaining = small[0];
+    comparison.ppvcEvidenceFraction = 1;
+    comparison.jointResponse = response;
+    assert(LiveFpIntegration::ordinaryRemainingShare(comparison,.65,.8,.05)
+        == LiveFpIntegration::ordinaryRemainingShare(comparison,.65,.8,.4));
+    locations.front() = {{.5,.5},{2500,2500},5000,false,{},1.};
+    auto large = remaining(locations,{.5,.5},{1,1},nullptr,&effective,&day).value();
+    assert(std::abs(large[0]-.5)<1e-10 && std::abs(effective-5000./11)<1e-10);
+
+    // A complete ordinary booth and a complete PPVC can report together.
+    // Keep the stronger ordinary-to-ordinary response, with the PPVC
+    // contributing once at its cautious strength to each destination.
+    locations[0].votes = {2000,3000};
+    locations.push_back({{.5,.5},{400,100},500,true});
+    assert(remaining(locations,{.5,.5},{1,1},&venueShares,&effective,&day));
+    assert(day==250 && std::abs(effective-5000./11)<1e-10);
+    assert(std::abs(venueShares[1][0]-(125.+200.+.25*effective*.4)/(250.+day+.25*effective))<1e-9);
+    assert(std::abs(venueShares[2][0]-(500.+200.+effective*.4)/(1000.+day+effective))<1e-9);
 }
 
 void testTransferredArea()
@@ -363,6 +444,7 @@ int main()
     testAnonymousLiveFpAllocation();
     testJointHistoricalSupport();
     testSplitOrdinaryUpdate();
+    testTransferredCoalitionSplit();
     testTransferredArea();
     testProjectedVoteShareEndpoints();
     testOrdinaryFpBlend();

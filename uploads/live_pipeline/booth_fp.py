@@ -105,8 +105,19 @@ def district_expectations(booths, means, opening):
         patterns[key] = shape
     turnout = sum(fixed.values()) + sum(size for size, _ in rows.values())
     total_percent = sum(means.values())
+    # The seat simulation can retain a tiny mean for a hypothetical emerging
+    # party even on a ballot made up entirely of named candidates. There is
+    # nowhere to put that fraction of a vote. Rescale the named shares only
+    # if this is the entire unrepresented remainder and amounts to less than
+    # one projected ballot AND less than 0.001 percentage points. Material
+    # missing shares still make the booth comparison unavailable.
+    remainder = sum(v for p, v in means.items() if p not in known)
+    if (0 < remainder < .001 and means.get('-3') == remainder and turnout*remainder/total_percent < 1
+            and not fixed[None] and not any(None in votes for _, votes in rows.values())):
+        total_percent -= remainder
+        remainder = 0
     shares = {p: means[p]/total_percent for p in known}
-    shares[None] = sum(v for p, v in means.items() if p not in known)/total_percent
+    shares[None] = remainder/total_percent
     targets = {p: turnout*v-fixed[p] for p, v in shares.items()}
     # A district mean can imply fewer votes than are already counted, for
     # example when published mean shares and projected turnout come from

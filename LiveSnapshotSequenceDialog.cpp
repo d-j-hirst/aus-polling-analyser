@@ -53,6 +53,11 @@ LiveSnapshotSequenceDialog::LiveSnapshotSequenceDialog(wxWindow* parent,
     jointFpTrial = new wxCheckBox(this, wxID_ANY, "Trial joint FP adjustment by historical booth support (this session)");
     jointFpTrial->SetValue(this->settings.jointFpTrial);
     outer->Add(jointFpTrial, 0, wxLEFT | wxRIGHT | wxTOP, 10);
+    adjustTransferredCoalition = new wxCheckBox(this, wxID_ANY,
+        "Adjust LIB/NAT estimates at transferred polling places (default on)");
+    adjustTransferredCoalition->SetValue(this->settings.adjustTransferredCoalition);
+    outer->Add(adjustTransferredCoalition, 0, wxLEFT | wxRIGHT | wxTOP, 10);
+    adjustTransferredCoalition->SetToolTip("Clear for a comparison in this session. Watched runs always use the adjustment.");
     status = new wxStaticText(this, wxID_ANY, "");
     outer->Add(status, 0, wxEXPAND | wxALL, 10);
     auto buttons = new wxStdDialogButtonSizer;
@@ -82,6 +87,7 @@ LiveSnapshotSequenceDialog::LiveSnapshotSequenceDialog(wxWindow* parent,
 LiveSnapshotSequence::Settings LiveSnapshotSequenceDialog::selection() const {
     auto selected = settings;
     selected.jointFpTrial = jointFpTrial->GetValue();
+    selected.adjustTransferredCoalition = adjustTransferredCoalition->GetValue();
     // Keep a custom folder portable in the project file. Convert the native
     // control text explicitly to UTF-8 so non-ASCII Windows paths survive save.
     auto path = LiveResultsInput::pathFromUtf8(folderInput->GetValue().ToStdString(wxConvUTF8));

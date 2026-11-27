@@ -1,9 +1,60 @@
 """Check Victorian input decisions using fictional evidence, without feeds."""
 
 import unittest
+from unittest.mock import patch
 
 from scripts.turnout import turnout_prepare_vic as preparation
 from scripts.turnout import turnout_vic_early as early
+from scripts.turnout import turnout_vic_voting_statistics as statistics
+
+
+class VotingStatisticsTests(unittest.TestCase):
+    settings = dict(period_start='2026-11-04', early_close='2026-11-27T18:00:00')
+
+    def setUp(self):
+        def row(label, counts):
+            return dict(A=label, **dict(zip(statistics.COLUMNS, map(str, counts))))
+        self.rows = {
+            2: {'A': 'State Election 2026'}, 3: {'A': 'Date range: 04/11/2026 – 27/11/2026'},
+            4: {'A': 'As at 28/11/2026 08:30 am'},
+            10: dict(B='Postal Vote Applications', F='Postal Votes', H='Early Votes'),
+            11: dict(zip('ABCDEFGHI', statistics.HEADINGS)),
+            12: row('27/11/2026', [0, 160, 3, 10, 6, 35, 70, 1300]),
+            13: row('East', [0, 100, 2, 9, 4, 24, 50, 800]),
+            14: row('West', [0, 60, 1, 1, 2, 11, 20, 500])}
+
+    def observations(self):
+        with patch.object(statistics, 'read_xlsx_rows', return_value=self.rows):
+            return statistics.completed_observations(b'', ['East', 'West'], self.settings,
+                '2026-11-28T18:00:00')
+
+    def test_measured_early_and_net_postals_use_friday_even_in_a_saturday_edition(self):
+        self.rows[3]['A'] = 'Date range: 04/11/2026 – 28/11/2026'
+        self.rows[15] = dict(self.rows[12], A='28/11/2026', I='9999')
+        observations, summary = self.observations()
+        self.assertEqual(summary['through'], '2026-11-27')
+        self.assertEqual(summary['postal_returned'], 35)
+        selected = preparation.operational_controls(observations, ['East', 'West'], '2026-11-28T18:00:00')
+        self.assertEqual([r['count'] for r in selected['early']], [800, 500])
+        self.assertEqual([r['count'] for r in selected['postal']], [91, 59])
+
+    def test_incomplete_day_and_post_election_publication_are_rejected(self):
+        for issued in ('27/11/2026 02:30 pm', '28/11/2026 06:02 pm'):
+            with self.subTest(issued=issued), self.assertRaises(ValueError):
+                self.rows[4]['A'] = 'As at ' + issued
+                self.observations()
+        self.rows[3]['A'] = 'Date range: 04/11/2026 – 26/11/2026'
+        self.rows[12]['A'] = '26/11/2026'
+        with self.assertRaisesRegex(ValueError, 'Waiting for completed district figures'):
+            self.observations()
+
+    def test_all_districts_and_columns_must_reconcile(self):
+        for column, value in [('A', 'East'), ('H', ''), ('I', '499'), ('E', '61')]:
+            with self.subTest(column=column), patch.dict(self.rows[14], {column: value}), self.assertRaises(ValueError):
+                self.observations()
+        del self.rows[14]
+        with self.assertRaisesRegex(ValueError, 'Missing VEC voting statistics for West'):
+            self.observations()
 
 
 class PrepareVicTests(unittest.TestCase):

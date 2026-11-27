@@ -55,6 +55,7 @@ LiveFpEvidence::Unit LiveV2::Election::fpEvidenceUnit(int boothIndex, bool varie
         }
     }
     unit.relevance = booth.node.relevanceModifier;
+    unit.transferWeight = booth.ppvcTransferWeight;
     unit.group = int(booth.voteType)*100+int(booth.boothType);
     unit.ordinary = booth.voteType == Results2::VoteType::Ordinary && booth.boothType != Results2::Booth::Type::Ppvc;
     unit.aggregatedEarly = booth.incrementalFp || LiveData::aggregatedEarly(booth.voteType);
@@ -511,15 +512,31 @@ void LiveV2::Election::prepareFpIntegration(BlindFpProjections const& blind) {
 
 void LiveV2::Election::prepareOrdinaryFpFit(int seatIndex, BlindFpProjections const& blind,
     LiveData::FpIntegrationInformation& information) const {
-    if (information.boothComparisons.empty()) return;
     auto const& seat = seats.at(seatIndex);
+    if (!information.reportedFormal || seat.finalResult) return;
+    auto const standalonePpvc = [](Booth const& booth) {
+        return booth.boothType == Results2::Booth::Type::Ppvc && !booth.receivesFpBatches();
+    };
+    bool const hasPpvc = std::any_of(seat.booths.begin(),seat.booths.end(),[&](int index) {
+        auto const& booth = readBooths().at(index);
+        return standalonePpvc(booth) && booth.node.totalFpVotesCurrent() > 0;
+    });
+    if (!hasPpvc && information.boothComparisons.empty()) return;
+    auto const& mean = turnout->mean(LiveData::CountKind::Fp,seatIndex);
+    auto const& counted = turnout->counted(LiveData::CountKind::Fp,seatIndex);
+    double const future = LiveFpEvidence::total(mean)-LiveFpEvidence::total(counted);
+    if (future<=0.) return;
     auto const priors = LiveFpIntegration::ordinaryCandidatePriors(information,OthersIndex,run.indPartyIndex);
     std::vector<int> parties;
     LiveOrdinaryUpdate::Mix prior, odds;
-    for (auto const& [id,b] : information.boothComparisons) {
-        if (!b.priorCentre || (id==run.indPartyIndex && information.poolIndependents)) continue;
+    for (auto const& [id,votes] : mean) {
+        auto const existing = information.boothComparisons.find(id);
+        if (!hasPpvc && (existing==information.boothComparisons.end() || !existing->second.priorCentre)) continue;
+        if (id<0 || id>=project.parties().count() || (id==run.indPartyIndex && information.poolIndependents)) continue;
+        double const priorShare = LiveFpIntegration::value(priors,id);
+        if (priorShare<=0 || priorShare>=1) continue;
         parties.push_back(id);
-        prior.push_back(priors.at(id));
+        prior.push_back(priorShare);
         odds.push_back(std::exp(LiveFpIntegration::value(information.sharedDeviation,id)/25.));
     }
     if (parties.empty()) return;
@@ -532,7 +549,7 @@ void LiveV2::Election::prepareOrdinaryFpFit(int seatIndex, BlindFpProjections co
     odds.push_back(1.);
     std::vector<LiveOrdinaryUpdate::Venue> venues;
     std::vector<int> venueIds;
-    double ordinary = 0;
+    double ordinary = 0, ppvc = 0;
     for (int index : seat.booths) {
         auto const& booth = readBooths().at(index);
         auto const& expected = blind.at(index);
@@ -542,19 +559,31 @@ void LiveV2::Election::prepareOrdinaryFpFit(int seatIndex, BlindFpProjections co
             continue;
         }
         bool const electionDay = booth.boothType==Results2::Booth::Type::Normal && !booth.receivesFpBatches();
+        bool completePpvc = standalonePpvc(booth);
         LiveOrdinaryUpdate::Mix shape,counts;
         for (int party : parties) {
             int const ballot = party==run.indPartyIndex ? seat.liveIndependentPartyIndex : party;
             auto found = booth.node.fpVotesCurrent.find(ballot);
             // An explicitly reported zero is evidence. An omitted count has
             // no observed candidate allocation for a joint fit at this venue.
-            if (electionDay && n>0 && found==booth.node.fpVotesCurrent.end()) return;
+            if (n>0 && found==booth.node.fpVotesCurrent.end()) {
+                if (electionDay) return;
+                completePpvc = false;
+            }
             counts.push_back(found==booth.node.fpVotesCurrent.end() ? 0. : found->second);
             shape.push_back(LiveFpIntegration::value(expected,party)/size);
         }
         shape.push_back(std::max(0.,1.-LiveOrdinaryUpdate::sum(shape)));
         counts.push_back(std::max(0.,n-LiveOrdinaryUpdate::sum(counts)));
         venues.push_back({std::move(shape),std::move(counts),size,electionDay});
+        venues.back().useDistrictCoalitionSplit = booth.transferredCoalition && booth.transferredCoalition->useLiveDistrictSplit;
+        // An incomplete pre-poll return still contributes its published
+        // ballots to the district. It cannot tell us how all candidates
+        // shared that centre's vote, so use only other complete venues here.
+        if (completePpvc) {
+            venues.back().ppvcWeight = booth.ppvcTransferWeight;
+            ppvc += n;
+        }
         venueIds.push_back(index);
         // This independent district fit starts from the blind geography.
         // Give its outstanding ballots the same once-only adjustment as the
@@ -568,7 +597,17 @@ void LiveV2::Election::prepareOrdinaryFpFit(int seatIndex, BlindFpProjections co
         if (electionDay) ordinary += n;
     }
     std::vector<LiveOrdinaryUpdate::Mix> venueShares;
-    auto result = LiveOrdinaryUpdate::remaining(venues,prior,odds,&venueShares);
+    double ppvcSample = 0, ordinarySample = 0;
+    std::optional<std::pair<size_t,size_t>> coalition;
+    if (std::any_of(venues.begin(),venues.end(),[](auto const& venue) {
+        return venue.useDistrictCoalitionSplit && venue.turnout > LiveOrdinaryUpdate::sum(venue.votes);
+    })) {
+        auto const lib = std::find(parties.begin(),parties.end(),1);
+        auto const nat = std::find(parties.begin(),parties.end(),natPartyIndex);
+        if (lib!=parties.end() && nat!=parties.end())
+            coalition.emplace(lib-parties.begin(),nat-parties.begin());
+    }
+    auto result = LiveOrdinaryUpdate::remaining(venues,prior,odds,&venueShares,&ppvcSample,&ordinarySample,coalition);
     if (!result) return;
     for (size_t i=0; i<venueShares.size(); ++i) {
         if (venueShares[i].empty()) continue;
@@ -576,27 +615,38 @@ void LiveV2::Election::prepareOrdinaryFpFit(int seatIndex, BlindFpProjections co
             information.venueFitShares[venueIds[i]][parties[j]] = venueShares[i][j];
     }
     auto const conditioned = LiveOrdinaryUpdate::conditionedShares(prior,odds);
+    // With only pre-poll evidence the same sample strength updates the
+    // whole ballot and its spread. An uncertain rival should not become
+    // disproportionately unlikely just because the first centre reported.
+    auto setCoverage = [&](LiveData::FpBoothComparison& b) {
+        b.ppvcFormal = ppvc;
+        double const evidence = ppvcSample+ordinarySample;
+        b.ppvcEvidenceFraction = evidence>0 ? ppvcSample/evidence : 0;
+        b.jointResponse = evidence/(LiveOrdinaryUpdate::CautiousPriorBallots+evidence);
+    };
     for (size_t j=0; j<parties.size(); ++j) {
-        auto& comparison = information.boothComparisons.at(parties[j]);
+        int const party = parties[j];
+        auto& comparison = information.boothComparisons[party];
+        comparison.boothRemainingCentre = LiveFpIntegration::logOdds(
+            (mean.at(party)-LiveFpIntegration::value(counted,party))/future);
         comparison.priorCentre = LiveFpIntegration::logOdds(conditioned[j]);
         comparison.fittedRemaining = result->at(j);
+        setCoverage(comparison);
     }
     // If the residual maps entirely to the simulator's Others pool it has
     // a joint centre too. A separately modelled candidate without a named
     // prior instead keeps the existing booth-based draw and uncertainty.
-    auto const& mean = turnout->mean(LiveData::CountKind::Fp,seatIndex);
-    auto const& counted = turnout->counted(LiveData::CountKind::Fp,seatIndex);
     double residualVotes = 0.;
     for (auto const& [id,n] : mean) {
         if (std::find(parties.begin(),parties.end(),id)!=parties.end()) continue;
         if (id>=0 && id<project.parties().count() && n>0) return;
         residualVotes += n-LiveFpIntegration::value(counted,id);
     }
-    double const future = LiveFpEvidence::total(mean)-LiveFpEvidence::total(counted);
     if (residual<=0 || future<=0) return;
     auto& other = information.boothComparisons[OthersIndex];
     other.ordinary = ordinary;
     other.priorCentre = LiveFpIntegration::logOdds(conditioned.back());
     other.boothRemainingCentre = LiveFpIntegration::logOdds(residualVotes/future);
     other.fittedRemaining = result->back();
+    setCoverage(other);
 }

@@ -12,6 +12,36 @@
 
 namespace {
 
+void checkReconciliationPreservesBallotZeros()
+{
+	using MinorPartyFpMath::reconcilePartyPrimary;
+	constexpr int namedParty = 3;
+	std::map<int, double> noEntry{{0, 40.0}, {1, 60.0}};
+	auto const original = noEntry;
+	std::map<int, double> placeholders{{namedParty, 0.0}, {EmergingPartyIndex, 0.0}};
+	for (double factor : {2.0, 0.5, 1.0}) {
+		for (int party : {namedParty, EmergingPartyIndex}) {
+			assert(reconcilePartyPrimary(noEntry, party, 2.0, factor));
+			assert(noEntry == original);
+			assert(reconcilePartyPrimary(placeholders, party, 2.0, factor));
+			assert(placeholders.at(party) == 0.0);
+		}
+	}
+
+	// The same national targets still act on seats that have support.
+	// An increase of 2 pp overall permits a local increase of up to 6 pp.
+	std::map<int, double> participating{{EmergingPartyIndex, 20.0}, {namedParty, 20.0}};
+	assert(reconcilePartyPrimary(participating, EmergingPartyIndex, 2.0, 2.0));
+	assert(participating.at(EmergingPartyIndex) == 26.0);
+	assert(reconcilePartyPrimary(participating, EmergingPartyIndex, 4.0, 0.5));
+	assert(participating.at(EmergingPartyIndex) == 13.0);
+	assert(reconcilePartyPrimary(participating, namedParty, 2.0, 2.0));
+	assert(participating.at(namedParty) == predictorCorrectorTransformedSwing(20.0, 6.0));
+	participating.at(EmergingPartyIndex) = 0.004;
+	assert(reconcilePartyPrimary(participating, EmergingPartyIndex, 4.0, 0.5));
+	assert(participating.at(EmergingPartyIndex) == 0.01);
+}
+
 void checkGroupedBallotAdjustment()
 {
 	using namespace GroupedOthersFp;
@@ -184,6 +214,7 @@ void checkPollEvidenceModeratesProfileAssessment()
 
 int main()
 {
+	checkReconciliationPreservesBallotZeros();
 	checkGroupedBallotAdjustment();
 	checkHistoricalOthersSupport();
 	checkMissingGreensFpPrior();

@@ -13,6 +13,7 @@
 #include "LiveVariability.h"
 #include "LivePreparedStorage.h"
 #include "LiveSourceSeatTcp.h"
+#include "LiveTransferredCoalition.h"
 
 #include "ElectionData.h"
 #include "General.h"
@@ -189,6 +190,7 @@ public:
   };
   std::optional<RetainedClassicCount> retainedClassic;
   std::optional<LivePartialCount::TcpBasis> tcpBasis;
+  bool directionalRecheck = false;
   bool hasTcpRevision() const {
     if (!tcpBasis || tcpBasis->tcp != node.tcpVotesCurrent || tcpBasis->fp == node.fpVotesCurrent ||
       tcpBasis->fp.size() != node.fpVotesCurrent.size() || node.totalFpVotesCurrent() <= 0) return false;
@@ -230,6 +232,7 @@ public:
   bool syntheticPreviousCategory = false;
   bool measuredFpInSyntheticCategory = false;
   bool incrementalFp = false;
+  double ppvcTransferWeight = 1; // Representativeness for voters elsewhere.
   // Named VEC venues inherit this district EVC account and apply their own
   // geographic contrast. The parent holds actual historical aggregate votes.
   int evcDistrictAccount = -1;
@@ -241,6 +244,9 @@ public:
   double evcOpeningTpp = 0;
   bool receivesFpBatches() const { return incrementalFp || voteType != Results2::VoteType::Ordinary; }
   std::string previousPreferenceSeat;
+  // A matched booth transferred into a two-partner contest uses its former
+  // district to interpret the historical Liberal and Nationals votes.
+  std::optional<LiveTransferredCoalition::Reference> transferredCoalition;
   // Independent old Labor/Coalition scrutiny, separate from the old contest's
   // actual TCP pairing. It is attached only after an exact original-FP match.
   // Its preference offset is fitted once after historical party priors; frozen
@@ -1001,6 +1007,8 @@ private:
   void preparePreferenceCorrections(LiveInputRecovery::RecordStatuses const& countStatuses);
   void applyPreferenceCorrections(int iterationIndex);
   void applyCountRevisions(int iterationIndex);
+  void applyDirectionalRechecks(int iterationIndex, std::vector<LiveTurnout::Projection>& projected,
+    LiveTurnout::ScenarioCounts& counted);
 
   void generateVariability(int iterationIndex);
 
@@ -1129,6 +1137,14 @@ private:
   // retains both preference transfers and signed ballot corrections, including
   // when no routine votes remain outstanding.
   std::shared_ptr<PreferenceCorrectionPreparation const> preferenceCorrections;
+  struct DirectionalCountRevision {
+    int seat, booth, first, second;
+    double votesToFirst;
+  };
+  std::vector<DirectionalCountRevision> directionalCountRevisions;
+  // The separate Liberal and National matchup models use the same sampled
+  // revision, but only for the partner whose ballots were actually counted.
+  std::map<std::pair<int,int>,double> scenarioCoalitionRecheckVotes;
   std::shared_ptr<LiveTurnout::ScenarioCounts const> scenarioCountedVotes;
   std::shared_ptr<nlohmann::json const> preferenceCorrectionDiagnostic;
 

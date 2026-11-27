@@ -480,6 +480,7 @@
     <ClInclude Include="LiveTppSensitivity.h" />
     <ClInclude Include="LiveFpIntegration.h" />
     <ClInclude Include="LiveOrdinaryUpdate.h" />
+    <ClInclude Include="LiveTransferredCoalition.h" />
     <ClInclude Include="LiveFpSupportGradient.h" />
     <ClInclude Include="LiveSourceSeatTcp.h" />
     <ClInclude Include="LiveNewVotes.h" />
@@ -498,6 +499,7 @@
     <ClInclude Include="LiveInputWarningPanel.h" />
     <ClInclude Include="LiveInputAdapter.h" />
     <ClInclude Include="LiveInputRecovery.h" />
+    <ClInclude Include="LiveDirectionalRecheck.h" />
     <ClInclude Include="LiveInputHistory.h" />
     <ClInclude Include="LiveRunExport.h" />
     <ClInclude Include="LiveAnalysisArchive.h" />

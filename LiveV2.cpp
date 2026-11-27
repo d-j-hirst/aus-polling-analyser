@@ -446,6 +446,12 @@ Booth::Booth(
   // as they are less likely to be indicative of the remaining votes in the seat
   // than booths from the same seat
   node.relevanceModifier = sameSeat ? 1.0 : DifferentSeatRelevanceModifier;
+  // Either count can establish the size of this centre. A ballot counted
+  // on both FP and TCP contributes once. This scales shared evidence only.
+  ppvcTransferWeight = LiveFpEvidence::ppvcTransferWeight(
+    boothType == Results2::Booth::Type::Ppvc && !currentBooth.incrementalFp,
+    std::max(node.totalFpVotesCurrent(),node.totalTcpVotesCurrent()));
+  node.relevanceModifier *= ppvcTransferWeight;
 }
 
 Booth::Booth(
@@ -706,11 +712,25 @@ void Election::prepareTcpBases(Results2::Election const& previousElection,
       mapped[mapPartyId(candidate,false,previousElection,currentElection)] += votes;
     return mapped;
   };
-  for (auto& booth : preparationBooths()) {
+  auto& locations = preparationBooths();
+  for (int b = 0; b < int(locations.size()); ++b) {
+    auto& booth = locations[b];
     auto role = booth.voteType != Results2::VoteType::Ordinary ? "declaration" :
       booth.boothType == Results2::Booth::Type::Ppvc ? "ppvc" : "ordinary";
     auto found = history.find(seats.at(booth.parentSeatId).name+"/"+role+"/"+booth.name);
     if (found == history.end()) continue;
+    if (auto const& revision = found->second.directionalRecheck; revision && revision->votesToFirst != 0) {
+      int first = mapPartyId(revision->finalists.first,false,previousElection,currentElection);
+      int second = mapPartyId(revision->finalists.second,false,previousElection,currentElection);
+      auto const& tcp = booth.node.tcpVotesCurrent;
+      // Category aggregation or a handover can change the represented pair.
+      // Carry a correction only when the booth used by this forecast still
+      // has both of the original, separately identifiable candidates.
+      if (first != second && tcp.size()==2 && tcp.contains(first) && tcp.contains(second)) {
+        booth.directionalRecheck = true;
+        directionalCountRevisions.push_back({booth.parentSeatId,b,first,second,revision->votesToFirst});
+      }
+    }
     auto const& source = found->second.tcpBasis ? found->second.tcpBasis : found->second.matchingCurrentTcp;
     if (!source) continue;
     LivePartialCount::TcpBasis basis{mapCounts(source->fp),mapCounts(source->tcp),{},source->recheckedReconciledPair};
@@ -1847,6 +1867,34 @@ Election::IndependentTcpMatches Election::createNodesFromElectionData(
   LivePartyConversion::History const& history,
   LiveHistoricalPreferences::History const& notionalHistory) {
   IndependentTcpMatches independentTcpMatches;
+  // The former district's whole ballot distinguishes an absent partner from
+  // a booth zero. Its totals put each two-partner booth's result in context.
+  std::map<std::string,LiveTransferredCoalition::FormerBallot> formerBallots;
+  if (natPartyIndex > 1 && LiveResultsInput::transferredCoalitionAdjustmentEnabled(run.getSnapshotInput())) {
+    for (auto const& entry : previousElection.seats) {
+      auto const& district = entry.second;
+      LiveTransferredCoalition::FormerBallot ballot;
+      bool complete = true;
+      // Reconstructed VEC historical seats can also contain the CURRENT
+      // preload roster. Only the candidate keys on the old district's FP
+      // result identify the ballot on which the historical votes were cast.
+      for (auto const& candidateVotes : district.fpVotes) {
+        auto const found = previousElection.candidates.find(candidateVotes.first);
+        if (found == previousElection.candidates.end()) { complete = false; break; }
+        if (found->second.party == Results2::Candidate::Independent) continue;
+        auto const affiliation = previousElection.parties.find(found->second.party);
+        if (affiliation == previousElection.parties.end()) { complete = false; break; }
+        // Read configured codes without allocating new simulation IDs for
+        // historical minor parties when identifying the two Coalition partners.
+        int const party = project.parties().indexByShortCode(affiliation->second.shortCode);
+        if (party == 1 || party == natPartyIndex) {
+          auto& votes = party == 1 ? ballot.liberal : ballot.national;
+          votes = votes.value_or(0) + district.totalVotesFpCandidate(candidateVotes.first);
+        }
+      }
+      if (complete) formerBallots.emplace(district.name, ballot);
+    }
+  }
   for (auto const& [regionId, region] : project.regions()) {
     largeRegions.push_back(LargeRegion(region));
   }
@@ -1860,7 +1908,8 @@ Election::IndependentTcpMatches Election::createNodesFromElectionData(
         "Seat '" + seat.name + "' refers to a region that is not present.");
     }
     seats.push_back(Seat(seat, parentRegionIndex));
-    if (!optionalPreferential && natPartyIndex > 1) {
+    bool bothCoalitionPartnersStanding = false;
+    if (natPartyIndex > 1 && (!optionalPreferential || !formerBallots.empty())) {
       // Use the FP roster, which arrives with the candidate list and is
       // independent of the commission's indicative preference count.
       std::set<int> roster;
@@ -1871,7 +1920,11 @@ Election::IndependentTcpMatches Election::createNodesFromElectionData(
       if (published != currentElection.liveCandidateRosters.end())
         for (int candidate : published->second) add(candidate);
       for (auto const& entry : seat.fpVotes) add(entry.first);
-      seats.back().splitCoalitionCandidates = roster.contains(1) && roster.contains(natPartyIndex);
+      bothCoalitionPartnersStanding = roster.contains(1) && roster.contains(natPartyIndex);
+      // The ballot tells us whether a transferred booth's old Coalition FP
+      // needs splitting under either voting system. The separate preference
+      // calculation for two Coalition opponents assumes full preferences.
+      seats.back().splitCoalitionCandidates = bothCoalitionPartnersStanding && !optionalPreferential;
       if (seats.back().splitCoalitionCandidates) {
         int projectIndex = project.seats().indexByName(seat.name);
         seats.back().nationalTppReference = run.pastSeatResults.at(projectIndex).nationalTppReference;
@@ -1927,6 +1980,16 @@ Election::IndependentTcpMatches Election::createNodesFromElectionData(
       preparationBooths().back().previousPreferenceSeat = previousSeatName;
       preparationBooths().back().syntheticPreviousCategory = previousBoothPtr && (*previousBoothPtr)->syntheticBaseline;
       preparationBooths().back().incrementalFp = currentBooth.incrementalFp;
+      if (!sameSeat && bothCoalitionPartnersStanding && previousBoothPtr &&
+          !(*previousBoothPtr)->syntheticBaseline && !currentBooth.incrementalFp &&
+          (currentBooth.type == Results2::Booth::Type::Normal || currentBooth.type == Results2::Booth::Type::Ppvc)) {
+        auto const source = formerBallots.find(previousSeatName);
+        if (source != formerBallots.end()) {
+          auto& booth = preparationBooths().back();
+          auto const& oldFp = booth.node.fpVotesPrevious;
+          booth.transferredCoalition = source->second.reference(getAt(oldFp,1,0), getAt(oldFp,natPartyIndex,0));
+        }
+      }
       if (previousBoothPtr && !(*previousBoothPtr)->syntheticBaseline) {
         // Match commission candidate counts BEFORE modelling-party grouping.
         // Equal totals alone cannot distinguish a revised or reconstructed FP
@@ -2947,6 +3010,30 @@ void Election::extrapolateBaselineSwings() {
       if (seat.node.tppSwingBaseline) {
         booth.node.tppSwingBaseline = seat.node.tppSwingBaseline.value();
       }
+      if (booth.transferredCoalition) {
+        // Start with the booth's historical combined Coalition strength.
+        // Split it according to the receiving district, retaining a local
+        // lean only where the former ballot measured a choice. Incoming votes
+        // are compared with this same starting point.
+        auto const& prior = seat.node.fpSharesBaseline;
+        auto const destinationShare = [&](int party) {
+          return prior.contains(party) ? detransformVoteShare(prior.at(party)) : 0.;
+        };
+        double const liberal = destinationShare(1), national = destinationShare(natPartyIndex);
+        if (!(liberal > 0. && national > 0.)) {
+          booth.transferredCoalition.reset();
+          continue;
+        }
+        auto const& old = booth.node.fpVotesPrevious;
+        double const combinedPercent = 100. * (getAt(old,1,0) + getAt(old,natPartyIndex,0)) /
+          LivePartialCount::total(old);
+        double const nationalFraction = booth.transferredCoalition->nationalFraction(liberal, national);
+        for (int party : {1,natPartyIndex}) {
+          double const percent = combinedPercent * (party == natPartyIndex ? nationalFraction : 1. - nationalFraction);
+          booth.node.fpSwingsBaseline.erase(party);
+          booth.node.fpSharesBaseline[party] = transformVoteShare(std::clamp(percent,.01,99.99));
+        }
+      }
     }
   }
 }
@@ -3677,6 +3764,7 @@ void Election::calculateTcpPreferenceFlows() {
         coverageVotes = std::min(totalFpVotes, totalTcpVotes);
       }
 
+      weight *= booth.ppvcTransferWeight;
       totalPartyOnePrefs += weight * std::clamp(boothPartyOnePrefs, 1.0, boothPrefs - 1.0);
       totalPrefs += weight * boothPrefs;
       focusPartyConfidence += weight * coverageVotes;
@@ -3711,7 +3799,7 @@ void Election::prepareReturningIndependentFlows(IndependentTcpMatches const& mat
         counts.fpVotesPrevious, counts.tcpVotesPrevious, pair.previousIndependent, pair.opponent);
       auto const& fp = booth.hasTcpRevision() ? booth.tcpBasis->fp : counts.fpVotesCurrent;
       auto const current = LiveIndependentFlow::exactTransfer(fp, counts.tcpVotesCurrent, pair.independent, pair.opponent);
-      observations.push_back({index, previous, current, counts.totalTcpVotesCurrent() == 0});
+      observations.push_back({index, previous, current, counts.totalTcpVotesCurrent() == 0, booth.ppvcTransferWeight});
     }
     bool const independentIsFocus = *seat.tcpFocusPartyIndex == pair.independent;
     double const pooled = *seat.tcpFocusPartyPrefFlow * .01;
@@ -4110,6 +4198,11 @@ std::map<int,double> Election::projectUnreportedFp(bool allowCurrentData, int bo
       continue;
     }
     auto const baselineShareUntransformed = baselinePercent(effectivePartyId);
+    if (booth.transferredCoalition && (partyId == 1 || partyId == natPartyIndex)) {
+      double const reference = booth.node.fpSharesBaseline.at(partyId);
+      tempFpVotesProjected[partyId] = .01 * currentVoteTarget * detransformVoteShare(reference + deviation + randomFactor);
+      continue;
+    }
     // Read the old count with the ballot identity. The projection identity
     // instead selects the seat's expected swing and labels the output.
     auto previousVotes = LiveIndependentMapping::previousFpVotes(booth.node.fpVotesPrevious,
@@ -4440,6 +4533,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
       // (won't affect independents since they're counted separately at this stage but could affect e.g. Wills)
       double weightedSwing = 0.0;
       double summedWeight = 0.0;
+      double untaperedWeight = 0.0;
       bool prefFlowAvailable = seat.tcpFocusPartyIndex.has_value() && seat.tcpFocusPartyPrefFlow.has_value()
         && seat.tcpFocusPartyConfidence.value_or(0.0) > 0.0;
       for (auto const& otherBoothIndex : seat.booths) {
@@ -4455,6 +4549,8 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
           // This booth is a valid comparison
           double swing = otherBooth.node.tcpSwings.at(firstPartyId);
           double weight = static_cast<double>(otherBooth.node.totalFpVotesCurrent());
+          untaperedWeight += weight;
+          weight *= otherBooth.ppvcTransferWeight;
           weightedSwing += swing * weight;
           summedWeight += weight;
         }
@@ -4469,6 +4565,8 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
             double estimatedTcpSwing = (fpSwingFirst - fpSwingSecond) * 0.5 + fpSwingPrefs * (preferenceFlow * 0.01 - 0.5);
             double topTwoProportion = 0.01 * ( otherBooth.node.fpSharesPercent().at(firstPartyId) + otherBooth.node.fpSharesPercent().at(secondPartyId));
             double weight = static_cast<double>(otherBooth.node.totalFpVotesCurrent()) * topTwoProportion * topTwoProportion;
+            untaperedWeight += weight;
+            weight *= otherBooth.ppvcTransferWeight;
             weightedSwing += estimatedTcpSwing * weight;
             summedWeight += weight;
           }
@@ -4490,7 +4588,9 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
           0.01, 99.99));
         double tcpTransformedEstimateCurrent = tcpTransformedSharePrevious + averageSwing;
         double tcpEstimateCurrent = detransformVoteShare(tcpTransformedEstimateCurrent) * currentVoteTarget * 0.01;
-        methodConfidence[1] = 0.01;
+        // With only one reporting centre, its weight cancels in the mean.
+        // Also discount how strongly this method competes with other ones.
+        methodConfidence[1] = 0.01 * summedWeight / untaperedWeight;
         tcpFirst[1] = tcpEstimateCurrent;
         tcpSecond[1] = currentVoteTarget - tcpEstimateCurrent;
       } else {

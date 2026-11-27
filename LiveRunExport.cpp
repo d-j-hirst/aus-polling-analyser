@@ -1185,6 +1185,9 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 				{"count_log_odds_variance",parties.values(moments.count.logOddsVariance)},
 				{"individual_count_weights",parties.values(weights)}
 			};
+			if (std::any_of(moments.boothComparisons.begin(),moments.boothComparisons.end(),
+				[](auto const& row) { return row.second.ppvcFormal>0; }))
+				seatJson["fp_integration"]["method"] = "split_booth_fit";
 			if (!moments.boothComparisons.empty()) {
 				// A later replay or commentary comparison can hold the earlier
 				// precision fixed and recompute the marginal centre from these
@@ -1200,12 +1203,13 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 					double const fixed = LiveFpIntegration::value(counted,party);
 					rows.push_back({{"party_index",party},{"fixed_fraction",number(fixed/size)},
 						{"ordinary_fraction",number(b.ordinary/moments.reportedFormal)},
-						{"matched_fraction",number(b.matched/b.ordinary)},
+						{"matched_fraction",number(b.ordinary>0 ? b.matched/b.ordinary : 0)},
 						{"breadth",number(b.matched > 0 ? 1-b.largestMatched/b.matched : 0)},
 						{"booth_remaining_share",number((LiveFpIntegration::value(mean,party)-fixed)/future)},
 						{"prior_remaining_log_odds",number(b.priorRemainingCentre)},
 						{"local_log_odds_change",number(b.localMovement)}});
 					if (b.fittedRemaining) rows.back()["fitted_remaining_share"] = number(*b.fittedRemaining);
+					if (b.ppvcFormal>0) rows.back()["ppvc_fraction"] = number(b.ppvcFormal/moments.reportedFormal);
 				}
 				inputs["ordinary_comparisons"] = std::move(rows);
 			}
@@ -1297,6 +1301,10 @@ nlohmann::json LiveV2::Election::getDiagnosticSnapshot() const
 				Results2::Booth::boothTypeName(booth.boothType);
 			boothJson["coords"] = optionalCoords(booth.coords);
 			boothJson["same_seat"] = booth.sameSeat;
+			if (booth.transferredCoalition) {
+				if (booth.transferredCoalition->useLiveDistrictSplit) boothJson["uses_district_coalition_split"] = true;
+				else boothJson["transferred_coalition_relative_nat_odds"] = booth.transferredCoalition->nationalOddsFactor;
+			}
 			if (booth.evcDistrictAccount >= 0) {
 				// The opening TPP and raw VEC location ID let a local replay
 				// compare the actual return with the estimate for this venue.
@@ -1520,6 +1528,8 @@ std::optional<std::filesystem::path> LiveRunExport::exportCompletedAutomaticLive
 			{"iterations", iterations},
 			{"output_set", folder}
 		};
+		document["run"]["transferred_coalition_split_enabled"] =
+			LiveResultsInput::transferredCoalitionAdjustmentEnabled(run.getSnapshotInput());
 		if (run.getSnapshotInput()) {
 			document["run"]["joint_fp_support_trial"] = run.getSnapshotInput()->jointFpTrial;
 			document["run"]["input_snapshot_code"] = run.getSnapshotInput()->timestamp.value_or("");

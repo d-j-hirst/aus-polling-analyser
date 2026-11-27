@@ -9,6 +9,9 @@ when a booth's total or the seat's winning chances do not change.
 def affected_ballots(before, after):
     """Moving ten votes between candidates affects ten ballots even though
     both candidates' counts change. A change in turnout can also be one-sided."""
+    # All booths are compared even when only a few reported new counts.
+    if before == after:
+        return 0
     differences = [after.get(p, 0)-before.get(p, 0) for p in before.keys() | after.keys()]
     return max(sum(max(0, v) for v in differences), sum(max(0, -v) for v in differences))
 

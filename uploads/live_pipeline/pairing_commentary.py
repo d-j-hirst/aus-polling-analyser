@@ -110,6 +110,73 @@ def matchup_outlook(summary, seat, subject, opponent):
     return chance, inside, outside
 
 
+def effectively_decided(before, after):
+    """The same finalist won at least 98% of this matchup at both updates."""
+    return min(before, after) >= 98 or max(before, after) <= 2
+
+
+def matchup_frequency_point(seat, pair, before, after):
+    """Describe a pairing as a share of all simulations."""
+    first, second = ('{candidate:'+seat+':'+party+'}' for party in pair)
+    if round(before, 1) == round(after, 1):
+        return f'The chance of a matchup between {first} and {second} held at **{after:.1f}%**.'
+    verb = 'rose' if after > before else 'fell'
+    return f'The chance of a matchup between {first} and {second} {verb} from **{before:.1f}%** to **{after:.1f}%**.'
+
+
+def matchup_win_point(seat, subject, before, after):
+    """Describe wins as a share of simulations of the pairing just named."""
+    point = f'{{candidate:{seat}:{subject}}} won **{after:.1f}%** of those simulations'
+    if before is not None and round(before, 1) != round(after, 1):
+        point += f', {"up" if after > before else "down"} from **{before:.1f}%**'
+    return point + '.'
+
+
+def alternative_matchup_points(seat, endpoints, pair, change, entities):
+    """Name the other finals that account for a substantial opposing movement.
+
+    The paired probabilities are shares of all simulations at each update.
+    Use pairs with measured frequencies and the same named candidates in both
+    forecasts. A missing entry can be an omitted rare pairing, so its change
+    is unknown. Report up to two moves of at least three percentage points
+    that each represent at least a quarter of the main pairing's change.
+    For alternatives involving the candidate under discussion, show how
+    often they won that particular final. Even a steady win rate explains
+    why facing this opponent more often matters to their overall chances.
+    """
+    old, new = (summary['seats'][seat] for summary in endpoints)
+    subject = pair[0]
+    main = set(pair)
+    latest = {frozenset(key.split('/')): chance for key, chance in new['pairing_percent'].items()}
+    alternatives = []
+    for key, before in old['pairing_percent'].items():
+        members = key.split('/')
+        identities = frozenset(members)
+        if len(members) != 2 or len(identities) != 2 or identities == main:
+            continue
+        after = latest.get(identities)
+        if after is None or (after-before)*change >= 0 or abs(after-before) < max(3, abs(change)/4):
+            continue
+        if any(not (old['candidates'].get(p) or {}).get('name')
+               or old['candidates'][p] != new['candidates'].get(p)
+               or (entities is not None and '{candidate:'+seat+':'+p+'}' not in entities)
+               for p in members):
+            continue
+        alternatives.append((abs(after-before), members, before, after))
+    points = {}
+    for _, members, before, after in sorted(alternatives, reverse=True)[:2]:
+        first, second = ('{candidate:'+seat+':'+p+'}' for p in members)
+        direction = 'more' if after > before else 'less'
+        point = f'{first} vs {second} became {direction} likely (**{before:.1f}%** to **{after:.1f}%**).'
+        if subject in members:
+            opponent = next(p for p in members if p != subject)
+            prior, current = (pair_win_rate(s, seat, subject, opponent) for s in endpoints)
+            if current is not None:
+                point += ' ' + matchup_win_point(seat, subject, prior[1] if prior is not None else None, current[1])
+        points[frozenset(members)] = point
+    return points
+
+
 def both_finalists_gain(row, opponent, endpoints, win_changes):
     """Explain how both usual finalists can gain overall in a near-even seat.
     Count wins in their shared matchup as a fraction of all simulations. The
@@ -202,6 +269,29 @@ def qualifying_shift(districts, favoured, change):
     return max(abs(low-change), abs(high-change)) <= abs(change) / 4
 
 
+def rival_for_second(districts, finalist, challenger, frequencies):
+    """Identify the other candidate competing to face the same finalist.
+    Require the same two alternatives to account for virtually all finals at
+    both dates. The allowance for other outcomes is at most one point of all
+    draws, and at most a quarter of the change we are trying to explain."""
+    allowance = min(1, abs(frequencies[1]-frequencies[0])/4)
+    rivals = []
+    for district, frequency in zip(districts, frequencies):
+        alternatives = {}
+        for key, chance in district['pairing_percent'].items():
+            pair = key.split('/')
+            if len(set(pair)) == len(pair) == 2 and finalist in pair and challenger not in pair:
+                alternatives[pair[1] if pair[0] == finalist else pair[0]] = chance
+        rival = max(alternatives, key=alternatives.get, default=None)
+        if rival is None or 100-frequency-alternatives[rival] > min(allowance, (100-frequency)/4):
+            return None
+        rivals.append(rival)
+    identity = districts[0]['candidates'].get(rivals[0]) or {}
+    if rivals[0] == rivals[1] and identity.get('name') and identity == districts[1]['candidates'].get(rivals[1]):
+        return rivals[0]
+    return None
+
+
 def contest_for_second(row, opponent, endpoints):
     """Explain an apparently contrary FP return when the candidate's main
     route to winning was to qualify ahead of a third candidate. The booth
@@ -230,24 +320,8 @@ def contest_for_second(row, opponent, endpoints):
             or abs(contribution) < abs(delta)/2 or not qualifying_shift(districts, subject, change)):
         return None
 
-    # Name the rival for second only when these two alternatives account
-    # for virtually every final at both dates. Even if all the remaining
-    # draws involved someone else, they could explain at most a quarter of
-    # the pairing change at either date, capped at one point of all draws.
-    allowance = min(1, abs(change)/4)
-    challengers = []
-    for district, frequency in zip(districts, (p0, p1)):
-        rivals = {}
-        for key, chance in district['pairing_percent'].items():
-            pair = key.split('/')
-            if len(pair) == 2 and opponent in pair and subject not in pair:
-                rivals[pair[1] if pair[0] == opponent else pair[0]] = chance
-        third = max(rivals, key=rivals.get, default=None)
-        if third is None or 100-frequency-rivals[third] > min(allowance, (100-frequency)/4):
-            return None
-        challengers.append(third)
-    third = challengers[0]
-    if third != challengers[1] or not same_candidate(third):
+    third = rival_for_second(districts, opponent, subject, (p0, p1))
+    if third is None:
         return None
 
     person, finalist, competitor = ('{candidate:'+seat+':'+p+'}' for p in (subject, opponent, third))
@@ -269,7 +343,7 @@ def contest_for_second(row, opponent, endpoints):
     return text + f' {person} won **{w1:.1f}%** of those matchups at both updates.'
 
 
-def reaching_final_more_often(row, opponent, endpoints):
+def reaching_final_more_often(row, opponent, endpoints, minimum_change=3):
     """Separate qualifying for the final count from winning it. A candidate
     can gain overall even after a weak local primary if they are excluded
     less often. The published pairing table can omit very rare finals, so
@@ -286,7 +360,7 @@ def reaching_final_more_often(row, opponent, endpoints):
             return None
         chances.append(sum(v for key, v in pairs.items() if party in key.split('/')))
     before, after = chances
-    if min(chances) <= 0 or (after-before)*row['change_pp'] <= 0 or abs(after-before) < 3:
+    if min(chances) <= 0 or (after-before)*row['change_pp'] <= 0 or abs(after-before) < minimum_change:
         return None
     wins = [d.get('win_percent', {}).get(party, 0) for d in districts]
     # Hold the average chance of winning once qualified fixed. Require the
@@ -342,21 +416,25 @@ def changed_opponents_after_weak_primary(row, endpoints):
             # at least half the overall win gain at those observed win rates.
             advantage = min(better0-win0,better1-win1)
             if exchanged >= 5 and advantage >= 3 and exchanged*advantage/100 >= row['change_pp']/2:
-                swaps.append((exchanged*advantage,hard,easy,old_h,new_h,win1,better1))
+                swaps.append((exchanged*advantage, hard, easy, (old_h, new_h, win1), (old_e, new_e, better1)))
     if not swaps:
         return None
-    _,hard,easy,old,new,win,better = max(swaps)
-    subject, difficult, easier = ('{candidate:'+seat+':'+p+'}' for p in (party,hard,easy))
-    return hard, (f'The chance of {subject} facing {difficult} fell from **{old:.1f}%** to **{new:.1f}%**. '
-                  f'A final against {easier} became more likely. {subject} won **{better:.1f}%** of those '
-                  f'simulations, compared with **{win:.1f}%** against {difficult}.')
+    _, hard, easy, harder_outlook, easier_outlook = max(swaps)
+    subject = '{candidate:'+seat+':'+party+'}'
+    points = []
+    for opponent, (before, after, wins) in ((hard, harder_outlook), (easy, easier_outlook)):
+        point = matchup_frequency_point(seat, (party, opponent), before, after)
+        points.append(f'{point} {subject} won **{wins:.1f}%** of those simulations.')
+    return hard, '\n- '.join(points)
 
 
-def mixed_matchup_explanation(row, endpoints):
-    """Look for two simultaneous changes: which opponent the candidate faces,
-    and how often they win a specified contest. Compare the same people in
-    both forecasts. The observations describe simulated outcomes, so they
-    do not assign a causal effect to any particular booth."""
+def mixed_matchup_explanation(row, endpoints, entities):
+    """Look for changes in who reaches the final, or who wins within it.
+
+    Explain a combination of both, or an improvement or decline against
+    several opponents. Compare the same people in both forecasts. The
+    simulated outcomes do not assign a causal effect to any particular booth.
+    """
     seat, subject, delta = row['seat'], row['party_id'], row['change_pp']
     old, new = [s['seats'][seat] for s in endpoints]
     frequencies, strengths = [], []
@@ -375,6 +453,8 @@ def mixed_matchup_explanation(row, endpoints):
                old['candidates'][p] != new['candidates'].get(p) for p in parties):
             continue
         opponent = next(p for p in parties if p != subject)
+        if entities is not None and '{candidate:'+seat+':'+opponent+'}' not in entities:
+            continue
         samples = [matchup_outlook(s, seat, subject, opponent) for s in endpoints]
         if None in samples:
             continue
@@ -390,39 +470,67 @@ def mixed_matchup_explanation(row, endpoints):
                 (favoured and (p1-p0)*direction > 0 or difficult and (p1-p0)*direction < 0)):
             frequencies.append((abs(frequency), opponent, p0, p1, favoured))
         if abs(w1-w0) >= 3 and strength*direction >= minimum:
-            strengths.append((abs(strength), opponent, w0, w1))
-    if not frequencies or not strengths:
+            strengths.append((abs(strength), opponent, p0, p1, w0, w1))
+    if not strengths:
         return None
+    strengths.sort(reverse=True)
+    if not frequencies:
+        # A candidate can improve against two likely opponents even when
+        # the shift in which opponent they face does not help them. Show both
+        # contests if their win-rate changes together account for at least
+        # half the overall movement, measured at their average frequencies.
+        strongest = strengths[:2]
+        if len(strongest) < 2 or sum(result[0] for result in strongest) < abs(delta)/2:
+            return None
+        return '\n- '.join(
+            matchup_frequency_point(seat, (subject, opponent), p0, p1) + ' ' +
+            matchup_win_point(seat, subject, w0, w1)
+            for _, opponent, p0, p1, w0, w1 in strongest)
     # With two possible opponents the frequency comparisons can describe
     # precisely the same shift. Lead with the favourable matchup in a tie
     # at reporting precision, rather than letting party IDs decide the story.
     _, opponent, p0, p1, favoured = max(frequencies, key=lambda item: (round(item[0], 1), item[4], item[0]))
-    _, other, w0, w1 = max(strengths)
+    _, other, _, _, w0, w1 = strengths[0]
     person = '{candidate:'+seat+':'+subject+'}'
-    rival = '{candidate:'+seat+':'+opponent+'}'
-    second = '{candidate:'+seat+':'+other+'}'
-    prospect = 'was favoured' if favoured else 'was the underdog'
-    return (f'The chance of {person} facing {rival} {"rose" if p1 > p0 else "fell"} '
-            f'from **{p0:.1f}%** to **{p1:.1f}%**. {person} {prospect} in that contest. '
-            f'When facing {second}, the win chance for {person} also {"rose" if w1 > w0 else "fell"} '
-            f'from **{w0:.1f}%** to **{w1:.1f}%**.')
+    pair = subject, opponent
+    point = matchup_frequency_point(seat, pair, p0, p1)
+    prospect = 'remained favoured' if favoured else 'remained the underdog'
+    alternatives = alternative_matchup_points(seat, endpoints, pair, p1-p0, entities)
+    direction = 'up' if w1 > w0 else 'down'
+    if other == opponent:
+        point += (f' {person} {prospect} in that matchup, winning **{w1:.1f}%** of those simulations, '
+                  f'{direction} from **{w0:.1f}%**.')
+    else:
+        point += f' {person} {prospect} in that matchup.'
+        other_candidate = '{candidate:'+seat+':'+other+'}'
+        # A change in win rate may warrant its own bullet even when that
+        # pairing's frequency barely moved. Otherwise its bullet has the rate.
+        other_pair = frozenset((subject, other))
+        if other_pair not in alternatives and (entities is None or other_candidate in entities):
+            verb = 'rose' if w1 > w0 else 'fell'
+            alternatives[other_pair] = (f'The chance of {person} winning against {other_candidate} '
+                                        f'{verb} from **{w0:.1f}%** to **{w1:.1f}%**.')
+    return '\n- '.join((point, *alternatives.values()))
 
 
-def explain(row, endpoints):
-    """Choose at most one explanation for an already newsworthy win change.
+def explain(row, endpoints, *, entities=None):
+    """Choose a matchup explanation and, when identifiable, the two candidates
+    competing to face the subject, ordered by who gained chances of qualifying.
+    The writer compares those challengers' primary votes in a separate bullet.
     The two-point minimum and the dominance tests below are editorial choices.
     The summaries come from the two saved forecasts for this exact window."""
     if not endpoints or abs(row['change_pp']) < 2:
-        return None
+        return None, None
     previous, current = endpoints
     if previous['input_revision'] != current['input_revision']:
-        return None
+        return None, None
     seat, subject = row['seat'], row['party_id']
     if any(seat not in summary['seats'] for summary in endpoints):
-        return None
+        return None, None
     districts = [summary['seats'][seat] for summary in endpoints]
     identities = [district['candidates'] for district in districts]
     best = None
+    loss_matchup = None
     for pair in districts[0].get('pairing_percent', {}):
         members = pair.split('/')
         if len(members) != 2 or members[0] == members[1] or subject not in members:
@@ -435,15 +543,7 @@ def explain(row, endpoints):
         if None in samples:
             continue
         (p0, win0, other0), (p1, win1, other1) = samples
-        if min(win0, win1) >= 60:
-            favoured = subject
-        elif max(win0, win1) <= 40:
-            favoured = opponent
-        else:
-            continue  # Both forecasts must clearly favour the same candidate in the pair.
         change = p1 - p0
-        if change * row['change_pp'] * (1 if subject == favoured else -1) <= 0:
-            continue
         # Overall win chance is a weighted average of wins inside and outside
         # this matchup. Change the frequency while holding those two win rates
         # at their endpoint averages. The other two terms change the win rates
@@ -456,24 +556,59 @@ def explain(row, endpoints):
         if (frequency_effect * row['change_pp'] <= 0 or
                 abs(frequency_effect) < 2 * (abs(inside_effect) + abs(outside_effect))):
             continue  # At least two thirds of the absolute movement must come from frequency.
+        # A favourite can win almost every draw outside one competitive final.
+        # Describe that opponent even when neither candidate has a 60% chance
+        # against the other. Check their defeats as a share of ALL simulations
+        # so a rare pairing cannot take credit for losses incurred elsewhere.
+        losses_change = p1*(100-win1)/100 - p0*(100-win0)/100
+        delta = row['change_pp']
+        if (min(other0, other1) >= 98 and not effectively_decided(win0, win1)
+                and losses_change*delta < 0 and abs(losses_change) >= abs(delta)/2):
+            if loss_matchup is None or abs(frequency_effect) > loss_matchup[0]:
+                loss_matchup = abs(frequency_effect), opponent, p0, p1, win0, win1
+        if min(win0, win1) >= 60:
+            favoured = subject
+        elif max(win0, win1) <= 40:
+            favoured = opponent
+        else:
+            continue
+        if change * delta * (1 if subject == favoured else -1) <= 0:
+            continue
         # Usually a contender gains or loses a place in the final. A candidate
         # who already qualifies can also gain just by facing an easier opponent
         # more often. The same frequency test establishes that distinction.
         rank = (qualifying_shift(districts, favoured, change), abs(frequency_effect))
         if best is None or rank > best[0]:
-            best = rank, favoured, opponent, p0, p1, win1
-    if best is None:
-        return mixed_matchup_explanation(row, endpoints)
-    rank, favoured, opponent, p0, p1, win1 = best
-    other = opponent if favoured == subject else subject
-    verb = 'rose' if p1 > p0 else 'fell'
-    outcome = 'gain' if row['change_pp'] > 0 else 'drop'
-    if not rank[0]:
-        return (f'The chance of {{candidate:{seat}:{subject}}} facing {{candidate:{seat}:{opponent}}} {verb} '
-                f'from **{p0:.1f}%** to **{p1:.1f}%**. {{candidate:{seat}:{subject}}} won **{win1:.1f}%** '
-                f'of those simulations. The change in opponent accounted for most of the {outcome} in win chance.')
-    return (f'The latest forecast still favours {{candidate:{seat}:{favoured}}} to beat '
-            f'{{candidate:{seat}:{other}}} if they reach the final two. '
-            f'The chance of that pairing {verb} from **{display.decimal(p0)}%** '
-            f'to **{display.decimal(p1)}%**, accounting for most of the {outcome} in win chance for '
-            f'{{candidate:{seat}:{subject}}}.')
+            best = rank, favoured, opponent, p0, p1, win0, win1
+    # Keep an informative explanation of who qualified for a competitive
+    # final. If the alternative is a routine victory, lead with the contest
+    # where this candidate actually stood to lose the seat.
+    if loss_matchup and (best is None or effectively_decided(*best[-2:]) or not best[0][0]):
+        _, opponent, p0, p1, win0, win1 = loss_matchup
+        point = (matchup_frequency_point(seat, (subject, opponent), p0, p1) + ' ' +
+                 matchup_win_point(seat, subject, win0, win1))
+    elif best is None:
+        return mixed_matchup_explanation(row, endpoints, entities), None
+    else:
+        rank, favoured, opponent, p0, p1, _, win1 = best
+        other = opponent if favoured == subject else subject
+        verb = 'rose' if p1 > p0 else 'fell'
+        outcome = 'gain' if row['change_pp'] > 0 else 'drop'
+        if not rank[0]:
+            point = (matchup_frequency_point(seat, (subject, opponent), p0, p1) +
+                     f' {{candidate:{seat}:{subject}}} won **{win1:.1f}%** '
+                     f'of those simulations. The change in opponent accounted for most of the {outcome} in win chance.')
+        else:
+            point = (f'The latest forecast still favours {{candidate:{seat}:{favoured}}} to beat '
+                     f'{{candidate:{seat}:{other}}} if they reach the final two. '
+                     f'The chance of that pairing {verb} from **{display.decimal(p0)}%** '
+                     f'to **{display.decimal(p1)}%**, accounting for most of the {outcome} in win chance for '
+                     f'{{candidate:{seat}:{subject}}}.')
+
+    alternatives = alternative_matchup_points(seat, endpoints, (subject, opponent), p1-p0, entities)
+    point = '\n- '.join((point, *alternatives.values()))
+    displaced = rival_for_second(districts, subject, opponent, (p0, p1))
+    if displaced is None or not qualifying_shift(districts, opponent, p1-p0):
+        return point, None
+    challengers = (opponent, displaced) if p1 > p0 else (displaced, opponent)
+    return point, challengers

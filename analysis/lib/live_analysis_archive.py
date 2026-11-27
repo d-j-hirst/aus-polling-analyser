@@ -31,18 +31,19 @@ def _field_code(index):
 def _expand_fields(value, names):
     # Rename objects in place so reading a large archive does not retain a
     # second complete tree of all intermediate diagnostic calculations.
-    if isinstance(value, list):
-        for item in value:
-            _expand_fields(item, names)
-    elif isinstance(value, dict):
-        renamed = []
-        for code, item in value.items():
-            if code not in names:
-                raise ValueError(f'Unknown live-analysis field code: {code!r}')
-            _expand_fields(item, names)
-            renamed.append((names[code], item))
+    if isinstance(value, dict):
+        try:
+            renamed = {names[code]: item for code, item in value.items()}
+        except KeyError as error:
+            raise ValueError(f'Unknown live-analysis field code: {error.args[0]!r}') from None
         value.clear()
         value.update(renamed)
+        value = value.values()
+    # Most entries are vote counts or other scalar measurements. Only
+    # containers can hold another encoded field.
+    for item in value:
+        if isinstance(item, (dict, list)):
+            _expand_fields(item, names)
 
 
 def _reference(table, index, kind):
@@ -61,11 +62,16 @@ def _expand_identities(document):
     for booth in booths:
         booth['seat_name'] = _reference(seats, booth.pop('seat_ref'), 'seat')
 
+    label_references = {
+        'seat_ref': ('seat', seats, 'seat'), 'seat_name_ref': ('seat_name', seats, 'seat'),
+        'name_seat_ref': ('name', seats, 'seat'), 'region_name_ref': ('region_name', regions, 'region'),
+        'name_region_ref': ('name', regions, 'region'), 'booth_name_ref': ('booth', booths, 'booth'),
+        'name_booth_ref': ('name', booths, 'booth'),
+    }
+    label_keys = label_references.keys()
+
     def visit(value):
-        if isinstance(value, list):
-            for item in value:
-                visit(item)
-        elif isinstance(value, dict):
+        if isinstance(value, dict):
             if 'party_ref' in value:
                 index = value.pop('party_ref')
                 if isinstance(index, bool) or not isinstance(index, int) or str(index) not in parties:
@@ -74,17 +80,16 @@ def _expand_identities(document):
                 value.update(parties[str(index)])
             if 'booth_identity_ref' in value:
                 value.update(_reference(booths, value.pop('booth_identity_ref'), 'booth'))
-            for reference, field in (('seat_ref', 'seat'), ('seat_name_ref', 'seat_name'),
-                                     ('name_seat_ref', 'name')):
-                if reference in value:
-                    value[field] = _reference(seats, value.pop(reference), 'seat')
-            for reference, field in (('region_name_ref', 'region_name'), ('name_region_ref', 'name')):
-                if reference in value:
-                    value[field] = _reference(regions, value.pop(reference), 'region')
-            for reference, field in (('booth_name_ref', 'booth'), ('name_booth_ref', 'name')):
-                if reference in value:
-                    value[field] = _reference(booths, value.pop(reference), 'booth')['name']
-            for item in value.values():
+            # Most nested records are per-party measurements and carry no
+            # other identity. Check for these references before restoring labels.
+            if not label_keys.isdisjoint(value):
+                for reference, (field, table, kind) in label_references.items():
+                    if reference in value:
+                        label = _reference(table, value.pop(reference), kind)
+                        value[field] = label['name'] if kind == 'booth' else label
+            value = value.values()
+        for item in value:
+            if isinstance(item, (dict, list)):
                 visit(item)
     visit(document)
 

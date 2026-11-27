@@ -27,7 +27,15 @@ struct CurrentFile {
 	std::optional<std::string> sourceObservationTime = std::nullopt;
 	// Only an explicitly configured snapshot sequence requests the experimental FP fit.
 	bool jointFpTrial = false;
+	// Manual snapshot comparisons can turn off the standard LIB/NAT booth estimate.
+	bool adjustTransferredCoalition = true;
 };
+
+// Direct live inputs have no selected capture. They and ordinary watched
+// deliveries use the same booth geography as a newly opened snapshot sequence.
+inline bool transferredCoalitionAdjustmentEnabled(std::optional<CurrentFile> const& selected) {
+	return !selected || selected->adjustTransferredCoalition;
+}
 
 struct PreferenceCountCutoff {
 	std::string time;

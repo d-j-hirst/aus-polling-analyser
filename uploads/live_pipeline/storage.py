@@ -19,7 +19,9 @@ def atomic(path, value):
     temporary = path.with_name(path.name + '.tmp')
     raw = json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(',', ':')).encode('utf-8')
     if path.suffix == '.gz':
-        raw = gzip.compress(raw, mtime=0)
+        # The live worker writes its local evidence before it can compare the
+        # forecast. Medium compression is lossless and spends less time there.
+        raw = gzip.compress(raw, compresslevel=6, mtime=0)
     with temporary.open('wb') as stream:
         stream.write(raw)
         stream.flush()

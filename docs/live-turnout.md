@@ -916,6 +916,14 @@ replayed to assess election-level effects.
 
 ## Rechecking preferences on counted ballots
 
+### When the FP and TCP leads move by different amounts
+
+A large cumulative count can grow while ballots already counted move between candidates. The live model compares successive FP and TCP leads for the same finalists at the same reporting location. It checks compulsory-preference counts where both tallies cover at least 10,000 ballots and differ in size by at most 1% of the FP total at both observations. The TCP tally must grow, the FP total must hold or grow, and one finalist must lose primary votes. A change of at least 150 votes in the difference between the two leads, against the finalist losing primaries, qualifies. These screening thresholds come from inspecting the 2022 Victorian counts. An unchanged TCP remains with the existing FP-revision treatment.
+
+For example, in Pakenham the Early FP lead moved 363 votes towards Labor while the TCP lead moved 25 votes the other way. Moving 194 ballots between finalists would explain the 388-vote discrepancy. One third of simulations keep the published TCP allocation, one third transfer the full 194 ballots, and the remaining third spread uniformly between the two. These probabilities are assumptions about which count will hold. The feed cannot identify each disputed ballot. A simulation moves the same ballots in its counted and projected totals, preserving turnout and outstanding votes. Later comparable counts can narrow or resolve the discrepancy. A different pairing, an explicitly rechecked TCP or a final district result supersedes it.
+
+### Comparing a booth’s preference flow with similar booths
+
 Preference rechecking allows a reported TCP allocation to be revised without
 adding votes. It is independent of turnout and outstanding-vote uncertainty.
 Raw feed counts and FP counts remain unchanged. A scenario can transfer existing

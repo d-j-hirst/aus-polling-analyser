@@ -3,8 +3,10 @@
 #include "LivePartialCount.h"
 #include "LiveTurnoutMath.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <utility>
 #include <vector>
 
@@ -113,6 +115,21 @@ void transfer(Counted& counted, Projected& projected, int partyA, int partyB, do
     counted.at(partyB) -= revision;
     projected.at(partyA) = static_cast<typename Projected::mapped_type>(projectedA);
     projected.at(partyB) = static_cast<typename Projected::mapped_type>(projectedB);
+}
+
+// The turnout account can be for a different pair, particularly across a
+// realignment. Apply an identified FP/TCP discrepancy only to its own two
+// candidates and return the signed number moved towards the first finalist.
+// Both accounts must still contain the votes after any other turnout revision.
+inline double transferWithinPair(std::map<int,double>& counted, std::map<int,double>& projected,
+    int first, int second, double votesToFirst) {
+    if (projected.size() != 2 || !projected.contains(first) || !projected.contains(second) ||
+        !counted.contains(first) || !counted.contains(second)) return 0.;
+    double const availableFirst = std::min(counted.at(first),projected.at(first));
+    double const availableSecond = std::min(counted.at(second),projected.at(second));
+    double const transferVotes = std::clamp(votesToFirst,-availableFirst,availableSecond);
+    transfer(counted,projected,first,second,transferVotes);
+    return transferVotes;
 }
 
 } // namespace LivePreferenceCorrections

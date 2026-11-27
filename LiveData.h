@@ -197,14 +197,19 @@ struct FpBoothComparison {
 	std::optional<double> priorCentre;
 	double priorRemainingCentre = 0, boothRemainingCentre = 0;
 	double localMovement = 0;
-	// Joint ordinary-booth fit for the remaining electorate, when the
+	// Joint booth fit for the remaining electorate, when the
 	// ballot and its opening geography support that comparison.
 	std::optional<double> fittedRemaining = std::nullopt;
+	// Actual PPVC ballots covered by the joint fit, separate from ordinary.
+	double ppvcFormal = 0;
+	// PPVCs use a common degree of tightening for every named candidate.
+	// Ordinary evidence retains the existing candidate-specific precision.
+	double ppvcEvidenceFraction = 0, jointResponse = 0;
 };
 struct FpIntegrationInformation {
 	FpDistributionMoments baseline, count;
 	std::map<int,FpBoothComparison> boothComparisons;
-	// Fractions of outstanding FP at each venue in the ordinary-booth fit,
+	// Fractions of outstanding FP at each venue in the joint booth fit,
 	// before blending paths and reconciling the published district forecast.
 	std::map<int,std::map<int,double>> venueFitShares;
 	double reportedFormal = 0;

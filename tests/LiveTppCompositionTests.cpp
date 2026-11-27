@@ -1603,6 +1603,11 @@ void testFixedCoalitionOpponent() {
     both.update(scenario,fp,10,-1,100,normal);
     checkClose(scenario.results.labor[0],59);
     checkClose(scenario.results.labor[1],47);
+    // Revising three counted ballots towards Labor against Liberal cannot
+    // also change the count against the National candidate.
+    both.update(scenario,fp,10,-1,100,normal,{3,0});
+    checkClose(scenario.results.labor[0],62);
+    checkClose(scenario.results.labor[1],47);
     assert(scenario.results.counted[0] && scenario.results.counted[1]);
 }
 

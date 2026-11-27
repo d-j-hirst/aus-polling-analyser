@@ -200,7 +200,7 @@ def read_xlsx_rows(data, label, sheet_name=None):
                     text.text or ''
                     for text in cell.findall('.//m:t', namespace)
                 )
-            elif cell_type not in (None, 'n'):
+            elif cell_type not in (None, 'n', 'str'):
                 raise turnout_data.TurnoutDataError(
                     '{} has unsupported cell type {!r} at {}'.format(
                         label, cell_type, reference

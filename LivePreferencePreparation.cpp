@@ -78,6 +78,10 @@ void LiveV2::Election::preparePreferenceCorrections(LiveInputRecovery::RecordSta
         for (int b : seat.booths) {
             auto const& booth = readBooths()[b];
             auto const& n = booth.node;
+            // A detected reallocation between the FP and growing TCP tallies
+            // gets its own bounded draw below the turnout handoff. Do not also
+            // fit an exceptional preference flow to that same booth account.
+            if (booth.directionalRecheck) { exclude("directional_fp_tcp_revision"); continue; }
             if (booth.voteType != Results2::VoteType::Ordinary
                 || (booth.boothType != Results2::Booth::Type::Normal && booth.boothType != Results2::Booth::Type::Ppvc)) {
                 exclude("different_reporting_service"); continue;
@@ -150,6 +154,10 @@ void LiveV2::Election::preparePreferenceCorrections(LiveInputRecovery::RecordSta
         diagnostic["seats"].push_back(std::move(seatDiagnostic));
     }
     diagnostic["comparable_booths"] = comparableBooths;
+    for (auto const& change : directionalCountRevisions)
+        diagnostic["directional_count_revisions"].push_back({{"seat",seats.at(change.seat).name},
+            {"unit",readBooths().at(change.booth).name},{"first_party",change.first},{"second_party",change.second},
+            {"fp_endpoint_votes_to_first",change.votesToFirst}});
     diagnostic["seconds"] = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
     logger << "Preference rechecking preparation: " << diagnostic["seconds"] << " seconds\n";
     preferenceCorrectionDiagnostic = std::make_shared<json const>(std::move(diagnostic));

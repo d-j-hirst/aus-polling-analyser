@@ -4,13 +4,49 @@
 // candidate-profile assessments. SimulationIteration uses the centrist/populist
 // baseline before seat polls and its prominent-candidate supplements afterwards.
 // The viability scale is shared with the existing Greens/independent calculations.
-// All shares still pass through normalization, statewide FP reconciliation and
-// any subsequent integration of live votes.
+// The reconciliation below brings these seat shares towards the overall party
+// target before any live votes are incorporated.
 
 #include "General.h"
+#include "SpecialPartyCodes.h"
 #include <optional>
 
 namespace MinorPartyFpMath {
+
+// Apply the election-wide FP correction for one party to one eligible seat
+// in this draw. Shares are percentages of formal votes. The factor is the
+// party's election-wide target divided by its current election-wide share.
+// A missing entry or an exact zero has no local votes to scale, even when
+// the party is polling strongly elsewhere. In particular, the simulation
+// can keep a zero placeholder for an emerging party on a fully known ballot.
+// Return false if the calculation for a participating candidate is non-finite.
+inline bool reconcilePartyPrimary(std::map<int, double>& primaries, int party,
+	double overallShare, double factor)
+{
+	auto entry = primaries.find(party);
+	if (entry == primaries.end() || entry->second == 0.0) return true;
+
+	double const localShare = entry->second;
+	// Retain the existing cap on a local increase: at most three times the
+	// increase sought across the election, in percentage points.
+	double const swingCap = std::max(0.0, overallShare * (factor - 1.0) * 3.0);
+	double const swing = std::min(swingCap, localShare * (factor - 1.0));
+	double corrected;
+	if (party == EmergingPartyIndex) {
+		// A direct adjustment can reach the overall target even when support
+		// is spread thinly. The inherited 0.01% floor applies only to a party
+		// already receiving votes in this seat and draw.
+		corrected = factor < 1.0 ? localShare * factor : localShare + swing;
+		if (!std::isfinite(corrected)) return false;
+		corrected = std::clamp(corrected, 0.01, 99.0);
+	}
+	else {
+		corrected = predictorCorrectorTransformedSwing(localShare, swing);
+		if (!std::isfinite(corrected)) return false;
+	}
+	entry->second = corrected;
+	return true;
+}
 
 // Previous local support outside Labor, the Coalition and the Greens informs
 // both the Others baseline and the prospects for emerging independents.

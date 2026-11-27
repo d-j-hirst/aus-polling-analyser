@@ -686,13 +686,17 @@ def compare(current, previous, history, current_evidence, previous_evidence, zer
                         p: 100*(measured[p]/sum(measured.values())-forecast[p]/sum(forecast.values()))
                         for p in measured.keys() & forecast.keys()}
                 if fp_changed and sum(measured.values()) > 0:
-                    estimates = rule_evidence.booth_projection_after_preferences(
+                    estimates, conflicting_benchmark = rule_evidence.booth_projection_after_preferences(
                         original_before['booths'][key], original_after['booths'][key],
                         event['seat'], previous, current, ranked_pairs,
                         earlier_tcp=earlier_tcp, booth_key=key, expected_fp=forecast, measured_fp=measured,
                         reference_evidence=original_before, current_evidence=original_after)
                     if estimates:
                         event['rule_booth_tcp_estimates'] = estimates
+                    if conflicting_benchmark:
+                        event.pop('fp_share_minus_previous_expectation_pp', None)
+                        if not any(old[key]['fp_votes_current'].values()):
+                            event['rule_unbenchmarked_fp'] = measured
             elif kind == 'booths':
                 # Newly introduced or removed units have no matching booth
                 # expectation, but their actual net count change is still known.
@@ -901,12 +905,16 @@ def comparisons(current, summaries, load_evidence, config, load_summary=None):
             continue
         identity = anchor['forecast_id']
         if identity not in cache:
+            # Each window has its own baseline, but the current diagnostic
+            # is the same immutable evidence for all of them.
+            if not cache:
+                current_evidence = load_evidence(current['forecast_id'])
             history = [s for s in earlier if anchor.get('origin') or
                        not s.get('origin') and instant(s['source_time'], zone) >= instant(anchor['source_time'], zone)]
             complete_anchor = load_summary(identity) if load_summary else anchor
             continuing_pairs = tcp_reporting.continuing_realigned_pairs(complete_anchor, current, earlier)
             cache[identity] = compare(current, complete_anchor, history,
-                                      load_evidence(current['forecast_id']), load_evidence(identity), zero_count_flows,
+                                      current_evidence, load_evidence(identity), zero_count_flows,
                                       continuing_pairs)
         elapsed = None if not anchor['source_time'] else (now-instant(anchor['source_time'], zone)).total_seconds()
         result[name] = dict(cache[identity], actual_seconds=elapsed,
@@ -1154,7 +1162,8 @@ def _booth_story(event, candidates, replacement):
         fields.append(tcp)
     detail = {k: v for k, v in event.items() if k not in (
         'before', 'after', 'interpretation', 'fp_share_minus_previous_expectation_pp', 'pair_changed',
-        'rule_booth_tcp_estimates', 'rule_ranked_tcp_addition', 'rule_updated_tcp_after_fp_revision', 'rule_increment')}
+        'rule_booth_tcp_estimates', 'rule_unbenchmarked_fp', 'rule_ranked_tcp_addition',
+        'rule_updated_tcp_after_fp_revision', 'rule_increment')}
     if not fp_size or incidental_fp:
         detail.pop('fp_vote_change', None)
     if not tcp_size:

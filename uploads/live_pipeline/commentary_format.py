@@ -890,13 +890,45 @@ DISTRICT_TALLY = re.compile(r'\b(?:two-candidate(?:-preferred)? (?:count|tally)|
                             r'counted (?:TCP |two-candidate )?(?:lead|vote)|votes?\*{0,2} (?:ahead|behind))\b', re.I)
 
 
+def approximate_ballots(votes):
+    """Two significant digits keep a turnout projection visibly approximate.
+    Actual tallies and leads keep every vote. Avoid rounding a small positive
+    number of outstanding votes down to zero."""
+    places = max(0, len(str(int(votes))) - 2)
+    return round(votes, -places)
+
+
 def projected_remaining_votes(remaining):
     """Describe the forecast's net outstanding TCP ballots beside a measured
     lead. Even late in counting the turnout estimate can include revisions."""
     if remaining == 0:
         return 'The forecast expects no further net additions to this TCP count.'
     unit = 'vote' if remaining == 1 else 'votes'
-    return f'The forecast projects about **{remaining:,}** TCP {unit} still to come.'
+    return f'A rough estimate is **{approximate_ballots(remaining):,}** TCP {unit} remaining.'
+
+
+def remaining_votes_reduction(old, new):
+    return (f'The rough estimate of TCP votes remaining fell from **{approximate_ballots(old):,}** '
+            f'to **{approximate_ballots(new):,}**.')
+
+
+def checked_remaining_estimates(text, seats, packet):
+    """Allow rounded turnout estimates only in wording identifying them as
+    projections. The same rounded figures cannot substantiate an exact number
+    of ballots counted, added or leading in a district."""
+    for seat, count in packet.get('close_tcp_counts', {}).items():
+        if seats and seat not in seats:
+            continue
+        old, new = count.get('remaining_before'), count.get('remaining_after')
+        if new is None or new < 0:
+            continue
+        phrases = [projected_remaining_votes(new),
+                   f'roughly **{approximate_ballots(new):,}** votes allowing for revisions']
+        if old is not None and old > new:
+            phrases.append(remaining_votes_reduction(old, new))
+        for phrase in phrases:
+            text = text.replace(phrase, 'projected remaining votes')
+    return text
 
 
 def continued_pair_point(seat, packet):
@@ -932,8 +964,9 @@ def add_remaining_to_lead(seat, points, packet):
     lead = re.compile(r'(?<![\d,])'+re.escape(format(abs(account['lead_after']), ','))+r'(?![\d,%])')
     # The writer may already have given the quantity elsewhere in the section.
     # Keep its wording, including a remaining share alongside the vote count.
+    totals = '|'.join({format(remaining, ','), format(approximate_ballots(remaining), ',')})
     for sentence in commentary_counts.SEPARATOR.split(' '.join(points)):
-        if (re.search(r'(?<![\d,])'+format(remaining, ',')+r'(?![\d,%])', sentence)
+        if (re.search(r'(?<![\d,])(?:'+totals+r')(?![\d,%])', sentence)
                 and re.search(r'\b(remain(?:s|ing)?|outstanding|uncounted|to (?:come|count|be counted)|still expected|left)\b', sentence, re.I)):
             return points
     for index, point in enumerate(points):
@@ -1003,6 +1036,7 @@ def check_text(text, seats, packet, *, booth_points=None):
     stripped = checked_pending_tcp_estimates(text, seats, packet.get('ranked_tcp_groups', {}))
     if booth_points is not None:
         check_booth_tcp_context(stripped, seats, packet, booth_points)
+    stripped = checked_remaining_estimates(stripped, seats, packet)
     stripped = commentary_counts.checked_vote_changes(stripped, seats, packet)
     if packet.get('replacement_tcp_counts') or packet.get('district_preference_evidence'):
         stripped = re.sub(r'\*\*(\d+)\*\* (reporting units?|booths?)\b', r'**\1 \2**', stripped)

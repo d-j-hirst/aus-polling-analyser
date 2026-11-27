@@ -26,6 +26,7 @@ private:
     wxSpinCtrl* nextCount = nullptr;
     wxTextCtrl* previewText = nullptr;
     wxCheckBox* jointFpTrial = nullptr;
+    wxCheckBox* adjustTransferredCoalition = nullptr;
     wxStaticText* status = nullptr;
     wxButton* saveButton = nullptr;
     std::string scanError;

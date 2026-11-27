@@ -665,19 +665,52 @@ void retainPreferenceHistory(Snapshot& effective, PreferenceHistories const& his
     }
 }
 
+namespace {
+// The normal measured TCP and the existing correction for a known original
+// FP batch take priority. Only compare fresh, unidentified-stage allocations
+// of the same two finalists in a large cumulative count.
+std::optional<LiveDirectionalRecheck::Account> directionalAccount(Record const& record) {
+    if (!record.fp.fresh() || !record.tcp.fresh() || record.closed || record.tcp.votes->size()!=2 ||
+        record.tcp.stage==CountStage::Rechecked ||
+        (hasCurrentTcpBasis(record) && record.tcpBasis->fp!=*record.fp.votes)) return {};
+    auto const& fp = *record.fp.votes;
+    auto const& tcp = *record.tcp.votes;
+    auto first = tcp.begin(), second = std::next(first);
+    if (!fp.contains(first->first) || !fp.contains(second->first) || total(record.tcp.votes)<=0) return {};
+    return LiveDirectionalRecheck::Account{{first->first,second->first},int(total(record.fp.votes)),
+        fp.at(first->first),fp.at(second->first),first->second,second->second};
+}
+}
+
 PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& folder,
     Snapshot const& effective, PairHistoryRecordFilter const& include,
-    RetiredPairFlowEvidence* retiredFlows) {
+    RetiredPairFlowEvidence* retiredFlows, PreferenceHistories* revisionHistory) {
     PairPreferenceHistory result;
     if (retiredFlows) retiredFlows->cohorts.clear();
+    if (revisionHistory) {
+        // Recompute these transient bounds at this source time. Keep all
+        // other retained preference evidence, including on a repeated call.
+        for (auto& entry : *revisionHistory) entry.second.directionalRecheck.reset();
+    }
     // A smaller TCP total can represent exhaustion in OPV. This learning
     // path requires an FP batch and TCP count from the same set of ballots.
     if (effective.optionalPreferential) return result;
     RecordIndex current;
     LiveInputHistory::Selection selection;
+    std::set<std::string> learnPreferences;
+    std::map<std::string,LiveDirectionalRecheck::Tracker> revisions;
     for (auto const& record : effective.records) {
         if (record.closed || !record.fp.votes || total(record.fp.votes) <= 0) continue;
-        if (include && !include(record)) continue;
+        bool const learn = !include || include(record);
+        if (learn) learnPreferences.insert(record.key);
+        // Reuse the existing chronological traversal. Reading an older
+        // archive reconstructs the same evidence as accepting each capture
+        // live, even when some captures were skipped for simulation.
+        if (revisionHistory && !effective.districts.at(record.district).finalised &&
+            total(record.fp.votes)>=LiveDirectionalRecheck::MinimumBallots &&
+            total(record.tcp.votes)>=LiveDirectionalRecheck::MinimumBallots && directionalAccount(record))
+            revisions.try_emplace(record.key);
+        if (!learn && !revisions.contains(record.key)) continue;
         current.emplace(record.key,&record);
         selection[record.district].insert(record.key);
     }
@@ -764,9 +797,18 @@ PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& fol
                 snapshot.sourceTime >= effective.sourceTime) return;
             auto const& record = snapshot.records.front();
             auto const& now = *current.at(record.key);
-            if (sameRecordIdentity(now,record)) consider(record,now);
+            bool const same = sameRecordIdentity(now,record);
+            if (auto tracked = revisions.find(record.key); tracked != revisions.end())
+                tracked->second.observe(same ? directionalAccount(record) : std::nullopt);
+            if (same && learnPreferences.contains(record.key)) consider(record,now);
         });
-    for (auto const& [key,record] : current) consider(*record,*record);
+    for (auto const& [key,record] : current) {
+        if (learnPreferences.contains(key)) consider(*record,*record);
+        if (auto tracked = revisions.find(key); tracked != revisions.end()) {
+            tracked->second.observe(directionalAccount(*record));
+            if (tracked->second.revision) (*revisionHistory)[key].directionalRecheck = tracked->second.revision;
+        }
+    }
     std::erase_if(result,[](auto const& item) { return item.second.empty(); });
     if (retiredFlows) std::erase_if(retiredFlows->cohorts,[](auto const& item) { return item.second.empty(); });
     return result;

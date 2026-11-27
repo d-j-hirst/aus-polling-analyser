@@ -1,6 +1,7 @@
 #pragma once
 
-// Fit a district's primary movements jointly from ordinary election-day booths.
+// Fit a district's primary movements jointly from election-day booths and
+// separately reported, complete pre-poll centres.
 // Each row describes one location on the current ballot. It keeps its opening
 // political geography, even when another location is the first to report.
 #include <algorithm>
@@ -18,7 +19,16 @@ struct Venue {
     double turnout;
     bool ordinary;
     Mix historicalSupportTilts{};
+    // Only a stand-alone PPVC supplies this factor. Pooled Early votes and
+    // incremental venues retain the separate partial-count update.
+    std::optional<double> ppvcWeight{};
+    bool useDistrictCoalitionSplit = false;
 };
+
+// Weight of the opening district estimate when evidence crosses vote types,
+// in effective ballots. The same scale governs how much a PPVC result can
+// change the expected vote and the uncertainty about voters elsewhere.
+inline constexpr double CautiousPriorBallots = 1000.;
 
 inline double sum(Mix const& mix) { return std::accumulate(mix.begin(),mix.end(),0.); }
 
@@ -68,6 +78,38 @@ inline std::optional<Mix> fit(std::vector<Mix> const& rows, Mix const& weights, 
     return {};
 }
 
+// The previous ballot at some transferred locations could tell us how many
+// people voted Coalition, but not which partner they would choose if both ran.
+// Use the fitted district's split for their outstanding Coalition ballots.
+// Include all counted votes and all projected remaining votes in that
+// reference. A new district could consist almost entirely of transferred
+// booths. Using just a handful of counted votes there would discard the
+// estimate for everyone else and could put an entire partner on zero.
+inline void shareDistrictCoalitionSplit(std::vector<Venue> const& booths, Mix const& outstanding,
+    size_t lib, size_t nat, Mix& remainingVotes, std::vector<Mix>& venueShares) {
+    double districtLib = remainingVotes[lib], districtNat = remainingVotes[nat];
+    for (auto const& booth : booths) {
+        districtLib += booth.votes[lib];
+        districtNat += booth.votes[nat];
+    }
+    if (districtLib+districtNat<=0.) return;
+    double const fraction = districtNat/(districtLib+districtNat);
+    // Recompute the two outstanding district totals from the same rows that
+    // go to booth reporting. Each place keeps its combined Coalition vote.
+    remainingVotes[lib] = remainingVotes[nat] = 0.;
+    for (size_t b=0; b<booths.size(); ++b) {
+        if (outstanding[b]<=0.) continue;
+        auto& shares = venueShares[b];
+        if (booths[b].useDistrictCoalitionSplit) {
+            double const combined = shares[lib]+shares[nat];
+            shares[nat] = combined*fraction;
+            shares[lib] = combined-shares[nat];
+        }
+        remainingVotes[lib] += outstanding[b]*shares[lib];
+        remainingVotes[nat] += outstanding[b]*shares[nat];
+    }
+}
+
 // Return the forecast mix of *outstanding* ballots. First reconcile the
 // uncounted booth geography with the pre-election district mix, then apply
 // the same regional and statewide movements used by the simulation draw.
@@ -76,7 +118,8 @@ inline std::optional<Mix> fit(std::vector<Mix> const& rows, Mix const& weights, 
 // Reporting can also request the mix for each location's remaining voters.
 // These shares underlie the district result before its final blend.
 inline std::optional<Mix> remaining(std::vector<Venue> const& booths, Mix prior, Mix const& sharedOdds,
-    std::vector<Mix>* venueShares = nullptr) {
+    std::vector<Mix>* venueShares = nullptr, double* ppvcSample = nullptr,
+    double* ordinarySample = nullptr, std::optional<std::pair<size_t,size_t>> coalition = {}) {
     constexpr double BoothCap = 500.;
     std::vector<Mix> rows;
     Mix sizes;
@@ -93,7 +136,9 @@ inline std::optional<Mix> remaining(std::vector<Venue> const& booths, Mix prior,
     prior = conditionedShares(prior,sharedOdds);
     std::vector<Mix> evidence{prior};
     Mix weights{0.}; // The first row represents the opening estimate in each fit below.
-    Mix effectiveVotes(prior.size(),0.);
+    Mix ordinaryVotes(prior.size(),0.), ppvcVotes(prior.size(),0.);
+    std::vector<bool> fromPpvc{false};
+    double effectiveOrdinary = 0, effectivePpvc = 0;
     Mix outstanding(booths.size());
     std::vector<size_t> ordinaryPending, otherPending;
     for (size_t b=0; b<booths.size(); ++b) {
@@ -105,21 +150,26 @@ inline std::optional<Mix> remaining(std::vector<Venue> const& booths, Mix prior,
         outstanding[b] = std::max(0.,booth.turnout-n);
         if (outstanding[b]>0)
             (booth.ordinary ? ordinaryPending : otherPending).push_back(b);
-        if (!booth.ordinary || n<=0) continue;
+        if ((!booth.ordinary && !booth.ppvcWeight) || n<=0) continue;
         // 500 people at one site contribute 250 effective ballots about
         // other sites. All 500 remain in the actual counted account.
-        double reliability = 1./(1.+n/BoothCap);
+        double reliability = booth.ppvcWeight.value_or(1.)/(1.+n/BoothCap);
+        auto& effectiveVotes = booth.ppvcWeight ? ppvcVotes : ordinaryVotes;
+        (booth.ppvcWeight ? effectivePpvc : effectiveOrdinary) += n*reliability;
         for (size_t j=0; j<effectiveVotes.size(); ++j) {
             if (rows[b][j]==0 && booth.votes[j]>0) return {};
             effectiveVotes[j] += reliability*booth.votes[j];
         }
         weights.push_back(n*reliability);
+        fromPpvc.push_back(booth.ppvcWeight.has_value());
         evidence.push_back(rows[b]);
     }
     double const future = sum(outstanding);
     if (weights.size()==1 || future<=0) return {};
     // Keep the exact local comparison when requested for reporting. Once
     // counted, a ballot no longer belongs to these outstanding shares.
+    std::vector<Mix> temporaryShares;
+    if (coalition && !venueShares) venueShares = &temporaryShares;
     if (venueShares) venueShares->assign(booths.size(), {});
 
     // The same ordinary returns tell us more about other election-day booths
@@ -131,10 +181,16 @@ inline std::optional<Mix> remaining(std::vector<Venue> const& booths, Mix prior,
     Mix result(prior.size());
     auto addGroup = [&](std::vector<size_t> const& pending, double priorVotes) {
         if (pending.empty()) return true;
-        weights.front() = priorVotes;
-        Mix targets = effectiveVotes;
-        for (size_t j=0; j<prior.size(); ++j) targets[j] += priorVotes*prior[j];
-        auto shift = fit(evidence,weights,targets);
+        // A pre-poll centre samples a different voting population. Borrow it
+        // cautiously for both kinds of destination: scale its ballots and
+        // expected composition together to the 1,000-ballot opening strength.
+        auto fitWeights = weights;
+        fitWeights.front() = priorVotes;
+        double const ppvcScale = priorVotes/CautiousPriorBallots;
+        for (size_t i=1; i<fitWeights.size(); ++i) if (fromPpvc[i]) fitWeights[i] *= ppvcScale;
+        Mix targets = ordinaryVotes;
+        for (size_t j=0; j<prior.size(); ++j) targets[j] += ppvcScale*ppvcVotes[j]+priorVotes*prior[j];
+        auto shift = fit(evidence,fitWeights,targets);
         if (!shift) return false;
         for (size_t b : pending) {
             auto shares = tilted(rows[b],*shift);
@@ -144,7 +200,11 @@ inline std::optional<Mix> remaining(std::vector<Venue> const& booths, Mix prior,
         }
         return true;
     };
-    if (!addGroup(ordinaryPending,250.) || !addGroup(otherPending,1000.)) return {};
+    if (!addGroup(ordinaryPending,250.) || !addGroup(otherPending,CautiousPriorBallots)) return {};
+    if (coalition)
+        shareDistrictCoalitionSplit(booths,outstanding,coalition->first,coalition->second,result,*venueShares);
+    if (ppvcSample) *ppvcSample = effectivePpvc;
+    if (ordinarySample) *ordinarySample = effectiveOrdinary;
     for (double& p : result) p /= future;
     return result;
 }

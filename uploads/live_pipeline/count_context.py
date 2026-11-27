@@ -279,7 +279,7 @@ def add_matched_booth_expectations(replacements, events):
             count['previous_matched_booths_first_percent'] = sum(size * share for size, share in observations) / ballots
 
 
-def _lead_source_text(old_units, new_units, pair, lead_change, transferred_units):
+def _lead_source_text(old_units, new_units, pair, lead_change, transferred_units, added=0):
     """Locate a change in the published lead for the same two candidates.
 
     A batch of 230 votes for one finalist and 142 for the other moves their
@@ -288,9 +288,10 @@ def _lead_source_text(old_units, new_units, pair, lead_change, transferred_units
     district account. Only describe sources that reconcile to its full change.
     This arithmetic explains the counted lead, not the simulated win chance.
     """
-    if not lead_change:
+    if not lead_change and added < 100:
         return None
     by_location = defaultdict(int)
+    additions = defaultdict(int)
     first, second = pair
     for key in old_units.keys() | new_units.keys():
         if key in transferred_units:
@@ -299,11 +300,25 @@ def _lead_source_text(old_units, new_units, pair, lead_change, transferred_units
         old = mapped_tcp(before) or {}
         new = mapped_tcp(after) or {}
         delta = new.get(first, 0) - new.get(second, 0) - old.get(first, 0) + old.get(second, 0)
-        if delta:
+        if delta or not lead_change:
             unit = after or before
             name = unit.get('name') or key.rsplit('/', 1)[-1]
             location = 'the '+name+' count' if name == unit.get('vote_type') else name
             by_location[location] += delta
+            if not lead_change and old != new:
+                if (set(new) != set(pair) or (old and set(old) != set(pair))
+                        or any(new[p] < old.get(p, 0) for p in pair)):
+                    return None
+                additions[location] += sum(new.values()) - sum(old.values())
+    if not lead_change:
+        # Name the sources even when their contributions to the lead cancel.
+        # Only quote gross additions that reconcile to the district increase.
+        if sum(additions.values()) != added or not 1 <= len(additions) <= 3:
+            return None
+        ordered = sorted(additions.items(), key=lambda item: (-item[1], item[0]))
+        places = [f'**{votes:,}** in {name}' for name, votes in ordered]
+        locations = ', '.join(places[:-1])+' and '+places[-1] if len(places) > 1 else places[0]
+        return 'The additions were '+locations+'.'
     sources = sorted((name for name, delta in by_location.items() if delta),
                      key=lambda name: (-abs(by_location[name]), name))
     if not sources or sum(by_location.values()) != lead_change:
@@ -378,7 +393,8 @@ def district_tcp_changes(previous, current, seats, continuing_pairs=None, transf
             'counted_after': sum(after.values()), 'remaining_before': remaining_before, 'remaining_after': remaining_after}
         account = changes[district]
         source = _lead_source_text(old_units, new_units, account['pair'],
-                                   account['lead_after'] - account['lead_before'], transferred_units)
+                                   account['lead_after'] - account['lead_before'], transferred_units,
+                                   sum(account['net_by_candidate'].values()))
         if source:
             account['lead_source'] = source
         if district in (continuing_pairs or {}):

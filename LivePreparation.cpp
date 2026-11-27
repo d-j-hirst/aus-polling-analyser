@@ -895,7 +895,7 @@ TurnoutModelIO::Artifact LivePreparation::prepareCurrentInput()
 					coalition = coalition || index == 1 || (index >= 2 && index == nationals);
 				}
 				return !(labor && coalition);
-			}, splitCoalitionSeats.empty() ? nullptr : &retiredFlows);
+			}, splitCoalitionSeats.empty() ? nullptr : &retiredFlows, &preferenceHistory);
 		revisedCoalitionFlowHistory = std::move(retiredFlows.cohorts);
 	}
 	// Use the earlier FP batch for any TCP carried into the forecast during

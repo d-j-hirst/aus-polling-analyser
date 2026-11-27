@@ -55,42 +55,46 @@ def booth_projection_after_preferences(old, new, seat, previous, current, ranked
                                        earlier_tcp, expected_fp, measured_fp, reference_evidence, current_evidence):
     """Separate the news in the local FP mix from changes in the district
     outlook. A retained count or a ranked category allocation cannot establish
-    a preference estimate for this booth's FP-only ballots."""
+    a preference estimate for this booth's FP-only ballots. Return the TCP
+    comparison and whether the earlier FP and TCP estimates together require
+    reversing the preference lean of a party supplying most of the votes."""
     if previous['input_revision'] != current['input_revision'] or any(
             any(b.get('tcp_votes_current', {}).values()) for b in (old, new)):
-        return None
+        return None, False
     if any(e.get('booth_tcp_bounds', {}).get(booth_key) for e in (reference_evidence, current_evidence)):
-        return None
+        return None, False
     # Older captures can establish compulsory preferences through the simulator's
     # FP-based TPP account, which is only prepared in a full-preference election.
     optional = reference_evidence.get('optional_preferential')
     if optional or (optional is None and not reference_evidence.get('fp_based_tpp')):
-        return None
+        return None, False
     earlier, later = (s['seats'].get(seat, {}) for s in (previous, current))
     frequencies = later.get('pairing_percent', {})
     if not frequencies:
-        return None
+        return None, False
     pair = sorted(max(frequencies, key=frequencies.get).split('/'))
     if len(set(pair)) != 2 or len(pair) != 2 or (seat, frozenset(pair)) in ranked_pairs:
         # A ranked allocation for the whole category does not identify how
         # its transfers split at this booth. The older booth TCP is a
         # different calculation and cannot supply the missing ranked share.
-        return None
+        return None, False
     for party in pair:
         candidate = later.get('candidates', {}).get(party) or {}
         if not candidate.get('name') or candidate != earlier.get('candidates', {}).get(party):
-            return None
+            return None, False
 
     benchmark = earlier_tcp.get((booth_key, frozenset(pair)))
     if not benchmark or not sum(benchmark.values()):
-        return None
+        return None, False
     coalition = {p for p in new.get('fp_votes_projected', {})
                  if current.get('parties', {}).get(p) in ('LIB', 'LNP', 'LNQ', 'CLP', 'NAT')}
     coalition = booth_tcp.coalition_opponents(current_evidence, seat, coalition)
     if not booth_tcp.split(new, pair, coalition):
-        return None
+        return None, False
     rates = reference_evidence.get('classic_benchmark_labor_rates', {}).get(seat, {}).get('/'.join(pair))
-    return booth_tcp.fixed_flow_shares(pair, benchmark, expected_fp, measured_fp, rates)
+    if booth_tcp.requires_dominant_donor_reversal(pair, benchmark, expected_fp, rates):
+        return None, True
+    return booth_tcp.fixed_flow_shares(pair, benchmark, expected_fp, measured_fp, rates), False
 
 
 def additional_return(old, new, ledger, forecast):
@@ -263,6 +267,35 @@ def pool(units, party):
     return result
 
 
+def ordinary_revisions(events, districts):
+    """Identify a widespread update to FP tallies already on the board.
+    Report the net change across ordinary booths separately from new Early
+    or Postal batches. The feed establishes which candidate totals changed.
+    It need not identify a formal recheck stage."""
+    counts = defaultdict(list)
+    for event in events:
+        if event['kind'] != 'booths' or event.get('seat') not in districts:
+            continue
+        before, after = event.get('before') or {}, event.get('after') or {}
+        old, new = before.get('fp_votes_current') or {}, after.get('fp_votes_current') or {}
+        if (after.get('vote_type') == 'Ordinary' and old != new and old.keys() == new.keys()
+                and sum(old.values()) and sum(new.values())):
+            old_total = sum(old.values())
+            lost_votes = any(new[p] < old[p] for p in old)
+            counts[event['seat']].append((sum(new.values()) - old_total, old_total, lost_votes))
+    result = {}
+    for seat, rows in counts.items():
+        # Use a separate sentence for broad revisions, rather than for a
+        # handful of ongoing counts. Several booths must lose votes from
+        # at least one candidate, with little net change across the group.
+        net = sum(change for change, _, _ in rows)
+        total_before = sum(total for _, total, _ in rows)
+        with_losses = sum(lost_votes for _, _, lost_votes in rows)
+        if len(rows) >= 5 and with_losses >= len(rows)/2 and abs(net) <= .02 * total_before:
+            result[seat] = [len(rows), net]
+    return result
+
+
 def pooled_increment(units):
     """Compare only the new ballots. Weight each location's earlier expected
     share by the number actually added there during this comparison window.
@@ -350,7 +383,7 @@ def primary_centre(prior, count, ordinary, weight, earlier_breadth=None):
     fixed = row['fixed_fraction']
     district = fixed + remaining*future
     legacy = max(fixed, legacy)
-    return 100*(legacy + row['ordinary_fraction']*(district-legacy))
+    return 100*(legacy + (row['ordinary_fraction']+row.get('ppvc_fraction', 0))*(district-legacy))
 
 
 def primary_weight_check(event):
@@ -366,7 +399,8 @@ def primary_weight_check(event):
     snapshots = []
     for side in ('before', 'after'):
         model = (event.get(side) or {}).get('fp_integration') or {}
-        if model.get('method') not in ('local_precision', 'ordinary_vote_blend', 'cautious_ordinary_fit', 'split_ordinary_fit'):
+        if model.get('method') not in ('local_precision', 'ordinary_vote_blend', 'cautious_ordinary_fit',
+                                       'split_ordinary_fit', 'split_booth_fit'):
             return {}
         ordinary = {str(row['party_index']): (row, model['remaining_fraction'])
                     for row in model.get('ordinary_comparisons', [])}
@@ -663,6 +697,8 @@ def context(comparison, win_rows, flows):
     # Even when a booth has no earlier benchmark or its result points the
     # other way, we can say where votes were reported in this period.
     locations = defaultdict(list)
+    unbenchmarked_returns = {}
+    selected = {row['seat'] for row in win_rows}
     for event in events:
         if event['kind'] != 'booths' or not event.get('changed_votes'):
             continue
@@ -674,8 +710,17 @@ def context(comparison, win_rows, flows):
         declaration = category not in (None, 'Ordinary')
         if declaration and name.casefold() == category.casefold():
             name = 'the '+name+' count'
-        locations[event['seat']].append(dict(name=name, declaration=declaration, changed=event['changed_votes']))
+        seat = event['seat']
+        locations[seat].append(dict(name=name, declaration=declaration, changed=event['changed_votes']))
+        # Keep the largest first FP return with a rejected benchmark so the
+        # district story can still describe the observed votes.
+        actual = event.get('rule_unbenchmarked_fp', {})
+        if actual and seat in selected:
+            ballots = sum(actual.values())
+            if ballots >= 10 and ballots > unbenchmarked_returns.get(seat, {}).get('ballots', 0):
+                unbenchmarked_returns[seat] = dict(name=name, declaration=declaration, ballots=ballots, votes=actual)
     return {'pools': pools, 'tcp_sources': tcp_sources, 'primary_weight_checks': weights,
+            'unbenchmarked_fp': unbenchmarked_returns,
             'tcp_context': comparison.get('rule_tcp_context', {}),
             'count_locations': {s: (unit_names(units), sum(u['changed'] for u in units))
                                 for s, units in locations.items() if s in pools or s in counted},

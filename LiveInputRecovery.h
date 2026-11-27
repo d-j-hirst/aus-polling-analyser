@@ -3,6 +3,7 @@
 #include "json.h"
 #include "TurnoutModel.h"
 #include "LivePartialCount.h"
+#include "LiveDirectionalRecheck.h"
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -135,6 +136,7 @@ struct Snapshot {
 struct PreferenceHistory {
     std::optional<PreferenceCohort> matchingCurrentTcp, previousAligned;
     std::optional<PreferenceCohort> tcpBasis;
+    std::optional<LiveDirectionalRecheck::Revision> directionalRecheck;
 };
 using PreferenceHistories = std::map<std::string,PreferenceHistory>;
 // The local recovery lookup above selects the batch belonging to the active
@@ -151,9 +153,12 @@ struct RetiredPairFlowEvidence {
     RetiredPairFlowFilter include;
     PairPreferenceHistory cohorts;
 };
+// The optional revision history receives unresolved movements between FP
+// and TCP for the currently counted pair. These use the same earlier sources
+// even when the caller does not need to learn preference flows at that unit.
 PairPreferenceHistory loadPairPreferenceHistory(std::filesystem::path const& folder,
     Snapshot const& effective, PairHistoryRecordFilter const& include = {},
-    RetiredPairFlowEvidence* retiredFlows = nullptr);
+    RetiredPairFlowEvidence* retiredFlows = nullptr, PreferenceHistories* revisionHistory = nullptr);
 // Forecast-only TCP fallback for districts between published pairs. Each
 // record carries the old TCP and, where known, the FP account it counted.
 // These records are never committed as accepted observations of a new feed.

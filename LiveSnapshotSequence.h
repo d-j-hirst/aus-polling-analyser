@@ -32,6 +32,8 @@ struct Settings {
     std::vector<std::string> codes;
     // Session-only experiment. Reopening a project restores its codes and folder.
     bool jointFpTrial = false;
+    // Clearing this for a comparison affects only the current manual sequence.
+    bool adjustTransferredCoalition = true;
 };
 
 void saveSettings(SaveFileOutput& output, Settings const& settings);

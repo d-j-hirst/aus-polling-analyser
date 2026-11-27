@@ -812,6 +812,22 @@ void testCompetingFpEvidence() {
     for (auto const& [id,share] : initialComposition)
         assert(std::abs(first.future.at(id)-share)<.001);
     assert(breadthGate(first.evidence)<.001);
+    // An isolated pre-poll centre keeps its entire reported tally. Only
+    // its usefulness for predicting unreported voters changes with size.
+    assert(ppvcTransferWeight(false,111)==1 && ppvcTransferWeight(true,0)==1);
+    assert(ppvcTransferWeight(true,499)<1 && ppvcTransferWeight(true,500)==1 && ppvcTransferWeight(true,900)==1);
+    Unit ppvc{{{0,53},{1,31},{900,27}},{{0,53},{1,31},{900,27}},{0,1},1,1};
+    auto fullSample = collect({ppvc,unreported},1);
+    ppvc.transferWeight = ppvcTransferWeight(true,111);
+    ppvc.relevance *= ppvc.transferWeight;
+    auto discounted = prepare({ppvc,unreported},1);
+    assert(discounted.evidence.counted==ppvc.counted && adjusted(ppvc,discounted.factors)==ppvc.counted);
+    assert(discounted.evidence.completion==fullSample.completion);
+    assert(std::abs(discounted.evidence.sampleVotes()-24.642)<1e-8);
+    assert(std::abs(breadthGate(discounted.evidence)-.023485)<.00001);
+    assert(breadthGate(fullSample)>.09 && discounted.evidence.historicalConfidence.at(0)<fullSample.historicalConfidence.at(0));
+    auto mixed = collect({ordinary,ppvc,unreported},1);
+    assert(std::abs(mixed.sampleVotes()-1024.642)<1e-8 && mixed.observed==1111);
     // At the end of a replay, a never-used office can retain a vanishingly
     // small chance of reporting. Its positive future pool survives on its own
     // but disappears if added to, then subtracted from, a full counted group.

@@ -1085,7 +1085,9 @@ void LiveV2::Election::updateCoalitionMatchups(int district, CoalitionPreference
     int s = found->second.liveIndex;
     auto update = [&](CoalitionPreference::Shares const& primaries) {
         found->second.accounts.update(scenario,primaries,natPartyIndex,OthersIndex,seats[s].node.totalFpVotesProjected(),
-            [&](std::uint64_t term) { return variabilityNormal(0,1,s,term,CoalitionTcpDrawTag); });
+            [&](std::uint64_t term) { return variabilityNormal(0,1,s,term,CoalitionTcpDrawTag); },
+            {getAt(scenarioCoalitionRecheckVotes,std::pair{s,1},0.),
+             getAt(scenarioCoalitionRecheckVotes,std::pair{s,natPartyIndex},0.)});
     };
     // The live principal independent can occupy the emerging slot in this
     // scenario. Match that voter's party to the received FP and TCP cohorts.
@@ -1111,7 +1113,8 @@ std::optional<LiveData::CoalitionTcpShare> LiveV2::Election::getSeatCoalitionTcp
         seats[s].node.totalFpVotesProjected(),primaryShares,
         [&](std::size_t term) { return variabilityNormal(0,1,s,int(term),CoalitionTcpDrawTag); });
     if (estimate.total <= 0) return {};
-    double const labor = std::clamp(100*estimate.labor/estimate.total,0.,100.);
+    double const recheck = estimate.counted > 0 ? getAt(scenarioCoalitionRecheckVotes,std::pair{s,opponent},0.) : 0.;
+    double const labor = std::clamp(100*(estimate.labor+recheck)/estimate.total,0.,100.);
     return LiveData::CoalitionTcpShare{labor,estimate.counted > 0};
 }
 

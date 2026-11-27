@@ -14,13 +14,14 @@ import hashlib
 import json
 from pathlib import Path
 from statistics import median
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from xml.etree import ElementTree as ET
 
 from lib.paths import REPOSITORY_DIRECTORY
 from lib.turnout import category_policy, maintained_parameters, prior
 from scripts.elections.prepare_vec_2022_booths import save
-from scripts.turnout import turnout_prepare_live, turnout_vic_early
+from scripts.turnout import turnout_prepare_live, turnout_vic_early, turnout_vic_voting_statistics as statistics
 
 
 CATEGORIES = ['absent', 'early', 'ordinary', 'other', 'postal']
@@ -330,7 +331,14 @@ def _adapter_arguments(argv):
     parser.add_argument('election')
     parser.add_argument('--candidates', type=Path)
     parser.add_argument('--booths', type=Path)
-    return parser.parse_args(argv)
+    parser.add_argument('--voting-statistics', metavar='latest|FILE',
+        help='Use the completed VEC district voting statistics workbook from the website or a local file.')
+    parser.add_argument('--check-only', action='store_true',
+        help='Validate the selected workbook without writing any forecast inputs.')
+    args = parser.parse_args(argv)
+    if args.check_only and not args.voting_statistics:
+        parser.error('--check-only requires --voting-statistics latest or a filename')
+    return args
 
 
 def _load_victorian_sources(args):
@@ -351,14 +359,32 @@ def _load_victorian_sources(args):
         booths=args.booths or root / 'downloads' / (args.election + '_booths.xml'),
         previous_totals=root / 'analysis/Data/Turnout' / (previous + '.json'),
         previous_booths=root / 'analysis/Booth Results' / (previous + '.json'))
-    if 'early_vote_workbooks' in settings:
-        paths.update(turnout_vic_early.cached_workbooks(settings['early_vote_workbooks'],
-            root / 'downloads/turnout/vec-2026-public'))
+    cache = root / 'downloads/turnout/vec-2026-public'
+    pinned = cache / statistics.PINNED_NAME
+    workbook = None
+    summary = None
     observations = []
-    if not settings.get('early_postal_history'):
+    stats_settings = settings.get('voting_statistics')
+    if args.voting_statistics and not stats_settings:
+        raise ValueError('No district voting statistics workbook configured for ' + args.election)
+    if stats_settings and (args.voting_statistics or pinned.exists()):
+        if args.voting_statistics == 'latest':
+            workbook = statistics.latest_workbook(stats_settings['page'])
+        else:
+            path = Path(args.voting_statistics) if args.voting_statistics else pinned
+            workbook = path.read_bytes()
+        observations, summary = statistics.completed_observations(workbook, seat_metadata(paths['seats']),
+            stats_settings, settings['schedule']['poll_close'])
+        # Replace the historical share assumption for these two categories.
+        # Their within-district size weights still come from the early venue and recheck workbooks.
+        settings.pop('early_postal_history', None)
+    elif not settings.get('early_postal_history'):
         observations = json.loads((root / 'analysis/Data/Turnout' / (args.election + '.json')).read_text(encoding='utf-8'))['operational_observations']
+    if 'early_vote_workbooks' in settings and not args.check_only:
+        paths.update(turnout_vic_early.cached_workbooks(settings['early_vote_workbooks'],
+            cache))
     return SimpleNamespace(settings=settings, settings_path=settings_path, paths=paths,
-        observations=observations, election=args.election)
+        observations=observations, election=args.election, workbook=workbook, pinned=pinned, summary=summary)
 
 
 def _build_adapter_configuration(context):
@@ -385,6 +411,9 @@ def _record_adapter_provenance(config, context):
     config['sources'] = {key: dict(name=path.name, sha256=hashlib.sha256(path.read_bytes()).hexdigest()) for key, path in paths.items()}
     if context.settings.get('early_postal_history'):
         config['sources']['early_postal_basis'] = 'Previous formal vote shares scaled to the current roll.'
+    elif context.workbook is not None:
+        config['sources']['voting_statistics'] = dict(context.summary, name=statistics.PINNED_NAME,
+            sha256=hashlib.sha256(context.workbook).hexdigest(), page=context.settings['voting_statistics']['page'])
     else:
         config['sources']['operational_observations'] = dict(
             name=context.election + '.json: operational_observations only',
@@ -394,13 +423,12 @@ def _record_adapter_provenance(config, context):
         config['sources']['early_split_adapter_sha256'] = hashlib.sha256(Path(turnout_vic_early.__file__).read_bytes()).hexdigest()
 
 
-def _write_victorian_inputs(settings_path, config, audit, history):
+def _write_victorian_inputs(output, config, audit, history):
     """Save the private configuration and explanatory audit beside the election.
 
     The fixed count prior is generated separately from this normalized input;
     neither file contains a progressive live-result history.
     """
-    output = settings_path.parent / 'live-inputs'
     output.mkdir(parents=True, exist_ok=True)
     files = [('turnout-config.json', config), ('turnout-input-audit.json', audit)]
     if history is not None:
@@ -413,11 +441,35 @@ def _write_victorian_inputs(settings_path, config, audit, history):
 def main(argv=None):
     """Load evidence, configure district accounts and prepare the fixed live prior."""
     args = _adapter_arguments(argv)
-    context = _load_victorian_sources(args)
+    try:
+        context = _load_victorian_sources(args)
+    except (OSError, ValueError) as error:
+        raise SystemExit(str(error)) from error
+    if context.summary:
+        print('VEC figures through {through}: {districts} districts, {early_votes:,} early votes, '
+              '{postal_applications_net:,} net postal applications, {postal_returned:,} returned.'
+              .format(**context.summary))
+    if args.check_only:
+        return 0
     config, audit, history = _build_adapter_configuration(context)
     _record_adapter_provenance(config, context)
-    configuration_path = _write_victorian_inputs(context.settings_path, config, audit, history)
-    return turnout_prepare_live.main([str(configuration_path)])
+    output = context.settings_path.parent / 'live-inputs'
+    # Generate and validate the complete prior before replacing the source or live files.
+    # The saved workbook makes ordinary preparation repeatable offline after installation.
+    with TemporaryDirectory(dir=context.settings_path.parent) as temporary:
+        staging = Path(temporary)
+        configuration_path = _write_victorian_inputs(staging, config, audit, history)
+        prior_path = staging / 'turnout-prior.json'
+        turnout_prepare_live.main([str(configuration_path), '--output', str(prior_path)])
+        if args.voting_statistics:
+            context.pinned.parent.mkdir(parents=True, exist_ok=True)
+            save(context.pinned, context.workbook)
+        output.mkdir(parents=True, exist_ok=True)
+        for path in staging.glob('*.json'):
+            if path != prior_path:
+                path.replace(output / path.name)
+        prior_path.replace(output / prior_path.name)
+    return 0
 
 
 if __name__ == '__main__':

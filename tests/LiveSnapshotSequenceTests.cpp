@@ -106,11 +106,20 @@ int main() {
     auto saved = root / "selection.pol2";
     assert(!settings.jointFpTrial && !available.front().jointFpTrial);
     settings.jointFpTrial = true;
+    assert(settings.adjustTransferredCoalition);
+    assert(LiveResultsInput::transferredCoalitionAdjustmentEnabled(std::nullopt));
+    assert(LiveResultsInput::transferredCoalitionAdjustmentEnabled(available.front()));
+    auto comparison = available.front();
+    comparison.adjustTransferredCoalition = false;
+    assert(!LiveResultsInput::transferredCoalitionAdjustmentEnabled(comparison));
+    settings.adjustTransferredCoalition = false;
     { SaveFileOutput output(saved.string()); saveSettings(output, settings); }
     { SaveFileInput input(saved.string()); auto loaded = loadSettings(input, 67);
       assert(!loaded.jointFpTrial);
+      assert(loaded.adjustTransferredCoalition);
       assert(loaded.election == settings.election && loaded.folder == settings.folder && loaded.codes == settings.codes); }
     { SaveFileInput input(saved.string()); auto loaded = loadSettings(input, 66);
+      assert(loaded.adjustTransferredCoalition);
       assert(loaded.election.empty() && loaded.folder.empty() && loaded.codes.empty());
       std::string first; input >> first; assert(first == settings.election); }
 

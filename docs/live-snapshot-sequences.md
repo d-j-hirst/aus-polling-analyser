@@ -12,6 +12,21 @@ The trial learns from at least four matched election-day booths per candidate. I
 
 The main diagnostic records the setting in `run.joint_fp_support_trial`. In the analysis sidecar, `historical_support_fits` gives the number of matched ordinary booths and the slope for each candidate with at least four usable returns. A zero slope means the evidence was too weak or depended too much on one booth. A negative slope means the candidate underperformed their opening booth estimates more in previous strongholds. Its size is the change in natural log odds per unit of previous FP share, where one unit spans 0% to 100%.
 
+### Compare the Coalition split at transferred polling places
+
+All live forecasts use the same rule when a polling place moves into a district contested by both Liberal and National candidates. The old booth result supplies its starting combined Coalition support. How the forecast divides that support depends on who stood in the former district.
+
+- Where both stood, the forecast carries across how strongly the booth favoured one partner compared with the former district as a whole. For example, if voters at the booth gave NAT twice as many votes per Liberal vote as the former district did, the booth starts at twice the new district’s NAT-to-LIB ratio. Subsequent returns update this estimate through the usual district FP calculation.
+- Where only one stood, the receiving district supplies the opening split. Once counting begins, the forecast uses counted and projected outstanding Coalition votes across the district to update the split for those places. A fully counted booth keeps its reported votes.
+
+The rule applies to ordinary booths and separately reported pre-poll centres with identifiable historical results. To compare against the former method, clear **Adjust LIB/NAT estimates at transferred polling places (default on)** in **Configure snapshot sequence** and run the same capture codes with the same simulation settings. This choice applies only to manual sequences in the current session. Reopening a project restores the default.
+
+The main diagnostic records the effective setting in `run.transferred_coalition_split_enabled`. Older comparison runs used the field `run.transferred_coalition_split_trial`. In the detailed diagnostic a booth with two former partners reports its multiplier in `transferred_coalition_relative_nat_odds`. A booth with one reports `uses_district_coalition_split`.
+
+For a short check, the 2025 federal captures `20250503190547` and `20250503190717` bracket Pyalong’s first return in Bendigo, where both partners previously stood. The 2022 Victorian captures `20221126193003` and `20221126193504` do the same for Charlton in Mildura, where only one stood. Compare `fit_remaining_fp_percent` before the booth reports, then its counted FP in the next capture. A separate analysis reconstructs estimates across both replay archives and scores them against each booth’s first reported FP votes. [Historical comparison script](../analysis/scripts/exploratory/score_relative_coalition_split.py)
+
+In a 1,000-iteration check, Pyalong’s pre-return NAT estimate went from 91.5% with the trial off to 25.5% with it on. NAT received 23.0% of the 296 FP votes. Northam in Bullwinkel illustrates the risk in transferring the older local pattern. At capture `20250503211018` its NAT estimate went from 42.3% to 17.8%. NAT received 40.6% of the first 789 votes there.
+
 ## Prepare the inputs
 
 Set up and run the election's automatic live simulation normally first, including its previous-election results, preload data, base projection and turnout inputs. A sequence uses those same settings and iteration count. All participating live simulations must use the same election. Manual live simulations are not supported by the current live pipeline.

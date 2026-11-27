@@ -110,7 +110,8 @@ struct Prepared {
     double broadLogOdds = 0; // Measured election and regional movement in minor preferences to Labor.
     std::vector<FlowEvidence> evidence;
     template<class Normal>
-    void update(CoalitionPreference::Scenario&,CoalitionPreference::Shares const&,int,int,double,Normal) const;
+    void update(CoalitionPreference::Scenario&,CoalitionPreference::Shares const&,int,int,double,Normal,
+        std::array<double,2> countedRevisions = {}) const;
     std::array<double,4> futureTotals{}, countedPrimaries{};
     std::array<double,2> pendingTotals{}, countedTotals{};
     double future = 0, minimumFormal = 0, genericOtherLogOdds = 0;
@@ -389,7 +390,7 @@ GeographicFlowDraw drawGeographicFlows(Prepared const& model, Normal normal) {
 // A label change supplies neither ballots nor a preference observation.
 template<class Normal>
 void Prepared::update(CoalitionPreference::Scenario& scenario, CoalitionPreference::Shares const& current,
-    int national, int others, double turnout, Normal normal) const {
+    int national, int others, double turnout, Normal normal, std::array<double,2> countedRevisions) const {
     // The ordinary seat calculation can learn about preferences from
     // comparable counts elsewhere before any local TCP. Give both matchups
     // that same evidence for their minor voters. The local fit below then
@@ -457,7 +458,11 @@ void Prepared::update(CoalitionPreference::Scenario& scenario, CoalitionPreferen
         if (!countedTotals[p] && evidence.empty()) continue;
         auto finalist = p ? SourceGroup::National : SourceGroup::Liberal;
         double const outstanding = std::max(0.,total-countedTotals[p]-pendingTotals[p]);
-        double labor = 0.;
+        // A revision to a counted Labor–Liberal ballot also enters the
+        // separate Liberal matchup, while the National matchup keeps its
+        // own observed allocation. Both use the draw already made at the
+        // booth. Its turnout and the outstanding preference pool stay fixed.
+        double labor = countedTotals[p] > 0 ? countedRevisions[p] : 0.;
         CoalitionPreference::Shares futureByParty, futureLabor;
         auto rate = [&](Source const& source,double other,std::size_t booth) {
             if (source.group == SourceGroup::Labor) return 1.;

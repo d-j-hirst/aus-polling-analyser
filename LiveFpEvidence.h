@@ -20,6 +20,15 @@ using Shares = LiveNewVotes::Shares;
 inline constexpr double AbsoluteStrength = .5;
 inline constexpr int CompetitionPower = 4;
 inline constexpr double EvidenceVotes = 500;
+// A small stand-alone pre-poll centre can serve an unusual subset of the
+// district's voters (for example commuters voting in the city). For learning
+// about other voters, assume its relevance rises linearly to full strength at
+// 500 ballots. This threshold is a modelling choice. A pooled declaration
+// count or the first instalment from a mixed venue is not a small centre.
+inline double ppvcTransferWeight(bool standalonePpvc, int formal) {
+    constexpr double fullSize = 500;
+    return standalonePpvc && formal > 0 ? std::min(1., formal/fullSize) : 1.;
+}
 inline constexpr double EarlyUncertaintyCompletion = .1;
 struct Unit {
     // Maps are keyed by ballot candidate identity, never modelling-slot order.
@@ -34,6 +43,7 @@ struct Unit {
     // ordinary returns at their actual locations. Empty in other forecasts.
     std::optional<std::pair<int,double>> geographicShare;
     bool namedEarlyEstimate = false;
+    double transferWeight = 1;
 };
 struct Evidence {
     // Historical/absolute contain *remaining vote counts*. The confidence
@@ -42,6 +52,10 @@ struct Evidence {
     double completion = 0, observed = 0, breadth = 0;
     Shares counted, historical, absolute, historicalConfidence;
     std::optional<int> geographicParty;
+    // These votes stay in the tally and completion. Deduct their discounted
+    // portion only when using this count as a sample of outstanding voters.
+    double discountedVotes = 0;
+    double sampleVotes() const { return observed-discountedVotes; }
 };
 struct Prepared {
     Evidence evidence;
@@ -75,7 +89,7 @@ inline Shares remainder(Unit const& unit) {
 }
 inline Evidence collect(std::vector<Unit> const& units, double seatConfidence) {
     Evidence evidence;
-    Shares ordinary;
+    Shares ordinary, pooledSample;
     // Each group supplies a current composition for the same kind of voting
     // location/category in this seat. Keep its remaining voters separate from
     // its counted votes: subtracting two large, nearly equal group totals can
@@ -95,7 +109,10 @@ inline Evidence collect(std::vector<Unit> const& units, double seatConfidence) {
         add(evidence.historical,future);
         double size = total(unit.counted);
         expected += total(unit.projected);
-        squaredSizes += size*size;
+        double sampleSize = size*unit.transferWeight;
+        evidence.discountedVotes += size-sampleSize;
+        squaredSizes += sampleSize*sampleSize;
+        for (auto const& [id,votes] : unit.counted) pooledSample[id] += votes*unit.transferWeight;
         if (unit.ordinary) add(ordinary,unit.counted);
         for (int id : unit.comparable) evidence.historicalConfidence[id] += size*unit.relevance;
         // These future voters already have an early-centre comparison adjusted
@@ -108,7 +125,7 @@ inline Evidence collect(std::vector<Unit> const& units, double seatConfidence) {
             continue;
         }
         auto& group = groups[unit.group];
-        add(group.counted,unit.counted);
+        for (auto const& [id,votes] : unit.counted) group.counted[id] += votes*unit.transferWeight;
         double pool = total(future);
         group.remaining += pool;
         if (unit.geographicShare) {
@@ -120,10 +137,10 @@ inline Evidence collect(std::vector<Unit> const& units, double seatConfidence) {
     }
     evidence.observed = total(evidence.counted);
     evidence.completion = expected > 0 ? evidence.observed/expected : 0;
-    evidence.breadth = squaredSizes > 0 ? evidence.observed*evidence.observed/squaredSizes : 0;
+    evidence.breadth = squaredSizes > 0 ? evidence.sampleVotes()*evidence.sampleVotes()/squaredSizes : 0;
     for (auto& [id,v] : evidence.historicalConfidence) v = expected > 0 ? std::min(seatConfidence,v/expected) : 0;
     if (evidence.historical.empty() || total(evidence.historical) == 0) return evidence;
-    auto background = smoothed(total(ordinary)>0 ? ordinary : evidence.counted,evidence.historical);
+    auto background = smoothed(total(ordinary)>0 ? ordinary : pooledSample,evidence.historical);
     for (auto const& [id,group] : groups) {
         double counted = total(group.counted), pool = group.remaining;
         double target = counted+pool;
@@ -150,10 +167,11 @@ inline double breadthGate(Evidence const& evidence) {
     // Effective reporting locations is N^2 / sum(n_i^2): ten equally sized
     // booths give ten, while one dominant batch remains close to one. Half a
     // thousand votes and one location stabilise the first small observations.
-    return evidence.observed/(evidence.observed+EvidenceVotes)*evidence.breadth/(evidence.breadth+1);
+    return evidence.sampleVotes()/(evidence.sampleVotes()+EvidenceVotes)*evidence.breadth/(evidence.breadth+1);
 }
 inline double absoluteWeight(Evidence const& evidence, int party) {
     double absolute = AbsoluteStrength*evidence.completion;
+    if (evidence.observed > 0) absolute *= evidence.sampleVotes()/evidence.observed;
     double historical = value(evidence.historicalConfidence,party);
     double a = std::pow(absolute,CompetitionPower), h = std::pow(historical,CompetitionPower);
     return a+h > 0 ? a/(a+h)*breadthGate(evidence) : 0;

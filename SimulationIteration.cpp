@@ -3537,38 +3537,9 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 				int const incumbentPartyIndex =
 					project.parties().idToIndex(seat.incumbent);
 				if (partyIndex == incumbentPartyIndex) continue;
-				if (seatFpVoteShare[seatIndex].contains(partyIndex)) {
-					// Prevent an upward national correction from creating
-					// implausibly large swings in an already-strong seat.
-					double const swingCap = std::max<double>(
-						0.0,
-						vote * (correctionFactor - 1.0) * 3.0);
-					double const correctionSwing = std::min<double>(
-						swingCap,
-						seatFpVoteShare[seatIndex].at(partyIndex) *
-							(correctionFactor - 1.0));
-					if (partyIndex == EmergingPartyIndex) {
-						// Emerging-party support is often spread thinly across
-						// many seats. The capped logit derivative would suppress
-						// most of this aggregate correction at low seat shares.
-						double const currentVote =
-							seatFpVoteShare[seatIndex].at(partyIndex);
-						double const correctedVote =
-							correctionFactor < 1.0 ?
-							currentVote * correctionFactor :
-							currentVote + correctionSwing;
-						if (!std::isfinite(correctedVote)) {
-							throw InvalidIteration();
-						}
-						seatFpVoteShare[seatIndex][partyIndex] =
-							std::clamp<double>(correctedVote, 0.01, 99.0);
-					}
-					else {
-						seatFpVoteShare[seatIndex][partyIndex] =
-							predictorCorrectorTransformedSwing<double>(
-								seatFpVoteShare[seatIndex].at(partyIndex),
-								correctionSwing);
-					}
+				if (!MinorPartyFpMath::reconcilePartyPrimary(
+					seatFpVoteShare[seatIndex], partyIndex, vote, correctionFactor)) {
+					throw InvalidIteration();
 				}
 			}
 		}
@@ -3582,6 +3553,9 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 				double totalOthers = 0.0;
 				for (auto const& [seatPartyIndex, seatPartyVote] :
 					seatFpVoteShare[seatIndex]) {
+					// Divide the Others correction among its positive components.
+					// An empty slot receives no share and needs no log-odds transform.
+					if (seatPartyVote == 0.0) continue;
 					// Preserve known independents, quasi-independents and
 					// incumbents: their local support need not follow a national
 					// Others trend. Hypothetical emerging independents do.

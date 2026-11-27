@@ -37,7 +37,7 @@ def official_results(election):
     Use the distribution only to identify the final pair and their final totals.
     """
     truth = defaultdict(lambda: {'fp': [], 'tcp': []})
-    if election in ('2022vic','2025fed'):
+    if election in ('2018vic', '2022vic', '2022fed', '2025fed'):
         codes = {'Labor':'ALP','Liberal':'LIB','National':'NAT','Greens':'GRN','Independent':'IND',
                  'One Nation':'ON','Centre Alliance':'CA',"Katter's Australian":'KAP'}
         with (ROOT/f'analysis/elections/results_{election}.csv').open(encoding='utf-8-sig', newline='') as f:

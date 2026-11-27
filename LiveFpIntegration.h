@@ -286,6 +286,11 @@ inline double ordinaryRemainingShare(LiveData::FpBoothComparison const& b,
     // A ballot candidate with no prior of their own or allocated from Others
     // has only the booth distribution. Usually both sources supply a draw.
     if (!b.priorCentre) return boothRemaining;
+    // A complete early centre updates all candidates together. Let it reduce
+    // their prior variation only as far as its sample supports a change in
+    // their expected shares. Ordinary returns still supply their own precision.
+    if (b.fittedRemaining && b.ppvcEvidenceFraction > 0)
+        precision = std::lerp(precision,b.jointResponse,b.ppvcEvidenceFraction);
     double const boothOdds = logOdds(boothRemaining);
     double const drawDeviation = (1-precision)*(logOdds(prior)-*b.priorCentre)
         + precision*(boothOdds-b.boothRemainingCentre);
@@ -388,9 +393,9 @@ inline std::map<int,double> allocateOutstanding(LiveTurnoutMath::PartyAccount co
     std::map<int,double> integrated, std::map<int,OrdinaryTarget> const& ordinaryTargets,
     double total, double counted) {
     if (ordinaryTargets.empty()) return integrated;
-    // The trial measures ordinary venues. As other modes report, give their
-    // established count integration its share of the evidence. Never treat
-    // successive postal batches as different corroborating polling places.
+    // The joint fit covers election-day booths and stand-alone early centres.
+    // Other modes retain their share of the existing count integration.
+    // Successive postal batches do not represent independent polling places.
     // Candidates can have different coverage, so balance the outstanding
     // ballots together before adding back this draw's accepted counts.
     double const future = total-counted;
@@ -418,7 +423,8 @@ std::map<int,double> integrate(LiveTurnoutMath::PartyAccount const& account,
     // The conditional prior has already received accepted election/regional
     // movement. Prepare the established precision update for declarations and
     // anonymous groups, and a comparison at the actual reporting locations
-    // for named ordinary FP. The counted ballots are common to both.
+    // for named candidates at election-day booths and stand-alone early
+    // centres. The counted ballots are common to both.
     if (information.evidenceGate == 0) {
         double counted = 0;
         for (auto const& [id,n] : account.counted) counted += n;
@@ -472,7 +478,7 @@ std::map<int,double> integrate(LiveTurnoutMath::PartyAccount const& account,
             double const boothRemaining = std::clamp((account.projected.at(id)-value(account.counted,id))
                 /(total-counted),0.,1.);
             ordinaryTargets[id] = {ordinaryRemainingShare(comparison->second,p,boothRemaining,weight),
-                comparison->second.ordinary/information.reportedFormal};
+                (comparison->second.ordinary+comparison->second.ppvcFormal)/information.reportedFormal};
         }
     }
     return allocateOutstanding(account,constrainToCounted(account,std::move(target)),ordinaryTargets,total,counted);

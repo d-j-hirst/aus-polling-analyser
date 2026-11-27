@@ -110,6 +110,7 @@ struct BoothObservation {
     int boothIndex;
     std::optional<PreferenceTransfer> previous, current;
     bool awaitingTcp;
+    double transferWeight = 1; // Relevance of the current centre to voters elsewhere.
 };
 
 // Return the preference fraction to the independent at eligible *uncounted*
@@ -121,14 +122,14 @@ inline std::map<int, double> estimate(std::vector<BoothObservation> const& booth
     double matchedVotes = 0, matchedReceived = 0;
     bool hasTarget = false;
     for (auto const& booth : booths) {
-        if (booth.current) currentVotes += booth.current->votes;
+        if (booth.current) currentVotes += booth.transferWeight * booth.current->votes;
         if (!booth.previous) continue;
         hasTarget |= booth.awaitingTcp;
         historicalVotes += booth.previous->votes;
         historicalReceived += booth.previous->received;
         if (booth.current) {
-            matchedVotes += booth.current->votes;
-            matchedReceived += booth.current->received;
+            matchedVotes += booth.transferWeight * booth.current->votes;
+            matchedReceived += booth.transferWeight * booth.current->received;
         }
     }
     if (!matchedVotes || !hasTarget) return {};
@@ -149,7 +150,7 @@ inline std::map<int, double> estimate(std::vector<BoothObservation> const& booth
     std::vector<std::pair<double, double>> comparisons;
     for (auto const& booth : booths) {
         if (booth.previous && booth.current)
-            comparisons.emplace_back(historicalLogOdds(*booth.previous), booth.current->votes);
+            comparisons.emplace_back(historicalLogOdds(*booth.previous), booth.transferWeight * booth.current->votes);
     }
     // These numerical limits cover near-unanimous counts in either direction.
     double lower = -32, upper = 32;

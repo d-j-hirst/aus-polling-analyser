@@ -283,6 +283,32 @@ def comparison_benchmarks(previous, current, old_evidence, new_evidence, changed
     return reference_fp, expectations(previous, old_evidence, wanted, ranked, reference_fp)
 
 
+def requires_dominant_donor_reversal(pair, earlier_tcp, expected_fp, source_rates):
+    """Check whether the booth benchmark needs a clear preference lean to reverse.
+
+    If one eliminated candidate supplies more than half the expected FP votes,
+    their transfers can make up most of the TCP. Use the stronger evidence of a
+    60–40 starting lean or more. Give every other transferable ballot to the
+    finalist who needs them before judging whether the dominant donor would
+    have to favour the opposite finalist. This tests the safety of quoting
+    the comparison. The simulator's district forecast is a separate estimate.
+    """
+    size = sum(expected_fp.values())
+    donors = {p: n for p, n in expected_fp.items() if p not in pair and n > size/2}
+    if not source_rates or not donors:
+        return False
+    donor, votes = next(iter(donors.items()))
+    rate = source_rates.get(donor)
+    if rate is None:
+        return False
+    first, second = pair
+    earlier_first = size * earlier_tcp[first]/sum(earlier_tcp.values())
+    minimum = expected_fp.get(first, 0) + votes/2
+    maximum = size - expected_fp.get(second, 0) - votes/2
+    return ((rate >= .6 and earlier_first < minimum-.01) or
+            (rate <= .4 and earlier_first > maximum+.01))
+
+
 def projected_transfers(pair, earlier_tcp, expected_fp, new_fp, labor_rates):
     """Estimate transfers to the first finalist when the FP mix changes.
 
@@ -319,15 +345,18 @@ def projected_transfers(pair, earlier_tcp, expected_fp, new_fp, labor_rates):
         # Vary a common offset on the log-odds scale. The total is monotone
         # so bisection finds the split in a bounded number of steps.
         odds = {p: labor_rates[p]/(1-labor_rates[p]) for p in donors}
+        # The earlier FP totals stay fixed throughout the fit. Only build
+        # the per-party rates once the adjustment for this booth is known.
+        fitting_counts = [(expected_fp.get(p, 0), q) for p, q in odds.items()]
         low, high = -50., 50.
         for _ in range(45):
             mid = (low + high)/2
             factor = math.exp(-mid)
-            rates = {p: q/(q+factor) for p,q in odds.items()}
-            if sum(expected_fp.get(p, 0)*r for p,r in rates.items()) < transfers:
+            if sum(count * (q/(q+factor)) for count, q in fitting_counts) < transfers:
                 low = mid
             else:
                 high = mid
+        rates = {p: q/(q+factor) for p, q in odds.items()}
     return sum(new_fp.get(p, 0)*r for p,r in rates.items())
 
 

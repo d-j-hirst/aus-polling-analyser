@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory, Position=0)]
-    [ValidateSet('prepare', 'check-election', 'publish-election', 'rehearsal', 'election')]
+    [ValidateSet('prepare', 'refresh-turnout', 'check-election', 'publish-election', 'rehearsal', 'election')]
     [string]$Mode,
     [switch]$Watch,
     [ValidateSet('rehearsal','election')]
@@ -14,6 +14,16 @@ if ($PrepareFor -and $Mode -ne 'prepare') { throw '-PrepareFor applies to prepar
 if ($Watch -and $Mode -notin 'rehearsal','election') { throw '-Watch applies to a feed collector only.' }
 $root = Split-Path $PSScriptRoot -Parent
 $python = Join-Path $root 'analysis/.venv-win/Scripts/python.exe'
+if ($Mode -eq 'refresh-turnout') {
+    # Uses only the public VEC website and the already prepared local inputs.
+    Push-Location (Join-Path $root 'analysis')
+    try {
+        & $python -B -m scripts.turnout.turnout_prepare_vic 2026vic --voting-statistics latest
+        exit $LASTEXITCODE
+    } finally {
+        Pop-Location
+    }
+}
 if ($Mode -eq 'publish-election') {
     # The official publisher can wait through long gaps in post-election
     # counting. It reads its own login and has no need for the feed credential.

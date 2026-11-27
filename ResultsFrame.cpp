@@ -370,6 +370,7 @@ void ResultsFrame::OnRunSnapshotSequence(wxCommandEvent&)
         std::vector<LiveSimulationJob::Input> inputs;
         for (auto& file : files) {
             file.jointFpTrial = settings.jointFpTrial;
+            file.adjustTransferredCoalition = settings.adjustTransferredCoalition;
             inputs.push_back(std::move(file));
         }
         refresher.startLiveRun(std::move(inputs));
